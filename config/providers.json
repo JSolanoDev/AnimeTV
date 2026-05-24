@@ -1,0 +1,7 @@
+{
+  "providers": [
+    { "id": "anipub", "name": "AniPub", "type": "iframe", "enabled": true },
+    { "id": "jimov-tioanime", "name": "JIMOV TioAnime", "type": "addon", "enabled": true },
+    { "id": "anime1v", "name": "Anime1v", "type": "direct-video", "enabled": true }
+  ]
+}

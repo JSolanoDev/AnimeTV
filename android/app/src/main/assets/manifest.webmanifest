@@ -1,0 +1,17 @@
+{
+  "name": "AnimeTV",
+  "short_name": "AnimeTV",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#111026",
+  "theme_color": "#282145",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

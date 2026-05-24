@@ -1,0 +1,6 @@
+{
+  "defaultAudio": "japanese",
+  "defaultSubtitles": "spanish",
+  "audio": ["japanese", "spanish", "english"],
+  "subtitles": ["spanish", "spanish-translated", "english", "none"]
+}

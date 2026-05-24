@@ -1,0 +1,12 @@
+services:
+  animetv:
+    build: .
+    container_name: animetv
+    restart: unless-stopped
+    ports:
+      - "4173:4173"
+    environment:
+      PORT: "4173"
+      HOST: "0.0.0.0"
+      ANIME1V_API: "http://host.docker.internal:3001"
+      ANIME1V_AUTO_START: "false"

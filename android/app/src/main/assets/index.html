@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#251d47">
+    <title>AnimeTV</title>
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="shortcut icon" href="icon.svg">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="stylesheet" href="styles.css?v=142">
+  </head>
+  <body>
+    <div class="app-loader" id="appLoader" role="status" aria-live="polite">
+      <div class="loader-mark" aria-hidden="true">
+        <span class="loader-screen"></span>
+        <span></span>
+      </div>
+      <strong>AnimeTV</strong>
+      <small>Preparing your anime hub...</small>
+    </div>
+
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand focusable" href="#home" data-route="home" data-nav-label="Home">
+          <span class="brand-mark" aria-hidden="true">
+            <span class="brand-screen"></span>
+            <span class="brand-spark brand-spark-one"></span>
+            <span class="brand-spark brand-spark-two"></span>
+          </span>
+          <span class="brand-copy">
+            <strong>AnimeTV</strong>
+            <small>ANIME STREAM HUB</small>
+          </span>
+        </a>
+
+        <nav class="main-nav" aria-label="Primary">
+          <button class="nav-link focusable is-active" data-route="home">
+            <span aria-hidden="true">⌂</span>
+            Home
+          </button>
+          <button class="nav-link focusable" data-route="library">
+            <span aria-hidden="true">▣</span>
+            Search
+          </button>
+          <button class="nav-link focusable" data-route="schedule">
+            <span aria-hidden="true">★</span>
+            Schedule
+          </button>
+          <button class="nav-link focusable" data-route="anipub">
+            <span aria-hidden="true">▶</span>
+            AniPub
+          </button>
+          <button class="nav-link focusable" data-route="favorites">
+            <span aria-hidden="true">♥</span>
+            Favorites
+          </button>
+          <button class="nav-link focusable" data-route="sources">
+            <span aria-hidden="true">◉</span>
+            Sources
+          </button>
+          <button class="nav-link focusable" data-route="settings">
+            <span aria-hidden="true">⚙</span>
+            Settings
+          </button>
+        </nav>
+
+        <button class="sidebar-toggle focusable" id="sidebarToggle" type="button" aria-label="Hide sidebar labels" aria-pressed="false">
+          <span aria-hidden="true">‹</span>
+        </button>
+
+        <label class="search-box">
+          <span class="sr-only">Search shows</span>
+          <input class="focusable" id="searchInput" type="search" placeholder="Search..." autocomplete="off">
+          <span aria-hidden="true">⌕</span>
+        </label>
+      </header>
+
+      <main>
+        <section class="hero" id="home" data-section="home">
+          <div class="today-carousel" aria-label="Today's anime carousel">
+            <div class="carousel-stage focusable" id="carouselStage" tabindex="0" aria-label="Open selected carousel anime">
+              <div class="carousel-backdrop" id="carouselBackdrop"></div>
+              <div class="hero-motion" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <div class="carousel-poster-wrap" id="carouselPosterWrap">
+                <img class="carousel-poster" id="carouselPoster" alt="">
+              </div>
+              <div class="carousel-info">
+                <p class="eyebrow">Featured Now</p>
+                <h2 id="carouselTitle">Loading anime...</h2>
+                <p id="carouselText">Fetching today's anime from AniList and Jikan.</p>
+                <p class="carousel-meta-line" id="carouselMeta">Loading</p>
+                <button class="play-action focusable" id="carouselOpen">
+                  <span class="play-icon" aria-hidden="true"></span>
+                  <span>Play</span>
+                </button>
+              </div>
+              <div class="carousel-indicators" id="carouselIndicators" aria-label="Featured anime selector"></div>
+            </div>
+          </div>
+          <p class="source-status" id="sourceStatus">Syncing anime metadata...</p>
+        </section>
+
+        <label class="search-box stremio-search">
+          <span class="sr-only">Search shows</span>
+          <input class="focusable" id="searchInputTop" type="search" placeholder="Search anime, seasons, episodes..." autocomplete="off">
+          <span aria-hidden="true">⌕</span>
+        </label>
+
+        <section class="content-band" id="latest" data-section="latest">
+          <div class="section-heading">
+            <span class="hot-dot" aria-hidden="true"></span>
+            <h2>Latest Episodes</h2>
+          </div>
+          <div class="rail-shell">
+            <button class="rail-arrow rail-arrow-left focusable" data-scroll-rail="latestGrid" data-scroll-dir="-1" aria-label="Scroll latest episodes left">‹</button>
+            <div class="poster-grid" id="latestGrid"></div>
+            <button class="rail-arrow rail-arrow-right focusable" data-scroll-rail="latestGrid" data-scroll-dir="1" aria-label="Scroll latest episodes right">›</button>
+          </div>
+        </section>
+
+        <div class="addon-sections" id="addonSections" aria-live="polite"></div>
+
+        <section class="content-band is-hidden" id="library" data-section="library">
+          <div class="section-heading">
+            <span class="library-dot" aria-hidden="true"></span>
+            <h2>Anime Library</h2>
+          </div>
+          <label class="search-box library-search">
+            <span class="sr-only">Search anime library</span>
+            <input class="focusable" id="searchInputLibrary" type="search" placeholder="Search anime..." autocomplete="off">
+            <span aria-hidden="true">⌕</span>
+          </label>
+          <div class="filters" role="group" aria-label="Genre filters">
+            <button class="chip focusable is-selected" data-filter="all">All</button>
+            <button class="chip focusable" data-filter="action">Action</button>
+            <button class="chip focusable" data-filter="comedy">Comedy</button>
+            <button class="chip focusable" data-filter="fantasy">Fantasy</button>
+            <button class="chip focusable" data-filter="romance">Romance</button>
+          </div>
+          <div class="rail-shell">
+            <button class="rail-arrow rail-arrow-left focusable" data-scroll-rail="libraryGrid" data-scroll-dir="-1" aria-label="Scroll anime library left">‹</button>
+            <div class="poster-grid" id="libraryGrid"></div>
+            <button class="rail-arrow rail-arrow-right focusable" data-scroll-rail="libraryGrid" data-scroll-dir="1" aria-label="Scroll anime library right">›</button>
+          </div>
+        </section>
+
+        <section class="content-band is-hidden" id="schedule" data-section="schedule">
+          <div class="section-heading">
+            <span class="calendar-dot" aria-hidden="true"></span>
+            <h2>Weekly Schedule</h2>
+          </div>
+          <div class="schedule-list" id="scheduleList"></div>
+        </section>
+
+        <section class="content-band is-hidden" id="anipub" data-section="anipub">
+          <div class="section-heading">
+            <span class="anipub-dot" aria-hidden="true"></span>
+            <h2>AniPub</h2>
+            <small id="anipubSummary">External playback catalog</small>
+          </div>
+          <label class="search-box anipub-search">
+            <span class="sr-only">Search AniPub</span>
+            <input class="focusable" id="searchInputAniPub" type="search" placeholder="Search AniPub..." autocomplete="off">
+            <span aria-hidden="true">⌕</span>
+          </label>
+          <div class="filters" role="group" aria-label="AniPub genre filters">
+            <button class="chip focusable is-selected" data-filter="all">All</button>
+            <button class="chip focusable" data-filter="action">Action</button>
+            <button class="chip focusable" data-filter="comedy">Comedy</button>
+            <button class="chip focusable" data-filter="fantasy">Fantasy</button>
+            <button class="chip focusable" data-filter="romance">Romance</button>
+          </div>
+          <div class="rail-shell">
+            <button class="rail-arrow rail-arrow-left focusable" data-scroll-rail="anipubGrid" data-scroll-dir="-1" aria-label="Scroll AniPub left">‹</button>
+            <div class="poster-grid" id="anipubGrid"></div>
+            <button class="rail-arrow rail-arrow-right focusable" data-scroll-rail="anipubGrid" data-scroll-dir="1" aria-label="Scroll AniPub right">›</button>
+          </div>
+        </section>
+
+        <section class="content-band is-hidden" id="favorites" data-section="favorites">
+          <div class="section-heading">
+            <span class="favorite-dot" aria-hidden="true"></span>
+            <h2>Favorites</h2>
+          </div>
+          <div class="rail-shell">
+            <button class="rail-arrow rail-arrow-left focusable" data-scroll-rail="favoritesGrid" data-scroll-dir="-1" aria-label="Scroll favorites left">‹</button>
+            <div class="poster-grid" id="favoritesGrid"></div>
+            <button class="rail-arrow rail-arrow-right focusable" data-scroll-rail="favoritesGrid" data-scroll-dir="1" aria-label="Scroll favorites right">›</button>
+          </div>
+          <p class="empty-state" id="emptyFavorites">Open a title and press Favorite to keep it here.</p>
+        </section>
+
+        <section class="content-band is-hidden" id="sources" data-section="sources">
+          <div class="section-heading">
+            <span class="source-dot" aria-hidden="true"></span>
+            <h2>Sources & Addons</h2>
+          </div>
+          <p class="empty-state" id="sourceSummary">Add local or online catalog endpoints that return normalized anime JSON.</p>
+          <div class="source-list" id="sourcesGrid"></div>
+        </section>
+
+        <section class="content-band is-hidden" id="settings" data-section="settings">
+          <div class="section-heading">
+            <span class="settings-dot" aria-hidden="true"></span>
+            <h2>Settings</h2>
+          </div>
+          <p class="empty-state" id="settingsSummary">Change language, playback defaults, and TV layout preferences.</p>
+          <div class="settings-grid" id="settingsGrid"></div>
+        </section>
+      </main>
+
+      <footer class="bottom-bar" aria-label="AnimeTV footer">
+        <div class="footer-brand">
+          <span class="footer-logo">AnimeTV</span>
+          <span class="footer-status">Catalogs refresh daily</span>
+        </div>
+      </footer>
+    </div>
+
+    <div class="watch-overlay" id="watchOverlay" hidden>
+      <div class="watch-panel" role="dialog" aria-modal="true" aria-labelledby="watchTitle">
+        <button class="close-button focusable" id="closeOverlay" aria-label="Close">×</button>
+        <div class="video-frame" id="videoFrame">
+          <div class="watch-art" id="watchArt">
+            <div class="watch-poster-placeholder">
+              <div class="play-symbol" aria-hidden="true"></div>
+            </div>
+          </div>
+          <p>Metadata comes from AniList and Jikan. Add your own video URL to enable playback.</p>
+        </div>
+        <aside class="watch-info">
+          <p class="eyebrow" id="watchMeta">Episode</p>
+          <h2 id="watchTitle">Title</h2>
+          <p id="watchDescription"></p>
+          <div class="watch-actions">
+            <button class="primary-action focusable" id="fakePlay">Play</button>
+            <button class="secondary-action cast-action focusable" id="castButton">Cast</button>
+            <button class="secondary-action focusable" id="favoriteButton">Favorite</button>
+          </div>
+          <div class="episode-list" id="episodeList" hidden></div>
+        </aside>
+      </div>
+    </div>
+
+    <script src="update-manager.js?v=142"></script>
+    <script src="app.js?v=142"></script>
+  </body>
+</html>
