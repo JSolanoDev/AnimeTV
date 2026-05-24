@@ -1,0 +1,25 @@
+{
+  "name": "animetv",
+  "version": "2.0.0",
+  "description": "Modern anime TV app with multi-source catalogs, embedded playback, and Japanese audio plus Spanish subtitle preferences.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "check": "node --check server.js && node --check app.js",
+    "android:build": "cd android && .\\gradlew.bat assembleDebug",
+    "android:install": "adb install -r android/app/build/outputs/apk/debug/app-debug.apk"
+  },
+  "keywords": [
+    "anime",
+    "android-tv",
+    "streaming",
+    "japanese-audio",
+    "spanish-subtitles"
+  ],
+  "author": "JSolanoDev",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
