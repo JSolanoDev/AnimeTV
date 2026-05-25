@@ -27,6 +27,7 @@ const APP_LANGUAGE_KEY = "animetv-app-language";
 const APP_THEME_KEY = "animetv-app-theme";
 const APP_UI_PREFS_KEY = "animetv-ui-preferences";
 const ANIME1V_API_KEY_STORAGE = "animetv-anime1v-api-key";
+const PREFERRED_SOURCE_KEY = "animetv-preferred-playback-source";
 const WATCH_HISTORY_KEY = "animetv-watch-history";
 const RESUME_POSITIONS_KEY = "animetv-resume-positions";
 
@@ -930,7 +931,7 @@ function normalizeEpisodeSourceOptions(episode = {}) {
     if (seen.has(key)) return false;
     seen.add(key);
     return option.videoUrl || option.externalUrl || option.streamResolver;
-  });
+  }).sort(comparePlaybackSources);
 }
 
 function cleanPlaybackSourceLabel(label = "") {
@@ -951,6 +952,21 @@ function sourceLabelFromResolver(resolver = {}) {
   if (resolver.type === "anipub") return "AniPub";
   if (resolver.type === "rapid-anime") return "RapidAPI";
   return "Addon";
+}
+
+function comparePlaybackSources(a = {}, b = {}) {
+  return playbackSourceRank(a) - playbackSourceRank(b);
+}
+
+function playbackSourceRank(source = {}) {
+  const label = `${source.id || ""} ${source.label || ""} ${source.streamResolver?.type || ""}`.toLowerCase();
+  if (label.includes("anipub")) return 10;
+  if (label.includes("anime1v")) return 20;
+  if (label.includes("jimov") || label.includes("tioanime")) return 30;
+  if (label.includes("rapid")) return 40;
+  if (source.type === "direct") return 50;
+  if (source.type === "resolver") return 60;
+  return 80;
 }
 
 function addEpisodeSourceOption(episode, option) {
@@ -2269,6 +2285,120 @@ async function resolveEpisodeWithJimovFallback(show, episode, seasonNumber = 1) 
   return { type: "none" };
 }
 
+async function resolveEpisodeWithRapidAnimeFallback(show, episode, seasonNumber = 1) {
+  if (!show || !episode || isRapidAnimeShow(show)) return { type: "none" };
+  const episodeNumber = Number(episode.episode || episode.number || 1);
+  const cacheKey = `animetv-rapid-fallback:${normalizeTitle(show.title)}:s${seasonNumber}:e${episodeNumber}`;
+  try {
+    const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
+    if (cached?.expiry > Date.now()) {
+      if (!cached.found) return { type: "none" };
+      if (cached.sourceOptions?.length) cached.sourceOptions.forEach((option) => addEpisodeSourceOption(episode, option));
+      if (cached.videoUrl) episode.videoUrl = episode.videoUrl || cached.videoUrl;
+      episode.locked = false;
+      if (cached.videoUrl) return { type: "direct", url: cached.videoUrl, source: "RapidAPI" };
+    }
+  } catch (error) {
+    localStorage.removeItem(cacheKey);
+  }
+
+  try {
+    const searchUrl = new URL("./api/rapid-anime/search", location.href);
+    searchUrl.searchParams.set("q", stripSeasonFromTitle(show.title));
+    const searchResponse = await fetchWithTimeout(searchUrl.toString(), { cache: "no-store" }, 28000);
+    if (!searchResponse.ok) throw new Error("RapidAPI search unavailable");
+    const searchPayload = await searchResponse.json();
+    const candidates = Array.isArray(searchPayload.items) ? searchPayload.items : [];
+    const matched = candidates
+      .map((candidate) => ({ candidate, score: titleMatchScore(show, candidate) }))
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score)[0]?.candidate;
+    const rapidId = matched?.rapidAnimeId || String(matched?.id || "").replace(/^rapid-anime-/, "");
+    if (!rapidId) {
+      localStorage.setItem(cacheKey, JSON.stringify({ found: false, expiry: Date.now() + RESPONSE_CACHE_TTL }));
+      return { type: "none" };
+    }
+
+    const infoUrl = new URL("./api/rapid-anime/info", location.href);
+    infoUrl.searchParams.set("id", rapidId);
+    const infoResponse = await fetchWithTimeout(infoUrl.toString(), { cache: "no-store" }, 28000);
+    if (!infoResponse.ok) throw new Error("RapidAPI episode list unavailable");
+    const infoPayload = await infoResponse.json();
+    const episodes = Array.isArray(infoPayload.episodes) ? infoPayload.episodes : [];
+    const targetEpisode = episodes.find((entry) =>
+      Number(entry.episode || entry.number) === episodeNumber
+      && Number(entry.season || 1) === Number(seasonNumber || 1)
+    ) || episodes.find((entry) => Number(entry.episode || entry.number) === episodeNumber);
+    if (!targetEpisode) {
+      localStorage.setItem(cacheKey, JSON.stringify({ found: false, expiry: Date.now() + RESPONSE_CACHE_TTL }));
+      return { type: "none" };
+    }
+
+    const rapidOptions = normalizeEpisodeSourceOptions(targetEpisode).map((option) => ({
+      ...option,
+      id: option.id?.startsWith("rapid") ? option.id : `rapid-${option.id || normalizeTitle(option.label || "source")}`,
+      label: option.label || "RapidAPI"
+    }));
+    rapidOptions.forEach((option) => addEpisodeSourceOption(episode, option));
+    if (targetEpisode.streamResolver) addEpisodeSourceOption(episode, {
+      id: "rapid-resolver",
+      label: "RapidAPI",
+      type: "resolver",
+      streamResolver: targetEpisode.streamResolver
+    });
+    const directUrl = getEpisodeUrl(targetEpisode);
+    if (directUrl && !getEpisodeUrl(episode)) episode.videoUrl = directUrl;
+    episode.locked = false;
+    localStorage.setItem(cacheKey, JSON.stringify({
+      found: Boolean(directUrl || rapidOptions.length || targetEpisode.streamResolver),
+      videoUrl: directUrl,
+      sourceOptions: rapidOptions,
+      expiry: Date.now() + RESPONSE_CACHE_TTL
+    }));
+    if (directUrl) return { type: "direct", url: directUrl, source: "RapidAPI" };
+  } catch (error) {
+    console.warn("RapidAPI fallback failed:", error);
+  }
+  return { type: "none" };
+}
+
+async function attachLoadedAddonFallbacks(show, episode, seasonNumber = 1) {
+  if (!show || !episode) return;
+  const episodeNumber = Number(episode.episode || episode.number || 1);
+  const sections = state.addonSections.filter((section) =>
+    section?.items?.length
+    && !["anipub-catalog", "anime1v-spanish", "jimov-tioanime", "rapidapi-anime-streaming"].includes(section.id)
+  );
+  sections.forEach((section) => {
+    const matched = section.items
+      .map((candidate) => ({ candidate, score: titleMatchScore(show, candidate) }))
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score)[0]?.candidate;
+    if (!matched) return;
+    const seasons = matched.seasons?.length ? matched.seasons : groupEpisodesBySeason(matched.episodes || []);
+    const targetSeason = seasons.find((season) => Number(season.season || 1) === Number(seasonNumber || 1)) || seasons[0];
+    const targetEpisode = (targetSeason?.episodes || []).find((entry) => Number(entry.episode || entry.number) === episodeNumber);
+    if (!targetEpisode) return;
+    normalizeEpisodeSourceOptions(targetEpisode).forEach((option) => addEpisodeSourceOption(episode, {
+      ...option,
+      id: `${section.id}-${option.id || normalizeTitle(option.label || "source")}`,
+      label: option.label || section.name || section.id
+    }));
+    if (targetEpisode.streamResolver) addEpisodeSourceOption(episode, {
+      id: `${section.id}-resolver`,
+      label: section.name || section.id,
+      type: "resolver",
+      streamResolver: targetEpisode.streamResolver
+    });
+    const directUrl = getEpisodeUrl(targetEpisode);
+    if (directUrl && !getEpisodeUrl(episode)) episode.videoUrl = directUrl;
+    if (targetEpisode.externalUrl && !episode.externalUrl) {
+      episode.externalUrl = targetEpisode.externalUrl;
+      episode.externalType = targetEpisode.externalType || "iframe";
+    }
+  });
+}
+
 async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
   if (!show || !episode) return episode;
   const episodeNumber = Number(episode.episode || episode.number || 1);
@@ -2278,7 +2408,9 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
   await Promise.allSettled([
     attachAniPubFallback(show, episode),
     resolveEpisodeWithAnime1vFallback(show, episode, seasonNumber),
-    resolveEpisodeWithJimovFallback(show, episode, seasonNumber)
+    resolveEpisodeWithJimovFallback(show, episode, seasonNumber),
+    resolveEpisodeWithRapidAnimeFallback(show, episode, seasonNumber),
+    attachLoadedAddonFallbacks(show, episode, seasonNumber)
   ]);
   episode.sourceOptions = normalizeEpisodeSourceOptions(episode);
   episode.sourceOptionsChecked = lookupKey;
@@ -2298,7 +2430,7 @@ function stripSeasonFromTitle(title = "") {
 }
 
 async function attachAniPubFallback(show, episode) {
-  if (!show || !episode || getEpisodeUrl(episode) || episode.streamResolver || isAniPubShow(show)) return;
+  if (!show || !episode || isAniPubShow(show)) return;
   const cacheKey = normalizeTitle(show.title);
   const cachedId = state.anipubFallbackCache[cacheKey];
   const cachedItems = anipubCatalogItems();
@@ -3391,9 +3523,9 @@ function getSelectedEpisodeSource(episode = {}) {
   const sources = getEpisodePlaybackSources(episode);
   if (!sources.length) return null;
   const explicit = episode.selectedSourceId || state.preferredSource;
-  return sources.find((source) => source.id === explicit)
-    || sources.find((source) => source.id === "direct")
-    || sources[0];
+  return explicit && explicit !== "auto"
+    ? sources.find((source) => source.id === explicit) || sources[0]
+    : sources[0];
 }
 
 function renderPlayerSourceOptions(episode = {}, selectedSource = null) {
