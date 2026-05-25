@@ -128,7 +128,7 @@ while ($true) {
   if ($animeTvStatus -eq "online" -and -not $openedBrowser) {
     Invoke-DailyRefresh
     if (-not $NoBrowser) {
-      Start-Process "http://127.0.0.1:4173/?v=142"
+      Start-Process "http://127.0.0.1:4173/?v=144"
     }
     $openedBrowser = $true
   }
