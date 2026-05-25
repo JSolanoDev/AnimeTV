@@ -37,6 +37,19 @@
       "description": "JIMOV open-source TioAnime connector. Uses Japanese audio with Spanish subtitles when available. Direct file_url plays in the main player; embed servers stay in the embedded player."
     },
     {
+      "id": "rapidapi-anime-streaming",
+      "name": "RapidAPI Anime Streaming (JP + Spanish Subs)",
+      "enabled": true,
+      "type": "online-addon",
+      "endpoint": "http://127.0.0.1:4173/api/rapid-anime/catalog?mode=recent&limit=300&page=1",
+      "episodeEndpoint": "http://127.0.0.1:4173/api/rapid-anime/info",
+      "streamEndpoint": "http://127.0.0.1:4173/api/rapid-anime/watch",
+      "healthEndpoint": "http://127.0.0.1:4173/api/rapid-anime/health",
+      "pageSize": 100,
+      "paginated": true,
+      "description": "RapidAPI Anime Streaming source for direct HLS/M3U8 streams. AnimeTV prefers Japanese audio and Spanish subtitles; if only English subtitle files are returned, the player can use Spanish translation mode."
+    },
+    {
       "id": "my-local-catalog",
       "name": "My Local Anime Catalog",
       "enabled": false,

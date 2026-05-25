@@ -943,6 +943,7 @@ function isAnime1vEpisode(episode = {}) {
 function sourceLabelFromResolver(resolver = {}) {
   if (resolver.type === "anime1v") return "Anime1v";
   if (resolver.type === "anipub") return "AniPub";
+  if (resolver.type === "rapid-anime") return "RapidAPI";
   return "Addon";
 }
 
@@ -2838,6 +2839,9 @@ async function openShow(id, target = {}) {
   if (isJimovShow(show)) {
     await hydrateJimovEpisodes(show);
   }
+  if (isRapidAnimeShow(show)) {
+    await hydrateRapidAnimeEpisodes(show);
+  }
   applyOpenTarget(show, target);
   if (state.activeEpisode?.episode) {
     await attachPlaybackSourceOptions(show, state.activeEpisode.episode, state.activeEpisode?.season?.season || state.activeSeasonIndex + 1 || 1);
@@ -2914,6 +2918,65 @@ function isAnime1vShow(show) {
   return /anime1v/i.test(String(show?.source || ""))
     || /anime1v/i.test(String(show?.id || ""))
     || Boolean(show?.anime1vUrl);
+}
+
+async function hydrateRapidAnimeEpisodes(show) {
+  if (!show || show.rapidAnimeEpisodesLoaded) return show;
+  const animeId = show.rapidAnimeId || show.aliases?.[0] || show.siteUrl || show.id;
+  const endpoint = show.episodeEndpoint || "./api/rapid-anime/info";
+  if (!animeId || !endpoint) return show;
+  try {
+    const url = new URL(resolveSourceEndpoint(endpoint), location.href);
+    url.searchParams.set("id", String(animeId).replace(/^rapid-anime-/, ""));
+    const response = await fetchWithTimeout(url.toString(), { cache: "no-store" }, 20000);
+    if (!response.ok) throw new Error("RapidAPI episode endpoint unavailable");
+    const payload = await response.json();
+    if (!payload.ok || !Array.isArray(payload.episodes) || !payload.episodes.length) return show;
+    if (payload.image && !show.image) show.image = payload.image;
+    if (payload.banner && !show.banner) show.banner = payload.banner;
+    if (payload.description) show.description = cleanDescription(payload.description);
+    const seasonNumber = extractSeasonNumber(payload.title || show.title, extractSeasonNumber(show.title, 1));
+    const episodes = repairEpisodeGaps(payload.episodes.map((episode) => ({
+      ...episode,
+      id: episode.id || `${show.id}-rapid-${episode.episode || episode.number}`,
+      title: episode.title || `Episode ${episode.episode || episode.number}`,
+      season: episode.season || seasonNumber,
+      episode: episode.episode || episode.number,
+      server: episode.server || "RapidAPI Anime Streaming",
+      sourceOptions: normalizeEpisodeSourceOptions(episode),
+      locked: episode.locked ?? !(getEpisodeUrl(episode) || episode.externalUrl || episode.streamResolver),
+      availableAudio: episode.availableAudio || ["japanese"],
+      availableSubs: episode.availableSubs || ["spanish", "spanish-translated", "english", "none"],
+      defaultAudio: episode.defaultAudio || "japanese",
+      defaultSubs: episode.defaultSubs || "spanish"
+    })), seasonNumber);
+    show.episode = episodes.length;
+    show.episodes = episodes;
+    show.seasons = [{
+      season: seasonNumber,
+      title: `Season ${seasonNumber}`,
+      sourceTitle: show.title,
+      image: show.image,
+      playable: true,
+      episodes
+    }];
+    show.rapidAnimeEpisodesLoaded = true;
+    state.shows = state.shows.map((entry) => entry.id === show.id ? show : entry);
+    state.addonSections = state.addonSections.map((section) => ({
+      ...section,
+      items: (section.items || []).map((entry) => entry.id === show.id ? show : entry)
+    }));
+  } catch (error) {
+    console.warn("RapidAPI Anime Streaming episodes could not load:", error);
+    show.rapidAnimeError = error.message;
+  }
+  return show;
+}
+
+function isRapidAnimeShow(show) {
+  return /rapidapi anime streaming|rapid-anime/i.test(String(show?.source || ""))
+    || /rapid-anime/i.test(String(show?.id || ""))
+    || Boolean(show?.rapidAnimeId);
 }
 
 async function hydrateJimovEpisodes(show) {
@@ -3952,6 +4015,12 @@ async function resolveEpisodeStream(episode) {
     const url = pickPlayableUrl(payload);
     const subtitles = normalizeSubtitleTracks(payload);
     if (subtitles.length) episode.subtitles = subtitles;
+    if (payload.availableAudio?.length) episode.availableAudio = payload.availableAudio;
+    if (payload.availableSubs?.length) episode.availableSubs = payload.availableSubs;
+    if (payload.defaultAudio) episode.defaultAudio = payload.defaultAudio;
+    if (payload.defaultSubs || payload.defaultSubtitles) episode.defaultSubs = payload.defaultSubs || payload.defaultSubtitles;
+    if (payload.hasSpanishSubtitles !== undefined) episode.hasSpanishSubtitles = payload.hasSpanishSubtitles;
+    if (payload.subtitleWarning) episode.subtitleWarning = payload.subtitleWarning;
     const resolvedSources = normalizeEpisodeSourceOptions({
       ...episode,
       sourceOptions: [

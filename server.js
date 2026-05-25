@@ -4,6 +4,9 @@ const path = require("path");
 const { spawn } = require("child_process");
 
 const root = path.resolve(__dirname);
+
+loadLocalEnv();
+
 const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || "0.0.0.0";
 const ANILIST_ENDPOINT = "https://graphql.anilist.co";
@@ -27,6 +30,11 @@ const ANIME1V_DEFAULT_CATALOG_PAGES = Math.max(1, Number(process.env.ANIME1V_DEF
 const ANIME1V_MAX_SEARCH_PAGES = Math.max(ANIME1V_DEFAULT_CATALOG_PAGES, Number(process.env.ANIME1V_MAX_SEARCH_PAGES || 100));
 const ANIME1V_MAX_EPISODES = Math.max(100, Number(process.env.ANIME1V_MAX_EPISODES || 5000));
 const ANIME1V_QUOTA_BACKOFF_MS = Math.max(1000 * 60 * 60, Number(process.env.ANIME1V_QUOTA_BACKOFF_MS || 1000 * 60 * 60 * 24));
+const RAPIDAPI_ANIME_KEY = process.env.RAPIDAPI_ANIME_KEY || process.env.X_RAPIDAPI_KEY || "";
+const RAPIDAPI_ANIME_HOST = process.env.RAPIDAPI_ANIME_HOST || process.env.X_RAPIDAPI_HOST || "";
+const RAPIDAPI_ANIME_BASE = process.env.RAPIDAPI_ANIME_BASE || (RAPIDAPI_ANIME_HOST ? `https://${RAPIDAPI_ANIME_HOST}` : "");
+const RAPIDAPI_ANIME_TIMEOUT_MS = Math.max(5000, Number(process.env.RAPIDAPI_ANIME_TIMEOUT_MS || 15000));
+const RAPIDAPI_ANIME_CATALOG_LIMIT = Math.max(25, Number(process.env.RAPIDAPI_ANIME_CATALOG_LIMIT || 300));
 const JIMOV_DEFAULT_CATALOG_LIMIT = Math.max(80, Number(process.env.JIMOV_DEFAULT_CATALOG_LIMIT || 400));
 const JIMOV_MAX_CATALOG_LIMIT = Math.max(JIMOV_DEFAULT_CATALOG_LIMIT, Number(process.env.JIMOV_MAX_CATALOG_LIMIT || 2000));
 const TIOANIME_CATALOG_LIMIT = Math.max(60, Number(process.env.TIOANIME_CATALOG_LIMIT || 300));
@@ -89,6 +97,29 @@ let lastDailyRefreshAt = 0;
 let lastDailyRefreshResult = null;
 let anime1vQuotaBlockedUntil = 0;
 let anime1vQuotaMessage = "";
+
+function loadLocalEnv() {
+  [".env.local", ".env"].forEach((file) => {
+    const envPath = path.join(root, file);
+    if (!fs.existsSync(envPath)) return;
+    try {
+      fs.readFileSync(envPath, "utf8")
+        .split(/\r?\n/)
+        .forEach((line) => {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith("#")) return;
+          const separator = trimmed.indexOf("=");
+          if (separator < 1) return;
+          const key = trimmed.slice(0, separator).trim();
+          if (file === ".env.local" && key === "PORT") return;
+          const value = trimmed.slice(separator + 1).trim().replace(/^['"]|['"]$/g, "");
+          if (key && process.env[key] === undefined) process.env[key] = value;
+        });
+    } catch (error) {
+      console.warn(`Could not load ${file}:`, error.message);
+    }
+  });
+}
 
 const server = http.createServer((request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
@@ -185,6 +216,31 @@ const server = http.createServer((request, response) => {
 
   if (url.pathname === "/api/anime1v/episode") {
     handleAnime1vStream(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/rapid-anime/health") {
+    handleRapidAnimeHealth(response);
+    return;
+  }
+
+  if (url.pathname === "/api/rapid-anime/catalog" || url.pathname === "/api/rapid-anime/recent") {
+    handleRapidAnimeCatalog(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/rapid-anime/search") {
+    handleRapidAnimeSearch(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/rapid-anime/info" || url.pathname === "/api/rapid-anime/episodes") {
+    handleRapidAnimeInfo(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/rapid-anime/watch" || url.pathname === "/api/rapid-anime/stream") {
+    handleRapidAnimeWatch(url, response);
     return;
   }
 
@@ -1280,6 +1336,464 @@ async function handleAnime1vStream(reqUrl, response) {
   } catch (error) {
     sendJson(response, { ok: false, source: "Anime1v", error: error.message }, 502);
   }
+}
+
+async function handleRapidAnimeHealth(response) {
+  if (!isRapidAnimeConfigured()) {
+    sendJson(response, {
+      ok: false,
+      status: "not_configured",
+      source: "RapidAPI Anime Streaming",
+      needsApiKey: !RAPIDAPI_ANIME_KEY,
+      needsHost: !RAPIDAPI_ANIME_HOST,
+      note: "Set RAPIDAPI_ANIME_KEY and RAPIDAPI_ANIME_HOST in .env.local, then restart AnimeTV."
+    }, 503);
+    return;
+  }
+
+  try {
+    const startedAt = Date.now();
+    const payload = await fetchRapidAnimeJson("/recent-episodes", { limit: 1 });
+    const sample = extractRapidAnimeItems(payload).length;
+    sendJson(response, {
+      ok: true,
+      status: "ok",
+      source: "RapidAPI Anime Streaming",
+      host: RAPIDAPI_ANIME_HOST,
+      sampleCount: sample,
+      latencyMs: Date.now() - startedAt,
+      defaults: {
+        audio: "japanese",
+        subtitles: "spanish"
+      }
+    });
+  } catch (error) {
+    sendJson(response, {
+      ok: false,
+      status: "degraded",
+      source: "RapidAPI Anime Streaming",
+      host: RAPIDAPI_ANIME_HOST,
+      error: error.message
+    }, 502);
+  }
+}
+
+async function handleRapidAnimeCatalog(reqUrl, response) {
+  if (!isRapidAnimeConfigured()) {
+    sendJson(response, rapidAnimeUnavailablePayload(), 503);
+    return;
+  }
+
+  const limit = Math.max(1, Math.min(RAPIDAPI_ANIME_CATALOG_LIMIT, Number(reqUrl.searchParams.get("limit") || RAPIDAPI_ANIME_CATALOG_LIMIT)));
+  const page = Math.max(1, Number(reqUrl.searchParams.get("page") || 1));
+  const mode = reqUrl.searchParams.get("mode") || "recent";
+  const endpoint = mode === "top-airing"
+    ? "/top-airing"
+    : mode === "spotlight"
+      ? "/spotlight"
+      : "/recent-episodes";
+
+  try {
+    const payload = await fetchRapidAnimeJson(endpoint, { page, limit });
+    const rawItems = extractRapidAnimeItems(payload);
+    const items = rawItems
+      .map((item, index) => normalizeRapidAnimeShow(item, index))
+      .filter(Boolean)
+      .slice(0, limit);
+    sendJson(response, {
+      ok: true,
+      source: "RapidAPI Anime Streaming",
+      host: RAPIDAPI_ANIME_HOST,
+      count: items.length,
+      totalResults: Number(payload.total || payload.totalResults || payload.totalPages || payload.data?.total || 0) || items.length,
+      page: Number(payload.page || payload.currentPage || payload.data?.page || page),
+      nextPage: inferRapidNextPage(payload, page, items.length),
+      hasMore: Boolean(inferRapidNextPage(payload, page, items.length)),
+      items
+    });
+  } catch (error) {
+    sendJson(response, {
+      ...rapidAnimeUnavailablePayload(),
+      error: error.message
+    }, 502);
+  }
+}
+
+async function handleRapidAnimeSearch(reqUrl, response) {
+  if (!isRapidAnimeConfigured()) {
+    sendJson(response, rapidAnimeUnavailablePayload(), 503);
+    return;
+  }
+
+  const query = reqUrl.searchParams.get("q") || reqUrl.searchParams.get("query") || "";
+  if (!query.trim()) {
+    sendJson(response, { ok: false, error: "Missing search query" }, 400);
+    return;
+  }
+
+  try {
+    const payload = await fetchRapidAnimeJson(`/search/${encodeURIComponent(query)}`);
+    const rawItems = extractRapidAnimeItems(payload);
+    const items = rawItems.map((item, index) => normalizeRapidAnimeShow(item, index)).filter(Boolean);
+    sendJson(response, {
+      ok: true,
+      source: "RapidAPI Anime Streaming",
+      count: items.length,
+      items
+    });
+  } catch (error) {
+    sendJson(response, {
+      ...rapidAnimeUnavailablePayload(),
+      error: error.message
+    }, 502);
+  }
+}
+
+async function handleRapidAnimeInfo(reqUrl, response) {
+  if (!isRapidAnimeConfigured()) {
+    sendJson(response, rapidAnimeUnavailablePayload(), 503);
+    return;
+  }
+
+  const animeId = reqUrl.searchParams.get("id") || reqUrl.searchParams.get("animeId") || reqUrl.searchParams.get("url");
+  if (!animeId) {
+    sendJson(response, { ok: false, error: "Missing anime id" }, 400);
+    return;
+  }
+
+  try {
+    const payload = await fetchRapidAnimeJson(`/info/${encodeURIComponent(animeId)}`);
+    const info = unwrapRapidAnimeData(payload);
+    const show = normalizeRapidAnimeShow(info, 0) || {};
+    const rawEpisodes = extractRapidAnimeEpisodes(info);
+    const episodes = repairEpisodeGaps(rawEpisodes.map((episode, index) => normalizeRapidAnimeEpisode(episode, show, index)).filter(Boolean), { season: 1 });
+    sendJson(response, {
+      ok: true,
+      source: "RapidAPI Anime Streaming",
+      animeId,
+      title: show.title || info.title || info.name || "",
+      image: show.image || "",
+      banner: show.banner || "",
+      description: show.description || "",
+      totalEpisodes: episodes.length,
+      count: episodes.length,
+      episodes,
+      seasons: [{ season: 1, title: "Season 1", episodes }],
+      defaultLanguage: {
+        audio: "japanese",
+        subtitles: "spanish"
+      }
+    });
+  } catch (error) {
+    sendJson(response, { ok: false, source: "RapidAPI Anime Streaming", error: error.message }, 502);
+  }
+}
+
+async function handleRapidAnimeWatch(reqUrl, response) {
+  if (!isRapidAnimeConfigured()) {
+    sendJson(response, rapidAnimeUnavailablePayload(), 503);
+    return;
+  }
+
+  const episodeId = reqUrl.searchParams.get("episodeId") || reqUrl.searchParams.get("id") || reqUrl.searchParams.get("url");
+  if (!episodeId) {
+    sendJson(response, { ok: false, error: "Missing episode id" }, 400);
+    return;
+  }
+
+  try {
+    const payload = await fetchRapidAnimeJson(`/watch/${encodeURIComponent(episodeId)}`);
+    const stream = normalizeRapidAnimeStreamPayload(payload);
+    sendJson(response, {
+      ok: true,
+      source: "RapidAPI Anime Streaming",
+      episodeId,
+      ...stream
+    });
+  } catch (error) {
+    sendJson(response, { ok: false, source: "RapidAPI Anime Streaming", error: error.message }, 502);
+  }
+}
+
+function isRapidAnimeConfigured() {
+  return Boolean(RAPIDAPI_ANIME_KEY && RAPIDAPI_ANIME_HOST && RAPIDAPI_ANIME_BASE);
+}
+
+function rapidAnimeUnavailablePayload() {
+  return {
+    ok: true,
+    source: "RapidAPI Anime Streaming (Not configured)",
+    count: 0,
+    totalResults: 0,
+    items: [],
+    needsApiKey: !RAPIDAPI_ANIME_KEY,
+    needsHost: !RAPIDAPI_ANIME_HOST,
+    note: "Add RAPIDAPI_ANIME_KEY and RAPIDAPI_ANIME_HOST to .env.local. The key is intentionally not stored in committed code."
+  };
+}
+
+async function fetchRapidAnimeJson(pathname, params = {}) {
+  const url = new URL(pathname, RAPIDAPI_ANIME_BASE);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, String(value));
+  });
+  const upstream = await fetchWithTimeout(url.toString(), {
+    headers: {
+      "Accept": "application/json",
+      "X-RapidAPI-Key": RAPIDAPI_ANIME_KEY,
+      "X-RapidAPI-Host": RAPIDAPI_ANIME_HOST
+    }
+  }, RAPIDAPI_ANIME_TIMEOUT_MS);
+  if (!upstream.ok) {
+    const body = await upstream.text().catch(() => "");
+    throw new Error(`RapidAPI HTTP ${upstream.status}${body ? `: ${body.slice(0, 180)}` : ""}`);
+  }
+  return upstream.json();
+}
+
+function unwrapRapidAnimeData(payload) {
+  if (Array.isArray(payload)) return payload;
+  return payload?.data?.anime
+    || payload?.data?.info
+    || payload?.data
+    || payload?.anime
+    || payload?.result
+    || payload;
+}
+
+function extractRapidAnimeItems(payload) {
+  if (Array.isArray(payload)) return payload;
+  const candidates = [
+    payload?.items,
+    payload?.results,
+    payload?.anime,
+    payload?.animes,
+    payload?.episodes,
+    payload?.recentEpisodes,
+    payload?.topAiring,
+    payload?.spotlight,
+    payload?.data,
+    payload?.data?.items,
+    payload?.data?.results,
+    payload?.data?.anime,
+    payload?.data?.animes,
+    payload?.data?.episodes,
+    payload?.data?.recentEpisodes,
+    payload?.data?.topAiring,
+    payload?.data?.spotlight
+  ];
+  return candidates.find(Array.isArray) || [];
+}
+
+function inferRapidNextPage(payload, page, count) {
+  if (payload.nextPage) return payload.nextPage;
+  if (payload.hasNextPage || payload.hasMore || payload.data?.hasNextPage || payload.data?.hasMore) return page + 1;
+  const totalPages = Number(payload.totalPages || payload.pages || payload.data?.totalPages || payload.data?.pages || 0);
+  if (totalPages && page < totalPages) return page + 1;
+  return count >= 20 ? page + 1 : null;
+}
+
+function normalizeRapidAnimeShow(item, index = 0) {
+  const title = item.title || item.name || item.animeTitle || item.animeName || item.jname || item.english || item.native;
+  if (!title) return null;
+  const animeId = item.id || item.animeId || item.anime_id || item.slug || item.url || item.href || normalizeTitle(title);
+  const image = normalizeRapidImage(item.image || item.poster || item.cover || item.img || item.thumbnail || item.animeImg);
+  const genres = normalizeGenreList(item.genres || item.genre || item.tags || ["anime"]);
+  const rawEpisodes = extractRapidAnimeEpisodes(item);
+  const episodes = rawEpisodes.map((episode, episodeIndex) => normalizeRapidAnimeEpisode(episode, item, episodeIndex)).filter(Boolean);
+  const latestEpisodeId = item.episodeId || item.episode_id || item.id || "";
+  const episodeCount = parseEpisodeCount(item.episodes || item.totalEpisodes || item.total_episodes || item.latestEpisode || item.episodeNumber)
+    || episodes.length
+    || parseEpisodeCount(item.episode)
+    || "?";
+  const fallbackEpisode = latestEpisodeId && !episodes.length ? [normalizeRapidAnimeEpisode({
+    id: latestEpisodeId,
+    episodeId: latestEpisodeId,
+    number: parseEpisodeCount(item.episodeNumber || item.episode) || 1,
+    title: item.episodeTitle || `Episode ${parseEpisodeCount(item.episodeNumber || item.episode) || 1}`
+  }, item, 0)] : [];
+  const normalizedEpisodes = episodes.length ? episodes : fallbackEpisode.filter(Boolean);
+
+  return {
+    id: `rapid-anime-${animeId || index}`,
+    rapidAnimeId: animeId,
+    aliases: [item.id, item.animeId, item.slug, item.url].filter(Boolean),
+    title,
+    episode: episodeCount,
+    genre: pickGenre(genres),
+    genres,
+    day: item.day || item.releaseDate || "Online",
+    time: item.time || "",
+    colors: ["#40dfc2", "#7c5cff"],
+    score: normalizeScore(item.score || item.rating || item.malScore),
+    source: "RapidAPI Anime Streaming",
+    image,
+    banner: normalizeRapidImage(item.banner || item.backdrop || item.coverImage || image),
+    siteUrl: item.url || item.href || "",
+    description: cleanDescription(item.description || item.synopsis || item.overview || "Streaming source with direct HLS/M3U8 support when provided by the API."),
+    episodeEndpoint: "/api/rapid-anime/info",
+    streamEndpoint: "/api/rapid-anime/watch",
+    videoUrl: "",
+    seasons: normalizedEpisodes.length ? [{ season: 1, title: "Season 1", episodes: repairEpisodeGaps(normalizedEpisodes, { season: 1 }) }] : [],
+    episodes: normalizedEpisodes
+  };
+}
+
+function normalizeRapidAnimeEpisode(episode, show = {}, index = 0) {
+  if (!episode) return null;
+  const episodeId = typeof episode === "string"
+    ? episode
+    : episode.id || episode.episodeId || episode.episode_id || episode.url || episode.href || "";
+  const number = Number(typeof episode === "object"
+    ? episode.number || episode.episode || episode.episodeNumber || episode.ep || index + 1
+    : index + 1) || index + 1;
+  const directUrl = typeof episode === "object" ? pickRapidDirectUrl(episode) : "";
+  const subtitles = typeof episode === "object" ? normalizeRapidSubtitlePayload(episode.subtitles || episode.tracks || episode.captions) : [];
+  const hasSpanish = subtitles.some((track) => normalizeLanguageName(track.language || track.label) === "spanish");
+  const hasEnglish = subtitles.some((track) => normalizeLanguageName(track.language || track.label) === "english");
+  return {
+    id: `rapid-anime-${show.id || show.rapidAnimeId || normalizeTitle(show.title || show.name || "anime")}-${number}`,
+    title: typeof episode === "object" ? episode.title || episode.name || `Episode ${number}` : `Episode ${number}`,
+    season: typeof episode === "object" ? episode.season || episode.seasonNumber || 1 : 1,
+    episode: number,
+    poster: show.image || show.poster || show.cover || "",
+    videoUrl: directUrl,
+    streamResolver: episodeId ? {
+      type: "rapid-anime",
+      endpoint: `/api/rapid-anime/watch?episodeId=${encodeURIComponent(episodeId)}`
+    } : null,
+    sourceOptions: typeof episode === "object" ? normalizeRapidSourceOptions(episode) : [],
+    subtitles,
+    hasSpanishSubtitles: hasSpanish,
+    availableAudio: ["japanese"],
+    availableSubs: hasSpanish ? ["spanish", "none"] : hasEnglish ? ["spanish-translated", "english", "none"] : ["spanish", "none"],
+    defaultAudio: "japanese",
+    defaultSubs: hasSpanish ? "spanish" : hasEnglish ? "spanish-translated" : "spanish",
+    server: hasSpanish ? "RapidAPI Anime Streaming" : "RapidAPI Anime Streaming (Spanish subs not confirmed)",
+    locked: !(directUrl || episodeId)
+  };
+}
+
+function extractRapidAnimeEpisodes(payload) {
+  const info = unwrapRapidAnimeData(payload);
+  if (!info || Array.isArray(info)) return [];
+  return [
+    info.episodes,
+    info.episodeList,
+    info.ep,
+    info.data?.episodes,
+    info.data?.episodeList
+  ].find(Array.isArray) || [];
+}
+
+function normalizeRapidAnimeStreamPayload(payload) {
+  const data = unwrapRapidAnimeData(payload);
+  const directUrl = pickRapidDirectUrl(data);
+  const sourceOptions = normalizeRapidSourceOptions(data);
+  const subtitles = normalizeRapidSubtitlePayload(data?.subtitles || data?.tracks || data?.captions || payload?.subtitles || payload?.tracks);
+  const spanishTrack = subtitles.find((track) => normalizeLanguageName(track.language || track.label) === "spanish");
+  const englishTrack = subtitles.find((track) => normalizeLanguageName(track.language || track.label) === "english");
+  return {
+    videoUrl: directUrl,
+    streamUrl: directUrl,
+    file: directUrl,
+    sourceOptions,
+    downloadUrl: sourceOptions.find((source) => source.downloadUrl)?.downloadUrl || directUrl,
+    subtitles,
+    hasSpanishSubtitles: Boolean(spanishTrack),
+    spanishSubtitleRequired: true,
+    subtitleWarning: spanishTrack ? "" : "Spanish subtitles were not returned by this API response.",
+    availableAudio: ["japanese"],
+    availableSubs: spanishTrack ? ["spanish", "none"] : englishTrack ? ["spanish-translated", "english", "none"] : ["spanish", "none"],
+    defaultAudio: "japanese",
+    defaultSubs: spanishTrack ? "spanish" : englishTrack ? "spanish-translated" : "spanish"
+  };
+}
+
+function normalizeRapidSourceOptions(payload = {}) {
+  const sources = [
+    payload.sources,
+    payload.streams,
+    payload.videos,
+    payload.files,
+    payload.data?.sources,
+    payload.data?.streams,
+    payload.data?.videos,
+    payload.data?.files
+  ].find(Array.isArray) || [];
+  const direct = pickRapidDirectUrl(payload);
+  const options = sources.map((source, index) => {
+    const videoUrl = pickRapidDirectUrl(source);
+    if (!videoUrl) return null;
+    const label = source.server || source.name || source.quality || source.type || `Server ${index + 1}`;
+    return {
+      id: `rapid-${normalizeTitle(label) || index}`,
+      label: `RapidAPI ${label}`,
+      type: "direct",
+      videoUrl,
+      downloadUrl: source.downloadUrl || source.download || source.file || videoUrl
+    };
+  }).filter(Boolean);
+  if (direct && !options.some((option) => option.videoUrl === direct)) {
+    options.unshift({
+      id: "rapid-direct",
+      label: "RapidAPI Direct",
+      type: "direct",
+      videoUrl: direct,
+      downloadUrl: payload.downloadUrl || payload.download || direct
+    });
+  }
+  return options;
+}
+
+function pickRapidDirectUrl(payload = {}) {
+  return payload?.videoUrl
+    || payload?.streamUrl
+    || payload?.file
+    || payload?.url
+    || payload?.m3u8
+    || payload?.hls
+    || payload?.source
+    || payload?.data?.videoUrl
+    || payload?.data?.streamUrl
+    || payload?.data?.file
+    || payload?.data?.m3u8
+    || "";
+}
+
+function normalizeRapidSubtitlePayload(subtitles) {
+  if (!subtitles) return [];
+  const raw = Array.isArray(subtitles)
+    ? subtitles
+    : Object.entries(subtitles).map(([language, url]) => ({ language, url }));
+  return raw.map((track) => {
+    if (typeof track === "string") return { url: track, language: "", label: "Subtitles" };
+    const url = track.url || track.file || track.src || track.href;
+    if (!url) return null;
+    const language = String(track.language || track.lang || track.srclang || track.label || track.name || "").toLowerCase();
+    const normalized = normalizeLanguageName(language);
+    return {
+      url,
+      language: normalized === "spanish" ? "es" : normalized === "english" ? "en" : language,
+      label: track.label || track.name || languageName(language) || "Subtitles",
+      default: normalized === "spanish"
+    };
+  }).filter(Boolean).sort((a, b) => Number(b.default) - Number(a.default));
+}
+
+function normalizeRapidImage(value = "") {
+  const image = String(value || "").trim();
+  if (!image) return "";
+  if (/^https?:\/\//i.test(image)) return image;
+  if (image.startsWith("//")) return `https:${image}`;
+  if (image.startsWith("/") && RAPIDAPI_ANIME_BASE) {
+    try {
+      return new URL(image, RAPIDAPI_ANIME_BASE).toString();
+    } catch (error) {
+      return image;
+    }
+  }
+  return image;
 }
 
 async function handleCheckUpdate(response) {
