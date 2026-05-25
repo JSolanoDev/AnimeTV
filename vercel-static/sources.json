@@ -1,0 +1,96 @@
+{
+  "sources": [
+    {
+      "id": "anipub-catalog",
+      "name": "AniPub",
+      "enabled": true,
+      "type": "online-addon",
+      "endpoint": "http://127.0.0.1:4173/api/anipub/catalog/all?limit=12000",
+      "lazyLoad": true,
+      "paginated": true,
+      "pageSize": 100,
+      "description": "Online AniPub catalog addon loaded from all AniPub catalog pages with /api/info/:id gap filling. Direct mp4/m3u8 links use the main player; iframe links play inside AnimeTV with the embedded player."
+    },
+    {
+      "id": "anime1v-spanish",
+      "name": "Anime1v (Japanese + Spanish Subs)",
+      "enabled": true,
+      "type": "online-addon",
+      "endpoint": "http://127.0.0.1:4173/api/anime1v/trending?limit=1200&page=1&pages=30&perPage=100",
+      "episodeEndpoint": "http://127.0.0.1:4173/api/anime1v/episodes",
+      "streamEndpoint": "http://127.0.0.1:4173/api/anime1v/stream",
+      "healthEndpoint": "http://127.0.0.1:4173/api/anime1v/health",
+      "pageSize": 300,
+      "paginated": true,
+      "description": "Local Anime1v proxy for Japanese audio with Spanish subtitles when available. Requires Anime1v running at http://localhost:3001. If Anime1v returns 401, start AnimeTV with ANIME1V_API_KEY set. Providers: AnimeAV1, TioAnime, MonosChinos, AnimeFLV, JKAnime."
+    },
+    {
+      "id": "jimov-tioanime",
+      "name": "JIMOV TioAnime (JP + Spanish Subs)",
+      "enabled": true,
+      "type": "online-addon",
+      "endpoint": "http://127.0.0.1:4173/api/jimov/tioanime/catalog?limit=400",
+      "episodeEndpoint": "http://127.0.0.1:4173/api/jimov/tioanime/info",
+      "healthEndpoint": "http://127.0.0.1:4173/api/jimov/tioanime/health",
+      "pageSize": 200,
+      "paginated": false,
+      "description": "JIMOV open-source TioAnime connector. Uses Japanese audio with Spanish subtitles when available. Direct file_url plays in the main player; embed servers stay in the embedded player."
+    },
+    {
+      "id": "my-local-catalog",
+      "name": "My Local Anime Catalog",
+      "enabled": false,
+      "type": "catalog",
+      "endpoint": "http://192.168.1.25:5050/catalog.json",
+      "description": "Enable this after your own legal server returns anime items with title, image, description, videoUrl, or an episodes array."
+    },
+    {
+      "id": "tioanime-metadata-addon",
+      "name": "TioAnime Metadata Addon",
+      "enabled": false,
+      "type": "metadata-addon",
+      "endpoint": "http://127.0.0.1:4173/api/tioanime/catalog",
+      "description": "Optional local addon using carlosfdezb/tioanime for catalog and episode metadata only. Install with npm install tioanime, then restart AnimeTV."
+    },
+    {
+      "id": "anime1v-api",
+      "name": "Anime1v API",
+      "enabled": false,
+      "type": "local-adapter",
+      "endpoint": "http://127.0.0.1:5051/catalog.json",
+      "description": "Enable when your local Anime1v adapter returns normalized catalog JSON. Use only with sources you are allowed to access."
+    },
+    {
+      "id": "jutsu-api",
+      "name": "Jutsu API",
+      "enabled": false,
+      "type": "local-adapter",
+      "endpoint": "http://127.0.0.1:5052/catalog.json",
+      "description": "Enable when your local Jutsu adapter returns normalized catalog JSON. The app will merge by MAL/AniList ID or title."
+    },
+    {
+      "id": "anipy-server",
+      "name": "Anipy Server",
+      "enabled": false,
+      "type": "local-adapter",
+      "endpoint": "http://127.0.0.1:5053/catalog.json",
+      "description": "Enable when your local Anipy adapter returns normalized catalog JSON with title, image, banner, description, videoUrl, or episodes."
+    },
+    {
+      "id": "jimov-api",
+      "name": "Jimov API",
+      "enabled": false,
+      "type": "local-adapter",
+      "endpoint": "http://127.0.0.1:5054/catalog.json",
+      "description": "Enable when your local Jimov adapter returns normalized catalog JSON."
+    },
+    {
+      "id": "custom-tioanime-local",
+      "name": "Custom Local Anime Adapter",
+      "enabled": false,
+      "type": "local-adapter",
+      "endpoint": "http://127.0.0.1:5055/catalog.json",
+      "description": "Use local or online sources you are allowed to access. The app expects normalized catalog JSON, not scraper-specific responses."
+    }
+  ]
+}

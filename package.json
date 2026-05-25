@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "vercel-build": "node scripts/build-static.mjs",
+    "deploy:vercel": "powershell -NoProfile -ExecutionPolicy Bypass -File ./deploy-vercel.ps1",
     "check": "node --check server.js && node --check app.js",
     "android:build": "cd android && .\\gradlew.bat assembleDebug",
     "android:install": "adb install -r android/app/build/outputs/apk/debug/app-debug.apk"

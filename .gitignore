@@ -9,6 +9,7 @@ logs/
 .cache/
 .update-backup/
 downloads/
+dist/
 *.apk
 *.aab
 screen.png
@@ -19,3 +20,6 @@ android/app/build/
 .vscode/
 .DS_Store
 Thumbs.db
+
+.vercel
+.env*
