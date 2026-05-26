@@ -36,6 +36,15 @@ const RAPIDAPI_ANIME_HOST = process.env.RAPIDAPI_ANIME_HOST || process.env.X_RAP
 const RAPIDAPI_ANIME_BASE = process.env.RAPIDAPI_ANIME_BASE || (RAPIDAPI_ANIME_HOST ? `https://${RAPIDAPI_ANIME_HOST}` : "");
 const RAPIDAPI_ANIME_TIMEOUT_MS = Math.max(5000, Number(process.env.RAPIDAPI_ANIME_TIMEOUT_MS || 28000));
 const RAPIDAPI_ANIME_CATALOG_LIMIT = Math.max(25, Number(process.env.RAPIDAPI_ANIME_CATALOG_LIMIT || 300));
+const CONSUMET_API = String(process.env.CONSUMET_API || "http://localhost:3000").replace(/\/+$/, "");
+const CONSUMET_PROVIDER = "kickassanime";
+const CONSUMET_TIMEOUT_MS = Math.max(3000, Number(process.env.CONSUMET_TIMEOUT_MS || 7000));
+const CONSUMET_CATALOG_LIMIT = Math.max(25, Number(process.env.CONSUMET_CATALOG_LIMIT || 360));
+const CONSUMET_SEARCH_PAGES = Math.max(1, Math.min(25, Number(process.env.CONSUMET_SEARCH_PAGES || 6)));
+const CONSUMET_CATALOG_SEEDS = (process.env.CONSUMET_CATALOG_SEEDS || "one,naruto,dragon,bleach,attack,solo,jujutsu,demon,hero,spy,slime,black,blue,kingdom,school,love,magic")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
 const JIMOV_DEFAULT_CATALOG_LIMIT = Math.max(80, Number(process.env.JIMOV_DEFAULT_CATALOG_LIMIT || 400));
 const JIMOV_MAX_CATALOG_LIMIT = Math.max(JIMOV_DEFAULT_CATALOG_LIMIT, Number(process.env.JIMOV_MAX_CATALOG_LIMIT || 2000));
 const TIOANIME_CATALOG_LIMIT = Math.max(60, Number(process.env.TIOANIME_CATALOG_LIMIT || 300));
@@ -320,6 +329,36 @@ function handleRequest(request, response) {
     return;
   }
 
+  if (url.pathname === "/api/consumet/kickassanime/health") {
+    handleConsumetHealth(response);
+    return;
+  }
+
+  if (url.pathname === "/api/consumet/kickassanime/catalog") {
+    handleConsumetCatalog(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/consumet/kickassanime/search") {
+    handleConsumetSearch(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/consumet/kickassanime/info" || url.pathname === "/api/consumet/kickassanime/episodes") {
+    handleConsumetInfo(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/consumet/kickassanime/servers") {
+    handleConsumetServers(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/consumet/kickassanime/watch" || url.pathname === "/api/consumet/kickassanime/stream") {
+    handleConsumetWatch(url, response);
+    return;
+  }
+
   if (url.pathname === "/api/check-update") {
     handleCheckUpdate(response);
     return;
@@ -424,6 +463,10 @@ function handleHealth(response) {
       rapidApi: {
         configured: isRapidAnimeConfigured(),
         host: RAPIDAPI_ANIME_HOST ? maskSecret(RAPIDAPI_ANIME_HOST, 8) : ""
+      },
+      consumet: {
+        provider: CONSUMET_PROVIDER,
+        baseUrl: CONSUMET_API
       }
     },
     cache: {
@@ -461,6 +504,7 @@ function handleServerInfo(request, response) {
     },
     providers: [
       { id: "anipub", type: "iframe", health: anipubHealthState.status },
+      { id: "consumet-kickassanime", type: "direct-hls", baseUrl: CONSUMET_API, provider: CONSUMET_PROVIDER },
       { id: "anime1v", type: "direct-or-iframe", baseUrl: ANIME1V_API },
       { id: "jimov-tioanime", type: "direct-or-iframe", baseUrl: JIMOV_API },
       { id: "rapidapi-anime-streaming", type: "direct-hls", configured: isRapidAnimeConfigured() }
@@ -1528,6 +1572,302 @@ async function handleAnime1vStream(reqUrl, response) {
   } catch (error) {
     sendJson(response, { ok: false, source: "Anime1v", error: error.message }, 502);
   }
+}
+
+async function handleConsumetHealth(response) {
+  try {
+    const payload = await consumetRequest(`/anime/${CONSUMET_PROVIDER}/naruto`, { page: 1 }, 6000);
+    sendJson(response, {
+      ok: true,
+      source: "Consumet KickAssAnime",
+      baseUrl: CONSUMET_API,
+      provider: CONSUMET_PROVIDER,
+      results: Array.isArray(payload.results) ? payload.results.length : 0,
+      note: "Self-host Consumet with Docker on port 3000 for local playback."
+    });
+  } catch (error) {
+    sendJson(response, consumetUnavailablePayload(error), 503);
+  }
+}
+
+async function handleConsumetCatalog(reqUrl, response) {
+  const limit = Math.max(1, Math.min(CONSUMET_CATALOG_LIMIT, Number(reqUrl.searchParams.get("limit") || CONSUMET_CATALOG_LIMIT)));
+  const page = Math.max(1, Number(reqUrl.searchParams.get("page") || 1) || 1);
+  const pages = Math.max(1, Math.min(CONSUMET_SEARCH_PAGES, Number(reqUrl.searchParams.get("pages") || CONSUMET_SEARCH_PAGES)));
+  const query = reqUrl.searchParams.get("q") || reqUrl.searchParams.get("query");
+  try {
+    const items = await searchConsumetSeeds(query ? [query] : CONSUMET_CATALOG_SEEDS, { page, pages, limit });
+    sendJson(response, {
+      ok: true,
+      source: "Consumet KickAssAnime",
+      provider: CONSUMET_PROVIDER,
+      count: items.length,
+      totalResults: items.length,
+      page,
+      hasMore: false,
+      items
+    });
+  } catch (error) {
+    sendJson(response, consumetUnavailablePayload(error), 503);
+  }
+}
+
+async function handleConsumetSearch(reqUrl, response) {
+  const query = reqUrl.searchParams.get("q") || reqUrl.searchParams.get("query");
+  const page = Math.max(1, Number(reqUrl.searchParams.get("page") || 1) || 1);
+  const limit = Math.max(1, Math.min(CONSUMET_CATALOG_LIMIT, Number(reqUrl.searchParams.get("limit") || 120)));
+  const pages = Math.max(1, Math.min(CONSUMET_SEARCH_PAGES, Number(reqUrl.searchParams.get("pages") || 2)));
+  if (!query) {
+    sendJson(response, { ok: false, error: "Missing search query" }, 400);
+    return;
+  }
+  try {
+    const items = await searchConsumetSeeds([query], { page, pages, limit });
+    sendJson(response, {
+      ok: true,
+      source: "Consumet KickAssAnime",
+      provider: CONSUMET_PROVIDER,
+      count: items.length,
+      totalResults: items.length,
+      page,
+      items
+    });
+  } catch (error) {
+    sendJson(response, consumetUnavailablePayload(error), 503);
+  }
+}
+
+async function searchConsumetSeeds(seeds, { page = 1, pages = 1, limit = 120 } = {}) {
+  const byId = new Map();
+  for (const seed of seeds) {
+    for (let offset = 0; offset < pages && byId.size < limit; offset += 1) {
+      const currentPage = page + offset;
+      const payload = await consumetRequest(`/anime/${CONSUMET_PROVIDER}/${encodeURIComponent(seed)}`, { page: currentPage });
+      const results = Array.isArray(payload?.results) ? payload.results : [];
+      results.forEach((item) => {
+        const normalized = normalizeConsumetCatalogItem(item);
+        if (normalized?.consumetId && !byId.has(normalized.consumetId)) byId.set(normalized.consumetId, normalized);
+      });
+      if (!payload?.hasNextPage || results.length === 0) break;
+      await wait(90);
+    }
+  }
+  return [...byId.values()].slice(0, limit);
+}
+
+async function handleConsumetInfo(reqUrl, response) {
+  const id = reqUrl.searchParams.get("id") || reqUrl.searchParams.get("url");
+  if (!id) {
+    sendJson(response, { ok: false, error: "Missing KickAssAnime id" }, 400);
+    return;
+  }
+  try {
+    const info = await consumetRequest(`/anime/${CONSUMET_PROVIDER}/info`, { id });
+    const seasonNumber = extractSeasonNumber(info.title || "", 1);
+    const episodes = (Array.isArray(info.episodes) ? info.episodes : [])
+      .map((episode, index) => normalizeConsumetEpisode(episode, info, index));
+    sendJson(response, {
+      ok: true,
+      source: "Consumet KickAssAnime",
+      provider: CONSUMET_PROVIDER,
+      id: info.id || id,
+      consumetId: info.id || id,
+      title: info.title || "",
+      image: info.image || "",
+      banner: info.cover || info.image || "",
+      description: cleanDescription(info.description || ""),
+      genres: info.genres || [],
+      totalEpisodes: info.totalEpisodes || episodes.length,
+      hasSpanishSubtitles: true,
+      defaultAudio: "japanese",
+      defaultSubs: "spanish",
+      episodes: repairServerEpisodes(episodes, seasonNumber)
+    });
+  } catch (error) {
+    sendJson(response, { ok: false, source: "Consumet KickAssAnime", error: error.message }, 502);
+  }
+}
+
+async function handleConsumetServers(reqUrl, response) {
+  const episodeId = reqUrl.searchParams.get("episodeId") || reqUrl.searchParams.get("id");
+  if (!episodeId) {
+    sendJson(response, { ok: false, error: "Missing episodeId" }, 400);
+    return;
+  }
+  try {
+    const servers = await consumetRequest(`/anime/${CONSUMET_PROVIDER}/servers`, { episodeId });
+    sendJson(response, {
+      ok: true,
+      source: "Consumet KickAssAnime",
+      episodeId,
+      servers: Array.isArray(servers) ? servers : []
+    });
+  } catch (error) {
+    sendJson(response, { ok: false, source: "Consumet KickAssAnime", error: error.message }, 502);
+  }
+}
+
+async function handleConsumetWatch(reqUrl, response) {
+  const episodeId = reqUrl.searchParams.get("episodeId") || reqUrl.searchParams.get("id");
+  const server = reqUrl.searchParams.get("server") || "";
+  if (!episodeId) {
+    sendJson(response, { ok: false, error: "Missing episodeId" }, 400);
+    return;
+  }
+  try {
+    const payload = await consumetRequest(`/anime/${CONSUMET_PROVIDER}/watch`, { episodeId, server });
+    const sources = Array.isArray(payload.sources) ? payload.sources : [];
+    const subtitles = normalizeConsumetSubtitles(payload.subtitles);
+    const best = pickBestConsumetSource(sources);
+    const sourceOptions = sources.map((source, index) => ({
+      id: `consumet-${normalizeTitle(server || source.quality || String(index + 1))}`,
+      label: `KickAssAnime ${server || source.quality || index + 1}`,
+      type: "direct",
+      videoUrl: source.url,
+      downloadUrl: source.url
+    })).filter((source) => source.videoUrl);
+    const hasSpanish = subtitles.some((track) => isSpanishLanguage(track.language || track.label));
+    sendJson(response, {
+      ok: true,
+      source: "Consumet KickAssAnime",
+      server: server || "KickAssAnime",
+      videoUrl: best?.url || "",
+      streamUrl: best?.url || "",
+      file: best?.url || "",
+      isM3U8: Boolean(best?.isM3U8 || /\.m3u8($|\?)/i.test(best?.url || "")),
+      headers: payload.headers || {},
+      subtitles,
+      availableAudio: ["japanese"],
+      availableSubs: hasSpanish ? ["spanish", "english", "spanish-translated", "none"] : ["spanish-translated", "english", "none"],
+      defaultAudio: "japanese",
+      defaultSubs: hasSpanish ? "spanish" : "spanish-translated",
+      hasSpanishSubtitles: hasSpanish,
+      subtitleWarning: hasSpanish ? "" : "KickAssAnime did not return a Spanish subtitle file for this server. AnimeTV can translate available subtitles to Spanish.",
+      sourceOptions
+    });
+  } catch (error) {
+    sendJson(response, { ok: false, source: "Consumet KickAssAnime", error: error.message }, 502);
+  }
+}
+
+async function consumetRequest(pathname, params = {}, timeout = CONSUMET_TIMEOUT_MS) {
+  const url = new URL(pathname.replace(/^\/+/, "/"), CONSUMET_API);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, String(value));
+  });
+  const response = await fetchWithTimeout(url.toString(), { headers: { Accept: "application/json" } }, timeout);
+  if (!response.ok) throw new Error(`Consumet HTTP ${response.status}`);
+  return response.json();
+}
+
+function normalizeConsumetCatalogItem(item = {}) {
+  const id = item.id || item.slug || item.url || "";
+  const title = item.title || item.name || "";
+  if (!id || !title) return null;
+  return {
+    id: `consumet-kaa-${normalizeTitle(id) || normalizeTitle(title)}`,
+    consumetId: id,
+    title,
+    episode: item.totalEpisodes || "?",
+    genre: "anime",
+    genres: [],
+    source: "Consumet KickAssAnime",
+    image: item.image || "",
+    banner: item.image || "",
+    description: item.otherName || "KickAssAnime via self-hosted Consumet. Japanese audio with Spanish subtitles when the selected server provides them.",
+    siteUrl: id,
+    consumetUrl: id,
+    episodeEndpoint: "/api/consumet/kickassanime/info",
+    streamEndpoint: "/api/consumet/kickassanime/watch",
+    provider: CONSUMET_PROVIDER,
+    type: item.type || "Anime",
+    subOrDub: item.subOrDub || "sub",
+    status: item.status || "",
+    totalEpisodes: item.totalEpisodes || null,
+    hasSpanishSubtitles: true,
+    day: "Local",
+    time: "",
+    colors: ["#56e0c2", "#261d47"],
+    seasons: [],
+    episodes: []
+  };
+}
+
+function normalizeConsumetEpisode(episode = {}, info = {}, index = 0) {
+  const number = Number(episode.number || episode.episode || index + 1) || index + 1;
+  const season = extractSeasonNumber(info.title || "", 1);
+  const episodeId = episode.id || episode.url || "";
+  return {
+    id: `consumet-kaa-${normalizeTitle(info.id || info.title)}-${number}`,
+    consumetEpisodeId: episodeId,
+    title: episode.title || `Episode ${number}`,
+    season,
+    episode: number,
+    number,
+    poster: episode.image || info.image || "",
+    server: "Consumet KickAssAnime",
+    streamResolver: episodeId ? {
+      type: "consumet-kickassanime",
+      endpoint: `/api/consumet/kickassanime/watch?episodeId=${encodeURIComponent(episodeId)}`
+    } : null,
+    sourceOptions: episodeId ? buildConsumetSourceOptions(episodeId) : [],
+    availableAudio: ["japanese"],
+    availableSubs: ["spanish", "spanish-translated", "english", "none"],
+    defaultAudio: "japanese",
+    defaultSubs: "spanish",
+    hasSpanishSubtitles: true,
+    locked: !episodeId
+  };
+}
+
+function buildConsumetSourceOptions(episodeId) {
+  return ["VidStreaming", "BirdStream", "DuckStream", "CatStream"].map((server, index) => ({
+    id: `consumet-kaa-${normalizeTitle(server)}`,
+    label: `KickAssAnime ${index + 1}`,
+    type: "resolver",
+    streamResolver: {
+      type: "consumet-kickassanime",
+      endpoint: `/api/consumet/kickassanime/watch?episodeId=${encodeURIComponent(episodeId)}&server=${encodeURIComponent(server)}`
+    }
+  }));
+}
+
+function normalizeConsumetSubtitles(subtitles = []) {
+  if (!Array.isArray(subtitles)) return [];
+  return subtitles.map((track) => {
+    if (typeof track === "string") return { url: track, language: "", label: "Subtitles" };
+    const url = track.url || track.file || track.src || track.href;
+    if (!url) return null;
+    const label = track.lang || track.language || track.label || track.name || "Subtitles";
+    const normalized = normalizeLanguageName(label);
+    return {
+      url,
+      language: normalized === "spanish" ? "es" : normalized === "english" ? "en" : String(label).toLowerCase(),
+      label,
+      default: normalized === "spanish"
+    };
+  }).filter(Boolean).sort((a, b) => Number(b.default) - Number(a.default));
+}
+
+function pickBestConsumetSource(sources = []) {
+  return [...sources]
+    .filter((source) => source?.url)
+    .sort((a, b) => qualityRank(b.quality) - qualityRank(a.quality))[0] || null;
+}
+
+function qualityRank(value = "") {
+  const match = String(value).match(/(\d{3,4})/);
+  return match ? Number(match[1]) : 0;
+}
+
+function consumetUnavailablePayload(error) {
+  return {
+    ok: false,
+    source: "Consumet KickAssAnime",
+    baseUrl: CONSUMET_API,
+    error: error?.message || "Consumet is unavailable",
+    note: "Consumet is self-hosted. Start it with: docker run -p 3000:3000 riimuru/consumet-api"
+  };
 }
 
 async function handleRapidAnimeHealth(response) {

@@ -1583,12 +1583,88 @@ async function resolveEpisodeWithRapidAnimeFallback(show, episode, seasonNumber 
   return { type: "none" };
 }
 
+async function resolveEpisodeWithConsumetFallback(show, episode, seasonNumber = 1) {
+  const episodeNumber = Number(episode?.episode || episode?.number || 1);
+  const cacheKey = `${RESPONSE_CACHE_PREFIX}consumet-kickassanime:${normalizeTitle(show.title)}:s${seasonNumber}:e${episodeNumber}`;
+  try {
+    const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
+    if (cached?.expiry > Date.now()) {
+      if (cached.sourceOptions?.length) cached.sourceOptions.forEach((option) => addEpisodeSourceOption(episode, option));
+      if (cached.videoUrl && !getEpisodeUrl(episode)) episode.videoUrl = cached.videoUrl;
+      if (cached.found) return cached.videoUrl ? { type: "direct", url: cached.videoUrl, source: "KickAssAnime" } : { type: "resolver", source: "KickAssAnime" };
+      return { type: "none" };
+    }
+  } catch (error) {
+    localStorage.removeItem(cacheKey);
+  }
+
+  try {
+    const searchUrl = new URL("./api/consumet/kickassanime/search", location.href);
+    searchUrl.searchParams.set("q", getFranchiseKey(show.title) || show.title);
+    searchUrl.searchParams.set("limit", "24");
+    searchUrl.searchParams.set("pages", "2");
+    const searchResponse = await fetchWithTimeout(searchUrl.toString(), { cache: "no-store" }, 18000);
+    if (!searchResponse.ok) throw new Error("Consumet search unavailable");
+    const searchPayload = await searchResponse.json();
+    const candidates = Array.isArray(searchPayload.items) ? searchPayload.items : [];
+    const matched = candidates
+      .map((candidate) => ({ candidate, score: titleMatchScore(show, candidate) }))
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score)[0]?.candidate;
+    if (!matched?.consumetId) {
+      localStorage.setItem(cacheKey, JSON.stringify({ found: false, expiry: Date.now() + RESPONSE_CACHE_TTL }));
+      return { type: "none" };
+    }
+
+    const infoUrl = new URL("./api/consumet/kickassanime/info", location.href);
+    infoUrl.searchParams.set("id", matched.consumetId);
+    const infoResponse = await fetchWithTimeout(infoUrl.toString(), { cache: "no-store" }, 20000);
+    if (!infoResponse.ok) throw new Error("Consumet episode list unavailable");
+    const infoPayload = await infoResponse.json();
+    const episodes = Array.isArray(infoPayload.episodes) ? infoPayload.episodes : [];
+    const targetEpisode = episodes.find((entry) =>
+      Number(entry.episode || entry.number) === episodeNumber
+      && Number(entry.season || 1) === Number(seasonNumber || 1)
+    ) || episodes.find((entry) => Number(entry.episode || entry.number) === episodeNumber);
+    if (!targetEpisode) {
+      localStorage.setItem(cacheKey, JSON.stringify({ found: false, expiry: Date.now() + RESPONSE_CACHE_TTL }));
+      return { type: "none" };
+    }
+
+    const sourceOptions = normalizeEpisodeSourceOptions(targetEpisode).map((option) => ({
+      ...option,
+      id: option.id?.startsWith("consumet") ? option.id : `consumet-${option.id || normalizeTitle(option.label || "source")}`,
+      label: option.label || "KickAssAnime"
+    }));
+    sourceOptions.forEach((option) => addEpisodeSourceOption(episode, option));
+    if (targetEpisode.streamResolver) addEpisodeSourceOption(episode, {
+      id: "consumet-kickassanime-resolver",
+      label: "KickAssAnime",
+      type: "resolver",
+      streamResolver: targetEpisode.streamResolver
+    });
+    const directUrl = getEpisodeUrl(targetEpisode);
+    if (directUrl && !getEpisodeUrl(episode)) episode.videoUrl = directUrl;
+    episode.locked = false;
+    localStorage.setItem(cacheKey, JSON.stringify({
+      found: Boolean(directUrl || sourceOptions.length || targetEpisode.streamResolver),
+      videoUrl: directUrl,
+      sourceOptions,
+      expiry: Date.now() + RESPONSE_CACHE_TTL
+    }));
+    if (directUrl) return { type: "direct", url: directUrl, source: "KickAssAnime" };
+  } catch (error) {
+    console.warn("Consumet KickAssAnime fallback failed:", error);
+  }
+  return { type: "none" };
+}
+
 async function attachLoadedAddonFallbacks(show, episode, seasonNumber = 1) {
   if (!show || !episode) return;
   const episodeNumber = Number(episode.episode || episode.number || 1);
   const sections = state.addonSections.filter((section) =>
     section?.items?.length
-    && !["anipub-catalog", "anime1v-spanish", "jimov-tioanime", "rapidapi-anime-streaming"].includes(section.id)
+    && !["anipub-catalog", "consumet-kickassanime", "anime1v-spanish", "jimov-tioanime", "rapidapi-anime-streaming"].includes(section.id)
   );
   sections.forEach((section) => {
     const matched = section.items
@@ -1629,6 +1705,7 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
   await Promise.allSettled([
     attachAniPubFallback(show, episode),
     resolveEpisodeWithAnime1vFallback(show, episode, seasonNumber),
+    resolveEpisodeWithConsumetFallback(show, episode, seasonNumber),
     resolveEpisodeWithJimovFallback(show, episode, seasonNumber),
     resolveEpisodeWithRapidAnimeFallback(show, episode, seasonNumber),
     attachLoadedAddonFallbacks(show, episode, seasonNumber)
@@ -2217,6 +2294,7 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
   try {
     await Promise.allSettled([
       isAniPubShow(show) ? hydrateAniPubEpisodes(show) : Promise.resolve(show),
+      isConsumetShow(show) ? hydrateConsumetEpisodes(show) : Promise.resolve(show),
       isAnime1vShow(show) ? hydrateAnime1vEpisodes(show) : Promise.resolve(show),
       isJimovShow(show) ? hydrateJimovEpisodes(show) : Promise.resolve(show),
       isRapidAnimeShow(show) ? hydrateRapidAnimeEpisodes(show) : Promise.resolve(show)
@@ -2301,6 +2379,64 @@ function isAnime1vShow(show) {
   return /anime1v/i.test(String(show?.source || ""))
     || /anime1v/i.test(String(show?.id || ""))
     || Boolean(show?.anime1vUrl);
+}
+
+async function hydrateConsumetEpisodes(show) {
+  if (!show || show.consumetEpisodesLoaded) return show;
+  const consumetId = show.consumetId || show.consumetUrl || show.siteUrl;
+  const endpoint = show.episodeEndpoint || "./api/consumet/kickassanime/info";
+  if (!consumetId || !endpoint) return show;
+  try {
+    const url = new URL(resolveSourceEndpoint(endpoint), location.href);
+    url.searchParams.set("id", consumetId);
+    const response = await fetchWithTimeout(url.toString(), { cache: "no-store" }, 20000);
+    if (!response.ok) throw new Error("Consumet KickAssAnime episode endpoint unavailable");
+    const payload = await response.json();
+    if (!payload.ok || !Array.isArray(payload.episodes) || !payload.episodes.length) return show;
+    if (payload.image && !show.image) show.image = payload.image;
+    if (payload.banner && !show.banner) show.banner = payload.banner;
+    if (payload.description) show.description = cleanDescription(payload.description);
+    const seasonNumber = extractSeasonNumber(payload.title || show.title, extractSeasonNumber(show.title, 1));
+    const episodes = repairEpisodeGaps(payload.episodes.map((episode) => ({
+      ...episode,
+      id: episode.id || `${show.id}-consumet-${episode.episode || episode.number}`,
+      season: episode.season || seasonNumber,
+      episode: episode.episode || episode.number,
+      server: episode.server || "Consumet KickAssAnime",
+      sourceOptions: normalizeEpisodeSourceOptions(episode),
+      locked: episode.locked ?? !(getEpisodeUrl(episode) || episode.externalUrl || episode.streamResolver),
+      availableAudio: episode.availableAudio || ["japanese"],
+      availableSubs: episode.availableSubs || ["spanish", "spanish-translated", "english", "none"],
+      defaultAudio: episode.defaultAudio || "japanese",
+      defaultSubs: episode.defaultSubs || "spanish"
+    })), seasonNumber);
+    show.episode = episodes.length;
+    show.episodes = episodes;
+    show.seasons = [{
+      season: seasonNumber,
+      title: `Season ${seasonNumber}`,
+      sourceTitle: show.title,
+      image: show.image,
+      playable: true,
+      episodes
+    }];
+    show.consumetEpisodesLoaded = true;
+    state.shows = state.shows.map((entry) => entry.id === show.id ? show : entry);
+    state.addonSections = state.addonSections.map((section) => ({
+      ...section,
+      items: (section.items || []).map((entry) => entry.id === show.id ? show : entry)
+    }));
+  } catch (error) {
+    console.warn("Consumet KickAssAnime episodes could not load:", error);
+    show.consumetError = error.message;
+  }
+  return show;
+}
+
+function isConsumetShow(show) {
+  return /consumet|kickassanime/i.test(String(show?.source || ""))
+    || /consumet-kaa/i.test(String(show?.id || ""))
+    || Boolean(show?.consumetId || show?.consumetUrl);
 }
 
 async function hydrateRapidAnimeEpisodes(show) {

@@ -2,12 +2,14 @@ param(
   [string]$AnimeTVPath = $PSScriptRoot,
   [string]$Anime1vPath = $(if ($env:ANIME1V_PATH) { $env:ANIME1V_PATH } else { "C:\anime1v-api" }),
   [int]$CheckEverySeconds = 10,
+  [switch]$NoConsumet,
   [switch]$NoBrowser
 )
 
 $ErrorActionPreference = "Continue"
 $animeTvHealth = "http://127.0.0.1:4173/api/health"
 $anime1vHealth = "http://127.0.0.1:3001/health"
+$consumetHealth = "http://127.0.0.1:3000/anime/kickassanime/naruto?page=1"
 $logDir = Join-Path $AnimeTVPath "logs"
 $animeTvProcess = $null
 $anime1vProcess = $null
@@ -102,6 +104,35 @@ function Ensure-AnimeTV {
   $script:animeTvProcess = Start-ManagedNode -Name "AnimeTV" -WorkingDirectory $AnimeTVPath -ScriptPath "animetv-local.js" -LogPrefix "animetv"
 }
 
+function Test-Docker {
+  return [bool](Get-Command docker -ErrorAction SilentlyContinue)
+}
+
+function Ensure-Consumet {
+  if ($NoConsumet) {
+    return
+  }
+  if (Test-Health $consumetHealth) {
+    return
+  }
+  if (-not (Test-Docker)) {
+    Write-Host "Consumet is offline and Docker is not available. Install Docker or run: docker run -p 3000:3000 riimuru/consumet-api" -ForegroundColor DarkYellow
+    return
+  }
+  try {
+    $existing = docker ps -a --filter "name=animetv-consumet" --format "{{.Names}}"
+    if ($existing -contains "animetv-consumet") {
+      Write-Host "Starting existing Consumet container..." -ForegroundColor Yellow
+      docker start animetv-consumet | Out-Null
+      return
+    }
+    Write-Host "Starting Consumet API container on http://127.0.0.1:3000..." -ForegroundColor Yellow
+    docker run -d --name animetv-consumet -p 3000:3000 riimuru/consumet-api | Out-Null
+  } catch {
+    Write-Host "Consumet could not start. Port 3000 may be busy or Docker may need to be opened." -ForegroundColor DarkYellow
+  }
+}
+
 function Invoke-DailyRefresh {
   try {
     Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:4173/api/refresh-daily?background=1" -TimeoutSec 5 | Out-Null
@@ -113,17 +144,21 @@ function Invoke-DailyRefresh {
 Write-Host "AnimeTV supervised launcher" -ForegroundColor Cyan
 Write-Host "AnimeTV:  http://127.0.0.1:4173" -ForegroundColor Green
 Write-Host "Anime1v:  http://127.0.0.1:3001" -ForegroundColor Green
+Write-Host "Consumet: http://127.0.0.1:3000" -ForegroundColor Green
 Write-Host "Logs:     $logDir" -ForegroundColor Gray
 Write-Host "Checking every $CheckEverySeconds seconds. Keep this window open." -ForegroundColor Gray
 Write-Host ""
 
 while ($true) {
+  Ensure-Consumet
+  Start-Sleep -Seconds 1
   Ensure-Anime1v
   Start-Sleep -Seconds 2
   Ensure-AnimeTV
 
   $animeTvStatus = if (Test-Health $animeTvHealth) { "online" } else { "offline" }
   $anime1vStatus = if (Test-Health $anime1vHealth) { "online" } else { "offline" }
+  $consumetStatus = if (Test-Health $consumetHealth) { "online" } else { "offline" }
 
   if ($animeTvStatus -eq "online" -and -not $openedBrowser) {
     Invoke-DailyRefresh
@@ -133,6 +168,6 @@ while ($true) {
     $openedBrowser = $true
   }
 
-  Write-Host ("{0}  AnimeTV: {1}  Anime1v: {2}" -f (Get-Date -Format "HH:mm:ss"), $animeTvStatus, $anime1vStatus)
+  Write-Host ("{0}  AnimeTV: {1}  Anime1v: {2}  Consumet: {3}" -f (Get-Date -Format "HH:mm:ss"), $animeTvStatus, $anime1vStatus, $consumetStatus)
   Start-Sleep -Seconds $CheckEverySeconds
 }

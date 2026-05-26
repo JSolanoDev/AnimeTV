@@ -13,6 +13,7 @@ function normalizeExternalShow(item, source, index) {
   return {
     id: `source-${source.id || source.name}-${item.id || item.malId || item.anilistId || index}`,
     aniPubId: item.aniPubId || item.anipubId || item._id || (source.id === "anipub-catalog" ? item.id : ""),
+    consumetId: item.consumetId || item.consumet_id || item.kickAssAnimeId || item.kickassanimeId || (source.id === "consumet-kickassanime" ? item.id : ""),
     finder: item.finder || item.slug || "",
     malId: item.malId || item.idMal || item.mal_id || null,
     anilistId: item.anilistId || item.idAnilist || item.anilist_id || null,
@@ -201,6 +202,7 @@ function isAnime1vEpisode(episode = {}) {
 function sourceLabelFromResolver(resolver = {}) {
   if (resolver.type === "anime1v") return "Anime1v";
   if (resolver.type === "anipub") return "AniPub";
+  if (resolver.type === "consumet-kickassanime") return "KickAssAnime";
   if (resolver.type === "rapid-anime") return "RapidAPI";
   return "Addon";
 }
@@ -211,6 +213,7 @@ function comparePlaybackSources(a = {}, b = {}) {
 
 function playbackSourceRank(source = {}) {
   const label = `${source.id || ""} ${source.label || ""} ${source.streamResolver?.type || ""}`.toLowerCase();
+  if (label.includes("kickassanime") || label.includes("consumet")) return 5;
   if (label.includes("anipub")) return 10;
   if (label.includes("anime1v")) return 20;
   if (label.includes("jimov") || label.includes("tioanime")) return 30;

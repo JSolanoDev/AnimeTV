@@ -1,6 +1,19 @@
 {
   "sources": [
     {
+      "id": "consumet-kickassanime",
+      "name": "Consumet KickAssAnime (JP + Spanish Subs)",
+      "enabled": true,
+      "type": "online-addon",
+      "endpoint": "/api/consumet/kickassanime/catalog?limit=360&page=1&pages=6",
+      "episodeEndpoint": "/api/consumet/kickassanime/info",
+      "streamEndpoint": "/api/consumet/kickassanime/watch",
+      "healthEndpoint": "/api/consumet/kickassanime/health",
+      "pageSize": 120,
+      "paginated": false,
+      "description": "Self-hosted Consumet provider for KickAssAnime. It returns HLS/M3U8 sources and subtitle tracks; AnimeTV defaults to Japanese audio and Spanish subtitles when the selected server provides them, with Spanish translation fallback."
+    },
+    {
       "id": "anipub-catalog",
       "name": "AniPub",
       "enabled": true,

@@ -26,13 +26,13 @@
 ## Highlights
 
 - TV-first interface with compact sidebar navigation and remote-friendly focus states.
-- Multi-source catalogs: AniList/Jikan metadata, AniPub, JIMOV/TioAnime, Anime1v, RapidAPI, and custom addons.
+- Multi-source catalogs: AniList/Jikan metadata, AniPub, Consumet KickAssAnime, JIMOV/TioAnime, Anime1v, RapidAPI, and custom addons.
 - Server picker per episode, with AniPub first when available and other playable sources added automatically.
 - Embedded iframe playback and direct `<video>` playback stay separated for safety.
 - Japanese audio and Spanish subtitles are the default playback preference.
 - English subtitle tracks can be translated into Spanish for direct subtitle files.
 - Favorites, watch history, resume positions, settings, light/dark theme, daily refresh, and Android TV wrapper.
-- Windows launcher can supervise AnimeTV and Anime1v, restarting services after crashes.
+- Windows launcher can supervise AnimeTV, Anime1v, and a local Consumet Docker container, restarting services after crashes.
 
 ## Live Deployment
 
@@ -86,6 +86,7 @@ android\app\build\outputs\apk\debug\app-debug.apk
 | --- | --- | --- | --- |
 | AniList + Jikan | Metadata | No video | High quality titles, images, scores, descriptions, and schedules. |
 | AniPub | Online addon | Iframe | First fallback option when a matching episode exists. |
+| Consumet KickAssAnime | Self-hosted API | Direct HLS/M3U8 | Start with `docker run -p 3000:3000 riimuru/consumet-api`; AnimeTV uses JP audio and Spanish subtitle preference when returned. |
 | Anime1v | Local API | Direct or iframe | Japanese audio + Spanish subtitle friendly when quota/providers allow. |
 | JIMOV/TioAnime | Online addon | Direct or iframe | Spanish-friendly TioAnime connector. |
 | RapidAPI Anime Streaming | API addon | Direct HLS/M3U8 when available | Requires `RAPIDAPI_ANIME_HOST` and `RAPIDAPI_ANIME_KEY`. |
@@ -110,6 +111,7 @@ Copy `.env.example` to `.env.local` for local development.
 PORT=4173
 ANIME1V_API=http://localhost:3001
 ANIME1V_AUTO_START=true
+CONSUMET_API=http://localhost:3000
 RAPIDAPI_ANIME_HOST=your-rapidapi-host.p.rapidapi.com
 RAPIDAPI_ANIME_KEY=your-rapidapi-key
 RAPIDAPI_ANIME_TIMEOUT_MS=28000
@@ -128,6 +130,10 @@ GET /api/anipub/episodes/:id
 GET /api/anime1v/health
 GET /api/anime1v/trending
 GET /api/anime1v/search?q=naruto
+GET /api/consumet/kickassanime/health
+GET /api/consumet/kickassanime/catalog
+GET /api/consumet/kickassanime/info?id=naruto-f3cf
+GET /api/consumet/kickassanime/watch?episodeId=naruto-f3cf/episode/ep-1-12cd96
 GET /api/jimov/tioanime/catalog
 GET /api/rapid-anime/health
 GET /api/rapid-anime/catalog
