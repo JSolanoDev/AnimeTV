@@ -16,7 +16,7 @@
     "dev": "node animetv-local.js",
     "vercel-build": "node scripts/build-static.mjs",
     "deploy:vercel": "powershell -NoProfile -ExecutionPolicy Bypass -File ./deploy-vercel.ps1",
-    "check": "node --check animetv-local.js && node --check animetv-server.js && node --check api/[...path].js && node --check client.js",
+    "check": "node --check animetv-local.js && node --check animetv-server.js && node --check api/[...path].js && node --check js/constants.js && node --check js/translations.js && node --check js/utils.js && node --check js/normalize.js && node --check client.js",
     "android:build": "cd android && .\\gradlew.bat assembleDebug",
     "android:install": "adb install -r android/app/build/outputs/apk/debug/app-debug.apk"
   },

@@ -19,6 +19,7 @@ android/local.properties
 android/app/build/
 .idea/
 .vscode/
+.claude/
 .DS_Store
 Thumbs.db
 
