@@ -2,8 +2,13 @@
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "dist",
   "functions": {
+    "animetv-local.js": {
+      "maxDuration": 30,
+      "includeFiles": "{index.html,offline.html,styles.css,client.js,update-manager.js,manifest.webmanifest,sources.json,icon.svg,service-worker.js,animetv-settings.json}"
+    },
     "api/**/*.js": {
-      "maxDuration": 30
+      "maxDuration": 30,
+      "includeFiles": "{index.html,offline.html,styles.css,client.js,update-manager.js,manifest.webmanifest,sources.json,icon.svg,service-worker.js,animetv-settings.json}"
     }
   },
   "headers": [
