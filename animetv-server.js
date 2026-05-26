@@ -4,6 +4,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 
 const root = path.resolve(__dirname);
+const serverStartedAt = Date.now();
 
 loadLocalEnv();
 
@@ -49,6 +50,11 @@ const ANIPUB_INFO_PAGE_SIZE = 80;
 const ANIPUB_CATALOG_PAGE_SIZE = 100;
 const DAILY_REFRESH_INTERVAL_MS = Math.max(1000 * 60 * 60, Number(process.env.DAILY_REFRESH_INTERVAL_MS || 1000 * 60 * 60 * 24));
 const DAILY_REFRESH_START_DELAY_MS = Math.max(5000, Number(process.env.DAILY_REFRESH_START_DELAY_MS || 15000));
+const LOG_LEVEL = String(process.env.LOG_LEVEL || "info").toLowerCase();
+const SERVER_CACHE_DIR = path.join(root, ".cache", "server");
+const RATE_LIMIT_WINDOW_MS = Math.max(1000, Number(process.env.RATE_LIMIT_WINDOW_MS || 60000));
+const RATE_LIMIT_MAX_REQUESTS = Math.max(20, Number(process.env.RATE_LIMIT_MAX_REQUESTS || 240));
+const RATE_LIMIT_API_MAX_REQUESTS = Math.max(20, Number(process.env.RATE_LIMIT_API_MAX_REQUESTS || 120));
 const translationCache = new Map();
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -97,6 +103,40 @@ let lastDailyRefreshAt = 0;
 let lastDailyRefreshResult = null;
 let anime1vQuotaBlockedUntil = 0;
 let anime1vQuotaMessage = "";
+const rateLimitBuckets = new Map();
+const requestMetrics = {
+  total: 0,
+  api: 0,
+  limited: 0,
+  errors: 0,
+  startedAt: new Date(serverStartedAt).toISOString()
+};
+const LOG_LEVELS = { debug: 10, info: 20, warn: 30, error: 40, silent: 100 };
+
+function log(level, message, meta = null) {
+  const current = LOG_LEVELS[LOG_LEVEL] ?? LOG_LEVELS.info;
+  const target = LOG_LEVELS[level] ?? LOG_LEVELS.info;
+  if (target < current) return;
+  const line = `[AnimeTV] ${new Date().toISOString()} ${level.toUpperCase()} ${message}`;
+  const writer = level === "error" ? console.error : level === "warn" ? console.warn : console.log;
+  if (meta) writer(line, meta);
+  else writer(line);
+}
+
+function installProcessSafetyNet() {
+  if (process.__animeTvSafetyNetInstalled) return;
+  process.__animeTvSafetyNetInstalled = true;
+  process.on("unhandledRejection", (reason) => {
+    requestMetrics.errors += 1;
+    log("error", "Unhandled promise rejection", { error: reason?.stack || reason?.message || String(reason) });
+  });
+  process.on("uncaughtException", (error) => {
+    requestMetrics.errors += 1;
+    log("error", "Uncaught exception", { error: error?.stack || error?.message || String(error) });
+  });
+}
+
+installProcessSafetyNet();
 
 function loadLocalEnv() {
   [".env.local", ".env"].forEach((file) => {
@@ -122,18 +162,48 @@ function loadLocalEnv() {
 }
 
 function handleRequest(request, response) {
-  const url = new URL(request.url, `http://${request.headers.host}`);
+  requestMetrics.total += 1;
+  const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
 
-  if (url.pathname === "/" && !fs.existsSync(path.join(root, "index.html"))) {
-    response.writeHead(307, { Location: "/index.html" });
-    response.end();
-    return;
-  }
+  try {
+    if (request.method === "OPTIONS") {
+      sendCorsPreflight(response);
+      return;
+    }
 
-  if (url.pathname === "/api/health") {
-    sendJson(response, { ok: true, app: "AnimeTV", api: "ready", dailyRefresh: lastDailyRefreshResult || { status: "waiting" } });
-    return;
-  }
+    if (url.pathname.startsWith("/api/")) {
+      requestMetrics.api += 1;
+      const rate = checkRateLimit(request, url);
+      if (!rate.allowed) {
+        requestMetrics.limited += 1;
+        sendJson(response, {
+          ok: false,
+          error: "Too many requests. Please wait a moment and try again.",
+          retryAfterSeconds: Math.ceil(rate.retryAfterMs / 1000)
+        }, 429, {
+          "Retry-After": String(Math.ceil(rate.retryAfterMs / 1000)),
+          "X-RateLimit-Limit": String(rate.limit),
+          "X-RateLimit-Remaining": "0"
+        });
+        return;
+      }
+    }
+
+    if (url.pathname === "/" && !fs.existsSync(path.join(root, "index.html"))) {
+      response.writeHead(307, { Location: "/index.html" });
+      response.end();
+      return;
+    }
+
+    if (url.pathname === "/api/health") {
+      handleHealth(response);
+      return;
+    }
+
+    if (url.pathname === "/api/server-info") {
+      handleServerInfo(request, response);
+      return;
+    }
 
   if (url.pathname === "/api/refresh-daily") {
     handleDailyRefresh(url, response);
@@ -324,6 +394,110 @@ function handleRequest(request, response) {
     });
     response.end(data);
   });
+  } catch (error) {
+    requestMetrics.errors += 1;
+    log("error", "Request failed before route completion", { path: url.pathname, error: error.stack || error.message });
+    if (!response.headersSent) {
+      sendJson(response, { ok: false, error: "AnimeTV server hit a temporary error." }, 500);
+    } else {
+      response.end();
+    }
+  }
+}
+
+function handleHealth(response) {
+  const memory = process.memoryUsage();
+  sendJson(response, {
+    ok: true,
+    app: "AnimeTV",
+    api: "ready",
+    version: APP_VERSION,
+    uptimeSeconds: Math.round((Date.now() - serverStartedAt) / 1000),
+    dailyRefresh: lastDailyRefreshResult || { status: "waiting" },
+    providers: {
+      anipub: anipubHealthState,
+      anime1v: {
+        baseUrl: ANIME1V_API,
+        autoStart: ANIME1V_AUTO_START,
+        quotaBlockedUntil: anime1vQuotaBlockedUntil ? new Date(anime1vQuotaBlockedUntil).toISOString() : null
+      },
+      rapidApi: {
+        configured: isRapidAnimeConfigured(),
+        host: RAPIDAPI_ANIME_HOST ? maskSecret(RAPIDAPI_ANIME_HOST, 8) : ""
+      }
+    },
+    cache: {
+      anipubCatalogItems: anipubRawCatalogCache?.length || 0,
+      anipubCatalogFresh: Boolean(anipubRawCatalogCacheAt && Date.now() - anipubRawCatalogCacheAt < ANIPUB_RAW_CATALOG_TTL_MS),
+      anipubEpisodeEntries: anipubEpisodeCache.size,
+      translations: translationCache.size,
+      persistentCacheDir: ".cache/server"
+    },
+    rateLimit: {
+      windowMs: RATE_LIMIT_WINDOW_MS,
+      maxApiRequests: RATE_LIMIT_API_MAX_REQUESTS,
+      activeBuckets: rateLimitBuckets.size
+    },
+    metrics: requestMetrics,
+    memory: {
+      rssMb: Math.round(memory.rss / 1024 / 1024),
+      heapUsedMb: Math.round(memory.heapUsed / 1024 / 1024)
+    }
+  });
+}
+
+function handleServerInfo(request, response) {
+  const protocol = request.headers["x-forwarded-proto"] || "http";
+  const hostHeader = request.headers["x-forwarded-host"] || request.headers.host || `localhost:${port}`;
+  sendJson(response, {
+    ok: true,
+    app: "AnimeTV",
+    version: APP_VERSION,
+    baseUrl: `${protocol}://${hostHeader}`,
+    cors: "enabled",
+    androidTv: {
+      note: "Android WebView can use this baseUrl for API calls when file:// assets are loaded.",
+      recommendedApiBase: `${protocol}://${hostHeader}/api`
+    },
+    providers: [
+      { id: "anipub", type: "iframe", health: anipubHealthState.status },
+      { id: "anime1v", type: "direct-or-iframe", baseUrl: ANIME1V_API },
+      { id: "jimov-tioanime", type: "direct-or-iframe", baseUrl: JIMOV_API },
+      { id: "rapidapi-anime-streaming", type: "direct-hls", configured: isRapidAnimeConfigured() }
+    ]
+  });
+}
+
+function checkRateLimit(request, url) {
+  if (url.pathname === "/api/health") return { allowed: true, limit: RATE_LIMIT_API_MAX_REQUESTS, retryAfterMs: 0 };
+  const limit = url.pathname.startsWith("/api/") ? RATE_LIMIT_API_MAX_REQUESTS : RATE_LIMIT_MAX_REQUESTS;
+  const key = `${getClientIp(request)}:${url.pathname.startsWith("/api/") ? "api" : "web"}`;
+  const now = Date.now();
+  const bucket = rateLimitBuckets.get(key) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
+  if (now > bucket.resetAt) {
+    bucket.count = 0;
+    bucket.resetAt = now + RATE_LIMIT_WINDOW_MS;
+  }
+  bucket.count += 1;
+  rateLimitBuckets.set(key, bucket);
+  if (rateLimitBuckets.size > 2000) pruneRateLimitBuckets(now);
+  return {
+    allowed: bucket.count <= limit,
+    limit,
+    retryAfterMs: Math.max(0, bucket.resetAt - now)
+  };
+}
+
+function pruneRateLimitBuckets(now = Date.now()) {
+  for (const [key, bucket] of rateLimitBuckets) {
+    if (now > bucket.resetAt) rateLimitBuckets.delete(key);
+  }
+}
+
+function getClientIp(request) {
+  const forwarded = request.headers["x-forwarded-for"];
+  if (typeof forwarded === "string" && forwarded.trim()) return forwarded.split(",")[0].trim();
+  return request.socket?.remoteAddress || "local";
 }
 
 function startLocalServer() {
@@ -1993,6 +2167,36 @@ function writeServerSettings(settings) {
   fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
 }
 
+function readPersistentCache(key, ttlMs) {
+  try {
+    const cachePath = persistentCachePath(key);
+    if (!fs.existsSync(cachePath)) return null;
+    const payload = JSON.parse(fs.readFileSync(cachePath, "utf8"));
+    if (!payload?.cachedAt || Date.now() - payload.cachedAt > ttlMs) return null;
+    return payload;
+  } catch (error) {
+    log("warn", `Persistent cache read failed for ${key}: ${error.message}`);
+    return null;
+  }
+}
+
+function writePersistentCache(key, value) {
+  try {
+    fs.mkdirSync(SERVER_CACHE_DIR, { recursive: true });
+    fs.writeFileSync(persistentCachePath(key), JSON.stringify({
+      ...value,
+      cachedAt: Date.now()
+    }));
+  } catch (error) {
+    log("warn", `Persistent cache write failed for ${key}: ${error.message}`);
+  }
+}
+
+function persistentCachePath(key) {
+  const safeKey = String(key || "cache").replace(/[^a-z0-9._-]+/gi, "-").slice(0, 120);
+  return path.join(SERVER_CACHE_DIR, `${safeKey}.json`);
+}
+
 async function handleAniPubCatalog(url, response, options = {}) {
   const totalCount = await fetchAniPubTotalCount().catch(() => 8000);
   const isPaged = url.searchParams.has("page") || url.searchParams.has("offset");
@@ -2236,12 +2440,18 @@ async function handleAniPubEpisodes(animeId, response) {
 
 function getCachedAniPubEpisodes(animeId) {
   const cached = anipubEpisodeCache.get(String(animeId));
-  if (!cached) return null;
-  if (Date.now() - cached.timestamp > ANIPUB_EPISODE_CACHE_TTL_MS) {
-    anipubEpisodeCache.delete(String(animeId));
-    return null;
+  if (cached && Date.now() - cached.timestamp <= ANIPUB_EPISODE_CACHE_TTL_MS) {
+    return cached.payload;
   }
-  return cached.payload;
+  if (cached) anipubEpisodeCache.delete(String(animeId));
+
+  const persisted = readPersistentCache(`anipub-episodes-${animeId}`, ANIPUB_EPISODE_CACHE_TTL_MS);
+  if (!persisted?.payload) return null;
+  anipubEpisodeCache.set(String(animeId), {
+    timestamp: persisted.cachedAt || Date.now(),
+    payload: persisted.payload
+  });
+  return persisted.payload;
 }
 
 function cacheAniPubEpisodes(animeId, payload) {
@@ -2249,6 +2459,7 @@ function cacheAniPubEpisodes(animeId, payload) {
     timestamp: Date.now(),
     payload
   });
+  writePersistentCache(`anipub-episodes-${animeId}`, { payload });
   if (anipubEpisodeCache.size > 300) {
     anipubEpisodeCache.delete(anipubEpisodeCache.keys().next().value);
   }
@@ -2298,6 +2509,18 @@ async function fetchAllAniPubCatalog(limit = 12000, totalCount = null) {
   ) {
     console.log("AniPub: Returning cached catalog (fresh)");
     return anipubRawCatalogCache.slice(0, rawLimit);
+  }
+
+  const persisted = readPersistentCache("anipub-catalog", ANIPUB_RAW_CATALOG_TTL_MS);
+  if (
+    persisted?.items?.length
+    && (persisted.complete || persisted.items.length >= rawLimit)
+  ) {
+    log("info", `AniPub: Returning persisted catalog cache (${persisted.items.length} items)`);
+    anipubRawCatalogCache = persisted.items;
+    anipubRawCatalogCacheAt = persisted.cachedAt || Date.now();
+    anipubRawCatalogCacheComplete = Boolean(persisted.complete);
+    return persisted.items.slice(0, rawLimit);
   }
 
   if (anipubCatalogPromise) {
@@ -2412,6 +2635,11 @@ async function fetchAllAniPubCatalog(limit = 12000, totalCount = null) {
     anipubRawCatalogCache = unique;
     anipubRawCatalogCacheAt = Date.now();
     anipubRawCatalogCacheComplete = completed || unique.length >= targetCount;
+    writePersistentCache("anipub-catalog", {
+      items: unique,
+      complete: anipubRawCatalogCacheComplete,
+      targetCount
+    });
     return unique;
   })().finally(() => {
     anipubCatalogPromise = null;
@@ -3503,15 +3731,35 @@ function readJsonBody(request) {
   });
 }
 
-function sendJson(response, payload, status = 200) {
+function sendJson(response, payload, status = 200, extraHeaders = {}) {
   response.writeHead(status, {
     ...SECURITY_HEADERS,
+    ...extraHeaders,
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Cache-Control": "no-store, max-age=0"
   });
   response.end(JSON.stringify(payload));
+}
+
+function sendCorsPreflight(response) {
+  response.writeHead(204, {
+    ...SECURITY_HEADERS,
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Max-Age": "86400"
+  });
+  response.end();
+}
+
+function maskSecret(value, visible = 4) {
+  const text = String(value || "");
+  if (!text) return "";
+  if (text.length <= visible) return "*".repeat(text.length);
+  return `${text.slice(0, visible)}${"*".repeat(Math.min(12, Math.max(4, text.length - visible)))}`;
 }
 
 function wait(ms) {
