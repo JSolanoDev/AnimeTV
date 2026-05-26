@@ -11,7 +11,7 @@
       "healthEndpoint": "/api/consumet/kickassanime/health",
       "pageSize": 120,
       "paginated": false,
-      "description": "Self-hosted Consumet provider for KickAssAnime. It returns HLS/M3U8 sources and subtitle tracks; AnimeTV defaults to Japanese audio and Spanish subtitles when the selected server provides them, with Spanish translation fallback."
+      "description": "KickAssAnime through Consumet. Use a public CONSUMET_API URL for Vercel/online mode; local http://localhost:3000 is only for your PC. Returns HLS/M3U8 sources and subtitle tracks when the selected server provides them."
     },
     {
       "id": "anipub-catalog",
@@ -35,7 +35,7 @@
       "healthEndpoint": "/api/anime1v/health",
       "pageSize": 300,
       "paginated": true,
-      "description": "Local Anime1v proxy for Japanese audio with Spanish subtitles when available. Requires Anime1v running at http://localhost:3001. If Anime1v returns 401, start AnimeTV with ANIME1V_API_KEY set. Providers: AnimeAV1, TioAnime, MonosChinos, AnimeFLV, JKAnime."
+      "description": "Anime1v-compatible proxy for Japanese audio with Spanish subtitles when available. Use a public ANIME1V_API URL for Vercel/online mode, or http://localhost:3001 for local PC mode. Providers: AnimeAV1, TioAnime, MonosChinos, AnimeFLV, JKAnime."
     },
     {
       "id": "jimov-tioanime",

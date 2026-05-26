@@ -13,20 +13,34 @@
   },
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/(.*).(js|css|svg|webmanifest)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=300, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
           "value": "no-store, max-age=0"
         }
       ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=60, stale-while-revalidate=300"
+        }
+      ]
     }
   ],
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/"
-    },
     {
       "source": "/",
       "destination": "/index.html"

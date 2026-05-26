@@ -10,6 +10,7 @@ loadLocalEnv();
 
 const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || "0.0.0.0";
+const HOSTED_RUNTIME = Boolean(process.env.VERCEL || process.env.RENDER || process.env.FLY_APP_NAME || process.env.RAILWAY_ENVIRONMENT);
 const ANILIST_ENDPOINT = "https://graphql.anilist.co";
 const JIKAN_TOP_ENDPOINT = "https://api.jikan.moe/v4/top/anime?filter=airing&limit=25";
 const JIKAN_SEASON_ENDPOINT = "https://api.jikan.moe/v4/seasons/now?limit=25";
@@ -34,7 +35,7 @@ const ANIME1V_QUOTA_BACKOFF_MS = Math.max(1000 * 60 * 60, Number(process.env.ANI
 const RAPIDAPI_ANIME_KEY = process.env.RAPIDAPI_ANIME_KEY || process.env.X_RAPIDAPI_KEY || "";
 const RAPIDAPI_ANIME_HOST = process.env.RAPIDAPI_ANIME_HOST || process.env.X_RAPIDAPI_HOST || "";
 const RAPIDAPI_ANIME_BASE = process.env.RAPIDAPI_ANIME_BASE || (RAPIDAPI_ANIME_HOST ? `https://${RAPIDAPI_ANIME_HOST}` : "");
-const RAPIDAPI_ANIME_TIMEOUT_MS = Math.max(5000, Number(process.env.RAPIDAPI_ANIME_TIMEOUT_MS || 28000));
+const RAPIDAPI_ANIME_TIMEOUT_MS = Math.max(5000, Number(process.env.RAPIDAPI_ANIME_TIMEOUT_MS || 18000));
 const RAPIDAPI_ANIME_CATALOG_LIMIT = Math.max(25, Number(process.env.RAPIDAPI_ANIME_CATALOG_LIMIT || 300));
 const CONSUMET_API = String(process.env.CONSUMET_API || "http://localhost:3000").replace(/\/+$/, "");
 const CONSUMET_PROVIDER = "kickassanime";
@@ -93,6 +94,29 @@ const SECURITY_HEADERS = {
     "navigate-to 'self'"
   ].join("; ")
 };
+
+function isLoopbackUrl(value = "") {
+  try {
+    const url = new URL(value);
+    return /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|::1)$/i.test(url.hostname);
+  } catch (error) {
+    return false;
+  }
+}
+
+function hostedLoopbackBlockedPayload(source, baseUrl, envName) {
+  return {
+    ok: false,
+    status: "not_configured_for_online",
+    source,
+    baseUrl,
+    count: 0,
+    totalResults: 0,
+    items: [],
+    needsPublicUrl: true,
+    note: `${source} is configured with a local URL (${baseUrl}). On Vercel or any public website, set ${envName} to a public HTTPS API URL.`
+  };
+}
 let anipubCatalogCache = null;
 let anipubCatalogPromise = null;
 let anipubCatalogPromiseLimit = 0;
@@ -1014,6 +1038,10 @@ async function ensureAnime1vServer() {
 }
 
 async function autoStartAnime1vServer() {
+  if (HOSTED_RUNTIME || !isLoopbackUrl(ANIME1V_API)) {
+    console.log("Anime1v auto-start skipped for hosted/public API mode.");
+    return;
+  }
   if (!ANIME1V_AUTO_START) {
     console.log("Anime1v auto-start disabled.");
     return;
@@ -1072,6 +1100,10 @@ async function handleAnime1vSearch(reqUrl, response) {
     sendJson(response, { ok: false, error: "Missing search query" }, 400);
     return;
   }
+  if (HOSTED_RUNTIME && isLoopbackUrl(ANIME1V_API)) {
+    sendJson(response, hostedLoopbackBlockedPayload("Anime1v", ANIME1V_API, "ANIME1V_API"), 503);
+    return;
+  }
 
   try {
     const quota = getAnime1vQuotaState();
@@ -1112,6 +1144,10 @@ async function handleAnime1vSearch(reqUrl, response) {
 }
 
 async function handleAnime1vTrending(reqUrl, response) {
+  if (HOSTED_RUNTIME && isLoopbackUrl(ANIME1V_API)) {
+    sendJson(response, hostedLoopbackBlockedPayload("Anime1v", ANIME1V_API, "ANIME1V_API"), 503);
+    return;
+  }
   const queries = (reqUrl.searchParams.get("q") || reqUrl.searchParams.get("queries") || "one,naruto,dragon,season,love,magic,school")
     .split(",")
     .map((query) => query.trim())
@@ -1302,6 +1338,10 @@ async function enrichAnime1vMetadataItems(items = [], apiKey = ANIME1V_API_KEY, 
 }
 
 async function handleAnime1vHealth(response) {
+  if (HOSTED_RUNTIME && isLoopbackUrl(ANIME1V_API)) {
+    sendJson(response, hostedLoopbackBlockedPayload("Anime1v", ANIME1V_API, "ANIME1V_API"), 503);
+    return;
+  }
   const startedAt = Date.now();
   try {
     const health = await checkAnime1vHealth(ANIME1V_API_KEY, 7000);
@@ -1432,6 +1472,10 @@ async function handleAnime1vEpisodes(reqUrl, response) {
     sendJson(response, { ok: false, error: "Missing anime URL" }, 400);
     return;
   }
+  if (HOSTED_RUNTIME && isLoopbackUrl(ANIME1V_API)) {
+    sendJson(response, hostedLoopbackBlockedPayload("Anime1v", ANIME1V_API, "ANIME1V_API"), 503);
+    return;
+  }
 
   try {
     const quota = getAnime1vQuotaState();
@@ -1517,6 +1561,10 @@ async function handleAnime1vStream(reqUrl, response) {
     sendJson(response, { ok: false, error: "Missing episode URL" }, 400);
     return;
   }
+  if (HOSTED_RUNTIME && isLoopbackUrl(ANIME1V_API)) {
+    sendJson(response, hostedLoopbackBlockedPayload("Anime1v", ANIME1V_API, "ANIME1V_API"), 503);
+    return;
+  }
 
   try {
     const quota = getAnime1vQuotaState();
@@ -1575,6 +1623,10 @@ async function handleAnime1vStream(reqUrl, response) {
 }
 
 async function handleConsumetHealth(response) {
+  if (HOSTED_RUNTIME && isLoopbackUrl(CONSUMET_API)) {
+    sendJson(response, hostedLoopbackBlockedPayload("Consumet KickAssAnime", CONSUMET_API, "CONSUMET_API"), 503);
+    return;
+  }
   try {
     const payload = await consumetRequest(`/anime/${CONSUMET_PROVIDER}/naruto`, { page: 1 }, 6000);
     sendJson(response, {
@@ -1591,6 +1643,10 @@ async function handleConsumetHealth(response) {
 }
 
 async function handleConsumetCatalog(reqUrl, response) {
+  if (HOSTED_RUNTIME && isLoopbackUrl(CONSUMET_API)) {
+    sendJson(response, hostedLoopbackBlockedPayload("Consumet KickAssAnime", CONSUMET_API, "CONSUMET_API"), 503);
+    return;
+  }
   const limit = Math.max(1, Math.min(CONSUMET_CATALOG_LIMIT, Number(reqUrl.searchParams.get("limit") || CONSUMET_CATALOG_LIMIT)));
   const page = Math.max(1, Number(reqUrl.searchParams.get("page") || 1) || 1);
   const pages = Math.max(1, Math.min(CONSUMET_SEARCH_PAGES, Number(reqUrl.searchParams.get("pages") || CONSUMET_SEARCH_PAGES)));
@@ -1613,6 +1669,10 @@ async function handleConsumetCatalog(reqUrl, response) {
 }
 
 async function handleConsumetSearch(reqUrl, response) {
+  if (HOSTED_RUNTIME && isLoopbackUrl(CONSUMET_API)) {
+    sendJson(response, hostedLoopbackBlockedPayload("Consumet KickAssAnime", CONSUMET_API, "CONSUMET_API"), 503);
+    return;
+  }
   const query = reqUrl.searchParams.get("q") || reqUrl.searchParams.get("query");
   const page = Math.max(1, Number(reqUrl.searchParams.get("page") || 1) || 1);
   const limit = Math.max(1, Math.min(CONSUMET_CATALOG_LIMIT, Number(reqUrl.searchParams.get("limit") || 120)));
@@ -1656,6 +1716,10 @@ async function searchConsumetSeeds(seeds, { page = 1, pages = 1, limit = 120 } =
 }
 
 async function handleConsumetInfo(reqUrl, response) {
+  if (HOSTED_RUNTIME && isLoopbackUrl(CONSUMET_API)) {
+    sendJson(response, hostedLoopbackBlockedPayload("Consumet KickAssAnime", CONSUMET_API, "CONSUMET_API"), 503);
+    return;
+  }
   const id = reqUrl.searchParams.get("id") || reqUrl.searchParams.get("url");
   if (!id) {
     sendJson(response, { ok: false, error: "Missing KickAssAnime id" }, 400);
@@ -1689,6 +1753,10 @@ async function handleConsumetInfo(reqUrl, response) {
 }
 
 async function handleConsumetServers(reqUrl, response) {
+  if (HOSTED_RUNTIME && isLoopbackUrl(CONSUMET_API)) {
+    sendJson(response, hostedLoopbackBlockedPayload("Consumet KickAssAnime", CONSUMET_API, "CONSUMET_API"), 503);
+    return;
+  }
   const episodeId = reqUrl.searchParams.get("episodeId") || reqUrl.searchParams.get("id");
   if (!episodeId) {
     sendJson(response, { ok: false, error: "Missing episodeId" }, 400);
@@ -1708,6 +1776,10 @@ async function handleConsumetServers(reqUrl, response) {
 }
 
 async function handleConsumetWatch(reqUrl, response) {
+  if (HOSTED_RUNTIME && isLoopbackUrl(CONSUMET_API)) {
+    sendJson(response, hostedLoopbackBlockedPayload("Consumet KickAssAnime", CONSUMET_API, "CONSUMET_API"), 503);
+    return;
+  }
   const episodeId = reqUrl.searchParams.get("episodeId") || reqUrl.searchParams.get("id");
   const server = reqUrl.searchParams.get("server") || "";
   if (!episodeId) {

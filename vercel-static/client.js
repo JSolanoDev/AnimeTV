@@ -60,8 +60,7 @@ const fallbackShows = [
   image: "",
   banner: "",
   siteUrl: "",
-  description:
-    "Demo title shown when AniList or Jikan is offline. The app is ready for your own local or uploaded video URL.",
+  description: "Temporary offline placeholder while AnimeTV reconnects to metadata sources.",
   videoUrl: ""
 }));
 
@@ -80,6 +79,7 @@ const state = {
   isLoadingCatalog: true,
   addonSections: [],
   addonVisible: {},
+  externalSourcesLoaded: false,
   anipubLoading: false,
   anipubFallbackCache: readAniPubFallbackCache(),
   localSources: [],
@@ -299,15 +299,17 @@ async function loadAnimeSources() {
 
 function scheduleExternalSourcesLoad() {
   const run = () => loadExternalSources();
+  const delayMs = state.route === "home" ? 1200 : 700;
   if ("requestIdleCallback" in window) {
-    window.requestIdleCallback(run, { timeout: 1800 });
+    window.setTimeout(() => window.requestIdleCallback(run, { timeout: 1600 }), delayMs);
     return;
   }
-  window.setTimeout(run, 650);
+  window.setTimeout(run, delayMs);
 }
 
 async function loadExternalSources() {
   try {
+    state.externalSourcesLoaded = true;
     const response = await fetch("./sources.json", { cache: "no-store" });
     if (!response.ok) throw new Error("sources.json unavailable");
     const config = await response.json();
@@ -1696,19 +1698,29 @@ async function attachLoadedAddonFallbacks(show, episode, seasonNumber = 1) {
   });
 }
 
+function playbackLookupWithTimeout(label, promise, timeoutMs = 6500) {
+  return Promise.race([
+    Promise.resolve(promise),
+    wait(timeoutMs).then(() => {
+      console.warn(`${label} lookup timed out after ${timeoutMs}ms`);
+      return { type: "none", timeout: true };
+    })
+  ]);
+}
+
 async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
   if (!show || !episode) return episode;
   const episodeNumber = Number(episode.episode || episode.number || 1);
   const lookupKey = `${normalizeTitle(show.title)}:s${seasonNumber}:e${episodeNumber}`;
   if (episode.sourceOptionsChecked === lookupKey) return episode;
   const beforeCount = getEpisodePlaybackSources(episode).length;
+  await playbackLookupWithTimeout("AniPub", attachAniPubFallback(show, episode), 3200);
   await Promise.allSettled([
-    attachAniPubFallback(show, episode),
-    resolveEpisodeWithAnime1vFallback(show, episode, seasonNumber),
-    resolveEpisodeWithConsumetFallback(show, episode, seasonNumber),
-    resolveEpisodeWithJimovFallback(show, episode, seasonNumber),
-    resolveEpisodeWithRapidAnimeFallback(show, episode, seasonNumber),
-    attachLoadedAddonFallbacks(show, episode, seasonNumber)
+    playbackLookupWithTimeout("Anime1v", resolveEpisodeWithAnime1vFallback(show, episode, seasonNumber), 5200),
+    playbackLookupWithTimeout("KickAssAnime", resolveEpisodeWithConsumetFallback(show, episode, seasonNumber), 6200),
+    playbackLookupWithTimeout("JIMOV", resolveEpisodeWithJimovFallback(show, episode, seasonNumber), 6200),
+    playbackLookupWithTimeout("RapidAPI", resolveEpisodeWithRapidAnimeFallback(show, episode, seasonNumber), 16000),
+    playbackLookupWithTimeout("Loaded addons", attachLoadedAddonFallbacks(show, episode, seasonNumber), 2200)
   ]);
   episode.sourceOptions = normalizeEpisodeSourceOptions(episode);
   episode.sourceOptionsChecked = lookupKey;
@@ -1957,133 +1969,144 @@ function renderSettings() {
   if (!settingsGrid) return;
   const language = state.appLanguage;
   const preferences = getLanguagePreferences();
-  const theme = state.theme;
   const ui = state.uiPreferences;
   settingsGrid.innerHTML = `
-    <article class="settings-card settings-card-wide">
-      <div class="settings-card-head">
-        <span class="settings-icon" aria-hidden="true">◐</span>
-        <div>
-          <strong>${t("appearance")}</strong>
-          <span>${t("theme")} + ${t("appLanguage")}</span>
+    <aside class="settings-rail" aria-label="Settings categories">
+      <button class="settings-rail-item focusable is-selected" data-settings-nav="general" type="button">General</button>
+      <button class="settings-rail-item focusable" data-settings-nav="player" type="button">Player</button>
+      <button class="settings-rail-item focusable" data-settings-nav="streaming" type="button">Streaming</button>
+      <button class="settings-rail-item focusable" data-settings-nav="shortcuts" type="button">Shortcuts</button>
+      <span class="settings-version">AnimeTV 2.0<br>Web / Android TV</span>
+    </aside>
+    <div class="settings-console">
+      <section class="settings-panel" id="settings-general">
+        <div class="settings-panel-head">
+          <span class="settings-icon" aria-hidden="true">◐</span>
+          <div>
+            <h3>General</h3>
+            <p>${t("appLanguage")}, layout, and app behavior.</p>
+          </div>
         </div>
-      </div>
-      <div class="settings-row settings-segment">
-        <button class="settings-choice focusable ${theme === "dark" ? "is-selected" : ""}" data-theme-choice="dark">${t("darkMode")}</button>
-        <button class="settings-choice focusable ${theme === "light" ? "is-selected" : ""}" data-theme-choice="light">${t("lightMode")}</button>
-        <button class="settings-choice focusable ${theme === "system" ? "is-selected" : ""}" data-theme-choice="system">${t("systemMode")}</button>
-      </div>
-      <div class="settings-row settings-segment">
-        <button class="settings-choice focusable ${language === "en" ? "is-selected" : ""}" data-app-language="en">${t("english")}</button>
-        <button class="settings-choice focusable ${language === "es" ? "is-selected" : ""}" data-app-language="es">${t("spanish")}</button>
-      </div>
-    </article>
-    <article class="settings-card">
-      <div class="settings-card-head">
-        <span class="settings-icon" aria-hidden="true">▶</span>
-        <div>
-          <strong>${t("playback")}</strong>
-          <span>${t("playerDefaults")}</span>
+        <div class="settings-line">
+          <span>${t("appLanguage")}</span>
+          <div class="settings-row settings-segment">
+            <button class="settings-choice focusable ${language === "en" ? "is-selected" : ""}" data-app-language="en">${t("english")}</button>
+            <button class="settings-choice focusable ${language === "es" ? "is-selected" : ""}" data-app-language="es">${t("spanish")}</button>
+          </div>
         </div>
-      </div>
-      <label class="settings-field">
-        <span>${t("defaultAudio")}</span>
-        <select class="language-select focusable settings-select" id="settingsAudio">
-          <option value="japanese" ${preferences.audio === "japanese" ? "selected" : ""}>${t("japaneseAudio")}</option>
-          <option value="spanish" ${preferences.audio === "spanish" ? "selected" : ""}>${t("spanishAudio")}</option>
-          <option value="english" ${preferences.audio === "english" ? "selected" : ""}>${t("englishAudio")}</option>
-        </select>
-      </label>
-      <label class="settings-field">
-        <span>${t("defaultSubtitles")}</span>
-        <select class="language-select focusable settings-select" id="settingsSubtitles">
-          <option value="spanish" ${preferences.subtitles === "spanish" ? "selected" : ""}>${t("spanishSubtitles")}</option>
-          <option value="spanish-translated" ${preferences.subtitles === "spanish-translated" ? "selected" : ""}>${t("translatedSpanishSubtitles")}</option>
-          <option value="english" ${preferences.subtitles === "english" ? "selected" : ""}>${t("englishSubtitles")}</option>
-          <option value="none" ${preferences.subtitles === "none" ? "selected" : ""}>${t("noSubtitles")}</option>
-        </select>
-      </label>
-    </article>
-    <article class="settings-card">
-      <div class="settings-card-head">
-        <span class="settings-icon" aria-hidden="true">▦</span>
-        <div>
-          <strong>${t("layout")}</strong>
-          <span>${state.sidebarCollapsed ? t("compactSidebar") : t("expandedSidebar")}</span>
+        <div class="settings-line">
+          <span>${t("compactSidebar")}</span>
+          <button class="settings-switch focusable ${state.sidebarCollapsed ? "is-on" : ""}" data-toggle-sidebar-setting type="button"><b></b></button>
         </div>
-      </div>
-      <button class="settings-toggle focusable ${state.sidebarCollapsed ? "is-on" : ""}" data-toggle-sidebar-setting>
-        <span>${t("compactSidebar")}</span>
-        <b>${state.sidebarCollapsed ? t("on") : t("off")}</b>
-      </button>
-      <button class="settings-toggle focusable ${ui.focusGlow ? "is-on" : ""}" data-toggle-pref="focusGlow">
-        <span>${t("tvFocus")}</span>
-        <b>${ui.focusGlow ? t("on") : t("off")}</b>
-      </button>
-    </article>
-    <article class="settings-card">
-      <div class="settings-card-head">
-        <span class="settings-icon" aria-hidden="true">✦</span>
-        <div>
-          <strong>${t("behavior")}</strong>
-          <span>${t("motion")} + ${t("autoplayHero")}</span>
+        <div class="settings-line">
+          <span>${t("tvFocus")}</span>
+          <button class="settings-switch focusable ${ui.focusGlow ? "is-on" : ""}" data-toggle-pref="focusGlow" type="button"><b></b></button>
         </div>
-      </div>
-      <button class="settings-toggle focusable ${ui.motion ? "is-on" : ""}" data-toggle-pref="motion">
-        <span>${t("motion")}</span>
-        <b>${ui.motion ? t("motionOn") : t("motionOff")}</b>
-      </button>
-      <button class="settings-toggle focusable ${ui.autoplayHero ? "is-on" : ""}" data-toggle-pref="autoplayHero">
-        <span>${t("autoplayHero")}</span>
-        <b>${ui.autoplayHero ? t("on") : t("off")}</b>
-      </button>
-    </article>
-    <article class="settings-card">
-      <div class="settings-card-head">
-        <span class="settings-icon" aria-hidden="true">↻</span>
-        <div>
-          <strong>${t("dataTools")}</strong>
-          <span>${t("cache")}</span>
+        <div class="settings-line">
+          <span>${t("motion")}</span>
+          <button class="settings-switch focusable ${ui.motion ? "is-on" : ""}" data-toggle-pref="motion" type="button"><b></b></button>
         </div>
-      </div>
-      <div class="settings-row">
-        <button class="secondary-action focusable" data-clear-cache>${t("clearCache")}</button>
-        <button class="secondary-action focusable" data-reset-settings>${t("resetSettings")}</button>
-      </div>
-    </article>
-    <article class="settings-card settings-card-legal">
-      <div class="settings-card-head">
-        <span class="settings-icon" aria-hidden="true">§</span>
-        <div>
-          <strong>Legal</strong>
-          <span>App terms and privacy notes</span>
+      </section>
+
+      <section class="settings-panel" id="settings-player">
+        <div class="settings-panel-head">
+          <span class="settings-icon" aria-hidden="true">▶</span>
+          <div>
+            <h3>${t("playback")}</h3>
+            <p>Default audio, subtitles, and in-player behavior.</p>
+          </div>
         </div>
-      </div>
-      <div class="settings-row">
-        <a class="secondary-action focusable settings-link" href="#terms">${t("terms")}</a>
-        <a class="secondary-action focusable settings-link" href="#privacy">${t("privacy")}</a>
-      </div>
-    </article>
+        <label class="settings-line">
+          <span>${t("defaultAudio")}</span>
+          <select class="language-select focusable settings-select" id="settingsAudio">
+            <option value="japanese" ${preferences.audio === "japanese" ? "selected" : ""}>${t("japaneseAudio")}</option>
+            <option value="spanish" ${preferences.audio === "spanish" ? "selected" : ""}>${t("spanishAudio")}</option>
+            <option value="english" ${preferences.audio === "english" ? "selected" : ""}>${t("englishAudio")}</option>
+          </select>
+        </label>
+        <label class="settings-line">
+          <span>${t("defaultSubtitles")}</span>
+          <select class="language-select focusable settings-select" id="settingsSubtitles">
+            <option value="spanish" ${preferences.subtitles === "spanish" ? "selected" : ""}>${t("spanishSubtitles")}</option>
+            <option value="spanish-translated" ${preferences.subtitles === "spanish-translated" ? "selected" : ""}>${t("translatedSpanishSubtitles")}</option>
+            <option value="english" ${preferences.subtitles === "english" ? "selected" : ""}>${t("englishSubtitles")}</option>
+            <option value="none" ${preferences.subtitles === "none" ? "selected" : ""}>${t("noSubtitles")}</option>
+          </select>
+        </label>
+        <div class="settings-line">
+          <span>Hero autoplay</span>
+          <button class="settings-switch focusable ${ui.autoplayHero ? "is-on" : ""}" data-toggle-pref="autoplayHero" type="button"><b></b></button>
+        </div>
+      </section>
+
+      <section class="settings-panel" id="settings-streaming">
+        <div class="settings-panel-head">
+          <span class="settings-icon" aria-hidden="true">◎</span>
+          <div>
+            <h3>Streaming</h3>
+            <p>Sources, cache, online mode, and recovery tools.</p>
+          </div>
+        </div>
+        <div class="settings-line">
+          <span>Server</span>
+          <strong class="settings-status-pill">Online when APIs respond</strong>
+        </div>
+        <div class="settings-line">
+          <span>Preferred source</span>
+          <strong class="settings-status-pill">${escapeHtml(state.preferredSource === "auto" ? "Auto" : state.preferredSource)}</strong>
+        </div>
+        <div class="settings-actions">
+          <button class="secondary-action focusable" data-clear-cache>${t("clearCache")}</button>
+          <button class="secondary-action focusable" data-reset-settings>${t("resetSettings")}</button>
+        </div>
+      </section>
+
+      <section class="settings-panel" id="settings-shortcuts">
+        <div class="settings-panel-head">
+          <span class="settings-icon" aria-hidden="true">⌘</span>
+          <div>
+            <h3>Shortcuts</h3>
+            <p>Keyboard and remote-friendly player actions.</p>
+          </div>
+        </div>
+        ${[
+          ["Play / Pause", "Space"],
+          ["Fullscreen", "F"],
+          ["Back", "Esc"],
+          ["Previous episode", "Shift + P"],
+          ["Next episode", "Shift + N"],
+          ["Open settings", "Ctrl + ,"]
+        ].map(([label, keys]) => `
+          <div class="settings-shortcut-row">
+            <span>${label}</span>
+            <kbd>${keys}</kbd>
+          </div>
+        `).join("")}
+        <div class="settings-legal-links">
+          <a class="focusable settings-link" href="#terms">${t("terms")}</a>
+          <a class="focusable settings-link" href="#privacy">${t("privacy")}</a>
+        </div>
+      </section>
+    </div>
   `;
   wireSettingsButtons();
 }
 
 function wireSettingsButtons() {
+  settingsGrid?.querySelectorAll("[data-settings-nav]").forEach((button) => {
+    button.addEventListener("click", () => {
+      settingsGrid.querySelectorAll("[data-settings-nav]").forEach((item) => item.classList.remove("is-selected"));
+      button.classList.add("is-selected");
+      const target = settingsGrid.querySelector(`#settings-${button.dataset.settingsNav}`);
+      target?.scrollIntoView({ behavior: state.uiPreferences.motion ? "smooth" : "auto", block: "start" });
+    });
+  });
+
   settingsGrid?.querySelectorAll("[data-app-language]").forEach((button) => {
     button.addEventListener("click", () => {
       state.appLanguage = button.dataset.appLanguage;
       localStorage.setItem(APP_LANGUAGE_KEY, state.appLanguage);
       applyAppLanguage();
-      renderSettings();
-      refreshFocusables();
-    });
-  });
-
-  settingsGrid?.querySelectorAll("[data-theme-choice]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.theme = button.dataset.themeChoice;
-      localStorage.setItem(APP_THEME_KEY, state.theme);
-      applyUiPreferences();
       renderSettings();
       refreshFocusables();
     });
@@ -2235,6 +2258,9 @@ function setRoute(route) {
 
   syncRouteVisibility();
   if (route === "anipub") ensureAniPubCatalogLoaded();
+  if ((route === "sources" || route === "search") && !state.externalSourcesLoaded) {
+    scheduleExternalSourcesLoad();
+  }
   scrollToRoute(route);
   refreshFocusables();
 }
@@ -2931,11 +2957,15 @@ function renderPlayerSourceOptions(episode = {}, selectedSource = null) {
   if (!sources.length) return "";
   return `
     <div class="player-server-options" aria-label="Playback servers">
+      <div class="player-source-heading">
+        <strong>Watch options</strong>
+        <span>${sources.length} source${sources.length === 1 ? "" : "s"} found</span>
+      </div>
       ${sources.map((source, index) => `
         <button class="player-server-option focusable ${selectedSource?.id === source.id ? "is-selected" : ""}" data-player-source="${escapeHtml(source.id)}" type="button">
-          <span>Server</span>
-          <strong>${index + 1}</strong>
-          <small>${escapeHtml(source.label || source.id)}</small>
+          <span>Option ${index + 1}</span>
+          <strong>${escapeHtml(source.label || source.id || "Server")}</strong>
+          <small>${source.type === "direct" ? "Direct video" : source.type === "resolver" ? "Resolver" : "Embedded player"}</small>
         </button>
       `).join("")}
     </div>
@@ -2965,15 +2995,15 @@ function renderPlayerEpisodeActions(url = "") {
     <div class="player-episode-actions" aria-label="Episode controls">
       <button class="player-nav-action focusable" type="button" data-player-prev ${nav.previous ? "" : "disabled"}>
         <span aria-hidden="true">‹</span>
-        Previous episode
+        Previous
       </button>
       <button class="player-nav-action focusable is-list" type="button" data-player-list>
         <span aria-hidden="true">☰</span>
-        Episode list
+        Episodes
         ${nav.total ? `<small>${nav.total}</small>` : ""}
       </button>
       <button class="player-nav-action focusable" type="button" data-player-next ${nav.next ? "" : "disabled"}>
-        Next episode
+        Next
         <span aria-hidden="true">›</span>
       </button>
       ${canDownload
@@ -2981,6 +3011,226 @@ function renderPlayerEpisodeActions(url = "") {
         : `<button class="player-download-action focusable" type="button" disabled title="No direct download file is available from this server">Download</button>`}
     </div>
   `;
+}
+
+function formatPlayerTime(value = 0) {
+  const seconds = Math.max(0, Math.floor(Number(value) || 0));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const rest = seconds % 60;
+  return hours
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`
+    : `${minutes}:${String(rest).padStart(2, "0")}`;
+}
+
+function renderVidstreamTopbar(label = "") {
+  return `
+    <div class="vid-topbar">
+      <button class="vid-icon-button focusable" type="button" data-player-back aria-label="Back to episodes">‹</button>
+      <strong>${escapeHtml(label || currentEpisodeLabel())}</strong>
+      <button class="vid-icon-button focusable" type="button" data-player-fullscreen aria-label="Fullscreen">⛶</button>
+    </div>
+  `;
+}
+
+function renderVidstreamControls() {
+  return `
+    <div class="vid-controls" aria-label="Video controls">
+      <input class="vid-seek focusable" id="playerSeek" type="range" min="0" max="1000" value="0" aria-label="Seek">
+      <div class="vid-control-row">
+        <button class="vid-icon-button focusable" type="button" data-player-toggle aria-label="Play or pause">▶</button>
+        <button class="vid-icon-button focusable" type="button" data-player-volume aria-label="Mute or unmute">▸</button>
+        <span class="vid-time" id="playerTime">0:00 / 0:00</span>
+        <span class="vid-spacer"></span>
+        <button class="vid-tool-button focusable" type="button" data-player-panel="network" aria-label="Network status">◎</button>
+        <button class="vid-tool-button focusable" type="button" data-player-panel="speed" aria-label="Playback speed">◴</button>
+        <button class="vid-tool-button focusable" type="button" data-player-panel="subtitles" aria-label="Subtitles">▤</button>
+        <button class="vid-tool-button focusable" type="button" data-player-cast aria-label="Cast">▱</button>
+        <button class="vid-tool-button focusable" type="button" data-player-panel="more" aria-label="More options">⋮</button>
+      </div>
+      <div class="vid-panel" id="playerPanel" hidden></div>
+    </div>
+  `;
+}
+
+function requestPlayerFullscreen(container) {
+  if (!container) return;
+  container.classList.toggle("is-cinema");
+  document.body.classList.toggle("player-cinema-open", container.classList.contains("is-cinema"));
+  showToast(container.classList.contains("is-cinema") ? "Cinema mode" : "Normal player");
+}
+
+let hlsScriptPromise = null;
+
+function loadHlsScript() {
+  if (window.Hls) return Promise.resolve(window.Hls);
+  if (!hlsScriptPromise) {
+    hlsScriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js";
+      script.async = true;
+      script.onload = () => resolve(window.Hls);
+      script.onerror = () => reject(new Error("hls.js failed to load"));
+      document.head.appendChild(script);
+    });
+  }
+  return hlsScriptPromise;
+}
+
+async function setupVideoSource(video, url) {
+  if (!video || !url) return;
+  if (video._animeTvHls) {
+    try {
+      video._animeTvHls.destroy();
+    } catch (error) {
+      // Ignore stale hls.js cleanup failures.
+    }
+    video._animeTvHls = null;
+  }
+  if (/\.m3u8(\?|#|$)/i.test(url) && !video.canPlayType("application/vnd.apple.mpegurl")) {
+    const Hls = await loadHlsScript();
+    if (Hls?.isSupported?.()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+        backBufferLength: 60
+      });
+      hls.loadSource(url);
+      hls.attachMedia(video);
+      video._animeTvHls = hls;
+      return;
+    }
+  }
+  video.src = url;
+}
+
+function renderPlayerPanelContent(type, episode, url, tracks = []) {
+  const buffered = document.querySelector("#animePlayer")?.buffered;
+  const duration = document.querySelector("#animePlayer")?.duration || 0;
+  const bufferedEnd = buffered?.length ? buffered.end(buffered.length - 1) : 0;
+  if (type === "network") {
+    const percent = duration ? Math.round((bufferedEnd / duration) * 100) : 0;
+    return `
+      <strong>Network status</strong>
+      <p>Buffered: ${Number.isFinite(percent) ? percent : 0}%</p>
+      <p>Playback uses the selected server directly when possible.</p>
+    `;
+  }
+  if (type === "speed") {
+    return `
+      <strong>Playback speed</strong>
+      <div class="vid-panel-grid">
+        ${[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((rate) => `
+          <button class="focusable vid-panel-choice" type="button" data-rate="${rate}">x${rate}</button>
+        `).join("")}
+      </div>
+    `;
+  }
+  if (type === "subtitles") {
+    const subtitleTracks = getAvailableSubtitles(episode);
+    return `
+      <strong>Subtitles</strong>
+      <div class="vid-panel-grid">
+        ${subtitleTracks.map((track) => `
+          <button class="focusable vid-panel-choice" type="button" data-sub-choice="${track}">${languageOptionLabel(track, "subtitles")}</button>
+        `).join("")}
+      </div>
+      ${tracks.length ? `<p>${tracks.length} subtitle file${tracks.length === 1 ? "" : "s"} connected.</p>` : `<p>No subtitle file is connected for this server.</p>`}
+    `;
+  }
+  return `
+    <strong>More options</strong>
+    <div class="vid-panel-grid">
+      <button class="focusable vid-panel-choice" type="button" data-copy-url>Copy stream link</button>
+      <a class="focusable vid-panel-choice" href="${escapeHtml(getActiveDownloadUrl(url) || url)}" download>Download video</a>
+      <button class="focusable vid-panel-choice" type="button" data-reload-player>Reload player</button>
+    </div>
+  `;
+}
+
+function openPlayerPanel(frame, type, video, episode, url, tracks = []) {
+  const panel = frame.querySelector("#playerPanel");
+  if (!panel) return;
+  if (!panel.hidden && panel.dataset.panelType === type) {
+    panel.hidden = true;
+    panel.innerHTML = "";
+    panel.dataset.panelType = "";
+    return;
+  }
+  panel.dataset.panelType = type;
+  panel.innerHTML = renderPlayerPanelContent(type, episode, url, tracks);
+  panel.hidden = false;
+  panel.querySelectorAll("[data-rate]").forEach((button) => {
+    button.addEventListener("click", () => {
+      video.playbackRate = Number(button.dataset.rate) || 1;
+      showToast(`Speed x${video.playbackRate}`);
+    });
+  });
+  panel.querySelectorAll("[data-sub-choice]").forEach((button) => {
+    button.addEventListener("click", () => {
+      setDefaultLanguage(getLanguagePreferences().audio, button.dataset.subChoice);
+      setupSpanishSubtitles(episode, tracks);
+      showToast(`Subtitles: ${button.dataset.subChoice === "none" ? "off" : button.dataset.subChoice}`);
+    });
+  });
+  panel.querySelector("[data-copy-url]")?.addEventListener("click", () => copyExternalUrl(url));
+  panel.querySelector("[data-reload-player]")?.addEventListener("click", () => playActiveShow({ allowSourceLookup: false }));
+  refreshFocusables();
+}
+
+function wireVidstreamControls(frame, video, episode, url, tracks = []) {
+  const shell = frame.querySelector(".vidstream-player");
+  const seek = frame.querySelector("#playerSeek");
+  const time = frame.querySelector("#playerTime");
+  const toggle = frame.querySelector("[data-player-toggle]");
+  const volume = frame.querySelector("[data-player-volume]");
+  const loader = frame.querySelector(".vid-loader");
+
+  const updateTime = () => {
+    const duration = video.duration || 0;
+    const current = video.currentTime || 0;
+    if (time) time.textContent = `${formatPlayerTime(current)} / ${formatPlayerTime(duration)}`;
+    if (seek && duration && !seek.matches(":active")) {
+      seek.value = String(Math.round((current / duration) * 1000));
+    }
+  };
+
+  const updateToggle = () => {
+    if (toggle) toggle.textContent = video.paused ? "▶" : "Ⅱ";
+  };
+
+  const updateVolume = () => {
+    if (volume) volume.textContent = video.muted || video.volume === 0 ? "○" : "▸";
+  };
+
+  toggle?.addEventListener("click", () => {
+    if (video.paused) video.play().catch(() => showToast("Tap play again if the browser blocked autoplay."));
+    else video.pause();
+  });
+  volume?.addEventListener("click", () => {
+    video.muted = !video.muted;
+    updateVolume();
+  });
+  seek?.addEventListener("input", () => {
+    if (!video.duration) return;
+    video.currentTime = (Number(seek.value) / 1000) * video.duration;
+  });
+  frame.querySelector("[data-player-fullscreen]")?.addEventListener("click", () => requestPlayerFullscreen(shell));
+  frame.querySelector("[data-player-back]")?.addEventListener("click", () => showEpisodeListTab());
+  frame.querySelector("[data-player-cast]")?.addEventListener("click", () => castActiveEpisode());
+  frame.querySelectorAll("[data-player-panel]").forEach((button) => {
+    button.addEventListener("click", () => openPlayerPanel(frame, button.dataset.playerPanel, video, episode, url, tracks));
+  });
+  video.addEventListener("loadedmetadata", updateTime);
+  video.addEventListener("timeupdate", updateTime);
+  video.addEventListener("play", updateToggle);
+  video.addEventListener("pause", updateToggle);
+  video.addEventListener("waiting", () => loader && (loader.hidden = false));
+  video.addEventListener("canplay", () => loader && (loader.hidden = true));
+  video.addEventListener("playing", () => loader && (loader.hidden = true));
+  updateToggle();
+  updateVolume();
+  updateTime();
 }
 
 function getActiveDownloadUrl(currentUrl = "") {
@@ -3026,6 +3276,8 @@ function wirePlayerChrome(frame) {
     button.addEventListener("click", () => {
       const selectedEpisode = state.activeEpisode?.episode;
       if (!selectedEpisode) return;
+      const source = getEpisodePlaybackSources(selectedEpisode).find((item) => item.id === button.dataset.playerSource);
+      showToast(source ? `Checking ${source.label || "server"}...` : "Checking server...");
       selectedEpisode.selectedSourceId = button.dataset.playerSource;
       state.preferredSource = selectedEpisode.selectedSourceId;
       try {
@@ -3240,6 +3492,9 @@ async function playActiveShow(options = {}) {
   const seasonNumber = state.activeEpisode?.season?.season || state.activeSeasonIndex + 1 || activeEpisode?.season || 1;
   if (allowSourceLookup && activeEpisode && activeEpisode.sourceOptionsChecked !== playbackLookupKey(show, activeEpisode, seasonNumber)) {
     schedulePlaybackSourceOptions(show, activeEpisode, seasonNumber, { autoReplay: true });
+    if (!getEpisodePlaybackSources(activeEpisode).length) {
+      await playbackLookupWithTimeout("AniPub quick start", attachAniPubFallback(show, activeEpisode), 1500);
+    }
     renderEpisodeList(show);
   }
   let source = getSelectedEpisodeSource(activeEpisode);
@@ -3328,28 +3583,31 @@ function renderDirectVideoPlayer(frame, url, episode) {
   const subtitleTracks = getAvailableSubtitles(episode);
   const selectedSource = getSelectedEpisodeSource(episode);
   frame.innerHTML = `
-    <div class="video-player-shell">
+    <div class="video-player-shell vidstream-player">
       ${renderPlayerSourceOptions(episode, selectedSource)}
-      <div class="player-controls-bar direct-player-controls">
-        <div class="episode-info">
-          <strong>${escapeHtml(currentEpisodeLabel())}</strong>
-          <span class="source-badge">Direct</span>
+      <div class="vid-player-stage">
+        <video id="animePlayer" autoplay playsinline x-webkit-airplay="allow" crossorigin="anonymous">
+          ${spanishTrack ? `<track kind="subtitles" srclang="es" label="Español" src="${escapeHtml(spanishTrack.url)}" default>` : ""}
+        </video>
+        <div class="vid-loader" aria-live="polite">
+          <div class="play-symbol" aria-hidden="true"></div>
+          <span>Loading stream...</span>
         </div>
-        <div class="language-selector">
-          <select id="directAudioLang" class="language-select focusable">
-            ${audioTracks.map((track) => `<option value="${track}" ${track === preferences.audio ? "selected" : ""}>${languageOptionLabel(track, "audio")}</option>`).join("")}
-          </select>
-          <select id="directSubtitleLang" class="language-select focusable">
-            ${subtitleTracks.map((track) => `<option value="${track}" ${track === preferences.subtitles ? "selected" : ""}>${languageOptionLabel(track, "subtitles")}</option>`).join("")}
-          </select>
-        </div>
+        ${renderVidstreamTopbar(currentEpisodeLabel())}
+        <div class="translated-caption" id="translatedCaption" hidden></div>
+        <div class="subtitle-status" id="subtitleStatus">Spanish subtitles preferred</div>
+        ${renderVidstreamControls()}
       </div>
-      <video id="animePlayer" controls autoplay playsinline x-webkit-airplay="allow" src="${url}">
-        ${spanishTrack ? `<track kind="subtitles" srclang="es" label="Español" src="${escapeHtml(spanishTrack.url)}" default>` : ""}
-      </video>
+      <div class="player-stream-toolbar">
+        <span class="source-badge">${escapeHtml(selectedSource?.label || "Direct")}</span>
+        <select id="directAudioLang" class="language-select focusable">
+          ${audioTracks.map((track) => `<option value="${track}" ${track === preferences.audio ? "selected" : ""}>${languageOptionLabel(track, "audio")}</option>`).join("")}
+        </select>
+        <select id="directSubtitleLang" class="language-select focusable">
+          ${subtitleTracks.map((track) => `<option value="${track}" ${track === preferences.subtitles ? "selected" : ""}>${languageOptionLabel(track, "subtitles")}</option>`).join("")}
+        </select>
+      </div>
       ${renderPlayerEpisodeActions(url)}
-      <div class="translated-caption" id="translatedCaption" hidden></div>
-      <div class="subtitle-status" id="subtitleStatus">Spanish subtitles preferred</div>
     </div>
   `;
   frame.querySelector("#directAudioLang")?.addEventListener("change", (event) => {
@@ -3361,7 +3619,16 @@ function renderDirectVideoPlayer(frame, url, episode) {
     showToast(`Subtitles: ${event.target.value === "none" ? "off" : event.target.value}`);
     setupSpanishSubtitles(episode, tracks);
   });
-  frame.querySelector("#animePlayer")?.addEventListener("error", () => {
+  const player = frame.querySelector("#animePlayer");
+  setupVideoSource(player, url).then(() => {
+    player?.play?.().catch(() => {
+      frame.querySelector(".vid-loader")?.setAttribute("hidden", "");
+      showToast("Press play to start this episode.");
+    });
+  }).catch((error) => {
+    console.error("Video source setup failed", { url, error });
+  });
+  player?.addEventListener("error", () => {
     console.error("Direct video playback failed", { url, episode });
     if (isExternalIframeEpisode(episode)) {
       renderEmbeddedAniPubPlayer(state.activeShow || { title: "AniPub" }, episode.externalUrl);
@@ -3378,7 +3645,6 @@ function renderDirectVideoPlayer(frame, url, episode) {
     frame.querySelector("[data-retry-episode]")?.addEventListener("click", () => playActiveShow());
     refreshFocusables();
   });
-  const player = frame.querySelector("#animePlayer");
   const resumeAt = getResumePosition(episode);
   if (player && resumeAt) {
     player.addEventListener("loadedmetadata", () => {
@@ -3390,6 +3656,7 @@ function renderDirectVideoPlayer(frame, url, episode) {
   });
   player?.addEventListener("pause", () => saveWatchProgress(player, episode));
   setupSpanishSubtitles(episode, tracks);
+  wireVidstreamControls(frame, player, episode, url, tracks);
   wirePlayerChrome(frame);
   refreshFocusables();
 }
@@ -3582,9 +3849,9 @@ function renderEmbeddedAniPubPlayer(show, externalUrl) {
     ? `${selected.season?.title || `Season ${selected.seasonIndex + 1}`} Episode ${selected.episode?.episode || selected.episodeIndex + 1}`
     : show.title;
   frame.innerHTML = `
-    <div class="embedded-player-container anipub-embedded">
+    <div class="embedded-player-container anipub-embedded vidstream-player is-iframe">
       ${renderPlayerSourceOptions(episode, selectedSource)}
-      <div class="iframe-wrapper">
+      <div class="vid-player-stage iframe-wrapper">
         <iframe
           id="anipubEmbeddedPlayer"
           class="embedded-iframe"
@@ -3595,20 +3862,16 @@ function renderEmbeddedAniPubPlayer(show, externalUrl) {
           referrerpolicy="no-referrer"
           sandbox="allow-same-origin allow-scripts allow-forms"
         ></iframe>
+        ${renderVidstreamTopbar(label)}
       </div>
-      <div class="player-language-bar" aria-label="Episode playback settings">
-        <div class="episode-info">
-          <strong>${escapeHtml(label)}</strong>
-        </div>
-        <div class="language-selector">
-          <select id="anipubAudioLang" class="language-select focusable">
-            ${audioTracks.map((track) => `<option value="${track}" ${track === preferences.audio ? "selected" : ""}>${languageOptionLabel(track, "audio")}</option>`).join("")}
-          </select>
-          <select id="anipubSubtitleLang" class="language-select focusable">
-            ${subtitleTracks.map((track) => `<option value="${track}" ${track === preferences.subtitles ? "selected" : ""}>${languageOptionLabel(track, "subtitles")}</option>`).join("")}
-          </select>
-          <button class="player-cast-action focusable" type="button" data-iframe-cast>Cast</button>
-        </div>
+      <div class="player-stream-toolbar iframe-prefs" aria-label="Episode playback settings">
+        <span class="source-badge">${escapeHtml(selectedSource?.label || "Embedded")}</span>
+        <select id="anipubAudioLang" class="language-select focusable">
+          ${audioTracks.map((track) => `<option value="${track}" ${track === preferences.audio ? "selected" : ""}>${languageOptionLabel(track, "audio")}</option>`).join("")}
+        </select>
+        <select id="anipubSubtitleLang" class="language-select focusable">
+          ${subtitleTracks.map((track) => `<option value="${track}" ${track === preferences.subtitles ? "selected" : ""}>${languageOptionLabel(track, "subtitles")}</option>`).join("")}
+        </select>
       </div>
       ${renderPlayerEpisodeActions("")}
     </div>
@@ -3617,6 +3880,7 @@ function renderEmbeddedAniPubPlayer(show, externalUrl) {
   const audioSelect = frame.querySelector("#anipubAudioLang");
   const subSelect = frame.querySelector("#anipubSubtitleLang");
   const iframe = frame.querySelector("#anipubEmbeddedPlayer");
+  const shell = frame.querySelector(".vidstream-player");
 
   audioSelect?.addEventListener("change", () => {
     setDefaultLanguage(audioSelect.value, subSelect?.value || "spanish");
@@ -3629,8 +3893,8 @@ function renderEmbeddedAniPubPlayer(show, externalUrl) {
     applyAniPubPreferences(iframe, audioSelect?.value || "japanese", subSelect.value);
     showToast(`Subtitles: ${subSelect.value === "none" ? "off" : subSelect.value}`);
   });
-
-  frame.querySelector("[data-iframe-cast]")?.addEventListener("click", () => prepareIframeCast(frame));
+  frame.querySelector("[data-player-fullscreen]")?.addEventListener("click", () => requestPlayerFullscreen(shell));
+  frame.querySelector("[data-player-back]")?.addEventListener("click", () => showEpisodeListTab());
 
   window.setTimeout(() => {
     const latest = getLanguagePreferences();

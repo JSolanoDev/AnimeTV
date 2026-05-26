@@ -213,8 +213,8 @@ function comparePlaybackSources(a = {}, b = {}) {
 
 function playbackSourceRank(source = {}) {
   const label = `${source.id || ""} ${source.label || ""} ${source.streamResolver?.type || ""}`.toLowerCase();
-  if (label.includes("kickassanime") || label.includes("consumet")) return 5;
-  if (label.includes("anipub")) return 10;
+  if (label.includes("anipub")) return 5;
+  if (label.includes("kickassanime") || label.includes("consumet")) return 10;
   if (label.includes("anime1v")) return 20;
   if (label.includes("jimov") || label.includes("tioanime")) return 30;
   if (label.includes("rapid")) return 40;
