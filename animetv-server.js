@@ -2132,6 +2132,7 @@ async function handleAniPubPlay(url, response) {
         ok: true,
         externalUrl,
         externalType: externalUrl ? "iframe" : "unavailable",
+        sourceOptions: buildAniPubSourceOptions(externalUrl, ""),
         server: "AniPub",
         note: externalUrl
           ? "AniPub returned an iframe embed link. AnimeTV marks it as externalUrl so the client can render the embedded iframe player instead of the direct video element."
@@ -2143,6 +2144,7 @@ async function handleAniPubPlay(url, response) {
     sendJson(response, {
       ok: true,
       videoUrl,
+      sourceOptions: buildAniPubSourceOptions("", videoUrl),
       server: "AniPub"
     });
   } catch (error) {
@@ -2173,13 +2175,15 @@ async function handleAniPubEpisodes(animeId, response) {
     const episodes = [];
     const episodeOne = stripAniPubSrc(local.link || local.Link || "");
     if (episodeOne) {
+      const videoUrl = extractDirectVideoUrl(episodeOne);
       episodes.push({
         number: 1,
         episode: 1,
         title: "Episode 1",
         externalUrl: episodeOne,
         externalType: "iframe",
-        videoUrl: extractDirectVideoUrl(episodeOne),
+        videoUrl,
+        sourceOptions: buildAniPubSourceOptions(episodeOne, videoUrl),
         audioTracks: getAvailableAudioTracks(local),
         subtitles: getAvailableSubtitles(local),
         server: "AniPub"
@@ -2192,13 +2196,15 @@ async function handleAniPubEpisodes(animeId, response) {
       if (!externalUrl) return;
       const sourceEpisode = typeof entry === "string" ? {} : entry;
       const number = index + 2;
+      const videoUrl = extractDirectVideoUrl(externalUrl);
       episodes.push({
         number,
         episode: number,
         title: sourceEpisode?.title || sourceEpisode?.name || sourceEpisode?.Title || `Episode ${number}`,
         externalUrl,
         externalType: "iframe",
-        videoUrl: extractDirectVideoUrl(externalUrl),
+        videoUrl,
+        sourceOptions: buildAniPubSourceOptions(externalUrl, videoUrl),
         audioTracks: getAvailableAudioTracks(sourceEpisode),
         subtitles: getAvailableSubtitles(sourceEpisode),
         server: "AniPub"
@@ -3200,8 +3206,9 @@ function repairEpisodeGaps(episodes = [], defaults = {}) {
       ...defaults,
       number,
       episode: number,
-      title: `Episode ${number}`,
+      title: "Not available yet",
       missing: true,
+      unavailable: true,
       locked: true
     };
   });
@@ -3211,6 +3218,28 @@ function stripAniPubSrc(value) {
   if (!value) return "";
   const raw = String(value).replace(/^src=/i, "").trim();
   return /^https?:\/\//i.test(raw) ? raw : "";
+}
+
+function buildAniPubSourceOptions(externalUrl = "", videoUrl = "") {
+  const options = [];
+  if (externalUrl) {
+    options.push({
+      id: "anipub",
+      label: "AniPub",
+      type: "iframe",
+      externalUrl
+    });
+  }
+  if (videoUrl) {
+    options.unshift({
+      id: "anipub-direct",
+      label: "AniPub Direct",
+      type: "direct",
+      videoUrl,
+      downloadUrl: videoUrl
+    });
+  }
+  return options;
 }
 
 function extractDirectVideoUrl(value) {

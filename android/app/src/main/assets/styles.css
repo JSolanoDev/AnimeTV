@@ -602,6 +602,7 @@ main {
 
 .bottom-bar {
   --footer-bleed: 1.55rem;
+  --footer-pad-y: clamp(1.45rem, 1.85vw, 1.8rem);
   position: relative;
   isolation: isolate;
   z-index: 1;
@@ -611,9 +612,9 @@ main {
   justify-content: center;
   justify-items: center;
   gap: 0.9rem;
-  min-height: clamp(7rem, 8.8vh, 8.2rem);
+  min-height: clamp(7.3rem, 8.8vh, 8.6rem);
   margin: 0 0 calc(-1 * var(--footer-bleed)) -5.9rem;
-  padding: clamp(1.45rem, 1.85vw, 1.8rem) clamp(1.4rem, 3.2vw, 3.4rem) calc(clamp(1.45rem, 1.85vw, 1.8rem) + var(--footer-bleed) + env(safe-area-inset-bottom)) calc(5.9rem + clamp(1.4rem, 3.2vw, 3.4rem));
+  padding: var(--footer-pad-y) clamp(1.4rem, 3.2vw, 3.4rem) calc(var(--footer-pad-y) + env(safe-area-inset-bottom)) calc(5.9rem + clamp(1.4rem, 3.2vw, 3.4rem));
   border-top: 0.08rem solid rgba(178, 186, 255, 0.1);
   color: rgba(246, 243, 255, 0.84);
   background:
@@ -4275,7 +4276,7 @@ body.soft-focus .is-tv-focused {
     padding-left: calc(5rem + 0.8rem);
     padding-right: 0.8rem;
     padding-top: 1.65rem;
-    padding-bottom: calc(1.65rem + var(--footer-bleed) + env(safe-area-inset-bottom));
+    padding-bottom: calc(1.65rem + env(safe-area-inset-bottom));
   }
 
   .footer-status {

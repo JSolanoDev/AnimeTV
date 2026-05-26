@@ -30,6 +30,7 @@ const ANIME1V_API_KEY_STORAGE = "animetv-anime1v-api-key";
 const PREFERRED_SOURCE_KEY = "animetv-preferred-playback-source";
 const WATCH_HISTORY_KEY = "animetv-watch-history";
 const RESUME_POSITIONS_KEY = "animetv-resume-positions";
+const pendingSourceLookups = new Map();
 
 installAdBlockGuards();
 
@@ -87,7 +88,7 @@ const TRANSLATIONS = {
     searchAnime: "Search anime...",
     searchAniPub: "Search AniPub...",
     all: "All",
-    watchPlaceholder: "Metadata comes from AniList and Jikan. Add your own video URL to enable playback.",
+    watchPlaceholder: "Choose an episode to load available playback servers.",
     language: "Language",
     appLanguage: "App language",
     english: "English",
@@ -926,8 +927,13 @@ function normalizeEpisodeSourceOptions(episode = {}) {
     });
   }
   const seen = new Set();
+  const seenSingleProvider = new Set();
   return options.filter((option) => {
     const key = option.videoUrl || option.externalUrl || option.streamResolver?.endpoint || `${option.id}:${option.label}`;
+    const providerKey = `${option.id || ""} ${option.label || ""} ${option.streamResolver?.type || ""}`.toLowerCase();
+    const singleProvider = providerKey.includes("anipub") ? "anipub" : "";
+    if (singleProvider && seenSingleProvider.has(singleProvider)) return false;
+    if (singleProvider) seenSingleProvider.add(singleProvider);
     if (seen.has(key)) return false;
     seen.add(key);
     return option.videoUrl || option.externalUrl || option.streamResolver;
@@ -2420,6 +2426,38 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
   return episode;
 }
 
+function playbackLookupKey(show, episode, seasonNumber = 1) {
+  if (!show || !episode) return "";
+  const episodeNumber = Number(episode.episode || episode.number || 1);
+  return `${normalizeTitle(show.title)}:s${seasonNumber}:e${episodeNumber}`;
+}
+
+function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options = {}) {
+  const lookupKey = playbackLookupKey(show, episode, seasonNumber);
+  if (!lookupKey || episode.sourceOptionsChecked === lookupKey) return Promise.resolve(episode);
+  if (pendingSourceLookups.has(lookupKey)) return pendingSourceLookups.get(lookupKey);
+
+  episode.sourceOptionsPending = true;
+  const promise = attachPlaybackSourceOptions(show, episode, seasonNumber)
+    .catch((error) => {
+      console.warn("Playback source lookup failed:", error);
+      return episode;
+    })
+    .finally(() => {
+      episode.sourceOptionsPending = false;
+      pendingSourceLookups.delete(lookupKey);
+      const selected = state.activeEpisode;
+      if (selected?.episode === episode && state.activeShow === show) {
+        renderEpisodeList(show);
+        if (options.autoReplay) playActiveShow({ allowSourceLookup: false });
+      }
+      refreshFocusables();
+    });
+
+  pendingSourceLookups.set(lookupKey, promise);
+  return promise;
+}
+
 function stripSeasonFromTitle(title = "") {
   return String(title)
     .replace(/\bseason\s*\d+\b/ig, "")
@@ -3332,7 +3370,7 @@ function resetVideoFrame() {
           : `<div class="watch-poster-placeholder"><div class="play-symbol" aria-hidden="true"></div></div>`
       }
     </div>
-    <p>${getPlayableUrl(show) ? "Ready to play from your local source." : "Metadata comes from AniList and Jikan. Add your own legal/local video URL to enable playback."}</p>
+    <p>${getPlayableUrl(show) ? "Ready to play." : "Choose an episode to load available playback servers."}</p>
   `;
 }
 
@@ -3446,13 +3484,13 @@ function renderEpisodeList(show) {
           </div>
           <span class="season-count">${activeSeason?.episodes.length || 0} episode${activeSeason?.episodes.length === 1 ? "" : "s"}</span>
         </div>
-        ${activeSeason?.playable ? "" : `<p class="episode-empty">Episode list is visible from metadata. Add this season in a local source to unlock playback.</p>`}
+        ${activeSeason?.playable ? "" : `<p class="episode-empty">Episodes are listed from metadata. Playback servers load when a matching source is available.</p>`}
         ${renderSelectedEpisodePanel(activeSeason)}
         <div class="episode-buttons">
           ${(activeSeason?.episodes || []).map((episode, episodeIndex) => `
             <button class="episode-button focusable ${episode.locked ? "is-locked" : ""} ${isActiveEpisode(state.activeSeasonIndex, episodeIndex) ? "is-selected" : ""}" data-season-index="${state.activeSeasonIndex}" data-episode-index="${episodeIndex}">
               <strong>${episode.episode || episodeIndex + 1}</strong>
-              <small>${episode.viaAniPub ? "via AniPub" : episode.title || episode.server || "Episode"}</small>
+              <small>${episodeDisplaySubtitle(episode)}</small>
             </button>
           `).join("")}
         </div>
@@ -3506,13 +3544,43 @@ function renderSelectedEpisodePanel(activeSeason) {
   const canPlay = Boolean(getEpisodeUrl(episode));
   const hasExternal = isExternalIframeEpisode(episode);
   const canResolveAniPub = episode.streamResolver?.type === "anipub";
+  const pending = Boolean(episode.sourceOptionsPending);
+  const unavailable = isEpisodeUnavailable(episode);
+  const statusText = pending
+    ? "Checking available servers..."
+    : canPlay || hasExternal || canResolveAniPub
+      ? "Ready to play in the video area."
+      : unavailable
+        ? episodeAvailabilityText(episode)
+        : "No playback server is available for this episode yet.";
   return `
-    <div class="episode-player-card ${canPlay ? "is-ready" : hasExternal || canResolveAniPub ? "is-external" : "is-missing"}">
+    <div class="episode-player-card ${canPlay ? "is-ready" : hasExternal || canResolveAniPub ? "is-external" : pending ? "is-loading" : "is-missing"}">
       <strong>${activeSeason?.title || `Season ${selected.seasonIndex + 1}`} - Episode ${episode.episode || selected.episodeIndex + 1}</strong>
-      <span>${canPlay || hasExternal || canResolveAniPub ? "Ready to play in the video area." : "No direct video URL connected for this episode yet."}</span>
-      <button class="episode-play-inline focusable" data-play-selected>${canPlay || hasExternal || canResolveAniPub ? "Play Episode" : "Show In Player"}</button>
+      <span>${statusText}</span>
+      <button class="episode-play-inline focusable" data-play-selected ${unavailable && !pending ? "disabled" : ""}>${canPlay || hasExternal || canResolveAniPub ? "Play Episode" : pending ? "Checking..." : "Try Episode"}</button>
     </div>
   `;
+}
+
+function episodeDisplaySubtitle(episode = {}) {
+  if (episode.sourceOptionsPending) return "Checking servers...";
+  if (isEpisodeUnavailable(episode)) return episodeAvailabilityText(episode);
+  return episode.title || episode.server || "Episode";
+}
+
+function isEpisodeUnavailable(episode = {}) {
+  return Boolean(episode.missing || episode.unavailable || episode.future || episode.notAired || episode.airingAt || episode.releaseDate || episode.availableAt);
+}
+
+function episodeAvailabilityText(episode = {}) {
+  const dateValue = episode.airingAt || episode.releaseDate || episode.availableAt || episode.airDate || episode.date;
+  const date = Number(dateValue) > 1000000000
+    ? new Date(Number(dateValue) * (Number(dateValue) < 100000000000 ? 1000 : 1))
+    : dateValue ? new Date(dateValue) : null;
+  if (date && !Number.isNaN(date.getTime())) {
+    return `Not available yet - ${date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} at ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+  }
+  return "Not available yet";
 }
 
 function getEpisodePlaybackSources(episode = {}) {
@@ -3702,9 +3770,9 @@ async function selectEpisode(season, episode, seasonIndex, episodeIndex) {
   state.activeDetailTab = "episodes";
   state.activeEpisode = { season, episode, seasonIndex, episodeIndex };
   state.activeEpisodeUrl = getEpisodeUrl(episode);
-  await attachPlaybackSourceOptions(state.activeShow, episode, season?.season || seasonIndex + 1 || 1);
   renderEpisodeList(state.activeShow);
   playActiveShow();
+  schedulePlaybackSourceOptions(state.activeShow, episode, season?.season || seasonIndex + 1 || 1, { autoReplay: true });
   refreshFocusables();
 }
 
@@ -3802,17 +3870,19 @@ function repairEpisodeGaps(episodes = [], seasonNumber = 1) {
     if (!byNumber.has(episode)) console.warn(`Missing episode ${episode} detected`);
     return byNumber.get(episode) || {
       id: `missing-s${seasonNumber}-e${episode}`,
-      title: `Episode ${episode}`,
+      title: "Not available yet",
       season: seasonNumber,
       episode,
       locked: true,
       missing: true,
+      unavailable: true,
       server: "Missing from source"
     };
   });
 }
 
-async function playActiveShow() {
+async function playActiveShow(options = {}) {
+  const allowSourceLookup = options.allowSourceLookup !== false;
   const show = state.activeShow;
   const frame = document.querySelector("#videoFrame");
   if (!show || !frame) return;
@@ -3836,15 +3906,9 @@ async function playActiveShow() {
     }
   }
   const activeEpisode = state.activeEpisode?.episode;
-  if (activeEpisode && activeEpisode.sourceOptionsChecked !== `${normalizeTitle(show.title)}:s${state.activeEpisode?.season?.season || state.activeSeasonIndex + 1 || activeEpisode.season || 1}:e${Number(activeEpisode.episode || activeEpisode.number || 1)}`) {
-    frame.innerHTML = `
-      <div class="episode-video-empty is-loading">
-        <div class="play-symbol" aria-hidden="true"></div>
-        <strong>Checking servers...</strong>
-        <p>Looking for every playable server option for this episode.</p>
-      </div>
-    `;
-    await attachPlaybackSourceOptions(show, activeEpisode, state.activeEpisode?.season?.season || state.activeSeasonIndex + 1 || activeEpisode.season || 1);
+  const seasonNumber = state.activeEpisode?.season?.season || state.activeSeasonIndex + 1 || activeEpisode?.season || 1;
+  if (allowSourceLookup && activeEpisode && activeEpisode.sourceOptionsChecked !== playbackLookupKey(show, activeEpisode, seasonNumber)) {
+    schedulePlaybackSourceOptions(show, activeEpisode, seasonNumber, { autoReplay: true });
     renderEpisodeList(show);
   }
   let source = getSelectedEpisodeSource(activeEpisode);
@@ -3882,23 +3946,15 @@ async function playActiveShow() {
     return;
   }
 
-  if (!url && activeEpisode && !isAniPubShow(show)) {
+  if (!url && activeEpisode && activeEpisode.sourceOptionsPending) {
     frame.innerHTML = `
       <div class="episode-video-empty is-loading">
         <div class="play-symbol" aria-hidden="true"></div>
-        <strong>Checking AniPub...</strong>
-        <p>Looking for this episode in AniPub before showing the no-video message.</p>
+        <strong>Checking servers...</strong>
+        <p>Finding every available playback source for this episode.</p>
       </div>
     `;
-    const seasonNumber = state.activeEpisode?.season?.season || state.activeEpisode?.seasonIndex + 1 || activeEpisode.season || 1;
-    const fallback = await resolveEpisodeWithFallback(show, activeEpisode, seasonNumber);
-    if (fallback.type === "direct") {
-      url = fallback.url;
-    } else if (fallback.type === "iframe" && fallback.externalUrl) {
-      renderEpisodeList(show);
-      renderExternalPlaybackOption(show, fallback.externalUrl);
-      return;
-    }
+    return;
   }
 
   if (!url) {
@@ -3910,7 +3966,7 @@ async function playActiveShow() {
       <div class="episode-video-empty">
         <div class="play-symbol" aria-hidden="true"></div>
         <strong>${label}</strong>
-        <p>No playable stream was found for this episode. Check your connection, try again, or add this episode in your source as <code>videoUrl</code>, <code>streamUrl</code>, <code>file</code>, or an AniPub iframe embed.</p>
+        <p>${isEpisodeUnavailable(activeEpisode) ? episodeAvailabilityText(activeEpisode) : "No playable server was found for this episode yet. Check your connection or try another source."}</p>
         <button class="external-play-button focusable" type="button" data-retry-episode>Retry Episode</button>
       </div>
     `;
