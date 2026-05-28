@@ -1,7 +1,11 @@
 {
   "ok": true,
-  "source": "Scrapling Multi-Site",
-  "scrapedAt": "2026-05-28T15:54:51.621082+00:00",
+  "source": "AnimeAV1 + TioAnime + AnimeFLV",
+  "sources": ["AnimeAV1", "TioAnime", "AnimeFLV"],
+  "scrapedAt": null,
   "totalResults": 0,
-  "items": []
+  "count": 0,
+  "episodeCount": 0,
+  "items": [],
+  "_note": "Waiting for first GitHub Actions run. Trigger 'Scrape anime catalog' manually from the Actions tab."
 }

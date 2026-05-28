@@ -3,13 +3,17 @@ name: Scrape anime catalog
 # ── Triggers ────────────────────────────────────────────────────────────────
 on:
   schedule:
-    # Once per day at 06:00 UTC (adjust to taste — keep it off-peak)
+    # Once per day at 06:00 UTC
     - cron: '0 6 * * *'
 
   workflow_dispatch:
     inputs:
+      sites:
+        description: 'Sites to scrape (comma-separated: animeav1,tioanime,animeflv)'
+        required: false
+        default: 'animeav1,tioanime,animeflv'
       scrapeEpisodes:
-        description: 'Scrape episode URLs (slower — ~10-20 min)'
+        description: 'Fetch episode URLs for top shows'
         required: false
         default: 'true'
         type: choice
@@ -22,16 +26,18 @@ on:
         description: 'Max episodes per show (most-recent first)'
         required: false
         default: '5'
-      jikanPages:
-        description: 'Jikan pages per endpoint (25 anime/page)'
+      catalogPages:
+        description: 'Catalog pages per site (more pages = more anime)'
         required: false
-        default: '4'
-      sites:
-        description: 'Episode sites to use (space-separated: animeflv tioanime jkanime)'
+        default: '3'
+      jikanEnrich:
+        description: 'Enrich metadata via Jikan/MAL (synopsis, score, etc.)'
         required: false
-        default: ''
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
 
-# Opt into Node 24 runtime for all referenced actions (silences Node 20 warnings)
+# Opt into Node 24 runtime for all referenced actions
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
@@ -40,14 +46,13 @@ jobs:
   scrape:
     name: Scrape + validate + commit catalog
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
 
     steps:
       # ── 1. Checkout ────────────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # GITHUB_TOKEN allows the auto-commit step to push back.
           token: ${{ secrets.GITHUB_TOKEN }}
 
       # ── 2. Python setup ────────────────────────────────────────────────────
@@ -59,67 +64,74 @@ jobs:
           cache-dependency-path: scraper/requirements.txt
 
       # ── 3. Install dependencies ────────────────────────────────────────────
-      # Only 'requests' — no browser binaries needed.
       - name: Install Python dependencies
         run: pip install -r scraper/requirements.txt
 
-      # ── 4. Build scraper args ──────────────────────────────────────────────
-      # Determine flags based on whether this is a schedule run or manual run.
-      # Schedule runs always scrape episodes with sensible defaults.
+      # ── 4. Build scraper arguments ─────────────────────────────────────────
       - name: Build scraper arguments
         id: args
         run: |
-          # Scheduled run defaults
+          # Scheduled run defaults (primary sites, episodes on, Jikan off)
+          SITES="animeav1,tioanime,animeflv"
           SCRAPE_EPS="true"
           TOP="20"
           MAX_EPS="5"
-          JIKAN_PAGES="4"
-          SITES=""
+          CATALOG_PAGES="3"
+          JIKAN_ENRICH="false"
 
           # Override with workflow_dispatch inputs when present
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            SITES="${{ github.event.inputs.sites }}"
             SCRAPE_EPS="${{ github.event.inputs.scrapeEpisodes }}"
             TOP="${{ github.event.inputs.top }}"
             MAX_EPS="${{ github.event.inputs.maxEpisodes }}"
-            JIKAN_PAGES="${{ github.event.inputs.jikanPages }}"
-            SITES="${{ github.event.inputs.sites }}"
+            CATALOG_PAGES="${{ github.event.inputs.catalogPages }}"
+            JIKAN_ENRICH="${{ github.event.inputs.jikanEnrich }}"
           fi
 
-          # Build the argument string
-          EXTRA_ARGS="--top ${TOP} --max-eps ${MAX_EPS} --jikan-pages ${JIKAN_PAGES}"
-          if [ -n "$SITES" ]; then
-            EXTRA_ARGS="$EXTRA_ARGS --sites $SITES"
-          fi
+          # Build argument string
+          EXTRA_ARGS="--sites ${SITES} --top ${TOP} --max-eps ${MAX_EPS} --catalog-pages ${CATALOG_PAGES}"
+
           if [ "$SCRAPE_EPS" = "true" ]; then
-            EXTRA_ARGS="--episodes $EXTRA_ARGS"
+            EXTRA_ARGS="--episodes ${EXTRA_ARGS}"
           fi
 
-          echo "extra_args=$EXTRA_ARGS" >> "$GITHUB_OUTPUT"
-          echo "scrape_eps=$SCRAPE_EPS" >> "$GITHUB_OUTPUT"
-          echo "Scraper args: $EXTRA_ARGS"
+          if [ "$JIKAN_ENRICH" = "true" ]; then
+            EXTRA_ARGS="${EXTRA_ARGS} --jikan-enrich"
+          else
+            EXTRA_ARGS="${EXTRA_ARGS} --no-jikan"
+          fi
+
+          echo "extra_args=${EXTRA_ARGS}" >> "$GITHUB_OUTPUT"
+          echo "Scraper args: ${EXTRA_ARGS}"
 
       # ── 5. Run scraper ─────────────────────────────────────────────────────
-      # The scraper exits with code 1 if it produces 0 items (validation guard).
-      # When it exits 1, subsequent steps do NOT run → nothing is committed.
+      # Exits 0 on success or when previous catalog is kept.
+      # Exits 1 only when 0 items AND no previous catalog exists.
       - name: Run anime scraper
         id: scrape
         run: python scraper/anime_scraper.py ${{ steps.args.outputs.extra_args }}
-        timeout-minutes: 28
+        timeout-minutes: 32
 
       # ── 6. Validate output ─────────────────────────────────────────────────
-      # Double-check the output JSON before committing it.
       - name: Validate catalog JSON
         run: |
           python - <<'PYEOF'
           import json, sys
           path = "scraper/anime_metadata.json"
-          with open(path, encoding="utf-8") as f:
-              data = json.load(f)
-          items = data.get("items") or []
+          try:
+              with open(path, encoding="utf-8") as f:
+                  data = json.load(f)
+          except FileNotFoundError:
+              print("SKIP: anime_metadata.json not written (previous catalog kept). OK.")
+              sys.exit(0)
+          items    = data.get("items") or []
           ep_count = sum(len(i.get("episodes") or []) for i in items)
-          print(f"  Anime count  : {len(items)}")
-          print(f"  Episode URLs : {ep_count}")
-          print(f"  Scraped at   : {data.get('scrapedAt', '?')}")
+          sources  = data.get("sources") or [data.get("source", "?")]
+          print(f"  Anime count    : {len(items)}")
+          print(f"  Episode URLs   : {ep_count}")
+          print(f"  Sources        : {sources}")
+          print(f"  Scraped at     : {data.get('scrapedAt', '?')}")
           if len(items) == 0:
               print("ERROR: catalog is empty — will NOT commit.")
               sys.exit(1)
@@ -127,8 +139,6 @@ jobs:
           PYEOF
 
       # ── 7. Commit updated catalog ──────────────────────────────────────────
-      # Vercel watches the branch for pushes → auto-deploys fresh data.
-      # This step only runs if scraper + validation both succeeded.
       - name: Commit updated catalog
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
@@ -140,11 +150,11 @@ jobs:
           commit_user_email: "github-actions[bot]@users.noreply.github.com"
 
       # ── 8. Upload logs on failure ──────────────────────────────────────────
-      - name: Upload scraper log on failure
+      - name: Upload scraper artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: scraper-failure-log-${{ github.run_id }}
+          name: scraper-failure-${{ github.run_id }}
           path: |
             scraper/anime_metadata.json
             scraper/anime_metadata.previous.json

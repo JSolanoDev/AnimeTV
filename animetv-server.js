@@ -921,7 +921,8 @@ function handleScrapedCatalog(reqUrl, response) {
 
       sendJson(response, {
         ok:           true,
-        source:       catalog.source       || "Jikan + AnimeFLV/TioAnime/JKAnime",
+        source:       catalog.source       || "AnimeAV1/TioAnime/AnimeFLV",
+        sources:      catalog.sources      || [],
         scrapedAt:    catalog.scrapedAt    || null,
         lastUpdated:  catalog.scrapedAt    || null,
         fallbackUsed: fallbackUsed,

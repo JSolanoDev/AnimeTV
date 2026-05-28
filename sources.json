@@ -2,13 +2,13 @@
   "sources": [
     {
       "id": "scrapled-catalog",
-      "name": "Jikan · AnimeFLV · TioAnime · JKAnime",
+      "name": "AnimeAV1 · TioAnime · AnimeFLV",
       "enabled": true,
       "type": "online-addon",
       "endpoint": "/api/scraped-catalog?limit=200&page=1",
       "pageSize": 200,
       "paginated": true,
-      "description": "Daily-updated catalog: metadata from the free Jikan/MyAnimeList API, episode URLs enriched from AnimeFLV, TioAnime, and JKAnime. Updated automatically via GitHub Actions every day at 06:00 UTC. No local setup needed — the data lives in scraper/anime_metadata.json and is committed by CI."
+      "description": "Daily-updated catalog scraped directly from AnimeAV1, TioAnime, and AnimeFLV. Includes anime metadata, episode lists, and video/embed URLs. Updated automatically via GitHub Actions every day at 06:00 UTC. Jikan is optional enrichment only. The last valid catalog is always kept as a fallback so the source never goes empty."
     },
     {
       "id": "consumet-kickassanime",
