@@ -2,8 +2,9 @@
 #
 # Install:
 #   pip install -r requirements.txt
-#   scrapling install        ← downloads Camoufox browser binaries (~200 MB, one-time)
 #
-# Python >= 3.11 recommended (uses str | None union syntax)
+# No browser installation required.
+# Python >= 3.10 required (uses str | None union syntax in 3.10+, or just Python 3.11+).
 
-scrapling[all]>=0.3.0
+requests>=2.32
+urllib3>=2.2

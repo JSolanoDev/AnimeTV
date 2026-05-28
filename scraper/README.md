@@ -1,171 +1,178 @@
-# AnimeTV Metadata Scraper
+# AnimeTV Scraper
 
-Scrapes anime metadata **and episode stream URLs** from three Spanish-language
-sites using [Scrapling](https://github.com/D4Vinci/Scrapling) for stealth
-fetching and resilient adaptive selectors.
+Fully online daily scraper — **no local machine required for production.**
 
-| Site | Type | Metadata items |
-|------|------|----------------|
-| tioanime.com | Catalog + recent episodes | ≤ 500 |
-| www4.animeflv.net | Catalog + recent episodes | ≤ 500 |
-| jkanime.net | Catalog + recent episodes | ≤ 500 |
+Metadata comes from the free [Jikan API](https://jikan.moe/) (MyAnimeList wrapper).
+Episode URLs are enriched from AnimeFLV, TioAnime, and JKAnime via simple HTTP requests.
+Everything runs automatically in GitHub Actions every day.
 
 ---
 
-## 1. Install
+## Architecture
+
+### Phase 1 — Jikan API (always runs, always works from CI)
+
+Fetches from two endpoints (no auth, no browser, no rate-limit issues):
+
+| Endpoint | Content |
+|---|---|
+| `/seasons/now` | Current-season anime |
+| `/top/anime?filter=airing` | Top-rated currently airing |
+
+Every anime item includes: title, alternative titles, synopsis, poster, banner,
+genres, type (TV/Movie/OVA/Special), status, year, season, aired date, score/rating,
+MAL URL, total episode count, and season number detected from the title.
+
+### Phase 2 — Episode URL enrichment (optional, `--episodes` flag)
+
+For the top N shows by rating, tries each site in order until one succeeds:
+
+1. **AnimeFLV** (`www3.animeflv.net`) — JSON search API
+2. **TioAnime** (`tioanime.com`) — JSON search API
+3. **JKAnime** (`jkanime.net`) — HTML search
+
+Per-site failure is isolated. If a site blocks the request, the next is tried.
+If all episode sites fail, Phase 1 metadata is still saved — the catalog never goes empty.
+
+---
+
+## Production: Automatic daily runs via GitHub Actions
+
+The workflow `.github/workflows/scrape-catalog.yml` runs **daily at 06:00 UTC**.
+
+Pipeline:
+1. Install `requests` (only ~1 sec, no browser download)
+2. Run `python anime_scraper.py --episodes --top 20 --max-eps 5`
+3. Validate output (≥ 1 item required)
+4. Commit `anime_metadata.json` back to repo (if valid)
+5. Vercel detects the push → auto-deploys → fresh data online within minutes
+
+**You never need to run anything locally.**
+
+### Manual trigger
+
+Go to **Actions → "Scrape anime catalog" → Run workflow**
+
+| Input | Default | Description |
+|---|---|---|
+| `scrapeEpisodes` | `true` | Also scrape episode URLs |
+| `top` | `20` | Top N shows to enrich with episodes |
+| `maxEpisodes` | `5` | Max recent episodes per show |
+| `jikanPages` | `4` | Jikan pages per endpoint (25 anime/page) |
+| `sites` | *(all)* | Limit to specific sites: `animeflv tioanime jkanime` |
+
+---
+
+## Fallback behavior (never goes empty)
+
+The `/api/scraped-catalog` endpoint:
+1. Reads `anime_metadata.json`
+2. If missing, empty, or corrupt → reads `anime_metadata.previous.json`
+3. If both missing → returns 404 with a helpful message
+
+The scraper also protects good data:
+- If the new catalog has 0 items → exits with code 1 → nothing is committed
+- The previous `anime_metadata.json` is preserved on disk
+- `anime_metadata.previous.json` is written before every overwrite
+
+---
+
+## Output files
+
+| File | Purpose |
+|---|---|
+| `scraper/anime_metadata.json` | Primary catalog served at `/api/scraped-catalog` |
+| `scraper/anime_metadata.previous.json` | Previous run (fallback) |
+| `scraper/anime_metadata.csv` | Human-readable spreadsheet |
+
+---
+
+## Local testing (optional)
 
 ```bash
-# Python 3.11+
-pip install -r requirements.txt
+cd scraper
+pip install -r requirements.txt   # just 'requests' — no browser needed
 
-# Download Camoufox stealth browser binaries (~200 MB, one-time)
-scrapling install
+# Verify Python syntax:
+python -m py_compile anime_scraper.py
+
+# Metadata only (~1 min):
+python anime_scraper.py
+
+# With episode URLs for top 20 shows, 5 eps each (~5-20 min):
+python anime_scraper.py --episodes
+
+# More shows, deeper history:
+python anime_scraper.py --episodes --top 40 --max-eps 12
+
+# Only AnimeFLV:
+python anime_scraper.py --episodes --sites animeflv
+
+# More Jikan pages (more anime titles):
+python anime_scraper.py --episodes --jikan-pages 6
 ```
+
+After running locally, `git commit scraper/anime_metadata.json` and push to trigger Vercel.
 
 ---
 
-## 2. Run
-
-### Metadata only (fast — default)
-
-Collects title, image, synopsis, genre. Does **not** visit individual episode
-pages.
-
-```bash
-python scraper/anime_scraper.py
-```
-
-### With episode stream URLs (slow, optional)
-
-Visits each show's detail page to build the episode list, then visits each
-episode page and extracts the playable video URL or iframe embed URL.
-
-```bash
-# Default: top 20 shows per site × 5 most-recent episodes each
-python scraper/anime_scraper.py --episodes
-
-# More shows, deeper episode history
-python scraper/anime_scraper.py --episodes --top 50 --max-eps 12
-
-# Fewer shows, faster run
-python scraper/anime_scraper.py --episodes --top 10 --max-eps 3
-```
-
-| Flag | Default | Meaning |
-|------|---------|---------|
-| `--episodes` | off | Enable episode page scraping |
-| `--top N` | 20 | Shows per site to scrape (sorted by episode count desc) |
-| `--max-eps N` | 5 | Most-recent episodes to fetch per show |
-| `--ep-workers N` | 3 | Concurrent episode page fetches (across all sites) |
-
-### Other options
-
-```bash
-# Only specific sites
-python scraper/anime_scraper.py --sites tioanime jkanime
-
-# Keep running, re-scrape every 6 hours
-python scraper/anime_scraper.py --schedule 6 --episodes
-
-# Custom output path
-python scraper/anime_scraper.py --output /data/anime.json
-```
-
----
-
-## 3. Episode disk cache
-
-Episode URLs are cached in `scraper/.episode_cache/` (one JSON file per show,
-keyed by URL hash). Cache TTL is **24 hours**. Subsequent runs skip unchanged
-shows, making the second run much faster.
-
-```
-scraper/
-├── .episode_cache/
-│   ├── a1b2c3d4…json   ← tioanime.com/anime/solo-leveling episodes
-│   └── …
-```
-
----
-
-## 4. How video URL extraction works
-
-`VideoExtractor` tries five strategies in order on each episode page's HTML:
-
-| # | Strategy | Pattern |
-|---|----------|---------|
-| 1 | TioAnime-style JS array | `var videos = [["SW","https://…"], …]` |
-| 2 | AnimeFLV-style JS dict | `var videos = {"SUB":[["SW","url"]],"LAT":[]}` |
-| 3 | Any non-ad `<iframe src>` | skips google/disqus/doubleclick |
-| 4 | `<video src>` / `<source src>` | `.mp4` / `.m3u8` only |
-| 5 | Bare `.m3u8` / `.mp4` URL | anywhere in the page HTML |
-
-Direct `.m3u8` / `.mp4` links are stored in `videoUrl`.
-All other embed URLs are stored in `externalUrl` + `externalType: "iframe"`.
-
----
-
-## 5. How adaptive selectors work
-
-**First run** — `auto_save=True`:
-```
-Scrapling fingerprints each matched element (DOM depth, sibling count,
-text density, attribute patterns) and saves to a local SQLite cache.
-```
-
-**After a site redesign** — switch to `auto_match=True`:
-```python
-# Change this line in anime_scraper.py when a site's CSS class names change:
-cards = page.css("ul.episodes-list li", auto_save=True)
-# → becomes:
-cards = page.css("ul.episodes-list li", auto_match=True)
-```
-Scrapling uses the saved fingerprints to relocate elements without updating
-selectors.
-
----
-
-## 6. Output format
-
-`anime_metadata.json` is directly consumed by AnimeTV's `/api/scraped-catalog`
-route (already wired in `animetv-server.js`):
+## Output schema
 
 ```json
 {
   "ok": true,
-  "source": "Scrapling Multi-Site",
-  "scrapedAt": "2026-05-27T12:00:00.000Z",
-  "totalResults": 847,
+  "source": "Jikan + AnimeFLV/TioAnime/JKAnime",
+  "scrapedAt": "2026-05-28T06:00:00.000Z",
+  "totalResults": 85,
+  "episodeCount": 400,
   "items": [
     {
-      "id": "scraped-0",
-      "title": "Solo Leveling",
-      "image": "https://tioanime.com/uploads/posters/solo-leveling.webp",
-      "siteUrl": "https://tioanime.com/anime/solo-leveling",
-      "description": "En un mundo donde los cazadores…",
-      "episode": 12,
-      "genre": "action",
-      "genres": ["Acción", "Fantasía"],
-      "source": "TioAnime",
-      "videoUrl": "https://…/ep1.m3u8",
+      "id": "jikan-52991",
+      "malId": 52991,
+      "title": "Frieren: Beyond Journey's End",
+      "alternativeTitles": ["Sousou no Frieren", "葬送のフリーレン"],
+      "image": "https://cdn.myanimelist.net/images/anime/1015/138006.jpg",
+      "poster": "https://cdn.myanimelist.net/images/anime/1015/138006.jpg",
+      "banner": "",
+      "description": "The adventure is over...",
+      "synopsis": "The adventure is over...",
+      "genres": ["Adventure", "Drama", "Fantasy"],
+      "genre": "fantasy",
+      "status": "Finished Airing",
+      "type": "TV",
+      "year": 2023,
+      "season": "Fall",
+      "aired": "2023-09-29",
+      "rating": 9.4,
+      "score": 9.4,
+      "source": "AnimeFLV",
+      "siteUrl": "https://myanimelist.net/anime/52991",
+      "totalEpisodes": 28,
+      "episode": 28,
+      "lastScrapedAt": "2026-05-28T06:00:00Z",
       "episodes": [
         {
-          "episode": 11,
-          "title": "Episodio 11",
-          "siteUrl": "https://tioanime.com/ver/solo-leveling-11",
-          "videoUrl": "https://…/ep11.m3u8",
-          "externalUrl": "",
-          "externalType": "",
-          "server": "TioAnime"
-        },
-        {
-          "episode": 12,
-          "title": "Episodio 12",
-          "siteUrl": "https://tioanime.com/ver/solo-leveling-12",
+          "id": "jikan-52991-ep-28",
+          "season": 1,
+          "episode": 28,
+          "number": 28,
+          "title": "Episodio 28",
+          "siteUrl": "https://www3.animeflv.net/ver/frieren-beyond-journeys-end-28",
           "videoUrl": "",
-          "externalUrl": "https://some-embed.com/player?id=abc",
+          "externalUrl": "https://embed.example.com/player?id=abc123",
           "externalType": "iframe",
-          "server": "TioAnime"
+          "server": "AnimeFLV",
+          "language": "es",
+          "subtitles": [],
+          "duration": "",
+          "scrapedAt": "2026-05-28T06:12:34Z"
+        }
+      ],
+      "seasons": [
+        {
+          "season": 1,
+          "title": "Season 1",
+          "episodes": [...]
         }
       ]
     }
@@ -173,90 +180,14 @@ route (already wired in `animetv-server.js`):
 }
 ```
 
-When `--episodes` is **not** used, `episodes` is an empty array and `videoUrl`
-is `""`. AnimeTV will then fall back to its AniPub / AllAnime / JIMOV sources
-to find a stream.
-
 ---
 
-## 7. AnimeTV integration
-
-### Option A — File (already wired)
-
-`animetv-server.js` serves the JSON file at `/api/scraped-catalog`.
-After running the scraper, hit the AnimeTV refresh endpoint:
-
-```bash
-curl http://localhost:4173/api/refresh-daily
-```
-
-Or restart AnimeTV (`npm start`).
-
-### Option B — Call from Node.js
-
-```javascript
-const { runScraper } = require('./scraper/integration');
-
-const catalog = await runScraper({ sites: ['tioanime', 'jkanime'] });
-console.log(`${catalog.totalResults} items loaded`);
-```
-
-### Option C — Scheduled via `node-cron` (add to animetv-server.js)
-
-```javascript
-const cron = require("node-cron");
-const { runScraper } = require("./scraper/integration");
-
-cron.schedule("0 */6 * * *", async () => {
-  console.log("[cron] Running anime scraper…");
-  try {
-    const catalog = await runScraper();
-    console.log(`[cron] Scraped ${catalog.totalResults} items`);
-  } catch (err) {
-    console.error("[cron] Scraper failed:", err.message);
-  }
-});
-```
-
-### Option D — OS-level cron (recommended for production)
-
-**Linux / macOS** (`crontab -e`):
-```
-0 */6 * * *  cd /path/to/AnimeTV && python scraper/anime_scraper.py --episodes >> logs/scraper.log 2>&1
-```
-
-**Windows Task Scheduler** (or `start-all.bat`):
-```bat
-python "%~dp0scraper\anime_scraper.py" --schedule 6 --episodes
-```
-
----
-
-## 8. Troubleshooting
+## Troubleshooting
 
 | Symptom | Cause | Fix |
-|---------|-------|-----|
-| `ModuleNotFoundError: scrapling` | Not installed | `pip install -r requirements.txt` |
-| `CamoufoxNotFoundError` | Browser not installed | `scrapling install` |
-| All selectors return empty | Site redesigned | Switch `auto_save=True` → `auto_match=True` and re-run |
-| `TimeoutError` on a site | Site blocked or slow | Increase `PAGE_TIMEOUT_MS` or use `--sites` to skip it |
-| JSON output is empty `{}` | Python 3.9 syntax error | Upgrade to Python 3.11+ |
-| `episodes` arrays empty | `--episodes` flag not passed | Add `--episodes` to the command |
-| Episode URLs all `""` | Site uses obfuscated JS | Open episode page manually, inspect Network tab for the stream URL; update `VideoExtractor` regex |
-
----
-
-## 9. Selector maintenance
-
-When a site changes its CSS class names, update the primary selector and log
-which one worked:
-
-```python
-cards = page.css("ul.episodes-list li", auto_save=True)   # primary
-if not cards:
-    cards = page.css(".episodes-container li")             # fallback
-    log.warning("[TioAnime] Primary selector empty — update it")
-```
-
-Use `scrapling extract fetch 'https://tioanime.com/' test.md` from the
-terminal to inspect the live HTML without writing code.
+|---|---|---|
+| Catalog has 0 items | Jikan API unreachable | Check GitHub Actions logs; retry manually |
+| Episodes are empty | Site blocked GitHub Actions IPs | Normal; metadata is still saved. Try different `--sites`. |
+| `ModuleNotFoundError: requests` | Not installed | `pip install requests` |
+| `json.JSONDecodeError` in logs | Episode page returned non-JSON | Ignored automatically; scraper continues |
+| Vercel not updating | No commit was made | Check Actions log — scraper may have exited 1 (0 items) |

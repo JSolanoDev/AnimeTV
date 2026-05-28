@@ -1,6 +1,16 @@
 {
   "sources": [
     {
+      "id": "scrapled-catalog",
+      "name": "Jikan · AnimeFLV · TioAnime · JKAnime",
+      "enabled": true,
+      "type": "online-addon",
+      "endpoint": "/api/scraped-catalog?limit=200&page=1",
+      "pageSize": 200,
+      "paginated": true,
+      "description": "Daily-updated catalog: metadata from the free Jikan/MyAnimeList API, episode URLs enriched from AnimeFLV, TioAnime, and JKAnime. Updated automatically via GitHub Actions every day at 06:00 UTC. No local setup needed — the data lives in scraper/anime_metadata.json and is committed by CI."
+    },
+    {
       "id": "consumet-kickassanime",
       "name": "Consumet KickAssAnime (JP + Spanish Subs)",
       "enabled": true,
@@ -61,62 +71,6 @@
       "pageSize": 100,
       "paginated": true,
       "description": "RapidAPI Anime Streaming source for direct HLS/M3U8 streams. AnimeTV prefers Japanese audio and Spanish subtitles; if only English subtitle files are returned, the player can use Spanish translation mode."
-    },
-    {
-      "id": "my-local-catalog",
-      "name": "My Local Anime Catalog",
-      "enabled": false,
-      "type": "catalog",
-      "endpoint": "http://192.168.1.25:5050/catalog.json",
-      "description": "Enable this after your own legal server returns anime items with title, image, description, videoUrl, or an episodes array."
-    },
-    {
-      "id": "tioanime-metadata-addon",
-      "name": "TioAnime Metadata Addon",
-      "enabled": false,
-      "type": "metadata-addon",
-      "endpoint": "/api/tioanime/catalog",
-      "description": "Optional local addon using carlosfdezb/tioanime for catalog and episode metadata only. Install with npm install tioanime, then restart AnimeTV."
-    },
-    {
-      "id": "anime1v-api",
-      "name": "Anime1v API",
-      "enabled": false,
-      "type": "local-adapter",
-      "endpoint": "http://127.0.0.1:5051/catalog.json",
-      "description": "Enable when your local Anime1v adapter returns normalized catalog JSON. Use only with sources you are allowed to access."
-    },
-    {
-      "id": "jutsu-api",
-      "name": "Jutsu API",
-      "enabled": false,
-      "type": "local-adapter",
-      "endpoint": "http://127.0.0.1:5052/catalog.json",
-      "description": "Enable when your local Jutsu adapter returns normalized catalog JSON. The app will merge by MAL/AniList ID or title."
-    },
-    {
-      "id": "anipy-server",
-      "name": "Anipy Server",
-      "enabled": false,
-      "type": "local-adapter",
-      "endpoint": "http://127.0.0.1:5053/catalog.json",
-      "description": "Enable when your local Anipy adapter returns normalized catalog JSON with title, image, banner, description, videoUrl, or episodes."
-    },
-    {
-      "id": "jimov-api",
-      "name": "Jimov API",
-      "enabled": false,
-      "type": "local-adapter",
-      "endpoint": "http://127.0.0.1:5054/catalog.json",
-      "description": "Enable when your local Jimov adapter returns normalized catalog JSON."
-    },
-    {
-      "id": "custom-tioanime-local",
-      "name": "Custom Local Anime Adapter",
-      "enabled": false,
-      "type": "local-adapter",
-      "endpoint": "http://127.0.0.1:5055/catalog.json",
-      "description": "Use local or online sources you are allowed to access. The app expects normalized catalog JSON, not scraper-specific responses."
     }
   ]
 }

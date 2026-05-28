@@ -1,90 +1,152 @@
 name: Scrape anime catalog
 
-# Runs on a schedule AND can be triggered manually from the Actions tab
+# ── Triggers ────────────────────────────────────────────────────────────────
 on:
   schedule:
-    # Every 6 hours at :00 — adjust to taste
-    - cron: '0 */6 * * *'
+    # Once per day at 06:00 UTC (adjust to taste — keep it off-peak)
+    - cron: '0 6 * * *'
+
   workflow_dispatch:
     inputs:
-      episodes:
-        description: 'Also scrape episode URLs (slower)'
+      scrapeEpisodes:
+        description: 'Scrape episode URLs (slower — ~10-20 min)'
         required: false
-        default: 'false'
+        default: 'true'
         type: choice
-        options: ['false', 'true']
+        options: ['true', 'false']
       top:
-        description: 'Top N shows to scrape episodes for'
+        description: 'Top N shows to enrich with episodes'
         required: false
         default: '20'
-      max_eps:
-        description: 'Max episodes per show'
+      maxEpisodes:
+        description: 'Max episodes per show (most-recent first)'
         required: false
         default: '5'
+      jikanPages:
+        description: 'Jikan pages per endpoint (25 anime/page)'
+        required: false
+        default: '4'
+      sites:
+        description: 'Episode sites to use (space-separated: animeflv tioanime jkanime)'
+        required: false
+        default: ''
 
-# Opt into Node.js 24 now to silence the "Node 20 deprecated" warning.
-# Remove this line once all referenced actions ship Node-24 runtimes by default.
+# Opt into Node 24 runtime for all referenced actions (silences Node 20 warnings)
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
+# ── Jobs ─────────────────────────────────────────────────────────────────────
 jobs:
   scrape:
+    name: Scrape + validate + commit catalog
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 35
 
     steps:
       # ── 1. Checkout ────────────────────────────────────────────────────────
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          # GITHUB_TOKEN is enough for Vercel — it watches the branch for pushes.
+          # GITHUB_TOKEN allows the auto-commit step to push back.
           token: ${{ secrets.GITHUB_TOKEN }}
 
       # ── 2. Python setup ────────────────────────────────────────────────────
-      - uses: actions/setup-python@v5
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: pip
           cache-dependency-path: scraper/requirements.txt
 
-      # ── 3. Install Scrapling ───────────────────────────────────────────────
+      # ── 3. Install dependencies ────────────────────────────────────────────
+      # Only 'requests' — no browser binaries needed.
       - name: Install Python dependencies
         run: pip install -r scraper/requirements.txt
 
-      # ── 4. Cache Camoufox browser binaries ────────────────────────────────
-      # Camoufox is ~200 MB — cache it between runs to keep CI fast.
-      - name: Cache Camoufox browser
-        id: camoufox-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.local/share/camoufox
-          key: camoufox-${{ runner.os }}-${{ hashFiles('scraper/requirements.txt') }}
-
-      - name: Install Camoufox browser binaries
-        if: steps.camoufox-cache.outputs.cache-hit != 'true'
-        run: python -m scrapling install
-
-      # ── 5. Run the scraper ─────────────────────────────────────────────────
-      - name: Run scraper (metadata only)
-        if: ${{ github.event.inputs.episodes != 'true' }}
-        run: python scraper/anime_scraper.py
-        timeout-minutes: 25
-
-      - name: Run scraper (with episode URLs)
-        if: ${{ github.event.inputs.episodes == 'true' }}
+      # ── 4. Build scraper args ──────────────────────────────────────────────
+      # Determine flags based on whether this is a schedule run or manual run.
+      # Schedule runs always scrape episodes with sensible defaults.
+      - name: Build scraper arguments
+        id: args
         run: |
-          python scraper/anime_scraper.py \
-            --episodes \
-            --top ${{ github.event.inputs.top || '20' }} \
-            --max-eps ${{ github.event.inputs.max_eps || '5' }}
-        timeout-minutes: 30
+          # Scheduled run defaults
+          SCRAPE_EPS="true"
+          TOP="20"
+          MAX_EPS="5"
+          JIKAN_PAGES="4"
+          SITES=""
 
-      # ── 6. Commit the fresh catalog back to the repo ───────────────────────
-      # Vercel auto-deploys on push, so committing the JSON = fresh data online.
+          # Override with workflow_dispatch inputs when present
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            SCRAPE_EPS="${{ github.event.inputs.scrapeEpisodes }}"
+            TOP="${{ github.event.inputs.top }}"
+            MAX_EPS="${{ github.event.inputs.maxEpisodes }}"
+            JIKAN_PAGES="${{ github.event.inputs.jikanPages }}"
+            SITES="${{ github.event.inputs.sites }}"
+          fi
+
+          # Build the argument string
+          EXTRA_ARGS="--top ${TOP} --max-eps ${MAX_EPS} --jikan-pages ${JIKAN_PAGES}"
+          if [ -n "$SITES" ]; then
+            EXTRA_ARGS="$EXTRA_ARGS --sites $SITES"
+          fi
+          if [ "$SCRAPE_EPS" = "true" ]; then
+            EXTRA_ARGS="--episodes $EXTRA_ARGS"
+          fi
+
+          echo "extra_args=$EXTRA_ARGS" >> "$GITHUB_OUTPUT"
+          echo "scrape_eps=$SCRAPE_EPS" >> "$GITHUB_OUTPUT"
+          echo "Scraper args: $EXTRA_ARGS"
+
+      # ── 5. Run scraper ─────────────────────────────────────────────────────
+      # The scraper exits with code 1 if it produces 0 items (validation guard).
+      # When it exits 1, subsequent steps do NOT run → nothing is committed.
+      - name: Run anime scraper
+        id: scrape
+        run: python scraper/anime_scraper.py ${{ steps.args.outputs.extra_args }}
+        timeout-minutes: 28
+
+      # ── 6. Validate output ─────────────────────────────────────────────────
+      # Double-check the output JSON before committing it.
+      - name: Validate catalog JSON
+        run: |
+          python - <<'PYEOF'
+          import json, sys
+          path = "scraper/anime_metadata.json"
+          with open(path, encoding="utf-8") as f:
+              data = json.load(f)
+          items = data.get("items") or []
+          ep_count = sum(len(i.get("episodes") or []) for i in items)
+          print(f"  Anime count  : {len(items)}")
+          print(f"  Episode URLs : {ep_count}")
+          print(f"  Scraped at   : {data.get('scrapedAt', '?')}")
+          if len(items) == 0:
+              print("ERROR: catalog is empty — will NOT commit.")
+              sys.exit(1)
+          print("Validation OK — ready to commit.")
+          PYEOF
+
+      # ── 7. Commit updated catalog ──────────────────────────────────────────
+      # Vercel watches the branch for pushes → auto-deploys fresh data.
+      # This step only runs if scraper + validation both succeeded.
       - name: Commit updated catalog
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: update anime catalog [skip ci]"
-          file_pattern: scraper/anime_metadata.json
+          file_pattern: >-
+            scraper/anime_metadata.json
+            scraper/anime_metadata.previous.json
           commit_user_name: "github-actions[bot]"
           commit_user_email: "github-actions[bot]@users.noreply.github.com"
-          # skip_dirty_check: false → only commits if the file actually changed
+
+      # ── 8. Upload logs on failure ──────────────────────────────────────────
+      - name: Upload scraper log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraper-failure-log-${{ github.run_id }}
+          path: |
+            scraper/anime_metadata.json
+            scraper/anime_metadata.previous.json
+          retention-days: 7
+          if-no-files-found: warn
