@@ -22,19 +22,21 @@ on:
         required: false
         default: '5'
 
+# Opt into Node.js 24 now to silence the "Node 20 deprecated" warning.
+# Remove this line once all referenced actions ship Node-24 runtimes by default.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
       # ── 1. Checkout ────────────────────────────────────────────────────────
       - uses: actions/checkout@v4
         with:
-          # Use a PAT so the commit can trigger Vercel's deploy webhook.
-          # If you only have GITHUB_TOKEN (default), Vercel still deploys
-          # because it watches the branch — but the CI check on the commit
-          # itself may not run.
+          # GITHUB_TOKEN is enough for Vercel — it watches the branch for pushes.
           token: ${{ secrets.GITHUB_TOKEN }}
 
       # ── 2. Python setup ────────────────────────────────────────────────────
@@ -44,19 +46,28 @@ jobs:
           cache: pip
           cache-dependency-path: scraper/requirements.txt
 
-      # ── 3. Install Scrapling + Camoufox stealth browser ───────────────────
+      # ── 3. Install Scrapling ───────────────────────────────────────────────
       - name: Install Python dependencies
         run: pip install -r scraper/requirements.txt
 
-      - name: Install Camoufox browser binaries
-        run: scrapling install
-        # Camoufox is ~200 MB; cached across runs via actions/setup-python pip cache
+      # ── 4. Cache Camoufox browser binaries ────────────────────────────────
+      # Camoufox is ~200 MB — cache it between runs to keep CI fast.
+      - name: Cache Camoufox browser
+        id: camoufox-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/camoufox
+          key: camoufox-${{ runner.os }}-${{ hashFiles('scraper/requirements.txt') }}
 
-      # ── 4. Run the scraper ─────────────────────────────────────────────────
+      - name: Install Camoufox browser binaries
+        if: steps.camoufox-cache.outputs.cache-hit != 'true'
+        run: python -m scrapling install
+
+      # ── 5. Run the scraper ─────────────────────────────────────────────────
       - name: Run scraper (metadata only)
         if: ${{ github.event.inputs.episodes != 'true' }}
         run: python scraper/anime_scraper.py
-        timeout-minutes: 20
+        timeout-minutes: 25
 
       - name: Run scraper (with episode URLs)
         if: ${{ github.event.inputs.episodes == 'true' }}
@@ -65,9 +76,9 @@ jobs:
             --episodes \
             --top ${{ github.event.inputs.top || '20' }} \
             --max-eps ${{ github.event.inputs.max_eps || '5' }}
-        timeout-minutes: 25
+        timeout-minutes: 30
 
-      # ── 5. Commit the fresh catalog back to the repo ───────────────────────
+      # ── 6. Commit the fresh catalog back to the repo ───────────────────────
       # Vercel auto-deploys on push, so committing the JSON = fresh data online.
       - name: Commit updated catalog
         uses: stefanzweifel/git-auto-commit-action@v5
