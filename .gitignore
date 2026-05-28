@@ -25,3 +25,8 @@ Thumbs.db
 
 .vercel
 .env*
+
+# Scraper — anime_metadata.json IS committed (CI updates it for Vercel).
+# Exclude the episode cache and Python bytecode only.
+scraper/.episode_cache/
+scraper/__pycache__/
