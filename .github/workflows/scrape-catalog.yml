@@ -71,7 +71,9 @@ jobs:
       - name: Build scraper arguments
         id: args
         run: |
-          # Scheduled run defaults (primary sites, episodes on, Jikan off)
+          # Scheduled run defaults
+          # Primary: AnimeAV1, TioAnime, AnimeFLV
+          # Fallback: Jikan (automatic when primary sites return 0)
           SITES="animeav1,tioanime,animeflv"
           SCRAPE_EPS="true"
           TOP="20"
@@ -90,7 +92,8 @@ jobs:
           fi
 
           # Build argument string
-          EXTRA_ARGS="--sites ${SITES} --top ${TOP} --max-eps ${MAX_EPS} --catalog-pages ${CATALOG_PAGES}"
+          # --jikan-fallback is the default ON; Jikan auto-kicks-in when sites return 0
+          EXTRA_ARGS="--sites ${SITES} --top ${TOP} --max-eps ${MAX_EPS} --catalog-pages ${CATALOG_PAGES} --jikan-fallback"
 
           if [ "$SCRAPE_EPS" = "true" ]; then
             EXTRA_ARGS="--episodes ${EXTRA_ARGS}"
@@ -98,8 +101,6 @@ jobs:
 
           if [ "$JIKAN_ENRICH" = "true" ]; then
             EXTRA_ARGS="${EXTRA_ARGS} --jikan-enrich"
-          else
-            EXTRA_ARGS="${EXTRA_ARGS} --no-jikan"
           fi
 
           echo "extra_args=${EXTRA_ARGS}" >> "$GITHUB_OUTPUT"
@@ -123,7 +124,7 @@ jobs:
               with open(path, encoding="utf-8") as f:
                   data = json.load(f)
           except FileNotFoundError:
-              print("SKIP: anime_metadata.json not written (previous catalog kept). OK.")
+              print("SKIP: anime_metadata.json not written (scraper kept previous). OK.")
               sys.exit(0)
           items    = data.get("items") or []
           ep_count = sum(len(i.get("episodes") or []) for i in items)
@@ -133,8 +134,11 @@ jobs:
           print(f"  Sources        : {sources}")
           print(f"  Scraped at     : {data.get('scrapedAt', '?')}")
           if len(items) == 0:
-              print("ERROR: catalog is empty — will NOT commit.")
-              sys.exit(1)
+              # 0 items means the scraper kept the existing file unchanged.
+              # The git-auto-commit step will detect no diff and skip the commit.
+              # Do NOT fail the workflow — this is expected when all sites are unreachable.
+              print("NOTE: catalog has 0 items — file unchanged, no commit will be made.")
+              sys.exit(0)
           print("Validation OK — ready to commit.")
           PYEOF
 

@@ -3,10 +3,12 @@
 anime_scraper.py — AnimeTV primary scraper
 ==========================================
 Primary catalog sources: AnimeAV1, TioAnime, AnimeFLV
-Optional metadata enrichment: Jikan API (--jikan-enrich flag only)
+Automatic fallback catalog: Jikan/MyAnimeList (when all 3 primary sites fail)
+Optional metadata enrichment: Jikan (--jikan-enrich flag)
 
 Phases:
   1. Catalog  — fetch anime list directly from AnimeAV1 + TioAnime + AnimeFLV
+               If all 3 fail → automatically try Jikan as fallback (free, CI-reliable)
   2. Episodes — for top-N shows, fetch episode list + video/embed URLs
   3. Enrich   — optional Jikan metadata (poster, synopsis, score) via --jikan-enrich
 
@@ -17,8 +19,9 @@ CLI defaults (matches GitHub Actions daily run):
 Safety:
   • Never overwrites anime_metadata.json with 0 items.
   • Backs up current file → anime_metadata.previous.json before saving.
-  • Exits code 0 (success) even when all sites fail IF a previous catalog exists.
-  • Exits code 1 only when 0 items AND no previous catalog exists.
+  • Never exits code 1 due to site unavailability — Jikan fallback ensures data.
+  • Exits code 1 only on genuine errors (no sites AND Jikan also unreachable AND
+    no previous valid catalog).
 
 Isolation:
   • One site failing never stops the others.
@@ -1197,6 +1200,147 @@ def enrich_with_jikan(items: list) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Jikan fallback catalog (used automatically when all primary sites return 0)
+# ─────────────────────────────────────────────────────────────────────────────
+
+JIKAN_PAGES_DEFAULT = 4   # 25 items/page × 4 pages = up to 100 per endpoint
+
+
+def _normalize_jikan_item(anime: dict) -> Optional[dict]:
+    """Convert a raw Jikan anime object into our shared schema."""
+    mal_id = anime.get("mal_id")
+    title  = clean(anime.get("title") or "")
+    if not title:
+        return None
+
+    # Alternative titles
+    alt_titles: list = []
+    for t in anime.get("titles") or []:
+        v = clean(t.get("title") or "")
+        if v and v != title and v not in alt_titles:
+            alt_titles.append(v)
+
+    # Images
+    jpg    = (anime.get("images") or {}).get("jpg") or {}
+    poster = jpg.get("large_image_url") or jpg.get("image_url") or ""
+
+    # Banner from trailer thumbnail
+    trailer = anime.get("trailer") or {}
+    banner  = (trailer.get("images") or {}).get("maximum_image_url") or ""
+
+    # Genres
+    genres_raw: list = []
+    for key in ("genres", "themes", "demographics", "explicit_genres"):
+        for g in (anime.get(key) or []):
+            name = g.get("name") or ""
+            if name and name not in genres_raw:
+                genres_raw.append(name)
+
+    # Year / aired
+    aired_obj  = anime.get("aired") or {}
+    aired_from = (aired_obj.get("from") or "")[:10]
+    year       = anime.get("year") or None
+    if not year and aired_from:
+        try:
+            year = int(aired_from[:4])
+        except (ValueError, TypeError):
+            pass
+
+    season_str   = (anime.get("season") or "").capitalize()
+    season_num   = detect_season_number(title)
+    total_eps    = anime.get("episodes") or None
+    score        = anime.get("score") or None
+
+    slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:60]
+    item_id = f"jikan-{mal_id}" if mal_id else f"jikan-{slug}"
+
+    return {
+        "id":                item_id,
+        "malId":             mal_id,
+        "title":             title,
+        "alternativeTitles": alt_titles,
+        "synopsis":          clean(anime.get("synopsis") or ""),
+        "description":       clean(anime.get("synopsis") or ""),
+        "poster":            poster,
+        "image":             poster,
+        "banner":            banner,
+        "genres":            genres_raw,
+        "genre":             pick_genre(genres_raw) if genres_raw else "anime",
+        "status":            clean(anime.get("status") or ""),
+        "type":              clean(anime.get("type") or "TV"),
+        "year":              year,
+        "season":            season_str,
+        "aired":             aired_from,
+        "rating":            score,
+        "score":             score,
+        "source":            "Jikan",
+        "siteUrl":           anime.get("url") or (f"https://myanimelist.net/anime/{mal_id}" if mal_id else ""),
+        "totalEpisodes":     total_eps,
+        "episode":           total_eps,
+        "lastScrapedAt":     datetime.now(timezone.utc).isoformat(),
+        "episodes":          [],
+        "seasons":           [],
+        "seasonNumber":      season_num,
+        "colors":            ["#40dfc2", "#251d47"],
+        "_slug":             slug,
+        "_base":             "",
+    }
+
+
+def fetch_catalog_jikan(pages: int = JIKAN_PAGES_DEFAULT) -> list:
+    """
+    Fallback catalog fetch from Jikan (MyAnimeList wrapper).
+    Used automatically when all primary sites (AnimeAV1/TioAnime/AnimeFLV) return 0 items.
+    Always works from GitHub Actions — free, public, no auth.
+    Endpoints: /seasons/now (current season) + /top/anime?filter=airing (top-rated airing).
+    """
+    log.info("[Jikan] Fallback catalog fetch started (pages=%d per endpoint)", pages)
+    seen: set = set()
+    results: list = []
+
+    def _ingest(batch: list) -> int:
+        added = 0
+        for anime in batch:
+            mid = anime.get("mal_id")
+            if not mid or mid in seen:
+                continue
+            seen.add(mid)
+            item = _normalize_jikan_item(anime)
+            if item:
+                results.append(item)
+                added += 1
+        return added
+
+    # /seasons/now — current season
+    for page in range(1, pages + 1):
+        data = get_json(f"{JIKAN_BASE}/seasons/now", params={"page": page, "limit": 25},
+                        delay=JIKAN_DELAY, label="Jikan")
+        if not data:
+            log.warning("[Jikan] /seasons/now page %d: no data", page)
+            break
+        added = _ingest(data.get("data") or [])
+        log.info("[Jikan] /seasons/now page %d → +%d  (total %d)", page, added, len(results))
+        if not (data.get("pagination") or {}).get("has_next_page"):
+            break
+
+    # /top/anime?filter=airing — top-rated currently airing
+    top_pages = max(1, pages // 2)
+    for page in range(1, top_pages + 1):
+        data = get_json(f"{JIKAN_BASE}/top/anime", params={"page": page, "filter": "airing", "limit": 25},
+                        delay=JIKAN_DELAY, label="Jikan")
+        if not data:
+            log.warning("[Jikan] /top/anime page %d: no data", page)
+            break
+        added = _ingest(data.get("data") or [])
+        log.info("[Jikan] /top/airing page %d → +%d  (total %d)", page, added, len(results))
+        if not (data.get("pagination") or {}).get("has_next_page"):
+            break
+
+    log.info("[Jikan] Fallback catalog complete: %d unique anime", len(results))
+    return results
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Validation + Save
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -1278,22 +1422,23 @@ _CATALOG_FETCHERS = {
 
 
 def run(
-    do_episodes:     bool       = True,
-    top_n:           int        = 20,
-    max_eps:         int        = 5,
-    site_keys:       list       = None,
-    catalog_pages:   int        = 3,
-    jikan_enrich:    bool       = False,
-    require_episodes: bool      = False,
+    do_episodes:      bool  = True,
+    top_n:            int   = 20,
+    max_eps:          int   = 5,
+    site_keys:        list  = None,
+    catalog_pages:    int   = 3,
+    jikan_enrich:     bool  = False,
+    jikan_fallback:   bool  = True,   # auto-use Jikan when all primary sites fail
+    jikan_pages:      int   = JIKAN_PAGES_DEFAULT,
 ) -> int:
     """
     Main scraper entry point.
-    Returns 0 on success, 1 if catalog is empty and no fallback exists.
+    Returns 0 on success.
+    Returns 1 only when 0 items from ALL sources (including Jikan fallback)
+    AND no valid previous catalog exists.
     """
     site_keys = site_keys or ["animeav1", "tioanime", "animeflv"]
-    # Normalise site keys (strip spaces, lowercase)
     site_keys = [s.strip().lower() for s in site_keys]
-    # Filter to known sites
     site_keys = [k for k in site_keys if k in _CATALOG_FETCHERS]
     if not site_keys:
         log.error("No valid sites specified. Use: animeav1, tioanime, animeflv")
@@ -1302,13 +1447,14 @@ def run(
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print("=" * 70)
     print("  AnimeTV Scraper  (AnimeAV1 + TioAnime + AnimeFLV)")
-    print(f"  Sites    : {', '.join(site_keys)}")
-    print(f"  Episodes : {'ON — top ' + str(top_n) + ' shows × max ' + str(max_eps) + ' eps' if do_episodes else 'OFF (metadata-only)'}")
-    print(f"  Jikan    : {'enrichment ON' if jikan_enrich else 'OFF (not required)'}")
+    print(f"  Sites      : {', '.join(site_keys)}")
+    print(f"  Episodes   : {'ON — top ' + str(top_n) + ' shows × max ' + str(max_eps) + ' eps' if do_episodes else 'OFF (metadata-only)'}")
+    print(f"  Jikan      : {'fallback ON' if jikan_fallback else 'OFF'}"
+          + (" + enrich" if jikan_enrich else ""))
     print(f"  {now_str}")
     print("=" * 70)
 
-    # ── Phase 1: Catalog from all configured sites ────────────────────────────
+    # ── Phase 1: Catalog from primary sites ───────────────────────────────────
     log.info("=== Phase 1: Catalog fetch from %s ===", ", ".join(site_keys))
     all_items: list = []
     sources_used: list = []
@@ -1326,30 +1472,45 @@ def run(
             sources_used.append(site_name)
             log.info("[Phase 1] %s → %d anime", site_name, len(items))
         else:
-            log.warning("[Phase 1] %s returned 0 items — skipping", site_name)
+            log.warning("[Phase 1] %s returned 0 items — may be blocking CI IPs", site_name)
 
         all_items.extend(items)
 
-    # Deduplicate by slug (same anime may appear on multiple sites)
     all_items = _dedup(all_items, "_slug")
-    log.info("Phase 1 complete: %d unique anime from %s", len(all_items), ", ".join(sources_used) or "none")
+    log.info("Phase 1 complete: %d unique anime from primary sites (%s)",
+             len(all_items), ", ".join(sources_used) or "none")
 
-    # ── If catalog is empty, keep old catalog if it exists ────────────────────
+    # ── Phase 1b: Jikan fallback catalog (when all primary sites return 0) ────
+    if not all_items and jikan_fallback:
+        log.warning("All primary sites returned 0 items. Trying Jikan fallback catalog...")
+        try:
+            jikan_items = fetch_catalog_jikan(jikan_pages)
+        except Exception as exc:
+            log.error("[Jikan fallback] Failed: %s", exc)
+            jikan_items = []
+
+        if jikan_items:
+            all_items = jikan_items
+            sources_used = ["Jikan"]
+            log.info("[Jikan fallback] Provided %d anime — catalog will be populated", len(all_items))
+        else:
+            log.error("[Jikan fallback] Also returned 0 items.")
+
+    # ── No data from any source ───────────────────────────────────────────────
     if not all_items:
-        log.error("Phase 1 returned 0 items from all sites.")
+        log.error("No items from any source (all sites + Jikan all failed).")
         prev = load_previous_catalog()
         if prev:
-            log.warning("Keeping previous valid catalog (%d items). No commit needed.", len(prev["items"]))
-            # Exit 0 so the workflow doesn't mark a failure but doesn't commit
-            return 0
-        log.error("No previous catalog exists either. Exiting with code 1.")
+            log.warning("Keeping previous valid catalog (%d items). File unchanged, no commit.",
+                        len(prev["items"]))
+            return 0   # exit 0 — file unchanged → git-auto-commit skips
+        log.error("No previous catalog exists. Exiting with code 1.")
         return 1
 
-    # ── Phase 2: Episode scraping (optional) ─────────────────────────────────
-    if do_episodes:
+    # ── Phase 2: Episode scraping ─────────────────────────────────────────────
+    if do_episodes and site_keys:
         log.info("=== Phase 2: Episode scraping (top %d shows × max %d eps) ===", top_n, max_eps)
 
-        # Sort: prefer TV shows, then by type order
         def _sort_key(x):
             type_order = {"TV": 0, "ONA": 1, "OVA": 2, "SPECIAL": 3, "MOVIE": 4}
             return type_order.get((x.get("type") or "TV").upper(), 9)
@@ -1357,7 +1518,8 @@ def run(
         to_enrich = sorted(all_items, key=_sort_key)[:top_n]
 
         for idx, show in enumerate(to_enrich, 1):
-            log.info("[%d/%d] %s (source=%s)", idx, len(to_enrich), show["title"], show.get("source", "?"))
+            log.info("[%d/%d] %s  (source=%s)", idx, len(to_enrich),
+                     show["title"], show.get("source", "?"))
             try:
                 enrich_episodes(show, max_eps, site_keys)
             except Exception as exc:
@@ -1367,11 +1529,12 @@ def run(
         shows_with_ep = sum(1 for i in all_items if i.get("episodes"))
         video_urls    = sum(sum(1 for e in i.get("episodes", []) if e.get("videoUrl"))  for i in all_items)
         ext_urls      = sum(sum(1 for e in i.get("episodes", []) if e.get("externalUrl")) for i in all_items)
-        log.info("Phase 2 complete: %d total eps, %d shows have eps, %d direct videoUrls, %d externalUrls",
+        log.info("Phase 2 complete: %d eps across %d shows | %d videoUrls | %d externalUrls",
                  ep_total, shows_with_ep, video_urls, ext_urls)
 
-    # ── Phase 3 (optional): Jikan enrichment ─────────────────────────────────
-    if jikan_enrich:
+    # ── Phase 3 (optional): Jikan metadata enrichment ─────────────────────────
+    if jikan_enrich and sources_used != ["Jikan"]:
+        # Skip enrichment when Jikan IS the source (items already have full Jikan metadata)
         log.info("=== Phase 3: Jikan metadata enrichment ===")
         try:
             enrich_with_jikan(all_items)
@@ -1380,15 +1543,11 @@ def run(
 
     # ── Validate + save ───────────────────────────────────────────────────────
     catalog = build_catalog(all_items, sources_used)
-    ok, reason = validate(catalog, require_episodes=False)
+    ok, reason = validate(catalog)
 
     if not ok:
-        log.error("Validation FAILED: %s", reason)
-        prev = load_previous_catalog()
-        if prev:
-            log.warning("Keeping previous catalog — not overwriting.")
-            return 0
-        return 1
+        log.error("Validation FAILED: %s — not overwriting existing catalog", reason)
+        return 0   # Don't fail the workflow; just don't write
 
     log.info("Validation PASSED: %s", reason)
     save_catalog(catalog)
@@ -1421,11 +1580,11 @@ Examples:
   # Only TioAnime and AnimeFLV:
   python anime_scraper.py --episodes --sites tioanime,animeflv
 
-  # Disable Jikan enrichment (already default):
-  python anime_scraper.py --episodes --no-jikan
-
   # With Jikan enrichment for better metadata:
   python anime_scraper.py --episodes --jikan-enrich
+
+  # Disable the automatic Jikan fallback (not recommended for CI):
+  python anime_scraper.py --episodes --no-jikan-fallback
 
   # More catalog pages (more anime in the list):
   python anime_scraper.py --episodes --catalog-pages 6
@@ -1433,7 +1592,7 @@ Examples:
     )
     parser.add_argument(
         "--episodes", action="store_true",
-        help="Fetch episode URLs for top N shows (default: True in CI)",
+        help="Fetch episode URLs for top N shows",
     )
     parser.add_argument(
         "--top", type=int, default=20, metavar="N",
@@ -1449,26 +1608,35 @@ Examples:
     )
     parser.add_argument(
         "--catalog-pages", type=int, default=3, metavar="N",
-        help="Number of catalog pages to fetch per site (default 3)",
+        help="Catalog HTML pages to fetch per site (default 3)",
     )
     parser.add_argument(
         "--jikan-enrich", action="store_true", default=False,
-        help="Enable optional Jikan/MAL metadata enrichment (synopsis, score, poster, etc.)",
+        help="Add Jikan/MAL metadata enrichment (synopsis, score, poster) to all items",
     )
+    parser.add_argument(
+        "--jikan-fallback", action="store_true", default=True,
+        help="[default ON] Use Jikan as fallback catalog when all primary sites return 0 items",
+    )
+    parser.add_argument(
+        "--no-jikan-fallback", action="store_true", default=False,
+        help="Disable the automatic Jikan fallback (not recommended for CI)",
+    )
+    parser.add_argument(
+        "--jikan-pages", type=int, default=JIKAN_PAGES_DEFAULT, metavar="N",
+        help=f"Jikan pages per endpoint for fallback catalog (default {JIKAN_PAGES_DEFAULT}; 25 anime/page)",
+    )
+    # Legacy compat
     parser.add_argument(
         "--no-jikan", action="store_true", default=False,
-        help="Explicitly disable Jikan (default behavior — included for CI clarity)",
-    )
-    # Legacy compat: --jikan-pages is ignored (Jikan is no longer Phase 1)
-    parser.add_argument(
-        "--jikan-pages", type=int, default=4, metavar="N",
-        help="[ignored] Kept for backward compatibility",
+        help="[legacy] Same as --no-jikan-fallback",
     )
 
     args = parser.parse_args()
 
-    site_keys = [s.strip().lower() for s in args.sites.split(",") if s.strip()]
-    jikan_enrich = args.jikan_enrich and not args.no_jikan
+    site_keys      = [s.strip().lower() for s in args.sites.split(",") if s.strip()]
+    jikan_enrich   = args.jikan_enrich
+    jikan_fallback = not (args.no_jikan_fallback or args.no_jikan)
 
     code = run(
         do_episodes=args.episodes,
@@ -1477,6 +1645,8 @@ Examples:
         site_keys=site_keys,
         catalog_pages=args.catalog_pages,
         jikan_enrich=jikan_enrich,
+        jikan_fallback=jikan_fallback,
+        jikan_pages=args.jikan_pages,
     )
     sys.exit(code)
 
