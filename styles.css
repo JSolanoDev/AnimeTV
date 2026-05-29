@@ -4105,6 +4105,24 @@ body.player-cinema-open {
   overflow: hidden;
 }
 
+/*
+ * CRITICAL FIX — containing-block isolation
+ * ─────────────────────────────────────────
+ * .watch-overlay has backdrop-filter which makes it the containing block
+ * for ALL position:fixed descendants.  .watch-panel (inside the overlay)
+ * has overflow:hidden, so .vidstream-player.is-cinema { position:fixed }
+ * gets clipped to the watch-panel rectangle — never full-viewport.
+ *
+ * Solution: remove the backdrop-filter when cinema is active so that
+ * position:fixed is relative to the true viewport, which overflow:hidden
+ * on any ancestor cannot clip.
+ */
+body.player-cinema-open .watch-overlay {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  overflow: hidden;
+}
+
 /* Hide the overlay's outer × when cinema is active — the in-player vid-exit-button serves as close */
 body.player-cinema-open .close-button {
   display: none;
@@ -4112,15 +4130,17 @@ body.player-cinema-open .close-button {
 
 /* ══════════════════════════════════════════════════════════════════════════
    Cinema mode — full-screen overlay
-   Strategy: the STAGE is positioned fixed directly (same containing block
-   as the cinema container — .watch-overlay via backdrop-filter).  This
-   bypasses any flex/grid height-distribution issues: the stage always covers
-   exactly the same viewport rectangle as .watch-overlay (inset: 0).
+   ══════════════════════════════════════════════════════════════════════════
+   The cinema container is position:fixed; inset:0 on the true viewport
+   (backdrop-filter is disabled on .watch-overlay when cinema is open,
+   so there is no re-rooted containing block that could clip this element).
+
+   The stage is position:absolute; inset:0 — relative to the cinema
+   container, which is now the true viewport rectangle.  This avoids any
+   double-fixed complexity and works correctly in native fullscreen too.
    ══════════════════════════════════════════════════════════════════════════ */
 
 .vidstream-player.is-cinema {
-  /* Provides the black background and the CSS class hook.
-     overflow: visible so the fixed stage isn't clipped. */
   position: fixed;
   inset: 0;
   z-index: 10050;
@@ -4129,34 +4149,33 @@ body.player-cinema-open .close-button {
   border: 0;
   border-radius: 0;
   background: #000;
-  overflow: visible;
+  overflow: hidden;
   transition: none;
 }
 
-/* Stage: pinned directly to the viewport via position:fixed.
-   Because .watch-overlay has backdrop-filter, it is the containing block
-   for all position:fixed descendants — so this stage fills watch-overlay
-   (= the viewport) independently of the cinema container's own layout. */
+/* Stage: fills the cinema container via position:absolute */
 .vidstream-player.is-cinema .vid-player-stage {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 1;              /* above cinema container's own bg inside its ctx */
+  z-index: 1;
   display: block;
   min-height: 0;
   overflow: hidden;
   border-radius: 0;
-  background: #000;        /* letterbox areas */
+  background: #000;
 }
 
-/* Video stretches to fill the entire stage */
+/* Video: stretches to fill the entire stage */
 .vidstream-player.is-cinema .vid-player-stage > video {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  max-height: none;        /* cancel .video-frame video's 34rem cap */
-  max-width: none;
-  min-height: 0;           /* cancel inherited min-height from normal mode */
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
   object-fit: contain;
   border-radius: 0;
   background: #000;
