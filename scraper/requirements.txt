@@ -8,3 +8,7 @@
 
 requests>=2.32
 urllib3>=2.2
+# brotli is optional — install it to allow Accept-Encoding: br responses.
+# Without it the scraper explicitly omits "br" from Accept-Encoding so
+# servers fall back to gzip/deflate which requests decodes natively.
+brotli>=1.0; python_version>="3.8"

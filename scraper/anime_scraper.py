@@ -105,6 +105,9 @@ logging.basicConfig(
 )
 log = logging.getLogger("anime-scraper")
 
+# Set to True via --debug flag: prints every URL requested + response headers
+DEBUG_MODE = False
+
 # ─────────────────────────────────────────────────────────────────────────────
 # HTTP session
 # ─────────────────────────────────────────────────────────────────────────────
@@ -125,43 +128,88 @@ def _make_session() -> requests.Session:
 _session = _make_session()
 
 
-def _headers(json_mode: bool = False) -> dict:
-    return {
+def _headers(json_mode: bool = False, referer: str = "") -> dict:
+    # NOTE: Do NOT add "br" (brotli) to Accept-Encoding unless the `brotli`
+    # Python package is installed.  Without it, requests returns raw compressed
+    # bytes and r.text / r.json() silently garble the content (shows as \x1b…).
+    h = {
         "User-Agent":      next(_ua_cycle),
-        "Accept":          "application/json" if json_mode
-                           else "text/html,application/xhtml+xml,*/*;q=0.8",
+        "Accept":          ("application/json, text/javascript, */*; q=0.01"
+                            if json_mode else
+                            "text/html,application/xhtml+xml,application/xml;"
+                            "q=0.9,application/json;q=0.8,*/*;q=0.7"),
         "Accept-Language": "es-419,es;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Accept-Encoding": "gzip, deflate, br",
+        "Accept-Encoding": "gzip, deflate",   # no br — need brotli pkg to decode
         "DNT":             "1",
         "Connection":      "keep-alive",
         "Cache-Control":   "no-cache",
         "Pragma":          "no-cache",
     }
+    if referer:
+        h["Referer"] = referer
+    return h
 
 
-def http_get(url: str, params=None, json_mode=False, label="") -> Optional[requests.Response]:
+def http_get(url: str, params=None, json_mode=False, label="",
+             referer: str = "") -> Optional[requests.Response]:
     try:
-        r = _session.get(url, params=params, headers=_headers(json_mode), timeout=HTTP_TIMEOUT)
+        r = _session.get(url, params=params,
+                         headers=_headers(json_mode, referer),
+                         timeout=HTTP_TIMEOUT)
+        if DEBUG_MODE:
+            log.debug("[%s] %d  ct=%s  ce=%s  len=%d  url=%s",
+                      label or "http", r.status_code,
+                      r.headers.get("Content-Type", "?")[:60],
+                      r.headers.get("Content-Encoding", "none"),
+                      len(r.content), url[:120])
         if r.status_code == 200:
             return r
-        log.warning("[%s] HTTP %d  %s", label or "http", r.status_code, url[:100])
+        log.warning("[%s] HTTP %d  ct=%s  url=%s",
+                    label or "http", r.status_code,
+                    r.headers.get("Content-Type", "?")[:50], url[:100])
         return None
     except Exception as exc:
         log.warning("[%s] Error  %s — %s", label or "http", url[:80], exc)
         return None
 
 
-def get_html(url: str, delay: float = CATALOG_DELAY, label: str = "") -> Optional[str]:
-    r = http_get(url, label=label)
+def _safe_text(r: requests.Response, label: str = "") -> Optional[str]:
+    """
+    Return the decoded text of a response.
+    Warns when the body looks like raw binary (likely un-decoded brotli / zstd).
+    """
+    try:
+        text = r.text
+        # Heuristic: if more than 5 % of the first 512 chars are non-printable
+        # (outside ASCII printable range), the content was not decoded.
+        sample = text[:512]
+        non_printable = sum(1 for c in sample if ord(c) < 32 and c not in "\t\n\r")
+        if len(sample) > 20 and non_printable / len(sample) > 0.05:
+            ct = r.headers.get("Content-Type", "?")
+            ce = r.headers.get("Content-Encoding", "none")
+            log.warning("[%s] Response body looks binary/compressed — "
+                        "ct=%s  ce=%s  body(hex)=%s",
+                        label, ct, ce, r.content[:32].hex())
+            return None
+        return text
+    except Exception as exc:
+        log.warning("[%s] Text decode error: %s", label, exc)
+        return None
+
+
+def get_html(url: str, delay: float = CATALOG_DELAY, label: str = "",
+             referer: str = "") -> Optional[str]:
+    r = http_get(url, label=label, referer=referer)
     if r is None:
         return None
     if delay:
         time.sleep(delay)
-    return r.text
+    return _safe_text(r, label)
 
 
-def get_json(url: str, params=None, delay: float = 0.0, label: str = ""):
-    r = http_get(url, params=params, json_mode=True, label=label)
+def get_json(url: str, params=None, delay: float = 0.0, label: str = "",
+             referer: str = ""):
+    r = http_get(url, params=params, json_mode=True, label=label, referer=referer)
     if r is None:
         return None
     if delay:
@@ -169,7 +217,10 @@ def get_json(url: str, params=None, delay: float = 0.0, label: str = ""):
     try:
         return r.json()
     except Exception as exc:
-        log.warning("[%s] JSON parse error: %s", label, exc)
+        ct = r.headers.get("Content-Type", "?")
+        ce = r.headers.get("Content-Encoding", "none")
+        log.warning("[%s] JSON parse error: %s  ct=%s  ce=%s  body=%r",
+                    label, exc, ct, ce, r.content[:200])
         return None
 
 
@@ -181,12 +232,16 @@ def _ajax_get_json(url: str, params=None, referer: str = "", label: str = ""):
     X-Requested-With header and return an empty body (200 but no content)
     when a normal browser GET is made.  This wrapper adds the required
     headers so the server returns proper JSON.
+
+    Accept-Encoding intentionally omits "br" (brotli) — the brotli Python
+    package is not installed so compressed brotli responses cannot be decoded.
+    Without the header the server falls back to gzip or plain text.
     """
     headers = {
         "User-Agent":       next(_ua_cycle),
         "Accept":           "application/json, text/javascript, */*; q=0.01",
         "Accept-Language":  "es-419,es;q=0.9,en-US;q=0.8,en;q=0.7",
-        "Accept-Encoding":  "gzip, deflate, br",
+        "Accept-Encoding":  "gzip, deflate",   # no br — need brotli pkg to decode
         "X-Requested-With": "XMLHttpRequest",
         "Referer":          referer or url,
         "DNT":              "1",
@@ -196,14 +251,24 @@ def _ajax_get_json(url: str, params=None, referer: str = "", label: str = ""):
     }
     try:
         r = _session.get(url, params=params, headers=headers, timeout=HTTP_TIMEOUT)
+        if DEBUG_MODE:
+            log.debug("[%s] AJAX %d  ct=%s  ce=%s  len=%d  url=%s",
+                      label or "ajax", r.status_code,
+                      r.headers.get("Content-Type", "?")[:60],
+                      r.headers.get("Content-Encoding", "none"),
+                      len(r.content), url[:120])
         if r.status_code == 200:
             try:
                 return r.json()
             except Exception as exc:
-                log.warning("[%s] AJAX JSON parse error: %s  (body: %r)",
-                            label or "ajax", exc, r.text[:120])
+                ct  = r.headers.get("Content-Type", "?")
+                ce  = r.headers.get("Content-Encoding", "none")
+                log.warning("[%s] AJAX JSON parse error: %s  ct=%s  ce=%s  body=%r",
+                            label or "ajax", exc, ct, ce, r.content[:200])
                 return None
-        log.warning("[%s] AJAX HTTP %d  %s", label or "ajax", r.status_code, url[:100])
+        log.warning("[%s] AJAX HTTP %d  ct=%s  url=%s",
+                    label or "ajax", r.status_code,
+                    r.headers.get("Content-Type", "?")[:50], url[:100])
         return None
     except Exception as exc:
         log.warning("[%s] AJAX error  %s — %s", label or "ajax", url[:80], exc)
@@ -504,10 +569,15 @@ def _parse_catalog_html(html: str, base_url: str, source: str) -> list:
     Extract anime cards from HTML.
     Uses position-based context extraction around /anime/slug links.
     Handles TioAnime, AnimeFLV, AnimeAV1, and similar Bootstrap-grid layouts.
+
+    The link regex accepts both relative paths (/anime/slug) and absolute
+    URLs with ANY host (https://www4.animeflv.net/anime/slug,
+    https://animeflv.net/anime/slug, etc.) so subdomain variants don't
+    cause silent misses.
     """
     link_re = re.compile(
-        r'href=["\'](?:' + re.escape(base_url) + r')?'
-        r'(/(?:anime|ver-anime|animes)/([a-z0-9][a-z0-9\-_%]+))["\']',
+        r'href=["\'](?:https?://[^/"\']{0,120})?'
+        r'(/(?:anime|ver-anime|animes)/([a-z0-9][a-z0-9\-_%]{1,80}))["\']',
         re.IGNORECASE,
     )
 
@@ -763,7 +833,8 @@ def fetch_catalog_tioanime(catalog_pages: int = 3) -> list:
     html_found = False
     for page in range(1, catalog_pages + 1):
         url = f"{TIOANIME_BASE}/directorio?p={page}" if page > 1 else f"{TIOANIME_BASE}/directorio"
-        html = get_html(url, delay=CATALOG_DELAY, label="TioAnime")
+        html = get_html(url, delay=CATALOG_DELAY, label="TioAnime",
+                        referer=TIOANIME_BASE)
         if not html:
             log.warning("[TioAnime] Could not fetch directorio page %d", page)
             break
@@ -777,7 +848,8 @@ def fetch_catalog_tioanime(catalog_pages: int = 3) -> list:
             break  # last page
 
     # ── Strategy 2: /emision (currently airing) ──
-    html = get_html(f"{TIOANIME_BASE}/emision", delay=CATALOG_DELAY, label="TioAnime")
+    html = get_html(f"{TIOANIME_BASE}/emision", delay=CATALOG_DELAY, label="TioAnime",
+                    referer=TIOANIME_BASE)
     if html:
         items = _parse_catalog_html(html, TIOANIME_BASE, "TioAnime")
         n = _add(items)
@@ -952,7 +1024,12 @@ def _flv_normalize_search_item(item: dict) -> Optional[dict]:
 def fetch_catalog_animeflv(catalog_pages: int = 3) -> list:
     """
     Fetch anime catalog from AnimeFLV.
-    Tries: 1) /browse HTML  2) /browse?order=updated HTML  3) search-API fallback.
+
+    AnimeFLV catalog lives at /browse (paginated with ?page=N).
+    Tries: 1) /browse?order=updated&page=N  2) /browse?page=N  3) AJAX search API.
+
+    Slugs are extracted directly from the /anime/<slug> hrefs on the browse
+    pages — no Jikan-derived path guessing.
     """
     log.info("[AnimeFLV] Starting catalog fetch (catalog_pages=%d)", catalog_pages)
     seen: set = set()
@@ -968,33 +1045,38 @@ def fetch_catalog_animeflv(catalog_pages: int = 3) -> list:
                 added += 1
         return added
 
-    # ── Strategy 1: /browse HTML pages ──
-    browse_urls = [
-        f"{ANIMEFLV_BASE}/browse?order=updated",
-        f"{ANIMEFLV_BASE}/browse",
-    ]
+    # ── Strategy 1: /browse pages (explicit URL construction) ──
+    # Page 1: /browse?order=updated
+    # Page N: /browse?order=updated&page=N
     html_found = False
-    for browse_url in browse_urls:
-        for page in range(1, catalog_pages + 1):
-            url = f"{browse_url}&page={page}" if "?" in browse_url else f"{browse_url}?page={page}"
+    for page in range(1, catalog_pages + 1):
+        if page == 1:
+            url = f"{ANIMEFLV_BASE}/browse?order=updated"
+        else:
+            url = f"{ANIMEFLV_BASE}/browse?order=updated&page={page}"
+        html = get_html(url, delay=CATALOG_DELAY, label="AnimeFLV",
+                        referer=ANIMEFLV_BASE)
+        if not html:
+            log.warning("[AnimeFLV] Could not fetch /browse page %d", page)
+            break
+        items = _parse_catalog_html(html, ANIMEFLV_BASE, "AnimeFLV")
+        if not items:
+            log.info("[AnimeFLV] /browse page %d parsed 0 items — stopping", page)
+            # Try plain /browse on page 1 in case order= param broke it
             if page == 1:
-                url = browse_url
-            html = get_html(url, delay=CATALOG_DELAY, label="AnimeFLV")
-            if not html:
-                log.warning("[AnimeFLV] Could not fetch browse page %d", page)
-                break
-            items = _parse_catalog_html(html, ANIMEFLV_BASE, "AnimeFLV")
+                html2 = get_html(f"{ANIMEFLV_BASE}/browse", delay=CATALOG_DELAY,
+                                 label="AnimeFLV", referer=ANIMEFLV_BASE)
+                if html2:
+                    items = _parse_catalog_html(html2, ANIMEFLV_BASE, "AnimeFLV")
             if not items:
                 break
-            n = _add(items)
-            html_found = True
-            log.info("[AnimeFLV] /browse page %d → +%d  (total %d)", page, n, len(results))
-            if n < 5:
-                break
-        if html_found:
-            break
+        n = _add(items)
+        html_found = True
+        log.info("[AnimeFLV] /browse page %d → +%d  (total %d)", page, n, len(results))
+        if n < 5:
+            break   # reached last page
 
-    # ── Strategy 2: search-API fallback (uses XHR headers — required!) ──
+    # ── Strategy 2: AJAX search-API fallback (uses XHR headers — required!) ──
     if not html_found or len(results) < 10:
         log.info("[AnimeFLV] Falling back to AJAX search API")
         for term in BROAD_TERMS[:20]:
@@ -1141,10 +1223,61 @@ def _animeav1_normalize_search_item(item: dict) -> Optional[dict]:
     )
 
 
+def _animeav1_discover_catalog_url(homepage_html: str) -> Optional[str]:
+    """
+    Scan AnimeAV1 homepage HTML for a nav-level catalog/directory link.
+    Returns the first match as an absolute URL, or None.
+    """
+    # Common Spanish/English catalog path names
+    _CATALOG_RE = re.compile(
+        r'href=["\'](?:' + re.escape(ANIMEAV1_BASE) + r')?'
+        r'(/(?:directorio|catalogo|catalog|series|anime-list|lista|browse|animes?)[^"\'?#]{0,60})["\']',
+        re.IGNORECASE,
+    )
+    m = _CATALOG_RE.search(homepage_html)
+    if m:
+        return abs_url(m.group(1), ANIMEAV1_BASE)
+    return None
+
+
+def _animeav1_paginate_catalog(catalog_base_url: str, catalog_pages: int,
+                                add_fn) -> bool:
+    """
+    Fetch catalog_pages pages starting from catalog_base_url.
+    Appends ?p=N or &p=N for pages > 1 (AnimeAV1/TioAnime convention).
+    Returns True if at least one page yielded anime cards.
+    """
+    found_any = False
+    sep = "&" if "?" in catalog_base_url else "?"
+    for page in range(1, catalog_pages + 1):
+        url = catalog_base_url if page == 1 else f"{catalog_base_url}{sep}p={page}"
+        html = get_html(url, delay=CATALOG_DELAY, label="AnimeAV1",
+                        referer=ANIMEAV1_BASE)
+        if not html:
+            log.warning("[AnimeAV1] Page %d fetch failed: %s", page, url)
+            break
+        items = _parse_catalog_html(html, ANIMEAV1_BASE, "AnimeAV1")
+        if not items:
+            log.debug("[AnimeAV1] Page %d parsed 0 items — stopping pagination", page)
+            break
+        n = add_fn(items)
+        found_any = True
+        log.info("[AnimeAV1] catalog page %d  url=%s  → +%d", page, url[:80], n)
+        if n < 5:
+            break   # last page
+    return found_any
+
+
 def fetch_catalog_animeav1(catalog_pages: int = 3) -> list:
     """
     Fetch anime catalog from AnimeAV1.
-    Tries multiple catalog-page URL patterns; falls back to search-API if available.
+
+    Strategy:
+    1. Fetch homepage → discover catalog/directory URL from nav links
+    2. Paginate that catalog URL
+    3. Also parse homepage itself for recent/featured anime
+    4. Try /emision (currently airing) page
+    5. AJAX search-API fallback with XHR headers
     """
     log.info("[AnimeAV1] Starting catalog fetch (catalog_pages=%d)", catalog_pages)
     seen: set = set()
@@ -1160,57 +1293,47 @@ def fetch_catalog_animeav1(catalog_pages: int = 3) -> list:
                 added += 1
         return added
 
-    # ── Strategy 1: Try multiple catalog URL patterns (common among anime sites) ──
-    catalog_url_templates = [
-        f"{ANIMEAV1_BASE}/directorio?p={{page}}",
-        f"{ANIMEAV1_BASE}/lista?p={{page}}",
-        f"{ANIMEAV1_BASE}/catalog?p={{page}}",
-        f"{ANIMEAV1_BASE}/anime?p={{page}}",
-    ]
     html_found = False
-    for tmpl in catalog_url_templates:
-        for page in range(1, catalog_pages + 1):
-            url = tmpl.format(page=page) if page > 1 else tmpl.format(page=1).split("?")[0]
-            html = get_html(url, delay=CATALOG_DELAY, label="AnimeAV1")
-            if not html:
-                break
-            items = _parse_catalog_html(html, ANIMEAV1_BASE, "AnimeAV1")
-            if not items:
-                break
-            n = _add(items)
-            html_found = True
-            log.info("[AnimeAV1] catalog page %d → +%d  (total %d)", page, n, len(results))
-            if n < 5:
-                break
-        if html_found:
-            break
 
-    # ── Strategy 2: Homepage (may list recent/popular anime) ──
-    if not html_found or len(results) < 5:
-        html = get_html(ANIMEAV1_BASE, delay=CATALOG_DELAY, label="AnimeAV1")
-        if html:
-            items = _parse_catalog_html(html, ANIMEAV1_BASE, "AnimeAV1")
-            n = _add(items)
-            html_found = html_found or bool(items)
+    # ── Strategy 1: Fetch homepage → discover catalog URL ──
+    homepage_html = get_html(ANIMEAV1_BASE, delay=CATALOG_DELAY, label="AnimeAV1",
+                             referer=ANIMEAV1_BASE)
+    if homepage_html:
+        # Parse homepage itself for recent anime cards
+        items = _parse_catalog_html(homepage_html, ANIMEAV1_BASE, "AnimeAV1")
+        n = _add(items)
+        if n:
+            html_found = True
             log.info("[AnimeAV1] homepage → +%d  (total %d)", n, len(results))
 
-    # ── Strategy 3: /emision page (if the site has one) ──
+        # Discover and paginate the catalog URL from nav links
+        cat_url = _animeav1_discover_catalog_url(homepage_html)
+        if cat_url:
+            log.info("[AnimeAV1] Discovered catalog URL: %s", cat_url)
+            ok = _animeav1_paginate_catalog(cat_url, catalog_pages, _add)
+            html_found = html_found or ok
+        else:
+            log.info("[AnimeAV1] No catalog URL discovered in homepage nav")
+
+    # ── Strategy 2: /emision (currently airing) ──
     if not html_found or len(results) < 5:
-        html = get_html(f"{ANIMEAV1_BASE}/emision", delay=CATALOG_DELAY, label="AnimeAV1")
+        html = get_html(f"{ANIMEAV1_BASE}/emision", delay=CATALOG_DELAY,
+                        label="AnimeAV1", referer=ANIMEAV1_BASE)
         if html:
             items = _parse_catalog_html(html, ANIMEAV1_BASE, "AnimeAV1")
             n = _add(items)
             html_found = html_found or bool(items)
             log.info("[AnimeAV1] /emision → +%d  (total %d)", n, len(results))
 
-    # ── Strategy 4: search-API fallback (if the site has one like TioAnime) ──
+    # ── Strategy 3: AJAX search-API fallback (with XHR headers) ──
     if not results:
-        log.info("[AnimeAV1] Falling back to search API")
+        log.info("[AnimeAV1] Falling back to AJAX search API")
         for term in BROAD_TERMS[:15]:
-            data = get_json(
+            data = _ajax_get_json(
                 f"{ANIMEAV1_BASE}/api/search", params={"q": term},
-                delay=SEARCH_DELAY, label="AnimeAV1",
+                referer=ANIMEAV1_BASE, label="AnimeAV1",
             )
+            time.sleep(SEARCH_DELAY)
             if not data:
                 continue
             entries = (
@@ -1224,6 +1347,7 @@ def fetch_catalog_animeav1(catalog_pages: int = 3) -> list:
                     if k and k not in seen:
                         seen.add(k)
                         results.append(item)
+        log.info("[AnimeAV1] After AJAX search: %d anime", len(results))
 
     if not results:
         log.warning("[AnimeAV1] Catalog returned 0 items — site may be inaccessible from CI")
@@ -1804,11 +1928,18 @@ Examples:
 
   # More catalog pages (more anime in the list):
   python anime_scraper.py --episodes --catalog-pages 6
+
+  # Debug mode (print every URL + response headers):
+  python anime_scraper.py --debug --sites tioanime
 """,
     )
     parser.add_argument(
         "--episodes", action="store_true",
         help="Fetch episode URLs for top N shows",
+    )
+    parser.add_argument(
+        "--debug", action="store_true", default=False,
+        help="Print every requested URL and response headers (verbose)",
     )
     parser.add_argument(
         "--top", type=int, default=20, metavar="N",
@@ -1849,6 +1980,13 @@ Examples:
     )
 
     args = parser.parse_args()
+
+    # Apply debug mode globally before any network calls
+    if args.debug:
+        global DEBUG_MODE
+        DEBUG_MODE = True
+        logging.getLogger("anime-scraper").setLevel(logging.DEBUG)
+        log.debug("Debug mode ON — all URLs and response headers will be logged")
 
     site_keys      = [s.strip().lower() for s in args.sites.split(",") if s.strip()]
     jikan_enrich   = args.jikan_enrich
