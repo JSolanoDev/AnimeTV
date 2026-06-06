@@ -1,10 +1,11 @@
 {
+  "framework": null,
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "dist",
   "functions": {
     "api/**/*.js": {
       "maxDuration": 30,
-      "includeFiles": "{animetv-server.js,animetv-local.js,index.html,offline.html,client.js,styles.css,update-manager.js,manifest.webmanifest,service-worker.js,sources.json,animetv-settings.json,config/**,js/**,player/**,logo-mark.png,logo-mark-192.png,logo-mark-512.png,logo-mark-transparent.png,logo-wordmark.png,logo-round.png,logo-round-192.png,favicon-32.png,scraper/anime_metadata.json,scraper/tioanime_slugs.json}"
+      "includeFiles": "{animetv-server.js,sources.json,animetv-settings.json,config/**,scraper/*.json}"
     }
   },
   "headers": [
