@@ -8,6 +8,10 @@
       "includeFiles": "{animetv-server.js,sources.json,animetv-settings.json,config/**,scraper/*.json}"
     }
   },
+  "rewrites": [
+    { "source": "/favicon.ico", "destination": "/logo-round.png" },
+    { "source": "/api/(.*)", "destination": "/api/[...path]" }
+  ],
   "headers": [
     {
       "source": "/(.*)\\.(js|css|svg|webmanifest|ico|png|webp)",
