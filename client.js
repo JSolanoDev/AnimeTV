@@ -5882,6 +5882,15 @@ async function playActiveShow(options = {}) {
   }
   const activeEpisode = state.activeEpisode?.episode;
   const seasonNumber = state.activeEpisode?.season?.season || state.activeSeasonIndex + 1 || activeEpisode?.season || 1;
+  // A playable source already chosen/available? Then the background server sweep
+  // must NOT re-render the player when it finishes — re-rendering reloads the
+  // iframe and resets playback, which is why a video used to need a 2nd click.
+  const alreadyPlayable = Boolean(
+    activeEpisode
+    && (getSelectedEpisodeSource(activeEpisode)
+        || getEpisodePlaybackSources(activeEpisode).length
+        || getPlayableUrl(show))
+  );
   if (activeEpisode) {
     // Clean, minimal loading state (no "- loading" / "Opening the episode…" tags).
     renderPlayerPopupMessage(frame, currentEpisodeLabel(), "");
@@ -5895,7 +5904,8 @@ async function playActiveShow(options = {}) {
       || !activeEpisode.animeAv1SourcesChecked
     )
   ) {
-    schedulePlaybackSourceOptions(show, activeEpisode, seasonNumber, { autoReplay: true });
+    // Only auto-replay (re-render to start playback) when nothing is playable yet.
+    schedulePlaybackSourceOptions(show, activeEpisode, seasonNumber, { autoReplay: !alreadyPlayable });
     if (!getEpisodePlaybackSources(activeEpisode).length) {
       await playbackLookupWithTimeout("AniPub quick start", attachAniPubFallback(show, activeEpisode), 1500);
     }
