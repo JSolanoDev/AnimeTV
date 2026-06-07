@@ -5588,11 +5588,11 @@ body.player-cinema-open .close-button {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 1fr;
-  align-items: center;
+  align-items: start;
   gap: 0;
   min-height: clamp(31rem, 66vh, 46rem);
   height: auto;
-  padding: clamp(2rem, 5vw, 5.5rem) clamp(1.6rem, 5vw, 5.5rem) 6.2rem;
+  padding: clamp(3rem, 7vw, 7rem) clamp(1.6rem, 5vw, 5.5rem) 6.2rem;
   border-radius: 0;
   overflow: hidden;
   border: 0;

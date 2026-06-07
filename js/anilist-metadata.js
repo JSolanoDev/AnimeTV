@@ -504,12 +504,15 @@ async function buildFranchiseFromAniListMedia(media) {
 function makePlaceholderEpisodesFromAniList(entry) {
   const count = getAniListDisplayEpisodeCount(entry);
   if (!count || count <= 0) return [];
+  // These are AIRED episodes (the list is capped to the aired count), so they're
+  // playable on click — the scraper resolves the actual servers then. Mark them
+  // as resolvable rather than "unavailable", so the UI invites a tap instead of
+  // claiming the episode doesn't exist.
   return Array.from({ length: Math.min(count, 2000) }, (_, i) => ({
-    season:      entry.seasonNumber || 1,
-    episode:     i + 1,
-    title:       entry.format === "MOVIE" ? (entry.title || "Movie") : `Episode ${i + 1}`,
-    locked:      true,
-    unavailable: true,
+    season:       entry.seasonNumber || 1,
+    episode:      i + 1,
+    title:        entry.format === "MOVIE" ? (entry.title || "Movie") : `Episode ${i + 1}`,
+    needsResolve: true,
   }));
 }
 

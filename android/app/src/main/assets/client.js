@@ -3925,7 +3925,7 @@ function renderEpisodeList(show) {
         ${activeSeason?.playable ? "" : `<p class="episode-empty">Episodes are listed from metadata. Playback servers load when a matching source is available.</p>`}
         <div class="episode-buttons">
           ${(activeSeason?.episodes || []).map((episode, episodeIndex) => `
-            <button class="episode-button focusable ${episode.locked ? "is-locked" : ""} ${isActiveEpisode(state.activeSeasonIndex, episodeIndex) ? "is-selected" : ""}" data-season-index="${state.activeSeasonIndex}" data-episode-index="${episodeIndex}">
+            <button class="episode-button focusable ${isEpisodeUnavailable(episode) ? "is-locked" : ""} ${isActiveEpisode(state.activeSeasonIndex, episodeIndex) ? "is-selected" : ""}" data-season-index="${state.activeSeasonIndex}" data-episode-index="${episodeIndex}">
               <strong>${episode.episode || episodeIndex + 1}</strong>
               <small>${episodeDisplaySubtitle(episode)}</small>
             </button>
@@ -3972,7 +3972,10 @@ function renderEpisodeList(show) {
 function episodeDisplaySubtitle(episode = {}) {
   if (episode.sourceOptionsPending) return "Checking servers...";
   if (isEpisodeUnavailable(episode)) return episodeAvailabilityText(episode);
-  return episode.title || episode.server || "Episode";
+  // Aired but not yet resolved (servers load on click) — invite a tap instead of
+  // implying the episode is missing/locked.
+  if (!getEpisodePlaybackSources(episode).length && !getEpisodeUrl(episode)) return "▶ Play";
+  return episode.server || episode.title || "Episode";
 }
 
 function isEpisodeUnavailable(episode = {}) {
@@ -5644,13 +5647,13 @@ function makePlaceholderEpisodes(show, seasonNumber) {
   const count = Number.isFinite(knownCount) && knownCount > 0 ? knownCount : 12;
   // Cap high enough for long-running shounen (Naruto 220, Bleach 366,
   // One Piece 1100+) so their episode lists are never truncated.
+  // These are aired episodes — playable on click (servers resolve then), so we
+  // mark them resolvable rather than "Not available".
   return Array.from({ length: Math.min(count, 2000) }, (_, index) => ({
     season: seasonNumber,
     episode: index + 1,
-    title: "Not available yet",
-    server: "Not available yet",
-    locked: true,
-    unavailable: true
+    title: "",
+    needsResolve: true
   }));
 }
 
@@ -5806,11 +5809,8 @@ async function playActiveShow(options = {}) {
   const activeEpisode = state.activeEpisode?.episode;
   const seasonNumber = state.activeEpisode?.season?.season || state.activeSeasonIndex + 1 || activeEpisode?.season || 1;
   if (activeEpisode) {
-    renderPlayerPopupMessage(
-      frame,
-      `${currentEpisodeLabel()} - loading`,
-      "Opening the episode in the theater player."
-    );
+    // Clean, minimal loading state (no "- loading" / "Opening the episode…" tags).
+    renderPlayerPopupMessage(frame, currentEpisodeLabel(), "");
   }
   if (
     allowSourceLookup
@@ -5954,10 +5954,29 @@ function renderDirectVideoPlayer(frame, url, episode) {
   }
   if (!useApkPlayer) {
     setupVideoSource(player, url).then(() => {
-      player?.play?.().catch(() => {
-        frame.querySelector(".vid-loader")?.setAttribute("hidden", "");
-        showToast("Press play to start this episode.");
-      });
+      const attempt = player?.play?.();
+      if (attempt && typeof attempt.catch === "function") {
+        attempt.catch(() => {
+          // The browser blocked autoplay because the click gesture was spent
+          // during async source setup — which is why playback used to need a
+          // SECOND click. Recover by starting muted (always allowed), then
+          // unmute on the next interaction. One click now starts the video.
+          if (!player) return;
+          player.muted = true;
+          player.play().then(() => {
+            const unmute = () => {
+              player.muted = false;
+              document.removeEventListener("pointerdown", unmute);
+              document.removeEventListener("keydown", unmute);
+            };
+            document.addEventListener("pointerdown", unmute, { once: true });
+            document.addEventListener("keydown", unmute, { once: true });
+          }).catch(() => {
+            frame.querySelector(".vid-loader")?.setAttribute("hidden", "");
+            showToast("Press play to start this episode.");
+          });
+        });
+      }
     }).catch((error) => {
       console.error("Video source setup failed", { url, error });
     });
@@ -6010,7 +6029,6 @@ function renderDirectVideoPlayer(frame, url, episode) {
     };
     state.activeEpisodeUrl = getEpisodeUrl(nextEpisode);
     renderEpisodeList(state.activeShow);
-    showToast(`▶ Episode ${nextEpisode.episode || nav.next.episodeIndex + 1} — loading…`);
     playActiveShow();
   });
   setupSpanishSubtitles(episode, tracks, player);
@@ -6030,7 +6048,6 @@ function playEpisodeByPosition(seasonIndex, episodeIndex) {
   state.activeEpisode = { season, episode, seasonIndex, episodeIndex };
   state.activeEpisodeUrl = getEpisodeUrl(episode);
   renderEpisodeList(state.activeShow);
-  showToast(`Episode ${episode.episode || episodeIndex + 1} - loading...`);
   playActiveShow().then(() => {
     if (wasCinema) {
       const shell = document.querySelector(".vidstream-player");
