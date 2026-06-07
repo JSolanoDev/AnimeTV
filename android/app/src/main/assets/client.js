@@ -1202,7 +1202,7 @@ function cardTemplate(show, index = 0) {
     <button class="show-card focusable" style="--card-index: ${index}" data-open-show="${escapeHtml(show.id)}" data-open-season="${target.seasonNumber}" data-open-episode="${target.episodeNumber}" aria-label="Open ${title}">
       <span class="thumb-art" style="${artStyle}">
         ${image}
-        <span class="episode-pill">${show.episode === "?" ? "TV" : `EP ${show.episode}`}</span>
+        <span class="episode-pill">${cardEpisodeLabel(show)}</span>
       </span>
       <span>
         <span class="show-title">${title}</span>
@@ -1212,23 +1212,48 @@ function cardTemplate(show, index = 0) {
   `;
 }
 
+// Episode number to SHOW on a card/badge: for airing series this is the latest
+// AIRED episode (not the planned total — Jikan overwrites that in the merge),
+// for finished series it's the real total. Falls back gracefully.
+function cardEpisodeNumber(show = {}) {
+  const status = String(show.status || "").toUpperCase();
+  // "RELEASING" (AniList) / "Currently Airing" (Jikan) = airing. Must NOT match
+  // "Finished Airing", so don't use a loose includes("AIRING").
+  const airing = status.includes("RELEASING") || status.includes("CURRENTLY AIRING") || status === "AIRING";
+  const latest = Number(show.latestAiredEp || show.latestAiredEpisode || 0);
+  const next   = Number(show.nextAiringEpisodeNumber || show.nextAiringEp || 0);
+  const total  = Number(show.totalEpisodes || show.episodeCount || show.episodesCount || 0);
+  const ep     = Number(show.episode);
+  if (airing) {
+    if (Number.isFinite(latest) && latest > 0) return latest;
+    if (Number.isFinite(next) && next > 1) return next - 1;
+    return 0; // aired count unknown — don't show the planned total
+  }
+  if (Number.isFinite(total) && total > 0) return total;
+  if (Number.isFinite(ep) && ep > 0) return ep;
+  if (Number.isFinite(latest) && latest > 0) return latest;
+  return 0;
+}
+
+function cardEpisodeLabel(show = {}) {
+  const n = cardEpisodeNumber(show);
+  return n > 0 ? `EP ${n}` : "TV";
+}
+
 function getCardTarget(show) {
   const seasonNumber = extractSeasonNumber(show.title, 1);
-  const episodeNumber = Number(show.episode);
-  const totalEpisodes = Number(show.totalEpisodes || show.episodeCount || show.episodesCount);
-  const safeEpisodeNumber = Number.isFinite(totalEpisodes) && totalEpisodes > 0 && Number.isFinite(episodeNumber)
-    ? Math.min(episodeNumber, totalEpisodes)
-    : episodeNumber;
+  const episodeNumber = cardEpisodeNumber(show);
   return {
     seasonNumber,
-    episodeNumber: Number.isFinite(safeEpisodeNumber) && safeEpisodeNumber > 0 ? safeEpisodeNumber : ""
+    episodeNumber: episodeNumber > 0 ? episodeNumber : ""
   };
 }
 
 function cardMeta(show, isFavorite = false) {
   const pieces = [show.genre?.toUpperCase()].filter(Boolean);
   if (show.score) pieces.push(`${show.score}%`);
-  if (show.episode && show.episode !== "?") pieces.push(`EP ${show.episode}`);
+  const epLabel = cardEpisodeLabel(show);
+  if (epLabel !== "TV") pieces.push(epLabel);
   if (isFavorite) pieces.push("FAVORITE");
   return pieces.join(" | ");
 }
@@ -1306,7 +1331,7 @@ function renderSchedule() {
             <button class="schedule-item focusable" data-open-show="${escapeHtml(show.id)}" data-open-season="${getCardTarget(show).seasonNumber}" data-open-episode="${getCardTarget(show).episodeNumber}">
               <span class="schedule-thumb">
                 ${show.image ? `<img src="${escapeHtml(show.image)}" alt="" loading="lazy">` : ""}
-                <span>${show.episode && show.episode !== "?" ? `EP ${show.episode}` : "TV"}</span>
+                <span>${cardEpisodeLabel(show)}</span>
               </span>
               <span class="schedule-copy">
                 <span class="schedule-title">${escapeHtml(getShowTitle(show))}</span>
