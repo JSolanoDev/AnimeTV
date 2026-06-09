@@ -68,8 +68,8 @@ Browser ──/api──► Web app (Node) ──TIOANIME_API──► Scraper (
 
 ```bash
 # 1. Web app
-git clone https://github.com/JSolanoDev/AnimeTV.git
-cd AnimeTV
+git clone https://github.com/JSolanoDev/ZenkaiTV.git
+cd ZenkaiTV
 cp .env.example .env.local        # set TIOANIME_API=http://localhost:5000
 npm start                          # → http://localhost:4180
 

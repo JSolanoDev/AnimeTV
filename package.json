@@ -6,10 +6,10 @@
   "homepage": "https://zenkaitv.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/JSolanoDev/AnimeTV.git"
+    "url": "https://github.com/JSolanoDev/ZenkaiTV.git"
   },
   "bugs": {
-    "url": "https://github.com/JSolanoDev/AnimeTV/issues"
+    "url": "https://github.com/JSolanoDev/ZenkaiTV/issues"
   },
   "scripts": {
     "start": "node animetv-local.js",
