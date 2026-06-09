@@ -87,6 +87,9 @@ let tioAnimeSlugCatalogMemoryAt = 0;
 let tioAnimeSlugCatalogPromise = null;
 const animeAv1SourceCache = new Map(); // "slug:ep:variant" -> { data, ts }
 const animeAv1SlugSearchCache = new Map(); // normalized query -> { data, ts }
+let animeAv1LatestCache = null;          // [{ slug, episode, title, image }]
+let animeAv1LatestCacheAt = 0;
+const ANIMEAV1_LATEST_TTL_MS = 1000 * 60 * 5; // homepage "Últimos Episodios" — 5 min
 let animeAv1SlugCatalogMemory = null;
 let animeAv1SlugCatalogMemoryAt = 0;
 let animeAv1SlugCatalogPromise = null;
@@ -591,6 +594,11 @@ function handleRequest(request, response) {
 
   if (url.pathname === "/api/animeav1/health") {
     handleAnimeAv1Health(response);
+    return;
+  }
+
+  if (url.pathname === "/api/animeav1/latest") {
+    handleAnimeAv1Latest(response);
     return;
   }
 
@@ -5300,6 +5308,67 @@ async function handleAnimeAv1Slugs(url, response) {
       items: [],
       byTitle: {}
     }, 502);
+  }
+}
+
+// Parse AnimeAV1's homepage "Últimos Episodios" grid in display order. Each card
+// is an <article> with an "Episodio <n>" badge, a title, a thumbnail, and an
+// anchor href="/media/<slug>/<ep>" carrying a sr-only "Ver <title> <ep>" label.
+function parseAnimeAv1Latest(html = "", limit = 40) {
+  const out = [];
+  const seen = new Set();
+  const re = /<article\b[^>]*>([\s\S]*?)<\/article>/g;
+  let m;
+  while ((m = re.exec(html)) && out.length < limit) {
+    const block = m[1];
+    const link = block.match(/href="\/media\/([^"\/]+)\/(\d+)"/);
+    if (!link) continue;                                   // not an episode card
+    const slug = cleanAnimeAv1Slug(link[1]);
+    if (!slug || seen.has(slug)) continue;
+    const sr = block.match(/<span class="sr-only">\s*Ver\s+([\s\S]*?)<\/span>/i);
+    const epBadge = block.match(/Episodio\s*<span[^>]*>\s*(\d+)\s*<\/span>/i);
+    const img = block.match(/<img[^>]+src="([^"]+)"/i);
+    const episode = Number(epBadge?.[1] || link[2] || 0);
+    let title = decodeHtmlEntities((sr?.[1] || "").trim());
+    title = title.replace(/\s+\d+\s*$/, "").trim();        // drop trailing episode number
+    if (!title) continue;
+    seen.add(slug);
+    out.push({ slug, episode, title, image: img?.[1] || "" });
+  }
+  return out;
+}
+
+async function fetchAnimeAv1LatestEpisodes() {
+  if (animeAv1LatestCache && Date.now() - animeAv1LatestCacheAt < ANIMEAV1_LATEST_TTL_MS) {
+    return animeAv1LatestCache;
+  }
+  const upstream = await fetchWithTimeout(`${ANIMEAV1_BASE}/`, { headers: ANIMEAV1_HEADERS }, HOSTED_RUNTIME ? 7000 : 10000);
+  if (!upstream.ok) throw new Error(`AnimeAV1 homepage returned HTTP ${upstream.status}.`);
+  const html = await upstream.text();
+  const items = parseAnimeAv1Latest(html);
+  if (items.length) {
+    animeAv1LatestCache = items;
+    animeAv1LatestCacheAt = Date.now();
+  }
+  return items;
+}
+
+async function handleAnimeAv1Latest(response) {
+  try {
+    const items = await fetchAnimeAv1LatestEpisodes();
+    sendJson(response, {
+      ok: items.length > 0,
+      source: "AnimeAV1",
+      count: items.length,
+      items
+    }, 200, { "Cache-Control": "public, max-age=120" });
+  } catch (error) {
+    // Serve a stale cache if we have one, otherwise report the failure.
+    if (animeAv1LatestCache?.length) {
+      sendJson(response, { ok: true, source: "AnimeAV1", stale: true, count: animeAv1LatestCache.length, items: animeAv1LatestCache });
+      return;
+    }
+    sendJson(response, { ok: false, source: "AnimeAV1", error: "AnimeAV1 latest failed.", detail: error.message, items: [] }, 502);
   }
 }
 

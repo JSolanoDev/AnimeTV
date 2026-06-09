@@ -404,6 +404,8 @@ async function loadAnimeSources() {
   // merge, or the offline fallback.
   enrichCatalogAiringData();
   scheduleExternalSourcesLoad();
+  // Mirror AnimeAV1's "Últimos Episodios" order in the Home Latest Episodes rail.
+  loadAnimeAv1Latest();
 }
 
 // The client builds its catalog from AniList trending + Jikan directly, but some
@@ -1386,6 +1388,121 @@ function latestEpisodeReleases(limit = HOME_CARD_LIMIT) {
   }
 
   return result;
+}
+
+// ── AnimeAV1 "Últimos Episodios" feed ─────────────────────────────────────────
+// The Home "Latest Episodes" rail mirrors AnimeAV1's homepage list (same order,
+// same items). Catalog shows supply rich art/metadata where the title matches;
+// AnimeAV1-only entries (niche shows the AniList catalog lacks) get a lightweight
+// card so the full list matches. Falls back to the airing-based order if the
+// AnimeAV1 feed is unavailable.
+
+// Compact alphanumeric key for fuzzy title/slug matching.
+function av1Key(value) {
+  return normalizeSearchText(String(value || "")).replace(/[^a-z0-9]+/g, "");
+}
+
+function buildCatalogKeyIndex() {
+  const idx = new Map();
+  for (const show of state.shows) {
+    [getShowTitle(show), show.title, show.romajiTitle, show.nativeTitle, ...(show.aliases || [])]
+      .filter(Boolean)
+      .forEach((t) => { const k = av1Key(t); if (k && !idx.has(k)) idx.set(k, show); });
+  }
+  return idx;
+}
+
+function makeAv1OnlyShow(item) {
+  return {
+    id: `animeav1-${item.slug}`,
+    title: item.title,
+    romajiTitle: item.title,
+    image: item.image || "",
+    episode: item.episode,
+    latestAiredEp: item.episode,
+    nextAiringEpisodeNumber: (Number(item.episode) || 0) + 1,
+    status: "RELEASING",
+    source: "AnimeAV1",
+    genre: "anime",
+    genres: ["anime"],
+    colors: ["#8a5cff", "#211942"],
+    description: "",
+    animeAv1Slug: item.slug,
+    _av1Slug: item.slug,
+    _av1Episode: item.episode
+  };
+}
+
+function registerAv1Show(show) {
+  if (!state.av1Shows) state.av1Shows = new Map();
+  if (!state.av1Shows.has(show.id)) state.av1Shows.set(show.id, show);
+}
+
+function buildLatestEpisodesList(limit = HOME_CARD_LIMIT) {
+  const av1 = state.av1Latest || [];
+  if (!av1.length) return latestEpisodeReleases(limit);   // AnimeAV1 feed not loaded yet
+
+  const idx = buildCatalogKeyIndex();
+  const list = [];
+  const usedIds = new Set();
+
+  for (const item of av1) {
+    const match = idx.get(av1Key(item.title)) || idx.get(av1Key(item.slug));
+    let card;
+    if (match) {
+      // Reuse the rich catalog card but show AnimeAV1's episode number + open target.
+      card = {
+        ...match,
+        episode: item.episode,
+        latestAiredEp: item.episode,
+        nextAiringEpisodeNumber: (Number(item.episode) || 0) + 1,
+        status: match.status || "RELEASING",
+        _av1Slug: item.slug,
+        _av1Episode: item.episode
+      };
+    } else {
+      card = makeAv1OnlyShow(item);
+      registerAv1Show(card);
+    }
+    if (usedIds.has(card.id)) continue;
+    if (!matchesShowSearch(card)) continue;
+    if (state.filter !== "all" && card.genre !== state.filter) continue;
+    usedIds.add(card.id);
+    list.push(card);
+    if (list.length >= limit) break;
+  }
+
+  // Top up with the airing-based list if the feed is short (and not searching).
+  if (list.length < limit && !state.search) {
+    for (const show of latestEpisodeReleases(limit)) {
+      if (usedIds.has(show.id)) continue;
+      usedIds.add(show.id);
+      list.push(show);
+      if (list.length >= limit) break;
+    }
+  }
+  return list;
+}
+
+async function loadAnimeAv1Latest(force = false) {
+  if (state.av1LatestLoading) return;
+  const fresh = state.av1Latest?.length && Date.now() - (state.av1LatestAt || 0) < 5 * 60 * 1000;
+  if (fresh && !force) return;
+  state.av1LatestLoading = true;
+  try {
+    const res = await fetchWithTimeout("./api/animeav1/latest", { cache: "no-store" }, 9000);
+    if (!res.ok) throw new Error(`AnimeAV1 latest HTTP ${res.status}`);
+    const json = await res.json();
+    if (Array.isArray(json.items) && json.items.length) {
+      state.av1Latest = json.items;
+      state.av1LatestAt = Date.now();
+      render();   // repaint the rail in AnimeAV1 order
+    }
+  } catch (_) {
+    // Keep the airing-based fallback ordering already on screen.
+  } finally {
+    state.av1LatestLoading = false;
+  }
 }
 
 function getCarouselArtwork(show = {}) {
@@ -3697,7 +3814,7 @@ function render() {
     renderSkeletonCards(latestGrid, 14);
     renderSkeletonCards(libraryGrid, 14);
   } else {
-    renderCards(latestGrid, latestEpisodeReleases(HOME_CARD_LIMIT));
+    renderCards(latestGrid, buildLatestEpisodesList(HOME_CARD_LIMIT));
     renderCards(libraryGrid, filtered.slice(0, state.search ? SEARCH_CARD_LIMIT : LIBRARY_CARD_LIMIT));
   }
   renderAniPubCatalog();
@@ -3748,7 +3865,7 @@ function setRoute(route) {
   if (clearedSearch) render();   // refresh the now-unfiltered Home grids
   syncRouteVisibility();
   // The hero trailer only runs on Home — stop it elsewhere, restart on return.
-  if (route === "home") renderCarousel();
+  if (route === "home") { renderCarousel(); loadAnimeAv1Latest(); }
   else stopCarouselTrailer();
   if (route === "anipub") ensureAniPubCatalogLoaded();
   if (route === "settings") renderSettings();
@@ -3791,6 +3908,12 @@ async function openShow(id, target = {}) {
         state.shows = [...state.shows, addonShow];
       }
     }
+  }
+  // AnimeAV1-only "Latest Episodes" cards (niche shows not in the AniList catalog)
+  // live in a side registry — promote into the catalog so the open flow can run.
+  if (!show && state.av1Shows?.has(wantedId)) {
+    show = state.av1Shows.get(wantedId);
+    if (!state.shows.some((entry) => entry.id === show.id)) state.shows = [...state.shows, show];
   }
   if (!show) return;
   state.activeShow = show;
