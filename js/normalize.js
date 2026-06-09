@@ -346,6 +346,10 @@ function normalizeAniListShow(entry) {
     totalEpisodes: entry.episodes || null,
     latestAiredEp,
     nextAiringEpisodeNumber: nextAiringEp || null,
+    // Absolute instant (ms) the NEXT episode airs — timezone-independent, unlike
+    // the day/time strings (which Jikan reports in JST). Used to rank the real
+    // "latest episode" drops correctly for the viewer's own timezone.
+    nextAiringAt: entry.nextAiringEpisode?.airingAt ? entry.nextAiringEpisode.airingAt * 1000 : null,
     genre,
     genres: entry.genres || [genre],
     day,

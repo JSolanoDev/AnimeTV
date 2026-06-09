@@ -432,6 +432,7 @@ async function enrichCatalogAiringData(attempt = 0) {
       if (!it) return;
       if (it.latestAiredEp != null) s.latestAiredEp = it.latestAiredEp;
       if (it.nextAiringEpisodeNumber != null) s.nextAiringEpisodeNumber = it.nextAiringEpisodeNumber;
+      if (it.nextAiringAt != null && s.nextAiringAt == null) s.nextAiringAt = it.nextAiringAt;
       if (it.totalEpisodes != null) s.totalEpisodes = it.totalEpisodes;
       if (it.status) s.status = it.status;
       if (it.episode != null && it.episode !== "?") s.episode = it.episode;
@@ -1234,62 +1235,74 @@ function matchesShowSearch(show) {
 }
 
 /**
+ * Absolute timestamp (ms) of when a show's most-recently-released episode aired,
+ * or null if the show has no usable airing signal / nothing has aired yet.
+ *
+ * Prefers AniList's exact `nextAiringAt` instant (the next episode's air time) and
+ * steps it back by the weekly cadence to the most recent PAST airing. Because that
+ * instant is absolute (UTC-based), it is correct in the viewer's own timezone —
+ * fixing late-night shows that Jikan labels "Wed 01:59" (JST) when they actually
+ * drop on Tuesday for most of the world. Falls back to reconstructing from the
+ * broadcast day + time strings when no airing timestamp is known.
+ */
+function lastEpisodeAiredMs(show, nowMs = Date.now()) {
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+  // Precise path: walk the next-episode instant back to the last past airing.
+  const nextAt = Number(show.nextAiringAt || 0);
+  if (nextAt > 0) {
+    // Nothing has aired yet if the next episode is #1.
+    if (Number(show.nextAiringEpisodeNumber) === 1) return null;
+    let t = nextAt;
+    while (t > nowMs) t -= WEEK_MS;
+    return t;
+  }
+
+  // Fallback: reconstruct from the broadcast day + time (viewer-local).
+  if (!show.day || show.day === "TBA" || show.day === "Local") return null;
+  const DAY_IDX = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+  const dayNum = DAY_IDX[show.day.toLowerCase().slice(0, 3)];
+  if (dayNum === undefined) return null;
+
+  let airH = 0, airM = 0;
+  if (show.time && show.time !== "TBA") {
+    const m = show.time.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+    if (m) {
+      airH = parseInt(m[1], 10);
+      airM = parseInt(m[2], 10);
+      const ap = m[3]?.toLowerCase();
+      if (ap === "pm" && airH !== 12) airH += 12;
+      if (ap === "am" && airH === 12)  airH  = 0;
+    }
+  }
+  const now = new Date(nowMs);
+  const daysBack = (now.getDay() - dayNum + 7) % 7;
+  const d = new Date(now);
+  d.setDate(d.getDate() - daysBack);
+  d.setHours(airH, airM, 0, 0);
+  if (d.getTime() > nowMs) d.setDate(d.getDate() - 7);
+  return d.getTime();
+}
+
+/**
  * Return the most recently aired shows for the carousel (up to `limit`).
- * Only currently-airing shows with a confirmed broadcast day are considered.
- * Shows are sorted by "last aired" date (most recent first) so the carousel
- * always reflects what actually dropped this week or last week.
+ * Only currently-airing shows are considered, ranked by when their latest episode
+ * actually dropped (timezone-correct via lastEpisodeAiredMs), most recent first.
  */
 function recentlyAiredShows(limit = 8) {
-  const now     = new Date();
-  const nowMs   = now.getTime();
-  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-  const DAY_IDX = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
-
+  const nowMs = Date.now();
   const seenTitles = new Set();
 
-  // Build candidates: airing shows with a known broadcast day
   const candidates = state.shows
     .filter((show) => {
       if (!getCarouselArtwork(show)) return false;
-      if (!show.day || show.day === "TBA" || show.day === "Local") return false;
       const status = (show.status || "").toUpperCase();
       if (status === "FINISHED" || status === "CANCELLED") return false;
       return true;
     })
-    .map((show) => {
-      const dayShort = show.day.toLowerCase().slice(0, 3);
-      const dayNum   = DAY_IDX[dayShort];
-      if (dayNum === undefined) return null;
-
-      // Parse air time (handles "10:30 PM", "23:00", "TBA")
-      let airH = 0, airM = 0;
-      if (show.time && show.time !== "TBA") {
-        const m = show.time.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
-        if (m) {
-          airH = parseInt(m[1], 10);
-          airM = parseInt(m[2], 10);
-          const ap = m[3]?.toLowerCase();
-          if (ap === "pm" && airH !== 12) airH += 12;
-          if (ap === "am" && airH === 12)  airH  = 0;
-        }
-      }
-
-      // Most recent past occurrence of this day+time
-      const daysBack = (now.getDay() - dayNum + 7) % 7;
-      const d = new Date(now);
-      d.setDate(d.getDate() - daysBack);
-      d.setHours(airH, airM, 0, 0);
-
-      // If that calculated moment is still in the future, go back one week
-      if (d.getTime() > nowMs) d.setDate(d.getDate() - 7);
-
-      const lastAiredMs = d.getTime();
-      // Discard if older than 14 days (two cycles back, safely handles gaps)
-      if (nowMs - lastAiredMs > 14 * 24 * 60 * 60 * 1000) return null;
-
-      return { show, lastAiredMs };
-    })
-    .filter(Boolean);
+    .map((show) => ({ show, lastAiredMs: lastEpisodeAiredMs(show, nowMs) }))
+    // Keep only shows with a real recent airing (within ~3 weeks, generous for gaps).
+    .filter((x) => x.lastAiredMs != null && (nowMs - x.lastAiredMs) <= 21 * 24 * 60 * 60 * 1000);
 
   // Sort most-recent first, then by score. Every candidate already has a
   // dedicated landscape banner, so portrait covers never enter the hero.
@@ -1335,9 +1348,7 @@ function todayShows() {
  * only if there genuinely aren't enough airing titles to fill the rail.
  */
 function latestEpisodeReleases(limit = HOME_CARD_LIMIT) {
-  const now    = new Date();
-  const nowMs  = now.getTime();
-  const DAY_IDX = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
+  const nowMs = Date.now();
   const seenTitles = new Set();
 
   const ranked = state.shows
@@ -1345,39 +1356,12 @@ function latestEpisodeReleases(limit = HOME_CARD_LIMIT) {
       if (!matchesShowSearch(show)) return false;
       if (state.filter !== "all" && show.genre !== state.filter) return false;
       if (!(show.image || show.poster || show.cover)) return false;
-      if (!show.day || show.day === "TBA" || show.day === "Local") return false;
       const status = (show.status || "").toUpperCase();
       if (status === "FINISHED" || status === "CANCELLED" || status.includes("FINISH")) return false;
       return true;
     })
-    .map((show) => {
-      const dayNum = DAY_IDX[show.day.toLowerCase().slice(0, 3)];
-      if (dayNum === undefined) return null;
-
-      // Parse the broadcast time (handles "10:30 PM", "23:00", "TBA").
-      let airH = 0, airM = 0;
-      if (show.time && show.time !== "TBA") {
-        const m = show.time.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
-        if (m) {
-          airH = parseInt(m[1], 10);
-          airM = parseInt(m[2], 10);
-          const ap = m[3]?.toLowerCase();
-          if (ap === "pm" && airH !== 12) airH += 12;
-          if (ap === "am" && airH === 12)  airH  = 0;
-        }
-      }
-
-      // Most recent past occurrence of this broadcast day+time = when the latest
-      // episode dropped. If that moment is still in the future, step back a week.
-      const daysBack = (now.getDay() - dayNum + 7) % 7;
-      const d = new Date(now);
-      d.setDate(d.getDate() - daysBack);
-      d.setHours(airH, airM, 0, 0);
-      if (d.getTime() > nowMs) d.setDate(d.getDate() - 7);
-
-      return { show, lastAiredMs: d.getTime() };
-    })
-    .filter(Boolean)
+    .map((show) => ({ show, lastAiredMs: lastEpisodeAiredMs(show, nowMs) }))
+    .filter((x) => x.lastAiredMs != null)
     .sort((a, b) => (b.lastAiredMs - a.lastAiredMs) || (Number(b.show.score || 0) - Number(a.show.score || 0)));
 
   const result = [];
@@ -1418,20 +1402,55 @@ function getCarouselArtwork(show = {}) {
     .find((value) => value && value !== poster) || "";
 }
 
+// Stable hero line-up. Once a healthy set of featured shows is chosen we keep it
+// fixed across background re-renders (trailers resolving, airing-data enrichment)
+// so the hero never visibly reshuffles — that reshuffle was what made the title
+// appear to "blink" on load and during updates.
+let _carouselStableIds = [];
+let _carouselPaintedId = null;
+
+function buildStableCarouselItems(pool) {
+  const MAX = 8;
+  const byId = new Map(pool.map((s) => [String(s.id), s]));
+  const prev = _carouselStableIds.map((id) => byId.get(id)).filter(Boolean);
+
+  // Keep the existing line-up while most of it is still valid.
+  if (prev.length >= Math.min(MAX, pool.length) && prev.length >= 3) {
+    const items = prev.slice(0, MAX);
+    _carouselStableIds = items.map((s) => String(s.id));
+    return items;
+  }
+
+  // (Re)build: keep still-valid previous items first (so the current slide never
+  // jumps), then prefer shows whose trailer has resolved, then the rest of pool.
+  const withTrailer = pool.filter((s) => {
+    const tr = s.anilistId ? _readTrailerCache(String(s.anilistId)) : null;
+    return tr && tr.id;
+  });
+  const ordered = [];
+  const seen = new Set();
+  for (const s of [...prev, ...withTrailer, ...pool]) {
+    const id = String(s.id);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    ordered.push(s);
+    if (ordered.length >= MAX) break;
+  }
+  _carouselStableIds = ordered.map((s) => String(s.id));
+  return ordered;
+}
+
 function renderCarousel() {
   // On-air / recently-aired pool only (these already have landscape artwork).
   const pool = recentlyAiredShows(24).filter((s) => getCarouselArtwork(s));
   // Kick off trailer lookups for the pool; re-renders when they resolve.
   ensureCarouselTrailers(pool);
-  // Prefer on-air shows that have a trailer ("a video for every anime"); until
-  // trailers resolve on first load, fall back to the image-only on-air pool.
-  const withTrailer = pool.filter((s) => {
-    const tr = s.anilistId ? _readTrailerCache(String(s.anilistId)) : null;
-    return tr && tr.id;
-  });
-  const items = (withTrailer.length ? withTrailer : pool).slice(0, 8);
+  // Stable line-up so the hero doesn't reshuffle/blink when trailers or airing
+  // data resolve in the background.
+  const items = buildStableCarouselItems(pool);
   if (!items.length) {
     stopCarouselTrailer();
+    _carouselPaintedId = null;
     carouselStage.classList.add("is-loading");
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
@@ -1448,8 +1467,15 @@ function renderCarousel() {
   if (state.carouselIndex >= items.length) state.carouselIndex = 0;
   if (state.carouselIndex < 0) state.carouselIndex = items.length - 1;
   const show = items[state.carouselIndex];
-  const art = getCarouselArtwork(show);
 
+  // Keep the indicator strip in sync (cheap), but skip the heavy title / backdrop
+  // / trailer repaint when the displayed anime hasn't actually changed. Repainting
+  // identical content on every background render is what made the hero "blink".
+  renderCarouselIndicators(items);
+  if (String(show.id || "") === _carouselPaintedId) return;
+  _carouselPaintedId = String(show.id || "");
+
+  const art = getCarouselArtwork(show);
   carouselBackdrop.classList.toggle("has-banner", Boolean(art));
   carouselBackdrop.style.backgroundImage = art
     ? `url("${art}")`
@@ -1462,7 +1488,6 @@ function renderCarousel() {
   carouselOpen.dataset.openSeason = String(target.seasonNumber || "");
   carouselOpen.dataset.openEpisode = String(target.episodeNumber || "");
   carouselStage.dataset.openShow = String(show.id || "");
-  renderCarouselIndicators(items);
   // Show the cover for a beat, then play this anime's trailer (stops on move).
   scheduleCarouselTrailer(show);
 }

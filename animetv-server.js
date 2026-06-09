@@ -6045,6 +6045,8 @@ function normalizeAniListShow(entry) {
     latestAiredEp,
     status: entry.status || "",
     nextAiringEpisodeNumber: nextAiringEp || null,
+    // Absolute instant (ms) the next episode airs — timezone-independent.
+    nextAiringAt: entry.nextAiringEpisode?.airingAt ? entry.nextAiringEpisode.airingAt * 1000 : null,
     genre,
     genres: entry.genres || [genre],
     day,
