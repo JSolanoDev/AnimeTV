@@ -40,12 +40,22 @@ function readAniPubFallbackCache() {
  */
 function getShowTitle(show) {
   if (!show) return "Untitled Anime";
+  // Defensive: a title may be a plain string OR an AniList object
+  // ({english, romaji, native}). Always resolve to a string so callers like the
+  // weekly schedule (escapeHtml/normalizeTitle) never get an object.
+  const asString = (value) => {
+    if (typeof value === "string") return value;
+    if (value && typeof value === "object") {
+      return value.english || value.userPreferred || value.romaji || value.native || "";
+    }
+    return "";
+  };
+  const english = asString(show.title) || (show.title && typeof show.title === "object" ? asString(show.title.english) : "");
+  const romaji = asString(show.romajiTitle)
+    || (show.title && typeof show.title === "object" ? asString(show.title.romaji) : "");
   const pref = (state?.uiPreferences?.titleLanguage) || "english";
-  if (pref === "romaji") {
-    return show.romajiTitle || show.title || "Untitled Anime";
-  }
-  // english (default): prefer stored English title, fall back to romaji
-  return show.title || show.romajiTitle || "Untitled Anime";
+  if (pref === "romaji") return romaji || english || "Untitled Anime";
+  return english || romaji || "Untitled Anime";
 }
 
 function saveAniPubFallbackCache() {

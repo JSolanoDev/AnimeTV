@@ -3279,11 +3279,18 @@ body.soft-focus .is-tv-focused {
   padding: 0.55rem 0.85rem;
   border-radius: var(--radius-md);
   text-align: left;
+  flex: 0 0 auto;          /* keep full width — never squeeze the label into overlap */
+}
+
+/* Title sits on one line and grows the tab to fit; the strip scrolls instead. */
+.season-tab strong {
+  white-space: nowrap;
 }
 
 .season-tab small {
   color: var(--muted);
   font-size: 0.68rem;
+  white-space: nowrap;
 }
 
 .detail-tab:is(:hover, :focus-visible, .is-tv-focused, .is-selected),

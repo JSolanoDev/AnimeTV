@@ -2651,7 +2651,18 @@ function resolveAddonShow(show) {
 
 
 
+// A source/connector is "working" if it's enabled and its status doesn't report
+// a failure. Non-working ones are hidden from the Sources page.
+function isSourceWorking(source) {
+  if (!source || !source.enabled) return false;
+  const status = String(source.status || "").toLowerCase();
+  if (!status) return true;
+  return !/(offline|wrong url|unavailable|error|no titles|no playable|no enabled|disabled|quota|degraded|blocked|failed|not found)/.test(status);
+}
+
 function buildSourceCardsHtml() {
+  const metadataOnline = /online|standby|ready/i.test(String(state.apiStatus.metadata || ""));
+  const workingSources = state.localSources.filter(isSourceWorking);
   return `
     <article class="source-card source-card-add">
       <div>
@@ -2661,23 +2672,24 @@ function buildSourceCardsHtml() {
       <p>Paste a local server URL or online HTTPS addon that returns anime JSON. ZenkaiTV will merge it with AniList/Jikan and unlock episodes when items include videoUrl, streamUrl, or file.</p>
       <button class="primary-action focusable" data-source-add>Add Source</button>
     </article>
+    ${metadataOnline ? `
     <article class="source-card source-card-feature">
       <div>
         <strong>ZenkaiTV Metadata API</strong>
-        <span>${state.apiStatus.metadata}</span>
+        <span>${escapeHtml(state.apiStatus.metadata)}</span>
       </div>
       <p>Local server endpoint that merges AniList and Jikan before the TV app renders. If it is unavailable, the app falls back to direct public API calls.</p>
       <code>${location.origin && location.protocol !== "file:" ? `${location.origin}/api/catalog` : "Run animetv-local.js to enable /api/catalog"}</code>
-    </article>
+    </article>` : ""}
     <article class="source-card source-card-feature">
       <div>
         <strong>AniList + Jikan Direct</strong>
-        <span>${state.apiStatus.direct}</span>
+        <span>${escapeHtml(state.apiStatus.direct)}</span>
       </div>
       <p>Public legal metadata APIs for posters, banners, schedules, genres, and episode counts. These do not provide copyrighted video files.</p>
       <code>${ANILIST_ENDPOINT} + api.jikan.moe</code>
     </article>
-    ${state.localSources.map((source) => `
+    ${workingSources.map((source) => `
     <article class="source-card ${source.enabled ? "is-enabled" : ""}">
       <div>
         <strong>${escapeHtml(source.name || "Unnamed Source")}</strong>
@@ -2704,11 +2716,8 @@ function buildSourceCardsHtml() {
 
 function renderSources() {
   if (!sourcesGrid || !sourceSummary) return;
-  const count = state.localSources.length;
-  const enabled = state.localSources.filter((source) => source.enabled).length;
-  sourceSummary.textContent = count
-    ? `${enabled} enabled source/addon${enabled === 1 ? "" : "s"} | Metadata API: ${state.apiStatus.metadata} | Direct APIs: ${state.apiStatus.direct}`
-    : t("sourceSummaryDefault");
+  const working = state.localSources.filter(isSourceWorking).length;
+  sourceSummary.textContent = `${working} active source${working === 1 ? "" : "s"} · Catalog: ${state.apiStatus.direct}`;
   sourcesGrid.innerHTML = buildSourceCardsHtml();
   wireSourceButtons(sourcesGrid);
 }
@@ -2775,7 +2784,6 @@ function renderSettings() {
   const activeLegalTab = state.activeLegalTab || "terms";
   const tc = (tab) => `settings-rail-item focusable ${activeTab === tab ? "is-selected" : ""}`;
   const pa = (tab) => `class="settings-panel ${activeTab === tab ? "is-active" : ""}" id="settings-${tab}" data-settings-panel="${tab}" ${activeTab === tab ? "" : "hidden"}`;
-  const volPct = Math.round(Math.min(1, Math.max(0, Number(ui.defaultVolume ?? 0.1))) * 100);
   const enabled = state.localSources.filter((s) => s.enabled).length;
 
   settingsGrid.innerHTML = `
@@ -2862,30 +2870,10 @@ function renderSettings() {
           <span class="settings-icon" aria-hidden="true">▶</span>
           <div>
             <h3>${t("playback")}</h3>
-            <p>Audio language, subtitles, volume, and autoplay behavior.</p>
+            <p>Player engine, quality, and autoplay behavior.</p>
           </div>
         </div>
 
-        <div class="settings-group-label">Language</div>
-        <label class="settings-line">
-          <span>${t("defaultAudio")}</span>
-          <select class="language-select focusable settings-select" id="settingsAudio">
-            <option value="japanese" ${preferences.audio === "japanese" ? "selected" : ""}>${t("japaneseAudio")}</option>
-            <option value="spanish" ${preferences.audio === "spanish" ? "selected" : ""}>${t("spanishAudio")}</option>
-            <option value="english" ${preferences.audio === "english" ? "selected" : ""}>${t("englishAudio")}</option>
-          </select>
-        </label>
-        <label class="settings-line">
-          <span>${t("defaultSubtitles")}</span>
-          <select class="language-select focusable settings-select" id="settingsSubtitles">
-            <option value="spanish" ${preferences.subtitles === "spanish" ? "selected" : ""}>${t("spanishSubtitles")}</option>
-            <option value="spanish-translated" ${preferences.subtitles === "spanish-translated" ? "selected" : ""}>${t("translatedSpanishSubtitles")}</option>
-            <option value="english" ${preferences.subtitles === "english" ? "selected" : ""}>${t("englishSubtitles")}</option>
-            <option value="none" ${preferences.subtitles === "none" ? "selected" : ""}>${t("noSubtitles")}</option>
-          </select>
-        </label>
-
-        <div class="settings-divider"></div>
         <div class="settings-group-label">Playback</div>
         <div class="settings-line">
           <span>Player engine <small>Use the APK-style video.js player for direct streams</small></span>
@@ -2922,26 +2910,6 @@ function renderSettings() {
         <div class="settings-line">
           <span>Rich metadata <small>Show AniList/MAL IDs, status, score, and source info in anime details</small></span>
           <button class="settings-switch focusable ${ui.metadataDetail ? "is-on" : ""}" data-toggle-pref="metadataDetail" type="button"><b></b></button>
-        </div>
-
-        <div class="settings-divider"></div>
-        <div class="settings-group-label">Volume</div>
-        <div class="settings-volume-line settings-line">
-          <div class="settings-volume-label">
-            <span>Default volume</span>
-            <small class="settings-volume-value" id="volDisplay">${volPct}%</small>
-          </div>
-          <div class="settings-volume-wrap">
-            <span class="settings-volume-icon" aria-hidden="true">🔇</span>
-            <input
-              type="range" min="0" max="100" step="1" value="${volPct}"
-              class="settings-volume-slider focusable"
-              data-settings-volume
-              aria-label="Default volume"
-              style="--vol-pct:${volPct}%"
-            >
-            <span class="settings-volume-icon" aria-hidden="true">🔊</span>
-          </div>
         </div>
       </section>
 
@@ -3058,16 +3026,6 @@ function wireSettingsButtons() {
       render();          // re-render cards, schedule, carousel
       renderSettings();
       showToast(`Title language set to ${button.dataset.titleLanguage}`);
-    });
-  });
-
-  // Audio / subtitle selects
-  settingsGrid.querySelectorAll("#settingsAudio, #settingsSubtitles").forEach((select) => {
-    select.addEventListener("change", () => {
-      const audio = settingsGrid.querySelector("#settingsAudio")?.value || "japanese";
-      const subtitles = settingsGrid.querySelector("#settingsSubtitles")?.value || "spanish";
-      setDefaultLanguage(audio, subtitles);
-      showToast(t("settingsSaved"));
     });
   });
 
