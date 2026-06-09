@@ -110,6 +110,34 @@ const KNOWN_SOURCE_SERVERS = [
   }
 ];
 
+// Built-in playback scrapers shown on the Sources tab as toggleable cards.
+// (AniPub already appears via its catalog source card.)
+const PLAYBACK_SCRAPERS = [
+  {
+    id: "animeav1",
+    name: "AnimeAV1",
+    desc: "Direct HLS / Mega / MP4Upload scraper — fast, ad-free playback.",
+    endpoint: "./api/animeav1/sources",
+    health: "./api/animeav1/info?slug=one-piece"
+  },
+  {
+    id: "tioanime",
+    name: "TioAnime",
+    desc: "Live episode source scraper (Spanish-subbed mirrors).",
+    endpoint: "./api/tioanime/sources",
+    health: "./api/tioanime/health"
+  }
+];
+
+function isScraperEnabled(id) {
+  return state.scraperEnabled[id] !== false;
+}
+
+function setScraperEnabled(id, enabled) {
+  state.scraperEnabled = { ...state.scraperEnabled, [id]: enabled };
+  try { localStorage.setItem("zenkaitv-scrapers", JSON.stringify(state.scraperEnabled)); } catch { /* ignore */ }
+}
+
 const state = {
   route: "home",
   filter: "all",
@@ -132,6 +160,8 @@ const state = {
   anipubFallbackCache: readAniPubFallbackCache(),
   localSources: [],
   customSources: JSON.parse(localStorage.getItem("animetv-custom-sources") || "[]"),
+  // Built-in playback scrapers the user can toggle on/off (default all on).
+  scraperEnabled: { animeav1: true, tioanime: true, ...JSON.parse(localStorage.getItem("zenkaitv-scrapers") || "{}") },
   // Compact (collapsed) icon rail is the DEFAULT; expand to reveal labels.
   sidebarCollapsed: localStorage.getItem("animetv-sidebar-collapsed") !== "false",
   apiStatus: {
@@ -1171,16 +1201,36 @@ function visibleShows() {
   });
 }
 
+// Lowercase + strip accents so search is case/diacritic-insensitive.
+function normalizeSearchText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function matchesShowSearch(show) {
   if (!state.search) return true;
-  const query = state.search.toLowerCase();
-  return [
+  const query = normalizeSearchText(state.search);
+  if (!query) return true;
+  // Search EVERY title variant (English, Romaji, Native, the title shown in the
+  // UI) plus aliases/source/genre — so typing "yomi" finds "Yomi no Tsugai" even
+  // though its English title is "Daemons of the Shadow Realm".
+  const haystack = normalizeSearchText([
+    getShowTitle(show),
     show.title,
+    show.romajiTitle,
+    show.nativeTitle,
     show.source,
     show.genre,
     ...(show.genres || []),
     ...(show.aliases || [])
-  ].some((value) => String(value || "").toLowerCase().includes(query));
+  ].filter(Boolean).join(" "));
+  // Each token must appear (partial match) so "yomi", "yomi no" and
+  // "yomi tsugai" all match.
+  return query.split(" ").every((token) => haystack.includes(token));
 }
 
 /**
@@ -2716,17 +2766,22 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
     refreshPicker();
   };
 
-  await Promise.allSettled([
+  // Respect the user's per-scraper enable toggles (Sources tab).
+  const lookups = [
     playbackLookupWithTimeout("AniPub", attachAniPubFallback(show, episode), 2600)
       .then(() => updateServerCheck("anipub", KNOWN_SOURCE_SERVERS[0].match)),
     playbackLookupWithTimeout("Loaded addons", attachLoadedAddonFallbacks(show, episode, seasonNumber), 1800)
-      .then(() => refreshPicker()),
-    // This uses the scraper-discovered provider URLs directly as playable sources.
-    playbackLookupWithTimeout("TioAnime scraper", attachTioAnimeSources(show, episode), 6500)
-      .then(() => updateServerCheck("tioanime", getKnownSourceServer("tioanime").match)),
-    playbackLookupWithTimeout("AnimeAV1 scraper", attachAnimeAv1Sources(show, episode), 6500)
-      .then(() => updateServerCheck("animeav1", getKnownSourceServer("animeav1").match))
-  ]);
+      .then(() => refreshPicker())
+  ];
+  if (isScraperEnabled("tioanime")) {
+    lookups.push(playbackLookupWithTimeout("TioAnime scraper", attachTioAnimeSources(show, episode), 6500)
+      .then(() => updateServerCheck("tioanime", getKnownSourceServer("tioanime").match)));
+  } else { episode.tioAnimeSourcesChecked = true; episode.serverChecks.tioanime = "notfound"; }
+  if (isScraperEnabled("animeav1")) {
+    lookups.push(playbackLookupWithTimeout("AnimeAV1 scraper", attachAnimeAv1Sources(show, episode), 6500)
+      .then(() => updateServerCheck("animeav1", getKnownSourceServer("animeav1").match)));
+  } else { episode.animeAv1SourcesChecked = true; episode.serverChecks.animeav1 = "notfound"; }
+  await Promise.allSettled(lookups);
 
   // Ensure any timed-out servers are marked not-found after every source has had a chance.
   for (const def of KNOWN_SOURCE_SERVERS) {
@@ -3004,7 +3059,23 @@ function buildSourceCardsHtml() {
         <button class="secondary-action source-remove-action focusable" data-source-remove="${escapeHtml(source.id)}">Remove</button>
       </div>
     </article>
-  `).join("")}`;
+  `).join("")}
+    ${PLAYBACK_SCRAPERS.map((scraper) => {
+      const on = isScraperEnabled(scraper.id);
+      return `
+    <article class="source-card ${on ? "is-enabled" : ""}">
+      <div>
+        <strong>${escapeHtml(scraper.name)}</strong>
+        <span>playback scraper | ${on ? "Online" : "Disabled"}</span>
+      </div>
+      <p>${escapeHtml(scraper.desc)}</p>
+      <code>${escapeHtml(scraper.endpoint)}</code>
+      <div class="source-actions">
+        <button class="secondary-action focusable" data-scraper-toggle="${escapeHtml(scraper.id)}">${on ? "Disable" : "Enable"}</button>
+        <button class="secondary-action focusable" data-scraper-test="${escapeHtml(scraper.id)}">Test</button>
+      </div>
+    </article>`;
+    }).join("")}`;
 }
 
 function renderSources() {
@@ -3472,6 +3543,36 @@ function wireSourceButtons(root = document) {
     if (value) localStorage.setItem(ANIME1V_API_KEY_STORAGE, value);
     else localStorage.removeItem(ANIME1V_API_KEY_STORAGE);
     markSourceStatus("Anime1v (Japanese + Spanish Subs)", value ? "API key saved" : "API key cleared");
+  });
+
+  // Built-in playback scraper toggles (AnimeAV1 / TioAnime).
+  root.querySelectorAll("[data-scraper-toggle]").forEach((button) => {
+    button.onclick = () => {
+      const id = button.dataset.scraperToggle;
+      setScraperEnabled(id, !isScraperEnabled(id));
+      renderSources();
+      showToast(`${id} ${isScraperEnabled(id) ? "enabled" : "disabled"}`);
+    };
+  });
+
+  root.querySelectorAll("[data-scraper-test]").forEach((button) => {
+    button.onclick = async () => {
+      const scraper = PLAYBACK_SCRAPERS.find((s) => s.id === button.dataset.scraperTest);
+      if (!scraper) return;
+      button.disabled = true;
+      const original = button.textContent;
+      button.textContent = "Testing…";
+      try {
+        const res = await fetchWithTimeout(scraper.health, { cache: "no-store" }, 9000);
+        const ok = res.ok;
+        showToast(ok ? `${scraper.name} is online ✓` : `${scraper.name} returned HTTP ${res.status}`);
+      } catch {
+        showToast(`${scraper.name} is offline`);
+      } finally {
+        button.disabled = false;
+        button.textContent = original;
+      }
+    };
   });
 }
 
