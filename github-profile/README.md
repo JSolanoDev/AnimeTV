@@ -7,7 +7,7 @@
 <p>
   <a href="https://github.com/JSolanoDev/AnimeTV">AnimeTV</a>
   ·
-  <a href="https://animetv-umber.vercel.app">Live Demo</a>
+  <a href="https://zenkaitv.com">zenkaitv.com</a>
 </p>
 
 ## Featured Project
@@ -39,4 +39,4 @@ JavaScript · Node.js · Android WebView · Vercel · APIs · UI/UX · Automatio
 
 - GitHub: https://github.com/JSolanoDev
 - AnimeTV: https://github.com/JSolanoDev/AnimeTV
-- Live app: https://animetv-umber.vercel.app
+- Live app: https://zenkaitv.com

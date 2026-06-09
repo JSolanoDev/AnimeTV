@@ -7,7 +7,11 @@
 </p>
 
 <p align="center">
-  <a href="https://animetv-umber.vercel.app">Live Demo</a>
+  <strong>🌐 <a href="https://zenkaitv.com">zenkaitv.com</a></strong>
+</p>
+
+<p align="center">
+  <a href="https://zenkaitv.com">Live Site</a>
   ·
   <a href="DEPLOY.md">Deployment</a>
   ·
@@ -85,7 +89,7 @@ See **[DEPLOY.md](DEPLOY.md)** for the full guide. In short:
 1. **Scraper** → deploy the Python project (Render Blueprint / Railway / Fly). Copy its URL.
 2. **Web app** → deploy this repo and set `TIOANIME_API` to the scraper URL.
 
-The web app is live on Vercel at **https://animetv-umber.vercel.app** (front-end + serverless `/api`). For the TioAnime/AnimeAV1 sources to work online, host the scraper separately and point `TIOANIME_API` at it — the Python scraper cannot run inside Vercel's serverless runtime.
+The web app is live at **[https://zenkaitv.com](https://zenkaitv.com)** (front-end + serverless `/api`, hosted on Vercel). For the TioAnime/AnimeAV1 sources to work online, host the scraper separately and point `TIOANIME_API` at it — the Python scraper cannot run inside Vercel's serverless runtime.
 
 | Variable | Required | Notes |
 |---|---|---|
