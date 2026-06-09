@@ -1772,12 +1772,23 @@ function cardMeta(show, isFavorite = false) {
 
 function renderCards(container, list) {
   if (!container) return;
+  // Skip redundant repaints. render() runs on many background events (catalog
+  // enrichment, trailer lookups, route syncs); re-writing identical cards replays
+  // the staggered entrance animation and reloads every <img>, which reads as a
+  // flash/"blink". Only touch the DOM when the cards (order + badge + favourite
+  // state) actually change.
+  const signature = list
+    .map((show) => `${show.id}:${cardEpisodeLabel(show)}:${state.favorites.includes(show.id) ? 1 : 0}`)
+    .join("|");
+  if (container.dataset.cardsSig === signature) return;
+  container.dataset.cardsSig = signature;
   container.classList.remove("is-skeleton-loading");
   container.innerHTML = list.map((show, index) => cardTemplate(show, index)).join("");
 }
 
 function renderSkeletonCards(container, count = 7) {
   if (!container) return;
+  container.dataset.cardsSig = "";   // force the next real render to repaint
   container.classList.add("is-skeleton-loading");
   container.innerHTML = Array.from({ length: count }, (_, index) => `
     <div class="show-card skeleton-card" style="--card-index: ${index}" aria-hidden="true">
@@ -3720,10 +3731,21 @@ function wireRailButtons() {
 function setRoute(route) {
   state.route = route;
   document.body.dataset.route = route;
+  // Returning Home starts fresh: clear any active search so Home shows the full
+  // Latest Episodes instead of a filtered leftover from the Search tab.
+  const clearedSearch = route === "home" && Boolean(state.search);
+  if (clearedSearch) {
+    state.search = "";
+    [searchInput, searchInputTop, searchInputLibrary, searchInputAniPub].forEach((el) => {
+      if (el) el.value = "";
+    });
+    document.querySelectorAll(".search-box .search-clear").forEach((c) => { c.hidden = true; });
+  }
   document.querySelectorAll(".nav-link").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.route === route);
   });
 
+  if (clearedSearch) render();   // refresh the now-unfiltered Home grids
   syncRouteVisibility();
   // The hero trailer only runs on Home — stop it elsewhere, restart on return.
   if (route === "home") renderCarousel();
@@ -7138,7 +7160,10 @@ function handleSearchInput(event) {
     if (i && c) c.hidden = !i.value;
   });
   render();
-  if (state.route === "home") {
+  // Only jump to the results tab when there's actually something to search for.
+  // Clearing the home search (× button / deleting the text) must NOT bounce the
+  // user to an empty Library — they stay on Home.
+  if (state.route === "home" && state.search) {
     const goAniPub = event.target === searchInputAniPub;
     setRoute(goAniPub ? "anipub" : "library");
     // Typing on the home search switches to Library/AniPub, which hides the home
