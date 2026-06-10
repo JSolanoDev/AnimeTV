@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://zenkaitv.com">Live Site</a>
   ·
-  <a href="DEPLOY.md">Deployment</a>
+  <a href="docs/DEPLOY.md">Deployment</a>
   ·
   <a href="docs/ANDROID_TV.md">Android TV</a>
   ·
@@ -84,7 +84,7 @@ On Windows, `./start-all.bat` can supervise the app and companion services and r
 
 ## Deployment
 
-See **[DEPLOY.md](DEPLOY.md)** for the full guide. In short:
+See **[docs/DEPLOY.md](docs/DEPLOY.md)** for the full guide. In short:
 
 1. **Scraper** → deploy the Python project (Render Blueprint / Railway / Fly). Copy its URL.
 2. **Web app** → deploy this repo and set `TIOANIME_API` to the scraper URL.

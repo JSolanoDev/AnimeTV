@@ -1,7 +1,5 @@
 .vercel
 .env*
-catalog-server.js
-tioanime-bridge.js
 android
 dist
 docs
