@@ -607,6 +607,11 @@ function handleRequest(request, response) {
     return;
   }
 
+  if (url.pathname === "/api/resolve") {
+    handleResolveEmbed(url, response);
+    return;
+  }
+
   if (url.pathname === "/api/scraped-catalog") {
     handleScrapedCatalog(url, response);
     return;
@@ -5760,6 +5765,81 @@ async function handleCrawl(request, response) {
     });
   } catch (error) {
     sendJson(response, { ok: false, error: `Crawl failed: ${error.message}` });
+  }
+}
+
+// ── Embed resolver ────────────────────────────────────────────────────────────
+// Turn an embed page (Streamwish/Filemoon/Voe/Mp4upload/Streamtape/…) into a
+// direct stream URL (.m3u8/.mp4) so the native Android player can play it. So the
+// app's "every source plays in the native player" works for iframe hosts too.
+function unpackPackedJs(packed) {
+  // Dean Edwards' p,a,c,k,e,d unpacker (used by Streamwish/Filemoon/jwplayer skins).
+  // Greedy payload, anchored by the `,base,count,'keys'.split('|')` tail — the
+  // payload contains escaped quotes, so a non-greedy match stops too early.
+  const m = String(packed).match(/}\s*\(\s*'([\s\S]*)'\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*'([\s\S]*?)'\.split\('\|'\)/);
+  if (!m) return "";
+  const payload = m[1];
+  const base = parseInt(m[2], 10);
+  let count = parseInt(m[3], 10);
+  const keys = m[4].split("|");
+  const enc = (c) => (c < base ? "" : enc(Math.floor(c / base))) + ((c = c % base) > 35 ? String.fromCharCode(c + 29) : c.toString(36));
+  let out = payload.replace(/\\'/g, "'").replace(/\\\\/g, "\\");
+  while (count--) {
+    if (keys[count]) out = out.replace(new RegExp("\\b" + enc(count) + "\\b", "g"), keys[count]);
+  }
+  return out;
+}
+function extractStreamFromEmbed(html) {
+  const text = String(html || "");
+  const pick = (u) => u && { url: u.replace(/\\\//g, "/"), type: /\.m3u8(\?|#|$)/i.test(u) ? "hls" : "mp4" };
+  // 1) m3u8/mp4 sitting directly in the page markup or inline scripts.
+  let m = text.match(/https?:\/\/[^\s"'\\<>]+\.m3u8[^\s"'\\<>]*/i);
+  if (m) return pick(m[0]);
+  m = text.match(/["'](?:file|src|source)["']\s*:\s*["'](https?:\/\/[^"']+\.(?:m3u8|mp4)[^"']*)["']/i);
+  if (m) return pick(m[1]);
+  // 2) packed eval(...) payloads (Streamwish/Filemoon family) → unpack → file:"…".
+  for (const p of text.matchAll(/eval\(function\(p,a,c,k,e,d\)\{[\s\S]*?\}\([\s\S]*?\)\)\s*\)?/g)) {
+    const un = unpackPackedJs(p[0]);
+    let u = (un.match(/file\s*:\s*"([^"]+\.m3u8[^"]*)"/i) ||
+             un.match(/sources?\s*:\s*\[\s*\{[^}]*?(?:file|src)\s*:\s*"([^"]+)"/i) ||
+             un.match(/"(https?:\/\/[^"]+\.m3u8[^"]*)"/i) ||
+             un.match(/file\s*:\s*"([^"]+\.mp4[^"]*)"/i) ||
+             un.match(/"(https?:\/\/[^"]+\.mp4[^"]*)"/i));
+    if (u) return pick(u[1]);
+  }
+  // 3) last resort: any .mp4 in the page.
+  m = text.match(/https?:\/\/[^\s"'\\<>]+\.mp4[^\s"'\\<>]*/i);
+  if (m) return pick(m[0]);
+  return null;
+}
+async function handleResolveEmbed(reqUrl, response) {
+  const target = reqUrl.searchParams.get("url");
+  if (!target || !/^https?:\/\//i.test(target)) {
+    sendJson(response, { ok: false, error: "Missing embed url." }, 400);
+    return;
+  }
+  // Already a direct stream? Pass it straight through.
+  if (/\.(m3u8|mp4)(\?|#|$)/i.test(target)) {
+    sendJson(response, { ok: true, url: target, type: /\.m3u8/i.test(target) ? "hls" : "mp4" }, 200, { "Cache-Control": "public, max-age=120" });
+    return;
+  }
+  try {
+    const host = (target.match(/^https?:\/\/([^/]+)/) || [])[1] || "";
+    const r = await fetchWithTimeout(target, {
+      headers: { ...GENERIC_CRAWL_HEADERS, Referer: `https://${host}/` }
+    }, HOSTED_RUNTIME ? 8000 : 12000);
+    if (!r.ok) throw new Error(`embed HTTP ${r.status}`);
+    const html = await r.text();
+    const stream = extractStreamFromEmbed(html);
+    if (!stream) { sendJson(response, { ok: false, error: "No playable stream found in this embed." }); return; }
+    sendJson(response, {
+      ok: true,
+      url: stream.url,
+      type: stream.type,
+      referer: `https://${host}/`
+    }, 200, { "Cache-Control": "public, max-age=120" });
+  } catch (error) {
+    sendJson(response, { ok: false, error: `Resolve failed: ${error.message}` }, 502);
   }
 }
 

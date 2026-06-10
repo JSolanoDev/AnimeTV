@@ -6699,6 +6699,22 @@ async function playActiveShow(options = {}) {
     return;
   }
 
+  // Android TV: route EVERY source through the native ExoPlayer. Direct streams
+  // play immediately; embed hosts are resolved by the player's in-app WebView
+  // stream-sniffer. In a normal browser there's no bridge, so nothing changes.
+  if (window.ZenkaiNative && typeof window.ZenkaiNative.play === "function") {
+    const title = getShowTitle(show) || "";
+    if (isEmbedUrl(url)) {
+      const host = (url.match(/^https?:\/\/([^/]+)/) || [])[1] || "";
+      window.ZenkaiNative.play(url, title, "embed", "{}", host ? `https://${host}/` : "");
+    } else {
+      const abs = new URL(proxiedStreamUrl(url), location.origin).href;
+      window.ZenkaiNative.play(abs, title, streamTypeFromUrl(abs) || streamTypeFromUrl(url) || "auto", "{}", "");
+    }
+    showToast("Opening native player…");
+    return;
+  }
+
   if (isEmbedUrl(url)) {
     renderExternalPlaybackOption(show, url);
   } else {

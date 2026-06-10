@@ -147,13 +147,14 @@ public class MainActivity extends Activity {
     /** JS-accessible bridge so the web UI can launch the native ExoPlayer. */
     private class ZenkaiBridge {
         @JavascriptInterface
-        public void play(final String url, final String title, final String type, final String headers) {
+        public void play(final String url, final String title, final String type, final String headers, final String referer) {
             if (url == null || url.isEmpty()) return;
             final Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
             intent.putExtra("url", url);
             intent.putExtra("title", title);
             intent.putExtra("type", type);
             intent.putExtra("headers", headers);
+            intent.putExtra("referer", referer);
             runOnUiThread(new Runnable() {
                 @Override public void run() { startActivity(intent); }
             });
