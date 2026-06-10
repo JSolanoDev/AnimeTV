@@ -7152,7 +7152,7 @@ body.reduce-motion .watch-stage-body { animation: none; }
   flex-direction: column;
   min-height: 0;
   height: 100%;
-  padding: 0.9rem 0.7rem 0.9rem 0.9rem;
+  padding: 3.4rem 0.7rem 0.9rem 0.9rem;
   background: linear-gradient(180deg, rgba(15, 16, 27, 0.82), rgba(8, 9, 17, 0.92));
   border-left: 0.08rem solid rgba(255,255,255,0.08);
   border-top-left-radius: 1.1rem;
@@ -7442,3 +7442,42 @@ body.has-embedded-player .watch-side {
   background: rgba(138, 92, 255, 0.18);
 }
 .ep-row.is-tv-focused { transform: scale(1.015); }
+
+/* ── Global fullscreen toggle (fixed top-right, every screen) ──────────────── */
+.fs-toggle {
+  position: fixed;
+  top: clamp(0.7rem, 1.6vh, 1.2rem);
+  right: clamp(0.7rem, 1.6vw, 1.2rem);
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  width: 2.7rem;
+  height: 2.7rem;
+  border: 0.08rem solid rgba(255,255,255,0.16);
+  border-radius: 0.7rem;
+  background: rgba(14, 15, 26, 0.55);
+  color: rgba(236, 238, 250, 0.9);
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0.5rem 1.4rem rgba(0,0,0,0.3);
+  transition: background 150ms ease, transform 150ms ease, border-color 150ms ease;
+}
+.fs-toggle:is(:hover, :focus-visible) {
+  background: rgba(40, 42, 62, 0.72);
+  border-color: rgba(255,255,255,0.3);
+  transform: translateY(-1px);
+  outline: 0;
+}
+.fs-toggle.is-tv-focused {
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem var(--accent, #8a5cff);
+  transform: scale(1.06);
+}
+.fs-toggle .fs-ico { width: 1.25rem; height: 1.25rem; }
+.fs-ico-compress { display: none; }
+body.is-fullscreen .fs-ico-expand { display: none; }
+body.is-fullscreen .fs-ico-compress { display: block; }
+/* Stay clear of the active video player chrome (cinema z-index is far higher). */
+body.player-cinema-open .fs-toggle,
+body.has-embedded-player .fs-toggle { display: none; }

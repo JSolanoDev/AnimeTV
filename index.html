@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#0D1B2A">
     <title>ZenkaiTV — Anime Online en HD</title>
-    <link rel="icon" type="image/png" href="logo-round.png?v=254">
-    <link rel="shortcut icon" href="logo-round.png?v=254">
-    <link rel="apple-touch-icon" href="logo-round-192.png?v=254">
-    <link rel="manifest" href="manifest.webmanifest?v=254">
-    <link rel="stylesheet" href="styles.css?v=254">
+    <link rel="icon" type="image/png" href="logo-round.png?v=255">
+    <link rel="shortcut icon" href="logo-round.png?v=255">
+    <link rel="apple-touch-icon" href="logo-round-192.png?v=255">
+    <link rel="manifest" href="manifest.webmanifest?v=255">
+    <link rel="stylesheet" href="styles.css?v=255">
   </head>
   <body>
     <div class="app-loader" id="appLoader" role="status" aria-live="polite">
       <div class="loader-mark" aria-hidden="true">
-        <img class="loader-logo" src="logo-mark-transparent.png?v=254" alt="">
+        <img class="loader-logo" src="logo-mark-transparent.png?v=255" alt="">
       </div>
       <strong>ZenkaiTV</strong>
       <small>Waking the anime lounge...</small>
@@ -24,7 +24,7 @@
       <header class="topbar">
         <a class="brand focusable" href="#home" data-route="home" data-nav-label="Home">
           <span class="brand-mark" aria-hidden="true">
-            <img class="brand-logo" src="logo-mark-transparent.png?v=254" alt="">
+            <img class="brand-logo" src="logo-mark-transparent.png?v=255" alt="">
           </span>
           <span class="brand-copy">
             <strong>ZenkaiTV</strong>
@@ -202,7 +202,7 @@
 
       <footer class="bottom-bar" aria-label="ZenkaiTV footer">
         <div class="footer-brand">
-          <img class="footer-wordmark" src="logo-wordmark.png?v=254" alt="ZenkaiTV">
+          <img class="footer-wordmark" src="logo-wordmark.png?v=255" alt="ZenkaiTV">
           <p class="footer-tagline">Your anime universe — organized, ad-free, always on.</p>
           <div class="footer-meta">
             <span class="footer-status">Catalogs refresh daily</span>
@@ -251,13 +251,23 @@
       </div>
     </div>
 
-    <script src="js/constants.js?v=254"></script>
-    <script src="js/translations.js?v=254"></script>
-    <script src="js/utils.js?v=254"></script>
-    <script src="js/normalize.js?v=254"></script>
-    <script src="js/anilist-metadata.js?v=254"></script>
-    <script src="js/smart-source.js?v=254"></script>
-    <script src="update-manager.js?v=254"></script>
-    <script src="client.js?v=254"></script>
+    <!-- Global fullscreen toggle — fixed top-right on every screen. -->
+    <button class="fs-toggle focusable" id="fullscreenToggle" type="button" aria-label="Toggle fullscreen" data-tip="Fullscreen" title="Fullscreen">
+      <svg class="fs-ico fs-ico-expand" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M8 3H4a1 1 0 0 0-1 1v4M16 3h4a1 1 0 0 1 1 1v4M8 21H4a1 1 0 0 1-1-1v-4M16 21h4a1 1 0 0 0 1-1v-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <svg class="fs-ico fs-ico-compress" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 8h3a1 1 0 0 0 1-1V4M20 8h-3a1 1 0 0 1-1-1V4M4 16h3a1 1 0 0 1 1 1v3M20 16h-3a1 1 0 0 0-1 1v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <script src="js/constants.js?v=255"></script>
+    <script src="js/translations.js?v=255"></script>
+    <script src="js/utils.js?v=255"></script>
+    <script src="js/normalize.js?v=255"></script>
+    <script src="js/anilist-metadata.js?v=255"></script>
+    <script src="js/smart-source.js?v=255"></script>
+    <script src="update-manager.js?v=255"></script>
+    <script src="client.js?v=255"></script>
   </body>
 </html>

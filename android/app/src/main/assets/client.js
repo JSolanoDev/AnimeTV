@@ -4733,36 +4733,6 @@ function compactMetadataLine(show = {}) {
   ].filter(Boolean).join(" | ");
 }
 
-function renderRichMetadata(show = {}, seasons = []) {
-  if (!state.uiPreferences.metadataDetail) return "";
-  const episodeCount = countLoadedEpisodes([show]) || seasons.reduce((total, season) => total + (season.episodes?.length || 0), 0);
-  const rows = [
-    ["AniList", show.anilistId],
-    ["MAL", show.malId],
-    ["Status", show.status && String(show.status).replace(/_/g, " ")],
-    ["Format", show.format],
-    ["Episodes", episodeCount || show.episode],
-    ["Duration", show.duration ? `${show.duration} min` : ""],
-    ["Year", show.year],
-    ["Source", show.source]
-  ].filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== "");
-  const aliases = [show.romajiTitle, show.nativeTitle, ...(show.aliases || [])]
-    .filter(Boolean)
-    .filter((value, index, list) => list.indexOf(value) === index && value !== show.title)
-    .slice(0, 3);
-  return `
-    <div class="anime-metadata-grid" aria-label="Anime metadata">
-      ${rows.map(([label, value]) => `
-        <span class="anime-metadata-item">
-          <b class="anime-metadata-label">${escapeHtml(label)}</b>
-          <span class="anime-metadata-value">${escapeHtml(String(value))}</span>
-        </span>
-      `).join("")}
-    </div>
-    ${aliases.length ? `<p class="anime-aliases">${aliases.map(escapeHtml).join(" · ")}</p>` : ""}
-  `;
-}
-
 // Episode title without the redundant "Episode N" when that's all there is.
 function episodeEntryTitle(episode = {}, index = 0) {
   const raw = String(episode.title || "").trim();
@@ -7790,6 +7760,21 @@ shareButton?.addEventListener("click", async () => {
     if (error?.name !== "AbortError") console.warn("Share failed:", error);
   }
 });
+
+// Global fullscreen toggle (top-right, every screen). Reuses the player's
+// document-level fullscreen helper; the icon swaps via the body class below.
+const fullscreenToggle = document.querySelector("#fullscreenToggle");
+fullscreenToggle?.addEventListener("click", toggleNativeFullscreen);
+["fullscreenchange", "webkitfullscreenchange"].forEach((evt) =>
+  document.addEventListener(evt, () => {
+    const active = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+    document.body.classList.toggle("is-fullscreen", active);
+    if (fullscreenToggle) {
+      fullscreenToggle.setAttribute("aria-label", active ? "Exit fullscreen" : "Toggle fullscreen");
+      fullscreenToggle.dataset.tip = active ? "Exit fullscreen" : "Fullscreen";
+    }
+  })
+);
 
 // TV remote: make search boxes read-only by default (Android app only) so spatial
 // focus can pass over them without popping the on-screen keyboard. OK enters edit
