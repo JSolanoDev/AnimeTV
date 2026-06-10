@@ -5970,6 +5970,7 @@ function readStoredMap(key) {
 // watching) are cheap and survive metadata refreshes. Loaded once, written through.
 let _watchMapCache = null;
 let _activeProgressPlayer = null;   // { player, episode } for save-on-close
+let _nativePlayContext = null;      // { show, season, episode, key } for native player callbacks
 function getWatchMap() {
   if (!_watchMapCache) _watchMapCache = readStoredMap(RESUME_POSITIONS_KEY);
   return _watchMapCache;
@@ -6121,6 +6122,41 @@ function resumeFromContinue(showId, key) {
   if (!showId) return;
   openShow(showId, { seasonNumber, episodeNumber, playIntent: true });
 }
+
+// ── Native (Android) player → web bridge ────────────────────────────────────
+// The TV ExoPlayer plays outside the WebView, so it calls these to persist
+// progress and refresh the home rail when the user returns. No-ops on desktop.
+window.ZenkaiTrackProgress = function (episodeKey, posMs, durMs, completed) {
+  try {
+    const posSec = Math.floor((Number(posMs) || 0) / 1000);
+    const durSec = Math.floor((Number(durMs) || 0) / 1000);
+    const ctx = _nativePlayContext;
+    if (ctx && ctx.key === episodeKey && ctx.show) {
+      recordWatchProgress({
+        show: ctx.show, season: ctx.season, episode: ctx.episode,
+        positionSec: posSec, durationSec: durSec,
+        episodeTitle: ctx.episodeTitle, thumb: ctx.thumb, completed: Boolean(completed)
+      });
+      return;
+    }
+    // Fallback: reconstruct the show from the key (animeId:sN:eM).
+    const parts = /^(.+):s(\d+):e(\d+)$/.exec(String(episodeKey || ""));
+    if (!parts) return;
+    const animeId = parts[1];
+    const show = state.shows.find((s) => getAnimeTrackId(s) === animeId);
+    if (!show) return;
+    recordWatchProgress({
+      show, season: Number(parts[2]), episode: Number(parts[3]),
+      positionSec: posSec, durationSec: durSec, completed: Boolean(completed)
+    });
+  } catch (error) {
+    console.warn("ZenkaiTrackProgress failed:", error);
+  }
+};
+
+window.ZenkaiRefreshHome = function () {
+  try { renderContinueWatching(); } catch (error) { /* ignore */ }
+};
 
 function isActiveEpisode(seasonIndex, episodeIndex) {
   return state.activeEpisode?.seasonIndex === seasonIndex && state.activeEpisode?.episodeIndex === episodeIndex;
@@ -7096,12 +7132,29 @@ async function playActiveShow(options = {}) {
   // stream-sniffer. In a normal browser there's no bridge, so nothing changes.
   if (window.ZenkaiNative && typeof window.ZenkaiNative.play === "function") {
     const title = getShowTitle(show) || "";
+    // Build the watch-tracking context so the native player can resume from the
+    // saved position and report progress back into localStorage.
+    const ae = state.activeEpisode || {};
+    const seasonNum = ae.season?.season || (ae.seasonIndex + 1) || (state.activeSeasonIndex + 1) || 1;
+    const epNum = ae.episode?.episode || ae.episode?.number || (ae.episodeIndex + 1) || 1;
+    const epKey = buildWatchKey(show, seasonNum, epNum);
+    const startMs = (getResumePosition(ae.episode) || 0) * 1000;
+    _nativePlayContext = {
+      show, season: seasonNum, episode: epNum, key: epKey,
+      episodeTitle: ae.episode?.title || "",
+      thumb: episodeThumb(ae.episode || {}, ae.season || {}, show)
+    };
+    const tracked = typeof window.ZenkaiNative.playTracked === "function";
     if (isEmbedUrl(url)) {
       const host = (url.match(/^https?:\/\/([^/]+)/) || [])[1] || "";
-      window.ZenkaiNative.play(url, title, "embed", "{}", host ? `https://${host}/` : "");
+      const ref = host ? `https://${host}/` : "";
+      if (tracked) window.ZenkaiNative.playTracked(url, title, "embed", "{}", ref, startMs, epKey);
+      else window.ZenkaiNative.play(url, title, "embed", "{}", ref);
     } else {
       const abs = new URL(proxiedStreamUrl(url), location.origin).href;
-      window.ZenkaiNative.play(abs, title, streamTypeFromUrl(abs) || streamTypeFromUrl(url) || "auto", "{}", "");
+      const type = streamTypeFromUrl(abs) || streamTypeFromUrl(url) || "auto";
+      if (tracked) window.ZenkaiNative.playTracked(abs, title, type, "{}", "", startMs, epKey);
+      else window.ZenkaiNative.play(abs, title, type, "{}", "");
     }
     showToast("Opening native player…");
     return;

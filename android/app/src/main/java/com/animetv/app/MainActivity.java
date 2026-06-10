@@ -28,14 +28,34 @@ public class MainActivity extends Activity {
     // playback).
     private static final String SITE_URL = "https://zenkaitv.com";
 
+    // Single live instance so the (separate) PlayerActivity can report playback
+    // progress back into this WebView's JS for local watch-tracking.
+    private static MainActivity sInstance;
+
     private WebView webView;
     private View customView;
     private WebChromeClient.CustomViewCallback customViewCallback;
+
+    /** Called from PlayerActivity to push a progress update into the web app. */
+    public static void reportProgress(final String episodeKey, final long positionMs,
+                                      final long durationMs, final boolean completed) {
+        final MainActivity self = sInstance;
+        if (self == null || self.webView == null || episodeKey == null) return;
+        final String safeKey = episodeKey.replace("\\", "\\\\").replace("'", "\\'");
+        final String js = "window.ZenkaiTrackProgress && window.ZenkaiTrackProgress('"
+            + safeKey + "'," + positionMs + "," + durationMs + "," + (completed ? "true" : "false") + ")";
+        self.runOnUiThread(new Runnable() {
+            @Override public void run() {
+                try { self.webView.evaluateJavascript(js, null); } catch (Exception ignored) {}
+            }
+        });
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        sInstance = this;
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
@@ -144,25 +164,60 @@ public class MainActivity extends Activity {
         startActivity(intent);
     }
 
+    private void launchPlayer(String url, String title, String type, String headers,
+                              String referer, long startMs, String episodeKey) {
+        if (url == null || url.isEmpty()) return;
+        final Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
+        intent.putExtra("url", url);
+        intent.putExtra("title", title);
+        intent.putExtra("type", type);
+        intent.putExtra("headers", headers);
+        intent.putExtra("referer", referer);
+        intent.putExtra("startMs", startMs);
+        intent.putExtra("episodeKey", episodeKey == null ? "" : episodeKey);
+        runOnUiThread(new Runnable() {
+            @Override public void run() { startActivity(intent); }
+        });
+    }
+
     /** JS-accessible bridge so the web UI can launch the native ExoPlayer. */
     private class ZenkaiBridge {
         @JavascriptInterface
         public void play(final String url, final String title, final String type, final String headers, final String referer) {
-            if (url == null || url.isEmpty()) return;
-            final Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
-            intent.putExtra("url", url);
-            intent.putExtra("title", title);
-            intent.putExtra("type", type);
-            intent.putExtra("headers", headers);
-            intent.putExtra("referer", referer);
-            runOnUiThread(new Runnable() {
-                @Override public void run() { startActivity(intent); }
-            });
+            launchPlayer(url, title, type, headers, referer, 0L, "");
+        }
+
+        /** Resume-aware variant: seeks to startMs and reports progress back to JS. */
+        @JavascriptInterface
+        public void playTracked(final String url, final String title, final String type, final String headers,
+                                final String referer, final long startMs, final String episodeKey) {
+            launchPlayer(url, title, type, headers, referer, startMs, episodeKey);
         }
 
         /** Lets the web app feature-detect native playback support. */
         @JavascriptInterface
         public boolean available() { return true; }
+
+        /** Feature-detect resume/progress tracking support. */
+        @JavascriptInterface
+        public boolean supportsTracking() { return true; }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Returning from the player → refresh the Continue Watching rail.
+        if (webView != null) {
+            try {
+                webView.evaluateJavascript("window.ZenkaiRefreshHome && window.ZenkaiRefreshHome()", null);
+            } catch (Exception ignored) {}
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (sInstance == this) sInstance = null;
+        super.onDestroy();
     }
 
     @Override

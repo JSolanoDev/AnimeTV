@@ -7656,3 +7656,55 @@ body.is-tv .ep-season-menu { background: rgba(18, 19, 32, 1); }
   white-space: nowrap;
 }
 .continue-card-sub { color: rgba(220, 222, 238, 0.62); font-size: 0.78rem; font-weight: 600; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Stremio-style web player polish (visual only — control structure unchanged)
+   ══════════════════════════════════════════════════════════════════════════ */
+/* Title reads left-aligned like Stremio (episode nav stays in the control row). */
+.vidstream-player:not(.is-iframe) .vid-topbar {
+  background: linear-gradient(180deg, rgba(0,0,0,0.78), rgba(0,0,0,0.12) 70%, transparent);
+}
+.vidstream-player:not(.is-iframe) .vid-topbar strong {
+  text-align: left;
+  padding-left: 0.4rem;
+  font-size: clamp(0.98rem, 1.4vw, 1.18rem);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+/* Bottom controls: cleaner gradient + a little more breathing room. */
+.vid-controls {
+  gap: 0.65rem;
+  padding: 1rem 1rem 0.9rem;
+  background: linear-gradient(0deg, rgba(0,0,0,0.9), rgba(0,0,0,0.32) 55%, transparent);
+}
+/* Bigger, draggable accent seek bar that grows on hover/focus (Stremio feel). */
+.vid-controls .vid-seek {
+  height: 0.4rem;
+  border-radius: 999rem;
+  accent-color: var(--accent, #8a5cff);
+  transition: height 120ms ease;
+}
+.vid-controls .vid-seek:is(:hover, :focus-visible) { height: 0.6rem; outline: 0; }
+.vid-controls .vid-seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999rem;
+  background: #fff;
+  box-shadow: 0 0 0 0.3rem rgba(138, 92, 255, 0.4);
+  cursor: pointer;
+}
+.vid-controls .vid-seek::-moz-range-thumb {
+  width: 1.05rem; height: 1.05rem; border: 0; border-radius: 999rem;
+  background: #fff; box-shadow: 0 0 0 0.3rem rgba(138, 92, 255, 0.4); cursor: pointer;
+}
+/* Slightly larger, cleaner control icons. */
+.vid-control-row .vid-icon-button,
+.vid-control-row .vid-tool-button { min-width: 2.5rem; min-height: 2.5rem; background: transparent; }
+.vid-control-row .vid-icon-button:is(:hover, :focus-visible, .is-tv-focused),
+.vid-control-row .vid-tool-button:is(:hover, :focus-visible, .is-tv-focused) {
+  background: rgba(255,255,255,0.14);
+  box-shadow: none;
+}
+.vid-time { font-variant-numeric: tabular-nums; }

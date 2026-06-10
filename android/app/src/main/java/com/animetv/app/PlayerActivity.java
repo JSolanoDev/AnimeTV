@@ -56,6 +56,12 @@ public class PlayerActivity extends Activity {
     private final AtomicBoolean handled = new AtomicBoolean(false);
     private String referer = "";
 
+    // Watch-tracking: resume point + which episode this playback belongs to.
+    private long startMs = 0;
+    private String episodeKey = "";
+    private final Handler progressHandler = new Handler(Looper.getMainLooper());
+    private Runnable progressTick;
+
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,6 +88,9 @@ public class PlayerActivity extends Activity {
         String type = getIntent().getStringExtra("type");
         referer = getIntent().getStringExtra("referer");
         if (referer == null) referer = "";
+        startMs = getIntent().getLongExtra("startMs", 0L);
+        episodeKey = getIntent().getStringExtra("episodeKey");
+        if (episodeKey == null) episodeKey = "";
         Map<String, String> headers = parseHeaders(getIntent().getStringExtra("headers"));
 
         if (url == null || url.isEmpty()) {
@@ -124,10 +133,43 @@ public class PlayerActivity extends Activity {
             public void onPlayerError(PlaybackException error) {
                 Toast.makeText(PlayerActivity.this, "Playback error: " + error.getErrorCodeName(), Toast.LENGTH_LONG).show();
             }
+            @Override
+            public void onPlaybackStateChanged(int state) {
+                if (state == Player.STATE_ENDED) reportProgress(true);
+            }
         });
         player.setMediaItem(item.build());
         player.setPlayWhenReady(true);
         player.prepare();
+        if (startMs > 0) player.seekTo(startMs);
+        startProgressReporting();
+    }
+
+    // ── Watch-tracking: push position back into the web app's localStorage ────
+    private void startProgressReporting() {
+        if (episodeKey == null || episodeKey.isEmpty()) return;
+        stopProgressReporting();
+        progressTick = new Runnable() {
+            @Override public void run() {
+                reportProgress(false);
+                progressHandler.postDelayed(this, 10000); // every 10s
+            }
+        };
+        progressHandler.postDelayed(progressTick, 10000);
+    }
+
+    private void stopProgressReporting() {
+        if (progressTick != null) progressHandler.removeCallbacks(progressTick);
+        progressTick = null;
+    }
+
+    private void reportProgress(boolean completed) {
+        if (player == null || episodeKey == null || episodeKey.isEmpty()) return;
+        long pos = Math.max(0, player.getCurrentPosition());
+        long dur = player.getDuration();
+        if (dur <= 0) return; // duration not known yet — nothing useful to save
+        boolean done = completed || pos >= dur * 0.95;
+        MainActivity.reportProgress(episodeKey, pos, dur, done);
     }
 
     // ── Embed sniffer ────────────────────────────────────────────────────────
@@ -246,11 +288,14 @@ public class PlayerActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        reportProgress(false);
         if (player != null) player.pause();
     }
 
     @Override
     protected void onDestroy() {
+        reportProgress(false);
+        stopProgressReporting();
         super.onDestroy();
         destroySniffer();
         if (player != null) { player.release(); player = null; }
