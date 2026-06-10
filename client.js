@@ -146,7 +146,7 @@ const state = {
   activeEpisodeUrl: "",
   activeEpisode: null,
   preferredSource: localStorage.getItem("animetv-preferred-playback-source") || "auto",
-  activeDetailTab: "anime",
+  activeDetailTab: "episodes",
   activeSettingsTab: "general",
   activeLegalTab: "terms",
   activeSeasonIndex: 0,
@@ -4808,69 +4808,108 @@ function renderEpisodeList(show) {
   const multiSeason = seasonNav.length > 1;
 
   const episodes = activeSeason?.episodes || [];
+  const tab = state.activeDetailTab === "seasons" ? "seasons" : "episodes";
+  const franchiseList = getFranchiseSeasonList(show) || [];
+  const cardSeasons = franchiseList.length ? franchiseList : seasons;
 
   episodeList.hidden = false;
   episodeList.innerHTML = `
-    <div class="ep-panel-head">
-      <button class="ep-nav-btn focusable" data-season-step="-1" ${activeNavIndex <= 0 ? "disabled" : ""} aria-label="Previous season">
-        <span aria-hidden="true">‹</span><span class="ep-nav-label">Prev</span>
-      </button>
-      <div class="ep-season-select">
-        <button class="ep-season-btn focusable" data-season-toggle type="button" aria-haspopup="listbox" aria-expanded="false">
-          <span class="ep-season-name">${escapeHtml(activeNav.label)}</span>
-          <span class="ep-season-caret" aria-hidden="true">▾</span>
+    <div class="detail-tabs detail-tabs-2" role="tablist" aria-label="Anime details">
+      <button class="detail-tab focusable ${tab === "seasons" ? "is-selected" : ""}" data-detail-tab="seasons" role="tab" aria-selected="${tab === "seasons"}">Seasons</button>
+      <button class="detail-tab focusable ${tab === "episodes" ? "is-selected" : ""}" data-detail-tab="episodes" role="tab" aria-selected="${tab === "episodes"}">Episodes</button>
+    </div>
+
+    <section class="detail-pane ${tab === "episodes" ? "is-active" : ""}" data-detail-pane="episodes">
+      <div class="ep-panel-head">
+        <button class="ep-nav-btn focusable" data-season-step="-1" ${activeNavIndex <= 0 ? "disabled" : ""} aria-label="Previous season">
+          <span aria-hidden="true">‹</span><span class="ep-nav-label">Prev</span>
         </button>
-        ${multiSeason ? `
-        <div class="ep-season-menu" role="listbox" hidden>
-          ${seasonNav.map((s, i) => `
-            <button class="ep-season-option focusable ${i === activeNavIndex ? "is-selected" : ""}" role="option" data-season-nav="${i}" type="button">
-              <span>${escapeHtml(s.label)}</span>
-              <small>${s.badge ? escapeHtml(s.badge) : `${s.epCount} eps`}</small>
-            </button>
-          `).join("")}
-        </div>` : ""}
+        <div class="ep-season-select">
+          <button class="ep-season-btn focusable" data-season-toggle type="button" aria-haspopup="listbox" aria-expanded="false">
+            <span class="ep-season-name">${escapeHtml(activeNav.label)}</span>
+            <span class="ep-season-caret" aria-hidden="true">▾</span>
+          </button>
+          ${multiSeason ? `
+          <div class="ep-season-menu" role="listbox" hidden>
+            ${seasonNav.map((s, i) => `
+              <button class="ep-season-option focusable ${i === activeNavIndex ? "is-selected" : ""}" role="option" data-season-nav="${i}" type="button">
+                <span>${escapeHtml(s.label)}</span>
+                <small>${s.badge ? escapeHtml(s.badge) : `${s.epCount} eps`}</small>
+              </button>
+            `).join("")}
+          </div>` : ""}
+        </div>
+        <button class="ep-nav-btn focusable" data-season-step="1" ${activeNavIndex >= seasonNav.length - 1 ? "disabled" : ""} aria-label="Next season">
+          <span class="ep-nav-label">Next</span><span aria-hidden="true">›</span>
+        </button>
       </div>
-      <button class="ep-nav-btn focusable" data-season-step="1" ${activeNavIndex >= seasonNav.length - 1 ? "disabled" : ""} aria-label="Next season">
-        <span class="ep-nav-label">Next</span><span aria-hidden="true">›</span>
-      </button>
-    </div>
 
-    ${window.ZenkaiNative ? "" : `
-    <label class="ep-search">
-      <input class="ep-search-input focusable" id="epSearchInput" type="search" placeholder="search videos" autocomplete="off" aria-label="Search episodes">
-      <span class="ep-search-icon" aria-hidden="true">⌕</span>
-    </label>`}
+      ${window.ZenkaiNative ? "" : `
+      <label class="ep-search">
+        <input class="ep-search-input focusable" id="epSearchInput" type="search" placeholder="search videos" autocomplete="off" aria-label="Search episodes">
+        <span class="ep-search-icon" aria-hidden="true">⌕</span>
+      </label>`}
 
-    <div class="ep-rows" id="epRows">
-      ${episodes.length ? episodes.map((episode, episodeIndex) => {
-        const num = episode.episode || episodeIndex + 1;
-        const title = episodeEntryTitle(episode, episodeIndex);
-        const thumb = episodeThumb(episode, activeSeason, show);
-        const date = episodeAirDateLabel(episode);
-        const locked = isEpisodeUnavailable(episode);
-        const selected = isActiveEpisode(state.activeSeasonIndex, episodeIndex);
-        const metaLine = date || episodeDisplaySubtitle(episode);
-        const search = `${num} ${title}`.toLowerCase();
-        return `
-        <button class="ep-row focusable ${locked ? "is-locked" : ""} ${selected ? "is-selected" : ""}"
-                data-season-index="${state.activeSeasonIndex}" data-episode-index="${episodeIndex}"
-                data-ep-search="${escapeHtml(search)}">
-          <span class="ep-thumb">
-            ${thumb ? `<img class="ep-thumb-img" src="${escapeHtml(thumb)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
-            <span class="ep-thumb-num">${escapeHtml(String(num))}</span>
-            <span class="ep-thumb-play" aria-hidden="true">▶</span>
-          </span>
-          <span class="ep-row-body">
-            <strong class="ep-row-title">${escapeHtml(String(num))}. ${escapeHtml(title)}</strong>
-            <small class="ep-row-meta">${escapeHtml(metaLine)}</small>
-          </span>
-        </button>`;
-      }).join("") : `
-        <p class="ep-empty">${activeSeason?.playable === false
-          ? "Episodes are listed from metadata. Playback servers load when a matching source is available."
-          : "No episodes found for this season yet."}</p>`}
-    </div>
+      <div class="ep-rows" id="epRows">
+        ${episodes.length ? episodes.map((episode, episodeIndex) => {
+          const num = episode.episode || episodeIndex + 1;
+          const title = episodeEntryTitle(episode, episodeIndex);
+          const thumb = episodeThumb(episode, activeSeason, show);
+          const date = episodeAirDateLabel(episode);
+          const locked = isEpisodeUnavailable(episode);
+          const selected = isActiveEpisode(state.activeSeasonIndex, episodeIndex);
+          const metaLine = date || episodeDisplaySubtitle(episode);
+          const search = `${num} ${title}`.toLowerCase();
+          return `
+          <button class="ep-row focusable ${locked ? "is-locked" : ""} ${selected ? "is-selected" : ""}"
+                  data-season-index="${state.activeSeasonIndex}" data-episode-index="${episodeIndex}"
+                  data-ep-search="${escapeHtml(search)}">
+            <span class="ep-thumb">
+              ${thumb ? `<img class="ep-thumb-img" src="${escapeHtml(thumb)}" alt="" loading="lazy" onerror="this.style.display='none'">` : ""}
+              <span class="ep-thumb-num">${escapeHtml(String(num))}</span>
+              <span class="ep-thumb-play" aria-hidden="true">▶</span>
+            </span>
+            <span class="ep-row-body">
+              <strong class="ep-row-title">${escapeHtml(String(num))}. ${escapeHtml(title)}</strong>
+              <small class="ep-row-meta">${escapeHtml(metaLine)}</small>
+            </span>
+          </button>`;
+        }).join("") : `
+          <p class="ep-empty">${activeSeason?.playable === false
+            ? "Episodes are listed from metadata. Playback servers load when a matching source is available."
+            : "No episodes found for this season yet."}</p>`}
+      </div>
+    </section>
+
+    <section class="detail-pane ${tab === "seasons" ? "is-active" : ""}" data-detail-pane="seasons">
+      <div class="season-card-grid">
+        ${cardSeasons.map((season, i) => {
+          const nav = seasonNav[i] || {};
+          const epc = season.episodes?.length || 0;
+          const badge = season.formatBadge ? `<span class="season-format-badge">${escapeHtml(season.formatBadge)}</span>` : "";
+          const yr = season.year ? `<span class="season-year">${season.year}</span>` : "";
+          const epLabel = epc ? `${epc} episode${epc === 1 ? "" : "s"}` : "";
+          const selected = nav.localIndex === state.activeSeasonIndex && !nav.relatedShowId;
+          return `
+          <button class="season-card focusable ${selected ? "is-selected" : ""}" data-season-card="${i}">
+            ${season.image ? `<img src="${escapeHtml(season.image)}" alt="" loading="lazy">` : ""}
+            <strong>${escapeHtml(nav.label || season.title || `Season ${i + 1}`)}</strong>
+            <small>${escapeHtml(season.sourceTitle || getSeasonDisplayTitle(show, season))}</small>
+            <span>${epLabel}${badge}${yr}</span>
+          </button>`;
+        }).join("")}
+      </div>
+    </section>
   `;
+
+  // ── Detail tabs (Seasons / Episodes) ────────────────────────────────────
+  episodeList.querySelectorAll("[data-detail-tab]").forEach((tabBtn) => {
+    tabBtn.addEventListener("click", () => {
+      state.activeDetailTab = tabBtn.dataset.detailTab;
+      renderEpisodeList(show);
+      refreshFocusables();
+    });
+  });
 
   // ── Season dropdown toggle ──────────────────────────────────────────────
   const seasonBtn = episodeList.querySelector("[data-season-toggle]");
@@ -4904,6 +4943,14 @@ function renderEpisodeList(show) {
     button.addEventListener("click", () => {
       if (button.hasAttribute("disabled")) return;
       navTo(activeNavIndex + Number(button.dataset.seasonStep));
+    });
+  });
+
+  // ── Season cards (Seasons tab) → switch season and jump to Episodes ──────
+  episodeList.querySelectorAll("[data-season-card]").forEach((card) => {
+    card.addEventListener("click", () => {
+      state.activeDetailTab = "episodes";
+      navTo(Number(card.dataset.seasonCard));
     });
   });
 
@@ -7772,6 +7819,11 @@ fullscreenToggle?.addEventListener("click", toggleNativeFullscreen);
     if (fullscreenToggle) {
       fullscreenToggle.setAttribute("aria-label", active ? "Exit fullscreen" : "Toggle fullscreen");
       fullscreenToggle.dataset.tip = active ? "Exit fullscreen" : "Fullscreen";
+      // Replay the pulse animation on each toggle.
+      fullscreenToggle.classList.remove("fs-pulse");
+      void fullscreenToggle.offsetWidth; // reflow so the animation restarts
+      fullscreenToggle.classList.add("fs-pulse");
+      window.setTimeout(() => fullscreenToggle.classList.remove("fs-pulse"), 480);
     }
   })
 );

@@ -7151,12 +7151,14 @@ body.reduce-motion .watch-stage-body { animation: none; }
   display: flex;
   flex-direction: column;
   min-height: 0;
-  height: 100%;
-  padding: 3.4rem 0.7rem 0.9rem 0.9rem;
+  /* Inset from the top so the floating fullscreen button sits clearly ABOVE
+     the panel (over the backdrop), not inside the episode list. */
+  margin: clamp(3.6rem, 7vh, 4.8rem) 0 0;
+  padding: 0.9rem 0.7rem 0.9rem 0.9rem;
   background: linear-gradient(180deg, rgba(15, 16, 27, 0.82), rgba(8, 9, 17, 0.92));
-  border-left: 0.08rem solid rgba(255,255,255,0.08);
-  border-top-left-radius: 1.1rem;
-  border-bottom-left-radius: 1.1rem;
+  border: 0.08rem solid rgba(255,255,255,0.08);
+  border-right: 0;
+  border-radius: 1.1rem 0 0 1.1rem;
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
   box-shadow: -1.4rem 0 3rem rgba(0,0,0,0.4);
@@ -7168,6 +7170,27 @@ body.reduce-motion .watch-stage-body { animation: none; }
 .watch-side .episode-list {
   flex: 1 1 auto;
   min-height: 0;
+}
+
+/* Two-tab selector (Seasons / Episodes) at the top of the panel. */
+.watch-side .detail-tabs.detail-tabs-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: 0 0 0.7rem;
+  padding-bottom: 0.5rem;
+  background: linear-gradient(180deg, rgba(11,12,21,0.98) 72%, rgba(11,12,21,0));
+}
+.watch-side .detail-pane { display: none; }
+.watch-side .detail-pane.is-active { display: flex; flex-direction: column; min-height: 0; }
+/* When tabs are sticky, the season-nav header sits just below them. */
+.watch-side .detail-pane .ep-panel-head { top: 3rem; }
+/* Season cards fit the narrow panel. */
+.watch-side .season-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.6rem;
 }
 
 /* The video-frame is only a mount point for the fixed cinema player; in the
@@ -7217,8 +7240,9 @@ body.has-embedded-player .watch-side {
   .watch-side {
     height: auto;
     max-height: 46dvh;
+    margin: 0;
     padding: 0.8rem 0.9rem calc(0.8rem + env(safe-area-inset-bottom));
-    border-left: 0;
+    border: 0;
     border-top: 0.08rem solid rgba(255,255,255,0.08);
     border-radius: 1.1rem 1.1rem 0 0;
     box-shadow: 0 -1.4rem 3rem rgba(0,0,0,0.5);
@@ -7446,38 +7470,59 @@ body.has-embedded-player .watch-side {
 /* ── Global fullscreen toggle (fixed top-right, every screen) ──────────────── */
 .fs-toggle {
   position: fixed;
-  top: clamp(0.7rem, 1.6vh, 1.2rem);
-  right: clamp(0.7rem, 1.6vw, 1.2rem);
+  top: clamp(0.75rem, 1.7vh, 1.3rem);
+  right: clamp(0.75rem, 1.7vw, 1.3rem);
   z-index: 60;
   display: grid;
   place-items: center;
-  width: 2.7rem;
-  height: 2.7rem;
-  border: 0.08rem solid rgba(255,255,255,0.16);
-  border-radius: 0.7rem;
-  background: rgba(14, 15, 26, 0.55);
-  color: rgba(236, 238, 250, 0.9);
+  width: 2.9rem;
+  height: 2.9rem;
+  border: 0.08rem solid rgba(255,255,255,0.18);
+  border-radius: 999rem;
+  background: rgba(13, 14, 24, 0.6);
+  color: rgba(240, 242, 252, 0.92);
   cursor: pointer;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 0.5rem 1.4rem rgba(0,0,0,0.3);
-  transition: background 150ms ease, transform 150ms ease, border-color 150ms ease;
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  backdrop-filter: blur(12px) saturate(1.1);
+  box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,0.35), inset 0 0 0 0.08rem rgba(255,255,255,0.04);
+  transition: background 180ms ease, transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
 .fs-toggle:is(:hover, :focus-visible) {
-  background: rgba(40, 42, 62, 0.72);
-  border-color: rgba(255,255,255,0.3);
-  transform: translateY(-1px);
+  background: rgba(36, 38, 58, 0.78);
+  border-color: rgba(255,255,255,0.34);
+  transform: scale(1.07);
+  box-shadow: 0 0.7rem 1.9rem rgba(0,0,0,0.42);
   outline: 0;
 }
+.fs-toggle:active { transform: scale(0.94); }
 .fs-toggle.is-tv-focused {
   outline: 0;
-  box-shadow: 0 0 0 0.2rem var(--accent, #8a5cff);
-  transform: scale(1.06);
+  border-color: transparent;
+  box-shadow: 0 0 0 0.2rem var(--accent, #8a5cff), 0 0.7rem 1.9rem rgba(0,0,0,0.42);
+  transform: scale(1.08);
 }
-.fs-toggle .fs-ico { width: 1.25rem; height: 1.25rem; }
-.fs-ico-compress { display: none; }
-body.is-fullscreen .fs-ico-expand { display: none; }
-body.is-fullscreen .fs-ico-compress { display: block; }
+
+/* Stacked icons that cross-fade + rotate between expand and compress. */
+.fs-toggle .fs-ico {
+  grid-area: 1 / 1;
+  width: 1.35rem;
+  height: 1.35rem;
+  transition: opacity 260ms ease, transform 360ms cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+.fs-ico-expand   { opacity: 1; transform: rotate(0deg) scale(1); }
+.fs-ico-compress { opacity: 0; transform: rotate(-90deg) scale(0.55); }
+body.is-fullscreen .fs-ico-expand   { opacity: 0; transform: rotate(90deg) scale(0.55); }
+body.is-fullscreen .fs-ico-compress { opacity: 1; transform: rotate(0deg) scale(1); }
+
+/* Pulse the button each time fullscreen toggles (class added briefly in JS). */
+.fs-toggle.fs-pulse { animation: fs-pulse 460ms cubic-bezier(0.34, 1.5, 0.5, 1); }
+@keyframes fs-pulse {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.22); box-shadow: 0 0 0 0.45rem rgba(138,92,255,0.28); }
+  100% { transform: scale(1); box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,0.35); }
+}
+body.reduce-motion .fs-toggle.fs-pulse { animation: none; }
+
 /* Stay clear of the active video player chrome (cinema z-index is far higher). */
 body.player-cinema-open .fs-toggle,
 body.has-embedded-player .fs-toggle { display: none; }
