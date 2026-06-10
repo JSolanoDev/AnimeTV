@@ -7566,6 +7566,19 @@ castButton?.addEventListener("click", () => {
   castActiveEpisode();
 });
 
+// TV remote: make search boxes read-only by default (Android app only) so spatial
+// focus can pass over them without popping the on-screen keyboard. OK enters edit
+// mode (see keydown); leaving the field re-locks it. Desktop is untouched.
+function setupTvTextInputs() {
+  if (!window.ZenkaiNative) return;
+  document.querySelectorAll(".search-box input").forEach((input) => {
+    if (input.dataset.tvLocked) return;
+    input.dataset.tvLocked = "1";
+    input.setAttribute("readonly", "readonly");
+    input.addEventListener("blur", () => input.setAttribute("readonly", "readonly"));
+  });
+}
+
 document.addEventListener("keydown", (event) => {
   lastInputWasPointer = false;
   const keyMap = {
@@ -7574,6 +7587,19 @@ document.addEventListener("keydown", (event) => {
     ArrowDown: "down",
     ArrowUp: "up"
   };
+
+  // TV: search boxes are read-only so the remote can pass over them without
+  // popping the on-screen keyboard. OK enters edit mode (keyboard); the field
+  // re-locks on blur (Back closes the keyboard and exits editing).
+  const ae = document.activeElement;
+  if (ae && ae.matches?.(".search-box input[readonly]") && (event.key === "Enter" || event.key === " ")) {
+    event.preventDefault();
+    ae.removeAttribute("readonly");
+    ae.focus();
+    return;
+  }
+  // Don't hijack arrows for spatial navigation while actually typing in a field.
+  const editingText = !!ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA") && !ae.readOnly;
 
   // Hero carousel: when the stage is focused (Android TV D-pad / arrow keys),
   // Left/Right cycle slides instead of moving spatial focus. Up/Down still move
@@ -7586,7 +7612,7 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (keyMap[event.key]) {
+  if (keyMap[event.key] && !editingText) {
     event.preventDefault();
     moveFocus(keyMap[event.key]);
   }
@@ -7636,6 +7662,7 @@ window.addEventListener("hashchange", () => {
 });
 applySidebarState();
 applyUiPreferences();
+setupTvTextInputs();
 renderSources();
 loadAnimeSources();
 restartCarouselTimer();
