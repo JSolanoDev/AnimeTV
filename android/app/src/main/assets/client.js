@@ -4607,6 +4607,14 @@ function syncWatchHeading(show = state.activeShow, season = null) {
   if (metaNode) {
     metaNode.textContent = compactMetadataLine(show);
   }
+  // Cinematic backdrop: prefer a wide banner, fall back to the poster.
+  const backdrop = document.querySelector("#watchBackdrop");
+  if (backdrop) {
+    const art = getCarouselArtwork(show) || show.banner || show.backdrop || show.image || "";
+    backdrop.style.backgroundImage = art ? `url("${art}")` : "";
+    backdrop.classList.toggle("has-art", Boolean(art));
+    overlay?.classList.toggle("cinematic", Boolean(art));
+  }
 }
 
 function compactMetadataLine(show = {}) {

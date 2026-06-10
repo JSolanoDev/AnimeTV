@@ -6867,3 +6867,86 @@ body.sidebar-collapsed .main-nav .nav-link:is(:hover, :focus-visible, .is-tv-foc
 body.reduce-motion .ss-modal-backdrop,
 body.reduce-motion .ss-modal,
 body.reduce-motion .ss-modal-detect { animation: none; }
+
+/* ── Cinematic detail overlay (Spider-Noir style) ─────────────────────────── */
+.watch-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center 16%;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transform: scale(1.06);
+  transition: opacity 450ms ease, transform 7s ease;
+  pointer-events: none;
+}
+.watch-backdrop.has-art { opacity: 1; transform: scale(1.01); }
+.watch-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(7,7,15,0.95) 0%, rgba(7,7,15,0.72) 32%, rgba(7,7,15,0.42) 56%, rgba(7,7,15,0.92) 100%),
+    linear-gradient(0deg, rgba(7,7,15,0.97) 1%, rgba(7,7,15,0.08) 48%, rgba(7,7,15,0.5) 100%);
+}
+
+/* Cinematic styling applies to the detail view only — not the active player. */
+body:not(.player-cinema-open):not(.has-embedded-player) .watch-overlay.cinematic {
+  background: rgba(5,4,12,0.4);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  padding: 0;
+}
+body:not(.player-cinema-open):not(.has-embedded-player) .watch-overlay.cinematic .watch-panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: clamp(1rem, 3vw, 2.5rem);
+  padding: clamp(1.8rem, 6vh, 4.5rem) clamp(1.4rem, 4vw, 4rem) clamp(1.4rem, 4vh, 3rem);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+/* LEFT column: the poster/title float over the backdrop, bottom-aligned. */
+body:not(.player-cinema-open):not(.has-embedded-player) .watch-overlay.cinematic .video-frame {
+  background: transparent !important;
+  padding: 0;
+  place-items: end start;
+  align-content: end;
+}
+body:not(.player-cinema-open):not(.has-embedded-player) .watch-overlay.cinematic .video-frame::before { display: none; }
+body:not(.player-cinema-open):not(.has-embedded-player) .watch-overlay.cinematic .watch-ready-state {
+  background: transparent;
+  align-items: flex-start;
+  text-align: left;
+}
+body:not(.player-cinema-open):not(.has-embedded-player) .watch-overlay.cinematic .watch-ready-poster-wrap {
+  max-width: 15rem;
+  border-radius: 0.9rem;
+  overflow: hidden;
+  box-shadow: 0 1.5rem 4rem rgba(0,0,0,0.6);
+}
+/* RIGHT column: a frosted episode/detail panel. */
+body:not(.player-cinema-open):not(.has-embedded-player) .watch-overlay.cinematic .watch-info {
+  background: linear-gradient(180deg, rgba(16,17,28,0.55), rgba(9,10,18,0.88));
+  border: 0.08rem solid rgba(255,255,255,0.08);
+  border-radius: 1rem;
+  padding: 1.2rem 0.85rem 1.2rem 1.2rem;
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 1.5rem 4rem rgba(0,0,0,0.5);
+}
+/* Big cinematic title. */
+.watch-overlay.cinematic #watchTitle {
+  font-size: clamp(1.7rem, 3.1vw, 2.9rem);
+  line-height: 1.04;
+  letter-spacing: -0.01em;
+  font-weight: 900;
+  text-shadow: 0 0.5rem 1.8rem rgba(0,0,0,0.6);
+}
+.watch-overlay.cinematic #watchMeta { letter-spacing: 0.08em; opacity: 0.92; }
