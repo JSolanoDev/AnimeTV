@@ -1571,15 +1571,19 @@ async function loadAnimeAv1Latest(force = false) {
   }
 }
 
-// Always serve the highest-resolution variant. AniList encodes the size in the
-// cover URL path, so we can upgrade medium/large thumbnails to extraLarge for free.
+// Serve the best AniList cover variant. IMPORTANT: AniList's largest cover is
+// served at `/cover/large/` (the `extraLarge` field returns that same URL) — there
+// is NO `/cover/extraLarge/` path, so forcing it 404s every cover. We only upgrade
+// the small `medium` thumbnail to `large`, which always exists.
 function hqImage(url) {
   const u = String(url || "").trim();
   if (!u) return u;
   if (u.includes("anilist.co") || u.includes("anilistcdn")) {
-    return u
-      .replace("/cover/medium/", "/cover/extraLarge/")
-      .replace("/cover/large/", "/cover/extraLarge/");
+    return u.replace("/cover/medium/", "/cover/large/");
+  }
+  // AnimeAV1: the /covers/ image is ~2x the resolution of the /thumbnails/ still.
+  if (u.includes("cdn.animeav1.com")) {
+    return u.replace("/thumbnails/", "/covers/");
   }
   return u;
 }
@@ -1934,11 +1938,16 @@ function cardTemplate(show, index = 0) {
   const artStyle = `--thumb-a: ${colors[0]}; --thumb-b: ${colors[1]}`;
   const meta = cardMeta(show, isFavorite);
   const target = getCardTarget(show);
-  const posterUrl = hqImage(show.image);
+  const rawPoster = show.image || "";
+  const posterUrl = hqImage(rawPoster);
+  // If the upgraded URL 404s, fall back to the original before giving up.
+  const onErr = posterUrl && posterUrl !== rawPoster
+    ? ` onerror="this.onerror=null;this.src='${escapeHtml(rawPoster)}'"`
+    : "";
   const image = posterUrl
     ? `
-        <img class="thumb-backdrop" src="${escapeHtml(posterUrl)}" alt="" loading="lazy">
-        <img class="thumb-poster" src="${escapeHtml(posterUrl)}" alt="" loading="lazy">
+        <img class="thumb-backdrop" src="${escapeHtml(posterUrl)}" alt="" loading="lazy"${onErr}>
+        <img class="thumb-poster" src="${escapeHtml(posterUrl)}" alt="" loading="lazy"${onErr}>
       `
     : "";
   return `
@@ -4869,12 +4878,6 @@ function renderEpisodeList(show) {
         </button>
       </div>
 
-      ${window.ZenkaiNative ? "" : `
-      <label class="ep-search">
-        <input class="ep-search-input focusable" id="epSearchInput" type="search" placeholder="search videos" autocomplete="off" aria-label="Search episodes">
-        <span class="ep-search-icon" aria-hidden="true">⌕</span>
-      </label>`}
-
       ${(() => {
         const sNum = activeSeason?.season || state.activeSeasonIndex + 1;
         const stats = getSeasonStats(show, activeSeason, sNum);
@@ -4964,19 +4967,36 @@ function renderEpisodeList(show) {
   // ── Season dropdown toggle ──────────────────────────────────────────────
   const seasonBtn = episodeList.querySelector("[data-season-toggle]");
   const seasonMenu = episodeList.querySelector(".ep-season-menu");
+  const closeSeasonMenu = () => {
+    if (!seasonMenu) return;
+    seasonMenu.hidden = true;
+    seasonBtn?.setAttribute("aria-expanded", "false");
+    document.removeEventListener("pointerdown", _onSeasonDocClick, true);
+  };
+  function _onSeasonDocClick(event) {
+    // Close when clicking anywhere outside the season selector.
+    if (!event.target.closest(".ep-season-select")) closeSeasonMenu();
+  }
   if (seasonBtn && seasonMenu) {
-    seasonBtn.addEventListener("click", () => {
-      const open = seasonMenu.hidden;
-      seasonMenu.hidden = !open;
-      seasonBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    seasonBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const willOpen = seasonMenu.hidden;
+      seasonMenu.hidden = !willOpen;
+      seasonBtn.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      if (willOpen) {
+        document.addEventListener("pointerdown", _onSeasonDocClick, true);
+        episodeList.querySelector(".ep-season-option")?.focus?.();
+      } else {
+        document.removeEventListener("pointerdown", _onSeasonDocClick, true);
+      }
       refreshFocusables();
-      if (open) episodeList.querySelector(".ep-season-option")?.focus?.();
     });
   }
 
   const navTo = (navIndex) => {
     const target = seasonNav[navIndex];
     if (!target) return;
+    closeSeasonMenu();   // always dismiss the dropdown on a selection
     if (target.relatedShowId) { openShow(target.relatedShowId); return; }
     state.activeSeasonIndex = Math.max(0, target.localIndex);
     state.activeEpisode = null;
@@ -5003,17 +5023,6 @@ function renderEpisodeList(show) {
       navTo(Number(card.dataset.seasonCard));
     });
   });
-
-  // ── Episode search (filter rows in place, keeps input focus) ─────────────
-  const searchInput = episodeList.querySelector("#epSearchInput");
-  if (searchInput) {
-    searchInput.addEventListener("input", () => {
-      const q = searchInput.value.trim().toLowerCase();
-      episodeList.querySelectorAll(".ep-row").forEach((row) => {
-        row.style.display = !q || (row.dataset.epSearch || "").includes(q) ? "" : "none";
-      });
-    });
-  }
 
   // ── Episode selection ────────────────────────────────────────────────────
   episodeList.querySelectorAll("[data-season-index][data-episode-index]").forEach((button) => {
