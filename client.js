@@ -4041,7 +4041,10 @@ async function openShow(id, target = {}) {
   document.querySelector("#watchDescription").textContent = show.description;
   favoriteButton.textContent = state.favorites.includes(show.id) ? t("favorited") : t("favorite");
   overlay.hidden = false;
-  closeOverlay.focus();
+  // Land focus on the Play action (remote-friendly) so OK plays and D-pad reaches
+  // the episode list — instead of the easily-missed close button.
+  const playBtn = document.querySelector("#fakePlay");
+  if (playBtn) focusElement(playBtn); else closeOverlay.focus();
 
   // ── Defer the heavier episode-list / season build to the next frame so the
   //    browser can paint the overlay first (avoids the "couple seconds" lag).
@@ -4487,7 +4490,7 @@ function closeShow() {
   }
   refreshFocusables();
   const firstCard = document.querySelector(".show-card:not([hidden])");
-  if (firstCard) firstCard.focus();
+  if (firstCard) focusElement(firstCard);
   // Returning to Home — resume the hero cover→trailer cycle.
   if (state.route === "home") renderCarousel();
 }
@@ -7315,7 +7318,10 @@ function openCarouselShow() {
 }
 
 function getFocusableItems() {
-  return [...document.querySelectorAll(".focusable")]
+  // Trap remote focus inside the watch overlay while it's open, so D-pad can't
+  // wander onto the cards behind it. Otherwise navigate the whole page.
+  const root = (overlay && !overlay.hidden) ? overlay : document;
+  return [...root.querySelectorAll(".focusable")]
     .filter((element) => !element.disabled && element.offsetParent !== null);
 }
 
@@ -7328,42 +7334,89 @@ function setTvFocus(element) {
   element?.classList.add("is-tv-focused");
 }
 
+// Focus an element for D-pad/remote use: move real focus, paint the TV ring, and
+// scroll it into view (centered so rails/lists track the selection nicely).
+function focusElement(element) {
+  if (!element) return;
+  try { element.focus({ preventScroll: true }); } catch (_) { element.focus(); }
+  setTvFocus(element);
+  element.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+}
+
+// 1-D overlap of two boxes on an axis ("x" or "y"); >0 means they line up there.
+function axisOverlap(a, b, axis) {
+  const aStart = axis === "x" ? a.left : a.top;
+  const aEnd = axis === "x" ? a.right : a.bottom;
+  const bStart = axis === "x" ? b.left : b.top;
+  const bEnd = axis === "x" ? b.right : b.bottom;
+  return Math.max(0, Math.min(aEnd, bEnd) - Math.max(aStart, bStart));
+}
+
+// Directional spatial navigation. Among focusables strictly in `direction`, prefer
+// the one that lines up on the cross-axis (directly beside/above/below) and is
+// closest along the travel axis — so grids/lists/sidebars move predictably.
 function moveFocus(direction) {
   const items = getFocusableItems();
+  if (!items.length) return;
   const active = document.activeElement;
-  const current = Math.max(0, items.indexOf(active));
-  const rect = items[current]?.getBoundingClientRect();
+  const current = items.indexOf(active);
 
-  if (!rect) {
-    items[0]?.focus();
-    setTvFocus(items[0]);
+  // Nothing focused yet → start on the first sensible on-screen control.
+  if (current < 0) {
+    focusElement(initialFocusTarget(items));
     return;
   }
 
-  const candidates = items
-    .map((element, index) => ({ element, index, box: element.getBoundingClientRect() }))
-    .filter(({ index }) => index !== current)
-    .filter(({ box }) => {
-      if (direction === "right") return box.left > rect.left + rect.width * 0.55;
-      if (direction === "left") return box.right < rect.right - rect.width * 0.55;
-      if (direction === "down") return box.top > rect.top + rect.height * 0.45;
-      return box.bottom < rect.bottom - rect.height * 0.45;
-    })
-    .map((candidate) => {
-      const dx = candidate.box.left + candidate.box.width / 2 - (rect.left + rect.width / 2);
-      const dy = candidate.box.top + candidate.box.height / 2 - (rect.top + rect.height / 2);
-      const primary = direction === "left" || direction === "right" ? Math.abs(dx) : Math.abs(dy);
-      const secondary = direction === "left" || direction === "right" ? Math.abs(dy) : Math.abs(dx);
-      return { ...candidate, score: primary + secondary * 2.2 };
-    })
-    .sort((a, b) => a.score - b.score);
+  const r = items[current].getBoundingClientRect();
+  const horizontal = direction === "left" || direction === "right";
+  const crossAxis = horizontal ? "y" : "x";
 
-  const next = candidates[0]?.element || items[current + (direction === "right" || direction === "down" ? 1 : -1)];
-  if (next) {
-    next.focus();
-    setTvFocus(next);
-    next.scrollIntoView({ block: "nearest", inline: "nearest" });
+  let best = null;
+  let bestScore = Infinity;
+  for (const el of items) {
+    if (el === items[current]) continue;
+    const b = el.getBoundingClientRect();
+    if (!b.width && !b.height) continue;
+
+    // "along" = distance travelled in the requested direction (must be positive).
+    let along;
+    if (direction === "right")      along = b.left - r.right;
+    else if (direction === "left")  along = r.left - b.right;
+    else if (direction === "down")  along = b.top - r.bottom;
+    else                            along = r.top - b.bottom;
+    // Allow slightly-overlapping neighbours (e.g. cards in the same rail) through.
+    const center = horizontal
+      ? (b.left + b.right) / 2 - (r.left + r.right) / 2
+      : (b.top + b.bottom) / 2 - (r.top + r.bottom) / 2;
+    const movingForward = direction === "right" || direction === "down";
+    if (along < -2 && (movingForward ? center <= 4 : center >= -4)) continue;
+
+    const overlap = axisOverlap(r, b, crossAxis);
+    const crossDist = horizontal
+      ? Math.abs((b.top + b.bottom) / 2 - (r.top + r.bottom) / 2)
+      : Math.abs((b.left + b.right) / 2 - (r.left + r.right) / 2);
+
+    // Aligned candidates (cross-axis overlap) win big; otherwise penalise the
+    // off-axis drift heavily so focus never leaps diagonally across the screen.
+    const travel = Math.max(0, along);
+    const score = travel + (overlap > 0 ? crossDist * 0.15 : crossDist * 6 + 800);
+    if (score < bestScore) { bestScore = score; best = el; }
   }
+
+  if (best) focusElement(best);
+}
+
+// First control to focus when entering a view with the remote: prefer the active
+// content area (a card/play button in the visible section) over the sidebar/brand.
+function initialFocusTarget(items) {
+  const inActiveSection = items.find((el) => {
+    const sec = el.closest("section, .watch-panel, .source-picker");
+    if (!sec) return false;
+    if (sec.classList.contains("is-hidden") || sec.hidden) return false;
+    const rect = el.getBoundingClientRect();
+    return rect.top >= 0 && rect.top < window.innerHeight && !el.closest(".main-nav, .topbar");
+  });
+  return inActiveSection || items.find((el) => !el.closest(".main-nav, .brand, .topbar")) || items[0];
 }
 
 document.addEventListener("focusin", (event) => {
