@@ -7853,3 +7853,72 @@ body.is-tv .ep-season-menu { background: rgba(18, 19, 32, 1); }
   box-shadow: none;
 }
 .vid-time { font-variant-numeric: tabular-nums; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   18+ / Hentai Mode — mature theme, header badge, age-gate dialog
+   The toggle adds `.adult-mode` to <body>; removing it fully reverts the theme.
+   ══════════════════════════════════════════════════════════════════════════ */
+body.adult-mode {
+  color-scheme: dark;
+  --bg: #0a0306;
+  --bg-raised: #1a0a12;
+  --bar: rgba(26, 6, 14, 0.82);
+  --text: #f7e9ef;
+  --muted: #c690a4;
+  --line: rgba(225, 29, 72, 0.16);
+  --cyan: #e11d48;          /* primary accent → deep red */
+  --rose: #7a2bd6;          /* dark violet */
+  --heart: #c026d3;
+  --blue: #7a2bd6;
+  --gold: #f2bb46;
+  --accent: #e11d48;
+  --route-home: #e11d48;
+  --route-library: #c026d3;
+  --route-schedule: #f2bb46;
+  --route-favorites: #c026d3;
+  --route-settings: #e11d48;
+}
+body.adult-mode .app-shell {
+  background:
+    radial-gradient(120% 80% at 82% 0%, rgba(122, 43, 214, 0.20), transparent 60%),
+    radial-gradient(110% 70% at 0% 100%, rgba(225, 29, 72, 0.16), transparent 58%),
+    var(--bg);
+}
+
+/* Header "18+ — Hentai Mode" badge (shown only while adult mode is active). */
+.adult-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.32rem 0.72rem;
+  margin-left: 0.3rem;
+  border-radius: 999rem;
+  background: linear-gradient(135deg, #e11d48, #7a2bd6);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  box-shadow: 0 0.3rem 0.9rem rgba(225, 29, 72, 0.35);
+}
+.adult-mode-badge[hidden] { display: none; }
+
+/* 18+ confirmation dialog (reuses the .ss-modal shell). */
+.adult-confirm { text-align: center; border-color: rgba(225, 29, 72, 0.4); }
+.adult-confirm-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  margin: 0 auto 0.5rem;
+  border-radius: 999rem;
+  background: linear-gradient(135deg, #e11d48, #7a2bd6);
+  color: #fff;
+  font-weight: 900;
+  font-size: 1.02rem;
+  box-shadow: 0 0.4rem 1.2rem rgba(225, 29, 72, 0.4);
+}
+.adult-confirm .ss-modal-actions { justify-content: center; }
+.adult-confirm-yes {
+  color: #fff !important;
+  background: linear-gradient(135deg, #e11d48, #b21e5a) !important;
+}

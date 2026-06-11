@@ -1198,10 +1198,67 @@ function catalogStatusLabel(sourceLabel, shows = []) {
 
 
 function visibleShows() {
-  return state.shows.filter((show) => {
+  return catalogShows().filter((show) => {
     const matchesSearch = matchesShowSearch(show);
     const matchesFilter = state.filter === "all" || show.genre === state.filter;
     return matchesSearch && matchesFilter;
+  });
+}
+
+// The catalog limited to the currently-active mode. Adult mode shows ONLY adult
+// content; default mode shows ONLY non-adult content — they never mix. Every
+// content surface (rails, library, search, favorites, continue watching) draws
+// from this so the two catalogs stay mutually exclusive.
+function catalogShows() {
+  if (typeof AdultMode === "undefined") return state.shows;
+  return AdultMode.filterCatalog(state.shows);
+}
+
+// Reflect the saved 18+ state in the page chrome (theme class + header badge).
+function syncAdultModeChrome() {
+  if (typeof AdultMode === "undefined") return;
+  const on = AdultMode.isEnabled();
+  document.body.classList.toggle("adult-mode", on);
+  const badge = document.querySelector("#adultModeBadge");
+  if (badge) badge.hidden = !on;
+}
+
+// 18+ age-confirmation gate shown the first time adult mode is enabled.
+// Resolves true only on an explicit "I am 18+" confirmation.
+function confirmAdultMode() {
+  return new Promise((resolve) => {
+    document.querySelector(".adult-confirm-backdrop")?.remove();
+    const backdrop = document.createElement("div");
+    backdrop.className = "ss-modal-backdrop adult-confirm-backdrop";
+    backdrop.innerHTML = `
+      <div class="ss-modal adult-confirm" role="alertdialog" aria-modal="true" aria-labelledby="adultConfirmTitle">
+        <span class="adult-confirm-mark" aria-hidden="true">18+</span>
+        <h3 id="adultConfirmTitle">Enable 18+ Mode?</h3>
+        <p class="ss-modal-sub">Hentai mode will hide all regular anime and show only adult content. This is intended for adults only.<br><strong>Are you 18 or older?</strong></p>
+        <div class="ss-modal-actions">
+          <button class="ss-btn ss-btn-ghost focusable" type="button" data-adult-cancel>No, cancel</button>
+          <button class="ss-btn ss-btn-primary adult-confirm-yes focusable" type="button" data-adult-confirm>Yes, I am 18+</button>
+        </div>
+      </div>`;
+    document.body.appendChild(backdrop);
+
+    let done = false;
+    const finish = (value) => {
+      if (done) return;
+      done = true;
+      document.removeEventListener("keydown", onKey, true);
+      backdrop.remove();
+      resolve(value);
+    };
+    const onKey = (event) => {
+      if (event.key === "Escape") { event.preventDefault(); finish(false); }
+    };
+    document.addEventListener("keydown", onKey, true);
+    backdrop.addEventListener("click", (event) => { if (event.target === backdrop) finish(false); });
+    backdrop.querySelector("[data-adult-cancel]").addEventListener("click", () => finish(false));
+    backdrop.querySelector("[data-adult-confirm]").addEventListener("click", () => finish(true));
+    backdrop.querySelector("[data-adult-confirm]")?.focus?.();
+    if (typeof refreshFocusables === "function") refreshFocusables();
   });
 }
 
@@ -1361,7 +1418,7 @@ function recentlyAiredShows(limit = 8) {
   const nowMs = Date.now();
   const seenTitles = new Set();
 
-  const candidates = state.shows
+  const candidates = catalogShows()
     .filter((show) => {
       if (!getCarouselArtwork(show)) return false;
       const status = (show.status || "").toUpperCase();
@@ -1393,7 +1450,7 @@ function recentlyAiredShows(limit = 8) {
   // If we still don't have enough, pad with high-quality airing shows
   if (result.length < limit) {
     const pad = sortCarouselQuality(
-      state.shows.filter((s) => getCarouselArtwork(s) && !seenTitles.has(normalizeTitle(s.title)))
+      catalogShows().filter((s) => getCarouselArtwork(s) && !seenTitles.has(normalizeTitle(s.title)))
     ).slice(0, limit - result.length);
     result.push(...pad);
   }
@@ -1419,7 +1476,7 @@ function latestEpisodeReleases(limit = HOME_CARD_LIMIT) {
   const nowMs = Date.now();
   const seenTitles = new Set();
 
-  const ranked = state.shows
+  const ranked = catalogShows()
     .filter((show) => {
       if (!matchesShowSearch(show)) return false;
       if (state.filter !== "all" && show.genre !== state.filter) return false;
@@ -1537,6 +1594,7 @@ function buildLatestEpisodesList(limit = HOME_CARD_LIMIT) {
     }
     const titleKey = titleKeyOf(card);
     if (usedIds.has(card.id) || (titleKey && usedTitles.has(titleKey))) continue;
+    if (typeof AdultMode !== "undefined" && !AdultMode.matchesActiveCatalog(card)) continue;
     if (!matchesShowSearch(card)) continue;
     if (state.filter !== "all" && card.genre !== state.filter) continue;
     usedIds.add(card.id);
@@ -1732,7 +1790,7 @@ function renderCarousel() {
   // fall back to the best poster-bearing shows so the hero never gets stuck on
   // "Loading…" while the catalog actually has content.
   if (!pool.length) {
-    pool = sortCarouselQuality(state.shows.filter((s) => carouselArtworkOrPoster(s))).slice(0, 12);
+    pool = sortCarouselQuality(catalogShows().filter((s) => carouselArtworkOrPoster(s))).slice(0, 12);
   }
   // Kick off trailer lookups for the pool; re-renders when they resolve.
   ensureCarouselTrailers(pool);
@@ -2379,7 +2437,7 @@ function renderSchedule() {
   // completed series that still have a stored broadcast day (e.g. Naruto, HxH).
   const airingShows = (() => {
     const seen = new Map();
-    [...state.shows]
+    [...catalogShows()]
       .filter((show) => {
         if (!show.day || show.day === "TBA" || show.day === "Local") return false;
         const status = (show.status || "").toUpperCase();
@@ -3891,6 +3949,12 @@ function renderSettings() {
           <span>${t("compactSidebar")} <small>Collapse navigation to icon-only</small></span>
           <button class="settings-switch focusable ${state.sidebarCollapsed ? "is-on" : ""}" data-toggle-sidebar-setting type="button"><b></b></button>
         </div>
+
+        <div class="settings-group-label">Content</div>
+        <div class="settings-line">
+          <span>Enable 18+ Mode <small>Show only adult content and switch to a mature theme. Default is off.</small></span>
+          <button class="settings-switch focusable ${typeof AdultMode !== "undefined" && AdultMode.isEnabled() ? "is-on" : ""}" data-toggle-adult-mode type="button" aria-label="Enable 18+ mode"><b></b></button>
+        </div>
         <div class="settings-line">
           <span>Anime title language <small>How titles appear across the app</small></span>
           <div class="settings-row settings-segment">
@@ -4115,6 +4179,23 @@ function wireSettingsButtons() {
   settingsGrid.querySelector("[data-toggle-sidebar-setting]")?.addEventListener("click", () => {
     toggleSidebar();
     renderSettings();
+  });
+
+  // 18+ adult-mode toggle (first enable requires explicit age confirmation).
+  // A real state change fires AdultMode.onChange, which repaints chrome + the
+  // whole app (including this Settings panel), so we only handle the messaging
+  // and the declined-gate case here to avoid a redundant double render.
+  settingsGrid.querySelector("[data-toggle-adult-mode]")?.addEventListener("click", async () => {
+    if (typeof AdultMode === "undefined") return;
+    const wasOn = AdultMode.isEnabled();
+    await AdultMode.setEnabled(!wasOn, { confirmFn: confirmAdultMode });
+    const nowOn = AdultMode.isEnabled();
+    if (wasOn && !nowOn) {
+      showToast("Returning to regular mode. Adult content is hidden.");
+    } else if (!wasOn && !nowOn) {
+      renderSettings();   // user declined the 18+ gate — keep the switch off
+      refreshFocusables();
+    }
   });
 
   // Boolean pref toggles (switches)
@@ -6606,7 +6687,16 @@ function renderContinueWatching() {
   const section = document.querySelector("#continueWatching");
   const grid = document.querySelector("#continueGrid");
   if (!section || !grid) return;
-  const list = getContinueWatchingList(20);
+  let list = getContinueWatchingList(20);
+  // Keep Continue Watching mutually exclusive too: hide entries whose show isn't
+  // in the currently-active catalog (regular entries in adult mode, and vice
+  // versa). Entries we can't resolve to a known show are treated as regular.
+  if (typeof AdultMode !== "undefined") {
+    list = list.filter((entry) => {
+      const show = state.shows.find((s) => String(s.id) === String(entry.showId || entry.animeId));
+      return AdultMode.matchesActiveCatalog(show || {});
+    });
+  }
   if (!list.length) {
     section.classList.add("is-hidden");
     grid.dataset.cardsSig = "";
@@ -8726,6 +8816,13 @@ if ("serviceWorker" in navigator) {
       registration.sync?.register("animetv-update-check").catch(() => {});
     }).catch(() => {});
   });
+}
+
+// Restore the saved 18+ mode (theme + header badge) before the first paint.
+if (typeof AdultMode !== "undefined") {
+  AdultMode.load();
+  syncAdultModeChrome();
+  AdultMode.onChange(() => { syncAdultModeChrome(); render(); });
 }
 
 render();
