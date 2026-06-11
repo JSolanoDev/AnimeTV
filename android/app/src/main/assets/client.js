@@ -1602,10 +1602,15 @@ function getCarouselArtwork(show = {}) {
     .find((value) => value && value !== poster) || "");
 }
 
+// Best vertical poster/card art: TMDB season poster → TMDB show poster →
+// AniList extraLarge/large cover → existing cover. (Pre-player poster chain.)
 function getWatchPosterArtwork(show = {}, season = null) {
   show = show || {};
   season = season || {};
-  return hqImage([
+  const candidates = [
+    show.tmdbSeasonPoster,
+    show.tmdbPoster,
+    show.coverImageLarge,
     show.image,
     show.poster,
     show.cover,
@@ -1614,24 +1619,41 @@ function getWatchPosterArtwork(show = {}, season = null) {
     season.image,
     show.banner,
     show.backdrop
-  ].map((value) => String(value || "").trim()).find(Boolean) || "");
+  ].map((value) => hqImage(String(value || "").trim()));
+  return pickImage(candidates);
 }
 
+// Best wide cinematic backdrop: TMDB backdrop → AniList banner → TMDB season
+// poster → AniList cover → … (Pre-player background chain.) Known-broken URLs
+// are skipped so a 404'd image never wins.
 function getWatchBackdropArtwork(show = {}, season = null) {
   show = show || {};
   season = season || {};
-  return hqImage([
+  const candidates = [
+    show.tmdbBackdrop,
     show.highQualityBackground,
     show.banner,
+    show.bannerImage,
+    season.tmdbBackdrop,
+    show.tmdbSeasonPoster,
     show.backdrop,
     show.heroImage,
     show.wideImage,
     show.landscapeImage,
     show.jikanBackground,
+    show.coverImageLarge,
     season.highQualityBackground,
     season.banner,
     season.backdrop
-  ].map((value) => String(value || "").trim()).find(Boolean) || "");
+  ].map((value) => hqImage(String(value || "").trim()));
+  return pickImage(candidates);
+}
+
+// Pick the first usable image, skipping known-broken URLs when the resolver is
+// available. Falls back to a plain first-truthy when it isn't.
+function pickImage(candidates) {
+  if (typeof ImageResolver !== "undefined") return ImageResolver.firstValidImage(candidates) || "";
+  return candidates.find(Boolean) || "";
 }
 
 function stableVisualHue(value = "") {
@@ -1940,6 +1962,13 @@ function applyCanonicalAnimeMetadata(show, payload = {}) {
     show.duration = media.duration || show.duration;
     show.year = media.seasonYear || media.startDate?.year || show.year;
     show.studios = (media.studios?.nodes || []).map((studio) => studio.name).filter(Boolean);
+    // Structured image/title fields for the ImageResolver (kept alongside the
+    // legacy flat fields so existing code is untouched).
+    show.synonyms = Array.isArray(media.synonyms) && media.synonyms.length ? media.synonyms : (show.synonyms || []);
+    show.seasonYear = media.seasonYear || media.startDate?.year || show.seasonYear || show.year;
+    show.coverImage = hqImage(media.coverImage?.large || show.coverImage || show.image || "");
+    show.coverImageLarge = hqImage(media.coverImage?.extraLarge || media.coverImage?.large || show.coverImageLarge || show.image || "");
+    show.bannerImage = media.bannerImage || show.bannerImage || show.banner || "";
   }
   if (jikan) {
     show.malId = jikan.mal_id || show.malId;
@@ -2030,7 +2059,25 @@ async function hydrateCanonicalAnimeMetadata(show) {
   if (media || jikan) writeAnimeMetadataCache(cacheKey, data);
   show._canonicalMetadataLoaded = true;
   state.shows = state.shows.map((entry) => entry.id === show.id ? show : entry);
+  // Enrich with TMDB episode stills / season posters / backdrops in the
+  // background; refresh the open detail view once the artwork lands.
+  enrichTmdbImages(show);
   return show;
+}
+
+// Non-blocking TMDB image enrichment. Falls through silently when TMDB is not
+// configured or no confident match exists (the priority chains keep using
+// AniList artwork in that case).
+function enrichTmdbImages(show) {
+  if (typeof ImageResolver === "undefined" || !show) return;
+  Promise.resolve(ImageResolver.hydrateTmdbImages(show)).then((enriched) => {
+    if (!enriched || !enriched.tmdbId) return;
+    state.shows = state.shows.map((entry) => entry.id === show.id ? show : entry);
+    if (state.activeShow?.id === show.id && !overlay?.hidden) {
+      syncWatchHeading(show);
+      renderEpisodeList(show);
+    }
+  }).catch(() => { /* AniList artwork already in place */ });
 }
 
 function applyAniListExtras(show, data) {
@@ -4871,7 +4918,7 @@ function resetVideoFrame() {
       <div class="watch-ready-poster-wrap">
         ${
           poster
-            ? `<img class="watch-poster" src="${escapeHtml(poster)}" alt="${escapeHtml(getShowTitle(show))}" loading="lazy">`
+            ? `<img class="watch-poster" src="${escapeHtml(poster)}" alt="${escapeHtml(getShowTitle(show))}" loading="lazy" onerror="this.onerror=null;try{ImageResolver.markImageFailed(this.src)}catch(e){};resetVideoFrame()">`
             : `<div class="watch-poster-placeholder"><div class="play-symbol" aria-hidden="true"></div></div>`
         }
       </div>
@@ -5049,17 +5096,53 @@ function syncWatchHeading(show = state.activeShow, season = null) {
     metaNode.textContent = compactMetadataLine(show);
   }
   renderDetailMeta(show);
-  // Cinematic backdrop: use the best cover/poster first so the detail screen
-  // never stretches low-resolution episode thumbnails into the full viewport.
+  applyWatchBackdrop(show, activeSeason);
+}
+
+// Paint the cinematic pre-player background: a sharp wide backdrop layer plus a
+// blurred fill behind it (so lower-resolution or off-aspect art still looks
+// cinematic and text stays readable). Prefers TMDB backdrop / AniList banner
+// over small episode thumbnails, and self-heals if the chosen art fails to load.
+function applyWatchBackdrop(show, season) {
   const backdrop = document.querySelector("#watchBackdrop");
-  if (backdrop) {
-    const art = getWatchBackdropArtwork(show, activeSeason);
-    backdrop.style.backgroundImage = art ? `url("${art}")` : animeBackdropFallback(show);
-    backdrop.classList.toggle("has-art", Boolean(art));
-    backdrop.classList.toggle("has-fallback-art", !art);
+  if (!backdrop) return;
+  const blur = document.querySelector("#watchBackdropBlur");
+  // Wide art (TMDB backdrop, AniList banner, hero/landscape) covers the frame
+  // cleanly. A poster/cover fallback is vertical, so cropping it with `cover`
+  // looks bad — we show it `contain` over a blurred fill of itself instead.
+  const wideSources = new Set([
+    show.tmdbBackdrop, show.highQualityBackground, show.banner, show.bannerImage,
+    season?.tmdbBackdrop, show.backdrop, show.heroImage, show.wideImage,
+    show.landscapeImage, show.jikanBackground, season?.highQualityBackground,
+    season?.banner, season?.backdrop
+  ].map((value) => hqImage(String(value || "").trim())).filter(Boolean));
+  const paint = (url) => {
+    const posterFit = Boolean(url) && !wideSources.has(url);
+    backdrop.style.backgroundImage = url ? `url("${url}")` : animeBackdropFallback(show);
+    backdrop.classList.toggle("has-art", Boolean(url));
+    backdrop.classList.toggle("has-fallback-art", !url);
+    backdrop.classList.toggle("is-poster-fit", posterFit);
+    if (blur) {
+      // The blurred fill only earns its keep behind a contained poster.
+      blur.style.backgroundImage = posterFit ? `url("${url}")` : "";
+      blur.classList.toggle("is-visible", posterFit);
+    }
     // Always cinematic; .has-art only switches image-backdrop vs gradient fallback.
     overlay?.classList.add("cinematic");
-    overlay?.classList.toggle("has-backdrop-art", Boolean(art));
+    overlay?.classList.toggle("has-backdrop-art", Boolean(url));
+  };
+
+  const art = getWatchBackdropArtwork(show, season);
+  paint(art);
+  if (art) {
+    // Verify the winning art really loads; if it 404s, blacklist it and fall
+    // back to the next candidate so the backdrop is never broken.
+    const probe = new Image();
+    probe.onerror = () => {
+      try { ImageResolver.markImageFailed(art); } catch { /* resolver optional */ }
+      if (state.activeShow?.id === show.id) paint(getWatchBackdropArtwork(show, season));
+    };
+    probe.src = art;
   }
 }
 
@@ -5096,8 +5179,19 @@ function episodeAirDateLabel(episode = {}) {
   return new Date(ms).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" });
 }
 
+// Episode thumbnail: TMDB still → existing per-episode still → TMDB season/show
+// poster → AniList banner → AniList cover. Returns "" so callers render the
+// branded placeholder instead of a broken image.
 function episodeThumb(episode = {}, season = {}, show = {}) {
-  return hqImage(episode.image || episode.thumbnail || episode.still || episode.snapshot || "");
+  const ownImage = hqImage(episode.image || episode.thumbnail || episode.still || episode.snapshot || "");
+  if (typeof ImageResolver !== "undefined") {
+    return ImageResolver.resolveEpisodeThumbnail(
+      { ...episode, image: ownImage || episode.image, thumbnail: ownImage || episode.thumbnail },
+      show,
+      { episodeStill: ImageResolver.getEpisodeStill(show, episode) }
+    );
+  }
+  return ownImage;
 }
 
 // Linear list of seasons for the dropdown + Prev/Next, spanning the franchise
@@ -5208,9 +5302,18 @@ function renderEpisodeList(show) {
           const title = (epMeta && epMeta.title)
             ? cleanEpisodeTitle(epMeta.title, num)
             : episodeEntryTitle(episode, episodeIndex, show);
-          const thumb = hqImage(
-            episode.image || episode.thumbnail || episode.still || episode.snapshot ||
-            (epMeta && epMeta.thumbnail) || ""
+          // Resolve via the shared priority chain (TMDB still → per-episode still
+          // → season/show poster → AniList banner/cover) so thumbnails are never
+          // missing or low quality when better art exists.
+          const thumb = episodeThumb(
+            {
+              ...episode,
+              episode: num,
+              image: episode.image || episode.thumbnail || episode.still || episode.snapshot ||
+                     (epMeta && epMeta.thumbnail) || ""
+            },
+            activeSeason,
+            show
           );
           const date = episodeAirDateLabel({ ...episode, aired: episode.aired || epMeta?.aired });
           const fallbackHue = (stableVisualHue(show.id || show.title) + (Number(num) * 19)) % 360;
@@ -5234,7 +5337,7 @@ function renderEpisodeList(show) {
                   data-season-index="${state.activeSeasonIndex}" data-episode-index="${episodeIndex}"
                   data-ep-search="${escapeHtml(search)}">
             <span class="ep-thumb ${thumb ? "has-image" : "is-placeholder"}" style="--episode-hue:${fallbackHue}">
-              ${thumb ? `<img class="ep-thumb-img" src="${escapeHtml(thumb)}" alt="" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('is-placeholder')">` : ""}
+              ${thumb ? `<img class="ep-thumb-img" src="${escapeHtml(thumb)}" alt="" loading="lazy" onerror="try{ImageResolver.markImageFailed(this.src)}catch(e){};this.style.display='none';this.parentElement.classList.add('is-placeholder')">` : ""}
               <span class="ep-thumb-num">${escapeHtml(String(num))}</span>
               <span class="ep-thumb-play" aria-hidden="true">▶</span>
               ${progressBar}

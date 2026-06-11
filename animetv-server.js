@@ -40,6 +40,20 @@ const RAPIDAPI_ANIME_HOST = process.env.RAPIDAPI_ANIME_HOST || process.env.X_RAP
 const RAPIDAPI_ANIME_BASE = process.env.RAPIDAPI_ANIME_BASE || (RAPIDAPI_ANIME_HOST ? `https://${RAPIDAPI_ANIME_HOST}` : "");
 const RAPIDAPI_ANIME_TIMEOUT_MS = Math.max(5000, Number(process.env.RAPIDAPI_ANIME_TIMEOUT_MS || 18000));
 const RAPIDAPI_ANIME_CATALOG_LIMIT = Math.max(25, Number(process.env.RAPIDAPI_ANIME_CATALOG_LIMIT || 300));
+// ── TMDB (episode stills, season posters, backdrops) ─────────────────────────
+// Supports either a v3 API key (TMDB_API_KEY) or a v4 read access token
+// (TMDB_READ_ACCESS_TOKEN). When neither is set the /api/tmdb/* routes return
+// { ok:true, configured:false } and the client falls back to AniList artwork.
+const TMDB_API_KEY = process.env.TMDB_API_KEY || process.env.TMDB_V3_API_KEY || "";
+const TMDB_READ_TOKEN = process.env.TMDB_READ_ACCESS_TOKEN || process.env.TMDB_API_READ_ACCESS_TOKEN || process.env.TMDB_V4_TOKEN || "";
+const TMDB_CONFIGURED = Boolean(TMDB_API_KEY || TMDB_READ_TOKEN);
+const TMDB_API_BASE = "https://api.themoviedb.org/3";
+const TMDB_TIMEOUT_MS = Math.max(4000, Number(process.env.TMDB_TIMEOUT_MS || 12000));
+const TMDB_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days — episode stills are stable
+const tmdbSearchCache = new Map();  // `${normalizedTitle}|${year}` -> { data, ts }
+const tmdbTvCache = new Map();      // tmdbId -> { data, ts }
+const tmdbSeasonCache = new Map();  // `${tmdbId}:${season}` -> { data, ts }
+
 const CONSUMET_API = String(process.env.CONSUMET_API || "http://localhost:3000").replace(/\/+$/, "");
 const CONSUMET_PROVIDER = "kickassanime";
 const CONSUMET_TIMEOUT_MS = Math.max(3000, Number(process.env.CONSUMET_TIMEOUT_MS || 7000));
@@ -569,6 +583,21 @@ function handleRequest(request, response) {
 
   if (url.pathname === "/api/jikan/search") {
     handleJikanSearch(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/tmdb/search") {
+    handleTmdbSearch(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/tmdb/tv") {
+    handleTmdbTv(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/tmdb/season") {
+    handleTmdbSeason(url, response);
     return;
   }
 
@@ -6961,4 +6990,121 @@ function normalizeJikanEpisode(ep) {
     recap: ep.recap,
     forum_url: ep.forum_url
   };
+}
+
+// ── TMDB proxy ───────────────────────────────────────────────────────────────
+// Thin proxy that keeps the TMDB credentials server-side. The client-side
+// ImageResolver does the title matching / confidence scoring / caching; here we
+// only forward search, show, and season requests (with shared server caching).
+function tmdbFetch(pathname, params = {}) {
+  const search = new URLSearchParams(params);
+  // v3 key goes in the query string; a v4 token goes in the Authorization header.
+  const headers = { Accept: "application/json" };
+  if (TMDB_READ_TOKEN) headers.Authorization = `Bearer ${TMDB_READ_TOKEN}`;
+  else if (TMDB_API_KEY) search.set("api_key", TMDB_API_KEY);
+  const qs = search.toString();
+  const requestUrl = `${TMDB_API_BASE}${pathname}${qs ? `?${qs}` : ""}`;
+  return fetchWithTimeout(requestUrl, { headers }, TMDB_TIMEOUT_MS).then(async (upstream) => {
+    if (!upstream.ok) throw new Error(`TMDB HTTP ${upstream.status}`);
+    return upstream.json();
+  });
+}
+
+function tmdbNotConfigured(response) {
+  // Not an error: the client treats configured:false as "fall back to AniList".
+  sendJson(response, { ok: true, configured: false, results: [] });
+}
+
+async function handleTmdbSearch(url, response) {
+  if (!TMDB_CONFIGURED) return tmdbNotConfigured(response);
+  const query = String(url.searchParams.get("q") || "").trim();
+  if (!query) return sendJson(response, { ok: false, configured: true, error: "Missing query" }, 400);
+  const year = String(url.searchParams.get("year") || "").trim();
+  const cacheKey = `${normalizeTitle(query)}|${year}`;
+  try {
+    const cached = tmdbSearchCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < TMDB_CACHE_TTL_MS) {
+      return sendJson(response, { ok: true, configured: true, cached: true, results: cached.data });
+    }
+    const params = { query, include_adult: "false", language: "en-US" };
+    if (year) params.first_air_date_year = year;
+    const payload = await tmdbFetch("/search/tv", params);
+    const results = Array.isArray(payload.results) ? payload.results.slice(0, 10) : [];
+    tmdbSearchCache.set(cacheKey, { data: results, ts: Date.now() });
+    sendJson(response, { ok: true, configured: true, results });
+  } catch (error) {
+    log("warn", "TMDB search failed", { query, error: error.message });
+    sendJson(response, { ok: false, configured: true, error: error.message, results: [] }, 502);
+  }
+}
+
+async function handleTmdbTv(url, response) {
+  if (!TMDB_CONFIGURED) return tmdbNotConfigured(response);
+  const id = String(url.searchParams.get("id") || "").trim();
+  if (!id) return sendJson(response, { ok: false, configured: true, error: "Missing id" }, 400);
+  try {
+    const cached = tmdbTvCache.get(id);
+    if (cached && Date.now() - cached.ts < TMDB_CACHE_TTL_MS) {
+      return sendJson(response, { ok: true, configured: true, cached: true, show: cached.data });
+    }
+    const payload = await tmdbFetch(`/tv/${encodeURIComponent(id)}`, { language: "en-US" });
+    const show = {
+      id: payload.id,
+      name: payload.name,
+      original_name: payload.original_name,
+      first_air_date: payload.first_air_date,
+      poster_path: payload.poster_path,
+      backdrop_path: payload.backdrop_path,
+      number_of_seasons: payload.number_of_seasons,
+      seasons: Array.isArray(payload.seasons)
+        ? payload.seasons.map((s) => ({
+            season_number: s.season_number,
+            name: s.name,
+            poster_path: s.poster_path,
+            air_date: s.air_date,
+            episode_count: s.episode_count
+          }))
+        : []
+    };
+    tmdbTvCache.set(id, { data: show, ts: Date.now() });
+    sendJson(response, { ok: true, configured: true, show });
+  } catch (error) {
+    log("warn", "TMDB tv fetch failed", { id, error: error.message });
+    sendJson(response, { ok: false, configured: true, error: error.message }, 502);
+  }
+}
+
+async function handleTmdbSeason(url, response) {
+  if (!TMDB_CONFIGURED) return tmdbNotConfigured(response);
+  const id = String(url.searchParams.get("id") || "").trim();
+  const season = String(url.searchParams.get("season") || "").trim();
+  if (!id || season === "") return sendJson(response, { ok: false, configured: true, error: "Missing id or season" }, 400);
+  const cacheKey = `${id}:${season}`;
+  try {
+    const cached = tmdbSeasonCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < TMDB_CACHE_TTL_MS) {
+      return sendJson(response, { ok: true, configured: true, cached: true, season: cached.data });
+    }
+    const payload = await tmdbFetch(`/tv/${encodeURIComponent(id)}/season/${encodeURIComponent(season)}`, { language: "en-US" });
+    const data = {
+      season_number: payload.season_number,
+      name: payload.name,
+      poster_path: payload.poster_path,
+      air_date: payload.air_date,
+      episodes: Array.isArray(payload.episodes)
+        ? payload.episodes.map((ep) => ({
+            episode_number: ep.episode_number,
+            name: ep.name,
+            overview: ep.overview,
+            still_path: ep.still_path,
+            air_date: ep.air_date
+          }))
+        : []
+    };
+    tmdbSeasonCache.set(cacheKey, { data, ts: Date.now() });
+    sendJson(response, { ok: true, configured: true, season: data });
+  } catch (error) {
+    log("warn", "TMDB season fetch failed", { id, season, error: error.message });
+    sendJson(response, { ok: false, configured: true, error: error.message }, 502);
+  }
 }

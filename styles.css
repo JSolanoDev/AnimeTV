@@ -6874,11 +6874,29 @@ body.reduce-motion .ss-modal-detect { animation: none; }
    The active player is position:fixed (cinema), so it floats above this layout.
    ══════════════════════════════════════════════════════════════════════════ */
 
+/* Blurred fill layer behind the sharp backdrop: gives low-resolution or
+   off-aspect artwork a cinematic, full-bleed look and keeps text readable. */
+.watch-backdrop-blur {
+  position: absolute;
+  inset: -8%;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(42px) saturate(1.25) brightness(0.62);
+  transform: scale(1.12);
+  opacity: 0;
+  transition: opacity 600ms ease;
+  pointer-events: none;
+}
+.watch-overlay:not([hidden]) .watch-backdrop-blur.is-visible { opacity: 1; }
+body.reduce-motion .watch-backdrop-blur { transform: scale(1.08); }
+
 /* Full-bleed backdrop with a slow parallax zoom. */
 .watch-backdrop {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: 1;
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
@@ -6900,6 +6918,13 @@ body.reduce-motion .ss-modal-detect { animation: none; }
 .watch-backdrop.has-fallback-art {
   background-size: cover;
   background-position: center;
+}
+/* Vertical poster/cover fallback: show it whole (contain) over the blurred
+   fill rather than cropping it like a wide backdrop. */
+.watch-backdrop.is-poster-fit {
+  background-size: contain;
+  background-position: center;
+  animation: none;
 }
 @keyframes watch-backdrop-zoom {
   from { transform: scale(1.02); }
