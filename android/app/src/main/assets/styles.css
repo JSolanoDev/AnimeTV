@@ -7165,14 +7165,17 @@ body.reduce-motion .watch-stage-body { animation: none; }
   margin: clamp(3.6rem, 7vh, 4.8rem) 0 0;
   height: calc(100dvh - clamp(3.6rem, 7vh, 4.8rem));
   max-height: calc(100dvh - clamp(3.6rem, 7vh, 4.8rem));
-  padding: 0.9rem 0.7rem 0.9rem 0.9rem;
-  background: linear-gradient(180deg, rgba(12, 13, 22, 0.97), rgba(8, 9, 17, 0.99));
-  border: 0.08rem solid rgba(255,255,255,0.08);
-  border-right: 0;
+  /* No top padding — the sticky tab bar owns the top edge so nothing can bleed
+     into a gap above it. */
+  padding: 0 0.7rem 0.9rem 0.9rem;
+  /* Solid, opaque panel — no translucency/blur so there are no seams or stray
+     edge lines, and the sticky header can match it exactly. */
+  background: #0e0f1a;
+  border: 0;
   border-radius: 1.1rem 0 0 1.1rem;
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  box-shadow: -1.4rem 0 3rem rgba(0,0,0,0.4);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: -1.6rem 0 3rem rgba(0,0,0,0.5);
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
@@ -7184,54 +7187,55 @@ body.reduce-motion .watch-stage-body { animation: none; }
   min-height: 0;
 }
 
-/* Two-tab selector (Seasons / Episodes) at the top of the panel. */
+/* Two-tab selector (Seasons / Episodes) — two simple pills on a sticky bar that
+   is the SAME colour as the panel, so there is no track box / seam, and it stays
+   opaque so episodes never bleed through while scrolling. */
 .watch-side .detail-tabs.detail-tabs-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   position: sticky;
   top: 0;
   z-index: 7;
-  gap: 0.25rem;
-  margin: 0 0 0.55rem;
-  padding: 0.28rem;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.85rem 0 0.7rem;
   border: 0;
-  border-radius: 0.85rem;
-  /* Opaque base (blocks scroll bleed) with a faint inset track tint. */
-  background:
-    linear-gradient(rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.045)),
-    #0c0d16;
+  border-radius: 0;
+  background: #0e0f1a;
 }
 .watch-side .detail-tab {
-  min-height: 2.42rem;
+  min-height: 2.55rem;
   padding: 0 0.7rem;
   border: 0;
-  border-radius: 0.72rem;
-  background: transparent;
-  color: rgba(246, 243, 255, 0.68);
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(240, 241, 250, 0.72);
   box-shadow: none;
-  font-size: 0.88rem;
-  transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+  font-size: 0.92rem;
+  font-weight: 800;
+  transition: background 150ms ease, color 150ms ease;
 }
 .watch-side .detail-tab:is(:hover, :focus-visible, .is-tv-focused) {
   color: #fff;
-  background: rgba(255, 255, 255, 0.075);
+  background: rgba(255, 255, 255, 0.12);
   box-shadow: none;
 }
 .watch-side .detail-tab.is-selected,
 .watch-side .detail-tab.is-selected:is(:hover, :focus-visible, .is-tv-focused) {
   color: #ffffff;
-  background: var(--accent, #8a5cff);
-  box-shadow: 0 0.4rem 0.9rem rgba(138, 92, 255, 0.32);
+  background: #8a5cff;
+  box-shadow: 0 0.4rem 0.9rem rgba(138, 92, 255, 0.3);
 }
 .watch-side .detail-pane { display: none; }
 .watch-side .detail-pane.is-active { display: flex; flex-direction: column; min-height: 0; }
-/* Season-nav header sticks just under the tabs. Solid (opaque) so scrolling
-   episodes never bleed through, and visually flush with the tab strip. */
+/* Only the Seasons/Episodes tabs stay pinned (solid, so nothing bleeds through).
+   The season-nav scrolls with the list — having two stacked sticky bands was what
+   left a gap that let episodes overlap the header. */
 .watch-side .detail-pane .ep-panel-head {
-  top: 3.3rem;
-  z-index: 6;
-  margin: 0 0 0.4rem;
+  position: static;
+  z-index: auto;
+  margin: 0 0 0.45rem;
   padding: 0.1rem 0.15rem 0.55rem;
-  background: #0c0d16;
+  background: transparent;
 }
 /* Season cards fit the narrow panel. */
 .watch-side .season-card-grid {

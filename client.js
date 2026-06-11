@@ -1866,6 +1866,64 @@ function ensureCarouselTrailers(pool) {
   });
 }
 
+// ── AniList per-show extras: HQ banner backdrop + per-episode titles/thumbnails
+const _showExtrasCache = new Map();     // anilistId -> { banner, episodes:[{title,thumbnail}] }
+const _showExtrasInFlight = new Set();
+
+function applyAniListExtras(show, data) {
+  if (!show || !data) return;
+  if (data.banner) show.banner = data.banner;               // high-res wide backdrop
+  if (data.episodes && data.episodes.length) {
+    show.streamingEpisodes = data.episodes;
+    // AniList lists episodes newest-first and embeds the number in the title, so
+    // key them by parsed episode number for reliable matching against our list.
+    const byNum = {};
+    data.episodes.forEach((e) => {
+      const m = /episode\s*(\d+)/i.exec(e.title || "");
+      const n = m ? Number(m[1]) : null;
+      if (n && !byNum[n]) byNum[n] = e;
+    });
+    show.streamingEpisodesByNum = byNum;
+  }
+}
+
+// Strip a leading "Episode 12 - " / "12 - " so the row shows the real title only.
+function cleanEpisodeTitle(raw, num) {
+  let t = String(raw || "").trim();
+  t = t.replace(/^(episode|ep|cap[ií]tulo|cap)\s*\d+\s*(?:[-:–|]\s*)?/i, "")
+       .replace(/^#?\d+\s*[-:–|]\s*/, "")
+       .trim();
+  return t || `Episode ${num}`;
+}
+
+async function fetchAniListShowExtras(show) {
+  const id = show && show.anilistId;
+  if (!id) return;
+  const key = String(id);
+  if (_showExtrasCache.has(key)) { applyAniListExtras(show, _showExtrasCache.get(key)); return; }
+  if (_showExtrasInFlight.has(key)) return;
+  _showExtrasInFlight.add(key);
+  const query = `query($id:Int){ Media(id:$id, type:ANIME){ bannerImage streamingEpisodes{ title thumbnail } } }`;
+  try {
+    const res = await fetch("https://graphql.anilist.co", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({ query, variables: { id: Number(id) } })
+    });
+    if (!res.ok) return;
+    const media = (await res.json())?.data?.Media;
+    if (!media) return;
+    const data = {
+      banner: media.bannerImage || "",
+      episodes: (media.streamingEpisodes || []).map((e) => ({ title: e.title || "", thumbnail: e.thumbnail || "" }))
+    };
+    _showExtrasCache.set(key, data);
+    applyAniListExtras(show, data);
+  } catch { /* offline / rate-limited — keep existing art */ } finally {
+    _showExtrasInFlight.delete(key);
+  }
+}
+
 function trailerEmbedUrl(trailer) {
   if (!trailer || !trailer.id) return "";
   if (trailer.site === "dailymotion") {
@@ -4131,6 +4189,8 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
       (!isNativeSource ? Promise.resolve(enrichShowFromAllSources(show)) : Promise.resolve(show)).then(refreshSeasonsIfActive),
       // AniList franchise/relations — refresh the Seasons control as soon as it lands
       Promise.resolve(hydrateShowAniListFranchise(show)).then(refreshSeasonsIfActive),
+      // AniList HQ banner backdrop + per-episode titles/thumbnails
+      Promise.resolve(fetchAniListShowExtras(show)).then(refreshSeasonsIfActive),
       // TioAnime slug resolution — stores show.tioAnimeSlug for episode playback
       hydrateTioAnimeSlug(show)
     ]);
@@ -4866,6 +4926,14 @@ function buildSeasonNav(show, seasons) {
 
 function renderEpisodeList(show) {
   if (!episodeList) return;
+  // Lazily pull AniList per-episode titles/thumbnails + HQ banner once the show's
+  // anilistId is known (for scraped shows it arrives after source enrichment).
+  if (show.anilistId && !show._extrasTried && !show.streamingEpisodes) {
+    show._extrasTried = true;
+    fetchAniListShowExtras(show).then(() => {
+      if (state.activeShow?.id === show.id && (show.streamingEpisodes || show.banner)) renderEpisodeList(show);
+    }).catch(() => {});
+  }
   const seasons = getDetailSeasons(show);
   if (state.activeSeasonIndex >= seasons.length) state.activeSeasonIndex = 0;
   const activeSeason = seasons[state.activeSeasonIndex] || seasons[0];
@@ -4930,8 +4998,16 @@ function renderEpisodeList(show) {
       <div class="ep-rows" id="epRows">
         ${episodes.length ? episodes.map((episode, episodeIndex) => {
           const num = episode.episode || episodeIndex + 1;
-          const title = episodeEntryTitle(episode, episodeIndex);
-          const thumb = episodeThumb(episode, activeSeason, show);
+          // Prefer AniList per-episode metadata (real title + still), matched by
+          // episode number.
+          const epMeta = (show.streamingEpisodesByNum && show.streamingEpisodesByNum[num]) || null;
+          const title = (epMeta && epMeta.title)
+            ? cleanEpisodeTitle(epMeta.title, num)
+            : episodeEntryTitle(episode, episodeIndex);
+          const thumb = hqImage(
+            episode.image || episode.thumbnail || episode.still ||
+            (epMeta && epMeta.thumbnail) || activeSeason?.image || show.image || show.banner || ""
+          );
           const date = episodeAirDateLabel(episode);
           const locked = isEpisodeUnavailable(episode);
           const selected = isActiveEpisode(state.activeSeasonIndex, episodeIndex);
