@@ -7958,6 +7958,35 @@ body.adult-mode .footer-wordmark {
   filter: grayscale(1) brightness(0.55) sepia(1) saturate(7) hue-rotate(-18deg) brightness(1.05);
 }
 
+/* Settings screen matches the mature theme in 18+ mode (its selected category,
+   segmented choices, and toggle switches use hard-coded blues). */
+body.adult-mode .settings-rail-item:is(:hover, :focus-visible, .is-tv-focused) {
+  border-color: rgba(225, 29, 72, 0.32);
+  background: rgba(225, 29, 72, 0.12);
+}
+body.adult-mode .settings-rail-item.is-selected {
+  border-color: rgba(225, 29, 72, 0.5);
+  background:
+    linear-gradient(135deg, rgba(225, 29, 72, 0.28), rgba(122, 43, 214, 0.22)),
+    rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 0.04rem rgba(225, 29, 72, 0.24), 0 0.5rem 1.2rem rgba(225, 29, 72, 0.18);
+}
+body.adult-mode .settings-choice.is-selected,
+body.adult-mode .settings-choice:is(:hover, :focus-visible, .is-tv-focused) {
+  background: linear-gradient(135deg, #e11d48, #7a2bd6);
+  box-shadow: 0 0.3rem 0.8rem rgba(225, 29, 72, 0.3);
+}
+body.adult-mode .settings-switch:is(:hover, :focus-visible, .is-tv-focused) {
+  box-shadow: inset 0 0 0 0.06rem rgba(225, 29, 72, 0.4);
+}
+body.adult-mode .settings-switch.is-on {
+  background: linear-gradient(135deg, #e11d48, #7a2bd6);
+  box-shadow: inset 0 0 0 0.06rem rgba(225, 29, 72, 0.45), 0 0 0.9rem rgba(225, 29, 72, 0.4);
+}
+body.adult-mode .settings-field .language-select {
+  border-color: rgba(225, 29, 72, 0.32);
+}
+
 /* Weekly Schedule isn't meaningful in 18+ mode — hide its nav entry + section. */
 body.adult-mode [data-route="schedule"],
 body.adult-mode #schedule {
