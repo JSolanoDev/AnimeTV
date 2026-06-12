@@ -7885,22 +7885,86 @@ body.adult-mode .app-shell {
     var(--bg);
 }
 
-/* Header "18+ — Hentai Mode" badge (shown only while adult mode is active). */
+/* "18+ — Hentai Mode" badge — fixed to the top-center so it never crowds the
+   narrow icon sidebar (where it used to overflow into the carousel). */
 .adult-mode-badge {
+  position: fixed;
+  top: 0.7rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
   display: inline-flex;
   align-items: center;
-  padding: 0.32rem 0.72rem;
-  margin-left: 0.3rem;
+  gap: 0.3rem;
+  padding: 0.34rem 0.85rem;
   border-radius: 999rem;
   background: linear-gradient(135deg, #e11d48, #7a2bd6);
   color: #fff;
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   white-space: nowrap;
-  box-shadow: 0 0.3rem 0.9rem rgba(225, 29, 72, 0.35);
+  box-shadow: 0 0.3rem 1rem rgba(225, 29, 72, 0.4);
+  pointer-events: none;
+}
+.adult-mode-badge::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999rem;
+  background: #fff;
+  box-shadow: 0 0 0.5rem rgba(255, 255, 255, 0.8);
 }
 .adult-mode-badge[hidden] { display: none; }
+
+/* Make the ZenkaiTV logo read red in 18+ mode: recolor the PNG glyph via filter
+   AND retint the circular mark's glow/halo (which use hard-coded blues). */
+body.adult-mode .brand-logo,
+body.adult-mode .loader-logo {
+  filter: grayscale(1) brightness(0.55) sepia(1) saturate(7) hue-rotate(-18deg) brightness(1.05);
+}
+body.adult-mode .brand-mark {
+  background: #1a0a12;
+  box-shadow:
+    0 1rem 1.8rem rgba(225, 29, 72, 0.3),
+    0 0 1.1rem rgba(225, 29, 72, 0.22),
+    inset 0 0 0 0.08rem rgba(225, 29, 72, 0.34);
+}
+body.adult-mode .brand-mark::before {
+  background: radial-gradient(circle at 50% 50%, rgba(225, 29, 72, 0.62), rgba(122, 43, 214, 0.34) 55%, transparent 72%);
+}
+
+/* Weekly Schedule isn't meaningful in 18+ mode — hide its nav entry + section. */
+body.adult-mode [data-route="schedule"],
+body.adult-mode #schedule {
+  display: none !important;
+}
+
+/* Smooth the swap between the regular and mature palettes. */
+.app-shell,
+.topbar,
+.nav-link,
+.carousel-info,
+.show-card,
+.adult-mode-badge {
+  transition: background-color 420ms ease, color 320ms ease, box-shadow 320ms ease, filter 420ms ease;
+}
+
+/* One-shot full-screen wash played when the theme is toggled. */
+.theme-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  animation: theme-flash 620ms ease forwards;
+}
+@keyframes theme-flash {
+  0%   { opacity: 0; }
+  35%  { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+body.reduce-motion .theme-flash { animation-duration: 1ms; }
 
 /* 18+ confirmation dialog (reuses the .ss-modal shell). */
 .adult-confirm { text-align: center; border-color: rgba(225, 29, 72, 0.4); }

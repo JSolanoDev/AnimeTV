@@ -1221,6 +1221,22 @@ function syncAdultModeChrome() {
   document.body.classList.toggle("adult-mode", on);
   const badge = document.querySelector("#adultModeBadge");
   if (badge) badge.hidden = !on;
+  // The Weekly Schedule isn't shown in 18+ mode — bounce off it if we're there.
+  if (on && state.route === "schedule") setRoute("home");
+}
+
+// Brief full-screen wash when the theme flips, so the swap feels intentional.
+function playThemeFlash(on) {
+  try {
+    const flash = document.createElement("div");
+    flash.className = "theme-flash";
+    flash.style.background = on
+      ? "radial-gradient(circle at 50% 38%, rgba(225,29,72,0.55), rgba(10,3,6,0.94) 72%)"
+      : "radial-gradient(circle at 50% 38%, rgba(138,92,255,0.45), rgba(8,10,19,0.94) 72%)";
+    document.body.appendChild(flash);
+    flash.addEventListener("animationend", () => flash.remove(), { once: true });
+    window.setTimeout(() => flash.remove(), 1000);
+  } catch { /* non-fatal */ }
 }
 
 // 18+ age-confirmation gate shown the first time adult mode is enabled.
@@ -4392,6 +4408,10 @@ function wireRailButtons() {
 }
 
 function setRoute(route) {
+  // Weekly Schedule is hidden in 18+ mode — send those navigations Home instead.
+  if (route === "schedule" && typeof AdultMode !== "undefined" && AdultMode.isEnabled()) {
+    route = "home";
+  }
   state.route = route;
   document.body.dataset.route = route;
   // Returning Home starts fresh: clear any active search so Home shows the full
@@ -8850,7 +8870,7 @@ if ("serviceWorker" in navigator) {
 if (typeof AdultMode !== "undefined") {
   AdultMode.load();
   syncAdultModeChrome();
-  AdultMode.onChange(() => { syncAdultModeChrome(); render(); });
+  AdultMode.onChange((on) => { playThemeFlash(on); syncAdultModeChrome(); render(); });
 }
 
 render();
