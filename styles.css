@@ -7934,6 +7934,30 @@ body.adult-mode .brand-mark::before {
   background: radial-gradient(circle at 50% 50%, rgba(225, 29, 72, 0.62), rgba(122, 43, 214, 0.34) 55%, transparent 72%);
 }
 
+/* Footer matches the mature theme in 18+ mode (blue glows/line → red/violet). */
+body.adult-mode .bottom-bar {
+  border-top-color: rgba(225, 29, 72, 0.22);
+  background:
+    radial-gradient(circle at 42% 0%, rgba(225, 29, 72, 0.2), transparent 24rem),
+    radial-gradient(circle at 62% 110%, rgba(122, 43, 214, 0.16), transparent 23rem),
+    linear-gradient(90deg, rgba(20, 6, 12, 0.96) 0 5.9rem, rgba(20, 6, 12, 0.9) 5.9rem, rgba(20, 6, 12, 0.82) 100%),
+    linear-gradient(180deg, rgba(26, 10, 18, 0.94), #0a0306 92%, #0a0306);
+}
+body.adult-mode .bottom-bar::before {
+  background: linear-gradient(90deg, transparent, rgba(225, 29, 72, 0.5), rgba(122, 43, 214, 0.34), transparent);
+  background-size: 180% 100%;
+}
+body.adult-mode .bottom-bar::after {
+  background:
+    linear-gradient(105deg, transparent 0%, transparent 34%, rgba(255, 255, 255, 0.05) 48%, transparent 62%, transparent 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.024), transparent 46%),
+    linear-gradient(90deg, rgba(225, 29, 72, 0.06), transparent 34%, transparent 66%, rgba(122, 43, 214, 0.05));
+  background-size: 230% 100%, 100% 100%, 100% 100%;
+}
+body.adult-mode .footer-wordmark {
+  filter: grayscale(1) brightness(0.55) sepia(1) saturate(7) hue-rotate(-18deg) brightness(1.05);
+}
+
 /* Weekly Schedule isn't meaningful in 18+ mode — hide its nav entry + section. */
 body.adult-mode [data-route="schedule"],
 body.adult-mode #schedule {
