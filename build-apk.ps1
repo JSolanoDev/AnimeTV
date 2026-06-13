@@ -10,8 +10,7 @@ Copy-Item -Force `
   (Join-Path $root "styles.css"), `
   (Join-Path $root "client.js"), `
   (Join-Path $root "manifest.webmanifest"), `
-  (Join-Path $root "sources.json"), `
-  (Join-Path $root "icon.svg") `
+  (Join-Path $root "sources.json") `
   -Destination $assetsDir
 
 Push-Location $androidDir

@@ -4309,7 +4309,7 @@ function renderSettings() {
         </div>
 
         <div class="settings-group-label">Content</div>
-        <div class="settings-line">
+        <div class="settings-line adult-mode-highlight">
           <span>Enable 18+ Mode <small>Show only adult content and switch to a mature theme. Default is off.</small></span>
           <button class="settings-switch focusable ${typeof AdultMode !== "undefined" && AdultMode.isEnabled() ? "is-on" : ""}" data-toggle-adult-mode type="button" aria-label="Enable 18+ mode"><b></b></button>
         </div>
@@ -4921,6 +4921,7 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
       (!isNativeSource ? Promise.resolve(enrichShowFromAllSources(show)) : Promise.resolve(show)).then(refreshSeasonsIfActive),
       canonicalMetadata.then(() => hydrateShowAniListFranchise(show)).then(refreshSeasonsIfActive),
       canonicalMetadata.then(() => fetchAniListShowExtras(show)).then(refreshSeasonsIfActive),
+      canonicalMetadata.then(() => enrichTmdbImages(show)).then(refreshSeasonsIfActive),
       // TioAnime slug resolution — stores show.tioAnimeSlug for episode playback
       hydrateTioAnimeSlug(show)
     ]);
@@ -8342,11 +8343,6 @@ async function playActiveShow(options = {}) {
     url = source?.videoUrl || getPlayableUrl(show);
   }
 
-  if (!url && source?.type === "iframe" && source.externalUrl) {
-    renderEmbeddedAniPubPlayer(show, source.externalUrl);
-    return;
-  }
-
   const resolver = source?.streamResolver || activeEpisode?.streamResolver;
   if (!url && resolver) {
     activeEpisode.streamResolver = resolver;
@@ -8359,14 +8355,24 @@ async function playActiveShow(options = {}) {
     source = getSelectedEpisodeSource(activeEpisode);
   }
 
-  if (!url && source?.type === "iframe" && source.externalUrl) {
-    renderEmbeddedAniPubPlayer(show, source.externalUrl);
-    return;
-  }
-
-  if (!url && isExternalIframeEpisode(activeEpisode)) {
-    renderEmbeddedAniPubPlayer(show, activeEpisode.externalUrl);
-    return;
+  const embedUrl = (source?.type === "iframe" && source.externalUrl) || (isExternalIframeEpisode(activeEpisode) ? activeEpisode.externalUrl : "");
+  if (!url && embedUrl) {
+    renderPlayerPopupMessage(
+      frame,
+      currentEpisodeLabel(),
+      "Checking server-side resolver to load in custom player..."
+    );
+    const resolved = await attemptResolveEmbed(embedUrl);
+    if (resolved && resolved.url) {
+      url = resolved.url;
+      source = { ...(source || {}), type: "direct", videoUrl: url, referer: resolved.referer || source?.referer || "" };
+      if (activeEpisode) {
+        activeEpisode.videoUrl = url;
+      }
+    } else {
+      renderEmbeddedAniPubPlayer(show, embedUrl);
+      return;
+    }
   }
 
   if (!url && activeEpisode && activeEpisode.sourceOptionsPending) {
@@ -8440,6 +8446,23 @@ async function playActiveShow(options = {}) {
 
 function isExternalIframeEpisode(episode) {
   return Boolean(episode?.externalUrl && (episode.externalType || "iframe") === "iframe");
+}
+
+async function attemptResolveEmbed(embedUrl) {
+  if (!embedUrl) return null;
+  try {
+    const api = new URL("./api/resolve", location.href);
+    api.searchParams.set("url", embedUrl);
+    const response = await fetchWithTimeout(api.toString(), {}, 7000);
+    if (!response.ok) return null;
+    const payload = await response.json();
+    if (payload && payload.ok && payload.url) {
+      return { url: payload.url, referer: payload.referer };
+    }
+  } catch (error) {
+    console.warn("Embed resolution failed:", error);
+  }
+  return null;
 }
 
 function renderDirectVideoPlayer(frame, url, episode) {

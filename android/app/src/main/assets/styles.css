@@ -4724,11 +4724,13 @@ body.adult-mode .vid-loader-text {
   pointer-events: auto;
 }
 
-/* iframe fills remaining space after topbar */
-.vidstream-player.is-iframe .vid-player-stage > iframe {
+/* iframe or video fills remaining space after topbar */
+.vidstream-player.is-iframe .vid-player-stage > iframe,
+.vidstream-player.is-iframe .vid-player-stage > video {
   flex: 1 1 0;
   min-height: 0;
   height: auto;
+  position: relative !important;
 }
 
 .vidstream-player.is-iframe .player-inline-prefs {
@@ -7395,13 +7397,13 @@ body.reduce-motion .watch-stage-body { animation: none; }
   /* No top padding — the sticky tab bar owns the top edge so nothing can bleed
      into a gap above it. */
   padding: 0 0.7rem 0.9rem 0.9rem;
-  /* Solid, opaque panel — no translucency/blur so there are no seams or stray
-     edge lines, and the sticky header can match it exactly. */
-  background: #0e0f1a;
+  /* Translucent glassmorphism panel — lets the beautiful backdrop show through
+     while keeping text and actions perfectly legible with backdrop-filter blur. */
+  background: rgba(14, 15, 26, 0.72);
   border: 0;
   border-radius: 1.1rem 0 0 1.1rem;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   box-shadow: -1.6rem 0 3rem rgba(0,0,0,0.5);
   overflow: hidden;
   overscroll-behavior: contain;
@@ -7428,7 +7430,7 @@ body.reduce-motion .watch-stage-body { animation: none; }
   padding: 0.85rem 0 0.7rem;
   border: 0;
   border-radius: 0;
-  background: #0e0f1a;
+  background: transparent;
 }
 .watch-side .detail-tab {
   min-height: 2.55rem;
@@ -7979,6 +7981,8 @@ body.is-tv .ep-season-menu { background: rgba(18, 19, 32, 1); }
 .continue-card:is(:hover, :focus-visible, .is-tv-focused) .continue-play { opacity: 1; }
 .continue-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 0.32rem; background: rgba(0,0,0,0.55); }
 .continue-bar > span { display: block; height: 100%; background: var(--accent, #8a5cff); }
+.continue-bar-outside { display: block; width: 100%; height: 0.28rem; background: rgba(255, 255, 255, 0.1); border-radius: 999rem; overflow: hidden; margin-top: 0.45rem; }
+.continue-bar-outside > span { display: block; height: 100%; background: var(--accent, #8a5cff); border-radius: inherit; }
 .continue-card-title {
   display: block;
   margin: 0.5rem 0 0.1rem;
@@ -8043,6 +8047,10 @@ body.is-tv .ep-season-menu { background: rgba(18, 19, 32, 1); }
   box-shadow: none;
 }
 .vid-time { font-variant-numeric: tabular-nums; }
+.vid-volume-control { display: flex; align-items: center; gap: 0.35rem; }
+.vid-volume-slider { width: 5.5rem; height: 0.3rem; accent-color: var(--accent, #8a5cff); border-radius: 999rem; cursor: pointer; opacity: 0.8; transition: width 0.2s ease, opacity 0.2s ease; }
+.vid-volume-slider:is(:hover, :focus-visible) { opacity: 1; }
+@media (max-width: 480px) { .vid-volume-slider { width: 3.5rem; } }
 
 /* ══════════════════════════════════════════════════════════════════════════
    18+ / Hentai Mode — mature theme, header badge, age-gate dialog
@@ -8228,4 +8236,33 @@ body.reduce-motion .theme-flash { animation-duration: 1ms; }
 .adult-confirm-yes {
   color: #fff !important;
   background: linear-gradient(135deg, #e11d48, #b21e5a) !important;
+}
+
+/* Special Red Highlight and pulse animation for 18+ Mode Toggle in Settings */
+.settings-line.adult-mode-highlight {
+  border: 1px solid rgba(225, 29, 72, 0.4);
+  box-shadow: 0 0 10px rgba(225, 29, 72, 0.2);
+  animation: adultHighlightPulse 2s infinite ease-in-out;
+  transition: all 0.3s ease;
+}
+
+.settings-line.adult-mode-highlight > span {
+  color: #f43f5e !important; /* soft red / rose */
+}
+
+.settings-line.adult-mode-highlight .settings-switch {
+  border-color: rgba(225, 29, 72, 0.8) !important;
+}
+
+@keyframes adultHighlightPulse {
+  0%, 100% {
+    border-color: rgba(225, 29, 72, 0.4);
+    box-shadow: 0 0 8px rgba(225, 29, 72, 0.2);
+    background: rgba(225, 29, 72, 0.04);
+  }
+  50% {
+    border-color: rgba(225, 29, 72, 0.95);
+    box-shadow: 0 0 16px rgba(225, 29, 72, 0.5);
+    background: rgba(225, 29, 72, 0.12);
+  }
 }

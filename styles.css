@@ -8237,3 +8237,32 @@ body.reduce-motion .theme-flash { animation-duration: 1ms; }
   color: #fff !important;
   background: linear-gradient(135deg, #e11d48, #b21e5a) !important;
 }
+
+/* Special Red Highlight and pulse animation for 18+ Mode Toggle in Settings */
+.settings-line.adult-mode-highlight {
+  border: 1px solid rgba(225, 29, 72, 0.4);
+  box-shadow: 0 0 10px rgba(225, 29, 72, 0.2);
+  animation: adultHighlightPulse 2s infinite ease-in-out;
+  transition: all 0.3s ease;
+}
+
+.settings-line.adult-mode-highlight > span {
+  color: #f43f5e !important; /* soft red / rose */
+}
+
+.settings-line.adult-mode-highlight .settings-switch {
+  border-color: rgba(225, 29, 72, 0.8) !important;
+}
+
+@keyframes adultHighlightPulse {
+  0%, 100% {
+    border-color: rgba(225, 29, 72, 0.4);
+    box-shadow: 0 0 8px rgba(225, 29, 72, 0.2);
+    background: rgba(225, 29, 72, 0.04);
+  }
+  50% {
+    border-color: rgba(225, 29, 72, 0.95);
+    box-shadow: 0 0 16px rgba(225, 29, 72, 0.5);
+    background: rgba(225, 29, 72, 0.12);
+  }
+}

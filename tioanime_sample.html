@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="es" name="language" />
+    <title>Directorio - TioAnime</title>
+    <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1" />
+    <link rel="stylesheet" href="/assets/css/bootstrap.min.css?v=1.0.1" media="all" />
+    <link rel="stylesheet" href="/assets/css/main.css?v=2.2.6" media="all" />
+	<meta name="referrer" content="origin" />
+    <link href="https://fonts.googleapis.com/css?family=Asap:400,700" rel="stylesheet" />
+	 <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous" />
+	 <script src="https://kit.fontawesome.com/938499ef0e.js" crossorigin="anonymous"></script>
+    <link rel="icon" href="/assets/img/icon-32x32.png" sizes="32x32" />
+    <meta name="theme-color" content="#263DFF" />
+
+
+
+    <meta name='robots' content='noindex, follow' />
+
+
+
+
+
+    <link rel="manifest" href="/manifest.json" />
+
+</head>
+
+
+
+
+<body class="dark" >
+
+
+
+
+    <div id="tioanime">
+        <header>
+            <nav class="menu navbar navbar-expand-lg navbar-light bg-light">
+                <div class="container">
+                    <a class="navbar-brand" href="/">
+                        <figure class="logo"><img
+                                src="/assets/img/logo-dark.png"
+                                alt="logo"></figure>
+                    </a>
+                    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#menu"
+                        aria-controls="menu" aria-expanded="false" aria-label="Toggle navigation"><span
+                            class="navbar-toggler-icon"></span></button>
+                    <div class="collapse navbar-collapse" id="menu">
+
+                                                <div class="user-box order-3 ml-lg-4 mt-3 mb-3">
+                            <div class="row">
+                                <div class="col">
+                                    <button class="type="button"
+                                        data-toggle="modal" data-target="#modal-login"><i class="fa-solid fa-user"></i>
+										</button>
+                                </div>
+                                <div class="col d-lg-none">
+                                    <button class="btn btn-signup" type="button"
+                                        data-toggle="modal" data-target="#modal-signup"><i
+                                            class="fa-user-lock mr-0"></i><span
+                                            class="d-lg-none ml-2">Registro</span></button>
+                                </div>
+                            </div>
+                        </div>
+                                                <ul class="navbar-nav mr-auto">
+                            <li class="nav-item"><a class="nav-link" href="/"><i class="fa-solid fa-home"></i> Inicio</a></li>
+                            <li class="nav-item"><a class="nav-link" href="/directorio"><i class="fa-solid fa-folder"></i> Animes</a></li>
+							<li class="nav-item"><a class="nav-link" href="/programacion"><i class="fa-solid fa-star"></i> Programación Semanal</a></li>
+							<li class="nav-item"><a class="nav-link" href="https://tiohentai.com" style="color: #f65fff; text-decoration: none;" rel="nofollow" target="_blank">TioHentai 🔥</a></li>
+                            <li class="nav-item"><a class="nav-link" href="https://discord.gg/XJSnjeqgVw"                           rel="nofollow" target="_blank"><i class="fa-brands fa-discord"></i> Discord</a>
+							</li>
+                            
+
+                        </ul>
+                        <div class="search dropdown">
+                            <form action="/directorio" method="get" id="results" autocomplete="off"
+                                data-toggle="dropdown">
+                                <label class="form-icon fa-search">
+                                    <input class="form-control" name="q" id="search-anime" type="search"
+                                        placeholder="Buscar..." aria-label="Buscar...">
+                                </label>
+                            </form>
+                            <div class="results dropdown-menu" id="search-results" aria-labelledby="results">
+                                <div class="text-center">Escribe al menos 2 caracteres</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </header>
+        
+    <div class="container">
+
+        <div class="header">
+                            <h1 class="title fa-home">Animes Recientes</h1>
+                    </div>
+
+        <div class="row justify-content-between filters-cont">
+            <aside class="col-12">
+                <form action="/directorio" method="GET">
+                    <div class="filter-bx">
+                        <div class="form-group">
+                            <label>Tipo</label>
+                            <div>
+                                <select id="type" name="type[]" data-placeholder="Seleccionar..." class="chosen-select form-control test" multiple>
+                                    <option value="0" >TV</option>
+                                    <option value="1" >Película</option>
+                                    <option value="2" >OVA</option>
+                                    <option value="3" >Especial</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Genero</label>
+                            <div>
+                                <select id="genero" name="genero[]" data-placeholder="Seleccionar..." class="chosen-select form-control" multiple>
+                                                                            <option value="accion" >Acci&oacute;n</option>
+                                                                            <option value="artes-marciales" >Artes Marciales</option>
+                                                                            <option value="aventura" >Aventuras</option>
+                                                                            <option value="carreras" >Carreras</option>
+                                                                            <option value="ciencia-ficcion" >Ciencia Ficci&oacute;n</option>
+                                                                            <option value="comedia" >Comedia</option>
+                                                                            <option value="demencia" >Demencia</option>
+                                                                            <option value="demonios" >Demonios</option>
+                                                                            <option value="deportes" >Deportes</option>
+                                                                            <option value="drama" >Drama</option>
+                                                                            <option value="ecchi" >Ecchi</option>
+                                                                            <option value="escolares" >Escolares</option>
+                                                                            <option value="espacial" >Espacial</option>
+                                                                            <option value="fantasia" >Fantas&iacute;a</option>
+                                                                            <option value="harem" >Harem</option>
+                                                                            <option value="historico" >Historico</option>
+                                                                            <option value="infantil" >Infantil</option>
+                                                                            <option value="josei" >Josei</option>
+                                                                            <option value="juegos" >Juegos</option>
+                                                                            <option value="magia" >Magia</option>
+                                                                            <option value="mecha" >Mecha</option>
+                                                                            <option value="militar" >Militar</option>
+                                                                            <option value="misterio" >Misterio</option>
+                                                                            <option value="musica" >M&uacute;sica</option>
+                                                                            <option value="parodia" >Parodia</option>
+                                                                            <option value="policia" >Polic&iacute;a</option>
+                                                                            <option value="psicologico" >Psicol&oacute;gico</option>
+                                                                            <option value="recuentos-de-la-vida" >Recuentos de la vida</option>
+                                                                            <option value="romance" >Romance</option>
+                                                                            <option value="samurai" >Samurai</option>
+                                                                            <option value="seinen" >Seinen</option>
+                                                                            <option value="shoujo" >Shoujo</option>
+                                                                            <option value="shounen" >Shounen</option>
+                                                                            <option value="sobrenatural" >Sobrenatural</option>
+                                                                            <option value="superpoderes" >Superpoderes</option>
+                                                                            <option value="suspenso" >Suspenso</option>
+                                                                            <option value="terror" >Terror</option>
+                                                                            <option value="vampiros" >Vampiros</option>
+                                                                            <option value="yaoi" >Yaoi</option>
+                                                                            <option value="yuri" >Yuri</option>
+                                                                        
+                                </select>
+                            </div>
+                        </div>
+                        <!-- year -->
+                        <div class="form-group">
+                            <label>Año</label>
+                            <div class="an-year">
+                                <input type="text" id="rngyr" name="year">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Estado</label>
+                            <select id="status" name="status" class="form-control custom-select">
+                                <option value="2" >Finalizado</option>
+                                <option value="1" >En emisión</option>
+                                <option value="3" >Próximamente</option>                        
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Ordenar</label>
+                            <select id="sort" name="sort" class="form-control custom-select">
+                                <option value="recent" >Mas Reciente</option>
+                                <option value="-recent" >Menos Reciente</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button type="submit" class="btn send btn-primary btn-block">Buscar</button>
+                            <a href="#" id="reset" class="btn btn-light btn-block mr-3">Limpiar</a>
+                        </div>
+                    </div>
+                </form>
+            </aside>
+
+            <main class="col-12">
+                <ul class="animes list-unstyled row">
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/dandelion">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4429.jpg" alt="img"></figure></div>
+                                <h3 class="title">Dandelion</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/aishiteru-game-wo-owarasetai">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4428.jpg" alt="img"></figure></div>
+                                <h3 class="title">Aishiteru Game wo Owarasetai</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/tsue-to-tsurugi-no-wistoria-season-2">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4425.jpg" alt="img"></figure></div>
+                                <h3 class="title">Tsue to Tsurugi no Wistoria Season 2</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/yozakurasan-chi-no-daisakusen-2nd-season">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4427.jpg" alt="img"></figure></div>
+                                <h3 class="title">Yozakura-san Chi no Daisakusen 2nd Season</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/kuroneko-to-majo-no-kyoushitsu">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4426.jpg" alt="img"></figure></div>
+                                <h3 class="title">Kuroneko to Majo no Kyoushitsu</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/yowayowa-sensei">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4422.jpg" alt="img"></figure></div>
+                                <h3 class="title">Yowayowa Sensei</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/ichijouma-mankitsugurashi">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4424.jpg" alt="img"></figure></div>
+                                <h3 class="title">Ichijouma Mankitsugurashi!</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/kill-ao">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4423.jpg" alt="img"></figure></div>
+                                <h3 class="title">Kill Ao</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/hokuto-no-ken-fist-of-the-north-star">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4421.jpg" alt="img"></figure></div>
+                                <h3 class="title">Hokuto no Ken: Fist of the North Star</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/kamiina-botan-yoeru-sugata-wa-yuri-no-hana">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4419.jpg" alt="img"></figure></div>
+                                <h3 class="title">Kamiina Botan, Yoeru Sugata wa Yuri no Hana</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/kami-no-shizuku">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4420.jpg" alt="img"></figure></div>
+                                <h3 class="title">Kami no Shizuku</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/awajima-hyakkei">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4417.jpg" alt="img"></figure></div>
+                                <h3 class="title">Awajima Hyakkei</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/marikachan-no-koukando-wa-bukkowareteiru">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4418.jpg" alt="img"></figure></div>
+                                <h3 class="title">Marika-chan no Koukando wa Bukkowareteiru</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/himekishi-wa-barbaroi-no-yome">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4415.jpg" alt="img"></figure></div>
+                                <h3 class="title">Himekishi wa Barbaroi no Yome</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/kujima-utaeba-ie-hororo">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4416.jpg" alt="img"></figure></div>
+                                <h3 class="title">Kujima Utaeba Ie Hororo</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/otaku-ni-yasashii-gal-wa-inai">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4413.jpg" alt="img"></figure></div>
+                                <h3 class="title">Otaku ni Yasashii Gal wa Inai!?</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/kanojo-okarishimasu-5th-season">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4414.jpg" alt="img"></figure></div>
+                                <h3 class="title">Kanojo, Okarishimasu 5th Season</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/rezero-kara-hajimeru-isekai-seikatsu-4th-season">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4412.jpg" alt="img"></figure></div>
+                                <h3 class="title">Re:Zero kara Hajimeru Isekai Seikatsu 4th Season</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/marriagetoxin">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4408.jpg" alt="img"></figure></div>
+                                <h3 class="title">Marriagetoxin</h3>
+                            </a>
+                        </article>
+                    </li>
+                                        <li class="col-6 col-sm-4 col-md-3 col-xl-2">
+                        <article class="anime">
+                            <a href="/anime/tadaima-ojamasaremasu">
+                                <div class="thumb"><figure class="fa-play-circle"><img src="/uploads/portadas/4410.jpg" alt="img"></figure></div>
+                                <h3 class="title">Tadaima, Ojamasaremasu!</h3>
+                            </a>
+                        </article>
+                    </li>
+                                    </ul>
+
+                <nav aria-label="Page navigation"><ul class="pagination d-inline-flex"><li class="page-item disabled"><a class="page-link" href="#" rel="prev">&laquo;</a></li><li class="page-item active"><a class="page-link" href="/directorio?p=1">1</a></li><li class="page-item"><a class="page-link" href="/directorio?p=2">2</a></li><li class="page-item"><a class="page-link" href="/directorio?p=3">3</a></li><li class="page-item"><a class="page-link" href="/directorio?p=4">4</a></li><li class="page-item"><a class="page-link" href="/directorio?p=5">5</a></li><li class="page-item"><a class="page-link" href="/directorio?p=6">6</a></li><li class="page-item"><span class="page-link">&hellip;</span></li><li class="page-item"><a class="page-link" href="/directorio?p=219">219</a></li><li class="page-item"><a class="page-link" href="/directorio?p=2" rel="next">&raquo;</a></li></ul></nav>
+            </main>
+
+        </div>
+    </div>
+
+        <footer>
+            <div class="container">
+                <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                    <figure class="navbar-brand logo"><img src="/assets/img/logo-ft.png" alt="logo"></figure>
+                    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#ftnav"
+                        aria-controls="ftnav" aria-expanded="false" aria-label="Toggle navigation"><span
+                            class="navbar-toggler-icon"></span></button>
+                    <div class="collapse navbar-collapse" id="ftnav">
+  
+                      <ul class="social-ft navbar-nav">    
+                   
+                            <li class="nav-item">
+							<a class="nav-link fa-youtube fab" href="https://www.youtube.com/channel/UC71wO3noGfhEx8WBcy9emLw/" rel="nofollow"
+                                    target="_blank"></a></li>
+                        </ul>
+                   
+                    </div>
+                </nav>
+                <p>2025 tioanime.com</p>
+                <button class="btn btn-primary changeview on"><span
+                        class="fa-moon">Noche</span><span class="fa-sun">Día</span></button>
+            </div>
+        </footer>
+
+    </div>
+
+        <div class="modal fade modal-user" id="modal-login" tabindex="-1" role="dialog" aria-labelledby="modal-loginTitle" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header align-items-center">
+                    <h5 class="modal-title p-3" id="modal-loginTitle">
+                        <i class="fa-user text-success mr-3"></i> 
+                        Iniciar Sesion
+                    </h5>
+                    <button type="button" class="close mr-2" data-dismiss="modal" aria-label="Close">
+                        <i aria-hidden="true" class="fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+
+                    <div id="messages_in"></div>
+
+                    <form action="#" class="p-3">
+                        <div class="form-group">
+                            <label>Correo electrónico</label>
+                            <input type="text" id="email" class="form-control form-control-lg">
+                        </div>
+                        <div class="form-group mb-4">
+                            <label>Contraseña</label>
+                            <input type="password" id="password" class="form-control form-control-lg">
+                        </div>
+                        <p class="text-right mb-4">
+                            <button type="button" class="btn btn-primary btn-recovery text-success" data-toggle="modal" data-target="#modal-recovery" data-dismiss="modal">
+                                Olvidé mi contraseña
+                            </button>
+                        </p>
+                        <div class="mb-4">
+                            <button type="button" onclick="auth.in();" class="btn btn-primary btn-block btn-lg">Iniciar Sesión</button>
+                        </div>
+                        <div class="login-text">
+                            ¿No tienes una cuenta? 
+                            <button type="button" class="btn btn-primary text-success" data-toggle="modal" data-target="#modal-signup" data-dismiss="modal">Regístrate</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade modal-user" id="modal-recovery" tabindex="-1" role="dialog" aria-labelledby="modal-recoveryTitle" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header align-items-center">
+                    <h5 class="modal-title p-3" id="modal-recoveryTitle">
+                        <i class="fa-lock text-success mr-3"></i>
+                        Recuperar Contraseña
+                    </h5>
+                    <button type="button" class="close mr-2" data-dismiss="modal" aria-label="Close">
+                        <i aria-hidden="true" class="fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+
+                    <div id="messages_ar"></div>
+
+                    <form action="#" class="p-3">
+                        <div class="form-group">
+                            <label>Correo electrónico</label>
+                            <input type="text" id="ar_email" class="form-control form-control-lg">
+                        </div>
+                        <div class="mb-4">
+                            <button type="button" onclick="auth.ar();"  class="btn btn-primary btn-block btn-lg">Enviar mensaje</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade modal-user" id="modal-signup" tabindex="-1" role="dialog" aria-labelledby="modal-signupTitle" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header align-items-center">
+                    <h5 class="modal-title p-3" id="modal-signupTitle">
+                        <i class="fa-user-lock text-success mr-3"></i>
+                        Registrate
+                    </h5>
+                    <button type="button" class="close mr-2" data-dismiss="modal" aria-label="Close">
+                        <i aria-hidden="true" class="fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+
+                    <div id="messages_ts">
+                    </div>
+
+                    <form action="#" class="p-3">
+                        <div class="form-group">
+                            <label>Usuario</label>
+                            <input type="text" id="ts_user" class="form-control form-control-lg">
+                        </div>
+                        <div class="form-group mb-4">
+                            <label>Email</label>
+                            <input type="email" id="ts_email" class="form-control form-control-lg">
+                        </div>
+                        <div class="form-group mb-4 position-relative">
+                            <label>Contraseña</label>
+                            <input type="password" id="ts_password" class="form-control form-control-lg">
+                            <button type="button" class="btn btn-primary btn-showpass"><i
+                                    class="fa-eye mr-0"></i></button>
+                        </div>
+                        <div class="mb-4">
+                            <button type="button" onclick="auth.up();"
+                                class="btn btn-primary btn-block btn-lg">Registrate</button>
+                        </div>
+                        <div class="login-text">
+                            ¿Ya tienes una cuenta? 
+                            <button type="submit" class="btn btn-primary text-success" data-toggle="modal" data-target="#modal-login" data-dismiss="modal">Iniciar Sesion</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    
+    <script src="/assets/js/jquery-3.3.1.min.js?v=1.2.0"></script>
+    <script src="/assets/js/popper.min.js?v=1.2.0"></script>
+    <script src="/assets/js/bootstrap.min.js?v=1.2.0"></script>
+    <script src="/assets/js/typewatch.js?v=1.2.0"></script>
+    <script>
+        var day_mode = 0;
+    </script>
+    <script src="/assets/js/tio.js?v=1.2.3"></script>
+
+    <script src="/assets/js/axios.min.js?v=1.2.2"></script>
+
+        <script src="/assets/js/auth.js?v=12.6.2"></script>
+    
+    <script src="/assets/js/chs.js?v=1.2.2"></script>
+    <script src="/assets/js/ran.js?v=1.2.2"></script>
+
+
+
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-07TMHC953W"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-07TMHC953W');
+</script>
+
+
+
+
+    
+
+<script>
+
+    $('.chosen-select').chosen({
+        inherit_select_classes: true
+    });
+
+</script>
+
+
+
+
+
+
+    
+
+    <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"5e5f629afa7f41c6bf3644e0b6e03e19","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>

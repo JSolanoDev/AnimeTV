@@ -599,7 +599,7 @@ def _parse_catalog_html(html: str, base_url: str, source: str) -> list:
     """
     link_re = re.compile(
         r'href=["\'](?:https?://[^/"\']{0,120})?'
-        r'(/(?:anime|ver-anime|animes)/([a-z0-9][a-z0-9\-_%]{1,80}))["\']',
+        r'(/(?:anime|ver-anime|animes)/([a-z0-9][a-z0-9\-_%]{1,150}))["\']',
         re.IGNORECASE,
     )
 
@@ -646,18 +646,34 @@ def _parse_catalog_html(html: str, base_url: str, source: str) -> list:
 
         # ── Find title ──
         title = ""
+        link_pos_in_ctx = m.start() - cs
+        ctx_after = ctx[link_pos_in_ctx:]
         for pat in [
             r'<h[1-4][^>]*>\s*(?:<a[^>]*>)?\s*([^<\n]{2,100}?)\s*(?:</a>)?\s*</h[1-4]>',
             r'class="[^"]*(?:title|titulo|nombre|name)[^"]*"[^>]*>\s*(?:<a[^>]*>)?\s*([^<\n]{2,100}?)\s*',
             r'<p[^>]*>\s*([A-Z][^<\n]{1,90})\s*</p>',
             r'title=["\']([^"\']{2,100})["\']',
         ]:
-            tm = re.search(pat, ctx, re.IGNORECASE)
-            if tm:
+            tm = re.search(pat, ctx_after, re.IGNORECASE)
+            if tm and tm.start() < 350:
                 cand = clean(tm.group(1))
                 if 2 <= len(cand) <= 120 and not cand.startswith(("<", "http", "{")):
                     title = cand
                     break
+
+        if not title:
+            for pat in [
+                r'<h[1-4][^>]*>\s*(?:<a[^>]*>)?\s*([^<\n]{2,100}?)\s*(?:</a>)?\s*</h[1-4]>',
+                r'class="[^"]*(?:title|titulo|nombre|name)[^"]*"[^>]*>\s*(?:<a[^>]*>)?\s*([^<\n]{2,100}?)\s*',
+                r'<p[^>]*>\s*([A-Z][^<\n]{1,90})\s*</p>',
+                r'title=["\']([^"\']{2,100})["\']',
+            ]:
+                tm = re.search(pat, ctx, re.IGNORECASE)
+                if tm:
+                    cand = clean(tm.group(1))
+                    if 2 <= len(cand) <= 120 and not cand.startswith(("<", "http", "{")):
+                        title = cand
+                        break
 
         if not title or len(title) < 2:
             continue
@@ -866,7 +882,7 @@ def fetch_catalog_tioanime(catalog_pages: int = 3) -> list:
         n = _add(items)
         html_found = True
         log.info("[TioAnime] /directorio page %d → +%d  (total %d)", page, n, len(results))
-        if n < 5:
+        if len(items) < 5:
             break  # last page
 
     # ── Strategy 2: /emision (currently airing) ──
@@ -952,7 +968,7 @@ def _ensure_tioanime_slug_index(max_pages: int = TIOANIME_SLUG_CATALOG_PAGES) ->
             break
         parsed = _parse_catalog_html(html, TIOANIME_BASE, "TioAnime")
         added = _add(parsed)
-        if not parsed or (page > 1 and added == 0):
+        if not parsed or len(parsed) == 0:
             break
 
     html = get_html(f"{TIOANIME_BASE}/emision", delay=CATALOG_DELAY, label="TioAnime", referer=TIOANIME_BASE)
@@ -1166,7 +1182,7 @@ def fetch_catalog_animeflv(catalog_pages: int = 3) -> list:
         n = _add(items)
         html_found = True
         log.info("[AnimeFLV] /browse page %d → +%d  (total %d)", page, n, len(results))
-        if n < 5:
+        if len(items) < 5:
             break   # reached last page
 
     # ── Strategy 2: AJAX search-API fallback (uses XHR headers — required!) ──
@@ -1356,7 +1372,7 @@ def _animeav1_paginate_catalog(catalog_base_url: str, catalog_pages: int,
         n = add_fn(items)
         found_any = True
         log.info("[AnimeAV1] catalog page %d  url=%s  → +%d", page, url[:80], n)
-        if n < 5:
+        if len(items) < 5:
             break   # last page
     return found_any
 
