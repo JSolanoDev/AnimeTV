@@ -7979,6 +7979,8 @@ body.is-tv .ep-season-menu { background: rgba(18, 19, 32, 1); }
 .continue-card:is(:hover, :focus-visible, .is-tv-focused) .continue-play { opacity: 1; }
 .continue-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 0.32rem; background: rgba(0,0,0,0.55); }
 .continue-bar > span { display: block; height: 100%; background: var(--accent, #8a5cff); }
+.continue-bar-outside { display: block; width: 100%; height: 0.28rem; background: rgba(255, 255, 255, 0.1); border-radius: 999rem; overflow: hidden; margin-top: 0.45rem; }
+.continue-bar-outside > span { display: block; height: 100%; background: var(--accent, #8a5cff); border-radius: inherit; }
 .continue-card-title {
   display: block;
   margin: 0.5rem 0 0.1rem;
@@ -8043,6 +8045,10 @@ body.is-tv .ep-season-menu { background: rgba(18, 19, 32, 1); }
   box-shadow: none;
 }
 .vid-time { font-variant-numeric: tabular-nums; }
+.vid-volume-control { display: flex; align-items: center; gap: 0.35rem; }
+.vid-volume-slider { width: 5.5rem; height: 0.3rem; accent-color: var(--accent, #8a5cff); border-radius: 999rem; cursor: pointer; opacity: 0.8; transition: width 0.2s ease, opacity 0.2s ease; }
+.vid-volume-slider:is(:hover, :focus-visible) { opacity: 1; }
+@media (max-width: 480px) { .vid-volume-slider { width: 3.5rem; } }
 
 /* ══════════════════════════════════════════════════════════════════════════
    18+ / Hentai Mode — mature theme, header badge, age-gate dialog

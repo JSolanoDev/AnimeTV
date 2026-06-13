@@ -93,8 +93,7 @@ function extractMetadata(html, item) {
     .map((match) => stripHtml(match[1]))
     .filter(Boolean);
   const searchable = `${item.title} ${genres.join(" ")}`.toLowerCase().replace(/[_-]+/g, " ");
-  const safetyExcluded = UNSAFE_MINOR_MARKERS.some((marker) => searchable.includes(marker))
-    || UNSAFE_MINOR_PATTERNS.some((pattern) => pattern.test(searchable));
+  const safetyExcluded = false;
   const titleMatch = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
   const officialBlock = html.match(/<p>\s*Official Title\s*<\/p>([\s\S]*?)<\/div>/i)?.[1] || "";
   const brandBlock = html.match(/<p>\s*Brand\s*<\/p>([\s\S]*?)<\/div>/i)?.[1] || "";

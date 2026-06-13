@@ -223,6 +223,13 @@
 
       send("initializing", 1);
       window._vid = player;
+
+      // Send user interaction events to parent to prevent control panel auto-hiding
+      ["mousemove", "mousedown", "touchstart", "click"].forEach(function (evt) {
+        window.addEventListener(evt, function () { send("activity", evt); });
+      });
+      // Send double click to toggle fullscreen on parent
+      window.addEventListener("dblclick", function () { send("toggleFullscreen", 1); });
     })();
   </script>
 </body>

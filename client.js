@@ -2394,11 +2394,22 @@ function applyAniListExtras(show, data) {
     show.streamingEpisodes = data.episodes;
     // AniList lists episodes newest-first and embeds the number in the title, so
     // key them by parsed episode number for reliable matching against our list.
-    const byNum = {};
+    const byNum = { ...(show.streamingEpisodesByNum || {}) };
     data.episodes.forEach((e, index) => {
       const m = /episode\s*(\d+)/i.exec(e.title || "");
       const n = Number(e.episode || e.number || (m ? m[1] : index + 1));
-      if (n && !byNum[n]) byNum[n] = e;
+      if (n) {
+        const existing = byNum[n] || {};
+        byNum[n] = {
+          ...e,
+          ...existing,
+          title: existing.title && !/^(?:episode|ep)\s*\d+$/i.test(existing.title)
+            ? existing.title
+            : (e.title || existing.title || `Episode ${n}`),
+          thumbnail: existing.thumbnail || e.thumbnail || e.image || "",
+          aired: existing.aired || e.aired || ""
+        };
+      }
     });
     show.streamingEpisodesByNum = byNum;
   }
@@ -5623,11 +5634,12 @@ function episodeThumb(episode = {}, season = {}, show = {}, repeatedImages = new
     show.image, show.poster, show.cover, show.thumbnail, show.banner, show.bannerImage,
     show.tmdbPoster, show.tmdbSeasonPoster, show.tmdbBackdrop, season?.image, season?.banner
   ].map(comparableImageUrl).filter(Boolean));
-  if (comparable && (repeatedImages.has(comparable) || showLevelArt.has(comparable))) ownImage = "";
+  const isAdultShow = show.adultSource || (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show));
+  if (!isAdultShow && comparable && (repeatedImages.has(comparable) || showLevelArt.has(comparable))) ownImage = "";
   if (typeof ImageResolver !== "undefined") {
     let tmdbStill = ImageResolver.getEpisodeStill(show, episode);
     const tmdbComparable = comparableImageUrl(tmdbStill);
-    if (tmdbComparable && (repeatedImages.has(tmdbComparable) || showLevelArt.has(tmdbComparable))) tmdbStill = "";
+    if (!isAdultShow && tmdbComparable && (repeatedImages.has(tmdbComparable) || showLevelArt.has(tmdbComparable))) tmdbStill = "";
     return ImageResolver.resolveEpisodeThumbnail(
       { ...episode, image: ownImage, thumbnail: ownImage, still: ownImage, snapshot: ownImage },
       show,
@@ -6185,7 +6197,10 @@ function renderVidstreamControls() {
         <button class="vid-icon-button focusable" type="button" data-player-prev ${nav.previous ? "" : "disabled"} aria-label="Previous episode" title="Previous episode">⏮</button>
         <button class="vid-icon-button focusable" type="button" data-player-toggle aria-label="Play or pause">▶</button>
         <button class="vid-icon-button focusable" type="button" data-player-next ${nav.next ? "" : "disabled"} aria-label="Next episode" title="Next episode">⏭</button>
-        <button class="vid-icon-button focusable" type="button" data-player-volume aria-label="Mute or unmute">▸</button>
+        <div class="vid-volume-control">
+          <button class="vid-icon-button focusable" type="button" data-player-volume aria-label="Mute or unmute">▸</button>
+          <input class="vid-volume-slider focusable" id="playerVolume" type="range" min="0" max="100" value="50" aria-label="Volume">
+        </div>
         <span class="vid-time" id="playerTime">0:00 / 0:00</span>
         <span class="vid-spacer"></span>
         <button class="vid-tool-button focusable" type="button" data-player-fit aria-label="Video fit mode">${fit === "cover" ? "□" : fit === "fill" ? "▣" : "▭"}</button>
@@ -6514,6 +6529,7 @@ function createApkPlayerController(iframe, options = {}) {
     set(value) {
       this._volume = Math.max(0, Math.min(1, Number(value) || 0));
       postApkPlayerCommand(iframe, "volume", this._volume);
+      emit("volumechange");
     }
   });
   Object.defineProperty(controller, "muted", {
@@ -6521,6 +6537,7 @@ function createApkPlayerController(iframe, options = {}) {
     set(value) {
       this._muted = Boolean(value);
       postApkPlayerCommand(iframe, "muted", this._muted);
+      emit("volumechange");
     }
   });
 
@@ -6539,6 +6556,14 @@ function createApkPlayerController(iframe, options = {}) {
     if (!data?.vcmd) return;
     const command = data.vcmd;
     const value = data.val;
+    if (command === "activity") {
+      iframe.dispatchEvent(new PointerEvent("pointermove", { bubbles: true }));
+      return;
+    }
+    if (command === "toggleFullscreen") {
+      toggleNativeFullscreen();
+      return;
+    }
     if (value && typeof value === "object") {
       controller._currentTime = Number(value.position || 0);
       controller.duration = Number(value.duration || 0);
@@ -6730,6 +6755,7 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
   const time = frame.querySelector("#playerTime");
   const toggle = frame.querySelector("[data-player-toggle]");
   const volume = frame.querySelector("[data-player-volume]");
+  const volumeSlider = frame.querySelector("#playerVolume");
   const loader = frame.querySelector(".vid-loader");
 
   const updateTime = () => {
@@ -6746,7 +6772,11 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
   };
 
   const updateVolume = () => {
-    if (volume) volume.textContent = video.muted || video.volume === 0 ? "○" : "▸";
+    const isMuted = video.muted || video.volume === 0;
+    if (volume) volume.textContent = isMuted ? "○" : "▸";
+    if (volumeSlider) {
+      volumeSlider.value = isMuted ? 0 : Math.round(video.volume * 100);
+    }
   };
 
   toggle?.addEventListener("click", () => {
@@ -6755,6 +6785,12 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
   });
   volume?.addEventListener("click", () => {
     video.muted = !video.muted;
+    updateVolume();
+  });
+  volumeSlider?.addEventListener("input", () => {
+    const val = Number(volumeSlider.value) / 100;
+    video.volume = val;
+    video.muted = val === 0;
     updateVolume();
   });
   seek?.addEventListener("input", () => {
@@ -6782,10 +6818,19 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
   frame.querySelectorAll("[data-player-panel]").forEach((button) => {
     button.addEventListener("click", () => openPlayerPanel(frame, button.dataset.playerPanel, video, episode, url, tracks));
   });
+  
+  // Double click stage to toggle fullscreen
+  const stage = frame.querySelector(".vid-player-stage");
+  stage?.addEventListener("dblclick", (e) => {
+    if (e.target.closest(".vid-controls") || e.target.closest(".vid-topbar") || e.target.closest(".vid-panel")) return;
+    toggleNativeFullscreen();
+  });
+
   video.addEventListener("loadedmetadata", updateTime);
   video.addEventListener("timeupdate", updateTime);
   video.addEventListener("play", updateToggle);
   video.addEventListener("pause", updateToggle);
+  video.addEventListener("volumechange", updateVolume);
   video.addEventListener("waiting", () => loader && (loader.hidden = false));
   video.addEventListener("canplay", () => loader && (loader.hidden = true));
   video.addEventListener("playing", () => loader && (loader.hidden = true));
@@ -7115,10 +7160,12 @@ function renderContinueWatching() {
       <span class="continue-thumb">
         ${img ? `<img src="${escapeHtml(img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : ""}
         <span class="continue-play" aria-hidden="true">▶</span>
-        <span class="continue-bar"><span style="width:${e.progress}%"></span></span>
       </span>
-      <strong class="continue-card-title">${escapeHtml(e.title)}</strong>
-      <small class="continue-card-sub">${escapeHtml(sub)}</small>
+      <span>
+        <strong class="continue-card-title">${escapeHtml(e.title)}</strong>
+        <small class="continue-card-sub">${escapeHtml(sub)}</small>
+        <span class="continue-bar-outside"><span style="width:${e.progress}%"></span></span>
+      </span>
     </button>`;
   }).join("");
   grid.querySelectorAll("[data-continue-key]").forEach((card) => {
@@ -8261,8 +8308,12 @@ function renderDirectVideoPlayer(frame, url, episode) {
               ${spanishTrack ? `<track kind="subtitles" srclang="es" label="Español" src="${escapeHtml(spanishTrack.url)}" default>` : ""}
             </video>`}
         <div class="vid-loader" aria-live="polite">
-          <div class="play-symbol" aria-hidden="true"></div>
-          <span>Loading stream...</span>
+          <div class="vid-loader-animation">
+            <div class="vid-loader-ring"></div>
+            <div class="vid-loader-ring-glow"></div>
+            <div class="vid-loader-inner"></div>
+          </div>
+          <span class="vid-loader-text">Loading stream...</span>
         </div>
         ${renderVidstreamTopbar(currentEpisodeLabel())}
         <div class="translated-caption" id="translatedCaption" hidden></div>

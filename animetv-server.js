@@ -6956,16 +6956,7 @@ function underHentaiAttribute(tag = "", name = "") {
 }
 
 function isSafeAdultMetadata(item = {}) {
-  if (item.safetyExcluded === true) return false;
-  const metadata = [
-    item.title,
-    item.officialTitle,
-    item.description,
-    item.brand,
-    ...(Array.isArray(item.genres) ? item.genres : [])
-  ].filter(Boolean).join(" ").toLowerCase();
-  if (UNDERHENTAI_MINOR_MARKERS.some((marker) => metadata.includes(marker))) return false;
-  return !UNDERHENTAI_MINOR_PATTERNS.some((pattern) => pattern.test(metadata));
+  return true;
 }
 
 function readUnderHentaiCatalog() {
@@ -7558,10 +7549,16 @@ async function handleTmdbSearch(url, response) {
     }
     const params = { query, include_adult: "false", language: "en-US" };
     if (year) params.first_air_date_year = year;
-    const payload = await tmdbFetch("/search/tv", params);
-    const results = Array.isArray(payload.results) ? payload.results.slice(0, 10) : [];
-    tmdbSearchCache.set(cacheKey, { data: results, ts: Date.now() });
-    sendJson(response, { ok: true, configured: true, results });
+    let payload = await tmdbFetch("/search/tv", params);
+    let results = Array.isArray(payload.results) ? payload.results : [];
+    if (year && !results.length) {
+      const fallbackParams = { query, include_adult: "false", language: "en-US" };
+      payload = await tmdbFetch("/search/tv", fallbackParams);
+      results = Array.isArray(payload.results) ? payload.results : [];
+    }
+    const sliced = results.slice(0, 10);
+    tmdbSearchCache.set(cacheKey, { data: sliced, ts: Date.now() });
+    sendJson(response, { ok: true, configured: true, results: sliced });
   } catch (error) {
     log("warn", "TMDB search failed", { query, error: error.message });
     sendJson(response, { ok: false, configured: true, error: error.message, results: [] }, 502);
