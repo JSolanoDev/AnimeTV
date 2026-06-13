@@ -2089,6 +2089,7 @@ function simpleCarouselText(show) {
 document.addEventListener("error", (event) => {
   const img = event.target;
   if (!(img instanceof HTMLImageElement)) return;
+  if (!img.isConnected) return; // Ignore unmounted/aborted image loads.
   if (img.classList.contains("thumb-poster") || img.classList.contains("thumb-backdrop")) {
     try { ImageResolver.markImageFailed(img.currentSrc || img.src); } catch { /* resolver optional */ }
     let candidates = [];
@@ -5867,7 +5868,7 @@ function renderEpisodeList(show) {
                   data-season-index="${state.activeSeasonIndex}" data-episode-index="${episodeIndex}"
                   data-ep-search="${escapeHtml(search)}">
             <span class="ep-thumb ${thumb ? "has-image" : "is-placeholder"}" style="--episode-hue:${fallbackHue}">
-              ${thumb ? `<img referrerpolicy="no-referrer" class="ep-thumb-img" src="${escapeHtml(thumb)}" alt="" loading="lazy" onerror="try{ImageResolver.markImageFailed(this.src)}catch(e){};this.style.display='none';this.parentElement.classList.add('is-placeholder')">` : ""}
+              ${thumb ? `<img referrerpolicy="no-referrer" class="ep-thumb-img" src="${escapeHtml(thumb)}" alt="" loading="lazy" onerror="if(this.isConnected){try{ImageResolver.markImageFailed(this.src)}catch(e){};this.style.display='none';this.parentElement.classList.add('is-placeholder')}">` : ""}
               <span class="ep-thumb-num">${escapeHtml(String(num))}</span>
               <span class="ep-thumb-play" aria-hidden="true">▶</span>
               ${progressBar}
@@ -6244,6 +6245,7 @@ function renderPlayerPopupMessage(frame, title = "Loading episode", message = "P
 function handleWatchPosterError(image) {
   if (!image) return;
   image.onerror = null;
+  if (!image.isConnected) return;
   try { ImageResolver.markImageFailed(image.src); } catch { /* resolver optional */ }
   const frame = document.querySelector("#videoFrame");
   if (image.isConnected && frame?.contains(image)) resetVideoFrame();

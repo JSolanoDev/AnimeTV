@@ -20,7 +20,7 @@ const ImageResolver = (function () {
   "use strict";
 
   const TMDB_IMG_BASE = "https://image.tmdb.org/t/p";
-  const MATCH_CACHE_PREFIX = "zenkaitv:tmdb-match:v4:";
+  const MATCH_CACHE_PREFIX = "zenkaitv:tmdb-match:v5:";
   const MATCH_CACHE_TTL_MS = 1000 * 60 * 60 * 24; // Refresh airing episode stills daily.
   const FAILED_CACHE_KEY = "zenkaitv:img-failed:v1";
   const FAILED_CACHE_MAX = 400;
@@ -81,11 +81,15 @@ const ImageResolver = (function () {
 
   // ── Title matching + confidence scoring ─────────────────────────────────────
   function norm(value) {
-    // Local copy of the catalog's normalizeTitle so the resolver is standalone.
-    if (typeof normalizeTitle === "function") return normalizeTitle(value);
     return String(value || "")
-      .toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
-      .replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      // Preserve a-z, 0-9, Chinese ideographs, Hiragana, Katakana, and full-width alphanumeric
+      .replace(/[^a-z0-9\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff\uff10-\uff19\uff41-\uff5a\uff21-\uff3a]+/gi, " ")
+      .replace(/\b(season|part|tv|ova|ona|the|a|an)\b/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   function tokenSimilarity(a, b) {
@@ -99,6 +103,8 @@ const ImageResolver = (function () {
 
   function stripSequelWords(str) {
     return norm(str)
+      .replace(/[第]?\s*\d+\s*[季期话話集]/g, "")
+      .replace(/[第]\s*[一二三四五六七八九十\d]+\s*[季期话話集]/g, "")
       .replace(/\b\d+(st|nd|rd|th)\b/g, "")
       .replace(/\b(season|part|cour|capitulo|temp|temporada)\b/g, "")
       .replace(/\b(s\d+|p\d+|c\d+)\b/g, "")
@@ -120,6 +126,8 @@ const ImageResolver = (function () {
     const candTitles = [candidate.name, candidate.original_name]
       .map((t) => String(t || "").trim()).filter(Boolean);
 
+    const cleanSpaces = (s) => String(s || "").replace(/\s+/g, "");
+
     let best = 0;
     for (const at of animeTitles) {
       for (const ct of candTitles) {
@@ -129,10 +137,12 @@ const ImageResolver = (function () {
         let s;
         if (na === nc) {
           s = 100;
+        } else if (cleanSpaces(na) === cleanSpaces(nc)) {
+          s = 98;
         } else {
           const sa = stripSequelWords(at);
           const sc = stripSequelWords(ct);
-          if (sa && sc && sa === sc) {
+          if (sa && sc && (sa === sc || cleanSpaces(sa) === cleanSpaces(sc))) {
             s = 96;
           } else if (na.includes(nc) || nc.includes(na)) {
             s = 82;
@@ -177,8 +187,8 @@ const ImageResolver = (function () {
         genreAdj = 15;
         reason += " genre(animation)=+15";
       } else {
-        genreAdj = -15;
-        reason += " genre(non-animation)=-15";
+        genreAdj = -35;
+        reason += " genre(non-animation)=-35";
       }
     }
 
