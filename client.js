@@ -1213,9 +1213,30 @@ function setSourceStatus(message) {
 }
 
 function catalogStatusLabel(sourceLabel, shows = []) {
+  // Remember the regular source name so the stat can be rebuilt for the active
+  // mode later (the adult label always contains "adult").
+  if (!/adult/i.test(sourceLabel)) state.regularSourceLabel = sourceLabel;
   const titleCount = Array.isArray(shows) ? shows.length : 0;
   const episodeCount = countLoadedEpisodes(shows);
   return `${sourceLabel} | ${formatCount(titleCount, "title")} | ${formatCount(episodeCount, "episode")}`;
+}
+
+// Rebuild the catalog stat line for whichever mode is active: in 18+ mode it
+// counts only the adult source's titles/episodes; otherwise only the regular
+// catalog (the two are merged into state.shows, so a fixed string would show
+// the wrong totals after switching modes).
+function refreshCatalogStatus() {
+  if (typeof AdultMode === "undefined") return;
+  if (AdultMode.isEnabled()) {
+    const adultShows = state.shows.filter((s) => s?.adultSource || AdultMode.isAdultContent(s));
+    const name = (typeof AdultSourceRegistry !== "undefined" && AdultSourceRegistry.isConfigured())
+      ? `${AdultSourceRegistry.get().name} adult catalog`
+      : "Adult catalog";
+    setSourceStatus(catalogStatusLabel(name, adultShows));
+  } else {
+    const regularShows = state.shows.filter((s) => !AdultMode.isAdultContent(s));
+    setSourceStatus(catalogStatusLabel(state.regularSourceLabel || "ZenkaiTV catalog", regularShows));
+  }
 }
 
 // formatCount, countLoadedEpisodes, getLoadedEpisodeCount, sortCarouselQuality, setDefaultLanguage
@@ -1686,6 +1707,7 @@ function makeAv1OnlyShow(item) {
 function registerAv1Show(show) {
   if (!state.av1Shows) state.av1Shows = new Map();
   if (!state.av1Shows.has(show.id)) state.av1Shows.set(show.id, show);
+  return state.av1Shows.get(show.id);
 }
 
 function buildLatestEpisodesList(limit = HOME_CARD_LIMIT) {
@@ -1719,8 +1741,7 @@ function buildLatestEpisodesList(limit = HOME_CARD_LIMIT) {
         _av1Episode: item.episode
       };
     } else {
-      card = makeAv1OnlyShow(item);
-      registerAv1Show(card);
+      card = registerAv1Show(makeAv1OnlyShow(item));
     }
     const titleKey = titleKeyOf(card);
     if (usedIds.has(card.id) || (titleKey && usedTitles.has(titleKey))) continue;
@@ -1760,6 +1781,7 @@ async function loadAnimeAv1Latest(force = false) {
       state.av1Latest = json.items;
       state.av1LatestAt = Date.now();
       render();   // repaint the rail in AnimeAV1 order
+      warmVisibleShowMetadata(buildLatestEpisodesList(HOME_CARD_LIMIT), HOME_CARD_LIMIT);
     }
   } catch (_) {
     // Keep the airing-based fallback ordering already on screen.
@@ -1818,6 +1840,32 @@ function getWatchPosterArtwork(show = {}, season = null) {
     show.backdrop
   ].map((value) => hqImage(String(value || "").trim()));
   return pickImage(candidates);
+}
+
+function getCardPosterCandidates(show = {}) {
+  const candidates = [
+    show.tmdbSeasonPoster,
+    show.tmdbPoster,
+    show.coverImageLarge,
+    show.coverImage,
+    show.image,
+    show.poster,
+    show.cover,
+    show.jikanImage,
+    show.thumbnail
+  ];
+  const expanded = [];
+  candidates.forEach((value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return;
+    const upgraded = hqImage(raw);
+    if (upgraded) expanded.push(upgraded);
+    if (raw !== upgraded) expanded.push(raw);
+  });
+  return [...new Set(expanded)].filter((url) => {
+    try { return typeof ImageResolver === "undefined" || !ImageResolver.isImageFailed(url); }
+    catch { return true; }
+  });
 }
 
 // Best wide cinematic backdrop: TMDB backdrop → AniList banner → TMDB season
@@ -2003,7 +2051,25 @@ function simpleCarouselText(show) {
 // capture phase because `error` events don't bubble.
 document.addEventListener("error", (event) => {
   const img = event.target;
-  if (!(img instanceof HTMLImageElement) || img.dataset.imgFallback) return;
+  if (!(img instanceof HTMLImageElement)) return;
+  if (img.classList.contains("thumb-poster") || img.classList.contains("thumb-backdrop")) {
+    try { ImageResolver.markImageFailed(img.currentSrc || img.src); } catch { /* resolver optional */ }
+    let candidates = [];
+    try { candidates = JSON.parse(decodeURIComponent(img.dataset.imageFallbacks || "")); } catch { /* no fallback list */ }
+    let index = Number(img.dataset.imageFallbackIndex || 0) + 1;
+    while (index < candidates.length) {
+      const next = String(candidates[index] || "").trim();
+      index += 1;
+      if (!next) continue;
+      try {
+        if (typeof ImageResolver !== "undefined" && ImageResolver.isImageFailed(next)) continue;
+      } catch { /* resolver optional */ }
+      img.dataset.imageFallbackIndex = String(index - 1);
+      img.src = next;
+      return;
+    }
+  }
+  if (img.dataset.imgFallback) return;
   img.dataset.imgFallback = "1";
   if (img.classList.contains("watch-poster")) {
     img.style.display = "none";
@@ -2518,16 +2584,15 @@ function cardTemplate(show, index = 0) {
   const artStyle = `--thumb-a: ${colors[0]}; --thumb-b: ${colors[1]}`;
   const meta = cardMeta(show, isFavorite);
   const target = getCardTarget(show);
-  const rawPoster = show.image || "";
-  const posterUrl = hqImage(rawPoster);
-  // If the upgraded URL 404s, fall back to the original before giving up.
-  const onErr = posterUrl && posterUrl !== rawPoster
-    ? ` onerror="this.onerror=null;this.src='${escapeHtml(rawPoster)}'"`
+  const posterCandidates = getCardPosterCandidates(show);
+  const posterUrl = posterCandidates[0] || "";
+  const fallbackData = posterCandidates.length
+    ? ` data-image-fallbacks="${escapeHtml(encodeURIComponent(JSON.stringify(posterCandidates)))}" data-image-fallback-index="0"`
     : "";
   const image = posterUrl
     ? `
-        <img class="thumb-backdrop" src="${escapeHtml(posterUrl)}" alt="" loading="lazy"${onErr}>
-        <img class="thumb-poster" src="${escapeHtml(posterUrl)}" alt="" loading="lazy"${onErr}>
+        <img class="thumb-backdrop" src="${escapeHtml(posterUrl)}" alt="" loading="lazy"${fallbackData}>
+        <img class="thumb-poster" src="${escapeHtml(posterUrl)}" alt="" loading="lazy"${fallbackData}>
       `
     : "";
   return `
@@ -4103,6 +4168,7 @@ function renderPrivacyHtml() {
 
 function renderSettings() {
   if (!settingsGrid) return;
+  refreshCatalogStatus();   // show totals for the currently-active (regular/18+) catalog
   const language = state.appLanguage;
   const preferences = getLanguagePreferences();
   const ui = state.uiPreferences;
@@ -5500,9 +5566,9 @@ function episodeAirDateLabel(episode = {}) {
   return new Date(ms).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" });
 }
 
-// Episode thumbnail: TMDB still → existing per-episode still → TMDB season/show
-// poster → AniList banner → AniList cover. Returns "" so callers render the
-// branded placeholder instead of a broken image.
+// Episode thumbnail: TMDB still → existing per-episode still. Repeated or
+// show-level artwork is rejected so one anime banner never fills every row.
+// Returns "" so callers render a distinct episode placeholder.
 function comparableImageUrl(value = "") {
   const url = hqImage(String(value || "").trim());
   if (!url) return "";
@@ -5559,10 +5625,13 @@ function episodeThumb(episode = {}, season = {}, show = {}, repeatedImages = new
   ].map(comparableImageUrl).filter(Boolean));
   if (comparable && (repeatedImages.has(comparable) || showLevelArt.has(comparable))) ownImage = "";
   if (typeof ImageResolver !== "undefined") {
+    let tmdbStill = ImageResolver.getEpisodeStill(show, episode);
+    const tmdbComparable = comparableImageUrl(tmdbStill);
+    if (tmdbComparable && (repeatedImages.has(tmdbComparable) || showLevelArt.has(tmdbComparable))) tmdbStill = "";
     return ImageResolver.resolveEpisodeThumbnail(
-      { ...episode, image: ownImage || episode.image, thumbnail: ownImage || episode.thumbnail },
+      { ...episode, image: ownImage, thumbnail: ownImage, still: ownImage, snapshot: ownImage },
       show,
-      { episodeStill: ImageResolver.getEpisodeStill(show, episode) }
+      { episodeStill: tmdbStill }
     );
   }
   return ownImage;
@@ -7313,16 +7382,21 @@ async function resolveTioAnimeSlugFromCatalog(show) {
 
 let visibleMetadataWarmGeneration = 0;
 
-function warmVisibleShowMetadata(shows = state.shows, limit = 16) {
+function warmVisibleShowMetadata(shows = state.shows, limit = 64) {
   if (typeof AdultMode !== "undefined" && AdultMode.isEnabled()) return;
   const generation = ++visibleMetadataWarmGeneration;
+  const prioritized = [
+    ...buildLatestEpisodesList(Math.min(HOME_CARD_LIMIT, limit)),
+    ...(Array.isArray(shows) ? shows : [])
+  ];
   const queue = [...new Map(
-    (Array.isArray(shows) ? shows : [])
+    prioritized
       .filter((show) => show && (typeof AdultMode === "undefined" || !AdultMode.isAdultContent(show)))
       .map((show) => [String(show.id || getShowKey(show)), show])
   ).values()].slice(0, limit);
   let cursor = 0;
 
+  let changed = false;
   const worker = async () => {
     while (cursor < queue.length && generation === visibleMetadataWarmGeneration) {
       const show = queue[cursor++];
@@ -7336,13 +7410,16 @@ function warmVisibleShowMetadata(shows = state.shows, limit = 16) {
         ]);
         applyTmdbEpisodeMetadata(show);
         show._metadataPreloadComplete = true;
+        changed = true;
       } catch {
         show._metadataPreloadStarted = false;
       }
     }
   };
 
-  Promise.allSettled([worker(), worker()]).catch(() => {});
+  Promise.allSettled([worker(), worker(), worker()]).then(() => {
+    if (changed && generation === visibleMetadataWarmGeneration) render();
+  }).catch(() => {});
 }
 
 function warmTioAnimeSlugCatalog(shows = state.shows) {
@@ -9196,6 +9273,7 @@ if (typeof AdultMode !== "undefined") {
     playThemeFlash(on);
     syncAdultModeChrome();
     if (on) await loadAdultCatalog();
+    refreshCatalogStatus();   // stat line reflects the now-active catalog
     render();
   });
 }

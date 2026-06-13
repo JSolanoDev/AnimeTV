@@ -4307,6 +4307,172 @@ body.soft-focus .is-tv-focused {
   object-fit: contain;
 }
 
+.vid-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  background: var(--loader-bg, radial-gradient(circle at center, rgba(16, 14, 36, 0.54), rgba(0, 0, 0, 0.84)));
+  color: var(--loader-text-color, rgba(246, 243, 255, 0.8));
+  font-family: inherit;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: opacity 0.3s ease;
+
+  /* Base Theme Variables for Loader */
+  --loader-primary: #8a5cff;
+  --loader-secondary: #00d2ff;
+  --loader-bg: radial-gradient(circle at center, rgba(8, 10, 19, 0.82), rgba(4, 5, 10, 0.96));
+  --loader-text-color: #f6f3ff;
+  --loader-glow: rgba(138, 92, 255, 0.4);
+}
+
+/* Mature Theme Variables for Loader */
+body.adult-mode .vid-loader {
+  --loader-primary: #e11d48;
+  --loader-secondary: #7a2bd6;
+  --loader-bg: radial-gradient(circle at center, rgba(20, 6, 12, 0.88), rgba(6, 2, 4, 0.98));
+  --loader-text-color: #f7e9ef;
+  --loader-glow: rgba(225, 29, 72, 0.45);
+}
+
+.vid-loader[hidden] {
+  display: none;
+}
+
+/* Container for spinner elements */
+.vid-loader-animation {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Outer Spinning Ring */
+.vid-loader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 4px solid transparent;
+  border-top-color: var(--loader-primary);
+  border-bottom-color: var(--loader-secondary);
+  animation: loader-spin 1.2s cubic-bezier(0.5, 0.2, 0.3, 0.8) infinite;
+  box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.05);
+}
+
+/* Glow Effect Behind the Ring */
+.vid-loader-ring-glow {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 6px solid transparent;
+  border-top-color: var(--loader-primary);
+  border-bottom-color: var(--loader-secondary);
+  filter: blur(8px);
+  opacity: 0.65;
+  animation: loader-spin 1.2s cubic-bezier(0.5, 0.2, 0.3, 0.8) infinite;
+  pointer-events: none;
+}
+
+/* Inner Badge or Centerpiece */
+.vid-loader-inner {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.05), 0 4px 12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: loader-pulse 2s ease-in-out infinite;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Normal Mode: Draw a small play triangle in the center */
+body:not(.adult-mode) .vid-loader-inner::after {
+  content: "";
+  display: block;
+  width: 0;
+  height: 0;
+  margin-left: 4px; /* offset play button to look centered */
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 13px solid var(--loader-secondary);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Adult Mode: Display 18+ badge in the center */
+body.adult-mode .vid-loader-inner {
+  background: rgba(225, 29, 72, 0.08);
+  border-color: rgba(225, 29, 72, 0.3);
+  box-shadow: inset 0 0 12px rgba(225, 29, 72, 0.15), 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+body.adult-mode .vid-loader-inner::after {
+  content: "18+";
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 950;
+  letter-spacing: -0.02em;
+  color: #e11d48;
+  text-shadow: 0 0 8px rgba(225, 29, 72, 0.6);
+}
+
+/* Text styling */
+.vid-loader-text {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--loader-text-color);
+  opacity: 0.85;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  animation: loader-text-pulse 1.8s ease-in-out infinite;
+}
+
+body.adult-mode .vid-loader-text {
+  text-shadow: 0 0 10px rgba(225, 29, 72, 0.25), 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* Animations */
+@keyframes loader-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loader-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.05), 0 4px 12px rgba(0, 0, 0, 0.5);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.05), 0 4px 12px var(--loader-glow);
+  }
+}
+
+@keyframes loader-text-pulse {
+  0%, 100% {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .video-frame .vid-player-stage .apk-video-frame {
   border: 0;
   background: #000000;
@@ -6766,19 +6932,29 @@ body.sidebar-collapsed .main-nav .nav-link:is(:hover, :focus-visible, .is-tv-foc
 .ss-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  /* Explicit viewport sizing so the overlay can never collapse to its content
+     if an ancestor (transform/filter/backdrop-filter) establishes a containing
+     block — that was leaving the dialog as a tiny box in the corner. */
+  width: 100vw;
+  height: 100dvh;
+  z-index: 10060;            /* above the cinematic watch overlay (10050) */
   display: grid;
   place-items: center;
   padding: 1.25rem;
-  background: rgba(4, 6, 14, 0.72);
-  backdrop-filter: blur(6px);
+  /* Solid dim only — NO backdrop-filter. Stacking another blurred backdrop on
+     top of the topbar/overlay blurs was producing a washed-out, half-composited
+     "glitch" on the first open. A strong opaque dim gives the same focus without
+     the GPU compositing issue. */
+  background: rgba(4, 6, 14, 0.92);
   animation: ssFade 160ms ease both;
 }
 @keyframes ssFade { from { opacity: 0; } to { opacity: 1; } }
 
 .ss-modal {
   position: relative;
-  width: min(34rem, 100%);
+  /* Viewport-based cap (not 100% of the parent) so the modal keeps a usable
+     width even if its backdrop's box is collapsed for any reason. */
+  width: min(34rem, calc(100vw - 2.5rem));
   max-height: 90vh;
   overflow: auto;
   padding: 1.6rem 1.5rem 1.4rem;
@@ -7554,16 +7730,30 @@ body.has-embedded-player .watch-side {
   place-items: center;
 }
 .ep-thumb.is-placeholder {
+  isolation: isolate;
   background:
-    radial-gradient(circle at 72% 24%, hsla(var(--episode-hue), 86%, 64%, 0.42), transparent 38%),
-    linear-gradient(135deg, hsl(var(--episode-hue), 42%, 22%), #10111d 68%);
+    radial-gradient(circle at 76% 20%, hsla(var(--episode-hue), 92%, 68%, 0.52), transparent 34%),
+    radial-gradient(circle at 22% 84%, hsla(calc(var(--episode-hue) + 72), 88%, 58%, 0.36), transparent 42%),
+    linear-gradient(135deg, hsl(var(--episode-hue), 46%, 22%), #0b0c17 72%);
+}
+.ep-thumb.is-placeholder::before {
+  content: "";
+  position: absolute;
+  inset: 12% 10%;
+  z-index: -1;
+  border: 0.08rem solid rgba(255,255,255,0.14);
+  border-radius: 0.42rem;
+  background:
+    linear-gradient(125deg, transparent 38%, rgba(255,255,255,0.1) 39% 41%, transparent 42%),
+    linear-gradient(35deg, rgba(255,255,255,0.08), transparent 48%);
+  transform: rotate(-3deg);
 }
 .ep-thumb.is-placeholder::after {
-  content: "ZENKAI";
-  color: rgba(255,255,255,0.16);
-  font-size: 0.68rem;
+  content: "EPISODE";
+  color: rgba(255,255,255,0.24);
+  font-size: 0.62rem;
   font-weight: 900;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
 }
 .ep-thumb-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .ep-thumb-num {

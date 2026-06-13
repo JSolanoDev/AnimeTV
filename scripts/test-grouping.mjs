@@ -15,6 +15,7 @@ const {
 } = require("../js/utils.js");
 const { SmartSource } = require("../js/smart-source.js");
 const SeasonNormalization = require("../js/season-normalization.js");
+const ImageResolver = require("../js/image-resolver.js");
 
 let passed = 0;
 let failed = 0;
@@ -22,6 +23,28 @@ function check(name, cond) {
   if (cond) { passed++; console.log(`  PASS  ${name}`); }
   else { failed++; console.log(`  FAIL  ${name}`); }
 }
+
+console.log("\n# episode artwork resolution");
+check(
+  "Episode thumbnails use a genuine episode still",
+  ImageResolver.resolveEpisodeThumbnail(
+    { episode: 1, thumbnail: "https://cdn.example.com/episode-1.jpg" },
+    { banner: "https://cdn.example.com/banner.jpg" },
+    {}
+  ) === "https://cdn.example.com/episode-1.jpg"
+);
+check(
+  "Episode thumbnails do not repeat show-level artwork",
+  ImageResolver.resolveEpisodeThumbnail(
+    { episode: 1 },
+    {
+      banner: "https://cdn.example.com/banner.jpg",
+      image: "https://cdn.example.com/poster.jpg",
+      tmdbPoster: "https://cdn.example.com/tmdb-poster.jpg"
+    },
+    {}
+  ) === ""
+);
 
 // ── Sample AniList media (real ids/formats/years) ────────────────────────────
 const doraemon1973 = { id: 501,  idMal: 501,  format: "TV",       seasonYear: 1973,

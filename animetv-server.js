@@ -6281,6 +6281,7 @@ function animeAv1SlugCandidates(show = {}) {
   animeAv1SearchCandidates(show).forEach((title) => {
     add(title);
     add(title.replace(/:/g, " "));
+    add(title.replace(/\bre\s*[:\-]?\s*zero\b/ig, "rezero"));
     add(title.replace(/\bseason\s+(\d+)\b/ig, "$1th season"));
   });
   return output.slice(0, 14);

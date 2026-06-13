@@ -20,8 +20,8 @@ const ImageResolver = (function () {
   "use strict";
 
   const TMDB_IMG_BASE = "https://image.tmdb.org/t/p";
-  const MATCH_CACHE_PREFIX = "zenkaitv:tmdb-match:v2:";
-  const MATCH_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+  const MATCH_CACHE_PREFIX = "zenkaitv:tmdb-match:v3:";
+  const MATCH_CACHE_TTL_MS = 1000 * 60 * 60 * 24; // Refresh airing episode stills daily.
   const FAILED_CACHE_KEY = "zenkaitv:img-failed:v1";
   const FAILED_CACHE_MAX = 400;
   const CONFIDENCE_THRESHOLD = 72; // reject loose matches that can attach the wrong anime artwork
@@ -376,15 +376,7 @@ const ImageResolver = (function () {
     tmdbData = tmdbData || {};
     const url = firstValidImage([
       tmdbData.episodeStill || getEpisodeStill(anime, episode),
-      episode?.image, episode?.thumbnail, episode?.still, episode?.snapshot,
-      // No per-episode still (common for unaired shows): fall back to real show
-      // art so the row shows a poster instead of a bland gradient placeholder.
-      // The wide banner fits the 16:9 thumb best, then season/show posters.
-      tmdbData.seasonPoster || anime.tmdbSeasonPoster,
-      anime.bannerImage || anime.banner,
-      tmdbData.showPoster || anime.tmdbPoster,
-      anime.coverImageLarge,
-      anime.coverImage || anime.image
+      episode?.image, episode?.thumbnail, episode?.still, episode?.snapshot
     ]);
     return url || "";
   }
