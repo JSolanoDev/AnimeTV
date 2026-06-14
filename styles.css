@@ -4813,6 +4813,8 @@ body.player-cinema-open .close-button {
 }
 
 /* Make player fill the screen in native fullscreen */
+:fullscreen.vidstream-player.is-cinema,
+:-webkit-full-screen.vidstream-player.is-cinema,
 :fullscreen .vidstream-player.is-cinema,
 :-webkit-full-screen .vidstream-player.is-cinema {
   top: 0 !important;
@@ -4824,6 +4826,7 @@ body.player-cinema-open .close-button {
   border: none !important;
   border-radius: 0 !important;
   transform: none !important;
+  box-shadow: none !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

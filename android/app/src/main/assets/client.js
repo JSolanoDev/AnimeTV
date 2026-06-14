@@ -6363,15 +6363,54 @@ function setPlayerCinema(container, enabled, options = {}) {
   if (!options.silent) showToast(enabled ? "Cinema mode" : "Normal player");
 }
 
-function toggleNativeFullscreen() {
-  if (document.fullscreenElement) {
-    document.exitFullscreen().catch(() => {});
-  } else {
-    // Always use documentElement — avoids traversing compositing layers from
-    // nested elements and eliminates the lag caused by ancestor CSS animations
-    document.documentElement.requestFullscreen({ navigationUI: "hide" }).catch(() =>
-      showToast("Fullscreen blocked by this browser.")
+function toggleNativeFullscreen(el) {
+  const isFs = Boolean(
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement ||
+    document.msFullscreenElement
+  );
+
+  if (isFs) {
+    const exitFs = (
+      document.exitFullscreen ||
+      document.webkitExitFullscreen ||
+      document.mozCancelFullScreen ||
+      document.msExitFullscreen
     );
+    if (exitFs) {
+      exitFs.call(document).catch(() => {});
+    }
+  } else {
+    let target = null;
+    if (el && typeof el.requestFullscreen === "function") {
+      target = el;
+    } else if (el && typeof el.webkitRequestFullscreen === "function") {
+      target = el;
+    } else if (el && typeof el.mozRequestFullScreen === "function") {
+      target = el;
+    } else if (el && typeof el.msRequestFullscreen === "function") {
+      target = el;
+    }
+
+    if (!target) {
+      target = document.querySelector(".vidstream-player.is-cinema") || document.documentElement;
+    }
+
+    const requestFs = (
+      target.requestFullscreen ||
+      target.webkitRequestFullscreen ||
+      target.mozRequestFullScreen ||
+      target.msRequestFullscreen
+    );
+
+    if (requestFs) {
+      requestFs.call(target, { navigationUI: "hide" }).catch(() =>
+        showToast("Fullscreen blocked by this browser.")
+      );
+    } else {
+      showToast("Fullscreen is not supported by this browser.");
+    }
   }
 }
 
@@ -6537,6 +6576,16 @@ function exitPlayerToSources() {
   stopActivePlayback();
   document.body.classList.remove("player-cinema-open");
   document.body.classList.remove("has-embedded-player");
+
+  if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+    const exitFs = (
+      document.exitFullscreen ||
+      document.webkitExitFullscreen ||
+      document.mozCancelFullScreen ||
+      document.msExitFullscreen
+    );
+    if (exitFs) exitFs.call(document).catch(() => {});
+  }
 
   const frame = document.querySelector("#videoFrame");
   if (!frame) return;
@@ -6959,7 +7008,7 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
   frame.querySelector("[data-player-exit]")?.addEventListener("click", exitPlayerToSources);
   frame.querySelector("[data-player-back]")?.addEventListener("click", () => showEpisodeListTab());
   frame.querySelector("[data-player-cast]")?.addEventListener("click", () => castActiveEpisode());
-  frame.querySelector("[data-player-fullscreen]")?.addEventListener("click", () => toggleNativeFullscreen());
+  frame.querySelector("[data-player-fullscreen]")?.addEventListener("click", () => toggleNativeFullscreen(shell));
   frame.querySelector("[data-player-fit]")?.addEventListener("click", () => {
     const modes = ["contain", "cover", "fill"];
     const current = state.uiPreferences.playerFit || "contain";
@@ -6982,7 +7031,7 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
   const stage = frame.querySelector(".vid-player-stage");
   stage?.addEventListener("dblclick", (e) => {
     if (e.target.closest(".vid-controls") || e.target.closest(".vid-topbar") || e.target.closest(".vid-panel")) return;
-    toggleNativeFullscreen();
+    toggleNativeFullscreen(shell);
   });
 
   video.addEventListener("loadedmetadata", updateTime);
@@ -7097,6 +7146,17 @@ function showEpisodeListTab() {
       document.body.classList.remove("player-cinema-open");
     }
   }
+
+  if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+    const exitFs = (
+      document.exitFullscreen ||
+      document.webkitExitFullscreen ||
+      document.mozCancelFullScreen ||
+      document.msExitFullscreen
+    );
+    if (exitFs) exitFs.call(document).catch(() => {});
+  }
+
   state.activeDetailTab = "episodes";
   renderEpisodeList(state.activeShow);
   // Scroll the right source/episode panel to the episode list
