@@ -20,7 +20,7 @@ const ImageResolver = (function () {
   "use strict";
 
   const TMDB_IMG_BASE = "https://image.tmdb.org/t/p";
-  const MATCH_CACHE_PREFIX = "zenkaitv:tmdb-match:v8:";
+  const MATCH_CACHE_PREFIX = "zenkaitv:tmdb-match:v10:";
   const MATCH_CACHE_TTL_MS = 1000 * 60 * 60 * 24; // Refresh airing episode stills daily.
   const FAILED_CACHE_KEY = "zenkaitv:img-failed:v1";
   const FAILED_CACHE_MAX = 400;
@@ -115,7 +115,23 @@ const ImageResolver = (function () {
              .replace(/\bjishou akuyaku reijou na konyakusha no kansatsu kiroku\b/g, "an observation log of my fiancee a self proclaimed villainess")
              .replace(/\bclass de 2\s*banme ni kawaii onnanoko to tomodachi ni natta\b/g, "i became friends with the second cutest girl in class")
              .replace(/\breplica datte koi wo suru\b/g, "even a replica wants to fall in love")
-             .replace(/\bkuroneko to majo no kyoushitsu\b/g, "the black cat and the witch s classroom");
+             .replace(/\bkuroneko to majo no kyoushitsu\b/g, "the classroom of a black cat and a witch")
+             .replace(/\bkami no niwatsuki kusunoki\s*tei\b/g, "kusunoki s garden of gods")
+             .replace(/\bmaidsan wa taberu dake\b/g, "the food diary of miss maid")
+             .replace(/\bmaid san wa taberu dake\b/g, "the food diary of miss maid")
+             .replace(/\bichijouma mankitsugurashi\b/g, "ichijyoma mankitsu gurashi")
+             .replace(/\bingoku danchi\b/g, "ingoku danchi deviant s apartment complex")
+             .replace(/\byuusha no kuzu\b/g, "scum of the brave")
+             .replace(/\bhikaru ga shinda natsu\b/g, "the summer hikaru died")
+             .replace(/\bboku no kokoro no yabai yatsu\b/g, "the dangers in my heart")
+             .replace(/\bsummer\s*time\s*render\b/g, "summer time rendering")
+             .replace(/\bsaiki kusuo no psi\s*nan\b/g, "the disastrous life of saiki k")
+             .replace(/\bsaiki kusuo no\s*nan\b/g, "the disastrous life of saiki k")
+             .replace(/\bmahou no shimai luluttolilly\b/g, "magical sisters luluttolilly")
+             .replace(/\bhaikyuu to (?:the )?top\b/g, "haikyu")
+             .replace(/\bhaikyuu\b/g, "haikyu")
+             .replace(/\bponkotsu fuuki\s*iin to skirt take ga futekisetsu na jk no hanashi\b/g, "the klutzy class monitor and the girl with the short skirt")
+             .replace(/\bponkotsu fuukiin to skirt take ga futekisetsu na jk no hanashi\b/g, "the klutzy class monitor and the girl with the short skirt");
 
     return val
       .replace(/\b(season|part|tv|ova|ona|the|a|an)\b/g, "")
@@ -353,6 +369,7 @@ const ImageResolver = (function () {
 
       // Search with the strongest titles first.
       const rawTitles = [
+        typeof anime.title === "string" ? anime.title : "",
         anime.englishTitle || anime.title?.english,
         anime.romajiTitle || anime.title?.romaji,
         anime.nativeTitle || anime.title?.native,
@@ -365,6 +382,12 @@ const ImageResolver = (function () {
         const normRaw = norm(t);
         if (normRaw && !seenSearchTitles.has(normRaw)) {
           seenSearchTitles.add(normRaw);
+          // If the normalized title is different from the lowercase original title,
+          // it means a title translation mapping rule was applied. Push it so we search TMDB with it first!
+          const cleanT = String(t).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+          if (normRaw !== cleanT) {
+            searchTitles.push(normRaw);
+          }
           searchTitles.push(t);
         }
         const stripped = stripSequelWords(t);
