@@ -9128,19 +9128,7 @@ function renderDirectVideoPlayer(frame, url, episode) {
       renderEmbeddedAniPubPlayer(state.activeShow || { title: "AniPub" }, episode.externalUrl);
       return;
     }
-    frame.innerHTML = `
-      <div class="episode-video-empty">
-        <div class="play-symbol" aria-hidden="true"></div>
-        <strong>Playback failed</strong>
-        <p>The direct video stream could not play. No other servers are available. Please retry this episode or choose another source.</p>
-        <button class="external-play-button focusable" type="button" data-retry-episode>Retry Episode</button>
-      </div>
-    `;
-    frame.querySelector("[data-retry-episode]")?.addEventListener("click", () => {
-      if (episode._failedSourceIds) episode._failedSourceIds.clear();
-      playActiveShow();
-    });
-    refreshFocusables();
+    renderPlaybackError(frame, episode);
   });
   const resumeAt = getResumePosition(episode);
   if (player && resumeAt) {
@@ -9178,6 +9166,46 @@ function renderDirectVideoPlayer(frame, url, episode) {
   });
   setupSpanishSubtitles(episode, tracks, player);
   wireVidstreamControls(frame, player, episode, url, tracks);
+  wirePlayerChrome(frame);
+  refreshFocusables();
+}
+
+// Full-screen playback-error overlay. Shown only after auto-failover has
+// exhausted every available server. Stays in cinema mode (the old code
+// replaced frame.innerHTML with a bare block, dropping out of full-screen)
+// and offers "Try another source" (re-opens the source picker) + Retry.
+function renderPlaybackError(frame, episode, options = {}) {
+  const title = options.title || "Playback failed";
+  const message = options.message
+    || "We couldn't play any of the available servers for this episode. Try another source or retry.";
+  const sources = getEpisodePlaybackSources(episode);
+  frame.innerHTML = `
+    <div class="video-player-shell vidstream-player is-error">
+      <div class="vid-player-stage">
+        <div class="vid-error-overlay" role="alert">
+          <div class="vid-error-icon" aria-hidden="true">⚠</div>
+          <strong class="vid-error-title">${escapeHtml(title)}</strong>
+          <p class="vid-error-message">${escapeHtml(message)}</p>
+          <div class="vid-error-actions">
+            ${sources.length
+              ? `<button class="external-play-button focusable" type="button" data-try-another>Try another source</button>`
+              : ""}
+            <button class="vid-error-retry focusable" type="button" data-retry-episode>Retry episode</button>
+          </div>
+        </div>
+        ${renderVidstreamTopbar(currentEpisodeLabel())}
+      </div>
+      ${renderPlayerEpisodeActions("")}
+    </div>
+  `;
+  const shell = frame.querySelector(".vidstream-player");
+  setPlayerCinema(shell, true, { silent: true });
+  frame.querySelector("[data-try-another]")?.addEventListener("click", () => renderSourcePickerIn(frame));
+  frame.querySelector("[data-retry-episode]")?.addEventListener("click", () => {
+    if (episode._failedSourceIds) episode._failedSourceIds.clear();
+    playActiveShow();
+  });
+  frame.querySelector("[data-player-exit]")?.addEventListener("click", exitPlayerToSources);
   wirePlayerChrome(frame);
   refreshFocusables();
 }

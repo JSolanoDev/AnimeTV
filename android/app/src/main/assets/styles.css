@@ -4883,6 +4883,58 @@ body.player-cinema-open .close-button {
   transition: none;
 }
 
+/* ── Playback-error overlay — full-screen, with "Try another source" ──────── */
+.vidstream-player .vid-error-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: 2rem;
+  text-align: center;
+  background: radial-gradient(circle at 50% 42%, rgba(14, 16, 26, 0.82), rgba(2, 3, 8, 0.96));
+}
+.vid-error-icon {
+  font-size: 3.2rem;
+  line-height: 1;
+  color: #ff6b6b;
+  filter: drop-shadow(0 0.4rem 1.2rem rgba(255, 80, 80, 0.4));
+}
+.vid-error-title {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #fff;
+}
+.vid-error-message {
+  max-width: 34rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.74);
+  line-height: 1.55;
+}
+.vid-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 0.4rem;
+}
+.vid-error-retry {
+  padding: 0.62rem 1.4rem;
+  border: 0.08rem solid rgba(255, 255, 255, 0.26);
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.vid-error-retry:hover,
+.vid-error-retry:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+}
+
 /* Stage: fills the cinema container via position:absolute */
 .vidstream-player.is-cinema .vid-player-stage {
   position: absolute;
