@@ -1,4 +1,4 @@
-const CACHE_NAME = "zenkaitv-v301";
+const CACHE_NAME = "zenkaitv-v302";
 const ASSETS = [
   "./",
   "./index.html",

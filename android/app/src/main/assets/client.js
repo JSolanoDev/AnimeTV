@@ -2610,8 +2610,8 @@ function cardTemplate(show, index = 0) {
     : "";
   const image = posterUrl
     ? `
-        <img referrerpolicy="no-referrer" class="thumb-backdrop" src="${escapeHtml(posterUrl)}" alt="" loading="lazy"${fallbackData}>
-        <img referrerpolicy="no-referrer" class="thumb-poster" src="${escapeHtml(posterUrl)}" alt="" loading="lazy"${fallbackData}>
+        <img referrerpolicy="no-referrer" class="thumb-backdrop" src="${escapeHtml(posterUrl)}" alt="" loading="lazy" decoding="async"${fallbackData}>
+        <img referrerpolicy="no-referrer" class="thumb-poster" src="${escapeHtml(posterUrl)}" alt="" loading="lazy" decoding="async"${fallbackData}>
       `
     : "";
   return `
@@ -2757,7 +2757,7 @@ function renderSchedule() {
           ${shows.length ? shows.map((show) => `
             <button class="schedule-item focusable" data-open-show="${escapeHtml(show.id)}" data-open-season="${getCardTarget(show).seasonNumber}" data-open-episode="${getCardTarget(show).episodeNumber}">
               <span class="schedule-thumb">
-                ${show.image ? `<img referrerpolicy="no-referrer" src="${escapeHtml(show.image)}" alt="" loading="lazy">` : ""}
+                ${show.image ? `<img referrerpolicy="no-referrer" src="${escapeHtml(show.image)}" alt="" loading="lazy" decoding="async">` : ""}
                 <span>${cardEpisodeLabel(show)}</span>
               </span>
               <span class="schedule-copy">
@@ -5428,7 +5428,7 @@ function resetVideoFrame() {
       <div class="watch-ready-poster-wrap">
         ${
           watchPosterUrl
-            ? `<img referrerpolicy="no-referrer" class="watch-poster" src="${escapeHtml(watchPosterUrl)}" alt="${escapeHtml(getShowTitle(show))}" loading="lazy"${watchFallbackData} onerror="handleWatchPosterError(this)">`
+            ? `<img referrerpolicy="no-referrer" class="watch-poster" src="${escapeHtml(watchPosterUrl)}" alt="${escapeHtml(getShowTitle(show))}" loading="lazy" decoding="async"${watchFallbackData} onerror="handleWatchPosterError(this)">`
             : `<div class="watch-poster-placeholder"><div class="play-symbol" aria-hidden="true"></div></div>`
         }
       </div>
@@ -6006,7 +6006,7 @@ function renderEpisodeList(show) {
                   data-season-index="${state.activeSeasonIndex}" data-episode-index="${episodeIndex}"
                   data-ep-search="${escapeHtml(search)}">
             <span class="ep-thumb ${epImgSrc ? "has-image" : "is-placeholder"}${isFallback ? " is-fallback" : ""}" style="--episode-hue:${fallbackHue}">
-              ${epImgSrc ? `<img referrerpolicy="no-referrer" class="ep-thumb-img" src="${escapeHtml(epImgSrc)}" alt="" loading="lazy"${epFallbackData}>` : ""}
+              ${epImgSrc ? `<img referrerpolicy="no-referrer" class="ep-thumb-img" src="${escapeHtml(epImgSrc)}" alt="" loading="lazy" decoding="async"${epFallbackData}>` : ""}
               <span class="ep-thumb-num">${escapeHtml(String(num))}</span>
               <span class="ep-thumb-play" aria-hidden="true">▶</span>
               ${progressBar}
@@ -6047,7 +6047,7 @@ function renderEpisodeList(show) {
             : "";
           return `
           <button class="season-card focusable ${selected ? "is-selected" : ""}" data-season-card="${i}">
-            ${seasonPosterUrl ? `<img referrerpolicy="no-referrer" class="season-card-img" src="${escapeHtml(seasonPosterUrl)}" alt="" loading="lazy"${seasonFallbackData}>` : ""}
+            ${seasonPosterUrl ? `<img referrerpolicy="no-referrer" class="season-card-img" src="${escapeHtml(seasonPosterUrl)}" alt="" loading="lazy" decoding="async"${seasonFallbackData}>` : ""}
             <strong>${escapeHtml(nav.label || season.title || `Season ${i + 1}`)}</strong>
             <small>${escapeHtml(season.sourceTitle || getSeasonDisplayTitle(show, season))}</small>
             <span>${epLabel}${badge}${yr}</span>
@@ -6640,7 +6640,7 @@ function renderSourcePickerIn(frame) {
         <div class="source-picker">
           <div class="source-picker-hero">
             ${poster
-              ? `<img referrerpolicy="no-referrer" class="source-picker-art" src="${escapeHtml(poster)}" alt="${escapeHtml(getShowTitle(show))}" loading="lazy">`
+              ? `<img referrerpolicy="no-referrer" class="source-picker-art" src="${escapeHtml(poster)}" alt="${escapeHtml(getShowTitle(show))}" loading="lazy" decoding="async">`
               : `<div class="source-picker-art source-picker-art-placeholder"></div>`
             }
             <div class="source-picker-hero-text">
@@ -7679,7 +7679,7 @@ function renderContinueCardHtml(e) {
   <button class="show-card continue-card focusable" type="button"
           data-continue-key="${escapeHtml(e.episodeKey)}" data-show-id="${escapeHtml(String(e.showId || e.animeId))}">
     <span class="continue-thumb">
-      ${img ? `<img referrerpolicy="no-referrer" src="${escapeHtml(img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : ""}
+      ${img ? `<img referrerpolicy="no-referrer" src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async" onerror="this.style.visibility='hidden'">` : ""}
       <span class="continue-play" aria-hidden="true">▶</span>
     </span>
     <span>
