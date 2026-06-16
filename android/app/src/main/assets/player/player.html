@@ -105,6 +105,13 @@
       var originalHost = streamProxyHost(uri);
       var sourceUrl = streamTypeFromUrl(uri) === "video/mp4" ? proxyUrl(uri) : uri;
       var useControls = params.get("controls") === "1" || params.get("controls") === "true";
+      var startTime = parseFloat(params.get("start") || 0) || 0;
+      var _seekStarted = false;
+      function seekToStart() {
+        if (_seekStarted || startTime <= 0) return;
+        _seekStarted = true;
+        try { player.currentTime(startTime); } catch (e) {}
+      }
       var player = videojs("player", {
         // "muted" autoplay is always permitted by browsers, so the video starts
         // on the FIRST click that opened the player instead of needing a second
@@ -230,11 +237,13 @@
         send("ready", timing());
         setQuality(vars.quality);
         setAudioLanguage(vars.lang);
+        seekToStart();
       });
       player.on("loadedmetadata", function () {
         send("loadedmetadata", timing());
         setQuality(vars.quality);
         setAudioLanguage(vars.lang);
+        seekToStart();
       });
       player.on("play", function () { send("play", 1); });
       player.on("pause", function () { send("pause", 0); });

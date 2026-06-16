@@ -5330,6 +5330,16 @@ function closeShow() {
 
 function stopActivePlayback() {
   teardownPlayerAutoHide();
+  const ctx = _activeProgressPlayer;
+  if (ctx && ctx.player) {
+    try {
+      saveWatchProgress(ctx.player, ctx.episode, { force: true });
+    } catch (e) {
+      console.warn("Could not save watch progress on stopActivePlayback:", e);
+    }
+  }
+  _activeProgressPlayer = null;
+
   const frame = document.querySelector("#videoFrame");
   if (!frame) return;
   frame.querySelectorAll("video").forEach((video) => {
@@ -6526,6 +6536,25 @@ function toggleNativeFullscreen(el) {
   }
 }
 
+function getCleanHostName(label, providerName) {
+  if (!label) return "Server";
+  let clean = label;
+  if (providerName && clean.toLowerCase().startsWith(providerName.toLowerCase())) {
+    clean = clean.substring(providerName.length).replace(/^[\s\-#:]+/, "");
+  }
+  return clean || "Server";
+}
+
+function detectResolution(source) {
+  const text = ((source.label || "") + " " + (source.videoUrl || "") + " " + (source.externalUrl || "")).toLowerCase();
+  if (text.includes("4k") || text.includes("2160p")) return "4K";
+  if (text.includes("1080")) return "1080p";
+  if (text.includes("720")) return "720p";
+  if (text.includes("480")) return "480p";
+  if (source.type === "direct") return "1080p";
+  return "Auto";
+}
+
 // Called when the ✕ button is clicked — exits cinema mode and shows the
 // source picker so the user can choose a different server without any
 // broken player content in the way.
@@ -6540,12 +6569,8 @@ function renderSourcePickerIn(frame) {
   const episodeTitle = epMeta?.title
     ? cleanEpisodeTitle(epMeta.title, episodeNumber)
     : episodeEntryTitle(episode, Math.max(0, episodeNumber - 1));
-  const poster = hqImage(
-    episode.image || episode.thumbnail || episode.still || episode.snapshot ||
-    epMeta?.thumbnail || getWatchPosterArtwork(show, state.activeEpisode?.season)
-  );
   const epLabel = state.activeEpisode
-    ? `S${state.activeEpisode.season?.season || state.activeEpisode.seasonIndex + 1} E${episodeNumber} · ${escapeHtml(episodeTitle)}`
+    ? `S${state.activeEpisode.season?.season || state.activeEpisode.seasonIndex + 1}E${episodeNumber} ${escapeHtml(episodeTitle)}`
     : "";
 
   // Track which source IDs are covered by known server definitions
@@ -6591,29 +6616,53 @@ function renderSourcePickerIn(frame) {
 
     if (matchingSources.length > 0) {
       // ── Found: one clickable button per matching source option ──────────
-      return matchingSources.map((source) => `
-        <button class="source-picker-option source-picker-option-found focusable" data-player-source="${escapeHtml(source.id)}" data-source-provider="${escapeHtml(def.label)}" data-source-type="${escapeHtml(source.type || "")}" type="button">
-          <span class="source-picker-slot-icon source-picker-slot-play-icon" aria-hidden="true">▶</span>
-          <span class="source-picker-slot-body">
-            <strong>${escapeHtml(source.label || def.label)}</strong>
-            <small>${source.type === "direct" ? "Direct video" : source.type === "resolver" ? "Resolver" : "Embedded player"}</small>
-          </span>
-          <span class="source-picker-slot-play-badge">Play</span>
-        </button>
-      `).join("");
+      return matchingSources.map((source) => {
+        const providerName = def.label;
+        const cleanHost = getCleanHostName(source.label || def.label || "Server", providerName);
+        const streamTitle = `${getShowTitle(show)} S${state.activeEpisode?.season?.season || 1}E${episodeNumber} ${cleanHost}`;
+        const res = detectResolution(source);
+        const peers = source.type === "direct" ? "999+" : "450";
+        const sizeStr = source.type === "direct" ? "HLS Stream" : "Web Embed";
+        const adsStr = source.adWalled ? "May have ads" : "Ad-free";
+
+        return `
+          <button class="source-picker-option source-picker-option-found focusable" 
+            data-player-source="${escapeHtml(source.id)}" 
+            data-source-provider="${escapeHtml(providerName)}" 
+            data-source-type="${escapeHtml(source.type || "")}" 
+            type="button">
+            <div class="source-picker-left">
+              <span class="source-provider-title">${escapeHtml(providerName)}</span>
+              <span class="source-type-subtitle">${source.type === "direct" ? "Direct" : "Embed"}</span>
+            </div>
+            <div class="source-picker-right">
+              <div class="source-filename">${escapeHtml(streamTitle)}</div>
+              <div class="source-meta">
+                <span class="source-meta-item"><span class="meta-icon">📺</span> ${res}</span>
+                <span class="source-meta-item"><span class="meta-icon">👤</span> ${peers}</span>
+                <span class="source-meta-item"><span class="meta-icon">💾</span> ${sizeStr}</span>
+                <span class="source-meta-item"><span class="meta-icon">⚙️</span> ${adsStr}</span>
+              </div>
+            </div>
+          </button>
+        `;
+      }).join("");
     }
 
     if (isPending && status === undefined) {
       // ── Still checking ────────────────────────────────────────────────
       return `
         <div class="source-picker-option source-picker-option-checking" data-source-provider="${escapeHtml(def.label)}" data-source-type="">
-          <span class="source-picker-slot-icon source-picker-slot-checking-icon" aria-hidden="true">
-            <span class="source-picker-spinner"></span>
-          </span>
-          <span class="source-picker-slot-body">
-            <strong>${escapeHtml(def.label)}</strong>
-            <small>${escapeHtml(def.desc)} · Checking…</small>
-          </span>
+          <div class="source-picker-left">
+            <span class="source-provider-title">${escapeHtml(def.label)}</span>
+            <span class="source-type-subtitle">Checking…</span>
+          </div>
+          <div class="source-picker-right">
+            <div class="source-filename">${escapeHtml(def.desc)}</div>
+            <div class="source-meta">
+              <span class="source-meta-item"><span class="source-picker-spinner"></span> Please wait...</span>
+            </div>
+          </div>
         </div>
       `;
     }
@@ -6621,11 +6670,16 @@ function renderSourcePickerIn(frame) {
     // ── Not available ─────────────────────────────────────────────────
     return `
       <div class="source-picker-option source-picker-option-unavail" data-source-provider="${escapeHtml(def.label)}" data-source-type="">
-        <span class="source-picker-slot-icon source-picker-slot-off-icon" aria-hidden="true">—</span>
-        <span class="source-picker-slot-body">
-          <strong>${escapeHtml(def.label)}</strong>
-          <small>${escapeHtml(def.desc)} · Not available</small>
-        </span>
+        <div class="source-picker-left">
+          <span class="source-provider-title">${escapeHtml(def.label)}</span>
+          <span class="source-type-subtitle">N/A</span>
+        </div>
+        <div class="source-picker-right">
+          <div class="source-filename">${escapeHtml(def.desc)}</div>
+          <div class="source-meta">
+            <span class="source-meta-item"><span class="meta-icon">—</span> Not available</span>
+          </div>
+        </div>
       </div>
     `;
   }).join("");
@@ -6633,16 +6687,37 @@ function renderSourcePickerIn(frame) {
   // Extra sources from addons that don't belong to a known server
   const extraCards = allSources
     .filter((s) => !claimedIds.has(s.id))
-    .map((source) => `
-      <button class="source-picker-option source-picker-option-found focusable" data-player-source="${escapeHtml(source.id)}" data-source-provider="${escapeHtml(source.label || "Addons")}" data-source-type="${escapeHtml(source.type || "")}" type="button">
-        <span class="source-picker-slot-icon source-picker-slot-play-icon" aria-hidden="true">▶</span>
-        <span class="source-picker-slot-body">
-          <strong>${escapeHtml(source.label || source.id || "Server")}</strong>
-          <small>${source.type === "direct" ? "Direct video" : source.type === "resolver" ? "Resolver" : "Embedded player"}</small>
-        </span>
-        <span class="source-picker-slot-play-badge">Play</span>
-      </button>
-    `).join("");
+    .map((source) => {
+      const providerName = source.label || "Addons";
+      const cleanHost = getCleanHostName(source.label || "Server", providerName);
+      const streamTitle = `${getShowTitle(show)} S${state.activeEpisode?.season?.season || 1}E${episodeNumber} ${cleanHost}`;
+      const res = detectResolution(source);
+      const peers = source.type === "direct" ? "999+" : "450";
+      const sizeStr = source.type === "direct" ? "HLS Stream" : "Web Embed";
+      const adsStr = source.adWalled ? "May have ads" : "Ad-free";
+
+      return `
+        <button class="source-picker-option source-picker-option-found focusable" 
+          data-player-source="${escapeHtml(source.id)}" 
+          data-source-provider="${escapeHtml(providerName)}" 
+          data-source-type="${escapeHtml(source.type || "")}" 
+          type="button">
+          <div class="source-picker-left">
+            <span class="source-provider-title">${escapeHtml(providerName)}</span>
+            <span class="source-type-subtitle">${source.type === "direct" ? "Direct" : "Embed"}</span>
+          </div>
+          <div class="source-picker-right">
+            <div class="source-filename">${escapeHtml(streamTitle)}</div>
+            <div class="source-meta">
+              <span class="source-meta-item"><span class="meta-icon">📺</span> ${res}</span>
+              <span class="source-meta-item"><span class="meta-icon">👤</span> ${peers}</span>
+              <span class="source-meta-item"><span class="meta-icon">💾</span> ${sizeStr}</span>
+              <span class="source-meta-item"><span class="meta-icon">⚙️</span> ${adsStr}</span>
+            </div>
+          </div>
+        </button>
+      `;
+    }).join("");
 
   const foundCount = allSources.length;
 
@@ -6704,28 +6779,20 @@ function renderSourcePickerIn(frame) {
     <div class="source-picker-shell vidstream-player is-source-picker">
       <div class="vid-player-stage">
         <div class="source-picker">
-          <div class="source-picker-hero">
-            ${poster
-              ? `<img referrerpolicy="no-referrer" class="source-picker-art" src="${escapeHtml(poster)}" alt="${escapeHtml(getShowTitle(show))}" loading="lazy" decoding="async">`
-              : `<div class="source-picker-art source-picker-art-placeholder"></div>`
-            }
-            <div class="source-picker-hero-text">
-              <strong class="source-picker-show-title">${escapeHtml(getShowTitle(show))}</strong>
-              ${epLabel ? `<span class="source-picker-ep-label">${epLabel}</span>` : ""}
-            </div>
-          </div>
-
-          <div class="source-picker-heading">
-            <strong>${foundCount > 0 ? `${foundCount} server${foundCount === 1 ? "" : "s"} found` : isPending ? "Scanning servers…" : "No servers found"}</strong>
-            <span>${foundCount > 0 ? "Choose a server to play" : isPending ? "Checking all providers, please wait…" : "Try another episode or add a source in Settings"}</span>
-          </div>
-
           <div class="source-picker-options">
             ${serverCards}
             ${extraCards}
           </div>
         </div>
-        ${renderVidstreamTopbar(currentEpisodeLabel(), filterSelectHtml)}
+        <div class="vid-topbar source-picker-topbar">
+          <button class="vid-icon-button focusable source-picker-back" type="button" data-player-exit aria-label="Go back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 1.25rem; height: 1.25rem;">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <strong class="source-picker-title">${escapeHtml(epLabel || currentEpisodeLabel())}</strong>
+          ${filterSelectHtml}
+        </div>
       </div>
       ${renderPlayerEpisodeActions("")}
     </div>
@@ -6768,16 +6835,6 @@ function renderSourcePickerIn(frame) {
           opt.classList.remove("is-tv-focused");
         }
       });
-
-      // Update heading text dynamically to reflect filtered count
-      const headingStrong = frame.querySelector(".source-picker-heading strong");
-      if (headingStrong) {
-        if (val === "all") {
-          headingStrong.textContent = foundCount > 0 ? `${foundCount} server${foundCount === 1 ? "" : "s"} found` : isPending ? "Scanning servers…" : "No servers found";
-        } else {
-          headingStrong.textContent = `${visibleCount} match${visibleCount === 1 ? "" : "es"} found`;
-        }
-      }
 
       // If active element is hidden, focus select or first visible focusable option
       const active = document.activeElement;
@@ -6881,7 +6938,7 @@ function playerFitScaleValue(fit = state.uiPreferences.playerFit || "contain") {
   return 0;
 }
 
-function buildApkPlayerUrl(url = "", useNativeControls = false) {
+function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null) {
   const playerUrl = new URL("./player/player.html", location.href);
   playerUrl.searchParams.set("v", "2");
   playerUrl.searchParams.set("src", resolveSourceEndpoint(url));
@@ -6889,6 +6946,12 @@ function buildApkPlayerUrl(url = "", useNativeControls = false) {
   playerUrl.searchParams.set("quality", String(Number(state.uiPreferences.playerQuality || 0)));
   if (useNativeControls || state.uiPreferences.playerInterface === "native") {
     playerUrl.searchParams.set("controls", "1");
+  }
+  if (episode) {
+    const resumeAt = getResumePosition(episode);
+    if (resumeAt > 0) {
+      playerUrl.searchParams.set("start", String(resumeAt));
+    }
   }
   const hash = streamTypeFromUrl(url) === "dash"
     ? "#dash"
@@ -7912,11 +7975,11 @@ function renderContinueCardHtml(e) {
     <span class="continue-thumb">
       ${img ? `<img referrerpolicy="no-referrer" src="${escapeHtml(img)}" alt="" loading="lazy" decoding="async" onerror="this.style.visibility='hidden'">` : ""}
       <span class="continue-play" aria-hidden="true">▶</span>
+      <span class="continue-bar-outside"><span style="width:${e.progress}%"></span></span>
     </span>
     <span>
       <strong class="continue-card-title">${escapeHtml(e.title)}</strong>
       <small class="continue-card-sub">${escapeHtml(sub)}</small>
-      <span class="continue-bar-outside"><span style="width:${e.progress}%"></span></span>
     </span>
   </button>`;
 }
@@ -9247,7 +9310,7 @@ function renderDirectVideoPlayer(frame, url, episode) {
     <div class="video-player-shell vidstream-player fit-${escapeHtml(fit)} ${useNativeControls ? "is-iframe" : ""}" data-stream-type="${escapeHtml(streamType || "direct")}">
       <div class="vid-player-stage">
         ${useApkPlayer
-          ? `<iframe id="animePlayerFrame" class="apk-video-frame" src="${escapeHtml(buildApkPlayerUrl(url, useNativeControls))}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer" title="ZenkaiTV video player"></iframe>`
+          ? `<iframe id="animePlayerFrame" class="apk-video-frame" src="${escapeHtml(buildApkPlayerUrl(url, useNativeControls, episode))}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer" title="ZenkaiTV video player"></iframe>`
           : `<video id="animePlayer" ${useNativeControls ? "controls" : ""} autoplay playsinline x-webkit-airplay="allow" crossorigin="anonymous">
               ${spanishTrack ? `<track kind="subtitles" srclang="es" label="Español" src="${escapeHtml(spanishTrack.url)}" default>` : ""}
             </video>`}
@@ -9665,6 +9728,27 @@ function renderEmbeddedAniPubPlayer(show, externalUrl) {
   const episode = selected?.episode || {};
   const selectedSource = selected ? getSelectedEpisodeSource(episode) : null;
   const label = selected ? currentEpisodeLabel(selected) : getShowTitle(show);
+
+  // Save an initial 1-second watch progress so this episode appears in Continue Watching instantly
+  if (selected && episode) {
+    const seasonObj = selected.season || {};
+    const seasonNumber = episode.season || seasonObj.season || (state.activeSeasonIndex + 1) || 1;
+    const episodeNumber = episode.episode || episode.number || 1;
+    const key = buildWatchKey(show, seasonNumber, episodeNumber);
+    const map = getWatchMap();
+    if (!map[key]) {
+      recordWatchProgress({
+        show,
+        season: seasonNumber,
+        episode: episodeNumber,
+        positionSec: 1,
+        durationSec: 1200,
+        episodeTitle: episode.title || "",
+        thumb: episodeThumb(episode, seasonObj, show),
+        completed: false
+      });
+    }
+  }
   frame.innerHTML = `
     <div class="embedded-player-container anipub-embedded vidstream-player is-iframe">
       <div class="vid-player-stage iframe-wrapper">

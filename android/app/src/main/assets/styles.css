@@ -8125,8 +8125,8 @@ body.is-tv .ep-season-menu { background: rgba(18, 19, 32, 1); }
 .continue-card:is(:hover, :focus-visible, .is-tv-focused) .continue-play { opacity: 1; }
 .continue-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 0.32rem; background: rgba(0,0,0,0.55); }
 .continue-bar > span { display: block; height: 100%; background: var(--accent, #8a5cff); }
-.continue-bar-outside { display: block; width: 100%; height: 0.28rem; background: rgba(255, 255, 255, 0.1); border-radius: 999rem; overflow: hidden; margin-top: 0.45rem; }
-.continue-bar-outside > span { display: block; height: 100%; background: var(--accent, #8a5cff); border-radius: inherit; }
+.continue-bar-outside { position: absolute; left: 0; right: 0; bottom: 0; height: 0.22rem; background: rgba(255, 255, 255, 0.18); overflow: hidden; z-index: 5; }
+.continue-bar-outside > span { display: block; height: 100%; background: #ffffff; }
 .continue-card-title {
   display: block;
   margin: 0.5rem 0 0.1rem;
@@ -8895,6 +8895,174 @@ body.is-tv .topbar-auth {
   color: #ffffff;
   font-size: 0.85rem;
   font-weight: 600;
+}
+
+/* Redesigned Source Picker List-based Layout */
+.source-picker-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.05) 75%, transparent) !important;
+  z-index: 10;
+}
+
+.source-picker-topbar .source-picker-back {
+  background: transparent;
+  border: 0;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  width: 2.2rem;
+  height: 2.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 150ms ease, color 150ms ease;
+  padding: 0;
+  margin-right: 0.2rem;
+}
+
+.source-picker-topbar .source-picker-back:is(:hover, :focus-visible, .is-tv-focused) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  outline: none;
+}
+
+.source-picker-topbar .source-picker-title {
+  flex: 1;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vidstream-player.is-cinema.is-source-picker .source-picker {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding-top: 4.2rem;
+  border-radius: inherit;
+  background: rgba(18, 20, 32, 0.88) !important;
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+}
+
+.vidstream-player.is-cinema.is-source-picker .source-picker-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0 !important;
+  padding: 0 !important;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.source-picker-option {
+  display: grid !important;
+  grid-template-columns: 8.5rem 1fr !important;
+  align-items: center !important;
+  gap: 1.2rem !important;
+  width: 100% !important;
+  padding: 0.9rem 1.6rem !important;
+  border-radius: 0 !important;
+  border: 0 !important;
+  border-bottom: 0.06rem solid rgba(255, 255, 255, 0.08) !important;
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  text-align: left !important;
+  transition: background 150ms ease, border-left-color 150ms ease !important;
+  border-left: 0.25rem solid transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.source-picker-option-found {
+  cursor: pointer;
+}
+
+.source-picker-option-found:is(:hover, :focus-visible, .is-tv-focused) {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-left-color: #5c9bff !important;
+  color: #ffffff !important;
+  outline: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.source-picker-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.source-provider-title {
+  font-size: 0.88rem;
+  font-weight: 750;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+}
+
+.source-type-subtitle {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.38);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.source-picker-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.source-filename {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.source-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.source-meta-item {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+}
+
+.source-meta-item .meta-icon {
+  font-size: 0.74rem;
+  opacity: 0.8;
+}
+
+.source-picker-option-checking {
+  opacity: 0.75;
+}
+
+.source-picker-option-unavail {
+  opacity: 0.38;
 }
 
 
