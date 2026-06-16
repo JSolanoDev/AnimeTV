@@ -1473,6 +1473,7 @@ body:not([data-route="home"]) .section-heading h2 {
   min-width: 0;
   max-width: 100%;
   color: var(--text);
+  text-decoration: none;
   background: transparent;
   text-align: left;
   cursor: pointer;
@@ -1760,6 +1761,7 @@ body:not([data-route="home"]) .section-heading h2 {
   min-width: 0;
   padding: 0;
   color: var(--text);
+  text-decoration: none;
   background: transparent;
   text-align: left;
   cursor: pointer;

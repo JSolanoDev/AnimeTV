@@ -2615,7 +2615,7 @@ function cardTemplate(show, index = 0) {
       `
     : "";
   return `
-    <button class="show-card focusable" style="--card-index: ${index}" data-open-show="${escapeHtml(show.id)}" data-open-season="${target.seasonNumber}" data-open-episode="${target.episodeNumber}" aria-label="Open ${title}">
+    <a class="show-card focusable" href="#anime/${encodeURIComponent(String(show.id))}" style="--card-index: ${index}" data-open-show="${escapeHtml(show.id)}" data-open-season="${target.seasonNumber}" data-open-episode="${target.episodeNumber}" aria-label="Open ${title}">
       <span class="thumb-art" style="${artStyle}">
         ${image}
         <span class="episode-pill">${cardEpisodeLabel(show)}</span>
@@ -2624,7 +2624,7 @@ function cardTemplate(show, index = 0) {
         <span class="show-title">${title}</span>
         <span class="show-meta">${escapeHtml(meta)}</span>
       </span>
-    </button>
+    </a>
   `;
 }
 
@@ -2755,7 +2755,7 @@ function renderSchedule() {
         <h3>${fullDayName(day)}${isToday ? '<span class="schedule-today-badge">Today</span>' : ""}</h3>
         <div class="schedule-day-rail">
           ${shows.length ? shows.map((show) => `
-            <button class="schedule-item focusable" data-open-show="${escapeHtml(show.id)}" data-open-season="${getCardTarget(show).seasonNumber}" data-open-episode="${getCardTarget(show).episodeNumber}">
+            <a class="schedule-item focusable" href="#anime/${encodeURIComponent(String(show.id))}" data-open-show="${escapeHtml(show.id)}" data-open-season="${getCardTarget(show).seasonNumber}" data-open-episode="${getCardTarget(show).episodeNumber}">
               <span class="schedule-thumb">
                 ${show.image ? `<img referrerpolicy="no-referrer" src="${escapeHtml(show.image)}" alt="" loading="lazy" decoding="async">` : ""}
                 <span>${cardEpisodeLabel(show)}</span>
@@ -2764,7 +2764,7 @@ function renderSchedule() {
                 <span class="schedule-title">${escapeHtml(getShowTitle(show))}</span>
                 <span class="show-meta">${show.time ? escapeHtml(show.time) : "TBA"}${show.source ? ` · ${escapeHtml(show.source)}` : ""}</span>
               </span>
-            </button>
+            </a>
           `).join("") : `<p class="schedule-empty">No new episodes</p>`}
         </div>
       </section>
@@ -4712,6 +4712,13 @@ function render() {
   wireRailButtons();
   syncRouteVisibility();
   refreshFocusables();
+  // A #anime/<id> deep link (opened in a fresh tab) waits here until the
+  // catalog has loaded that show, then opens its detail automatically.
+  if (state.pendingDeepLinkShowId && deepLinkShowExists(state.pendingDeepLinkShowId)) {
+    const id = state.pendingDeepLinkShowId;
+    state.pendingDeepLinkShowId = null;
+    openShow(id);
+  }
 }
 
 function wireRailButtons() {
@@ -10063,10 +10070,17 @@ function wireOpenButtons() {
     };
     button.addEventListener("pointerenter", preload, { once: true, passive: true });
     button.addEventListener("focus", preload, { once: true, passive: true });
-    button.onclick = () => openShow(button.dataset.openShow, {
-      seasonNumber: button.dataset.openSeason,
-      episodeNumber: button.dataset.openEpisode
-    });
+    button.onclick = (e) => {
+      // The card is now an <a href="#anime/<id>">. Modified clicks (Ctrl/Cmd/
+      // Shift) and middle-click let the browser open that link in a NEW TAB
+      // natively — don't hijack those. Plain left-click = in-app navigation.
+      if (e && (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1)) return;
+      e?.preventDefault();
+      openShow(button.dataset.openShow, {
+        seasonNumber: button.dataset.openSeason,
+        episodeNumber: button.dataset.openEpisode
+      });
+    };
   });
 }
 
@@ -11029,9 +11043,41 @@ async function syncFavoritesFromDatabase() {
 render();
 // Deep-link support: open the route named in the URL hash (e.g. #settings).
 const VALID_ROUTES = ["home", "library", "schedule", "favorites", "settings", "anipub", "sources", "profile"];
+
+// #anime/<id> opens that anime's detail directly. Used by right-click →
+// "Open in new tab" / middle-click / Ctrl-click on cards, so each anime can
+// live in its own browser tab. A fresh tab may load before the catalog has
+// that show, so remember the id and let render() open it once it's available.
+function parseAnimeDeepLink(hash) {
+  const m = (hash || "").replace(/^#/, "").match(/^anime\/(.+)$/);
+  return m ? decodeURIComponent(m[1]) : "";
+}
+function deepLinkShowExists(id) {
+  const wanted = String(id || "");
+  if (!wanted) return false;
+  if (state.shows.some((s) => String(s.id) === wanted || getShowKey(s) === wanted)) return true;
+  if (state.av1Shows && state.av1Shows.has(wanted)) return true;
+  return (state.addonSections || []).some((sec) =>
+    (sec.items || []).some((s) => String(s.id) === wanted || getShowKey(s) === wanted));
+}
+function openAnimeDeepLink(id) {
+  const wanted = String(id || "");
+  if (!wanted) return;
+  if (deepLinkShowExists(wanted)) {
+    state.pendingDeepLinkShowId = null;
+    openShow(wanted);
+  } else {
+    state.pendingDeepLinkShowId = wanted;
+  }
+}
+
 const _hashRoute = (location.hash || "").replace(/^#/, "");
+const _deepLinkId = parseAnimeDeepLink(location.hash);
 setRoute(VALID_ROUTES.includes(_hashRoute) ? _hashRoute : "home");
+if (_deepLinkId) state.pendingDeepLinkShowId = _deepLinkId;
 window.addEventListener("hashchange", () => {
+  const dl = parseAnimeDeepLink(location.hash);
+  if (dl) { openAnimeDeepLink(dl); return; }
   const r = (location.hash || "").replace(/^#/, "");
   if (VALID_ROUTES.includes(r) && r !== state.route) setRoute(r);
 });
