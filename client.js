@@ -3821,6 +3821,10 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
     if (frame?.querySelector(".source-picker")) {
       renderSourcePickerIn(frame);
     }
+    // Also refresh the side-panel picker (when episode was clicked from the list)
+    if (episodeList?.querySelector(".side-source-picker")) {
+      renderSourcePickerInSidePanel();
+    }
   };
 
   const updateServerCheck = (key, match) => {
@@ -3891,12 +3895,17 @@ function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options 
       pendingSourceLookups.delete(lookupKey);
       const selected = state.activeEpisode;
       if (selected?.episode === episode && state.activeShow === show) {
-        renderEpisodeList(show);
         if (options.autoReplay) playActiveShow({ allowSourceLookup: false });
         // Refresh source picker if it's currently open (user pressed ✕ and sees picker)
         const frame = document.querySelector("#videoFrame");
         if (frame?.querySelector(".source-picker")) {
           renderSourcePickerIn(frame);
+        }
+        // Refresh side-panel picker if it's open, otherwise show episode list
+        if (episodeList?.querySelector(".side-source-picker")) {
+          renderSourcePickerInSidePanel();
+        } else {
+          renderEpisodeList(show);
         }
       }
       refreshFocusables();
@@ -4866,7 +4875,7 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
         const frame = document.querySelector("#videoFrame");
         const background = getWatchBackdropArtwork(show, state.activeEpisode.season);
         frame?.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
-        if (frame) renderSourcePickerIn(frame);
+        if (frame) renderSourcePickerInSidePanel();
       } else {
         resetVideoFrame();
       }
@@ -4932,7 +4941,7 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
         if (frame && !document.body.classList.contains("player-cinema-open")) {
           const background = getWatchBackdropArtwork(show, ep.season);
           frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
-          renderSourcePickerIn(frame);
+          renderSourcePickerInSidePanel();
         }
       }
     }
@@ -6562,6 +6571,163 @@ function detectResolution(source) {
   return "Auto";
 }
 
+// Renders the source picker inline inside the #episodeList side-panel so the
+// user sees sources right where the episode list was, without entering cinema mode.
+// The video-frame backdrop is untouched (shows artwork). Clicking a source plays
+// just like before. The back-arrow restores the episode list.
+function renderSourcePickerInSidePanel() {
+  if (!episodeList) return;
+  const episode = state.activeEpisode?.episode || {};
+  const allSources = getEpisodePlaybackSources(episode);
+  const serverChecks = episode.serverChecks || {};
+  const isPending = Boolean(episode.sourceOptionsPending);
+  const show = state.activeShow;
+  const episodeNumber = Number(episode.episode || episode.number || 1) || 1;
+  const epMeta = show?.streamingEpisodesByNum?.[episodeNumber] || null;
+  const episodeTitle = epMeta?.title
+    ? cleanEpisodeTitle(epMeta.title, episodeNumber)
+    : episodeEntryTitle(episode, Math.max(0, episodeNumber - 1));
+  const epLabel = state.activeEpisode
+    ? `S${state.activeEpisode.season?.season || state.activeEpisode.seasonIndex + 1}E${episodeNumber} ${escapeHtml(episodeTitle)}`
+    : "";
+
+  const claimedIds = new Set();
+
+  const pickerServerDefinitions = (
+    typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)
+  )
+    ? KNOWN_SOURCE_SERVERS.filter((def) => def.key === "underhentai")
+    : KNOWN_SOURCE_SERVERS.filter((def) => def.key !== "underhentai");
+
+  const readyAt = episode.serverReadyAt || {};
+  const orderedServers = pickerServerDefinitions
+    .map((def, knownIndex) => {
+      const matching = allSources.filter(def.match);
+      const hasSources = matching.length > 0;
+      const status = serverChecks[def.key];
+      const stateRank = hasSources ? 0 : (isPending && status === undefined ? 1 : 2);
+      const bestPref = hasSources ? Math.min(...matching.map(sourcePreferenceScore)) : 99;
+      return { def, knownIndex, stateRank, bestPref, ready: readyAt[def.key] || Infinity };
+    })
+    .sort((a, b) =>
+      a.stateRank - b.stateRank || a.bestPref - b.bestPref || a.ready - b.ready || a.knownIndex - b.knownIndex
+    )
+    .map(o => o.def);
+
+  const buildOptionRow = (source, providerName) => {
+    const cleanHost = getCleanHostName(source.label || providerName || "Server", providerName);
+    const streamTitle = `${getShowTitle(show)} S${state.activeEpisode?.season?.season || 1}E${episodeNumber} ${cleanHost}`;
+    const res = detectResolution(source);
+    const peers = source.type === "direct" ? "999+" : "450";
+    const sizeStr = source.type === "direct" ? "HLS Stream" : "Web Embed";
+    const adsStr = source.adWalled ? "May have ads" : "Ad-free";
+    return `
+      <button class="source-picker-option source-picker-option-found focusable"
+        data-player-source="${escapeHtml(source.id)}"
+        data-source-provider="${escapeHtml(providerName)}"
+        data-source-type="${escapeHtml(source.type || "")}"
+        type="button">
+        <div class="source-picker-left">
+          <span class="source-provider-title">${escapeHtml(providerName)}</span>
+          <span class="source-type-subtitle">${source.type === "direct" ? "Direct" : "Embed"}</span>
+        </div>
+        <div class="source-picker-right">
+          <div class="source-filename">${escapeHtml(streamTitle)}</div>
+          <div class="source-meta">
+            <span class="source-meta-item"><span class="meta-icon">📺</span> ${res}</span>
+            <span class="source-meta-item"><span class="meta-icon">👤</span> ${peers}</span>
+            <span class="source-meta-item"><span class="meta-icon">💾</span> ${sizeStr}</span>
+            <span class="source-meta-item"><span class="meta-icon">⚙️</span> ${adsStr}</span>
+          </div>
+        </div>
+      </button>
+    `;
+  };
+
+  const serverCards = orderedServers.map((def) => {
+    const matchingSources = allSources.filter(def.match);
+    matchingSources.forEach((s) => claimedIds.add(s.id));
+    const status = serverChecks[def.key];
+    if (matchingSources.length > 0) {
+      return matchingSources.map((source) => buildOptionRow(source, def.label)).join("");
+    }
+    if (isPending && status === undefined) {
+      return `
+        <div class="source-picker-option source-picker-option-checking" data-source-provider="${escapeHtml(def.label)}" data-source-type="">
+          <div class="source-picker-left">
+            <span class="source-provider-title">${escapeHtml(def.label)}</span>
+            <span class="source-type-subtitle">Checking…</span>
+          </div>
+          <div class="source-picker-right">
+            <div class="source-filename">${escapeHtml(def.desc)}</div>
+            <div class="source-meta">
+              <span class="source-meta-item"><span class="source-picker-spinner"></span> Please wait...</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    return `
+      <div class="source-picker-option source-picker-option-unavail" data-source-provider="${escapeHtml(def.label)}" data-source-type="">
+        <div class="source-picker-left">
+          <span class="source-provider-title">${escapeHtml(def.label)}</span>
+          <span class="source-type-subtitle">N/A</span>
+        </div>
+        <div class="source-picker-right">
+          <div class="source-filename">${escapeHtml(def.desc)}</div>
+          <div class="source-meta">
+            <span class="source-meta-item"><span class="meta-icon">—</span> Not available</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  const extraCards = allSources
+    .filter((s) => !claimedIds.has(s.id))
+    .map((source) => buildOptionRow(source, source.label || "Addons"))
+    .join("");
+
+  episodeList.hidden = false;
+  episodeList.innerHTML = `
+    <div class="side-source-picker">
+      <div class="side-source-picker-topbar">
+        <button class="side-source-picker-back focusable" type="button" aria-label="Back to episodes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <strong class="side-source-picker-title">${escapeHtml(epLabel || currentEpisodeLabel())}</strong>
+      </div>
+      <div class="source-picker-options side-source-picker-list">
+        ${serverCards}
+        ${extraCards}
+      </div>
+    </div>
+  `;
+
+  episodeList.querySelector(".side-source-picker-back")?.addEventListener("click", () => {
+    renderEpisodeList(state.activeShow);
+    refreshFocusables();
+  });
+
+  // Wire source selection
+  episodeList.querySelectorAll("[data-player-source]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const selectedEpisode = state.activeEpisode?.episode;
+      if (!selectedEpisode) return;
+      selectedEpisode.selectedSourceId = button.dataset.playerSource;
+      state.preferredSource = selectedEpisode.selectedSourceId;
+      if (selectedEpisode._failedSourceIds) {
+        selectedEpisode._failedSourceIds.clear();
+      }
+      playActiveShow({ allowSourceLookup: false });
+    });
+  });
+
+  refreshFocusables();
+}
+
 // Called when the ✕ button is clicked — exits cinema mode and shows the
 // source picker so the user can choose a different server without any
 // broken player content in the way.
@@ -6805,7 +6971,10 @@ function renderSourcePickerIn(frame) {
     </div>
   `;
   const shell = frame.querySelector(".vidstream-player");
-  setPlayerCinema(shell, true, { silent: true });
+  // The source picker renders INLINE in the watch-side panel (the same right
+  // column that holds the episode list) — not as a full-screen takeover. Only
+  // the actual video player goes cinema/full-screen.
+  setPlayerCinema(shell, false, { silent: true });
   frame.querySelector("[data-player-exit]")?.addEventListener("click", exitPlayerToSources);
   frame.querySelector("[data-player-back]")?.addEventListener("click", () => showEpisodeListTab());
   wirePlayerChrome(frame);
@@ -7712,7 +7881,6 @@ function selectEpisodeByPosition(seasonIndex, episodeIndex, shouldPlay = true) {
   if (episode._failedSourceIds) {
     episode._failedSourceIds.clear();
   }
-  renderEpisodeList(state.activeShow);
   if (shouldPlay) {
     const frame = document.querySelector("#videoFrame");
     const show = state.activeShow;
@@ -7722,11 +7890,15 @@ function selectEpisodeByPosition(seasonIndex, episodeIndex, shouldPlay = true) {
       const background = getWatchBackdropArtwork(show, season);
       frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
       schedulePlaybackSourceOptions(show, episode, season?.season || seasonIndex + 1 || 1);
-      renderSourcePickerIn(frame);
+      // Show sources in the right-side episode panel (not full-screen cinema mode)
+      renderSourcePickerInSidePanel();
+      return; // renderSourcePickerInSidePanel sets episodeList content
     }
   }
+  renderEpisodeList(state.activeShow);
   refreshFocusables();
 }
+
 
 function showEpisodeListTab() {
   // If in cinema / fullscreen mode, exit it first so the episode panel is visible
@@ -8169,7 +8341,6 @@ async function selectEpisode(season, episode, seasonIndex, episodeIndex) {
   state.activeDetailTab = "episodes";
   state.activeEpisode = { season, episode, seasonIndex, episodeIndex };
   state.activeEpisodeUrl = getEpisodeUrl(episode);
-  renderEpisodeList(state.activeShow);
   const frame = document.querySelector("#videoFrame");
   const show = state.activeShow;
   if (frame && show) {
@@ -8178,8 +8349,10 @@ async function selectEpisode(season, episode, seasonIndex, episodeIndex) {
     const background = getWatchBackdropArtwork(show, season);
     frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
     schedulePlaybackSourceOptions(show, episode, season?.season || seasonIndex + 1 || 1);
-    renderSourcePickerIn(frame);
+    renderSourcePickerInSidePanel();
+    return;
   }
+  renderEpisodeList(state.activeShow);
   refreshFocusables();
 }
 
@@ -10349,7 +10522,7 @@ fakePlay.addEventListener("click", () => {
     const background = getWatchBackdropArtwork(show, ep.season);
     frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
     schedulePlaybackSourceOptions(show, ep.episode, ep.season?.season || ep.seasonIndex + 1 || 1);
-    renderSourcePickerIn(frame);
+    renderSourcePickerInSidePanel();
   } else if (show) {
     // No episode selected — select the first one
     const seasons = getDetailSeasons(show);
