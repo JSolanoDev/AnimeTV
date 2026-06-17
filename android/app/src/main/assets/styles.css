@@ -9162,66 +9162,202 @@ body.is-tv .topbar-auth {
   gap: 0.5rem;
 }
 
-/* ── Side-source-picker content body (topbar above; gallery + list side-by-side) */
+/* Side-source-picker content body: full-width, gallery now lives externally */
 .side-source-picker-body {
   flex: 1 1 auto;
   display: flex;
+  flex-direction: column;
   min-height: 0;
   overflow: hidden;
 }
 
-/* ── Adult episode screenshot gallery (vertical left column) ─────────────── */
-.ep-gallery {
-  flex: 0 0 6rem;
-  width: 6rem;
+/* ── Adult Episode Gallery Panel (.adult-gallery-panel / #adultGalleryPanel) ── */
+/*
+   Lives OUTSIDE .watch-panel as a sibling inside .watch-overlay (position:fixed,
+   inset:0). Anchored to the far-left of the overlay so it never overlaps the
+   source picker — only the cinematic backdrop area is partially covered.
+*/
+
+.adult-gallery-panel {
+  position: absolute;
+  left: clamp(0.75rem, 1.5vw, 1.5rem);
+  top: clamp(0.75rem, 1.5vh, 1.5rem);
+  bottom: clamp(0.75rem, 1.5vh, 1.5rem);
+  width: clamp(26rem, 27vw, 34rem);
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  padding: 0.55rem 0.42rem;
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.16) transparent;
-  scroll-snap-type: y mandatory;
-  border-right: 0.06rem solid rgba(255,255,255,0.09);
-  background: rgba(0,0,0,0.3);
+  border-radius: 1rem;
+  background:
+    linear-gradient(175deg,
+      rgba(8, 8, 20, 0.98) 0%,
+      rgba(16, 10, 28, 0.97) 50%,
+      rgba(10, 6, 18, 0.98) 100%);
+  -webkit-backdrop-filter: blur(32px) saturate(1.4);
+  backdrop-filter: blur(32px) saturate(1.4);
+  border: 1px solid rgba(225, 29, 72, 0.18);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0.5rem 0 3.5rem rgba(0, 0, 0, 0.6),
+    0 2rem 5rem rgba(0, 0, 0, 0.45);
+  z-index: 55;
+  overflow: hidden;
+  animation: agp-slide-in 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.ep-gallery::-webkit-scrollbar { width: 0.2rem; }
-.ep-gallery::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 9rem; }
 
-.ep-gallery-thumb {
+@keyframes agp-slide-in {
+  from { opacity: 0; transform: translateX(-2rem); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.adult-gallery-panel[hidden] {
+  display: none;
+}
+
+/* ── Header ── */
+.agp-header {
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 1rem 1.1rem 0.85rem;
+  background: linear-gradient(90deg,
+    rgba(225, 29, 72, 0.14) 0%,
+    rgba(225, 29, 72, 0.06) 100%);
+  border-bottom: 1px solid rgba(225, 29, 72, 0.2);
+}
+
+.agp-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.agp-count {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(225, 29, 72, 0.9);
+  background: rgba(225, 29, 72, 0.12);
+  border: 1px solid rgba(225, 29, 72, 0.22);
+  padding: 0.15rem 0.55rem;
+  border-radius: 9rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+/* ── 3-column scrollable grid ── */
+.agp-grid {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+  padding: 0.9rem 0.85rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(225, 29, 72, 0.35) transparent;
+  scroll-snap-type: y proximity;
+  overscroll-behavior: contain;
+  align-content: start;
+}
+.agp-grid::-webkit-scrollbar { width: 0.22rem; }
+.agp-grid::-webkit-scrollbar-thumb {
+  background: rgba(225, 29, 72, 0.5);
+  border-radius: 9rem;
+}
+
+/* ── Thumbnail cards ── */
+.agp-thumb {
   position: relative;
+  display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
-  border-radius: 0.38rem;
+  border-radius: 0.5rem;
   overflow: hidden;
   scroll-snap-align: start;
   cursor: pointer;
-  border: 0.1rem solid rgba(255,255,255,0.09);
-  transition: border-color 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
-  background: rgba(255,255,255,0.05);
+  border: 1.5px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.04);
+  transition:
+    border-color 160ms ease,
+    box-shadow   160ms ease,
+    transform    160ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-.ep-gallery-thumb img {
+
+.agp-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
   pointer-events: none;
-  transition: transform 200ms ease;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  filter: brightness(0.88);
 }
-.ep-gallery-thumb:is(:hover, :focus-visible) {
-  border-color: rgba(225,29,72,0.7);
-  box-shadow: 0 0 0 0.14rem rgba(225,29,72,0.28);
+
+/* Episode number badge */
+.agp-thumb-num {
+  position: absolute;
+  bottom: 0.25rem;
+  right: 0.28rem;
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.75);
+  padding: 0.07rem 0.28rem;
+  border-radius: 0.22rem;
+  line-height: 1.4;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+}
+
+/* ── Hover / focus ── */
+.agp-thumb:is(:hover, :focus-visible) {
+  border-color: rgba(225, 29, 72, 0.75);
+  box-shadow:
+    0 0 0 0.15rem rgba(225, 29, 72, 0.28),
+    0 0.5rem 1.6rem rgba(0, 0, 0, 0.55);
+  transform: scale(1.05);
   outline: none;
+  z-index: 2;
 }
-.ep-gallery-thumb:is(:hover, :focus-visible) img {
-  transform: scale(1.06);
+.agp-thumb:is(:hover, :focus-visible) img {
+  transform: scale(1.08);
+  filter: brightness(1.0);
 }
-.ep-gallery-thumb.is-active {
+
+/* Active (lightbox open) */
+.agp-thumb.is-active {
   border-color: #e11d48;
-  box-shadow: 0 0 0 0.15rem rgba(225,29,72,0.45);
+  box-shadow: 0 0 0 0.18rem rgba(225, 29, 72, 0.5);
 }
+
+/* ── Narrow screens: slide in from left as fixed overlay ── */
+@media (max-width: 960px) {
+  .adult-gallery-panel {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: 0 0.9rem 0.9rem 0;
+    border-left: none;
+    border-top: none;
+    border-bottom: none;
+    width: min(22rem, 80vw);
+  }
+  .agp-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+
 
 /* Lightbox overlay for full-size view */
 .ep-gallery-lightbox {

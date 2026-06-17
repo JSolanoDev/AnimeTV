@@ -2135,6 +2135,11 @@ function renderCarousel() {
   carouselBackdrop.style.backgroundImage = art
     ? `url("${art}")`
     : "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
+  if (art) {
+    let lcp = document.getElementById("lcpPreload");
+    if (!lcp) { lcp = document.createElement("link"); lcp.id = "lcpPreload"; lcp.rel = "preload"; lcp.as = "image"; lcp.fetchPriority = "high"; document.head.appendChild(lcp); }
+    lcp.href = art;
+  }
   carouselTitle.textContent = getShowTitle(show);
   carouselText.textContent = simpleCarouselText(show);
   carouselMeta.textContent = [show.day, show.time, (show.genre || "").toUpperCase()].filter(Boolean).join(" | ");
@@ -6852,20 +6857,36 @@ function renderSourcePickerInSidePanel() {
     filterSelectHtml = `<select class="source-filter-select side-source-filter focusable language-select" aria-label="Filter sources">${optionsHtml}</select>`;
   }
 
-  // Build screenshot gallery for adult episodes
+  // ── External adult episode gallery (rendered into #adultGalleryPanel) ──────
+  const galleryPanel = document.getElementById("adultGalleryPanel");
   const isAdultShow = typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show);
   const screenshots = Array.isArray(episode.screenshots) ? episode.screenshots.filter(Boolean) : [];
-  const galleryHtml = (isAdultShow && screenshots.length > 0) ? `
-    <div class="ep-gallery" role="region" aria-label="Episode preview images">
-      ${screenshots.map((src, i) => `
-        <button class="ep-gallery-thumb focusable" type="button"
-          data-gallery-index="${i}"
-          aria-label="Preview image ${i + 1} of ${screenshots.length}">
-          <img referrerpolicy="no-referrer" src="${escapeHtml(src)}" alt="" loading="eager" decoding="async">
-        </button>
-      `).join("")}
-    </div>
-  ` : "";
+  const hasGallery = isAdultShow && screenshots.length > 0;
+
+  if (galleryPanel) {
+    if (hasGallery) {
+      galleryPanel.innerHTML = `
+        <div class="agp-header">
+          <span class="agp-label">Episode&nbsp;${episodeNumber} &mdash; Preview</span>
+          <span class="agp-count">${screenshots.length} image${screenshots.length !== 1 ? "s" : ""}</span>
+        </div>
+        <div class="agp-grid">
+          ${screenshots.map((src, i) => `
+            <button class="agp-thumb focusable" type="button"
+              data-gallery-index="${i}"
+              aria-label="Preview image ${i + 1} of ${screenshots.length}">
+              <img referrerpolicy="no-referrer" src="${escapeHtml(src)}" alt="" loading="eager" decoding="async">
+              <span class="agp-thumb-num">${i + 1}</span>
+            </button>
+          `).join("")}
+        </div>
+      `;
+      galleryPanel.hidden = false;
+    } else {
+      galleryPanel.innerHTML = "";
+      galleryPanel.hidden = true;
+    }
+  }
 
   episodeList.hidden = false;
   episodeList.innerHTML = `
@@ -6880,7 +6901,6 @@ function renderSourcePickerInSidePanel() {
         ${filterSelectHtml}
       </div>
       <div class="side-source-picker-body">
-      ${galleryHtml}
       <div class="source-picker-options side-source-picker-list">
         ${serverCards}
         ${extraCards}
@@ -6889,9 +6909,11 @@ function renderSourcePickerInSidePanel() {
   </div>
   `;
 
-  // Back = return the side panel to the episode list (works even if a server
-  // scan is still in flight; the scan's refresh no-ops once the picker is gone).
+  // Back = return the side panel to the episode list and hide gallery.
   episodeList.querySelector(".side-source-picker-back")?.addEventListener("click", () => {
+    // Hide the external gallery panel
+    const gp = document.getElementById("adultGalleryPanel");
+    if (gp) { gp.innerHTML = ""; gp.hidden = true; }
     if (state.activeShow) renderEpisodeList(state.activeShow);
     else showEpisodeListTab();
     refreshFocusables();
@@ -6927,8 +6949,8 @@ function renderSourcePickerInSidePanel() {
     });
   });
 
-  // Wire gallery thumbnails → lightbox
-  if (screenshots.length > 0) {
+  // Wire gallery thumbnails in external panel → lightbox
+  if (hasGallery && galleryPanel) {
     const openLightbox = (startIndex) => {
       document.querySelector(".ep-gallery-lightbox")?.remove();
       let currentIdx = startIndex;
@@ -6950,8 +6972,8 @@ function renderSourcePickerInSidePanel() {
         lb.querySelector(".ep-gallery-lightbox-close")?.addEventListener("click", () => lb.remove());
         lb.querySelector(".ep-gallery-lightbox-nav.prev")?.addEventListener("click", (e) => { e.stopPropagation(); currentIdx = (currentIdx - 1 + screenshots.length) % screenshots.length; render(); });
         lb.querySelector(".ep-gallery-lightbox-nav.next")?.addEventListener("click", (e) => { e.stopPropagation(); currentIdx = (currentIdx + 1) % screenshots.length; render(); });
-        // Highlight the matching thumbnail strip item
-        episodeList.querySelectorAll(".ep-gallery-thumb").forEach((t, i) => t.classList.toggle("is-active", i === currentIdx));
+        // Highlight the matching thumbnail in the external gallery panel
+        galleryPanel.querySelectorAll(".agp-thumb").forEach((t, i) => t.classList.toggle("is-active", i === currentIdx));
       };
       render();
       lb.addEventListener("click", (e) => { if (e.target === lb) lb.remove(); });
@@ -6964,9 +6986,14 @@ function renderSourcePickerInSidePanel() {
       lb.setAttribute("tabindex", "-1");
       lb.focus();
     };
-    episodeList.querySelectorAll(".ep-gallery-thumb").forEach((thumb) => {
+    galleryPanel.querySelectorAll(".agp-thumb").forEach((thumb) => {
       thumb.addEventListener("click", () => openLightbox(Number(thumb.dataset.galleryIndex)));
     });
+  }
+
+  // Legacy: also wire any ep-gallery-thumb that may still be in episode list
+  if (!hasGallery) {
+    episodeList.querySelectorAll(".ep-gallery-thumb").forEach(() => {});
   }
 
   refreshFocusables();
@@ -10535,8 +10562,8 @@ function getFocusableItems() {
   const authOverlay = document.getElementById("authOverlay");
   const root = (authOverlay && !authOverlay.hidden) ? authOverlay :
                ((overlay && !overlay.hidden) ? overlay : document);
-  return [...root.querySelectorAll(".focusable")]
-    .filter((element) => !element.disabled && element.offsetParent !== null);
+  return [...root.querySelectorAll(".focusable:not([disabled])")]
+    .filter((el) => !el.closest("[hidden]") && !el.closest(".is-hidden"));
 }
 
 function refreshFocusables() {

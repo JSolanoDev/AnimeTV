@@ -21,6 +21,19 @@
     <link rel="preconnect" href="https://graphql.anilist.co">
     <link rel="preconnect" href="https://s4.anilist.co" crossorigin>
     <link rel="stylesheet" href="styles.css?v=313">
+    <!-- Defer all JS — browser discovers them early but executes after DOM parse -->
+    <script defer src="js/constants.js?v=313"></script>
+    <script defer src="js/translations.js?v=313"></script>
+    <script defer src="js/utils.js?v=313"></script>
+    <script defer src="js/season-normalization.js?v=313"></script>
+    <script defer src="js/normalize.js?v=313"></script>
+    <script defer src="js/anilist-metadata.js?v=313"></script>
+    <script defer src="js/smart-source.js?v=313"></script>
+    <script defer src="js/image-resolver.js?v=313"></script>
+    <script defer src="js/adult-source-adapter.js?v=313"></script>
+    <script defer src="js/adult-mode.js?v=313"></script>
+    <script defer src="update-manager.js?v=313"></script>
+    <script defer src="client.js?v=313"></script>
   </head>
   <body>
     <div class="app-loader" id="appLoader" role="status" aria-live="polite">
@@ -35,7 +48,7 @@
       <header class="topbar">
         <a class="brand focusable" href="#home" data-route="home" data-nav-label="Home" aria-label="ZenkaiTV — Home">
           <span class="brand-mark" aria-hidden="true">
-            <img class="brand-logo" src="logo-mark-transparent.png?v=279" alt="">
+            <img class="brand-logo" src="logo-mark-transparent.png?v=279" alt="" width="66" height="66">
           </span>
           <span class="brand-copy">
             <strong>ZenkaiTV</strong>
@@ -275,6 +288,13 @@
     <div class="watch-overlay" id="watchOverlay" hidden>
       <div class="watch-backdrop-blur" id="watchBackdropBlur" aria-hidden="true"></div>
       <div class="watch-backdrop" id="watchBackdrop" aria-hidden="true"></div>
+
+      <!-- Adult episode gallery — lives OUTSIDE watch-panel, anchored to the
+           left of the overlay so it never overlaps the source picker. -->
+      <aside class="adult-gallery-panel" id="adultGalleryPanel" hidden aria-label="Episode preview gallery">
+        <!-- populated by renderSourcePickerInSidePanel() -->
+      </aside>
+
       <div class="watch-panel" role="dialog" aria-modal="true" aria-labelledby="watchTitle">
         <button class="close-button focusable" id="closeOverlay" aria-label="Back" data-tip="Back">‹</button>
 
@@ -302,12 +322,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Adult episode gallery panel — sits to the LEFT of the source picker,
-             outside .watch-side so it can be wider without crowding the server list. -->
-        <aside class="adult-gallery-panel" id="adultGalleryPanel" hidden aria-label="Episode preview gallery">
-          <!-- populated by renderSourcePickerInSidePanel() -->
-        </aside>
 
         <!-- RIGHT: elevated source / episode panel -->
         <aside class="watch-side" aria-label="Episodes and sources">
@@ -343,18 +357,7 @@
       </svg>
     </button>
 
-     <script src="js/constants.js?v=313"></script>
-    <script src="js/translations.js?v=313"></script>
-    <script src="js/utils.js?v=313"></script>
-    <script src="js/season-normalization.js?v=313"></script>
-    <script src="js/normalize.js?v=313"></script>
-    <script src="js/anilist-metadata.js?v=313"></script>
-    <script src="js/smart-source.js?v=313"></script>
-    <script src="js/image-resolver.js?v=313"></script>
-    <script src="js/adult-source-adapter.js?v=313"></script>
-    <script src="js/adult-mode.js?v=313"></script>
-    <script src="update-manager.js?v=313"></script>
-    <script src="client.js?v=313"></script>
+    <!-- Scripts loaded via defer in <head> -->
 
     <!-- Authentication Overlay Modal -->
     <div class="auth-overlay" id="authOverlay" hidden>

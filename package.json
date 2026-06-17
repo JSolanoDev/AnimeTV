@@ -40,5 +40,9 @@
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1",
     "hls.js": "^1.6.16"
+  },
+  "devDependencies": {
+    "clean-css": "^5.3.3",
+    "terser": "^5.48.0"
   }
 }

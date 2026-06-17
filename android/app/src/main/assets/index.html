@@ -270,6 +270,13 @@
     <div class="watch-overlay" id="watchOverlay" hidden>
       <div class="watch-backdrop-blur" id="watchBackdropBlur" aria-hidden="true"></div>
       <div class="watch-backdrop" id="watchBackdrop" aria-hidden="true"></div>
+
+      <!-- Adult episode gallery — lives OUTSIDE watch-panel, anchored to the
+           left of the overlay so it never overlaps the source picker. -->
+      <aside class="adult-gallery-panel" id="adultGalleryPanel" hidden aria-label="Episode preview gallery">
+        <!-- populated by renderSourcePickerInSidePanel() -->
+      </aside>
+
       <div class="watch-panel" role="dialog" aria-modal="true" aria-labelledby="watchTitle">
         <button class="close-button focusable" id="closeOverlay" aria-label="Back" data-tip="Back">‹</button>
 

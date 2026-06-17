@@ -2135,6 +2135,11 @@ function renderCarousel() {
   carouselBackdrop.style.backgroundImage = art
     ? `url("${art}")`
     : "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
+  if (art) {
+    let lcp = document.getElementById("lcpPreload");
+    if (!lcp) { lcp = document.createElement("link"); lcp.id = "lcpPreload"; lcp.rel = "preload"; lcp.as = "image"; lcp.fetchPriority = "high"; document.head.appendChild(lcp); }
+    lcp.href = art;
+  }
   carouselTitle.textContent = getShowTitle(show);
   carouselText.textContent = simpleCarouselText(show);
   carouselMeta.textContent = [show.day, show.time, (show.genre || "").toUpperCase()].filter(Boolean).join(" | ");
@@ -10557,8 +10562,8 @@ function getFocusableItems() {
   const authOverlay = document.getElementById("authOverlay");
   const root = (authOverlay && !authOverlay.hidden) ? authOverlay :
                ((overlay && !overlay.hidden) ? overlay : document);
-  return [...root.querySelectorAll(".focusable")]
-    .filter((element) => !element.disabled && element.offsetParent !== null);
+  return [...root.querySelectorAll(".focusable:not([disabled])")]
+    .filter((el) => !el.closest("[hidden]") && !el.closest(".is-hidden"));
 }
 
 function refreshFocusables() {
