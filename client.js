@@ -2816,7 +2816,7 @@ function cardTemplate(show, index = 0) {
   const meta = cardMeta(show, isFavorite);
   const target = getCardTarget(show);
   const posterCandidates = getCardPosterCandidates(show);
-  const deliveredCandidates = posterCandidates.map((url) => imageDeliveryUrl(url, 240, 64));
+  const deliveredCandidates = posterCandidates.map((url) => imageDeliveryUrl(url, 180, 80));
   const posterUrl = deliveredCandidates[0] || "";
   const fallbackData = deliveredCandidates.length
     ? ` data-image-fallbacks="${escapeHtml(encodeURIComponent(JSON.stringify(deliveredCandidates)))}" data-image-fallback-index="0"`

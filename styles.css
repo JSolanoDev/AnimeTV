@@ -6131,6 +6131,7 @@ body.player-cinema-open .close-button {
 .carousel-info {
   position: relative;
   z-index: 2;
+  min-height: 14rem;
 }
 
 .carousel-poster-wrap {
