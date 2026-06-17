@@ -214,8 +214,8 @@ const IMAGE_PROXY_ALLOWED_HOSTS = new Set([
 ]);
 const IMAGE_PROXY_MAX_BYTES = 5 * 1024 * 1024;
 const IMAGE_PROXY_MAX_WIDTH = 1920;
-const IMAGE_PROXY_DEFAULT_WIDTH = 640;
-const IMAGE_PROXY_WEBP_QUALITY = 78;
+const IMAGE_PROXY_DEFAULT_WIDTH = 360;
+const IMAGE_PROXY_WEBP_QUALITY = 70;
 const STRICT_TRANSPORT_SECURITY = "max-age=31536000; includeSubDomains; preload";
 const SECURITY_HEADERS = {
   "Referrer-Policy": "no-referrer",
@@ -998,6 +998,10 @@ async function handleImageProxy(url, response) {
     64,
     Math.min(IMAGE_PROXY_MAX_WIDTH, Number(url.searchParams.get("w") || IMAGE_PROXY_DEFAULT_WIDTH) || IMAGE_PROXY_DEFAULT_WIDTH)
   );
+  const requestedQuality = Math.max(
+    45,
+    Math.min(86, Number(url.searchParams.get("q") || IMAGE_PROXY_WEBP_QUALITY) || IMAGE_PROXY_WEBP_QUALITY)
+  );
   let outputBuffer = originalBuffer;
   let outputType = contentType;
   let optimized = false;
@@ -1006,7 +1010,7 @@ async function handleImageProxy(url, response) {
       outputBuffer = await sharp(originalBuffer, { animated: false, limitInputPixels: 36_000_000 })
         .rotate()
         .resize({ width: requestedWidth, withoutEnlargement: true })
-        .webp({ quality: IMAGE_PROXY_WEBP_QUALITY, effort: 4 })
+        .webp({ quality: requestedQuality, effort: 5 })
         .toBuffer();
       outputType = "image/webp";
       optimized = true;
@@ -1020,7 +1024,7 @@ async function handleImageProxy(url, response) {
   response.writeHead(200, {
     ...SECURITY_HEADERS,
     "Content-Type": outputType,
-    "Cache-Control": "public, max-age=31536000, immutable",
+    "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable, stale-while-revalidate=604800",
     "Content-Length": String(outputBuffer.length),
     "X-Image-Optimized": optimized ? "1" : "0"
   });

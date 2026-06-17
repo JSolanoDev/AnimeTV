@@ -2040,7 +2040,7 @@ function hqImage(url) {
   return u;
 }
 
-function imageDeliveryUrl(url, width = 480) {
+function imageDeliveryUrl(url, width = 360, quality = 70) {
   const raw = String(url || "").trim();
   if (!raw || raw.startsWith("data:") || raw.startsWith("blob:") || raw.startsWith("./") || raw.startsWith("/")) return raw;
   if (!/^https?:$/i.test(location.protocol)) return raw;
@@ -2058,6 +2058,7 @@ function imageDeliveryUrl(url, width = 480) {
     const proxy = new URL("./api/image", location.href);
     proxy.searchParams.set("src", parsed.toString());
     if (width) proxy.searchParams.set("w", String(width));
+    if (quality) proxy.searchParams.set("q", String(quality));
     return proxy.pathname + proxy.search;
   } catch {
     return raw;
@@ -2250,7 +2251,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=337";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=338";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -2276,7 +2277,7 @@ function renderCarousel() {
   _carouselPaintedId = String(show.id || "");
 
   const art = carouselArtworkOrPoster(show);
-  const deliveredArt = imageDeliveryUrl(art, 1280);
+  const deliveredArt = imageDeliveryUrl(art, 960, 68);
   carouselBackdrop.classList.toggle("has-banner", Boolean(art));
   carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
   if (carouselBackdropImage) {
@@ -2284,7 +2285,7 @@ function renderCarousel() {
     if (art && carouselBackdropImage.getAttribute("src") !== deliveredArt) {
       carouselBackdropImage.src = deliveredArt;
     } else if (!art) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=337";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=338";
       carouselBackdropImage.removeAttribute("srcset");
     }
   }
@@ -2308,7 +2309,7 @@ function renderCarouselIndicators(items) {
   if (!carouselIndicators) return;
   carouselIndicators.innerHTML = items.slice(0, 8).map((show, index) => `
     <button class="carousel-dot focusable ${index === state.carouselIndex ? "is-selected" : ""}" data-carousel-index="${index}" aria-label="Show ${escapeHtml(getShowTitle(show))}">
-      ${carouselArtworkOrPoster(show) ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(carouselArtworkOrPoster(show), 192))}" alt="" width="96" height="54" loading="lazy" decoding="async">` : "<span></span>"}
+      ${carouselArtworkOrPoster(show) ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(carouselArtworkOrPoster(show), 96, 58))}" alt="" width="96" height="54" loading="lazy" decoding="async">` : "<span></span>"}
     </button>
   `).join("");
 
@@ -2815,14 +2816,14 @@ function cardTemplate(show, index = 0) {
   const meta = cardMeta(show, isFavorite);
   const target = getCardTarget(show);
   const posterCandidates = getCardPosterCandidates(show);
-  const deliveredCandidates = posterCandidates.map((url) => imageDeliveryUrl(url, 360));
+  const deliveredCandidates = posterCandidates.map((url) => imageDeliveryUrl(url, 240, 64));
   const posterUrl = deliveredCandidates[0] || "";
   const fallbackData = deliveredCandidates.length
     ? ` data-image-fallbacks="${escapeHtml(encodeURIComponent(JSON.stringify(deliveredCandidates)))}" data-image-fallback-index="0"`
     : "";
   const image = posterUrl
     ? `
-        <img referrerpolicy="no-referrer" class="thumb-poster" src="${escapeHtml(posterUrl)}" alt="" width="480" height="720" loading="lazy" decoding="async"${fallbackData}>
+        <img referrerpolicy="no-referrer" class="thumb-poster" src="${escapeHtml(posterUrl)}" alt="" width="240" height="360" loading="lazy" decoding="async"${fallbackData}>
       `
     : "";
   return `
@@ -7101,19 +7102,33 @@ function sourceFilterKey(value) {
 
 function scheduleHomeRailExpansion() {
   if (state.homeCardLimit >= HOME_CARD_LIMIT) return;
+  if (state.homeRailExpansionScheduled) return;
+  state.homeRailExpansionScheduled = true;
   const expand = () => {
     if (state.homeCardLimit >= HOME_CARD_LIMIT) return;
+    state.homeRailExpansionScheduled = false;
     state.homeCardLimit = HOME_CARD_LIMIT;
     if (state.route === "home") {
       render();
       warmVisibleShowMetadata(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
     }
   };
-  if ("requestIdleCallback" in window) {
-    window.requestIdleCallback(expand, { timeout: 2500 });
-  } else {
-    window.setTimeout(expand, 1800);
+  const rail = latestGrid;
+  if (!rail) {
+    state.homeRailExpansionScheduled = false;
+    return;
   }
+  const expandNearRail = () => {
+    if (state.homeCardLimit >= HOME_CARD_LIMIT) return;
+    const rect = rail.getBoundingClientRect();
+    if (rect.top > window.innerHeight + 260) return;
+    window.removeEventListener("scroll", expandNearRail);
+    expand();
+  };
+  window.addEventListener("scroll", expandNearRail, { passive: true });
+  rail.addEventListener("pointerenter", expand, { once: true, passive: true });
+  rail.addEventListener("focusin", expand, { once: true });
+  rail.addEventListener("scroll", expand, { once: true, passive: true });
 }
 
 function setupDeferredHomeAddons() {
@@ -12548,7 +12563,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("update-manager.js?v=337");
+      if (!window.UpdateManager) await loadExternalScript("update-manager.js?v=338");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
