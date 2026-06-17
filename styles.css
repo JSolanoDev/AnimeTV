@@ -1231,16 +1231,18 @@ body:not([data-route="home"]) .content-band {
 }
 
 /* ── CLS fix: pre-reserve continue-watching height when user has watch history ─
-   Without this, the sections pop in after JS loads watch state and push all
-   catalog rails down by ~17rem, causing a massive layout shift (CLS > 1.0).
-   The inline script in <head> sets data-has-history synchronously from
-   localStorage before first paint, so space is reserved from frame 0.        */
-:root[data-has-history] #continueWatching,
-:root[data-has-history] #continueWatchingAdult {
+   Scoped to the home route (or initial page load before JS sets data-route)
+   so other pages (Library, Schedule, Favorites, Settings) are not affected.  */
+:root[data-has-history] body:not([data-route]) #continueWatching,
+:root[data-has-history] body[data-route="home"] #continueWatching,
+:root[data-has-history] body:not([data-route]) #continueWatchingAdult,
+:root[data-has-history] body[data-route="home"] #continueWatchingAdult {
   min-height: 17rem;
 }
-:root[data-has-history] #continueWatching.is-hidden,
-:root[data-has-history] #continueWatchingAdult.is-hidden {
+:root[data-has-history] body:not([data-route]) #continueWatching.is-hidden,
+:root[data-has-history] body[data-route="home"] #continueWatching.is-hidden,
+:root[data-has-history] body:not([data-route]) #continueWatchingAdult.is-hidden,
+:root[data-has-history] body[data-route="home"] #continueWatchingAdult.is-hidden {
   display: block;
   visibility: hidden;
   pointer-events: none;
