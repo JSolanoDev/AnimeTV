@@ -988,7 +988,7 @@ async function handleImageProxy(url, response) {
   response.writeHead(200, {
     ...SECURITY_HEADERS,
     "Content-Type": contentType,
-    "Cache-Control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000",
+    "Cache-Control": "public, max-age=31536000, immutable",
     "Content-Length": String(buffer.length)
   });
   response.end(buffer);
