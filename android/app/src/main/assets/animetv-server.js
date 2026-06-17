@@ -138,6 +138,14 @@ const ANIMEAV1_LATEST_TTL_MS = 1000 * 60 * 5; // homepage "Últimos Episodios" �
 let animeAv1SlugCatalogMemory = null;
 let animeAv1SlugCatalogMemoryAt = 0;
 let animeAv1SlugCatalogPromise = null;
+const jkAnimeSourceCache = new Map(); // "slug:ep" -> { data, ts }
+const jkAnimeSlugSearchCache = new Map(); // normalized query -> { data, ts }
+let jkAnimeSlugCatalogMemory = null;
+let jkAnimeSlugCatalogMemoryAt = 0;
+let jkAnimeSlugCatalogPromise = null;
+const JKANIME_SLUG_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
+const JKANIME_CACHE_TTL_MS = 1000 * 60 * 30;
+const JKANIME_MISS_CACHE_TTL_MS = 1000 * 60 * 8;
 
 const ANILIST_MEDIA_CACHE_TTL_MS  = 1000 * 60 * 60 * 24;  // 24 h — stable metadata
 const ANILIST_SEARCH_CACHE_TTL_MS = 1000 * 60 * 60 * 6;   // 6 h
@@ -191,8 +199,7 @@ const SECURITY_HEADERS = {
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'self'",
-    "navigate-to 'self'"
+    "frame-ancestors 'self'"
   ].join("; "),
   ...(HOSTED_RUNTIME ? { "Strict-Transport-Security": STRICT_TRANSPORT_SECURITY } : {})
 };
@@ -743,6 +750,26 @@ function handleRequest(request, response) {
     return;
   }
 
+  if (url.pathname === "/api/jkanime/search") {
+    handleJKAnimeSearch(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/jkanime/sources") {
+    handleJKAnimeSources(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/jkanime/slugs") {
+    handleJKAnimeSlugs(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/jkanime/health") {
+    handleJKAnimeHealth(response);
+    return;
+  }
+
   if (url.pathname === "/api/crawl") {
     handleCrawl(request, response);
     return;
@@ -774,10 +801,18 @@ function handleRequest(request, response) {
       return;
     }
 
+    // Versioned assets (?v=NNN) are content-addressed — safe to cache for 1 year.
+    // index.html is never versioned and must always be fresh.
+    const isVersioned = url.searchParams.has("v") || /[?&]v=\d+/.test(url.search);
+    const isHtml = path.extname(filePath) === ".html" || pathname === "/index.html";
+    const cacheControl = (!isHtml && isVersioned)
+      ? "public, max-age=31536000, immutable"
+      : "no-store, max-age=0";
+
     response.writeHead(200, {
       ...SECURITY_HEADERS,
       "Content-Type": types[path.extname(filePath)] || "application/octet-stream",
-      "Cache-Control": "no-store, max-age=0"
+      "Cache-Control": cacheControl
     });
     response.end(data);
   });
@@ -5736,6 +5771,365 @@ function parseJkUrl(rawUrl) {
     return { slug: null, episode: null };
   }
   return { slug: m[1], episode: m[2] ? Number(m[2]) : null };
+}
+
+async function handleJKAnimeHealth(response) {
+  sendJson(response, {
+    ok: true,
+    source: "JKAnime direct scraper",
+    baseUrl: JK_BASE,
+    hosted: HOSTED_RUNTIME,
+    cachedEpisodeSources: jkAnimeSourceCache.size
+  });
+}
+
+async function handleJKAnimeSlugs(url, response) {
+  const force = url.searchParams.get("force") === "1";
+  try {
+    const payload = await getJKAnimeSlugCatalog({ force });
+    sendJson(response, payload, 200, { "Cache-Control": "public, max-age=300" });
+  } catch (error) {
+    sendJson(response, {
+      ok: false,
+      source: "JKAnime",
+      error: "JKAnime slug catalog is unavailable right now.",
+      detail: error.message,
+      byTitle: {},
+      items: []
+    }, 502);
+  }
+}
+
+async function handleJKAnimeSearch(url, response) {
+  const title = url.searchParams.get("title") || "";
+  const id = url.searchParams.get("id") || "";
+  if (!title && !id) {
+    sendJson(response, { ok: false, error: "title or id is required." }, 400);
+    return;
+  }
+  const cacheKey = normalizeTitle(`${id || ""} ${title || ""}`) || String(id || title);
+  const cached = jkAnimeSlugSearchCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < JKANIME_SLUG_CACHE_TTL_MS) {
+    sendJson(response, cached.data, cached.data.ok ? 200 : 404);
+    return;
+  }
+
+  try {
+    const media = id ? await fetchAniListMediaById(id).catch(() => null) : null;
+    const match = await findJKAnimeSlugForShow({
+      title,
+      anilistId: id,
+      romajiTitle: media?.title?.romaji || "",
+      englishTitle: media?.title?.english || "",
+      nativeTitle: media?.title?.native || "",
+      aliases: media?.synonyms || []
+    });
+    const payload = match?.slug
+      ? {
+          ok: true,
+          slug: match.slug,
+          title: match.title || cleanJKAnimeTitle(title) || prettifyJkSlug(match.slug),
+          source: "JKAnime",
+          match: match.match || "slug"
+        }
+      : { ok: false, source: "JKAnime", error: "No matching JKAnime slug found.", id, title };
+    jkAnimeSlugSearchCache.set(cacheKey, { data: payload, ts: Date.now() });
+    sendJson(response, payload, payload.ok ? 200 : 404);
+  } catch (error) {
+    const payload = {
+      ok: false,
+      source: "JKAnime",
+      error: "JKAnime search failed.",
+      detail: error.message,
+      id,
+      title
+    };
+    jkAnimeSlugSearchCache.set(cacheKey, { data: payload, ts: Date.now() });
+    sendJson(response, payload, 502);
+  }
+}
+
+async function handleJKAnimeSources(url, response) {
+  let slug = url.searchParams.get("slug") || "";
+  const episode = url.searchParams.get("episode") || "";
+  const title = url.searchParams.get("title") || "";
+  const id = url.searchParams.get("id") || "";
+  if (!slug && (title || id)) {
+    const match = await findJKAnimeSlugForShow({ title, anilistId: id }).catch(() => null);
+    slug = match?.slug || "";
+  }
+
+  const safeSlug = cleanJKAnimeSlug(slug);
+  const epNum = Number(String(episode || "").match(/\d+/)?.[0] || 0);
+  if (!safeSlug || !epNum) {
+    sendJson(response, { ok: false, error: "slug and numeric episode are required.", sources: [] }, 400);
+    return;
+  }
+
+  const cacheKey = `${safeSlug}:${epNum}`;
+  const cached = jkAnimeSourceCache.get(cacheKey);
+  const cachedTtl = cached?.data?.ok ? JKANIME_CACHE_TTL_MS : JKANIME_MISS_CACHE_TTL_MS;
+  if (cached && Date.now() - cached.ts < cachedTtl) {
+    sendJson(response, cached.data, cached.data.ok ? 200 : 404);
+    return;
+  }
+
+  try {
+    const data = await fetchJKAnimeEpisodeSourcesDirect(safeSlug, epNum);
+    jkAnimeSourceCache.set(cacheKey, { data, ts: Date.now() });
+    sendJson(response, data, data.ok ? 200 : 404);
+  } catch (error) {
+    const status = /HTTP 404|not found|No JKAnime/i.test(error.message) ? 404 : 503;
+    const data = {
+      ok: false,
+      source: "JKAnime",
+      error: "JKAnime sources unavailable.",
+      detail: error.message,
+      slug: safeSlug,
+      episode: epNum,
+      sources: []
+    };
+    jkAnimeSourceCache.set(cacheKey, { data, ts: Date.now() });
+    sendJson(response, data, status);
+  }
+}
+
+async function fetchJKAnimeEpisodeSourcesDirect(slug, episode) {
+  const safeSlug = cleanJKAnimeSlug(slug);
+  const epNum = Number(episode);
+  if (!safeSlug || !epNum) throw new Error("slug and numeric episode are required.");
+  const record = await fetchJkanimeEpisode(safeSlug, epNum);
+  if (!record?.embeds?.length) {
+    return {
+      ok: false,
+      source: "JKAnime",
+      slug: safeSlug,
+      episode: epNum,
+      episodeUrl: `${JK_BASE}/${safeSlug}/${epNum}`,
+      title: record?.title || prettifyJkSlug(safeSlug),
+      image: record?.image || "",
+      sources: []
+    };
+  }
+  const isDirect = (u) => /\.(m3u8|mp4|webm|m4v)(?:$|[?#])/i.test(String(u || ""));
+  const seen = new Set();
+  const sources = record.embeds
+    .map((embed, index) => {
+      const sourceUrl = embed.url || "";
+      if (!sourceUrl || seen.has(sourceUrl)) return null;
+      seen.add(sourceUrl);
+      const direct = isDirect(sourceUrl);
+      return {
+        id: `jkanime-${safeSlug}-${epNum}-${index + 1}`,
+        provider: embed.provider || embed.host || `Source ${index + 1}`,
+        url: sourceUrl,
+        type: direct ? "direct" : "iframe",
+        videoUrl: direct ? sourceUrl : "",
+        externalUrl: direct ? "" : sourceUrl,
+        siteUrl: record.episodeUrl,
+        sourceRank: embed.score ?? index
+      };
+    })
+    .filter(Boolean);
+  return {
+    ok: sources.length > 0,
+    source: "JKAnime",
+    slug: safeSlug,
+    episode: epNum,
+    title: record.title,
+    image: record.image,
+    episodeUrl: record.episodeUrl,
+    count: sources.length,
+    sources
+  };
+}
+
+async function getJKAnimeSlugCatalog({ force = false } = {}) {
+  if (!force && jkAnimeSlugCatalogMemory?.ok && Date.now() - jkAnimeSlugCatalogMemoryAt < JKANIME_SLUG_CACHE_TTL_MS) {
+    return { ...jkAnimeSlugCatalogMemory, cached: true, memory: true };
+  }
+  if (!force && jkAnimeSlugCatalogPromise) return jkAnimeSlugCatalogPromise;
+  jkAnimeSlugCatalogPromise = buildJKAnimeSlugCatalog({ force })
+    .finally(() => {
+      jkAnimeSlugCatalogPromise = null;
+    });
+  return jkAnimeSlugCatalogPromise;
+}
+
+async function buildJKAnimeSlugCatalog({ force = false } = {}) {
+  const cacheKey = "jkanime-slug-catalog";
+  const cached = !force ? readPersistentCache(cacheKey, JKANIME_SLUG_CACHE_TTL_MS) : null;
+  if (cached?.payload?.ok) {
+    jkAnimeSlugCatalogMemory = { ...cached.payload, cached: true };
+    jkAnimeSlugCatalogMemoryAt = Date.now();
+    return { ...jkAnimeSlugCatalogMemory };
+  }
+
+  const bySlug = new Map();
+  const byTitle = {};
+  const add = (item, source = "homepage") => {
+    const slug = cleanJKAnimeSlug(item?.slug);
+    const title = cleanJKAnimeTitle(item?.title || item?.name || prettifyJkSlug(slug));
+    if (!slug || !title) return;
+    if (!bySlug.has(slug)) {
+      bySlug.set(slug, { slug, title, siteUrl: `${JK_BASE}/${slug}/`, source });
+    }
+    jkAnimeTitleKeys(title, slug).forEach((key) => {
+      if (key && !byTitle[key]) byTitle[key] = slug;
+    });
+  };
+
+  // Homepage gives us recent episode links quickly; it is not a full directory,
+  // but it warms the active/on-air titles that users are most likely to click.
+  const records = await crawlJkanimeSite(HOSTED_RUNTIME ? 18 : 36).catch(() => []);
+  records.forEach((record) => add(record, "homepage-latest"));
+
+  const payload = {
+    ok: true,
+    source: "JKAnime",
+    count: bySlug.size,
+    items: [...bySlug.values()],
+    byTitle
+  };
+  jkAnimeSlugCatalogMemory = payload;
+  jkAnimeSlugCatalogMemoryAt = Date.now();
+  writePersistentCache(cacheKey, { payload });
+  return payload;
+}
+
+async function findJKAnimeSlugForShow(show = {}) {
+  let catalog = jkAnimeSlugCatalogMemory;
+  if (!catalog) {
+    const persisted = readPersistentCache("jkanime-slug-catalog", JKANIME_SLUG_CACHE_TTL_MS);
+    catalog = persisted?.payload?.ok ? persisted.payload : null;
+  }
+  if (!catalog && jkAnimeSlugCatalogPromise) {
+    catalog = await Promise.race([
+      jkAnimeSlugCatalogPromise.catch(() => null),
+      wait(650).then(() => null)
+    ]);
+  }
+  if (!catalog) getJKAnimeSlugCatalog().catch(() => null);
+  const byTitle = catalog?.byTitle || {};
+  for (const title of jkAnimeTitleCandidates(show)) {
+    const direct = byTitle[normalizeTitle(title)] || byTitle[normalizeTitle(stripSeasonWordsForSlugLookup(title))];
+    if (direct) return { slug: direct, title, match: "catalog" };
+  }
+
+  const candidates = jkAnimeSlugCandidates(show);
+  for (const candidate of candidates) {
+    const verified = await verifyJKAnimeSlug(candidate.slug, candidate.title).catch(() => null);
+    if (verified?.slug) return { ...verified, match: candidate.match };
+  }
+  return null;
+}
+
+async function verifyJKAnimeSlug(slug, fallbackTitle = "") {
+  const safeSlug = cleanJKAnimeSlug(slug);
+  if (!safeSlug) return null;
+  const r = await fetchWithTimeout(`${JK_BASE}/${encodeURIComponent(safeSlug)}/`, { headers: JK_HEADERS }, HOSTED_RUNTIME ? 4500 : 7000);
+  if (!r.ok) return null;
+  const html = await r.text();
+  const title = cleanJKAnimeTitle(
+    (html.match(/property=["']og:title["']\s+content=["']([^"']+)["']/i) || [])[1]
+    || (html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || [])[1]
+    || fallbackTitle
+    || prettifyJkSlug(safeSlug)
+  );
+  return { slug: safeSlug, title, siteUrl: `${JK_BASE}/${safeSlug}/` };
+}
+
+function jkAnimeTitleCandidates(show = {}) {
+  const media = show?.media || {};
+  const titleObj = media.title || {};
+  const candidates = [
+    show.title,
+    show.romajiTitle,
+    show.englishTitle,
+    show.nativeTitle,
+    show.sourceTitle,
+    titleObj.romaji,
+    titleObj.english,
+    titleObj.native,
+    ...(show.aliases || []),
+    ...(show.alternativeTitles || []),
+    ...(show.synonyms || []),
+    ...(media.synonyms || [])
+  ];
+  const expanded = [];
+  candidates.filter(Boolean).forEach((title) => {
+    expanded.push(title);
+    expanded.push(stripSeasonWordsForSlugLookup(title));
+    seasonTitleVariants(title).forEach((variant) => expanded.push(variant));
+  });
+  const seen = new Set();
+  return expanded
+    .map((title) => cleanJKAnimeTitle(title))
+    .filter((title) => {
+      const key = normalizeTitle(title);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 10);
+}
+
+function jkAnimeSlugCandidates(show = {}) {
+  const out = [];
+  const seen = new Set();
+  for (const title of jkAnimeTitleCandidates(show)) {
+    for (const variant of [title, stripSeasonWordsForSlugLookup(title)]) {
+      const slug = jkAnimeSlugify(variant);
+      if (!slug || seen.has(slug)) continue;
+      seen.add(slug);
+      out.push({ slug, title, match: "generated" });
+    }
+  }
+  return out.slice(0, 14);
+}
+
+function jkAnimeTitleKeys(title, slug = "") {
+  const keys = new Set();
+  [
+    title,
+    stripSeasonWordsForSlugLookup(title),
+    slug.replace(/-/g, " "),
+    ...seasonTitleVariants(title),
+    ...seasonTitleVariants(slug.replace(/-/g, " "))
+  ].filter(Boolean).forEach((value) => {
+    const key = normalizeTitle(value);
+    if (key) keys.add(key);
+  });
+  return [...keys];
+}
+
+function cleanJKAnimeTitle(value = "") {
+  return stripHtml(String(value || ""))
+    .replace(/\s*[|\-–·»:].*$/, " ")
+    .replace(/\s+(?:Episodio|Episode)\s*\d+.*$/i, "")
+    .replace(/\s+(?:Sub|Latino|Espa[nñ]ol|Online|JKAnime)\b.*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanJKAnimeSlug(value = "") {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/^https?:\/\/(?:www\.)?jkanime\.net\//i, "")
+    .split("/")[0]
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function jkAnimeSlugify(value = "") {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/['’`]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 // ── Generic crawler ───────────────────────────────────────────────────────────

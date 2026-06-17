@@ -20,20 +20,20 @@
     <link rel="preconnect" href="https://cdn.myanimelist.net" crossorigin>
     <link rel="preconnect" href="https://graphql.anilist.co">
     <link rel="preconnect" href="https://s4.anilist.co" crossorigin>
-    <link rel="stylesheet" href="styles.css?v=313">
+    <link rel="stylesheet" href="styles.css?v=330">
     <!-- Defer all JS — browser discovers them early but executes after DOM parse -->
-    <script defer src="js/constants.js?v=313"></script>
-    <script defer src="js/translations.js?v=313"></script>
-    <script defer src="js/utils.js?v=313"></script>
-    <script defer src="js/season-normalization.js?v=313"></script>
-    <script defer src="js/normalize.js?v=313"></script>
-    <script defer src="js/anilist-metadata.js?v=313"></script>
-    <script defer src="js/smart-source.js?v=313"></script>
-    <script defer src="js/image-resolver.js?v=313"></script>
-    <script defer src="js/adult-source-adapter.js?v=313"></script>
-    <script defer src="js/adult-mode.js?v=313"></script>
-    <script defer src="update-manager.js?v=313"></script>
-    <script defer src="client.js?v=313"></script>
+    <script defer src="js/constants.js?v=330"></script>
+    <script defer src="js/translations.js?v=330"></script>
+    <script defer src="js/utils.js?v=330"></script>
+    <script defer src="js/season-normalization.js?v=330"></script>
+    <script defer src="js/normalize.js?v=330"></script>
+    <script defer src="js/anilist-metadata.js?v=330"></script>
+    <script defer src="js/smart-source.js?v=330"></script>
+    <script defer src="js/image-resolver.js?v=330"></script>
+    <script defer src="js/adult-source-adapter.js?v=330"></script>
+    <script defer src="js/adult-mode.js?v=330"></script>
+    <script defer src="update-manager.js?v=330"></script>
+    <script defer src="client.js?v=330"></script>
   </head>
   <body>
     <div class="app-loader" id="appLoader" role="status" aria-live="polite">
@@ -174,12 +174,98 @@
             <input class="focusable" id="searchInputLibrary" type="search" placeholder="Search anime..." autocomplete="off">
             <span aria-hidden="true">⌕</span>
           </label>
-          <div class="filters" role="group" aria-label="Genre filters">
-            <button class="chip focusable is-selected" data-filter="all">All</button>
-            <button class="chip focusable" data-filter="action">Action</button>
-            <button class="chip focusable" data-filter="comedy">Comedy</button>
-            <button class="chip focusable" data-filter="fantasy">Fantasy</button>
-            <button class="chip focusable" data-filter="romance">Romance</button>
+          <div class="library-filter-panel" aria-label="Anime library filters">
+            <div class="library-letter-row" role="group" aria-label="Filter by first letter">
+              <button class="library-letter focusable is-selected" type="button" data-library-letter="all">#</button>
+              <button class="library-letter focusable" type="button" data-library-letter="A">A</button>
+              <button class="library-letter focusable" type="button" data-library-letter="B">B</button>
+              <button class="library-letter focusable" type="button" data-library-letter="C">C</button>
+              <button class="library-letter focusable" type="button" data-library-letter="D">D</button>
+              <button class="library-letter focusable" type="button" data-library-letter="E">E</button>
+              <button class="library-letter focusable" type="button" data-library-letter="F">F</button>
+              <button class="library-letter focusable" type="button" data-library-letter="G">G</button>
+              <button class="library-letter focusable" type="button" data-library-letter="H">H</button>
+              <button class="library-letter focusable" type="button" data-library-letter="I">I</button>
+              <button class="library-letter focusable" type="button" data-library-letter="J">J</button>
+              <button class="library-letter focusable" type="button" data-library-letter="K">K</button>
+              <button class="library-letter focusable" type="button" data-library-letter="L">L</button>
+              <button class="library-letter focusable" type="button" data-library-letter="M">M</button>
+              <button class="library-letter focusable" type="button" data-library-letter="N">N</button>
+              <button class="library-letter focusable" type="button" data-library-letter="O">O</button>
+              <button class="library-letter focusable" type="button" data-library-letter="P">P</button>
+              <button class="library-letter focusable" type="button" data-library-letter="Q">Q</button>
+              <button class="library-letter focusable" type="button" data-library-letter="R">R</button>
+              <button class="library-letter focusable" type="button" data-library-letter="S">S</button>
+              <button class="library-letter focusable" type="button" data-library-letter="T">T</button>
+              <button class="library-letter focusable" type="button" data-library-letter="U">U</button>
+              <button class="library-letter focusable" type="button" data-library-letter="V">V</button>
+              <button class="library-letter focusable" type="button" data-library-letter="W">W</button>
+              <button class="library-letter focusable" type="button" data-library-letter="X">X</button>
+              <button class="library-letter focusable" type="button" data-library-letter="Y">Y</button>
+              <button class="library-letter focusable" type="button" data-library-letter="Z">Z</button>
+            </div>
+            <div class="library-filter-controls">
+              <label class="library-select-wrap">
+                <span>Type:</span>
+                <select class="focusable" id="libraryTypeFilter">
+                  <option value="all">Select</option>
+                  <option value="tv">TV</option>
+                  <option value="movie">Movie</option>
+                  <option value="ova">OVA</option>
+                  <option value="ona">ONA</option>
+                  <option value="special">Special</option>
+                </select>
+              </label>
+              <label class="library-select-wrap">
+                <span>Genre:</span>
+                <select class="focusable" id="libraryGenreFilter">
+                  <option value="all">Select</option>
+                  <option value="action">Action</option>
+                  <option value="adventure">Adventure</option>
+                  <option value="comedy">Comedy</option>
+                  <option value="drama">Drama</option>
+                  <option value="fantasy">Fantasy</option>
+                  <option value="romance">Romance</option>
+                  <option value="slice of life">Slice of Life</option>
+                  <option value="sci-fi">Sci-Fi</option>
+                </select>
+              </label>
+              <label class="library-select-wrap">
+                <span>Year:</span>
+                <select class="focusable" id="libraryYearFilter">
+                  <option value="all">Select</option>
+                  <option value="2026">2026</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
+                  <option value="2022">2022</option>
+                  <option value="older">Older</option>
+                </select>
+              </label>
+              <label class="library-select-wrap">
+                <span>Status:</span>
+                <select class="focusable" id="libraryStatusFilter">
+                  <option value="all">Select</option>
+                  <option value="airing">Airing</option>
+                  <option value="finished">Finished</option>
+                  <option value="upcoming">Upcoming</option>
+                </select>
+              </label>
+              <button class="library-filter-apply focusable" id="libraryApplyFilters" type="button">Filter</button>
+            </div>
+            <div class="library-filter-meta">
+              <span id="libraryResultCount">0 Results</span>
+              <label class="library-sort-wrap">
+                <span>Sort by:</span>
+                <select class="focusable" id="librarySortFilter">
+                  <option value="default">Default</option>
+                  <option value="title">Title A-Z</option>
+                  <option value="score">Score</option>
+                  <option value="year">Newest Year</option>
+                  <option value="episodes">Episodes</option>
+                </select>
+              </label>
+            </div>
           </div>
           <div class="rail-shell">
             <button class="rail-arrow rail-arrow-left focusable" data-scroll-rail="libraryGrid" data-scroll-dir="-1" aria-label="Scroll anime library left">‹</button>
@@ -289,12 +375,6 @@
       <div class="watch-backdrop-blur" id="watchBackdropBlur" aria-hidden="true"></div>
       <div class="watch-backdrop" id="watchBackdrop" aria-hidden="true"></div>
 
-      <!-- Adult episode gallery — lives OUTSIDE watch-panel, anchored to the
-           left of the overlay so it never overlaps the source picker. -->
-      <aside class="adult-gallery-panel" id="adultGalleryPanel" hidden aria-label="Episode preview gallery">
-        <!-- populated by renderSourcePickerInSidePanel() -->
-      </aside>
-
       <div class="watch-panel" role="dialog" aria-modal="true" aria-labelledby="watchTitle">
         <button class="close-button focusable" id="closeOverlay" aria-label="Back" data-tip="Back">‹</button>
 
@@ -322,6 +402,9 @@
             </div>
           </div>
         </div>
+
+        <!-- Adult gallery — attached to the left edge of watch-side -->
+        <aside class="adult-gallery-panel" id="adultGalleryPanel" hidden aria-label="Episode preview gallery"></aside>
 
         <!-- RIGHT: elevated source / episode panel -->
         <aside class="watch-side" aria-label="Episodes and sources">

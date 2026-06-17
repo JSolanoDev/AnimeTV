@@ -16,6 +16,7 @@ const RESPONSE_CACHE_PREFIX = "animetv-response-cache:";
 const ANIPUB_FULL_CATALOG_ENDPOINT = "./api/anipub/catalog/all?limit=12000";
 const TIOANIME_SLUGS_ENDPOINT = "./api/tioanime/slugs";
 const ANIMEAV1_SLUGS_ENDPOINT = "./api/animeav1/slugs";
+const JKANIME_SLUGS_ENDPOINT = "./api/jkanime/slugs";
 const TRANSLATE_ENDPOINT = "./api/translate";
 const SUBTITLE_TRANSLATION_CACHE_PREFIX = "animetv-subtitle-translation:";
 const ANIPUB_EPISODE_FALLBACK_PREFIX = "animetv-anipub-episode:";

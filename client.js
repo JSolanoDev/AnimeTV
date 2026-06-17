@@ -163,6 +163,14 @@ const state = {
   activeEpisode: null,
   preferredSource: localStorage.getItem("animetv-preferred-playback-source") || "auto",
   activeDetailTab: "episodes",
+  adultGalleryKey: "",
+  adultGalleryHidden: false,
+  libraryLetter: "all",
+  libraryType: "all",
+  libraryGenre: "all",
+  libraryYear: "all",
+  libraryStatus: "all",
+  librarySort: "default",
   activeSettingsTab: "general",
   activeLegalTab: "terms",
   activeSeasonIndex: 0,
@@ -214,6 +222,7 @@ const searchInput = document.querySelector("#searchInput");
 const searchInputTop = document.querySelector("#searchInputTop");
 const searchInputLibrary = document.querySelector("#searchInputLibrary");
 const searchInputAniPub = document.querySelector("#searchInputAniPub");
+const libraryResultCount = document.querySelector("#libraryResultCount");
 const sidebarToggle = document.querySelector("#sidebarToggle");
 const overlay = document.querySelector("#watchOverlay");
 const closeOverlay = document.querySelector("#closeOverlay");
@@ -393,6 +402,7 @@ async function loadAnimeSources() {
     render();
     warmTioAnimeSlugCatalog(state.shows);
     warmAnimeAv1SlugCatalog(state.shows);
+    warmJKAnimeSlugCatalog(state.shows);
     warmVisibleShowMetadata(state.shows);
   }
 
@@ -408,6 +418,7 @@ async function loadAnimeSources() {
     render();
     warmTioAnimeSlugCatalog(state.shows);
     warmAnimeAv1SlugCatalog(state.shows);
+    warmJKAnimeSlugCatalog(state.shows);
     warmVisibleShowMetadata(state.shows);
     scheduleExternalSourcesLoad();
     return;
@@ -451,6 +462,7 @@ async function loadAnimeSources() {
     setSourceStatus(catalogStatusLabel("AniList + Jikan", merged));
     warmTioAnimeSlugCatalog(state.shows);
     warmAnimeAv1SlugCatalog(state.shows);
+    warmJKAnimeSlugCatalog(state.shows);
     warmVisibleShowMetadata(state.shows);
   } else {
     state.apiStatus.direct = "Offline";
@@ -601,6 +613,7 @@ async function loadExternalSources() {
       state.shows = mergeShows([...baseShows, ...allLoaded]);
       warmTioAnimeSlugCatalog(state.shows);
       warmAnimeAv1SlugCatalog(state.shows);
+      warmJKAnimeSlugCatalog(state.shows);
       warmVisibleShowMetadata(state.shows);
       const addonCount = addonSections.reduce((t, s) => t + (s.items?.length || 0), 0);
       state.apiStatus.local = allLoaded.length
@@ -1287,6 +1300,96 @@ function visibleShows() {
       (Array.isArray(show.genres) && show.genres.some(g => String(g).toLowerCase() === state.filter.toLowerCase()));
     return matchesSearch && matchesFilter;
   });
+}
+
+function showGenres(show) {
+  return [
+    show?.genre,
+    ...(Array.isArray(show?.genres) ? show.genres : []),
+    ...(Array.isArray(show?.tags) ? show.tags : [])
+  ].filter(Boolean).map((g) => String(g).toLowerCase());
+}
+
+function showType(show) {
+  return String(show?.format || show?.type || show?.mediaType || "tv").toLowerCase().replace(/_/g, "-");
+}
+
+function showYear(show) {
+  const direct = Number(show?.year || show?.seasonYear || show?.releaseYear || show?.startDate?.year);
+  if (Number.isFinite(direct) && direct > 1900) return direct;
+  const dateText = String(show?.releaseDate || show?.aired || show?.premiered || show?.date || "");
+  const match = dateText.match(/\b(19|20)\d{2}\b/);
+  return match ? Number(match[0]) : 0;
+}
+
+function showStatusKey(show) {
+  const status = String(show?.status || show?.airingStatus || show?.anilistStatus || "").toLowerCase();
+  if (/not_yet|upcoming|not yet|soon/.test(status)) return "upcoming";
+  if (/releasing|airing|ongoing|currently/.test(status)) return "airing";
+  if (/finished|complete|ended|cancelled/.test(status)) return "finished";
+  return "";
+}
+
+function matchesLibraryAdvancedFilters(show) {
+  const title = getShowTitle(show) || show?.title || "";
+  if (state.libraryLetter !== "all") {
+    const first = String(title).trim().charAt(0).toUpperCase();
+    const isLetter = /^[A-Z]$/.test(first);
+    if (state.libraryLetter === "other") {
+      if (isLetter) return false;
+    } else if (first !== state.libraryLetter) {
+      return false;
+    }
+  }
+
+  if (state.libraryType !== "all") {
+    const type = showType(show);
+    if (state.libraryType === "tv") {
+      if (!["tv", "tv-short", "anime"].includes(type)) return false;
+    } else if (!type.includes(state.libraryType)) {
+      return false;
+    }
+  }
+
+  if (state.libraryGenre !== "all") {
+    const genres = showGenres(show);
+    if (!genres.some((g) => g === state.libraryGenre || g.includes(state.libraryGenre))) return false;
+  }
+
+  if (state.libraryYear !== "all") {
+    const year = showYear(show);
+    if (state.libraryYear === "older") {
+      if (!year || year >= 2022) return false;
+    } else if (year !== Number(state.libraryYear)) {
+      return false;
+    }
+  }
+
+  if (state.libraryStatus !== "all" && showStatusKey(show) !== state.libraryStatus) return false;
+  return true;
+}
+
+function sortLibraryShows(shows) {
+  const list = shows.slice();
+  const titleOf = (show) => getShowTitle(show) || show?.title || "";
+  if (state.librarySort === "title") {
+    return list.sort((a, b) => titleOf(a).localeCompare(titleOf(b)));
+  }
+  if (state.librarySort === "score") {
+    return list.sort((a, b) => Number(b.score || b.averageScore || 0) - Number(a.score || a.averageScore || 0));
+  }
+  if (state.librarySort === "year") {
+    return list.sort((a, b) => showYear(b) - showYear(a));
+  }
+  if (state.librarySort === "episodes") {
+    return list.sort((a, b) => Number(b.totalEpisodes || b.episode || b.episodes || 0) - Number(a.totalEpisodes || a.episode || a.episodes || 0));
+  }
+  return list;
+}
+
+function updateLibraryResultCount(count) {
+  if (!libraryResultCount) return;
+  libraryResultCount.textContent = `${count.toLocaleString()} Result${count === 1 ? "" : "s"}`;
 }
 
 // The catalog limited to the currently-active mode. Adult mode shows ONLY adult
@@ -3963,7 +4066,7 @@ function getKnownSourceServer(key) {
 
 function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options = {}) {
   const lookupKey = playbackLookupKey(show, episode, seasonNumber);
-  if (!lookupKey || (episode.sourceOptionsChecked === lookupKey && episode.tioAnimeSourcesChecked && episode.animeAv1SourcesChecked)) return Promise.resolve(episode);
+  if (!lookupKey || (episode.sourceOptionsChecked === lookupKey && episode.tioAnimeSourcesChecked && episode.animeAv1SourcesChecked && episode.jkAnimeSourcesChecked)) return Promise.resolve(episode);
   if (pendingSourceLookups.has(lookupKey)) return pendingSourceLookups.get(lookupKey);
 
   episode.sourceOptionsPending = true;
@@ -4782,12 +4885,19 @@ function render() {
   if (state.isLoadingCatalog && !filtered.length) {
     renderSkeletonCards(latestGrid, 14);
     renderSkeletonCards(libraryGrid, 14);
+    updateLibraryResultCount(0);
   } else {
     renderCards(latestGrid, buildLatestEpisodesList(HOME_CARD_LIMIT));
+    const libraryFiltered = sortLibraryShows(
+      catalogShows()
+        .filter(matchesShowSearch)
+        .filter(matchesLibraryAdvancedFilters)
+    );
+    updateLibraryResultCount(libraryFiltered.length);
     const libraryLimit = typeof AdultMode !== "undefined" && AdultMode.isEnabled()
-      ? filtered.length
+      ? libraryFiltered.length
       : (state.search ? SEARCH_CARD_LIMIT : LIBRARY_CARD_LIMIT);
-    renderCards(libraryGrid, filtered.slice(0, libraryLimit));
+    renderCards(libraryGrid, libraryFiltered.slice(0, libraryLimit));
   }
   renderContinueWatching();
   renderAniPubCatalog();
@@ -5006,7 +5116,8 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
       canonicalMetadata.then(() => fetchAniListShowExtras(show)).then(refreshSeasonsIfActive),
       canonicalMetadata.then(() => enrichTmdbImages(show)).then(refreshSeasonsIfActive),
       // TioAnime slug resolution — stores show.tioAnimeSlug for episode playback
-      hydrateTioAnimeSlug(show)
+      hydrateTioAnimeSlug(show),
+      hydrateJKAnimeSlug(show)
     ]);
     if (state.activeOpenToken !== openToken || state.activeShow?.id !== show.id) return;
     // Ensure every franchise entry (movies, OVAs, related seasons) has a minimal
@@ -5426,18 +5537,29 @@ function closeShow() {
     state.activeEpisodeUrl = "";
     state.activeEpisode = null;
     state.activeDetailTab = "episodes";
+    state.adultGalleryHidden = false;
     state.activeSeasonIndex = 0;
     state.activeEpisodeChunkIndex = 0;
     if (episodeList) {
       episodeList.hidden = true;
       episodeList.innerHTML = "";
     }
+    hideAdultGalleryPanel();
     refreshFocusables();
     const firstCard = document.querySelector(".show-card:not([hidden])");
     if (firstCard) focusElement(firstCard);
     // Returning to Home — resume the hero cover→trailer cycle.
     if (state.route === "home") renderCarousel();
   }, 200);
+}
+
+function hideAdultGalleryPanel() {
+  const galleryPanel = document.getElementById("adultGalleryPanel");
+  if (!galleryPanel) return;
+  galleryPanel.innerHTML = "";
+  galleryPanel.hidden = true;
+  galleryPanel.style.left = "";
+  galleryPanel.style.width = "";
 }
 
 function stopActivePlayback() {
@@ -5580,7 +5702,13 @@ function selectedSeasonLabel(selected = state.activeEpisode) {
 function currentEpisodeLabel(selected = state.activeEpisode) {
   if (!selected) return getShowTitle(state.activeShow) || "Selected anime";
   const episodeNumber = Number(selected.episode?.episode || selected.episode?.number || selected.episodeIndex + 1) || 1;
-  return `${selectedSeasonLabel(selected)} Episode ${episodeNumber}`;
+  const seasonEp = `${selectedSeasonLabel(selected)} Episode ${episodeNumber}`;
+  // Lead with the anime's name so the player bar reads "Name — Season X Episode Y".
+  const showName = getShowTitle(state.activeShow) || "";
+  if (showName && !seasonEp.toLowerCase().startsWith(showName.toLowerCase())) {
+    return `${showName} — ${seasonEp}`;
+  }
+  return seasonEp;
 }
 
 function baseSeasonTitle(title) {
@@ -5649,16 +5777,37 @@ function trailerWatchUrl(tr) {
 }
 
 // Reveal the Trailer action only when AniList actually has one for this show.
+// For adult titles (no trailers) the same button jumps to the Gallery tab instead.
 function updateTrailerButton(show) {
   if (!trailerButton || !show) return;
+  const isAdult = show.adultSource || (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show));
+  const hasGalleryShots = (show.seasons || []).some((s) =>
+    (s.episodes || []).some((e) => Array.isArray(e.screenshots) && e.screenshots.filter(Boolean).length));
+  if (isAdult && hasGalleryShots) {
+    trailerButton.hidden = false;
+    trailerButton.dataset.galleryMode = "1";
+    trailerButton.dataset.trailerUrl = "";
+    trailerButton.dataset.trailerId = "";
+    trailerButton.dataset.trailerSite = "";
+    trailerButton.setAttribute("aria-label", "View gallery");
+    trailerButton.dataset.tip = "Gallery";
+    return;
+  }
+  trailerButton.dataset.galleryMode = "";
+  trailerButton.setAttribute("aria-label", "Watch trailer");
+  trailerButton.dataset.tip = "Trailer";
   const cached = show.anilistId ? _readTrailerCache(show.anilistId) : null;
   if (cached && cached.id) {
     trailerButton.hidden = false;
     trailerButton.dataset.trailerUrl = trailerWatchUrl(cached);
+    trailerButton.dataset.trailerId = String(cached.id);
+    trailerButton.dataset.trailerSite = String(cached.site || "youtube");
     return;
   }
   trailerButton.hidden = true;
   trailerButton.dataset.trailerUrl = "";
+  trailerButton.dataset.trailerId = "";
+  trailerButton.dataset.trailerSite = "";
   // Look the trailer up at most ONCE per show. We must not recurse into
   // updateTrailerButton from the .then(): fetchAniListTrailers() returns early
   // (without writing the cache) whenever another fetch is already in flight, so
@@ -5672,6 +5821,8 @@ function updateTrailerButton(show) {
       if (tr && tr.id) {
         trailerButton.hidden = false;
         trailerButton.dataset.trailerUrl = trailerWatchUrl(tr);
+        trailerButton.dataset.trailerId = String(tr.id);
+        trailerButton.dataset.trailerSite = String(tr.site || "youtube");
       }
     }).catch(() => {});
   }
@@ -5728,7 +5879,7 @@ function syncWatchHeading(show = state.activeShow, season = null) {
   if (!show) return;
   const seasons = getDetailSeasons(show);
   const activeSeason = season || seasons[state.activeSeasonIndex] || seasons[0];
-  const title = getSeasonDisplayTitle(show, activeSeason);
+  const title = getShowTitle(show) || "Selected anime";
   const titleNode = document.querySelector("#watchTitle");
   const metaNode = document.querySelector("#watchMeta");
   if (titleNode) titleNode.textContent = title;
@@ -5876,7 +6027,20 @@ function repeatedEpisodeArtwork(episodes = [], show = {}, seasonNumber = 0) {
   return new Set([...counts.entries()].filter(([, count]) => count > 1).map(([url]) => url));
 }
 
-function episodeThumb(episode = {}, season = {}, show = {}, repeatedImages = new Set()) {
+function repeatedTmdbStillSet(episodes = [], show = {}, seasonNumber = 0) {
+  if (typeof ImageResolver === "undefined") return new Set();
+  const counts = new Map();
+  const sNum = Number(seasonNumber || 0);
+  episodes.forEach((episode, index) => {
+    const num = Number(episode.episode || index + 1);
+    const still = ImageResolver.getEpisodeStill(show, { episode: num }, sNum);
+    const key = comparableImageUrl(still);
+    if (key) counts.set(key, (counts.get(key) || 0) + 1);
+  });
+  return new Set([...counts.entries()].filter(([, count]) => count > 1).map(([url]) => url));
+}
+
+function episodeThumb(episode = {}, season = {}, show = {}, repeatedImages = new Set(), repeatedTmdb = new Set()) {
   const seasonNum = Number(season?.season) || 0;
   let ownImage = hqImage(episode.image || episode.thumbnail || episode.still || episode.snapshot || "");
   const isAdultShow = show.adultSource || (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show));
@@ -5899,7 +6063,7 @@ function episodeThumb(episode = {}, season = {}, show = {}, repeatedImages = new
       ImageResolver.lazyFetchEpisodeStill(show, num);
     }
     const tmdbComparable = comparableImageUrl(tmdbStill);
-    if (!isAdultShow && tmdbComparable && (repeatedImages.has(tmdbComparable) || showLevelArt.has(tmdbComparable))) tmdbStill = "";
+    if (!isAdultShow && tmdbComparable && (repeatedImages.has(tmdbComparable) || repeatedTmdb.has(tmdbComparable) || showLevelArt.has(tmdbComparable))) tmdbStill = "";
     const resolved = ImageResolver.resolveEpisodeThumbnail(
       { ...episode, image: ownImage, thumbnail: ownImage, still: ownImage, snapshot: ownImage },
       show,
@@ -5947,6 +6111,7 @@ function buildSeasonNav(show, seasons) {
 
 function renderEpisodeList(show) {
   if (!episodeList || !show) return;
+  hideAdultGalleryPanel();
   // Lazily pull AniList per-episode titles/thumbnails + HQ banner once the show's
   // anilistId is known (for scraped shows it arrives after source enrichment).
   const isAdultSourceShow = typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show);
@@ -5983,9 +6148,31 @@ function renderEpisodeList(show) {
     ImageResolver.ensureSeasonStills(show, activeSeasonNum, activeSeason);
   }
   const repeatedImages = repeatedEpisodeArtwork(episodes, show, activeSeasonNum);
-  const tab = state.activeDetailTab === "seasons" ? "seasons" : "episodes";
+  const repeatedTmdbImages = repeatedTmdbStillSet(episodes, show, activeSeasonNum);
+  const isAdultDetailShow = show.adultSource || (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show));
+  const tab = isAdultDetailShow
+    ? (state.activeDetailTab === "gallery" ? "gallery" : "episodes")
+    : (state.activeDetailTab === "seasons" ? "seasons" : "episodes");
   const franchiseList = getFranchiseSeasonList(show) || [];
   const cardSeasons = franchiseList.length ? franchiseList : seasons;
+  const adultEpisodeGalleryGroups = isAdultDetailShow
+    ? seasons.flatMap((season, seasonIndex) => {
+        const seasonLabel = getSeasonDisplayTitle(show, season) || season.title || `Season ${season?.season || seasonIndex + 1}`;
+        return (season?.episodes || []).map((episode, episodeIndex) => {
+          const epNum = Number(episode.episode || episode.number || episodeIndex + 1) || episodeIndex + 1;
+          const shots = Array.isArray(episode.screenshots) ? episode.screenshots.filter(Boolean) : [];
+          return {
+            seasonIndex,
+            episodeIndex,
+            episode,
+            episodeNumber: epNum,
+            label: `${seasonLabel} · Episode ${epNum}`,
+            title: episodeEntryTitle(episode, episodeIndex, show),
+            screenshots: shots
+          };
+        }).filter((group) => group.screenshots.length);
+      })
+    : [];
 
   // Chunking/pagination for large episode lists (>150 episodes)
   const EPISODE_CHUNK_SIZE = 100;
@@ -6012,7 +6199,7 @@ function renderEpisodeList(show) {
   episodeList.hidden = false;
   episodeList.innerHTML = `
     <div class="detail-tabs detail-tabs-2" role="tablist" aria-label="Anime details">
-      <button class="detail-tab focusable ${tab === "seasons" ? "is-selected" : ""}" data-detail-tab="seasons" role="tab" aria-selected="${tab === "seasons"}">Seasons</button>
+      <button class="detail-tab focusable ${tab === "seasons" || tab === "gallery" ? "is-selected" : ""}" data-detail-tab="${isAdultDetailShow ? "gallery" : "seasons"}" role="tab" aria-selected="${tab === "seasons" || tab === "gallery"}">${isAdultDetailShow ? "Gallery" : "Seasons"}</button>
       <button class="detail-tab focusable ${tab === "episodes" ? "is-selected" : ""}" data-detail-tab="episodes" role="tab" aria-selected="${tab === "episodes"}">Episodes</button>
     </div>
 
@@ -6090,7 +6277,8 @@ function renderEpisodeList(show) {
             },
             activeSeason,
             show,
-            repeatedImages
+            repeatedImages,
+            repeatedTmdbImages
           );
           const tmdbStill = (typeof ImageResolver !== "undefined") ? ImageResolver.getEpisodeStill(show, { episode: num }, activeSeasonNum) : "";
           const epOwnImage = episode.image || episode.thumbnail || episode.still || episode.snapshot || epMeta?.thumbnail || "";
@@ -6105,7 +6293,7 @@ function renderEpisodeList(show) {
           const cleanFallback = (url) => {
             if (!url) return "";
             const comp = comparableImageUrl(url);
-            if (comp && (repeatedImages.has(comp) || showLevelArt.has(comp))) return "";
+            if (comp && (repeatedImages.has(comp) || repeatedTmdbImages.has(comp) || showLevelArt.has(comp))) return "";
             return url;
           };
 
@@ -6173,38 +6361,157 @@ function renderEpisodeList(show) {
       </div>
     </section>
 
-    <section class="detail-pane ${tab === "seasons" ? "is-active" : ""} ${state.detailTabSwitched ? "animate-switch" : ""}" data-detail-pane="seasons">
+    <section class="detail-pane ${tab === "seasons" || tab === "gallery" ? "is-active" : ""} ${state.detailTabSwitched ? "animate-switch" : ""}" data-detail-pane="${isAdultDetailShow ? "gallery" : "seasons"}">
+      ${isAdultDetailShow ? `
+      <div class="adult-detail-gallery">
+        ${adultEpisodeGalleryGroups.length ? adultEpisodeGalleryGroups.map((group) => `
+          <article class="adult-detail-gallery-group">
+            <header class="adult-detail-gallery-head">
+              <strong>${escapeHtml(group.label)}</strong>
+              <small>${escapeHtml(group.title)}</small>
+            </header>
+            <div class="adult-detail-gallery-grid">
+              ${group.screenshots.map((src, imageIndex) => `
+                <button class="adult-detail-gallery-thumb focusable" type="button"
+                        data-gallery-episode-season="${group.seasonIndex}"
+                        data-gallery-episode-index="${group.episodeIndex}"
+                        data-gallery-image-index="${imageIndex}"
+                        aria-label="${escapeHtml(group.label)} preview image ${imageIndex + 1}">
+                  <img referrerpolicy="no-referrer" src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async">
+                  <span>${imageIndex + 1}</span>
+                </button>
+              `).join("")}
+            </div>
+          </article>
+        `).join("") : `<p class="ep-empty">No gallery images available for this title yet.</p>`}
+      </div>` : `
       <div class="season-card-grid">
         ${cardSeasons.map((season, i) => {
-          const nav = seasonNav[i] || {};
-          const epc = season.episodes?.length || 0;
-          const badge = season.formatBadge ? `<span class="season-format-badge">${escapeHtml(season.formatBadge)}</span>` : "";
-          const yr = season.year ? `<span class="season-year">${season.year}</span>` : "";
-          const epLabel = epc ? `${epc} episode${epc === 1 ? "" : "s"}` : "";
-          const selected = nav.isCurrent != null ? nav.isCurrent : (nav.localIndex === state.activeSeasonIndex && !nav.relatedShowId);
-          const seasonPosterCandidates = [
-            season.image,
-            show.tmdbSeasonPoster,
-            show.tmdbPoster,
-            show.coverImageLarge,
-            show.image,
-            "logo-round.png"
-          ].map(u => String(u || "").trim()).filter(Boolean);
-          const seasonPosterUrl = seasonPosterCandidates[0] || "";
-          const seasonFallbackData = seasonPosterCandidates.length
-            ? ` data-image-fallbacks="${escapeHtml(encodeURIComponent(JSON.stringify(seasonPosterCandidates)))}" data-image-fallback-index="0"`
-            : "";
-          return `
-          <button class="season-card focusable ${selected ? "is-selected" : ""}" data-season-card="${i}">
-            ${seasonPosterUrl ? `<img referrerpolicy="no-referrer" class="season-card-img" src="${escapeHtml(seasonPosterUrl)}" alt="" loading="eager" fetchpriority="high" decoding="async"${seasonFallbackData}>` : ""}
-            <strong>${escapeHtml(nav.label || season.title || `Season ${i + 1}`)}</strong>
-            <small>${escapeHtml(season.sourceTitle || getSeasonDisplayTitle(show, season))}</small>
-            <span>${epLabel}${badge}${yr}</span>
-          </button>`;
-        }).join("")}
-      </div>
+            const nav = seasonNav[i] || {};
+            const epc = season.episodes?.length || 0;
+            const badge = season.formatBadge ? `<span class="season-format-badge">${escapeHtml(season.formatBadge)}</span>` : "";
+            const yr = season.year ? `<span class="season-year">${season.year}</span>` : "";
+            const epLabel = epc ? `${epc} episode${epc === 1 ? "" : "s"}` : "";
+            const selected = nav.isCurrent != null ? nav.isCurrent : (nav.localIndex === state.activeSeasonIndex && !nav.relatedShowId);
+            const seasonPosterCandidates = [
+              season.image,
+              show.tmdbSeasonPoster,
+              show.tmdbPoster,
+              show.coverImageLarge,
+              show.image,
+              "logo-round.png"
+            ].map(u => String(u || "").trim()).filter(Boolean);
+            const seasonPosterUrl = seasonPosterCandidates[0] || "";
+            const seasonFallbackData = seasonPosterCandidates.length
+              ? ` data-image-fallbacks="${escapeHtml(encodeURIComponent(JSON.stringify(seasonPosterCandidates)))}" data-image-fallback-index="0"`
+              : "";
+            const rawLabel = nav.label || season.title || `Season ${i + 1}`;
+            const cardLabel = /^Season\s+\d+$/.test(rawLabel)
+              ? getSeasonDisplayTitle(show, season)
+              : rawLabel;
+            return `
+            <button class="season-card focusable ${selected ? "is-selected" : ""}" data-season-card="${i}">
+              ${seasonPosterUrl ? `<img referrerpolicy="no-referrer" class="season-card-img" src="${escapeHtml(seasonPosterUrl)}" alt="" loading="eager" fetchpriority="high" decoding="async"${seasonFallbackData}>` : ""}
+              <strong>${escapeHtml(cardLabel)}</strong>
+              <small>${escapeHtml(season.sourceTitle || getSeasonDisplayTitle(show, season))}</small>
+              <span>${epLabel}${badge}${yr}</span>
+            </button>`;
+          }).join("")}
+      </div>`}
     </section>
   `;
+
+  if (isAdultDetailShow && adultEpisodeGalleryGroups.length) {
+    const galleryImages = adultEpisodeGalleryGroups.flatMap((group) =>
+      group.screenshots.map((src, imageIndex) => ({
+        src,
+        imageIndex,
+        seasonIndex: group.seasonIndex,
+        episodeIndex: group.episodeIndex,
+        label: `${group.label} · Image ${imageIndex + 1}`
+      }))
+    );
+    const openAdultDetailGalleryLightbox = (startIndex) => {
+      document.querySelector(".ep-gallery-lightbox")?.remove();
+      let currentIdx = Math.max(0, Math.min(startIndex, galleryImages.length - 1));
+      let onLightboxKey = null;
+      const lb = document.createElement("div");
+      lb.className = "ep-gallery-lightbox adult-detail-gallery-lightbox";
+      lb.setAttribute("role", "dialog");
+      lb.setAttribute("aria-modal", "true");
+      lb.setAttribute("aria-label", "Gallery preview");
+      const clearActive = () => {
+        episodeList.querySelectorAll(".adult-detail-gallery-thumb").forEach((thumb) => thumb.classList.remove("is-active"));
+      };
+      const navigate = (delta) => {
+        currentIdx = (currentIdx + delta + galleryImages.length) % galleryImages.length;
+        render();
+      };
+      const closeLightbox = () => {
+        if (onLightboxKey) document.removeEventListener("keydown", onLightboxKey, true);
+        lb.remove();
+        clearActive();
+      };
+      const render = () => {
+        const image = galleryImages[currentIdx];
+        lb.innerHTML = `
+          <button class="ep-gallery-lightbox-close" aria-label="Close" type="button">✕</button>
+          ${galleryImages.length > 1 ? `
+            <button class="ep-gallery-lightbox-nav prev" aria-label="Previous" type="button">‹</button>
+            <button class="ep-gallery-lightbox-nav next" aria-label="Next" type="button">›</button>
+          ` : ""}
+          <img referrerpolicy="no-referrer" src="${escapeHtml(image.src)}" alt="${escapeHtml(image.label)}" loading="eager" fetchpriority="high">
+          <div class="ep-gallery-counter">${currentIdx + 1} / ${galleryImages.length}</div>
+        `;
+        lb.querySelector(".ep-gallery-lightbox-close")?.addEventListener("click", (e) => { e.stopPropagation(); closeLightbox(); });
+        lb.querySelector(".ep-gallery-lightbox-nav.prev")?.addEventListener("click", (e) => { e.stopPropagation(); navigate(-1); });
+        lb.querySelector(".ep-gallery-lightbox-nav.next")?.addEventListener("click", (e) => { e.stopPropagation(); navigate(1); });
+        clearActive();
+        episodeList.querySelector(`.adult-detail-gallery-thumb[data-gallery-episode-season="${image.seasonIndex}"][data-gallery-episode-index="${image.episodeIndex}"][data-gallery-image-index="${image.imageIndex}"]`)?.classList.add("is-active");
+      };
+      render();
+      lb.addEventListener("click", (e) => { if (e.target === lb) closeLightbox(); });
+      onLightboxKey = (e) => {
+        if (e.key === "Escape" || e.key === "Backspace") {
+          e.preventDefault();
+          e.stopPropagation();
+          closeLightbox();
+          return;
+        }
+        if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+          e.preventDefault();
+          e.stopPropagation();
+          navigate(-1);
+          return;
+        }
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+          e.preventDefault();
+          e.stopPropagation();
+          navigate(1);
+        }
+      };
+      document.addEventListener("keydown", onLightboxKey, true);
+      document.body.appendChild(lb);
+      lb.setAttribute("tabindex", "-1");
+      lb.focus();
+    };
+    episodeList.querySelectorAll(".adult-detail-gallery-thumb").forEach((thumb) => {
+      thumb.addEventListener("click", () => {
+        const seasonIndex = Number(thumb.dataset.galleryEpisodeSeason);
+        const episodeIndex = Number(thumb.dataset.galleryEpisodeIndex);
+        const imageIndex = Number(thumb.dataset.galleryImageIndex);
+        const flatIndex = galleryImages.findIndex((image) =>
+          image.seasonIndex === seasonIndex &&
+          image.episodeIndex === episodeIndex &&
+          image.imageIndex === imageIndex
+        );
+        openAdultDetailGalleryLightbox(flatIndex >= 0 ? flatIndex : 0);
+      });
+      thumb.addEventListener("mouseleave", () => {
+        if (document.activeElement === thumb) thumb.blur();
+      });
+    });
+  }
 
   // ── Detail tabs (Seasons / Episodes) ────────────────────────────────────
   episodeList.querySelectorAll("[data-detail-tab]").forEach((tabBtn) => {
@@ -6711,6 +7018,15 @@ function detectResolution(source) {
   return "Auto";
 }
 
+function sourceFilterKey(value) {
+  return String(value || "unknown")
+    .trim()
+    .toLowerCase()
+    .replace(/&amp;/g, "&")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "unknown";
+}
+
 // Renders the source picker inline inside the #episodeList side-panel so the
 // user sees sources right where the episode list was, without entering cinema mode.
 // The video-frame backdrop is untouched (shows artwork). Clicking a source plays
@@ -6728,7 +7044,7 @@ function renderSourcePickerInSidePanel() {
     ? cleanEpisodeTitle(epMeta.title, episodeNumber)
     : episodeEntryTitle(episode, Math.max(0, episodeNumber - 1));
   const epLabel = state.activeEpisode
-    ? `S${state.activeEpisode.season?.season || state.activeEpisode.seasonIndex + 1}E${episodeNumber} ${escapeHtml(episodeTitle)}`
+    ? `S${state.activeEpisode.season?.season || state.activeEpisode.seasonIndex + 1}E${episodeNumber} ${episodeTitle}`
     : "";
 
   const claimedIds = new Set();
@@ -6765,7 +7081,9 @@ function renderSourcePickerInSidePanel() {
       <button class="source-picker-option source-picker-option-found focusable"
         data-player-source="${escapeHtml(source.id)}"
         data-source-provider="${escapeHtml(providerName)}"
+        data-source-provider-key="${escapeHtml(sourceFilterKey(providerName))}"
         data-source-type="${escapeHtml(source.type || "")}"
+        data-source-type-key="${escapeHtml(sourceFilterKey(source.type || ""))}"
         type="button">
         <div class="source-picker-left">
           <span class="source-provider-title">${escapeHtml(providerName)}</span>
@@ -6793,7 +7111,7 @@ function renderSourcePickerInSidePanel() {
     }
     if (isPending && status === undefined) {
       return `
-        <div class="source-picker-option source-picker-option-checking" data-source-provider="${escapeHtml(def.label)}" data-source-type="">
+        <div class="source-picker-option source-picker-option-checking" data-source-provider="${escapeHtml(def.label)}" data-source-provider-key="${escapeHtml(sourceFilterKey(def.label))}" data-source-type="" data-source-type-key="">
           <div class="source-picker-left">
             <span class="source-provider-title">${escapeHtml(def.label)}</span>
             <span class="source-type-subtitle">Checking…</span>
@@ -6808,7 +7126,7 @@ function renderSourcePickerInSidePanel() {
       `;
     }
     return `
-      <div class="source-picker-option source-picker-option-unavail" data-source-provider="${escapeHtml(def.label)}" data-source-type="">
+      <div class="source-picker-option source-picker-option-unavail" data-source-provider="${escapeHtml(def.label)}" data-source-provider-key="${escapeHtml(sourceFilterKey(def.label))}" data-source-type="" data-source-type-key="">
         <div class="source-picker-left">
           <span class="source-provider-title">${escapeHtml(def.label)}</span>
           <span class="source-type-subtitle">N/A</span>
@@ -6846,12 +7164,12 @@ function renderSourcePickerInSidePanel() {
     let optionsHtml = `<option value="all">All sources</option>`;
     if (uniqueProviders.size > 1) {
       optionsHtml += Array.from(uniqueProviders).sort()
-        .map((p) => `<option value="provider:${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
+        .map((p) => `<option value="provider:${escapeHtml(sourceFilterKey(p))}">${escapeHtml(p)}</option>`).join("");
     }
     if (uniqueTypes.size > 1) {
       optionsHtml += Array.from(uniqueTypes).sort().map((t) => {
         const label = t === "direct" ? "Direct video" : t === "resolver" ? "Resolver" : "Embedded player";
-        return `<option value="type:${escapeHtml(t)}">${escapeHtml(label)}</option>`;
+        return `<option value="type:${escapeHtml(sourceFilterKey(t))}">${escapeHtml(label)}</option>`;
       }).join("");
     }
     filterSelectHtml = `<select class="source-filter-select side-source-filter focusable language-select" aria-label="Filter sources">${optionsHtml}</select>`;
@@ -6860,17 +7178,45 @@ function renderSourcePickerInSidePanel() {
   // ── External adult episode gallery (rendered into #adultGalleryPanel) ──────
   const galleryPanel = document.getElementById("adultGalleryPanel");
   const isAdultShow = typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show);
-  const screenshots = Array.isArray(episode.screenshots) ? episode.screenshots.filter(Boolean) : [];
+  const screenshots = Array.isArray(episode.screenshots) ? episode.screenshots.filter(Boolean).slice(0, 6) : [];
   const hasGallery = isAdultShow && screenshots.length > 0;
+  const galleryKey = hasGallery
+    ? `${show?.id || "adult"}:${state.activeEpisode?.seasonIndex || 0}:${episodeNumber}`
+    : "";
+  if (hasGallery && state.adultGalleryKey !== galleryKey) {
+    state.adultGalleryKey = galleryKey;
+    state.adultGalleryHidden = false;
+  }
+  if (!hasGallery) {
+    state.adultGalleryKey = "";
+    state.adultGalleryHidden = false;
+  }
+  const positionAdultGallery = () => {
+    if (!galleryPanel || galleryPanel.hidden) return;
+    const side = document.querySelector(".watch-side");
+    if (!side || !galleryPanel.offsetParent) return;
+    const sR = side.getBoundingClientRect();
+    const pR = galleryPanel.offsetParent.getBoundingClientRect();
+    const sideLeft = sR.left - pR.left;
+    const w = Math.min(Math.max(sideLeft * 0.44, 360), 680);
+    galleryPanel.style.width = w + "px";
+    galleryPanel.style.left = (sideLeft - w) + "px";
+    // Correction pass: position:absolute `left` is relative to the panel's
+    // padding box, which differs from getBoundingClientRect by the panel's
+    // border/padding. Measure the real overlap and nudge so the gallery's right
+    // edge sits flush against the source picker — never covering the back button.
+    const gap = side.getBoundingClientRect().left - galleryPanel.getBoundingClientRect().right;
+    galleryPanel.style.left = (sideLeft - w + gap) + "px";
+  };
 
   if (galleryPanel) {
     if (hasGallery) {
       galleryPanel.innerHTML = `
         <div class="agp-header">
-          <span class="agp-label">Episode&nbsp;${episodeNumber} &mdash; Preview</span>
-          <span class="agp-count">${screenshots.length} image${screenshots.length !== 1 ? "s" : ""}</span>
+          <span class="agp-label">${escapeHtml(getShowTitle(show))}</span>
+          <span class="agp-count">Episode ${episodeNumber}</span>
         </div>
-        <div class="agp-grid">
+        <div class="agp-grid" role="list" aria-label="Episode preview images">
           ${screenshots.map((src, i) => `
             <button class="agp-thumb focusable" type="button"
               data-gallery-index="${i}"
@@ -6881,16 +7227,19 @@ function renderSourcePickerInSidePanel() {
           `).join("")}
         </div>
       `;
-      galleryPanel.hidden = false;
+      galleryPanel.hidden = Boolean(state.adultGalleryHidden);
+      requestAnimationFrame(positionAdultGallery);
     } else {
-      galleryPanel.innerHTML = "";
-      galleryPanel.hidden = true;
+      hideAdultGalleryPanel();
     }
   }
+  const galleryToggleHtml = hasGallery
+    ? `<button class="side-source-gallery-toggle focusable ${state.adultGalleryHidden ? "" : "is-on"}" type="button" data-toggle-adult-gallery aria-pressed="${state.adultGalleryHidden ? "false" : "true"}">${state.adultGalleryHidden ? "Show preview" : "Hide preview"}</button>`
+    : "";
 
   episodeList.hidden = false;
   episodeList.innerHTML = `
-    <div class="side-source-picker">
+    <div class="side-source-picker ${isAdultShow ? "is-adult-source-picker" : ""}">
       <div class="side-source-picker-topbar">
         <button class="side-source-picker-back focusable" type="button" aria-label="Back to episodes">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -6898,12 +7247,14 @@ function renderSourcePickerInSidePanel() {
           </svg>
         </button>
         <strong class="side-source-picker-title">${escapeHtml(epLabel || currentEpisodeLabel())}</strong>
+        ${galleryToggleHtml}
         ${filterSelectHtml}
       </div>
       <div class="side-source-picker-body">
       <div class="source-picker-options side-source-picker-list">
         ${serverCards}
         ${extraCards}
+        <div class="source-picker-empty" hidden>No sources match this filter.</div>
       </div>
     </div>
   </div>
@@ -6911,28 +7262,47 @@ function renderSourcePickerInSidePanel() {
 
   // Back = return the side panel to the episode list and hide gallery.
   episodeList.querySelector(".side-source-picker-back")?.addEventListener("click", () => {
-    // Hide the external gallery panel
-    const gp = document.getElementById("adultGalleryPanel");
-    if (gp) { gp.innerHTML = ""; gp.hidden = true; }
+    hideAdultGalleryPanel();
     if (state.activeShow) renderEpisodeList(state.activeShow);
     else showEpisodeListTab();
+    refreshFocusables();
+  });
+  episodeList.querySelector("[data-toggle-adult-gallery]")?.addEventListener("click", () => {
+    if (!hasGallery || !galleryPanel) return;
+    state.adultGalleryHidden = !state.adultGalleryHidden;
+    galleryPanel.hidden = state.adultGalleryHidden;
+    const toggle = episodeList.querySelector("[data-toggle-adult-gallery]");
+    if (toggle) {
+      toggle.textContent = state.adultGalleryHidden ? "Show preview" : "Hide preview";
+      toggle.classList.toggle("is-on", !state.adultGalleryHidden);
+      toggle.setAttribute("aria-pressed", state.adultGalleryHidden ? "false" : "true");
+    }
+    if (!state.adultGalleryHidden) requestAnimationFrame(positionAdultGallery);
     refreshFocusables();
   });
 
   // Filter sources by server or stream type — show/hide the option rows.
   const sideFilter = episodeList.querySelector(".side-source-filter");
   if (sideFilter) {
-    sideFilter.addEventListener("change", (e) => {
-      const val = e.target.value;
+    const applySourceFilter = (value) => {
+      const filterValue = String(value || "all");
+      let visibleCount = 0;
       episodeList.querySelectorAll(".source-picker-option").forEach((opt) => {
-        let matches = val === "all";
-        if (val.startsWith("provider:")) matches = opt.getAttribute("data-source-provider") === val.slice(9);
-        else if (val.startsWith("type:")) matches = opt.getAttribute("data-source-type") === val.slice(5);
+        let matches = filterValue === "all";
+        if (filterValue.startsWith("provider:")) matches = opt.getAttribute("data-source-provider-key") === filterValue.slice(9);
+        else if (filterValue.startsWith("type:")) matches = opt.getAttribute("data-source-type-key") === filterValue.slice(5);
         opt.style.display = matches ? "" : "none";
         opt.classList.toggle("focusable", matches && opt.classList.contains("source-picker-option-found"));
+        if (matches) visibleCount += 1;
       });
+      const empty = episodeList.querySelector(".source-picker-empty");
+      if (empty) empty.hidden = visibleCount > 0;
       refreshFocusables();
+    };
+    sideFilter.addEventListener("change", (e) => {
+      applySourceFilter(e.target.value);
     });
+    sideFilter.addEventListener("input", (e) => applySourceFilter(e.target.value));
   }
 
   // Wire source selection
@@ -6945,6 +7315,7 @@ function renderSourcePickerInSidePanel() {
       if (selectedEpisode._failedSourceIds) {
         selectedEpisode._failedSourceIds.clear();
       }
+      hideAdultGalleryPanel();
       playActiveShow({ allowSourceLookup: false });
     });
   });
@@ -6954,11 +7325,25 @@ function renderSourcePickerInSidePanel() {
     const openLightbox = (startIndex) => {
       document.querySelector(".ep-gallery-lightbox")?.remove();
       let currentIdx = startIndex;
+      let onLightboxKey = null;
       const lb = document.createElement("div");
       lb.className = "ep-gallery-lightbox";
       lb.setAttribute("role", "dialog");
       lb.setAttribute("aria-modal", "true");
       lb.setAttribute("aria-label", "Image preview");
+      const navigateLightbox = (delta) => {
+        currentIdx = (currentIdx + delta + screenshots.length) % screenshots.length;
+        render();
+      };
+      const clearActiveThumb = () => {
+        galleryPanel.querySelectorAll(".agp-thumb").forEach((t) => t.classList.remove("is-active"));
+      };
+      const closeLightbox = () => {
+        if (onLightboxKey) document.removeEventListener("keydown", onLightboxKey, true);
+        lb.remove();
+        clearActiveThumb();
+        galleryPanel.querySelector(`.agp-thumb[data-gallery-index="${currentIdx}"]`)?.focus?.({ preventScroll: true });
+      };
       const render = () => {
         lb.innerHTML = `
           <button class="ep-gallery-lightbox-close" aria-label="Close" type="button">✕</button>
@@ -6969,25 +7354,43 @@ function renderSourcePickerInSidePanel() {
           <img referrerpolicy="no-referrer" src="${escapeHtml(screenshots[currentIdx])}" alt="Episode preview ${currentIdx + 1}" loading="eager" fetchpriority="high">
           <div class="ep-gallery-counter">${currentIdx + 1} / ${screenshots.length}</div>
         `;
-        lb.querySelector(".ep-gallery-lightbox-close")?.addEventListener("click", () => lb.remove());
-        lb.querySelector(".ep-gallery-lightbox-nav.prev")?.addEventListener("click", (e) => { e.stopPropagation(); currentIdx = (currentIdx - 1 + screenshots.length) % screenshots.length; render(); });
-        lb.querySelector(".ep-gallery-lightbox-nav.next")?.addEventListener("click", (e) => { e.stopPropagation(); currentIdx = (currentIdx + 1) % screenshots.length; render(); });
-        // Highlight the matching thumbnail in the external gallery panel
+        lb.querySelector(".ep-gallery-lightbox-close")?.addEventListener("click", (e) => { e.stopPropagation(); closeLightbox(); });
+        lb.querySelector(".ep-gallery-lightbox-nav.prev")?.addEventListener("click", (e) => { e.stopPropagation(); navigateLightbox(-1); });
+        lb.querySelector(".ep-gallery-lightbox-nav.next")?.addEventListener("click", (e) => { e.stopPropagation(); navigateLightbox(1); });
         galleryPanel.querySelectorAll(".agp-thumb").forEach((t, i) => t.classList.toggle("is-active", i === currentIdx));
       };
       render();
-      lb.addEventListener("click", (e) => { if (e.target === lb) lb.remove(); });
-      lb.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") lb.remove();
-        if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); currentIdx = (currentIdx - 1 + screenshots.length) % screenshots.length; render(); }
-        if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); currentIdx = (currentIdx + 1) % screenshots.length; render(); }
-      });
+      lb.addEventListener("click", (e) => { if (e.target === lb) closeLightbox(); });
+      onLightboxKey = (e) => {
+        if (e.key === "Escape" || e.key === "Backspace") {
+          e.preventDefault();
+          e.stopPropagation();
+          closeLightbox();
+          return;
+        }
+        if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+          e.preventDefault();
+          e.stopPropagation();
+          navigateLightbox(-1);
+          return;
+        }
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+          e.preventDefault();
+          e.stopPropagation();
+          navigateLightbox(1);
+        }
+      };
+      document.addEventListener("keydown", onLightboxKey, true);
       document.body.appendChild(lb);
       lb.setAttribute("tabindex", "-1");
       lb.focus();
     };
     galleryPanel.querySelectorAll(".agp-thumb").forEach((thumb) => {
       thumb.addEventListener("click", () => openLightbox(Number(thumb.dataset.galleryIndex)));
+      thumb.addEventListener("focus", () => {
+        document.documentElement.scrollLeft = 0;
+        document.body.scrollLeft = 0;
+      });
     });
   }
 
@@ -7014,7 +7417,7 @@ function renderSourcePickerIn(frame) {
     ? cleanEpisodeTitle(epMeta.title, episodeNumber)
     : episodeEntryTitle(episode, Math.max(0, episodeNumber - 1));
   const epLabel = state.activeEpisode
-    ? `S${state.activeEpisode.season?.season || state.activeEpisode.seasonIndex + 1}E${episodeNumber} ${escapeHtml(episodeTitle)}`
+    ? `S${state.activeEpisode.season?.season || state.activeEpisode.seasonIndex + 1}E${episodeNumber} ${episodeTitle}`
     : "";
 
   // Track which source IDs are covered by known server definitions
@@ -7073,7 +7476,9 @@ function renderSourcePickerIn(frame) {
           <button class="source-picker-option source-picker-option-found focusable" 
             data-player-source="${escapeHtml(source.id)}" 
             data-source-provider="${escapeHtml(providerName)}" 
+            data-source-provider-key="${escapeHtml(sourceFilterKey(providerName))}" 
             data-source-type="${escapeHtml(source.type || "")}" 
+            data-source-type-key="${escapeHtml(sourceFilterKey(source.type || ""))}" 
             type="button">
             <div class="source-picker-left">
               <span class="source-provider-title">${escapeHtml(providerName)}</span>
@@ -7096,7 +7501,7 @@ function renderSourcePickerIn(frame) {
     if (isPending && status === undefined) {
       // ── Still checking ────────────────────────────────────────────────
       return `
-        <div class="source-picker-option source-picker-option-checking" data-source-provider="${escapeHtml(def.label)}" data-source-type="">
+        <div class="source-picker-option source-picker-option-checking" data-source-provider="${escapeHtml(def.label)}" data-source-provider-key="${escapeHtml(sourceFilterKey(def.label))}" data-source-type="" data-source-type-key="">
           <div class="source-picker-left">
             <span class="source-provider-title">${escapeHtml(def.label)}</span>
             <span class="source-type-subtitle">Checking…</span>
@@ -7113,7 +7518,7 @@ function renderSourcePickerIn(frame) {
 
     // ── Not available ─────────────────────────────────────────────────
     return `
-      <div class="source-picker-option source-picker-option-unavail" data-source-provider="${escapeHtml(def.label)}" data-source-type="">
+      <div class="source-picker-option source-picker-option-unavail" data-source-provider="${escapeHtml(def.label)}" data-source-provider-key="${escapeHtml(sourceFilterKey(def.label))}" data-source-type="" data-source-type-key="">
         <div class="source-picker-left">
           <span class="source-provider-title">${escapeHtml(def.label)}</span>
           <span class="source-type-subtitle">N/A</span>
@@ -7144,7 +7549,9 @@ function renderSourcePickerIn(frame) {
         <button class="source-picker-option source-picker-option-found focusable" 
           data-player-source="${escapeHtml(source.id)}" 
           data-source-provider="${escapeHtml(providerName)}" 
+          data-source-provider-key="${escapeHtml(sourceFilterKey(providerName))}" 
           data-source-type="${escapeHtml(source.type || "")}" 
+          data-source-type-key="${escapeHtml(sourceFilterKey(source.type || ""))}" 
           type="button">
           <div class="source-picker-left">
             <span class="source-provider-title">${escapeHtml(providerName)}</span>
@@ -7188,13 +7595,13 @@ function renderSourcePickerIn(frame) {
 
   let filterSelectHtml = "";
   if (foundCount > 0 || isPending) {
-    let optionsHtml = `<option value="all">All</option>`;
+    let optionsHtml = `<option value="all">All sources</option>`;
 
     // Add providers group/options
     if (uniqueProviders.size > 1) {
       optionsHtml += Array.from(uniqueProviders)
         .sort()
-        .map((p) => `<option value="provider:${escapeHtml(p)}">${escapeHtml(p)}</option>`)
+        .map((p) => `<option value="provider:${escapeHtml(sourceFilterKey(p))}">${escapeHtml(p)}</option>`)
         .join("");
     }
 
@@ -7204,7 +7611,7 @@ function renderSourcePickerIn(frame) {
         .sort()
         .map((t) => {
           const label = t === "direct" ? "Direct video" : t === "resolver" ? "Resolver" : "Embedded player";
-          return `<option value="type:${escapeHtml(t)}">${escapeHtml(label)}</option>`;
+          return `<option value="type:${escapeHtml(sourceFilterKey(t))}">${escapeHtml(label)}</option>`;
         })
         .join("");
     }
@@ -7226,6 +7633,7 @@ function renderSourcePickerIn(frame) {
           <div class="source-picker-options">
             ${serverCards}
             ${extraCards}
+            <div class="source-picker-empty" hidden>No sources match this filter.</div>
           </div>
         </div>
         <div class="vid-topbar source-picker-topbar">
@@ -7253,8 +7661,8 @@ function renderSourcePickerIn(frame) {
   // Wire up filter select change handling
   const select = frame.querySelector(".source-filter-select");
   if (select) {
-    select.addEventListener("change", (e) => {
-      const val = e.target.value;
+    const applySourceFilter = (value) => {
+      const val = String(value || "all");
       const options = frame.querySelectorAll(".source-picker-option");
       let visibleCount = 0;
 
@@ -7264,10 +7672,10 @@ function renderSourcePickerIn(frame) {
           matches = true;
         } else if (val.startsWith("provider:")) {
           const provider = val.substring("provider:".length);
-          matches = opt.getAttribute("data-source-provider") === provider;
+          matches = opt.getAttribute("data-source-provider-key") === provider;
         } else if (val.startsWith("type:")) {
           const type = val.substring("type:".length);
-          matches = opt.getAttribute("data-source-type") === type;
+          matches = opt.getAttribute("data-source-type-key") === type;
         }
 
         if (matches) {
@@ -7294,8 +7702,12 @@ function renderSourcePickerIn(frame) {
         }
       }
 
+      const empty = frame.querySelector(".source-picker-empty");
+      if (empty) empty.hidden = visibleCount > 0;
       refreshFocusables();
-    });
+    };
+    select.addEventListener("change", (e) => applySourceFilter(e.target.value));
+    select.addEventListener("input", (e) => applySourceFilter(e.target.value));
   }
 
   refreshFocusables();
@@ -8882,7 +9294,8 @@ function warmVisibleShowMetadata(shows = state.shows, limit = 64) {
             isJimovShow(show)   ? hydrateJimovEpisodes(show)   : Promise.resolve(show),
             (!isNativeSource ? Promise.resolve(enrichShowFromAllSources(show)) : Promise.resolve(show)),
             hydrateShowAniListFranchise(show),
-            hydrateTioAnimeSlug(show)
+            hydrateTioAnimeSlug(show),
+            hydrateJKAnimeSlug(show)
           ]);
           show._metadataPreloadComplete = true;
         }
@@ -9305,6 +9718,244 @@ function mergeAnimeAv1SourcesIntoEpisode(show, episode, data, slug, epNum) {
   }
 }
 
+// ── JKAnime source integration ───────────────────────────────────────────────
+
+const _jkAnimeSlugCache = new Map();
+const _jkAnimeMissCache = new Set();
+const _jkAnimeEpisodeSourceCache = new Map();
+let _jkAnimeSlugCatalogPromise = null;
+let _jkAnimeSlugTitleMap = null;
+let _jkAnimeWarmStarted = false;
+const JKANIME_SEARCH_TIMEOUT_MS = 4200;
+const JKANIME_SOURCE_TIMEOUT_MS = 8000;
+
+function jkAnimeSearchCandidates(show = {}) {
+  return tioAnimeSearchCandidates(show);
+}
+
+function jkAnimeSlugFromSearchPayload(data = {}) {
+  return data.slug
+    || data.anime?.slug
+    || data.result?.slug
+    || data.item?.slug
+    || data.results?.[0]?.slug
+    || data.items?.[0]?.slug
+    || "";
+}
+
+async function fetchJKAnimeSlugSearch(paramName, value, cacheKey) {
+  if (!value || _jkAnimeMissCache.has(cacheKey)) return "";
+  if (_jkAnimeSlugCache.has(cacheKey)) return _jkAnimeSlugCache.get(cacheKey);
+  const qs = `${paramName}=${encodeURIComponent(value)}`;
+  const res = await fetchWithTimeout(`./api/jkanime/search?${qs}`, { cache: "no-store" }, JKANIME_SEARCH_TIMEOUT_MS);
+  if (!res.ok) {
+    _jkAnimeMissCache.add(cacheKey);
+    return "";
+  }
+  const data = await res.json();
+  const slug = data.ok ? jkAnimeSlugFromSearchPayload(data) : "";
+  if (slug) {
+    _jkAnimeSlugCache.set(cacheKey, slug);
+    return slug;
+  }
+  _jkAnimeMissCache.add(cacheKey);
+  return "";
+}
+
+async function ensureJKAnimeSlugCatalog() {
+  if (_jkAnimeSlugTitleMap) return _jkAnimeSlugTitleMap;
+  if (!_jkAnimeSlugCatalogPromise) {
+    _jkAnimeSlugCatalogPromise = fetchWithTimeout(JKANIME_SLUGS_ENDPOINT, { cache: "no-store" }, 12000)
+      .then((res) => res.ok ? res.json() : null)
+      .then((payload) => {
+        _jkAnimeSlugTitleMap = payload?.ok && payload.byTitle ? payload.byTitle : {};
+        Object.entries(_jkAnimeSlugTitleMap).forEach(([key, slug]) => {
+          if (key && slug) _jkAnimeSlugCache.set(`t:${key}`, slug);
+        });
+        return _jkAnimeSlugTitleMap;
+      })
+      .catch((error) => {
+        console.warn("JKAnime slug catalog unavailable:", error);
+        _jkAnimeSlugTitleMap = {};
+        return _jkAnimeSlugTitleMap;
+      });
+  }
+  return _jkAnimeSlugCatalogPromise;
+}
+
+function applyJKAnimeSlugFromMap(show, slugMap = _jkAnimeSlugTitleMap || {}) {
+  if (!show || !slugMap) return null;
+  if (show.jkAnimeSlug) return { slug: show.jkAnimeSlug, matchedTitle: show.jkAnimeSlugSource || show.title || "", key: "cached-show" };
+  for (const title of jkAnimeSearchCandidates(show)) {
+    const key = normalizeTitle(title);
+    const slug = slugMap[key];
+    if (slug) {
+      show.jkAnimeSlug = slug;
+      show.jkAnimeSlugSource = title;
+      _jkAnimeSlugCache.set(`t:${key}`, slug);
+      return { slug, matchedTitle: title, key };
+    }
+    const strippedKey = normalizeTitle(stripSeasonFromTitle(title));
+    if (strippedKey && slugMap[strippedKey]) {
+      show.jkAnimeSlug = slugMap[strippedKey];
+      show.jkAnimeSlugSource = title;
+      _jkAnimeSlugCache.set(`t:${strippedKey}`, show.jkAnimeSlug);
+      return { slug: show.jkAnimeSlug, matchedTitle: title, key: strippedKey };
+    }
+  }
+  for (const title of jkAnimeSearchCandidates(show)) {
+    const key = normalizeTitle(title);
+    const squashedKey = key.replace(/\s+/g, "");
+    if (!squashedKey) continue;
+    for (const [mapKey, mapSlug] of Object.entries(slugMap)) {
+      if (mapKey.replace(/\s+/g, "") === squashedKey) {
+        show.jkAnimeSlug = mapSlug;
+        show.jkAnimeSlugSource = title;
+        _jkAnimeSlugCache.set(`t:${mapKey}`, mapSlug);
+        return { slug: mapSlug, matchedTitle: title, key: mapKey };
+      }
+    }
+  }
+  return null;
+}
+
+async function resolveJKAnimeSlugFromCatalog(show) {
+  const slugMap = await ensureJKAnimeSlugCatalog();
+  return applyJKAnimeSlugFromMap(show, slugMap);
+}
+
+function warmJKAnimeSlugCatalog(shows = state.shows) {
+  if (_jkAnimeSlugTitleMap) {
+    (shows || []).forEach((show) => applyJKAnimeSlugFromMap(show, _jkAnimeSlugTitleMap));
+    return;
+  }
+  if (_jkAnimeWarmStarted) return;
+  _jkAnimeWarmStarted = true;
+  ensureJKAnimeSlugCatalog()
+    .then((slugMap) => {
+      const currentShows = state.shows?.length ? state.shows : shows;
+      (currentShows || []).forEach((show) => applyJKAnimeSlugFromMap(show, slugMap));
+      const matched = (currentShows || []).filter((show) => show.jkAnimeSlug).length;
+      if (matched) console.info(`Prepared JKAnime source matching for ${matched} anime.`);
+    })
+    .catch((error) => {
+      _jkAnimeWarmStarted = false;
+      console.warn("JKAnime slug warmup failed:", error);
+    });
+}
+
+async function hydrateJKAnimeSlug(show, options = {}) {
+  if (!show || (show.jkAnimeSlugChecked && !options.force)) return show;
+  try {
+    const catalogMatch = await resolveJKAnimeSlugFromCatalog(show);
+    if (catalogMatch?.slug) {
+      show.jkAnimeSlug = catalogMatch.slug;
+      show.jkAnimeSlugSource = catalogMatch.matchedTitle;
+      _jkAnimeSlugCache.set(`t:${catalogMatch.key}`, catalogMatch.slug);
+      show.jkAnimeSlugChecked = true;
+      return show;
+    }
+
+    if (show.anilistId) {
+      const idKey = `al:${show.anilistId}`;
+      const idSlug = await fetchJKAnimeSlugSearch("id", show.anilistId, idKey);
+      if (idSlug) {
+        show.jkAnimeSlug = idSlug;
+        show.jkAnimeSlugChecked = true;
+        return show;
+      }
+    }
+
+    for (const title of jkAnimeSearchCandidates(show)) {
+      const titleKey = `t:${normalizeTitle(title)}`;
+      const slug = await fetchJKAnimeSlugSearch("title", title, titleKey);
+      if (slug) {
+        show.jkAnimeSlug = slug;
+        show.jkAnimeSlugSource = title;
+        show.jkAnimeSlugChecked = true;
+        return show;
+      }
+    }
+  } catch (error) {
+    console.warn("JKAnime search unavailable:", error);
+  }
+  show.jkAnimeSlugChecked = true;
+  return show;
+}
+
+async function attachJKAnimeSources(show, episode) {
+  if (!show || !episode) return;
+  if (!show.jkAnimeSlug) await hydrateJKAnimeSlug(show, { force: true });
+  const slug = show.jkAnimeSlug;
+  if (!slug) {
+    episode.jkAnimeSourcesChecked = true;
+    return;
+  }
+  const epNum = episode.episode || episode.number;
+  if (!epNum) {
+    episode.jkAnimeSourcesChecked = true;
+    return;
+  }
+  const cacheKey = `${slug}:${epNum}`;
+  const cached = _jkAnimeEpisodeSourceCache.get(cacheKey);
+  if (cached) {
+    mergeJKAnimeSourcesIntoEpisode(show, episode, cached, slug, epNum);
+    episode.jkAnimeSourcesChecked = true;
+    return;
+  }
+  try {
+    const res = await fetchWithTimeout(
+      `./api/jkanime/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}`,
+      { cache: "no-store" }, JKANIME_SOURCE_TIMEOUT_MS
+    );
+    if (!res.ok) {
+      episode.jkAnimeSourcesChecked = true;
+      return;
+    }
+    const data = await res.json();
+    if (!data.ok || !Array.isArray(data.sources)) {
+      episode.jkAnimeSourcesChecked = true;
+      return;
+    }
+    _jkAnimeEpisodeSourceCache.set(cacheKey, data);
+    mergeJKAnimeSourcesIntoEpisode(show, episode, data, slug, epNum);
+  } catch (error) {
+    console.warn("JKAnime episode sources unavailable:", error);
+  }
+  episode.jkAnimeSourcesChecked = true;
+}
+
+function mergeJKAnimeSourcesIntoEpisode(show, episode, data, slug, epNum) {
+  if (!episode || !Array.isArray(data?.sources)) return;
+  const existing = new Set((episode.sourceOptions || []).map(s => s.videoUrl || s.externalUrl));
+  const newOptions = data.sources
+    .filter(s => (s.url || s.videoUrl || s.externalUrl) && !existing.has(s.url || s.videoUrl || s.externalUrl))
+    .map((s, index) => {
+      const url = s.videoUrl || s.externalUrl || s.url || "";
+      const direct = s.type === "direct" || /\.(m3u8|mp4|webm|m4v)(?:$|[?#])/i.test(url);
+      const rank = direct ? 0 : embedProviderRank(s.provider);
+      return {
+        id: `jkanime-${normalizeTitle(s.provider || "source")}-${simpleHash(`${slug}:${epNum}:${s.provider || index}:${url}`)}`,
+        label: `JKAnime - ${s.provider || `Source ${index + 1}`}${rank === 2 ? " (ads)" : ""}`,
+        type: direct ? "direct" : "iframe",
+        externalUrl: direct ? "" : url,
+        videoUrl: direct ? url : "",
+        downloadUrl: s.downloadUrl || "",
+        streamResolver: null,
+        sourceRank: rank,
+        adWalled: rank === 2,
+        siteUrl: s.siteUrl || data.episodeUrl || ""
+      };
+    })
+    .sort((a, b) => a.sourceRank - b.sourceRank);
+
+  if (newOptions.length > 0) {
+    episode.sourceOptions = [...(episode.sourceOptions || []), ...newOptions];
+    episode.locked = false;
+    episode.server = episode.server || "JKAnime";
+  }
+}
+
 /**
  * After AniList franchise hydration, make sure every franchise entry
  * (movie, OVA, related TV seasons) has a minimal show object in state.shows.
@@ -9600,6 +10251,9 @@ async function playActiveShow(options = {}) {
   }
   const activeEpisode = state.activeEpisode?.episode;
   const seasonNumber = state.activeEpisode?.season?.season || state.activeSeasonIndex + 1 || activeEpisode?.season || 1;
+  const activeLookupKey = activeEpisode ? playbackLookupKey(show, activeEpisode, seasonNumber) : "";
+  let lookupPromise = activeLookupKey ? pendingSourceLookups.get(activeLookupKey) : null;
+  let waitedForLookup = false;
   // A playable source already chosen/available? Then the background server sweep
   // must NOT re-render the player when it finishes — re-rendering reloads the
   // iframe and resets playback, which is why a video used to need a 2nd click.
@@ -9617,18 +10271,36 @@ async function playActiveShow(options = {}) {
     allowSourceLookup
     && activeEpisode
     && (
-      activeEpisode.sourceOptionsChecked !== playbackLookupKey(show, activeEpisode, seasonNumber)
+      activeEpisode.sourceOptionsChecked !== activeLookupKey
       || !activeEpisode.tioAnimeSourcesChecked
       || !activeEpisode.animeAv1SourcesChecked
     )
   ) {
-    // Only auto-replay (re-render to start playback) when nothing is playable yet.
-    schedulePlaybackSourceOptions(show, activeEpisode, seasonNumber, { autoReplay: !alreadyPlayable });
+    // Keep playback in this call. If we have nothing playable yet, wait below
+    // for the source sweep before showing any final error state.
+    lookupPromise = schedulePlaybackSourceOptions(show, activeEpisode, seasonNumber, { autoReplay: false });
     if (!getEpisodePlaybackSources(activeEpisode).length) {
       await playbackLookupWithTimeout("AniPub quick start", attachAniPubFallback(show, activeEpisode), 1500);
     }
     renderEpisodeList(show);
   }
+
+  if (
+    activeEpisode
+    && lookupPromise
+    && !getSelectedEpisodeSource(activeEpisode)
+    && !getPlayableUrl(show)
+  ) {
+    renderPlayerPopupMessage(
+      frame,
+      "Checking servers...",
+      "Finding every available playback source for this episode."
+    );
+    await playbackLookupWithTimeout("Playback source sweep", lookupPromise, 9500);
+    waitedForLookup = true;
+    renderEpisodeList(show);
+  }
+
   let source = getSelectedEpisodeSource(activeEpisode);
   let url = "";
   if (!source || source.type === "direct") {
@@ -9677,6 +10349,21 @@ async function playActiveShow(options = {}) {
   }
 
   if (!url) {
+    if (activeEpisode && !waitedForLookup) {
+      renderPlayerPopupMessage(
+        frame,
+        "Checking servers...",
+        "Finding every available playback source for this episode."
+      );
+      await wait(1400);
+      source = getSelectedEpisodeSource(activeEpisode);
+      if (!source || source.type === "direct") {
+        url = source?.videoUrl || getPlayableUrl(show);
+      }
+      if (url) {
+        return playActiveShow({ allowSourceLookup: false });
+      }
+    }
     const selected = state.activeEpisode;
     const label = selected
       ? currentEpisodeLabel(selected)
@@ -10582,7 +11269,14 @@ function focusElement(element) {
   if (!element) return;
   try { element.focus({ preventScroll: true }); } catch (_) { element.focus(); }
   setTvFocus(element);
-  element.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+  const lockHorizontal = Boolean(element.closest?.(".adult-gallery-panel, .side-source-picker, .watch-side"));
+  element.scrollIntoView({ block: "nearest", inline: lockHorizontal ? "nearest" : "center", behavior: "smooth" });
+  if (lockHorizontal) {
+    requestAnimationFrame(() => {
+      document.documentElement.scrollLeft = 0;
+      document.body.scrollLeft = 0;
+    });
+  }
 }
 
 // 1-D overlap of two boxes on an axis ("x" or "y"); >0 means they line up there.
@@ -10698,6 +11392,33 @@ document.querySelectorAll("[data-filter]").forEach((button) => {
     document.querySelectorAll("[data-filter]").forEach((chip) => chip.classList.toggle("is-selected", chip === button));
     render();
   });
+});
+
+document.querySelectorAll("[data-library-letter]").forEach((button) => {
+  button.addEventListener("click", () => {
+    state.libraryLetter = button.dataset.libraryLetter || "all";
+    document.querySelectorAll("[data-library-letter]").forEach((letter) => {
+      letter.classList.toggle("is-selected", letter === button);
+    });
+    render();
+  });
+});
+
+[
+  ["#libraryTypeFilter", "libraryType"],
+  ["#libraryGenreFilter", "libraryGenre"],
+  ["#libraryYearFilter", "libraryYear"],
+  ["#libraryStatusFilter", "libraryStatus"],
+  ["#librarySortFilter", "librarySort"]
+].forEach(([selector, key]) => {
+  document.querySelector(selector)?.addEventListener("change", (event) => {
+    state[key] = event.target.value || "all";
+    render();
+  });
+});
+
+document.querySelector("#libraryApplyFilters")?.addEventListener("click", () => {
+  render();
 });
 
 document.querySelector("[data-open-first]")?.addEventListener("click", () => openShow(visibleShows()[0]?.id));
@@ -10822,26 +11543,121 @@ castButton?.addEventListener("click", () => {
   castActiveEpisode();
 });
 
+// Build a full-controls, audible embed URL for the trailer modal (unlike the
+// muted/chrome-free hero background embed).
+function trailerModalEmbedUrl(id, site) {
+  const vid = encodeURIComponent(id);
+  if (String(site).toLowerCase() === "dailymotion") {
+    return `https://www.dailymotion.com/embed/video/${vid}?autoplay=1`;
+  }
+  return `https://www.youtube-nocookie.com/embed/${vid}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
+}
+
+function openTrailerModal(id, site, watchUrl) {
+  if (!id) return;
+  document.querySelector(".trailer-modal")?.remove();
+  const modal = document.createElement("div");
+  modal.className = "trailer-modal";
+  modal.setAttribute("role", "dialog");
+  modal.setAttribute("aria-modal", "true");
+  modal.setAttribute("aria-label", "Trailer");
+  modal.innerHTML = `
+    <div class="trailer-modal-inner">
+      <button class="trailer-modal-close focusable" type="button" aria-label="Close trailer">✕</button>
+      <div class="trailer-modal-frame">
+        <iframe src="${escapeHtml(trailerModalEmbedUrl(id, site))}"
+          title="Trailer" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+          allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+      </div>
+    </div>
+  `;
+  const close = () => {
+    modal.remove();
+    document.removeEventListener("keydown", onKey, true);
+  };
+  const onKey = (e) => {
+    if (e.key === "Escape" || e.key === "Backspace") { e.preventDefault(); e.stopPropagation(); close(); }
+  };
+  modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
+  modal.querySelector(".trailer-modal-close")?.addEventListener("click", close);
+  document.addEventListener("keydown", onKey, true);
+  document.body.appendChild(modal);
+  modal.querySelector(".trailer-modal-close")?.focus();
+}
+
 trailerButton?.addEventListener("click", () => {
+  // Adult titles have no trailer — jump to the Gallery tab instead.
+  if (trailerButton.dataset.galleryMode === "1") {
+    if (!state.activeShow) return;
+    // Exit any cinema/fullscreen so the side panel is visible (this also forces
+    // the "episodes" tab), THEN switch to the gallery tab and re-render.
+    showEpisodeListTab?.();
+    state.activeDetailTab = "gallery";
+    state.detailTabSwitched = true;
+    renderEpisodeList(state.activeShow);
+    refreshFocusables();
+    return;
+  }
+  const id = trailerButton.dataset.trailerId;
+  const site = trailerButton.dataset.trailerSite || "youtube";
+  if (id) {
+    openTrailerModal(id, site, trailerButton.dataset.trailerUrl);
+    return;
+  }
+  // Fallback: no embeddable id resolved — open the watch URL externally.
   const url = trailerButton.dataset.trailerUrl;
-  if (!url) return;
-  // Android WebView routes this through onCreateWindow → external app/browser.
-  window.open(url, "_blank", "noopener");
+  if (url) window.open(url, "_blank", "noopener");
 });
+
+// Build a shareable deep link to a specific anime, e.g.
+// https://zenkaitv.com/#anime/<id> — opened by parseAnimeDeepLink on load.
+function buildAnimeShareUrl(show) {
+  const id = encodeURIComponent(String(show?.id || ""));
+  if (!id) return "https://zenkaitv.com";
+  const base = /^https?:\/\/(localhost|127\.|192\.168\.|\[?::1)/i.test(location.origin)
+    ? "https://zenkaitv.com"   // never share a localhost link
+    : location.origin;
+  return `${base}/#anime/${id}`;
+}
+
+// Copy text to the clipboard, with a legacy execCommand fallback for browsers
+// or insecure contexts where navigator.clipboard is unavailable.
+async function copyTextToClipboard(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (_) { /* fall through to legacy path */ }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;top:-9999px;left:-9999px;opacity:0";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch (_) {
+    return false;
+  }
+}
 
 shareButton?.addEventListener("click", async () => {
   const show = state.activeShow;
   if (!show) return;
   const title = getShowTitle(show) || show.title || "ZenkaiTV";
-  const shareData = { title, text: `Watch ${title} on ZenkaiTV`, url: "https://zenkaitv.com" };
+  const url = buildAnimeShareUrl(show);
+  // Always copy the link so the user can paste it to a friend. On devices with a
+  // native share sheet, offer that too (cancelling it still leaves the copy).
+  const copied = await copyTextToClipboard(url);
+  if (copied) showToast("Anime link copied — paste it to share");
   try {
     if (navigator.share) {
-      await navigator.share(shareData);
-    } else if (navigator.clipboard) {
-      await navigator.clipboard.writeText(shareData.url);
-      showToast("Link copied to clipboard");
-    } else {
-      showToast("Sharing isn't available here");
+      await navigator.share({ title, text: `Watch ${title} on ZenkaiTV`, url });
+    } else if (!copied) {
+      showToast("Couldn't copy the link");
     }
   } catch (error) {
     if (error?.name !== "AbortError") console.warn("Share failed:", error);
@@ -11013,6 +11829,12 @@ document.addEventListener("keydown", (event) => {
       if (items.length) {
         focusElement(initialFocusTarget(items));
       }
+      return;
+    }
+    const openLightbox = document.querySelector(".ep-gallery-lightbox");
+    if (openLightbox) {
+      event.preventDefault();
+      openLightbox.remove();
       return;
     }
     if (!overlay.hidden) {

@@ -6809,45 +6809,120 @@ body.reduce-motion .watch-overlay.is-closing .watch-panel {
   box-shadow: 0 0 0 0.42rem rgba(64, 223, 194, 0.12);
 }
 
-#library .filters {
-  display: inline-flex;
-  flex-wrap: wrap;
-  width: auto;
-  max-width: min(42rem, calc(100vw - 10rem));
-  gap: 0.45rem;
-  margin: 0 0 1rem;
-  padding: 0.32rem;
-  border: 0.08rem solid rgba(255, 255, 255, 0.08);
-  border-radius: 999rem;
-  background: rgba(8, 10, 19, 0.34);
-  box-shadow: inset 0 0 0 0.08rem rgba(255, 255, 255, 0.035);
-  backdrop-filter: blur(16px);
+#library .library-filter-panel {
+  display: grid;
+  gap: 0.85rem;
+  max-width: min(74rem, calc(100vw - 10rem));
+  margin: 0.15rem 0 1.45rem;
 }
 
-#library .filters .chip {
-  flex: 0 0 auto;
-  width: auto;
-  min-width: 0;
-  min-height: 2.05rem;
-  padding: 0 0.85rem;
-  border-radius: 999rem;
-  color: rgba(246, 243, 255, 0.72);
-  background: transparent;
+.library-letter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+}
+
+.library-letter {
+  min-width: 2.18rem;
+  height: 2rem;
+  border-radius: 0.42rem;
+  border: 0;
+  color: rgba(229, 233, 255, 0.86);
+  background: rgba(91, 105, 158, 0.42);
   font-size: 0.78rem;
   font-weight: 900;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 0.06rem rgba(255, 255, 255, 0.07);
+}
+
+.library-letter.is-selected,
+.library-letter:is(:hover, :focus-visible, .is-tv-focused) {
+  color: #06121a;
+  background: linear-gradient(135deg, rgba(63, 224, 202, 0.98), rgba(71, 157, 255, 0.92));
+  outline: none;
+}
+
+.library-filter-controls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(11rem, 1fr)) minmax(10rem, 0.95fr);
+  gap: 1rem;
+  align-items: center;
+}
+
+.library-select-wrap,
+.library-sort-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.45rem;
+  padding: 0 0.75rem;
+  border-radius: 0.42rem;
+  color: rgba(174, 184, 226, 0.9);
+  background: rgba(43, 48, 72, 0.8);
+  box-shadow: inset 0 0 0 0.06rem rgba(255, 255, 255, 0.045);
+}
+
+.library-select-wrap span,
+.library-sort-wrap span {
+  flex: 0 0 auto;
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.library-select-wrap select,
+.library-sort-wrap select {
+  flex: 1;
+  min-width: 0;
+  height: 2.3rem;
+  border: 0;
+  color: #f6f3ff;
+  background: transparent;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 900;
+  outline: none;
+  cursor: pointer;
+}
+
+.library-select-wrap select option,
+.library-sort-wrap select option {
+  color: #f6f3ff;
+  background: #202338;
+}
+
+.library-filter-apply {
+  min-height: 2.45rem;
+  border: 0;
+  border-radius: 0.42rem;
+  color: #05141a;
+  background: linear-gradient(135deg, #43e6cf, #35d7cb);
+  font-size: 0.82rem;
+  font-weight: 950;
+  cursor: pointer;
+  box-shadow: 0 0.75rem 1.6rem rgba(67, 230, 207, 0.18);
+}
+
+.library-filter-apply:is(:hover, :focus-visible, .is-tv-focused) {
+  transform: translateY(-0.05rem);
+  outline: none;
+  box-shadow: 0 0 0 0.14rem rgba(67, 230, 207, 0.22), 0 0.9rem 1.8rem rgba(67, 230, 207, 0.22);
+}
+
+.library-filter-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: rgba(166, 184, 255, 0.96);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.library-sort-wrap {
+  min-width: min(17rem, 100%);
+  background: transparent;
   box-shadow: none;
-}
-
-#library .filters .chip.is-selected {
-  color: #09101b;
-  background: linear-gradient(135deg, rgba(0, 210, 255, 0.96), rgba(242, 187, 70, 0.92));
-}
-
-#library .filters .chip:is(:hover, :focus-visible, .is-tv-focused) {
-  transform: none;
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 0 0 0.08rem rgba(0, 210, 255, 0.24);
 }
 
 #library .poster-grid {
@@ -6855,9 +6930,16 @@ body.reduce-motion .watch-overlay.is-closing .watch-panel {
 }
 
 @media (max-width: 760px) {
-  #library .filters {
+  #library .library-filter-panel {
     max-width: calc(100vw - 7rem);
-    border-radius: var(--radius-lg);
+  }
+  .library-filter-controls {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+  .library-filter-meta {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 
@@ -7618,6 +7700,139 @@ body.reduce-motion .watch-stage-body { animation: none; }
   scrollbar-width: none;
 }
 .watch-side .season-card-grid::-webkit-scrollbar { display: none; }
+
+.watch-side .adult-detail-gallery {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.78rem;
+  padding: 0.1rem 0.08rem 0.85rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.watch-side .adult-detail-gallery::-webkit-scrollbar { display: none; }
+
+.adult-detail-gallery-group {
+  flex: 0 0 auto;          /* never shrink — keeps the grid from being clipped
+                              so the whole gallery scrolls past 2 episodes */
+  overflow: hidden;
+  border-radius: 0.95rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.024)),
+    rgba(12, 13, 24, 0.64);
+  border: 0.06rem solid rgba(255, 255, 255, 0.075);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.adult-detail-gallery-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.62rem 0.72rem 0.52rem;
+  background: rgba(255, 255, 255, 0.035);
+  border-bottom: 0.06rem solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 -1px 0 rgba(225, 29, 72, 0.16);
+}
+
+.adult-detail-gallery-head strong,
+.adult-detail-gallery-head small {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.adult-detail-gallery-head strong {
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.adult-detail-gallery-head small {
+  max-width: 46%;
+  color: rgba(207, 210, 229, 0.62);
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.adult-detail-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.42rem;
+  padding: 0.5rem;
+}
+
+.adult-detail-gallery-thumb {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 0.06rem solid rgba(255, 255, 255, 0.075);
+  border-radius: 0.72rem;
+  background: rgba(255, 255, 255, 0.035);
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.adult-detail-gallery-thumb img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center;
+  filter: brightness(0.84) saturate(0.98);
+  transition: transform 180ms ease, filter 180ms ease;
+  pointer-events: none;
+}
+
+.adult-detail-gallery-thumb::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 48%;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.62), transparent);
+  pointer-events: none;
+}
+
+.adult-detail-gallery-thumb span {
+  position: absolute;
+  right: 0.34rem;
+  bottom: 0.28rem;
+  z-index: 1;
+  display: inline-grid;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  place-items: center;
+  border-radius: 0.38rem;
+  background: rgba(8, 10, 18, 0.78);
+  border: 0.06rem solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 0.64rem;
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.adult-detail-gallery-thumb:is(:hover, :focus-visible, .is-tv-focused),
+.adult-detail-gallery-thumb.is-active {
+  outline: 0;
+  border-color: rgba(138, 92, 255, 0.78);
+  box-shadow: inset 0 0 0 0.1rem rgba(138, 92, 255, 0.52), 0 0.7rem 1.4rem rgba(0, 0, 0, 0.38);
+}
+
+.adult-detail-gallery-thumb:is(:hover, :focus-visible, .is-tv-focused) img,
+.adult-detail-gallery-thumb.is-active img {
+  transform: scale(1.035);
+  filter: brightness(1) saturate(1.04);
+}
+
+.adult-detail-gallery-thumb:focus:not(:focus-visible):not(.is-tv-focused):not(.is-active) {
+  border-color: rgba(255, 255, 255, 0.075);
+  box-shadow: none;
+}
 
 /* The video-frame is only a mount point for the fixed cinema player; in the
    detail view it occupies no space and its placeholder content stays hidden. */
@@ -9067,6 +9282,18 @@ body.is-tv .topbar-auth {
   opacity: 0.38;
 }
 
+.source-picker-empty {
+  margin: 0.45rem 0;
+  padding: 1rem;
+  border: 0.08rem dashed rgba(255, 255, 255, 0.14);
+  border-radius: 0.9rem;
+  color: rgba(246, 243, 255, 0.66);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.86rem;
+  font-weight: 850;
+  text-align: center;
+}
+
 /* ─── Side-panel inline source picker ───────────────────────────────────────
    Replaces the episode list in .episode-list when an episode is clicked.
    Uses the same .source-picker-option row styles as the cinema picker but
@@ -9077,7 +9304,8 @@ body.is-tv .topbar-auth {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
+  border-radius: 1.35rem 0 0 0;
   animation: fade-slide 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -9086,8 +9314,11 @@ body.is-tv .topbar-auth {
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  padding: 0.65rem 0.4rem 0.65rem 0.2rem;
-  border-bottom: 0.06rem solid rgba(255, 255, 255, 0.08);
+  margin: 0 -0.7rem 0 -0.3rem;
+  padding: 0.62rem 0.7rem 0.62rem 1rem;
+  background: transparent;
+  border-bottom: 0.06rem solid rgba(225, 29, 72, 0.22);
+  border-radius: 1.35rem 0 0 0;
   min-height: 0;
 }
 
@@ -9125,6 +9356,32 @@ body.is-tv .topbar-auth {
   text-overflow: ellipsis;
 }
 
+.side-source-gallery-toggle {
+  flex: 0 0 auto;
+  min-height: 2rem;
+  padding: 0 0.68rem;
+  border-radius: 999rem;
+  border: 0.08rem solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.065);
+  color: rgba(240, 241, 250, 0.72);
+  font-size: 0.7rem;
+  font-weight: 850;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+.side-source-gallery-toggle:is(:hover, :focus-visible, .is-tv-focused) {
+  outline: 0;
+  color: #fff;
+  border-color: rgba(138, 92, 255, 0.48);
+  background: rgba(138, 92, 255, 0.16);
+}
+.side-source-gallery-toggle.is-on {
+  color: #fff;
+  border-color: rgba(138, 92, 255, 0.55);
+  background: linear-gradient(135deg, rgba(138, 92, 255, 0.35), rgba(11, 183, 226, 0.18));
+}
+
 /* Compact "filter sources" dropdown inside the narrow side-panel topbar. */
 .side-source-filter.language-select {
   flex: 0 0 auto;
@@ -9133,6 +9390,64 @@ body.is-tv .topbar-auth {
   margin-right: 0;
   font-size: 0.75rem;
   padding: 0 1.7rem 0 0.7rem;
+}
+
+.side-source-picker.is-adult-source-picker .side-source-picker-topbar {
+  min-height: 4.25rem;
+  margin: 0;
+  padding: 0.68rem 0.62rem;
+  gap: 0.78rem;
+  background:
+    linear-gradient(180deg, rgba(20, 22, 35, 0.32), rgba(16, 18, 30, 0.18)),
+    rgba(11, 12, 22, 0.2);
+  border-top: 0.06rem solid rgba(255, 255, 255, 0.09);
+  border-bottom: 0.06rem solid rgba(255, 255, 255, 0.1);
+  border-radius: 0;
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
+  backdrop-filter: blur(18px) saturate(1.08);
+}
+
+.side-source-picker.is-adult-source-picker .side-source-picker-back {
+  width: 2.85rem;
+  height: 2.85rem;
+  border: 0.08rem solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0.7rem 1.5rem rgba(0, 0, 0, 0.24);
+}
+
+.side-source-picker.is-adult-source-picker .side-source-picker-back svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.side-source-picker.is-adult-source-picker .side-source-picker-title {
+  font-size: clamp(0.92rem, 1.05vw, 1.05rem);
+  font-weight: 900;
+  line-height: 1.1;
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.side-source-picker.is-adult-source-picker .side-source-gallery-toggle {
+  min-height: 2.45rem;
+  padding: 0 0.78rem;
+  border-radius: 0.55rem;
+  font-size: 0.74rem;
+  background: rgba(255, 255, 255, 0.075);
+}
+
+.side-source-picker.is-adult-source-picker .side-source-filter.language-select {
+  max-width: 9rem;
+  min-height: 2.45rem;
+  padding: 0 2rem 0 0.9rem;
+  border-radius: 0.55rem;
+  border-color: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.94);
+  background-color: rgba(255, 255, 255, 0.11);
+  font-size: 0.84rem;
+  font-weight: 900;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .side-source-picker-list {
@@ -9171,121 +9486,136 @@ body.is-tv .topbar-auth {
   overflow: hidden;
 }
 
-/* ── Adult Episode Gallery Panel (.adult-gallery-panel / #adultGalleryPanel) ── */
-/*
-   Lives OUTSIDE .watch-panel as a sibling inside .watch-overlay (position:fixed,
-   inset:0). Anchored to the far-left of the overlay so it never overlaps the
-   source picker — only the cinematic backdrop area is partially covered.
-*/
+/* ── Adult Episode Gallery Panel ──────────────────────────────────────────────
+   Sits inside .watch-panel, between .watch-stage and .watch-side.
+   Visually "attached" to the left edge of watch-side — shares the same top
+   margin, matching glassmorphism, and a seamless border so they look like
+   one continuous panel. Designed for exactly 6 images in a 2×3 grid.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.watch-panel {
+  position: relative !important;
+}
 
 .adult-gallery-panel {
   position: absolute;
-  left: clamp(0.75rem, 1.5vw, 1.5rem);
-  top: clamp(0.75rem, 1.5vh, 1.5rem);
-  bottom: clamp(0.75rem, 1.5vh, 1.5rem);
-  width: clamp(26rem, 27vw, 34rem);
+  /* +1rem accounts for .watch-panel's top padding so the gallery's top lines up
+     exactly with the source picker (a grid item inside the padded content box). */
+  top: calc(1rem + clamp(3.6rem, 7vh, 4.8rem));
+  bottom: 1rem;
   display: flex;
   flex-direction: column;
-  border-radius: 1rem;
   background:
-    linear-gradient(175deg,
-      rgba(8, 8, 20, 0.98) 0%,
-      rgba(16, 10, 28, 0.97) 50%,
-      rgba(10, 6, 18, 0.98) 100%);
-  -webkit-backdrop-filter: blur(32px) saturate(1.4);
-  backdrop-filter: blur(32px) saturate(1.4);
-  border: 1px solid rgba(225, 29, 72, 0.18);
+    linear-gradient(180deg, rgba(17, 18, 30, 0.62), rgba(8, 9, 17, 0.5)),
+    rgba(14, 15, 26, 0.52);
+  -webkit-backdrop-filter: blur(22px) saturate(1.12);
+  backdrop-filter: blur(22px) saturate(1.12);
+  border: 0.08rem solid rgba(255, 255, 255, 0.08);
+  border-right: 0;
+  border-radius: 1.35rem 0 0 1.35rem;
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
-    0.5rem 0 3.5rem rgba(0, 0, 0, 0.6),
-    0 2rem 5rem rgba(0, 0, 0, 0.45);
-  z-index: 55;
+    -1.1rem 0 2.4rem rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  /* Below .watch-side (z-index 2) so the source picker — and its back button —
+     always render on top; any flush-edge overlap tucks neatly underneath. */
+  z-index: 1;
   overflow: hidden;
-  animation: agp-slide-in 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  overscroll-behavior: contain;
+  animation: agp-slide-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes agp-slide-in {
-  from { opacity: 0; transform: translateX(-2rem); }
+  from { opacity: 0; transform: translateX(1.5rem); }
   to   { opacity: 1; transform: translateX(0); }
 }
 
-.adult-gallery-panel[hidden] {
-  display: none;
+.adult-gallery-panel[hidden] { display: none; }
+
+.watch-panel:not(:has(.side-source-picker)) .adult-gallery-panel {
+  display: none !important;
 }
 
-/* ── Header ── */
+.watch-panel:has(.adult-gallery-panel:not([hidden])) .side-source-picker,
+.watch-panel:has(.adult-gallery-panel:not([hidden])) .side-source-picker-topbar {
+  border-top-left-radius: 0;
+}
+
+.watch-panel:has(.adult-gallery-panel:not([hidden])) .watch-side {
+  box-shadow: -1.6rem 0 3rem rgba(0, 0, 0, 0.5);
+}
+
+/* ── Header — clean dark glass with a subtle rose accent (no muddy gradient) ── */
 .agp-header {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.6rem;
-  padding: 1rem 1.1rem 0.85rem;
-  background: linear-gradient(90deg,
-    rgba(225, 29, 72, 0.14) 0%,
-    rgba(225, 29, 72, 0.06) 100%);
-  border-bottom: 1px solid rgba(225, 29, 72, 0.2);
+  min-height: 3.2rem;
+  padding: 0 0.95rem;
+  background: transparent;
+  border-bottom: 1px solid rgba(225, 29, 72, 0.22);
+  border-radius: 1.35rem 0 0 0;
 }
 
 .agp-label {
-  font-size: 0.78rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.84rem;
   font-weight: 800;
   color: rgba(255, 255, 255, 0.95);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1 1 auto;
-  min-width: 0;
 }
 
 .agp-count {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: rgba(225, 29, 72, 0.9);
-  background: rgba(225, 29, 72, 0.12);
-  border: 1px solid rgba(225, 29, 72, 0.22);
-  padding: 0.15rem 0.55rem;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(225, 29, 72, 0.16);
+  border: 0.08rem solid rgba(225, 29, 72, 0.3);
   border-radius: 9rem;
   white-space: nowrap;
-  flex-shrink: 0;
-  letter-spacing: 0.02em;
 }
 
-/* ── 3-column scrollable grid ── */
+/* ── 2-column grid (3 rows for 6 images) — gapped & padded ── */
 .agp-grid {
   flex: 1 1 auto;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(3, minmax(0, 1fr));
   gap: 0.55rem;
-  padding: 0.9rem 0.85rem;
-  overflow-y: auto;
+  padding: 0.6rem;
+  overflow-y: hidden;
   overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(225, 29, 72, 0.35) transparent;
-  scroll-snap-type: y proximity;
   overscroll-behavior: contain;
-  align-content: start;
+  scrollbar-width: none;
+  align-content: stretch;
+  min-height: 0;
 }
-.agp-grid::-webkit-scrollbar { width: 0.22rem; }
-.agp-grid::-webkit-scrollbar-thumb {
-  background: rgba(225, 29, 72, 0.5);
-  border-radius: 9rem;
-}
+.agp-grid::-webkit-scrollbar { display: none; }
 
-/* ── Thumbnail cards ── */
+/* ── Thumbnail cards — rounded & lifted ── */
 .agp-thumb {
   position: relative;
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 0.5rem;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;          /* kill the <button> UA padding so the image fills edge-to-edge */
+  border-radius: 0.85rem;
   overflow: hidden;
-  scroll-snap-align: start;
   cursor: pointer;
-  border: 1.5px solid rgba(255, 255, 255, 0.07);
-  background: rgba(255, 255, 255, 0.04);
+  border: 0.08rem solid rgba(255, 255, 255, 0.09);
+  background: rgba(6, 7, 14, 0.62);
+  box-shadow: 0 0.35rem 0.9rem rgba(0, 0, 0, 0.32);
   transition:
     border-color 160ms ease,
     box-shadow   160ms ease,
@@ -9296,86 +9626,172 @@ body.is-tv .topbar-auth {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   display: block;
   pointer-events: none;
   transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
-  filter: brightness(0.88);
+  filter: brightness(0.92) saturate(1.0);
+  opacity: 1;
 }
 
-/* Episode number badge */
+.agp-thumb::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 40%;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.5), transparent);
+  pointer-events: none;
+}
+
+/* Image number badge */
 .agp-thumb-num {
   position: absolute;
-  bottom: 0.25rem;
-  right: 0.28rem;
-  font-size: 0.58rem;
-  font-weight: 700;
+  bottom: 0.34rem;
+  right: 0.36rem;
+  font-size: 0.64rem;
+  font-weight: 850;
   color: #fff;
-  background: rgba(0, 0, 0, 0.75);
-  padding: 0.07rem 0.28rem;
-  border-radius: 0.22rem;
-  line-height: 1.4;
-  letter-spacing: 0.03em;
+  background: rgba(8, 10, 18, 0.74);
+  border: 0.06rem solid rgba(255, 255, 255, 0.16);
+  padding: 0.1rem 0.36rem;
+  border-radius: 0.42rem;
+  line-height: 1.3;
   pointer-events: none;
+  z-index: 1;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 /* ── Hover / focus ── */
 .agp-thumb:is(:hover, :focus-visible) {
-  border-color: rgba(225, 29, 72, 0.75);
+  border-color: rgba(138, 92, 255, 0.85);
   box-shadow:
-    0 0 0 0.15rem rgba(225, 29, 72, 0.28),
-    0 0.5rem 1.6rem rgba(0, 0, 0, 0.55);
-  transform: scale(1.05);
+    0 0 0 0.12rem rgba(138, 92, 255, 0.5),
+    0 0.8rem 1.8rem rgba(0, 0, 0, 0.45);
+  transform: translateY(-0.12rem);
   outline: none;
   z-index: 2;
 }
 .agp-thumb:is(:hover, :focus-visible) img {
-  transform: scale(1.08);
-  filter: brightness(1.0);
+  transform: scale(1.05);
+  filter: brightness(1.0) saturate(1.06);
+  opacity: 1;
 }
 
 /* Active (lightbox open) */
 .agp-thumb.is-active {
-  border-color: #e11d48;
-  box-shadow: 0 0 0 0.18rem rgba(225, 29, 72, 0.5);
+  border-color: rgba(138, 92, 255, 0.95);
+  box-shadow: 0 0 0 0.15rem rgba(138, 92, 255, 0.62), 0 0.9rem 2rem rgba(0, 0, 0, 0.5);
 }
 
-/* ── Narrow screens: slide in from left as fixed overlay ── */
+.agp-thumb:focus:not(:focus-visible):not(.is-tv-focused):not(.is-active) {
+  box-shadow: 0 0.35rem 0.9rem rgba(0, 0, 0, 0.32);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+/* ── Narrow screens ── */
 @media (max-width: 960px) {
   .adult-gallery-panel {
     position: fixed;
     left: 0;
     top: 0;
     bottom: 0;
+    right: auto;
+    margin: 0;
     border-radius: 0 0.9rem 0.9rem 0;
-    border-left: none;
-    border-top: none;
-    border-bottom: none;
-    width: min(22rem, 80vw);
-  }
-  .agp-grid {
-    grid-template-columns: repeat(2, 1fr);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    width: min(20rem, 75vw);
+    z-index: 60;
   }
 }
 
 
+
+/* ── Trailer modal (in-app trailer player popup) ── */
+.trailer-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1rem, 4vw, 3rem);
+  background:
+    radial-gradient(circle at 50% 40%, rgba(138, 92, 255, 0.14), transparent 42rem),
+    rgba(4, 4, 10, 0.9);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  animation: fade-in 180ms ease both;
+}
+.trailer-modal-inner {
+  position: relative;
+  width: min(72rem, 100%);
+  max-height: 100%;
+  animation: modal-rise 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.trailer-modal-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.trailer-modal-frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.trailer-modal-close {
+  position: absolute;
+  top: -3.2rem;
+  right: 0;
+  width: 2.6rem;
+  height: 2.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0.08rem solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background 150ms ease, transform 150ms ease;
+}
+.trailer-modal-close:is(:hover, :focus-visible, .is-tv-focused) {
+  background: rgba(225, 29, 72, 0.5);
+  transform: scale(1.06);
+  outline: none;
+}
+@media (max-width: 600px) {
+  .trailer-modal-close { top: -3rem; right: 0.2rem; }
+}
 
 /* Lightbox overlay for full-size view */
 .ep-gallery-lightbox {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(0,0,0,0.92);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(138, 92, 255, 0.12), transparent 38rem),
+    rgba(0,0,0,0.92);
   display: flex;
   align-items: center;
   justify-content: center;
   animation: fade-in 160ms ease both;
   cursor: zoom-out;
+  overscroll-behavior: contain;
 }
 .ep-gallery-lightbox img {
-  max-width: min(90vw, 70rem);
-  max-height: 85vh;
+  max-width: min(94vw, 82rem);
+  max-height: 88vh;
   object-fit: contain;
-  border-radius: 0.6rem;
+  border-radius: 0.9rem;
+  border: 0.08rem solid rgba(255,255,255,0.16);
   box-shadow: 0 2rem 6rem rgba(0,0,0,0.8);
   pointer-events: none;
 }
@@ -9383,12 +9799,12 @@ body.is-tv .topbar-auth {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(255,255,255,0.12);
+  background: rgba(24, 25, 38, 0.72);
   border: 0.08rem solid rgba(255,255,255,0.22);
   color: #fff;
   border-radius: 50%;
-  width: 2.8rem;
-  height: 2.8rem;
+  width: 3.2rem;
+  height: 3.2rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9403,12 +9819,12 @@ body.is-tv .topbar-auth {
   position: absolute;
   top: 1rem;
   right: 1rem;
-  background: rgba(255,255,255,0.12);
+  background: rgba(24, 25, 38, 0.78);
   border: 0.08rem solid rgba(255,255,255,0.22);
   color: #fff;
   border-radius: 50%;
-  width: 2.4rem;
-  height: 2.4rem;
+  width: 3rem;
+  height: 3rem;
   display: flex;
   align-items: center;
   justify-content: center;
