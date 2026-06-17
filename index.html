@@ -22,20 +22,20 @@
     <link rel="preconnect" href="https://s4.anilist.co" crossorigin>
     <!-- Preload the loader logo so FCP is not delayed by a late image discovery -->
     <link rel="preload" as="image" href="logo-mark-transparent.png?v=279">
-    <link rel="stylesheet" href="styles.css?v=332">
+    <link rel="stylesheet" href="styles.css?v=333">
     <!-- Defer all JS — browser discovers them early but executes after DOM parse -->
-    <script defer src="js/constants.js?v=332"></script>
-    <script defer src="js/translations.js?v=332"></script>
-    <script defer src="js/utils.js?v=332"></script>
-    <script defer src="js/season-normalization.js?v=332"></script>
-    <script defer src="js/normalize.js?v=332"></script>
-    <script defer src="js/anilist-metadata.js?v=332"></script>
-    <script defer src="js/smart-source.js?v=332"></script>
-    <script defer src="js/image-resolver.js?v=332"></script>
-    <script defer src="js/adult-source-adapter.js?v=332"></script>
-    <script defer src="js/adult-mode.js?v=332"></script>
-    <script defer src="update-manager.js?v=332"></script>
-    <script defer src="client.js?v=332"></script>
+    <script defer src="js/constants.js?v=333"></script>
+    <script defer src="js/translations.js?v=333"></script>
+    <script defer src="js/utils.js?v=333"></script>
+    <script defer src="js/season-normalization.js?v=333"></script>
+    <script defer src="js/normalize.js?v=333"></script>
+    <script defer src="js/anilist-metadata.js?v=333"></script>
+    <script defer src="js/smart-source.js?v=333"></script>
+    <script defer src="js/image-resolver.js?v=333"></script>
+    <script defer src="js/adult-source-adapter.js?v=333"></script>
+    <script defer src="js/adult-mode.js?v=333"></script>
+    <script defer src="update-manager.js?v=333"></script>
+    <script defer src="client.js?v=333"></script>
   </head>
   <body>
     <div class="app-loader" id="appLoader" role="status" aria-live="polite">
@@ -51,6 +51,7 @@
         <a class="brand focusable" href="#home" data-route="home" data-nav-label="Home" aria-label="ZenkaiTV — Home">
           <span class="brand-mark" aria-hidden="true">
             <img class="brand-logo" src="logo-mark-transparent.png?v=279" alt="" width="66" height="66">
+            <span class="adult-mode-badge" id="adultModeBadge" hidden>+18</span>
           </span>
           <span class="brand-copy">
             <strong>ZenkaiTV</strong>
@@ -91,9 +92,6 @@
           <span aria-hidden="true">⌕</span>
         </label>
       </header>
-
-      <!-- 18+ mode indicator — fixed top-center so it never crowds the sidebar. -->
-      <span class="adult-mode-badge" id="adultModeBadge" role="status" hidden>18+ — Hentai Mode</span>
 
       <main>
         <section class="hero" id="home" data-section="home">

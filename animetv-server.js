@@ -141,6 +141,18 @@ let animeAv1SlugCatalogPromise = null;
 const jkAnimeSourceCache = new Map(); // "slug:ep" -> { data, ts }
 const jkAnimeSlugSearchCache = new Map(); // normalized query -> { data, ts }
 let jkAnimeSlugCatalogMemory = null;
+const ANIMEONLINE_BASE = "https://ww3.animeonline.ninja";
+const ANIMEONLINE_SAIDOCHESTO = "https://saidochesto.top";
+const ANIMEONLINE_CACHE_TTL_MS = 1000 * 60 * 30;
+const ANIMEONLINE_MISS_CACHE_TTL_MS = 1000 * 60 * 8;
+const ANIMEONLINE_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language": "es-419,es;q=0.9,en;q=0.5",
+  Referer: ANIMEONLINE_BASE
+};
+const animeonlineSourceCache = new Map();
+const animeonlineSlugCache = new Map();
 let jkAnimeSlugCatalogMemoryAt = 0;
 let jkAnimeSlugCatalogPromise = null;
 const JKANIME_SLUG_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
@@ -767,6 +779,21 @@ function handleRequest(request, response) {
 
   if (url.pathname === "/api/jkanime/health") {
     handleJKAnimeHealth(response);
+    return;
+  }
+
+  if (url.pathname === "/api/animeonlineninja/search") {
+    handleAnimeOnlineSearch(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/animeonlineninja/sources") {
+    handleAnimeOnlineSources(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/animeonlineninja/health") {
+    handleAnimeOnlineHealth(response);
     return;
   }
 
@@ -6133,6 +6160,227 @@ function jkAnimeSlugify(value = "") {
     .replace(/['’`]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+// ── AniméOnlineNinja (Latino dub) ─────────────────────────────────────────────
+// Site uses the Dooplay WordPress theme. Flow per episode:
+//   1. GET /episodio/{slug}-cap-{N}/ → extract nonce + data-post
+//   2. POST /wp-admin/admin-ajax.php (doo_player_ajax) → saidochesto embed URL
+//   3. GET saidochesto.top/embed.php?id=N → parse .OD_LAT server list
+
+async function handleAnimeOnlineHealth(response) {
+  try {
+    const r = await fetchWithTimeout(`${ANIMEONLINE_BASE}/inicio/`, { headers: ANIMEONLINE_HEADERS }, 7000);
+    sendJson(response, { ok: r.ok, status: r.status, source: "AnimeOnlineNinja" });
+  } catch (e) {
+    sendJson(response, { ok: false, error: e.message, source: "AnimeOnlineNinja" }, 503);
+  }
+}
+
+async function handleAnimeOnlineSearch(url, response) {
+  const title = url.searchParams.get("title") || "";
+  const id = url.searchParams.get("id") || "";
+  if (!title && !id) { sendJson(response, { ok: false, error: "title or id required." }, 400); return; }
+  try {
+    const media = id ? await fetchAniListMediaById(id).catch(() => null) : null;
+    const slug = await findAnimeonlineSlug({
+      title,
+      anilistId: id,
+      romajiTitle: media?.title?.romaji || "",
+      englishTitle: media?.title?.english || "",
+      nativeTitle: media?.title?.native || "",
+      aliases: media?.synonyms || []
+    });
+    if (slug) {
+      sendJson(response, { ok: true, slug, source: "AnimeOnlineNinja", match: "title" });
+    } else {
+      sendJson(response, { ok: false, error: "No matching slug found.", title }, 404);
+    }
+  } catch (error) {
+    sendJson(response, { ok: false, error: "Search failed.", detail: error.message }, 502);
+  }
+}
+
+async function handleAnimeOnlineSources(url, response) {
+  const slug = url.searchParams.get("slug") || "";
+  const episode = url.searchParams.get("episode") || "";
+  const lang = String(url.searchParams.get("lang") || "LAT").toUpperCase();
+  if (!slug || !episode) {
+    sendJson(response, { ok: false, error: "slug and episode are required.", sources: [] }, 400);
+    return;
+  }
+  const epNum = Number(String(episode).match(/\d+/)?.[0] || 0);
+  if (!epNum) {
+    sendJson(response, { ok: false, error: "numeric episode required.", sources: [] }, 400);
+    return;
+  }
+  const cacheKey = `${slug}:${epNum}:${lang}`;
+  const cached = animeonlineSourceCache.get(cacheKey);
+  const ttl = cached?.data?.ok ? ANIMEONLINE_CACHE_TTL_MS : ANIMEONLINE_MISS_CACHE_TTL_MS;
+  if (cached && Date.now() - cached.ts < ttl) {
+    sendJson(response, cached.data, cached.data.ok ? 200 : 404);
+    return;
+  }
+  try {
+    const data = await fetchAnimeonlineSources(slug, epNum, lang);
+    animeonlineSourceCache.set(cacheKey, { data, ts: Date.now() });
+    sendJson(response, data, data.ok ? 200 : 404);
+  } catch (error) {
+    const data = { ok: false, source: "AnimeOnlineNinja", error: "Sources unavailable.", detail: error.message, slug, episode: epNum, sources: [] };
+    animeonlineSourceCache.set(cacheKey, { data, ts: Date.now() });
+    sendJson(response, data, 503);
+  }
+}
+
+async function fetchAnimeonlineSources(slug, episode, lang = "LAT") {
+  const epUrl = `${ANIMEONLINE_BASE}/episodio/${encodeURIComponent(slug)}-cap-${episode}/`;
+  const r = await fetchWithTimeout(epUrl, { headers: ANIMEONLINE_HEADERS }, HOSTED_RUNTIME ? 9000 : 13000);
+  if (!r.ok) throw new Error(`Episode page HTTP ${r.status} for ${slug} cap ${episode}`);
+  const html = await r.text();
+
+  const nonce = html.match(/["']?nonce["']?\s*[:=]\s*["']([a-f0-9]{10})["']/i)?.[1] || "";
+  if (!nonce) throw new Error("Dooplay nonce not found");
+  const postId = html.match(/data-post="(\d+)"/)?.[1] || "";
+  const postType = html.match(/data-type="([^"]+)"/)?.[1] || "tv";
+  if (!postId) throw new Error("Dooplay post ID not found");
+
+  // MULTISERVER option (always nume=1) contains all languages via saidochesto
+  const ajaxBody = `action=doo_player_ajax&post=${postId}&type=${postType}&nume=1&_wpnonce=${nonce}`;
+  const ajaxR = await fetchWithTimeout(`${ANIMEONLINE_BASE}/wp-admin/admin-ajax.php`, {
+    method: "POST",
+    headers: { ...ANIMEONLINE_HEADERS, "Content-Type": "application/x-www-form-urlencoded", "X-Requested-With": "XMLHttpRequest" },
+    body: ajaxBody
+  }, HOSTED_RUNTIME ? 7000 : 10000);
+  if (!ajaxR.ok) throw new Error(`Dooplay AJAX HTTP ${ajaxR.status}`);
+
+  let ajaxData;
+  try { ajaxData = await ajaxR.json(); } catch { throw new Error("Dooplay AJAX returned non-JSON"); }
+  const embedUrl = (ajaxData.embed_url || "").replace(/\\\//g, "/");
+  if (!embedUrl) throw new Error("No embed_url in Dooplay AJAX response");
+
+  if (embedUrl.includes("saidochesto.top")) {
+    return fetchSaidochoSources(embedUrl, slug, episode, lang, epUrl);
+  }
+
+  // Fallback: non-saidochesto direct iframe
+  return {
+    ok: true, source: "AnimeOnlineNinja", slug, episode, lang, count: 1,
+    sources: [{ provider: "AniméOnline", url: embedUrl, type: "iframe", externalUrl: embedUrl, videoUrl: "", language: lang === "LAT" ? "es-419" : "es", siteUrl: epUrl }]
+  };
+}
+
+async function fetchSaidochoSources(saidochoUrl, slug, episode, lang = "LAT", refererEpUrl = "") {
+  const r = await fetchWithTimeout(saidochoUrl, {
+    headers: { ...ANIMEONLINE_HEADERS, Referer: refererEpUrl || `${ANIMEONLINE_BASE}/` }
+  }, HOSTED_RUNTIME ? 7000 : 10000);
+  if (!r.ok) throw new Error(`Saidochesto HTTP ${r.status}`);
+  const html = await r.text();
+  const servers = parseSaidochoServers(html, lang);
+  const sources = servers.map((s) => ({
+    provider: s.name,
+    url: s.url,
+    type: "iframe",
+    externalUrl: s.url,
+    videoUrl: "",
+    language: lang === "LAT" ? "es-419" : lang === "ES" ? "es" : "ja",
+    siteUrl: saidochoUrl
+  }));
+  return { ok: sources.length > 0, source: "AnimeOnlineNinja", slug, episode, lang, count: sources.length, sources };
+}
+
+function parseSaidochoServers(html, lang = "LAT") {
+  const targetClass = `OD_${lang}`;
+  const servers = [];
+  const regex = /go_to_player\(['"]([^'"]+)['"]\)/g;
+  let m;
+  while ((m = regex.exec(html)) !== null) {
+    const url = m[1].trim();
+    if (!url) continue;
+    // Look back in HTML to find which OD div this player URL belongs to
+    const beforeUrl = html.slice(0, m.index);
+    const lastOdIdx = beforeUrl.lastIndexOf('class="OD ');
+    if (lastOdIdx === -1) continue;
+    const odClassSnippet = beforeUrl.slice(lastOdIdx, lastOdIdx + 100);
+    if (!odClassSnippet.includes(targetClass)) continue;
+    // Extract the server name from the nearest <span> after this URL
+    const afterUrl = html.slice(m.index, m.index + 300);
+    const name = afterUrl.match(/<span>([^<]+)<\/span>/i)?.[1]?.trim() || "Server";
+    if (!servers.find((s) => s.url === url)) servers.push({ url, name });
+  }
+  return servers;
+}
+
+async function findAnimeonlineSlug(show = {}) {
+  const candidates = animeonlineSlugCandidates(show);
+  for (const { slug } of candidates) {
+    const cached = animeonlineSlugCache.get(slug);
+    if (cached === null) continue;
+    if (cached) return cached;
+    try {
+      const valid = await validateAnimeonlineSlug(slug);
+      if (valid) { animeonlineSlugCache.set(slug, slug); return slug; }
+      animeonlineSlugCache.set(slug, null);
+    } catch { /* continue */ }
+  }
+  // Search fallback — ask the site's own search to find the catalog URL
+  const q = show.romajiTitle || show.title || show.englishTitle || "";
+  if (q) {
+    const found = await animeonlineSearchForSlug(q);
+    if (found) return found;
+  }
+  return null;
+}
+
+async function validateAnimeonlineSlug(slug) {
+  const url = `${ANIMEONLINE_BASE}/episodio/${encodeURIComponent(slug)}-cap-1/`;
+  try {
+    const r = await fetchWithTimeout(url, { headers: ANIMEONLINE_HEADERS, method: "HEAD" }, HOSTED_RUNTIME ? 4500 : 6000);
+    return r.ok;
+  } catch { return false; }
+}
+
+async function animeonlineSearchForSlug(title) {
+  try {
+    const searchUrl = `${ANIMEONLINE_BASE}/?s=${encodeURIComponent(title)}`;
+    const r = await fetchWithTimeout(searchUrl, { headers: ANIMEONLINE_HEADERS }, HOSTED_RUNTIME ? 6000 : 9000);
+    if (!r.ok) return null;
+    const html = await r.text();
+    const seen = new Set();
+    for (const m of html.matchAll(/href="https?:\/\/[^"]*animeonline\.ninja\/online\/([^/"]+)\//gi)) {
+      seen.add(m[1]);
+    }
+    for (const catalogSlug of [...seen].slice(0, 5)) {
+      // Derive episode slug: strip 6-digit date suffix (MMDDYY) then optional trailing season number
+      const withoutDate = catalogSlug.replace(/-\d{6}$/, "");
+      const withoutNumber = withoutDate.replace(/-\d+$/, "");
+      for (const candidate of [withoutNumber, withoutDate].filter((s) => s && s !== catalogSlug)) {
+        const valid = await validateAnimeonlineSlug(candidate);
+        if (valid) { animeonlineSlugCache.set(candidate, candidate); return candidate; }
+      }
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+function animeonlineSlugCandidates(show = {}) {
+  const seen = new Set();
+  const out = [];
+  const titles = [show.romajiTitle, show.title, show.englishTitle, ...(show.aliases || [])].filter(Boolean);
+  for (const title of titles) {
+    for (const variant of [title, stripSeasonWordsForSlugLookup(title)]) {
+      const slug = animeonlineSlugify(variant);
+      if (slug && !seen.has(slug)) { seen.add(slug); out.push({ slug, title }); }
+    }
+  }
+  return out.slice(0, 12);
+}
+
+function animeonlineSlugify(value = "") {
+  return String(value || "")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/&/g, " and ").replace(/[''`]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
 // ── Generic crawler ───────────────────────────────────────────────────────────

@@ -117,6 +117,15 @@ const KNOWN_SOURCE_SERVERS = [
       (s.id || "").includes("jkanime") ||
       (s.label || "").toLowerCase().includes("jkanime") ||
       (s.externalUrl || s.videoUrl || "").includes("jkanime.net")
+  },
+  {
+    key: "animeonlineninja",
+    label: "AniméOnline",
+    desc: "AniméOnlineNinja Latino dub servers",
+    match: (s) =>
+      (s.id || "").includes("animeonlineninja") ||
+      (s.label || "").toLowerCase().includes("animéonline") ||
+      (s.label || "").toLowerCase().includes("animeonineninja")
   }
 ];
 
@@ -142,6 +151,13 @@ const PLAYBACK_SCRAPERS = [
     desc: "JKAnime.net embed servers — Spanish sub, multiple mirror players.",
     endpoint: "./api/jkanime/sources",
     health: "./api/jkanime/health"
+  },
+  {
+    id: "animeonlineninja",
+    name: "AniméOnline Ninja",
+    desc: "Latino voice (Audio Latino) — AniméOnlineNinja.com multiserver scraper.",
+    endpoint: "./api/animeonlineninja/sources",
+    health: "./api/animeonlineninja/health"
   }
 ];
 
@@ -162,6 +178,7 @@ const state = {
   activeEpisodeUrl: "",
   activeEpisode: null,
   preferredSource: localStorage.getItem("animetv-preferred-playback-source") || "auto",
+  sourcePickerFilter: "all",
   activeDetailTab: "episodes",
   adultGalleryKey: "",
   adultGalleryHidden: false,
@@ -185,7 +202,7 @@ const state = {
   localSources: [],
   customSources: JSON.parse(localStorage.getItem("animetv-custom-sources") || "[]"),
   // Built-in playback scrapers the user can toggle on/off (default all on).
-  scraperEnabled: { animeav1: true, tioanime: true, ...JSON.parse(localStorage.getItem("zenkaitv-scrapers") || "{}") },
+  scraperEnabled: { animeav1: true, tioanime: true, animeonlineninja: true, ...JSON.parse(localStorage.getItem("zenkaitv-scrapers") || "{}") },
   // Compact (collapsed) icon rail is the DEFAULT; expand to reveal labels.
   sidebarCollapsed: localStorage.getItem("animetv-sidebar-collapsed") !== "false",
   apiStatus: {
@@ -4040,6 +4057,10 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
     lookups.push(playbackLookupWithTimeout("JKAnime scraper", attachJKAnimeSources(show, episode), 8000)
       .then(() => updateServerCheck("jkanime", getKnownSourceServer("jkanime").match)));
   } else { episode.jkAnimeSourcesChecked = true; episode.serverChecks.jkanime = "notfound"; }
+  if (isScraperEnabled("animeonlineninja")) {
+    lookups.push(playbackLookupWithTimeout("AniméOnlineNinja scraper", attachAnimeonlineNinjaSources(show, episode), 12000)
+      .then(() => updateServerCheck("animeonlineninja", getKnownSourceServer("animeonlineninja").match)));
+  } else { episode.animeonlineNinjaSourcesChecked = true; episode.serverChecks.animeonlineninja = "notfound"; }
   await Promise.allSettled(lookups);
 
   // Ensure any timed-out servers are marked not-found after every source has had a chance.
@@ -4066,7 +4087,7 @@ function getKnownSourceServer(key) {
 
 function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options = {}) {
   const lookupKey = playbackLookupKey(show, episode, seasonNumber);
-  if (!lookupKey || (episode.sourceOptionsChecked === lookupKey && episode.tioAnimeSourcesChecked && episode.animeAv1SourcesChecked && episode.jkAnimeSourcesChecked)) return Promise.resolve(episode);
+  if (!lookupKey || (episode.sourceOptionsChecked === lookupKey && episode.tioAnimeSourcesChecked && episode.animeAv1SourcesChecked && episode.jkAnimeSourcesChecked && episode.animeonlineNinjaSourcesChecked)) return Promise.resolve(episode);
   if (pendingSourceLookups.has(lookupKey)) return pendingSourceLookups.get(lookupKey);
 
   episode.sourceOptionsPending = true;
@@ -7025,6 +7046,56 @@ function sourceFilterKey(value) {
     .replace(/&amp;/g, "&")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "") || "unknown";
+}
+
+function sourceFilterOption(value, label) {
+  const selected = state.sourcePickerFilter === value ? " selected" : "";
+  return `<option value="${escapeHtml(value)}"${selected}>${escapeHtml(label)}</option>`;
+}
+
+function sourceRowMatchesFilter(row, filterValue) {
+  const value = String(filterValue || "all");
+  if (value === "all") return true;
+  if (value.startsWith("provider:")) {
+    return row.getAttribute("data-source-provider-key") === value.slice("provider:".length);
+  }
+  if (value.startsWith("type:")) {
+    const typeKey = value.slice("type:".length);
+    return Boolean(row.getAttribute("data-player-source"))
+      && row.getAttribute("data-source-type-key") === typeKey;
+  }
+  return true;
+}
+
+function applySourcePickerFilter(root, rawValue = "all", select = null) {
+  if (!root) return;
+  let value = String(rawValue || "all");
+  const pickerSelect = select || root.querySelector(".source-filter-select");
+  if (pickerSelect && !Array.from(pickerSelect.options).some((option) => option.value === value)) {
+    value = "all";
+  }
+  state.sourcePickerFilter = value;
+  if (pickerSelect) pickerSelect.value = value;
+
+  let visibleCount = 0;
+  root.querySelectorAll(".source-picker-option").forEach((row) => {
+    const matches = sourceRowMatchesFilter(row, value);
+    row.classList.toggle("is-source-filter-hidden", !matches);
+    row.classList.toggle("focusable", matches && row.classList.contains("source-picker-option-found"));
+    if (!matches) row.classList.remove("is-tv-focused");
+    else visibleCount += 1;
+  });
+
+  const active = document.activeElement;
+  if (active?.classList?.contains("source-picker-option") && active.classList.contains("is-source-filter-hidden")) {
+    const firstVisible = root.querySelector(".source-picker-option-found.focusable:not(.is-source-filter-hidden)");
+    if (firstVisible) firstVisible.focus({ preventScroll: true });
+    else pickerSelect?.focus({ preventScroll: true });
+  }
+
+  const empty = root.querySelector(".source-picker-empty");
+  if (empty) empty.hidden = visibleCount > 0;
+  refreshFocusables();
 }
 
 // Renders the source picker inline inside the #episodeList side-panel so the
@@ -11660,7 +11731,11 @@ shareButton?.addEventListener("click", async () => {
   const copied = await copyTextToClipboard(url);
   if (copied) showToast("Anime link copied — paste it to share");
   try {
-    if (navigator.share) {
+    // Only trigger the native share sheet on mobile/touch devices.
+    // On desktop Chrome it opens a black native OS dialog for ~1 second, which
+    // is jarring — the clipboard copy above is already sufficient on desktop.
+    const isMobileDevice = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || navigator.maxTouchPoints > 1;
+    if (navigator.share && isMobileDevice) {
       await navigator.share({ title, text: `Watch ${title} on ZenkaiTV`, url });
     } else if (!copied) {
       showToast("Couldn't copy the link");
@@ -12497,3 +12572,99 @@ window.runZenkaiDebugReport = window.runDevelopmentDebugReport = function() {
 - Shows with Duplicate Episodes: ${showsWithDupEpisodes}
 `);
 };
+
+// ── AniméOnlineNinja source integration (Latino dub) ─────────────────────────
+const _animeonlineNinjaSlugCache = new Map();
+const _animeonlineMissCache = new Set();
+const _animeonlineSourceCache = new Map();
+const ANIMEONLINE_SEARCH_TIMEOUT_MS = 5000;
+const ANIMEONLINE_SOURCE_TIMEOUT_MS = 12000;
+
+async function hydrateAnimeonlineNinjaSlug(show, options = {}) {
+  if (!show || (show.animeonlineNinjaSlugChecked && !options.force)) return show;
+  const missKey = show.anilistId || normalizeTitle(show.title || "");
+  if (_animeonlineMissCache.has(missKey)) { show.animeonlineNinjaSlugChecked = true; return show; }
+  try {
+    const candidates = tioAnimeSearchCandidates(show); // reuse existing title-candidate generator
+    for (const title of candidates) {
+      const key = `t:${normalizeTitle(title)}`;
+      if (_animeonlineNinjaSlugCache.has(key)) {
+        show.animeonlineNinjaSlug = _animeonlineNinjaSlugCache.get(key);
+        show.animeonlineNinjaSlugChecked = true;
+        return show;
+      }
+      const res = await fetchWithTimeout(
+        `./api/animeonlineninja/search?title=${encodeURIComponent(title)}`,
+        { cache: "no-store" }, ANIMEONLINE_SEARCH_TIMEOUT_MS
+      ).catch(() => null);
+      if (res?.ok) {
+        const data = await res.json().catch(() => null);
+        if (data?.ok && data.slug) {
+          _animeonlineNinjaSlugCache.set(key, data.slug);
+          show.animeonlineNinjaSlug = data.slug;
+          show.animeonlineNinjaSlugChecked = true;
+          return show;
+        }
+      }
+    }
+  } catch (error) {
+    console.warn("AniméOnlineNinja slug search failed:", error);
+  }
+  _animeonlineMissCache.add(missKey);
+  show.animeonlineNinjaSlugChecked = true;
+  return show;
+}
+
+async function attachAnimeonlineNinjaSources(show, episode) {
+  if (!show || !episode) return;
+  if (!show.animeonlineNinjaSlug) await hydrateAnimeonlineNinjaSlug(show, { force: true });
+  const slug = show.animeonlineNinjaSlug;
+  if (!slug) { episode.animeonlineNinjaSourcesChecked = true; return; }
+  const epNum = episode.episode || episode.number;
+  if (!epNum) { episode.animeonlineNinjaSourcesChecked = true; return; }
+  const cacheKey = `${slug}:${epNum}:LAT`;
+  const cached = _animeonlineSourceCache.get(cacheKey);
+  if (cached) {
+    mergeAnimeonlineNinjaSources(episode, cached, slug, epNum);
+    episode.animeonlineNinjaSourcesChecked = true;
+    return;
+  }
+  try {
+    const res = await fetchWithTimeout(
+      `./api/animeonlineninja/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}&lang=LAT`,
+      { cache: "no-store" }, ANIMEONLINE_SOURCE_TIMEOUT_MS
+    );
+    if (!res.ok) { episode.animeonlineNinjaSourcesChecked = true; return; }
+    const data = await res.json();
+    if (!data.ok || !Array.isArray(data.sources)) { episode.animeonlineNinjaSourcesChecked = true; return; }
+    _animeonlineSourceCache.set(cacheKey, data);
+    mergeAnimeonlineNinjaSources(episode, data, slug, epNum);
+  } catch (error) {
+    console.warn("AniméOnlineNinja sources unavailable:", error);
+  }
+  episode.animeonlineNinjaSourcesChecked = true;
+}
+
+function mergeAnimeonlineNinjaSources(episode, data, slug, epNum) {
+  if (!episode || !Array.isArray(data?.sources)) return;
+  const existing = new Set((episode.sourceOptions || []).map((s) => s.externalUrl || s.videoUrl));
+  const newOptions = data.sources
+    .filter((s) => s.externalUrl && !existing.has(s.externalUrl))
+    .map((s, i) => ({
+      id:          `animeonlineninja-${normalizeTitle(s.provider || "source")}-${simpleHash(`${slug}:${epNum}:${s.provider || i}:${s.externalUrl}`)}`,
+      label:       `AniméOnline LAT — ${s.provider || `Server ${i + 1}`}`,
+      type:        "iframe",
+      externalUrl: s.externalUrl,
+      videoUrl:    "",
+      downloadUrl: "",
+      streamResolver: null,
+      sourceRank:  embedProviderRank(s.provider),
+      adWalled:    embedProviderRank(s.provider) === 2,
+      language:    "es-419"
+    }));
+  if (newOptions.length > 0) {
+    episode.sourceOptions = [...(episode.sourceOptions || []), ...newOptions];
+    episode.locked = false;
+    episode.server = episode.server || "AniméOnline";
+  }
+}
