@@ -1230,6 +1230,22 @@ body:not([data-route="home"]) .content-band {
   display: none;
 }
 
+/* ── CLS fix: pre-reserve continue-watching height when user has watch history ─
+   Without this, the sections pop in after JS loads watch state and push all
+   catalog rails down by ~17rem, causing a massive layout shift (CLS > 1.0).
+   The inline script in <head> sets data-has-history synchronously from
+   localStorage before first paint, so space is reserved from frame 0.        */
+:root[data-has-history] #continueWatching,
+:root[data-has-history] #continueWatchingAdult {
+  min-height: 17rem;
+}
+:root[data-has-history] #continueWatching.is-hidden,
+:root[data-has-history] #continueWatchingAdult.is-hidden {
+  display: block;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .section-heading {
   display: flex;
   align-items: center;
@@ -1455,6 +1471,10 @@ body:not([data-route="home"]) .section-heading h2 {
 
 .rail-shell:has(.poster-grid:empty) .rail-arrow {
   display: none;
+}
+
+.poster-grid:empty {
+  min-height: 13rem;
 }
 
 .poster-grid::-webkit-scrollbar {
