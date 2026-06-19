@@ -329,7 +329,7 @@ function isOnlineSource(endpoint) {
 function setDefaultLanguage(audio = "japanese", subtitles = "spanish") {
   const preferences = { audio, subtitles };
   localStorage.setItem(LANGUAGE_PREFERENCES_KEY, JSON.stringify(preferences));
-  fetch("./api/language/preferences", {
+  fetch("/api/language/preferences", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(preferences)

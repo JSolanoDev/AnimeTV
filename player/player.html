@@ -95,7 +95,8 @@
 
       function proxyUrl(url) {
         if (!/^https?:\/\//i.test(url)) return url;
-        var proxied = new URL("../api/source", location.href);
+        if (location.protocol === "file:") return url;
+        var proxied = new URL("/api/source", location.origin);
         proxied.searchParams.set("url", url);
         var host = streamProxyHost(url);
         if (host) proxied.searchParams.set("refererHost", host);

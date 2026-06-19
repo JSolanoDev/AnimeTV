@@ -1170,7 +1170,7 @@ function startLocalServer() {
     }), DAILY_REFRESH_INTERVAL_MS);
   });
 
-  checkAniPubHealth();
+  checkAniPubHealth().catch((err) => log("warn", `AniPub startup health check failed: ${err.message}`));
   return server;
 }
 

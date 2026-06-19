@@ -93,6 +93,6 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("sync", (event) => {
   if (event.tag === "animetv-update-check") {
-    event.waitUntil(fetch("./api/check-update").catch(() => null));
+    event.waitUntil(fetch("/api/check-update").catch(() => null));
   }
 });
