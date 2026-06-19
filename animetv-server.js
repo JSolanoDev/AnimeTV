@@ -6845,28 +6845,58 @@ function unpackPackedJs(packed) {
   }
   return out;
 }
+// A URL is a real stream FILE only when the extension sits at a path boundary —
+// the next character must be ? # / a quote/space or the end, never another
+// letter. This is what stops the HOST "mp4upload.com" (which literally contains
+// ".mp4") from being mistaken for an ".mp4" video file, which used to make the
+// resolver hand the player a stylesheet (…/videojs.min.css) and hang it forever
+// on "Loading stream…". Page assets (css/js/img/font/subtitles) are rejected.
+function classifyStreamUrl(raw) {
+  if (!raw) return null;
+  const url = String(raw).replace(/\\\//g, "/").trim();
+  if (!/^https?:\/\//i.test(url)) return null;
+  const path = url.split(/[?#]/)[0];
+  if (/\.(?:css|m?js|json|png|jpe?g|gif|webp|svg|ico|woff2?|ttf|eot|vtt|srt|html?)$/i.test(path)) return null;
+  if (/\.m3u8(?=[?#/"'\s]|$)/i.test(url)) return { url, type: "hls" };
+  if (/\.mp4(?=[?#/"'\s]|$)/i.test(url)) return { url, type: "mp4" };
+  return null;
+}
 function extractStreamFromEmbed(html) {
   const text = String(html || "");
-  const pick = (u) => u && { url: u.replace(/\\\//g, "/"), type: /\.m3u8(\?|#|$)/i.test(u) ? "hls" : "mp4" };
-  // 1) m3u8/mp4 sitting directly in the page markup or inline scripts.
-  let m = text.match(/https?:\/\/[^\s"'\\<>]+\.m3u8[^\s"'\\<>]*/i);
-  if (m) return pick(m[0]);
-  m = text.match(/["'](?:file|src|source)["']\s*:\s*["'](https?:\/\/[^"']+\.(?:m3u8|mp4)[^"']*)["']/i);
-  if (m) return pick(m[1]);
-  // 2) packed eval(...) payloads (Streamwish/Filemoon family) → unpack → file:"…".
+  // Walk EVERY match of a pattern and return the first that survives
+  // classifyStreamUrl — so a host-name false positive (…mp4upload…) is skipped
+  // and the scan continues to the genuine video URL later in the page.
+  const scan = (source, group) => {
+    const re = new RegExp(source, "gi");
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      const got = classifyStreamUrl(group ? m[group] : m[0]);
+      if (got) return got;
+    }
+    return null;
+  };
+  // 1) Explicit player config: file/src/source: "http…".
+  let got = scan("[\"'](?:file|src|source)[\"']\\s*:\\s*[\"'](https?://[^\"']+)[\"']", 1);
+  if (got) return got;
+  // 2) Any HLS playlist sitting in the markup / inline scripts.
+  got = scan("https?://[^\\s\"'\\\\<>]+\\.m3u8[^\\s\"'\\\\<>]*");
+  if (got) return got;
+  // 3) Packed eval(p,a,c,k,e,d) payloads (Streamwish/Filemoon/mp4upload family).
   for (const p of text.matchAll(/eval\(function\(p,a,c,k,e,d\)\{[\s\S]*?\}\([\s\S]*?\)\)\s*\)?/g)) {
     const un = unpackPackedJs(p[0]);
-    let u = (un.match(/file\s*:\s*["']([^"']+\.m3u8[^"']*)["']/i) ||
-             un.match(/sources?\s*:\s*\[\s*\{[^}]*?(?:file|src)\s*:\s*["']([^"']+)["']/i) ||
-             un.match(/["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/i) ||
-             un.match(/file\s*:\s*["']([^"']+\.mp4[^"']*)["']/i) ||
-             un.match(/src\s*:\s*["']([^"']+\.mp4[^"']*)["']/i) ||
-             un.match(/["'](https?:\/\/[^"']+\.mp4[^"']*)["']/i));
-    if (u) return pick(u[1]);
+    const reUrl = /https?:\/\/[^\s"'\\<>]+\.(?:m3u8|mp4)[^\s"'\\<>]*/gi;
+    let m;
+    while ((m = reUrl.exec(un)) !== null) {
+      const inner = classifyStreamUrl(m[0]);
+      if (inner) return inner;
+    }
+    const cfg = un.match(/(?:file|src|source)\s*:\s*["'](https?:\/\/[^"']+)["']/i);
+    const cfgGot = cfg && classifyStreamUrl(cfg[1]);
+    if (cfgGot) return cfgGot;
   }
-  // 3) last resort: any .mp4 in the page.
-  m = text.match(/https?:\/\/[^\s"'\\<>]+\.mp4[^\s"'\\<>]*/i);
-  if (m) return pick(m[0]);
+  // 4) Last resort: any real .mp4 FILE in the page (host false positives filtered).
+  got = scan("https?://[^\\s\"'\\\\<>]+\\.mp4[^\\s\"'\\\\<>]*");
+  if (got) return got;
   return null;
 }
 async function handleResolveEmbed(reqUrl, response) {
