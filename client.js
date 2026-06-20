@@ -422,7 +422,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=378`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=379`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -432,13 +432,39 @@ async function fetchHomepageBootstrapCatalog() {
   return rawItems.map((item, index) => normalizeExternalShow(item, source, index)).filter(Boolean);
 }
 
-function scheduleAnimeAv1LatestLoad(delayMs = 8000) {
+function scheduleAnimeAv1LatestLoad(delayMs = 18000) {
   const loadLatest = () => loadAnimeAv1Latest();
   const run = () => {
     if ("requestIdleCallback" in window) window.requestIdleCallback(loadLatest, { timeout: 3000 });
     else window.setTimeout(loadLatest, 300);
   };
   window.setTimeout(run, delayMs);
+}
+
+function applyServerCatalog(serverCatalog = [], label = "ZenkaiTV API") {
+  if (!serverCatalog.length) return false;
+  replaceRegularCatalog(mergeShows(serverCatalog));
+  state.isLoadingCatalog = false;
+  state.carouselIndex = 0;
+  state.apiStatus.metadata = "Online";
+  state.apiStatus.direct = "Standby";
+  writeResponseCache("main-catalog", regularCatalogSnapshot());
+  setSourceStatus(catalogStatusLabel(label, state.shows));
+  render();
+  scheduleVisibleMetadataWarm(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
+  scheduleHomeRailExpansion();
+  return true;
+}
+
+function scheduleDeferredServerCatalogRefresh(delayMs = 12000) {
+  window.setTimeout(() => {
+    const refresh = async () => {
+      const serverCatalog = await timedRequest("ZenkaiTV metadata API", () => fetchLocalMetadataCatalog()).catch(() => []);
+      if (serverCatalog.length) applyServerCatalog(serverCatalog);
+    };
+    if ("requestIdleCallback" in window) window.requestIdleCallback(refresh, { timeout: 5000 });
+    else refresh();
+  }, delayMs);
 }
 
 async function loadAnimeSources() {
@@ -471,20 +497,17 @@ async function loadAnimeSources() {
     }
   }
 
-  const serverCatalog = await timedRequest("ZenkaiTV metadata API", () => fetchLocalMetadataCatalog()).catch(() => []);
-  if (serverCatalog.length) {
-    replaceRegularCatalog(mergeShows(serverCatalog));
-    state.isLoadingCatalog = false;
-    state.carouselIndex = 0;
-    state.apiStatus.metadata = "Online";
-    state.apiStatus.direct = "Standby";
-    writeResponseCache("main-catalog", regularCatalogSnapshot());
-    setSourceStatus(catalogStatusLabel("ZenkaiTV API", state.shows));
-    render();
-    scheduleVisibleMetadataWarm(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
+  if (hasInitialCatalog && state.route === "home") {
+    state.apiStatus.metadata = "Deferred";
+    setSourceStatus("Using fast ZenkaiTV homepage catalog");
+    scheduleDeferredServerCatalogRefresh();
     scheduleHomeRailExpansion();
+    scheduleAnimeAv1LatestLoad();
     return;
   }
+
+  const serverCatalog = await timedRequest("ZenkaiTV metadata API", () => fetchLocalMetadataCatalog()).catch(() => []);
+  if (applyServerCatalog(serverCatalog)) return;
 
   state.apiStatus.metadata = "Unavailable";
   state.apiStatus.direct = hasInitialCatalog ? "Deferred" : "Loading";
@@ -2510,7 +2533,7 @@ function scheduleCarouselIndicatorHydration() {
       window.setTimeout(hydrate, 900);
     }
   };
-  window.setTimeout(afterFirstPaint, 650);
+  window.setTimeout(afterFirstPaint, 4200);
 }
 
 function simpleCarouselText(show) {
@@ -10032,7 +10055,7 @@ function scheduleVisibleMetadataWarm(shows = state.shows, limit = HOME_INITIAL_C
   // scheduling the idle warm, so the ~80-request hydration burst lands AFTER the
   // visual-complete window instead of competing inside it. Immediate clicks are
   // still covered by the per-card pointerenter preload in wireOpenButtons.
-  const defer = () => window.setTimeout(idle, 6500);
+  const defer = () => window.setTimeout(idle, 18000);
   if (document.readyState === "complete") defer();
   else window.addEventListener("load", defer, { once: true });
 }
