@@ -3155,7 +3155,11 @@ function handleCleanRoute(routeInfo = appRouter()?.current?.()) {
 
   if (routeInfo.name === "login") {
     setRoute("profile", { skipHistory: true });
-    document.querySelector("[data-auth-open]")?.click?.();
+    if (state.user) {
+      appRouter()?.replace?.("/profile", { silent: true });
+    } else {
+      showAuthModal("login");
+    }
     return;
   }
 
@@ -6216,6 +6220,22 @@ function toggleFavorite() {
         });
     }
   }
+}
+
+// Recompute ONLY the watch hero backdrop for the active show + season. Called
+// when season-specific TMDB art arrives asynchronously (ensureSeasonStills) so
+// each season shows its own backdrop without a heavy full resetVideoFrame (which
+// would stop playback). No-op while the cinematic player is open.
+function refreshActiveWatchBackdrop() {
+  const show = state.activeShow;
+  if (!show) return;
+  if (document.body.classList.contains("player-cinema-open")) return;
+  const frame = document.querySelector("#videoFrame");
+  if (!frame) return;
+  const seasons = getDetailSeasons(show);
+  const activeSeason = seasons[state.activeSeasonIndex] || seasons[0] || null;
+  const background = getWatchBackdropArtwork(show, activeSeason);
+  frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
 }
 
 function resetVideoFrame() {
@@ -12993,6 +13013,11 @@ async function ensureSupabaseForAuth() {
   }
 }
 
+function authRedirectUrl(path = "/profile") {
+  const cleanPath = String(path || "/profile").startsWith("/") ? path : `/${path}`;
+  return `${window.location.origin}${cleanPath}`;
+}
+
 function showAuthModal(viewName) {
   const overlay = document.getElementById("authOverlay");
   if (overlay) {
@@ -13092,7 +13117,7 @@ async function handleForgotSubmit() {
   setAuthLoading(submitBtn, true);
   try {
     const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/#profile`
+      redirectTo: authRedirectUrl("/profile")
     });
     if (error) throw error;
     showAuthSuccess(successMsg, "Reset link sent! Check your inbox.");
@@ -13114,19 +13139,21 @@ async function handleLogout() {
 async function handleSocialLogin(provider) {
   if (!supabaseClient) await ensureSupabaseForAuth();
   if (!supabaseClient) {
-    alert("Authentication is not configured.");
+    showAuthModal("login");
+    showAuthError(document.getElementById("loginErrorMsg"), "Authentication service is not available.");
     return;
   }
   try {
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/`
+        redirectTo: authRedirectUrl("/profile")
       }
     });
     if (error) throw error;
   } catch (err) {
-    alert(`OAuth login failed: ${err.message}`);
+    showAuthModal("login");
+    showAuthError(document.getElementById("loginErrorMsg"), `OAuth login failed: ${err.message}`);
   }
 }
 
@@ -13159,12 +13186,8 @@ function setAuthLoading(button, isLoading) {
 }
 
 function setupMockAuth() {
-  const loginBtn = document.getElementById("authLoginBtn");
-  if (loginBtn) {
-    loginBtn.onclick = () => {
-      alert("Authentication config (SUPABASE_URL/SUPABASE_KEY) is missing. Set these environment variables in your server configuration to enable logins.");
-    };
-  }
+  supabaseClient = null;
+  updateAuthUi();
 }
 
 function renderProfile() {

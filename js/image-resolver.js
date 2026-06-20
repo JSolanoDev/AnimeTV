@@ -782,11 +782,15 @@ const ImageResolver = (function () {
     const previousDistance = previous ? num - previous : Infinity;
     const nextDistance = next ? next - num : Infinity;
 
-    // Borrow only for tiny gaps, which usually means a newly aired episode has
-    // metadata but no dedicated still yet. Longer gaps keep the branded fallback
-    // so the app does not repeat one picture across a whole arc.
-    if (previous && previousDistance <= 2) return pool[previous] || "";
-    if (next && nextDistance <= 1) return pool[next] || "";
+    // Borrow ONLY for a genuine internal single gap — a real still exists on BOTH
+    // sides nearby — which is a true TMDB omission for one episode. A TRAILING run
+    // of just-aired episodes (the newest ones) has a previous still but NO next
+    // still, so borrowing there would repeat the last image across every new
+    // episode; keep the branded placeholder for those instead (accurate, no
+    // repeat) until TMDB publishes their real stills.
+    if (previous && next && previousDistance <= 2 && nextDistance <= 2) {
+      return pool[previous] || pool[next] || "";
+    }
     return "";
   }
 
@@ -981,11 +985,13 @@ const ImageResolver = (function () {
       const offset = minEp > 0 ? minEp - 1 : 0;
       const stills = {};
       const metas = {};
+      const stillPaths = [];
       for (const ep of eps) {
         const local = Number(ep.episode_number) - offset;
         if (local <= 0) continue;
         const still = tmdbStillUrl(ep.still_path);
         if (still) stills[local] = still;
+        if (ep.still_path) stillPaths.push(ep.still_path);
         metas[local] = {
           episode: local,
           title: ep.name || "",
@@ -1002,10 +1008,27 @@ const ImageResolver = (function () {
       anime.tmdbEpisodesBySeasonNum[sNum] = metas;
       const seasonPoster = tmdbPosterUrl(payload?.season?.poster_path);
       if (seasonPoster) anime.tmdbSeasonPostersBySeason[sNum] = seasonPoster;
+      // TMDB seasons carry no backdrop of their own, so give each season its OWN
+      // wide hero art from a representative high-res episode still — otherwise
+      // every season of a multi-season show shares the single show backdrop. The
+      // pick is biased by APP-season position (frac grows with sNum) for two
+      // reasons: (1) shows TMDB stores as ONE continuous season (e.g. Re:Zero =
+      // 85 eps under TMDB S1) still get a DIFFERENT, era-appropriate still per app
+      // season instead of all sharing one; (2) for true multi-TMDB-season shows it
+      // just varies WHERE in that season's own pool the still comes from — still
+      // season-matched. Avoids ep1 title cards / finale spoilers.
+      if (stillPaths.length) {
+        const frac = Math.min(0.85, 0.2 + Math.max(0, sNum - 1) * 0.18);
+        const pick = stillPaths[Math.min(stillPaths.length - 1, Math.floor(stillPaths.length * frac))];
+        const seasonBackdrop = tmdbBackdropUrl(pick); // "original" — proxy downsizes on delivery
+        if (seasonBackdrop) anime.tmdbSeasonBackdropsBySeason[sNum] = seasonBackdrop;
+      }
       debug(`season-aware: app S${sNum} -> TMDB S${tmdbSeasonNumber} (${Object.keys(stills).length} stills)`);
       if (typeof renderEpisodeList === "function" && typeof state !== "undefined" &&
           state.activeShow && state.activeShow.id === anime.id) {
         renderEpisodeList(state.activeShow);
+        // Season art just landed → swap the hero to this season's own backdrop.
+        if (typeof refreshActiveWatchBackdrop === "function") refreshActiveWatchBackdrop();
       }
     } catch (err) {
       debug(`season-aware fetch failed: ${err && err.message}`);
