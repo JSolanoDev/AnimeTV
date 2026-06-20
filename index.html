@@ -12,16 +12,16 @@
     <meta property="og:description" content="Watch anime online in HD. Latest episodes, seasonal simulcasts, and full series — optimized for TV, desktop, and mobile.">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="icon" type="image/webp" href="logo-round-192.webp?v=381">
-    <link rel="shortcut icon" href="logo-round-192.webp?v=381">
-    <link rel="apple-touch-icon" href="logo-round-192.png?v=381">
-    <link rel="manifest" href="/manifest.webmanifest?v=381">
+    <link rel="icon" type="image/webp" href="logo-round-192.webp?v=382">
+    <link rel="shortcut icon" href="logo-round-192.webp?v=382">
+    <link rel="apple-touch-icon" href="logo-round-192.png?v=382">
+    <link rel="manifest" href="/manifest.webmanifest?v=382">
     <!-- Only graphql.anilist.co is hit directly by the browser (trailers/extras).
          Jikan + s4 poster images go through the same-origin /api proxy, so
          preconnecting them is wasted. crossorigin matches the CORS GraphQL fetch. -->
     <link rel="preconnect" href="https://graphql.anilist.co" crossorigin>
     <link rel="dns-prefetch" href="https://graphql.anilist.co">
-    <link rel="preload" as="fetch" href="/homepage-bootstrap.json?v=381" crossorigin>
+    <link rel="preload" as="fetch" href="/homepage-bootstrap.json?v=382" crossorigin>
     <link rel="preload" as="image" fetchpriority="high" href="/api/image?src=https%3A%2F%2Fs4.anilist.co%2Ffile%2Fanilistcdn%2Fmedia%2Fanime%2Fbanner%2F187869-WuaolpHqNqHk.jpg&amp;w=1280&amp;q=88">
     <style>
       :root{color-scheme:dark;--bg:#070914;--panel:#111522;--text:#f7f8ff;--muted:#aeb6c8;--accent:#8a55ff;--cyan:#00d2ff}
@@ -59,21 +59,21 @@
          sheet arrives — on Lighthouse's throttled network that async swap was the
          root cause of CLS ≈ 0.83. The sheet is ~28 KB Brotli and immutably
          cached, so blocking on it costs little FCP while dropping CLS to ~0. -->
-    <link id="fullStylesheet" rel="stylesheet" href="styles.css?v=381">
+    <link id="fullStylesheet" rel="stylesheet" href="styles.css?v=382">
     <script>(function(){try{var p=localStorage.getItem("animetv-resume-positions");if(p&&p.length>2)document.documentElement.setAttribute("data-has-history","");}catch(e){}})()</script>
     <!-- Defer all JS — browser discovers them early but executes after DOM parse -->
-    <script defer src="js/constants.js?v=381"></script>
-    <script defer src="js/translations.js?v=381"></script>
-    <script defer src="js/utils.js?v=381"></script>
-    <script defer src="js/season-normalization.js?v=381"></script>
-    <script defer src="js/normalize.js?v=381"></script>
-    <script defer src="js/anilist-metadata.js?v=381"></script>
-    <script defer src="js/smart-source.js?v=381"></script>
-    <script defer src="js/image-resolver.js?v=381"></script>
-    <script defer src="js/adult-source-adapter.js?v=381"></script>
-    <script defer src="js/adult-mode.js?v=381"></script>
-    <script defer src="js/router.js?v=381"></script>
-    <script defer src="client.js?v=381"></script>
+    <script defer src="js/constants.js?v=382"></script>
+    <script defer src="js/translations.js?v=382"></script>
+    <script defer src="js/utils.js?v=382"></script>
+    <script defer src="js/season-normalization.js?v=382"></script>
+    <script defer src="js/normalize.js?v=382"></script>
+    <script defer src="js/anilist-metadata.js?v=382"></script>
+    <script defer src="js/smart-source.js?v=382"></script>
+    <script defer src="js/image-resolver.js?v=382"></script>
+    <script defer src="js/adult-source-adapter.js?v=382"></script>
+    <script defer src="js/adult-mode.js?v=382"></script>
+    <script defer src="js/router.js?v=382"></script>
+    <script defer src="client.js?v=382"></script>
   </head>
   <body>
     <script>(function(){var p=location.pathname.replace(/\/+$/,"")||"/";var h=(location.hash||"").replace(/^#/,"");var r=p==="/search"||p==="/browse"||/^\/(genre|year|season|studio)\//.test(p)?"library":p==="/schedule"?"schedule":p==="/favorites"?"favorites":p==="/settings"?"settings":p==="/sources"?"sources":p==="/profile"||p==="/login"?"profile":"home";var m={search:"library",browse:"library",library:"library",home:"home",schedule:"schedule",favorites:"favorites",settings:"settings",sources:"sources",profile:"profile"};if(p==="/"&&m[h])r=m[h];document.body.dataset.route=r;try{if(localStorage.getItem("animetv-sidebar-collapsed")!=="false")document.body.classList.add("sidebar-collapsed")}catch(e){document.body.classList.add("sidebar-collapsed")}})()</script>

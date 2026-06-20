@@ -7351,13 +7351,67 @@ function episodeAvailabilityText(episode = {}) {
   return "Not available yet";
 }
 
-// Provider group for source ordering: scraper sources (TioAnime/AnimeAV1) on top,
-// then AniPub, then anything else.
+const PRIMARY_SOURCE_FILTERS = [
+  {
+    value: "preferred:animeav1-hls",
+    label: "AnimeAV1 HLS",
+    match: (source) => isAnimeAv1Source(source) && isHlsSource(source)
+  },
+  {
+    value: "preferred:jkanime-mp4upload",
+    label: "JKAnime Mp4upload",
+    match: (source) => isJKAnimeSource(source) && isMp4UploadSource(source)
+  }
+];
+
+function sourceIdentityText(source = {}) {
+  return [
+    source.id,
+    source.label,
+    source.provider,
+    source.server,
+    source.type,
+    source.videoUrl,
+    source.externalUrl,
+    source.siteUrl
+  ].filter(Boolean).join(" ").toLowerCase();
+}
+
+function isAnimeAv1Source(source = {}) {
+  const text = sourceIdentityText(source);
+  return text.includes("animeav1") || Boolean(KNOWN_SOURCE_SERVERS.find((d) => d.key === "animeav1")?.match(source));
+}
+
+function isJKAnimeSource(source = {}) {
+  const text = sourceIdentityText(source);
+  return text.includes("jkanime") || Boolean(KNOWN_SOURCE_SERVERS.find((d) => d.key === "jkanime")?.match(source));
+}
+
+function isHlsSource(source = {}) {
+  const url = (source.videoUrl || source.externalUrl || "").toLowerCase();
+  const text = sourceIdentityText(source);
+  return /\.m3u8(\?|#|$)/i.test(url) || /\bhls\b/.test(text);
+}
+
+function isMp4UploadSource(source = {}) {
+  return /mp4\s*upload|mp4upload/.test(sourceIdentityText(source));
+}
+
+function sourcePreferredFilterValue(source = {}) {
+  return PRIMARY_SOURCE_FILTERS.find((filter) => filter.match(source))?.value || "";
+}
+
+function getPrimarySourceFilterOptions(show = null) {
+  if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) return [];
+  return PRIMARY_SOURCE_FILTERS.map(({ value, label }) => ({ value, label }));
+}
+
+// Provider group for source ordering: preferred scrapers on top, then AniPub,
+// then anything else.
 function _sourceGroupPriority(source = {}) {
-  const id = (source.id || "").toLowerCase();
-  const label = (source.label || "").toLowerCase();
-  if (id.includes("tioanime") || id.includes("animeav1") ||
-      label.includes("tioanime") || label.includes("animeav1")) return 0;
+  const text = sourceIdentityText(source);
+  if (isAnimeAv1Source(source) || isJKAnimeSource(source)) return 0;
+  if (text.includes("tioanime")) return 1;
   if (KNOWN_SOURCE_SERVERS.find(d => d.key === "anipub")?.match(source)) return 1;
   return 2;
 }
@@ -7365,29 +7419,30 @@ function _sourceGroupPriority(source = {}) {
 // Fine-grained "best server" preference. Lower = shown / auto-selected first.
 // AnimeAV1 is the most reliable provider — its HLS stream is the #1 pick.
 function sourcePreferenceScore(source = {}) {
-  const id    = (source.id || "").toLowerCase();
   const label = (source.label || "").toLowerCase();
   const url   = (source.videoUrl || source.externalUrl || "").toLowerCase();
   const isDirect = source.type === "direct";
-  const isHls    = /\.m3u8(\?|#|$)/i.test(url) || /\bhls\b/.test(label);
-  const isAnimeAv1 = id.includes("animeav1") || label.includes("animeav1");
+  const isHls    = isHlsSource(source);
+  const isAnimeAv1 = isAnimeAv1Source(source);
+  const isJKAnime = isJKAnimeSource(source);
   const isMega = /\bmega\b/.test(label) || /mega\.nz/.test(url);
-  const isMp4  = /mp4\s*upload|mp4upload/.test(label) || /mp4upload/.test(url);
+  const isMp4  = isMp4UploadSource(source);
   const isAdFree = /yourupload|you\s*upload|youupload|ok\.?ru|okru|streamwish|filelions/.test(label);
   const isAdWalled = /\bvoe\b|netu|hqq|streamsb|embedsb|\bsb\b|dood|filemoon|vidhide|mixdrop/.test(label);
 
   // ── AnimeAV1 first (most reliable) — HLS is the very top pick ────────────
   if (isAnimeAv1 && isHls)              return 0; // AnimeAV1 — HLS  (best)
-  if (isAnimeAv1 && isDirect)           return 1; // AnimeAV1 — other direct
-  if (isAnimeAv1 && (isMega || isMp4))  return 2; // AnimeAV1 — Mega / MP4Upload
-  if (isAnimeAv1 && !isAdWalled)        return 3; // AnimeAV1 — other ad-free embed
+  if (isJKAnime && isMp4)               return 1; // JKAnime — MP4Upload
+  if (isAnimeAv1 && isDirect)           return 2; // AnimeAV1 — other direct
+  if (isAnimeAv1 && (isMega || isMp4))  return 3; // AnimeAV1 — Mega / MP4Upload
+  if (isAnimeAv1 && !isAdWalled)        return 4; // AnimeAV1 — other ad-free embed
   // ── Then the other dependable, ad-free servers ─────────────────────────
-  if (isHls || isDirect)               return 4; // any other direct / HLS stream
-  if (isMega || isMp4)                 return 5; // Mega / MP4Upload (TioAnime etc.)
-  if (isAdFree)                        return 6; // YourUpload / Ok.ru / …
+  if (isHls || isDirect)               return 5; // any other direct / HLS stream
+  if (isMega || isMp4)                 return 6; // Mega / MP4Upload (TioAnime etc.)
+  if (isAdFree)                        return 7; // YourUpload / Ok.ru / …
   // ── Ad-walled hosts sink to the bottom ─────────────────────────────────
   if (isAdWalled)                      return 9;
-  return 7;                                       // neutral / unknown
+  return 8;                                       // neutral / unknown
 }
 
 // Order sources so the auto-selected one (index 0) is the best playable pick:
@@ -7758,6 +7813,10 @@ function sourceFilterOption(value, label) {
 function sourceRowMatchesFilter(row, filterValue) {
   const value = String(filterValue || "all");
   if (value === "all") return true;
+  if (value.startsWith("preferred:")) {
+    return Boolean(row.getAttribute("data-player-source"))
+      && row.getAttribute("data-source-preferred-key") === value;
+  }
   if (value.startsWith("provider:")) {
     return row.getAttribute("data-source-provider-key") === value.slice("provider:".length);
   }
@@ -7857,6 +7916,7 @@ function renderSourcePickerInSidePanel() {
         data-source-provider-key="${escapeHtml(sourceFilterKey(providerName))}"
         data-source-type="${escapeHtml(source.type || "")}"
         data-source-type-key="${escapeHtml(sourceFilterKey(source.type || ""))}"
+        data-source-preferred-key="${escapeHtml(sourcePreferredFilterValue(source))}"
         type="button">
         <div class="source-picker-left">
           <span class="source-provider-title">${escapeHtml(providerName)}</span>
@@ -7933,8 +7993,12 @@ function renderSourcePickerInSidePanel() {
     if (isPending && serverChecks[def.key] === undefined) uniqueProviders.add(def.label);
   });
   let filterSelectHtml = "";
-  if ((allSources.length > 0 || isPending) && (uniqueProviders.size > 1 || uniqueTypes.size > 1)) {
+  const primaryFilterOptions = getPrimarySourceFilterOptions(show);
+  if ((allSources.length > 0 || isPending) && (uniqueProviders.size > 1 || uniqueTypes.size > 1 || primaryFilterOptions.length > 0)) {
     let optionsHtml = sourceFilterOption("all", "All sources");
+    optionsHtml += primaryFilterOptions
+      .map((option) => sourceFilterOption(option.value, option.label))
+      .join("");
     if (uniqueProviders.size > 1) {
       optionsHtml += Array.from(uniqueProviders).sort()
         .map((p) => sourceFilterOption(`provider:${sourceFilterKey(p)}`, p)).join("");
@@ -8236,6 +8300,7 @@ function renderSourcePickerIn(frame) {
             data-source-provider-key="${escapeHtml(sourceFilterKey(providerName))}" 
             data-source-type="${escapeHtml(source.type || "")}" 
             data-source-type-key="${escapeHtml(sourceFilterKey(source.type || ""))}" 
+            data-source-preferred-key="${escapeHtml(sourcePreferredFilterValue(source))}" 
             type="button">
             <div class="source-picker-left">
               <span class="source-provider-title">${escapeHtml(providerName)}</span>
@@ -8309,6 +8374,7 @@ function renderSourcePickerIn(frame) {
           data-source-provider-key="${escapeHtml(sourceFilterKey(providerName))}" 
           data-source-type="${escapeHtml(source.type || "")}" 
           data-source-type-key="${escapeHtml(sourceFilterKey(source.type || ""))}" 
+          data-source-preferred-key="${escapeHtml(sourcePreferredFilterValue(source))}" 
           type="button">
           <div class="source-picker-left">
             <span class="source-provider-title">${escapeHtml(providerName)}</span>
@@ -8351,8 +8417,12 @@ function renderSourcePickerIn(frame) {
   });
 
   let filterSelectHtml = "";
+  const primaryFilterOptions = getPrimarySourceFilterOptions(show);
   if (foundCount > 0 || isPending) {
     let optionsHtml = sourceFilterOption("all", "All sources");
+    optionsHtml += primaryFilterOptions
+      .map((option) => sourceFilterOption(option.value, option.label))
+      .join("");
 
     // Add providers group/options
     if (uniqueProviders.size > 1) {
@@ -8374,7 +8444,7 @@ function renderSourcePickerIn(frame) {
     }
 
     // Only render filter dropdown if there's actually more than 1 filterable group/option!
-    if (uniqueProviders.size > 1 || uniqueTypes.size > 1) {
+    if (uniqueProviders.size > 1 || uniqueTypes.size > 1 || primaryFilterOptions.length > 0) {
       filterSelectHtml = `
         <select class="source-filter-select focusable language-select" aria-label="Filter sources">
           ${optionsHtml}

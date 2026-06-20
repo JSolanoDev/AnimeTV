@@ -9700,7 +9700,7 @@ body.is-tv .topbar-auth {
 /* Compact "filter sources" dropdown inside the narrow side-panel topbar. */
 .side-source-filter.language-select {
   flex: 0 0 auto;
-  max-width: 8.5rem;
+  max-width: 11.5rem;
   min-height: 2rem;
   margin-right: 0;
   font-size: 0.75rem;
