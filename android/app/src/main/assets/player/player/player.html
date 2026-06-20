@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AnimeTV Video Player</title>
+  <title>ZenkaiTV Video Player</title>
+  <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
   <style>
     html,
     body {
@@ -28,26 +29,28 @@
       background: #000;
     }
 
-    * {
-      pointer-events: none !important;
-      user-select: none !important;
-    }
-
-    video-js div,
-    video-js div * {
-      display: none !important;
-    }
-
-    video {
-      z-index: 99999 !important;
-    }
-
     .scale-0 video,
     .scale-0 .vjs-tech { object-fit: contain !important; }
     .scale-1 video,
     .scale-1 .vjs-tech { object-fit: cover !important; }
     .scale-2 video,
     .scale-2 .vjs-tech { object-fit: fill !important; }
+
+    .seek-flash {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 30;
+      padding: 0.6em 1em;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.55);
+      color: #fff;
+      font: 700 1.1rem/1 system-ui, -apple-system, sans-serif;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease;
+    }
+    .seek-flash.show { opacity: 1; }
   </style>
   <script>window.HELP_IMPROVE_VIDEOJS = false;</script>
   <script src="./video.min.js"></script>
@@ -66,7 +69,10 @@
 
       function streamTypeFromUrl(url) {
         var clean = String(url || "").split("?")[0].split("#")[0].toLowerCase();
+        if (location.hash === "#file") return "video/mp4";
+        if (location.hash === "#dash") return "application/dash+xml";
         if (clean.endsWith(".mpd")) return "application/dash+xml";
+        if (/krakencloud\.net\/play\/video\//i.test(clean)) return "video/mp4";
         if (clean.endsWith(".mp4") || clean.endsWith(".m4v") || clean.endsWith(".webm") || clean.endsWith(".mov")) return "video/mp4";
         return "application/x-mpegURL";
       }
@@ -80,6 +86,7 @@
           if (/anime-dunya/i.test(host)) return "anime-dunya.com";
           if (/watching\.onl|vidwish\.live|anivideo\.sbs|cloudbuzz\.lol|trycloud\.pro/i.test(host)) return "vidwish.live";
           if (/mp4upload\.com/i.test(host)) return "mp4upload.com";
+          if (/krakencloud\.net/i.test(host)) return "krakenfiles.com";
           return host;
         } catch (error) {
           return "";
@@ -88,7 +95,8 @@
 
       function proxyUrl(url) {
         if (!/^https?:\/\//i.test(url)) return url;
-        var proxied = new URL("../api/source", location.href);
+        if (location.protocol === "file:") return url;
+        var proxied = new URL("/api/source", location.origin);
         proxied.searchParams.set("url", url);
         var host = streamProxyHost(url);
         if (host) proxied.searchParams.set("refererHost", host);
@@ -97,14 +105,36 @@
 
       var originalHost = streamProxyHost(uri);
       var sourceUrl = streamTypeFromUrl(uri) === "video/mp4" ? proxyUrl(uri) : uri;
+      var useControls = params.get("controls") === "1" || params.get("controls") === "true";
+      var startTime = parseFloat(params.get("start") || 0) || 0;
+      var _seekStarted = false;
+      function seekToStart() {
+        if (_seekStarted || startTime <= 0) return;
+        _seekStarted = true;
+        try { player.currentTime(startTime); } catch (e) {}
+      }
       var player = videojs("player", {
+        // "muted" autoplay is always permitted by browsers, so the video starts
+        // on the FIRST click that opened the player instead of needing a second
+        // "play" tap. Sound is restored on the first real user interaction.
         fluid: true,
-        controls: false,
-        autoplay: true,
+        controls: useControls,
+        autoplay: "muted",
+        muted: true,
         preload: "auto",
         responsive: true,
         sources: [{ src: sourceUrl, type: streamTypeFromUrl(uri) }]
       });
+
+      var _soundRestored = false;
+      function restoreSound() {
+        if (_soundRestored) return;
+        _soundRestored = true;
+        try { player.muted(false); var p = player.play(); if (p && p.catch) p.catch(function () {}); } catch (error) {}
+      }
+      // Kick the stream into playback as soon as it's able, in case the browser
+      // didn't honour autoplay (kept muted, so always allowed).
+      player.one("canplay", function () { var p = player.play(); if (p && p.catch) p.catch(function () {}); });
 
       if (videojs.Vhs && videojs.Vhs.xhr) {
         videojs.Vhs.xhr.beforeRequest = function (options) {
@@ -208,11 +238,13 @@
         send("ready", timing());
         setQuality(vars.quality);
         setAudioLanguage(vars.lang);
+        seekToStart();
       });
       player.on("loadedmetadata", function () {
         send("loadedmetadata", timing());
         setQuality(vars.quality);
         setAudioLanguage(vars.lang);
+        seekToStart();
       });
       player.on("play", function () { send("play", 1); });
       player.on("pause", function () { send("pause", 0); });
@@ -233,6 +265,79 @@
 
       send("initializing", 1);
       window._vid = player;
+
+      // Send user interaction events to parent to prevent control panel auto-hiding.
+      // The first genuine interaction (tap/click/key) also restores sound, since
+      // the stream began muted to satisfy autoplay.
+      ["mousemove", "mousedown", "touchstart", "click"].forEach(function (evt) {
+        window.addEventListener(evt, function () { send("activity", evt); });
+      });
+      ["click", "touchstart", "keydown"].forEach(function (evt) {
+        window.addEventListener(evt, restoreSound, { once: true });
+      });
+      // Also unmute when the parent forwards a play/activity command after the
+      // user clicked outside the iframe (e.g. the app's own Play button).
+      window.addEventListener("message", function (event) {
+        try {
+          var data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+          if (data && (data.vcmd === "play" || data.vcmd === "unmute")) restoreSound();
+        } catch (error) {}
+      });
+      // Double-tap / double-click zones: left third = rewind 10s, right third =
+      // forward 10s, center = toggle fullscreen on the parent. Works for both
+      // mouse (dblclick) and touch (manual double-tap detection).
+      function seekRelative(delta) {
+        try {
+          var dur = player.duration() || 0;
+          var next = (player.currentTime() || 0) + delta;
+          if (next < 0) next = 0;
+          if (dur && next > dur) next = dur;
+          player.currentTime(next);
+          flashSeek(delta);
+          restoreSound();
+        } catch (error) {}
+      }
+      function tapZone(clientX) {
+        var w = window.innerWidth || document.documentElement.clientWidth || 1;
+        if (clientX < w * 0.35) return "left";
+        if (clientX > w * 0.65) return "right";
+        return "center";
+      }
+      function handleDoubleTap(clientX) {
+        var zone = tapZone(clientX);
+        if (zone === "left") seekRelative(-10);
+        else if (zone === "right") seekRelative(10);
+        else send("toggleFullscreen", 1);
+      }
+      var _seekFlashEl = null;
+      function flashSeek(delta) {
+        if (!_seekFlashEl) {
+          _seekFlashEl = document.createElement("div");
+          _seekFlashEl.className = "seek-flash";
+          document.body.appendChild(_seekFlashEl);
+        }
+        _seekFlashEl.textContent = (delta < 0 ? "« " : "» ") + Math.abs(delta) + "s";
+        _seekFlashEl.style.left = delta < 0 ? "16%" : "auto";
+        _seekFlashEl.style.right = delta < 0 ? "auto" : "16%";
+        _seekFlashEl.classList.add("show");
+        clearTimeout(_seekFlashEl._t);
+        _seekFlashEl._t = setTimeout(function () { _seekFlashEl.classList.remove("show"); }, 600);
+      }
+      window.addEventListener("dblclick", function (event) { handleDoubleTap(event.clientX); });
+      var _lastTapTime = 0, _lastTapX = 0;
+      window.addEventListener("touchend", function (event) {
+        var now = Date.now();
+        var touch = event.changedTouches && event.changedTouches[0];
+        var x = touch ? touch.clientX : 0;
+        if (now - _lastTapTime < 320 && Math.abs(x - _lastTapX) < 60) {
+          if (event.cancelable) event.preventDefault();
+          handleDoubleTap(x);
+          _lastTapTime = 0;
+        } else {
+          _lastTapTime = now;
+          _lastTapX = x;
+        }
+      }, { passive: false });
     })();
   </script>
 </body>

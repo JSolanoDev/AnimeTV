@@ -135,29 +135,29 @@ const PLAYBACK_SCRAPERS = [
     id: "animeav1",
     name: "AnimeAV1",
     desc: "Direct HLS / Mega / MP4Upload scraper — fast, ad-free playback.",
-    endpoint: "./api/animeav1/sources",
-    health: "./api/animeav1/info?slug=one-piece"
+    endpoint: "/api/animeav1/sources",
+    health: "/api/animeav1/info?slug=one-piece"
   },
   {
     id: "tioanime",
     name: "TioAnime",
     desc: "Live episode source scraper (Spanish-subbed mirrors).",
-    endpoint: "./api/tioanime/sources",
-    health: "./api/tioanime/health"
+    endpoint: "/api/tioanime/sources",
+    health: "/api/tioanime/health"
   },
   {
     id: "jkanime",
     name: "JKAnime",
     desc: "JKAnime.net embed servers — Spanish sub, multiple mirror players.",
-    endpoint: "./api/jkanime/sources",
-    health: "./api/jkanime/health"
+    endpoint: "/api/jkanime/sources",
+    health: "/api/jkanime/health"
   },
   {
     id: "animeonlineninja",
     name: "AniméOnline Ninja",
     desc: "Latino voice (Audio Latino) — AniméOnlineNinja.com multiserver scraper.",
-    endpoint: "./api/animeonlineninja/sources",
-    health: "./api/animeonlineninja/health"
+    endpoint: "/api/animeonlineninja/sources",
+    health: "/api/animeonlineninja/health"
   }
 ];
 
@@ -169,6 +169,9 @@ function setScraperEnabled(id, enabled) {
   state.scraperEnabled = { ...state.scraperEnabled, [id]: enabled };
   try { localStorage.setItem("zenkaitv-scrapers", JSON.stringify(state.scraperEnabled)); } catch { /* ignore */ }
 }
+
+const LIBRARY_INITIAL_RENDER_LIMIT = 84;
+const LIBRARY_RENDER_STEP = 84;
 
 const state = {
   route: "home",
@@ -188,6 +191,8 @@ const state = {
   libraryYear: "all",
   libraryStatus: "all",
   librarySort: "default",
+  libraryVisibleLimit: LIBRARY_INITIAL_RENDER_LIMIT,
+  libraryQuerySig: "",
   activeSettingsTab: "general",
   activeLegalTab: "terms",
   activeSeasonIndex: 0,
@@ -246,6 +251,7 @@ const searchInputTop = document.querySelector("#searchInputTop");
 const searchInputLibrary = document.querySelector("#searchInputLibrary");
 const searchInputAniPub = document.querySelector("#searchInputAniPub");
 const libraryResultCount = document.querySelector("#libraryResultCount");
+const libraryMoreButton = document.querySelector("#libraryMoreButton");
 const sidebarToggle = document.querySelector("#sidebarToggle");
 const overlay = document.querySelector("#watchOverlay");
 const closeOverlay = document.querySelector("#closeOverlay");
@@ -503,7 +509,7 @@ async function loadAnimeSources() {
 // and patch the in-memory catalog, then re-render.
 async function enrichCatalogAiringData(attempt = 0) {
   try {
-    const res = await fetchWithTimeout("./api/catalog", { cache: "no-store" }, 12000);
+    const res = await fetchWithTimeout("/api/catalog", { cache: "no-store" }, 12000);
     if (!res.ok) throw new Error("catalog unavailable");
     const json = await res.json();
     const items = Array.isArray(json.items) ? json.items : [];
@@ -555,7 +561,7 @@ async function loadExternalSources() {
   try {
     state.externalSourcesLoaded = false; // mark loading in progress for skeleton
     renderAddonSections();               // show "Loading sources…" hint immediately
-    const response = await fetch("./sources.json", { cache: "no-store" });
+    const response = await fetch("/sources.json", { cache: "no-store" });
     if (!response.ok) throw new Error("sources.json unavailable");
     const config = await response.json();
     const configuredSources = Array.isArray(config.sources) ? config.sources : [];
@@ -726,7 +732,7 @@ function withAnime1vApiKey(endpoint, source = null) {
   const apiKey = getAnime1vApiKey();
   if (!apiKey) return endpoint;
   try {
-    const url = new URL(endpoint, location.href);
+    const url = new URL(String(endpoint).replace(/^\.\//, "/"), location.origin);
     url.searchParams.set("apiKey", apiKey);
     return url.toString();
   } catch (error) {
@@ -779,7 +785,7 @@ function resolveSourceEndpoint(endpoint) {
 function getAniPubSource() {
   return state.localSources.find((source) => source.id === "anipub-catalog")
     || state.customSources.find((source) => source.id === "anipub-catalog")
-    || { id: "anipub-catalog", name: "AniPub", endpoint: "./api/anipub/catalog/all?limit=100&page=1", pageSize: 100, paginated: true };
+    || { id: "anipub-catalog", name: "AniPub", endpoint: "/api/anipub/catalog/all?limit=100&page=1", pageSize: 100, paginated: true };
 }
 
 function getLocalFinderSource() {
@@ -937,8 +943,8 @@ function removeSourceSilent(sourceId) {
 // the user's scraper via window.ZenkaiScraper.crawl(...) or a POST crawl endpoint.
 
 function smartCrawlEndpoint() {
-  try { return localStorage.getItem("zenkaitv-crawl-endpoint") || "./api/crawl"; }
-  catch { return "./api/crawl"; }
+  try { return localStorage.getItem("zenkaitv-crawl-endpoint") || "/api/crawl"; }
+  catch { return "/api/crawl"; }
 }
 
 // kind: "site" | "anime" | "episode". Returns { name, catalog, totalEpisodes, playableCount, duration }.
@@ -1409,6 +1415,15 @@ function updateLibraryResultCount(count) {
   libraryResultCount.textContent = `${count.toLocaleString()} Result${count === 1 ? "" : "s"}`;
 }
 
+function updateLibraryMoreButton(total = 0, visible = 0, cappedTotal = total) {
+  if (!libraryMoreButton) return;
+  const hasMore = visible < cappedTotal;
+  libraryMoreButton.hidden = !hasMore;
+  libraryMoreButton.textContent = hasMore
+    ? `Show more (${visible.toLocaleString()} / ${total.toLocaleString()})`
+    : "";
+}
+
 // The catalog limited to the currently-active mode. Adult mode shows ONLY adult
 // content; default mode shows ONLY non-adult content — they never mix. Every
 // content surface (rails, library, search, favorites, continue watching) draws
@@ -1658,7 +1673,7 @@ async function liveSearchAniList(query) {
   if (q.length < 3 || _liveSearchDone.has(q)) return;
   const seq = ++_liveSearchSeq;
   try {
-    const res = await fetchWithTimeout(`./api/anilist/search?q=${encodeURIComponent(raw)}`, { cache: "no-store" }, 9000);
+    const res = await fetchWithTimeout(`/api/anilist/search?q=${encodeURIComponent(raw)}`, { cache: "no-store" }, 9000);
     if (!res.ok) return;
     const json = await res.json();
     const results = Array.isArray(json.results) && json.results.length
@@ -2003,7 +2018,7 @@ async function loadAnimeAv1Latest(force = false) {
 
   state.av1LatestLoading = true;
   try {
-    const res = await fetchWithTimeout("./api/animeav1/latest", { cache: "no-store" }, 9000);
+    const res = await fetchWithTimeout("/api/animeav1/latest", { cache: "no-store" }, 9000);
     if (!res.ok) throw new Error(`AnimeAV1 latest HTTP ${res.status}`);
     const json = await res.json();
     if (Array.isArray(json.items) && json.items.length) {
@@ -2059,7 +2074,7 @@ function imageDeliveryUrl(url, width = 360, quality = 70) {
       host === "image.tmdb.org" ||
       host === "media.themoviedb.org";
     if (!allowed) return raw;
-    const proxy = new URL("./api/image", location.href);
+    const proxy = new URL("/api/image", location.origin);
     proxy.searchParams.set("src", parsed.toString());
     if (width) proxy.searchParams.set("w", String(width));
     if (quality) proxy.searchParams.set("q", String(quality));
@@ -2079,7 +2094,7 @@ function imageDeliverySrcSet(url, widths, quality = 80) {
   // Only same proxy-eligible hosts produce resized variants; otherwise srcset is
   // pointless (imageDeliveryUrl returns the raw URL unchanged for every width).
   const probe = imageDeliveryUrl(raw, widths[0], quality);
-  if (!probe.startsWith("./api/image") && !probe.startsWith("/api/image") && !probe.includes("/api/image")) {
+  if (!probe.startsWith("/api/image") && !probe.startsWith("/api/image") && !probe.includes("/api/image")) {
     return "";
   }
   return widths
@@ -2129,24 +2144,24 @@ function getWatchPosterArtwork(show = {}, season = null) {
 
 function getCardPosterCandidates(show = {}) {
   const candidates = [
-    show.images?.poster,
-    show.images?.cover,
-    show.images?.thumbnail,
     show.tmdbSeasonPoster,
     show.tmdbPoster,
     show.coverImageLarge,
+    show.images?.poster,
+    show.images?.cover,
+    show.jikanImage,
     show.coverImage,
     show.image,
     show.poster,
     show.cover,
-    show.jikanImage,
     show.thumbnail,
-    "logo-round.png"
+    show.images?.thumbnail
   ];
   const expanded = [];
   candidates.forEach((value) => {
     const raw = String(value || "").trim();
     if (!raw) return;
+    if (/(^|\/)logo-(?:round|mark|wordmark|transparent)/i.test(raw)) return;
     const upgraded = hqImage(raw);
     if (upgraded) expanded.push(upgraded);
     if (raw !== upgraded) expanded.push(raw);
@@ -2157,30 +2172,86 @@ function getCardPosterCandidates(show = {}) {
   });
 }
 
-// Best wide cinematic backdrop: TMDB backdrop → AniList banner → TMDB season
-// poster → AniList cover → … (Pre-player background chain.) Known-broken URLs
-// are skipped so a 404'd image never wins.
+function getBackdropSeasonNumber(season = null) {
+  const explicit = Number(season?.season || season?.seasonNumber || 0);
+  if (explicit) return explicit;
+  const active = Number(state.activeSeasonIndex || 0) + 1;
+  return active > 0 ? active : 1;
+}
+
+function firstSeasonStillForBackdrop(show = {}, seasonNumber = 0) {
+  const scoped = seasonNumber && show.tmdbStillsBySeason && show.tmdbStillsBySeason[seasonNumber]
+    ? show.tmdbStillsBySeason[seasonNumber]
+    : null;
+  if (!scoped || typeof scoped !== "object") return "";
+  try {
+    if (typeof ImageResolver !== "undefined" && ImageResolver.firstSeasonStillFromMap) {
+      return ImageResolver.firstSeasonStillFromMap(scoped) || "";
+    }
+  } catch { /* resolver optional */ }
+  const numbers = Object.keys(scoped)
+    .map((key) => Number(key) || 0)
+    .filter((key) => key > 0 && scoped[key])
+    .sort((a, b) => a - b);
+  return numbers.length ? scoped[numbers[0]] : "";
+}
+
+function seasonWideBackdropCandidates(show = {}, season = null) {
+  const seasonNumber = getBackdropSeasonNumber(season);
+  return [
+    season?.tmdbBackdrop,
+    season?.highQualityBackground,
+    season?.banner,
+    season?.backdrop,
+    seasonNumber && show.tmdbSeasonBackdropsBySeason ? show.tmdbSeasonBackdropsBySeason[seasonNumber] : "",
+    firstSeasonStillForBackdrop(show, seasonNumber),
+    season?.wideImage,
+    season?.landscapeImage
+  ].map((value) => hqImage(String(value || "").trim()));
+}
+
+function seasonPosterFallbackCandidates(show = {}, season = null) {
+  const seasonNumber = getBackdropSeasonNumber(season);
+  let resolverSeasonBackdrop = "";
+  try {
+    resolverSeasonBackdrop = typeof ImageResolver !== "undefined" && ImageResolver.getSeasonBackdrop
+      ? ImageResolver.getSeasonBackdrop(show, seasonNumber, season)
+      : "";
+  } catch { resolverSeasonBackdrop = ""; }
+  return [
+    seasonNumber && show.tmdbSeasonPostersBySeason ? show.tmdbSeasonPostersBySeason[seasonNumber] : "",
+    resolverSeasonBackdrop,
+    show.tmdbSeasonPoster
+  ].map((value) => hqImage(String(value || "").trim()));
+}
+
+function watchBackdropKey(show = {}, season = null) {
+  return `${show?.id || show?.anilistId || show?.title || "show"}:s${getBackdropSeasonNumber(season)}`;
+}
+
+// Best wide cinematic backdrop: season-specific TMDB still/backdrop → season
+// banner/poster fallback → show-wide art. Known-broken URLs are skipped so a
+// 404'd image never wins.
 function getWatchBackdropArtwork(show = {}, season = null) {
   show = show || {};
   season = season || {};
   const candidates = [
+    ...seasonWideBackdropCandidates(show, season),
+    ...seasonPosterFallbackCandidates(show, season),
     show.images?.backdrop,
     show.images?.banner,
     show.tmdbBackdrop,
     show.highQualityBackground,
     show.banner,
     show.bannerImage,
-    season?.tmdbBackdrop,
-    show.tmdbSeasonPoster,
     show.backdrop,
     show.heroImage,
     show.wideImage,
     show.landscapeImage,
     show.jikanBackground,
+    season?.image,
+    season?.poster,
     show.coverImageLarge,
-    season?.highQualityBackground,
-    season?.banner,
-    season?.backdrop,
     show.images?.poster,
     show.images?.cover,
     show.image
@@ -2351,7 +2422,7 @@ function renderCarouselIndicators(items) {
   if (!carouselIndicators) return;
   carouselIndicators.innerHTML = items.slice(0, 8).map((show, index) => `
     <button class="carousel-dot focusable ${index === state.carouselIndex ? "is-selected" : ""}" data-carousel-index="${index}" aria-label="Show ${escapeHtml(getShowTitle(show))}">
-      ${carouselArtworkOrPoster(show) ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(carouselArtworkOrPoster(show), 96, 58))}" alt="" width="96" height="54" loading="lazy" decoding="async">` : "<span></span>"}
+      ${carouselArtworkOrPoster(show) ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(carouselArtworkOrPoster(show), 240, 75))}" alt="" width="240" height="135" loading="lazy" decoding="async">` : "<span></span>"}
     </button>
   `).join("");
 
@@ -2431,7 +2502,19 @@ document.addEventListener("error", (event) => {
   } else if (img.classList.contains("season-card-img")) {
     img.style.display = "none";
   } else if (img.classList.contains("thumb-poster") || img.classList.contains("thumb-backdrop") || img.closest(".carousel-dot")) {
-    img.style.visibility = "hidden";   // reveal the card's gradient placeholder
+    // Set a transparent 1x1 gif to clear the broken image icon, then fade out
+    // so the card's brand gradient (.thumb-art background) shows through.
+    img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+    img.removeAttribute("srcset");
+    img.style.opacity = "0";
+    // Add the branded "Z" fallback logo to the card
+    const card = img.closest(".thumb-art") || img.closest(".carousel-dot");
+    if (card && !card.querySelector(".thumb-fallback-mark")) {
+      const mark = document.createElement("div");
+      mark.className = "thumb-fallback-mark";
+      mark.setAttribute("aria-hidden", "true");
+      card.appendChild(mark);
+    }
   }
 }, true);
 
@@ -2629,8 +2712,8 @@ async function hydrateCanonicalAnimeMetadata(show) {
   let media = null;
   try {
     const endpoint = show.anilistId
-      ? `./api/anilist/media?id=${encodeURIComponent(show.anilistId)}`
-      : `./api/anilist/search?q=${encodeURIComponent(show.romajiTitle || show.title || "")}`;
+      ? `/api/anilist/media?id=${encodeURIComponent(show.anilistId)}`
+      : `/api/anilist/search?q=${encodeURIComponent(show.romajiTitle || show.title || "")}`;
     const response = await fetchDeduped(endpoint);
     const payload = response.ok ? await response.json() : null;
     media = payload?.media || null;
@@ -2649,7 +2732,7 @@ async function hydrateCanonicalAnimeMetadata(show) {
   if (!malId) {
     try {
       const response = await fetchWithTimeout(
-        `./api/jikan/search?q=${encodeURIComponent(show.romajiTitle || show.title || "")}`,
+        `/api/jikan/search?q=${encodeURIComponent(show.romajiTitle || show.title || "")}`,
         { cache: "no-store" },
         15000
       );
@@ -2671,7 +2754,7 @@ async function hydrateCanonicalAnimeMetadata(show) {
   if (malId) {
     show.malId = malId;
     try {
-      const response = await fetchDeduped(`./api/jikan/full?id=${encodeURIComponent(malId)}`);
+      const response = await fetchDeduped(`/api/jikan/full?id=${encodeURIComponent(malId)}`);
       const payload = response.ok ? await response.json() : null;
       jikan = payload?.data || null;
     } catch { /* Keep AniList metadata when Jikan is rate-limited. */ }
@@ -2789,7 +2872,7 @@ async function fetchAniListShowExtras(show) {
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify({ query, variables: { id: Number(id) } })
       }).then(r => r.json()) : Promise.resolve(null),
-      malId ? fetch(`./api/jikan/episodes?id=${encodeURIComponent(malId)}`).then(r => r.json()) : Promise.resolve(null)
+      malId ? fetch(`/api/jikan/episodes?id=${encodeURIComponent(malId)}`).then(r => r.json()) : Promise.resolve(null)
     ]);
 
     const media = (aniResp.status === "fulfilled" && aniResp.value) ? aniResp.value.data?.Media : null;
@@ -3110,9 +3193,12 @@ function renderCards(container, list) {
   // enrichment, trailer lookups, route syncs); re-writing identical cards replays
   // the staggered entrance animation and reloads every <img>, which reads as a
   // flash/"blink". Only touch the DOM when the cards (order + badge + favourite
-  // state) actually change.
+  // state + available poster art) actually change.
   const signature = list
-    .map((show) => `${show.id}:${cardEpisodeLabel(show)}:${state.favorites.includes(show.id) ? 1 : 0}`)
+    .map((show) => {
+      const posterKey = getCardPosterCandidates(show)[0] || "";
+      return `${show.id}:${cardEpisodeLabel(show)}:${state.favorites.includes(show.id) ? 1 : 0}:${posterKey}`;
+    })
     .join("|");
   if (container.dataset.cardsSig === signature) return;
   container.dataset.cardsSig = signature;
@@ -3739,7 +3825,7 @@ async function resolveEpisodeWithAnime1vFallback(show, episode, seasonNumber = 1
   }
 
   try {
-    const searchUrl = withAnime1vApiKey(`./api/anime1v/search?q=${encodeURIComponent(stripSeasonFromTitle(show.title))}`);
+    const searchUrl = withAnime1vApiKey(`/api/anime1v/search?q=${encodeURIComponent(stripSeasonFromTitle(show.title))}`);
     const searchResponse = await fetchWithTimeout(searchUrl, { cache: "no-store" }, 12000);
     if (!searchResponse.ok) throw new Error("Anime1v search unavailable");
     const searchPayload = await searchResponse.json();
@@ -3753,7 +3839,7 @@ async function resolveEpisodeWithAnime1vFallback(show, episode, seasonNumber = 1
       return { type: "none" };
     }
 
-    const episodeUrl = new URL(withAnime1vApiKey("./api/anime1v/episodes"), location.href);
+    const episodeUrl = new URL(withAnime1vApiKey("/api/anime1v/episodes"), location.origin);
     episodeUrl.searchParams.set("url", matched.anime1vUrl);
     if (matched.provider) episodeUrl.searchParams.set("provider", matched.provider);
     const episodeResponse = await fetchWithTimeout(episodeUrl.toString(), { cache: "no-store" }, 16000);
@@ -3834,7 +3920,7 @@ async function resolveEpisodeWithJimovFallback(show, episode, seasonNumber = 1) 
   }
 
   try {
-    const catalogUrl = new URL("./api/jimov/tioanime/catalog", location.href);
+    const catalogUrl = new URL("/api/jimov/tioanime/catalog", location.origin);
     catalogUrl.searchParams.set("q", stripSeasonFromTitle(show.title));
     catalogUrl.searchParams.set("limit", "12");
     const catalogResponse = await fetchWithTimeout(catalogUrl.toString(), { cache: "no-store" }, 12000);
@@ -3850,7 +3936,7 @@ async function resolveEpisodeWithJimovFallback(show, episode, seasonNumber = 1) 
       return { type: "none" };
     }
 
-    const infoUrl = new URL("./api/jimov/tioanime/info", location.href);
+    const infoUrl = new URL("/api/jimov/tioanime/info", location.origin);
     infoUrl.searchParams.set("url", matched.jimovUrl || matched.siteUrl);
     const infoResponse = await fetchWithTimeout(infoUrl.toString(), { cache: "no-store" }, 16000);
     if (!infoResponse.ok) throw new Error("JIMOV episode list unavailable");
@@ -3919,7 +4005,7 @@ async function resolveEpisodeWithAllAnimeFallback(show, episode, seasonNumber = 
 
   try {
     // 1. Search AllAnime for this show
-    const searchUrl = new URL("./api/allanime/search", location.href);
+    const searchUrl = new URL("/api/allanime/search", location.origin);
     searchUrl.searchParams.set("q", stripSeasonFromTitle(show.title));
     searchUrl.searchParams.set("limit", "8");
     const searchResponse = await fetchWithTimeout(searchUrl.toString(), { cache: "no-store" }, 10000);
@@ -3936,7 +4022,7 @@ async function resolveEpisodeWithAllAnimeFallback(show, episode, seasonNumber = 
     }
 
     // 2. Get stream URLs for this episode
-    const watchUrl = new URL("./api/allanime/watch", location.href);
+    const watchUrl = new URL("/api/allanime/watch", location.origin);
     watchUrl.searchParams.set("id", matched.allAnimeId || matched.id);
     watchUrl.searchParams.set("ep", String(episodeNumber));
     watchUrl.searchParams.set("lang", "sub");
@@ -4012,7 +4098,7 @@ async function resolveEpisodeWithRapidAnimeFallback(show, episode, seasonNumber 
   }
 
   try {
-    const searchUrl = new URL("./api/rapid-anime/search", location.href);
+    const searchUrl = new URL("/api/rapid-anime/search", location.origin);
     searchUrl.searchParams.set("q", stripSeasonFromTitle(show.title));
     const searchResponse = await fetchWithTimeout(searchUrl.toString(), { cache: "no-store" }, 28000);
     if (!searchResponse.ok) throw new Error("RapidAPI search unavailable");
@@ -4028,7 +4114,7 @@ async function resolveEpisodeWithRapidAnimeFallback(show, episode, seasonNumber 
       return { type: "none" };
     }
 
-    const infoUrl = new URL("./api/rapid-anime/info", location.href);
+    const infoUrl = new URL("/api/rapid-anime/info", location.origin);
     infoUrl.searchParams.set("id", rapidId);
     const infoResponse = await fetchWithTimeout(infoUrl.toString(), { cache: "no-store" }, 28000);
     if (!infoResponse.ok) throw new Error("RapidAPI episode list unavailable");
@@ -4087,7 +4173,7 @@ async function resolveEpisodeWithConsumetFallback(show, episode, seasonNumber = 
   }
 
   try {
-    const searchUrl = new URL("./api/consumet/kickassanime/search", location.href);
+    const searchUrl = new URL("/api/consumet/kickassanime/search", location.origin);
     searchUrl.searchParams.set("q", getFranchiseKey(show.title) || show.title);
     searchUrl.searchParams.set("limit", "24");
     searchUrl.searchParams.set("pages", "2");
@@ -4104,7 +4190,7 @@ async function resolveEpisodeWithConsumetFallback(show, episode, seasonNumber = 
       return { type: "none" };
     }
 
-    const infoUrl = new URL("./api/consumet/kickassanime/info", location.href);
+    const infoUrl = new URL("/api/consumet/kickassanime/info", location.origin);
     infoUrl.searchParams.set("id", matched.consumetId);
     const infoResponse = await fetchWithTimeout(infoUrl.toString(), { cache: "no-store" }, 20000);
     if (!infoResponse.ok) throw new Error("Consumet episode list unavailable");
@@ -4299,19 +4385,19 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
       .then(() => refreshPicker())
   ];
   if (isScraperEnabled("tioanime")) {
-    lookups.push(playbackLookupWithTimeout("TioAnime scraper", attachTioAnimeSources(show, episode), 6500)
+    lookups.push(playbackLookupWithTimeout("TioAnime scraper", attachTioAnimeSources(show, episode), 10000)
       .then(() => updateServerCheck("tioanime", getKnownSourceServer("tioanime").match)));
   } else { episode.tioAnimeSourcesChecked = true; episode.serverChecks.tioanime = "notfound"; }
   if (isScraperEnabled("animeav1")) {
-    lookups.push(playbackLookupWithTimeout("AnimeAV1 scraper", attachAnimeAv1Sources(show, episode), 6500)
+    lookups.push(playbackLookupWithTimeout("AnimeAV1 scraper", attachAnimeAv1Sources(show, episode), 10000)
       .then(() => updateServerCheck("animeav1", getKnownSourceServer("animeav1").match)));
   } else { episode.animeAv1SourcesChecked = true; episode.serverChecks.animeav1 = "notfound"; }
   if (isScraperEnabled("jkanime")) {
-    lookups.push(playbackLookupWithTimeout("JKAnime scraper", attachJKAnimeSources(show, episode), 8000)
+    lookups.push(playbackLookupWithTimeout("JKAnime scraper", attachJKAnimeSources(show, episode), 12000)
       .then(() => updateServerCheck("jkanime", getKnownSourceServer("jkanime").match)));
   } else { episode.jkAnimeSourcesChecked = true; episode.serverChecks.jkanime = "notfound"; }
   if (isScraperEnabled("animeonlineninja")) {
-    lookups.push(playbackLookupWithTimeout("AniméOnlineNinja scraper", attachAnimeonlineNinjaSources(show, episode), 12000)
+    lookups.push(playbackLookupWithTimeout("AniméOnlineNinja scraper", attachAnimeonlineNinjaSources(show, episode), 15000)
       .then(() => updateServerCheck("animeonlineninja", getKnownSourceServer("animeonlineninja").match)));
   } else { episode.animeonlineNinjaSourcesChecked = true; episode.serverChecks.animeonlineninja = "notfound"; }
   await Promise.allSettled(lookups);
@@ -5153,7 +5239,27 @@ function wireSourceButtons(root = document) {
   });
 }
 
+// Debounced render — avoids UI freezes when multiple background enrichments
+// trigger render() in rapid succession. The first call executes immediately;
+// subsequent calls within 80ms are coalesced into a single trailing call.
+let _renderTimer = 0;
+let _renderImmediate = true;
+const _renderCore = _render;
 function render() {
+  if (_renderImmediate) {
+    _renderImmediate = false;
+    _renderCore();
+    _renderTimer = window.setTimeout(() => { _renderImmediate = true; }, 80);
+    return;
+  }
+  window.clearTimeout(_renderTimer);
+  _renderTimer = window.setTimeout(() => {
+    _renderImmediate = true;
+    _renderCore();
+  }, 80);
+}
+
+function _render() {
   updateFilterButtons();
   const isHome = state.route === "home";
   const isLibrary = state.route === "library";
@@ -5170,6 +5276,7 @@ function render() {
     if (isLibrary) {
       renderSkeletonCards(libraryGrid, 14);
       updateLibraryResultCount(0);
+      updateLibraryMoreButton(0, 0, 0);
     }
   } else {
     if (isHome) renderCards(latestGrid, buildLatestEpisodesList(state.homeCardLimit || HOME_INITIAL_CARD_LIMIT));
@@ -5180,10 +5287,33 @@ function render() {
           .filter(matchesLibraryAdvancedFilters)
       );
       updateLibraryResultCount(libraryFiltered.length);
-      const libraryLimit = typeof AdultMode !== "undefined" && AdultMode.isEnabled()
-        ? libraryFiltered.length
-        : (state.search ? SEARCH_CARD_LIMIT : LIBRARY_CARD_LIMIT);
-      renderCards(libraryGrid, libraryFiltered.slice(0, libraryLimit));
+      const modeKey = typeof AdultMode !== "undefined" && AdultMode.isEnabled() ? "adult" : "regular";
+      const libraryQuerySig = [
+        modeKey,
+        state.search,
+        state.libraryLetter,
+        state.libraryType,
+        state.libraryGenre,
+        state.libraryYear,
+        state.libraryStatus,
+        state.librarySort
+      ].join("|");
+      if (state.libraryQuerySig !== libraryQuerySig) {
+        state.libraryQuerySig = libraryQuerySig;
+        state.libraryVisibleLimit = LIBRARY_INITIAL_RENDER_LIMIT;
+      }
+      const maxLibraryLimit = Math.min(
+        libraryFiltered.length,
+        state.search ? SEARCH_CARD_LIMIT : LIBRARY_CARD_LIMIT
+      );
+      const visibleLimit = Math.min(
+        maxLibraryLimit,
+        Math.max(state.libraryVisibleLimit || LIBRARY_INITIAL_RENDER_LIMIT, LIBRARY_INITIAL_RENDER_LIMIT)
+      );
+      const visibleLibraryShows = libraryFiltered.slice(0, visibleLimit);
+      renderCards(libraryGrid, visibleLibraryShows);
+      updateLibraryMoreButton(libraryFiltered.length, visibleLimit, maxLibraryLimit);
+      warmVisibleShowMetadata(visibleLibraryShows, Math.min(visibleLibraryShows.length, 48));
     }
   }
 
@@ -5394,7 +5524,8 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
       await hydrateAdultShowDetails(show);
       if (state.activeOpenToken !== openToken || state.activeShow?.id !== show.id) return;
       if (!state.activeEpisode) applyOpenTarget(show, target);
-      renderEpisodeList(show);
+      // Don't rebuild the episode list out from under an open source picker.
+      if (!episodeList?.querySelector(".side-source-picker")) renderEpisodeList(show);
       syncWatchHeading(show);
       const descriptionNode = document.querySelector("#watchDescription");
       if (descriptionNode) descriptionNode.textContent = show.description || "";
@@ -5456,7 +5587,11 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
       await attachPlaybackSourceOptions(show, state.activeEpisode.episode, state.activeEpisode?.season?.season || state.activeSeasonIndex + 1 || 1);
       if (state.activeOpenToken !== openToken || state.activeShow?.id !== show.id) return;
     }
-    renderEpisodeList(show);
+    // Background hydration finished. If the user already opened the source picker
+    // (Play / episode click), DON'T rebuild the episode list — it lives inside
+    // #episodeList and rebuilding would close the picker mid-load and bounce them
+    // back to the episode list. The picker refreshes itself as new sources land.
+    if (!episodeList?.querySelector(".side-source-picker")) renderEpisodeList(show);
     syncWatchHeading(show);
     const descriptionNode = document.querySelector("#watchDescription");
     if (descriptionNode) descriptionNode.textContent = show.description;
@@ -5486,7 +5621,7 @@ async function hydrateAnime1vEpisodes(show) {
   if (!show || show.anime1vEpisodesLoaded) return show;
   const animeUrl = show.anime1vUrl || show.siteUrl;
   const provider = show.provider || inferAnime1vProvider(animeUrl);
-  const endpoint = show.episodeEndpoint || "./api/anime1v/episodes";
+  const endpoint = show.episodeEndpoint || "/api/anime1v/episodes";
   if (!animeUrl || !endpoint) return show;
   try {
     const url = new URL(resolveSourceEndpoint(endpoint), location.href);
@@ -5549,7 +5684,7 @@ function isAnime1vShow(show) {
 async function hydrateConsumetEpisodes(show) {
   if (!show || show.consumetEpisodesLoaded) return show;
   const consumetId = show.consumetId || show.consumetUrl || show.siteUrl;
-  const endpoint = show.episodeEndpoint || "./api/consumet/kickassanime/info";
+  const endpoint = show.episodeEndpoint || "/api/consumet/kickassanime/info";
   if (!consumetId || !endpoint) return show;
   try {
     const url = new URL(resolveSourceEndpoint(endpoint), location.href);
@@ -5607,7 +5742,7 @@ function isConsumetShow(show) {
 async function hydrateRapidAnimeEpisodes(show) {
   if (!show || show.rapidAnimeEpisodesLoaded) return show;
   const animeId = show.rapidAnimeId || show.aliases?.[0] || show.siteUrl || show.id;
-  const endpoint = show.episodeEndpoint || "./api/rapid-anime/info";
+  const endpoint = show.episodeEndpoint || "/api/rapid-anime/info";
   if (!animeId || !endpoint) return show;
   try {
     const url = new URL(resolveSourceEndpoint(endpoint), location.href);
@@ -5666,7 +5801,7 @@ function isRapidAnimeShow(show) {
 async function hydrateJimovEpisodes(show) {
   if (!show || show.jimovEpisodesLoaded) return show;
   const jimovUrl = show.jimovUrl || show.siteUrl;
-  const endpoint = show.episodeEndpoint || "./api/jimov/tioanime/info";
+  const endpoint = show.episodeEndpoint || "/api/jimov/tioanime/info";
   if (!jimovUrl || !endpoint) return show;
   try {
     const url = new URL(resolveSourceEndpoint(endpoint), location.href);
@@ -5778,7 +5913,7 @@ async function hydrateAniPubEpisodes(show) {
   try {
     let payload = getAniPubEpisodeCache(aniPubId);
     if (!payload) {
-      const response = await fetchWithTimeout(`./api/anipub/episodes/${encodeURIComponent(aniPubId)}`, { cache: "no-store" }, 12000);
+      const response = await fetchWithTimeout(`/api/anipub/episodes/${encodeURIComponent(aniPubId)}`, { cache: "no-store" }, 12000);
       if (!response.ok) throw new Error("AniPub episode endpoint unavailable");
       payload = await response.json();
       setAniPubEpisodeCache(aniPubId, payload);
@@ -6235,10 +6370,12 @@ function applyWatchBackdrop(show, season) {
   const backdrop = document.querySelector("#watchBackdrop");
   if (!backdrop) return;
   const blur = document.querySelector("#watchBackdropBlur");
+  const key = watchBackdropKey(show, season);
   // Wide art (TMDB backdrop, AniList banner, hero/landscape) covers the frame
   // cleanly. A poster/cover fallback is vertical, so cropping it with `cover`
   // looks bad — we show it `contain` over a blurred fill of itself instead.
   const wideSources = new Set([
+    ...seasonWideBackdropCandidates(show, season),
     show.images?.backdrop, show.images?.banner,
     show.tmdbBackdrop, show.highQualityBackground, show.banner, show.bannerImage,
     season?.tmdbBackdrop, show.backdrop, show.heroImage, show.wideImage,
@@ -6248,6 +6385,8 @@ function applyWatchBackdrop(show, season) {
   const paint = (url) => {
     const posterFit = Boolean(url) && !wideSources.has(url);
     backdrop.style.backgroundImage = url ? `url("${url}")` : animeBackdropFallback(show);
+    backdrop.dataset.backdropKey = key;
+    backdrop.dataset.backdropUrl = url || "";
     backdrop.classList.toggle("has-art", Boolean(url));
     backdrop.classList.toggle("has-fallback-art", !url);
     backdrop.classList.toggle("is-poster-fit", posterFit);
@@ -6261,7 +6400,15 @@ function applyWatchBackdrop(show, season) {
     overlay?.classList.toggle("has-backdrop-art", Boolean(url));
   };
 
-  const art = getWatchBackdropArtwork(show, season);
+  let art = getWatchBackdropArtwork(show, season);
+  const currentKey = backdrop.dataset.backdropKey || "";
+  const currentUrl = backdrop.dataset.backdropUrl || "";
+  let currentFailed = false;
+  try { currentFailed = Boolean(currentUrl && typeof ImageResolver !== "undefined" && ImageResolver.isImageFailed(currentUrl)); }
+  catch { currentFailed = false; }
+  if (currentKey === key && currentUrl && !currentFailed && art && art !== currentUrl) {
+    art = currentUrl;
+  }
   paint(art);
   if (art) {
     // Verify the winning art really loads; if it 404s, blacklist it and fall
@@ -6270,7 +6417,10 @@ function applyWatchBackdrop(show, season) {
     probe.referrerPolicy = "no-referrer";
     probe.onerror = () => {
       try { ImageResolver.markImageFailed(art); } catch { /* resolver optional */ }
-      if (state.activeShow?.id === show.id) paint(getWatchBackdropArtwork(show, season));
+      if (state.activeShow?.id === show.id) {
+        backdrop.dataset.backdropUrl = "";
+        paint(getWatchBackdropArtwork(show, season));
+      }
     };
     probe.src = art;
   }
@@ -6329,9 +6479,19 @@ function episodeMetadataForNumber(show = {}, number = 0, seasonNumber = 0) {
   const sNum = Number(seasonNumber || 0);
   // Multi-season shows store per-season TMDB metadata so Season 2's titles/stills
   // don't collide with Season 1's on the same local episode number.
-  const tmdb = (sNum && show.tmdbEpisodesBySeasonNum && show.tmdbEpisodesBySeasonNum[sNum])
-    ? (show.tmdbEpisodesBySeasonNum[sNum][number] || null)
-    : (show.tmdbEpisodesByNum?.[number] || null);
+  let tmdb = null;
+  if (typeof ImageResolver !== "undefined" && ImageResolver.getSeasonEpisodeMeta) {
+    tmdb = ImageResolver.getSeasonEpisodeMeta(show, sNum, number);
+  } else if (sNum && show.tmdbEpisodesBySeasonNum && show.tmdbEpisodesBySeasonNum[sNum]) {
+    const scoped = show.tmdbEpisodesBySeasonNum[sNum];
+    tmdb = scoped[number] || null;
+    if (!tmdb) {
+      const localMax = Math.max(0, ...Object.keys(scoped).map((key) => Number(key) || 0));
+      if (Number(number) > localMax) tmdb = show.tmdbEpisodesByNum?.[number] || null;
+    }
+  } else {
+    tmdb = show.tmdbEpisodesByNum?.[number] || null;
+  }
   const streamed = show.streamingEpisodesByNum?.[number] || null;
   if (!tmdb) return streamed;
   if (!streamed) return tmdb;
@@ -6390,13 +6550,20 @@ function episodeThumb(episode = {}, season = {}, show = {}, repeatedImages = new
   if (!isAdultShow && comparable && (repeatedImages.has(comparable) || showLevelArt.has(comparable))) ownImage = "";
   if (typeof ImageResolver !== "undefined") {
     let tmdbStill = ImageResolver.getEpisodeStill(show, episode, seasonNum);
+    if (!tmdbStill && ImageResolver.getNearestEpisodeStill) {
+      tmdbStill = ImageResolver.getNearestEpisodeStill(show, episode, seasonNum);
+    }
     if (!isAdultShow && isAdultImageUrl(tmdbStill)) tmdbStill = "";
     const num = Number(episode?.episode || episode?.episodeNumber || 0);
     // When this season has its own TMDB-season map loaded, that map is
     // authoritative — don't fire the flat (absolute-numbered) lazy fetch, which
     // would mis-key stills for a season that restarts numbering at 1.
     const seasonScoped = seasonNum && show.tmdbStillsBySeason && show.tmdbStillsBySeason[seasonNum];
-    if (show.tmdbId && num && !tmdbStill && !seasonScoped) {
+    const seasonScopedMax = seasonScoped
+      ? Math.max(0, ...Object.keys(seasonScoped).map((key) => Number(key) || 0))
+      : 0;
+    const seasonScopedCoversEpisode = Boolean(seasonScoped && num <= seasonScopedMax);
+    if (show.tmdbId && num && !tmdbStill && !seasonScopedCoversEpisode) {
       ImageResolver.lazyFetchEpisodeStill(show, num);
     }
     const tmdbComparable = comparableImageUrl(tmdbStill);
@@ -6455,6 +6622,11 @@ function renderEpisodeList(show) {
   if (!isAdultSourceShow && (show.anilistId || show.malId) && !show._extrasTried && !show.streamingEpisodes) {
     show._extrasTried = true;
     fetchAniListShowExtras(show).then(() => {
+      // Don't rebuild while the in-panel source picker is open (user pressed Play
+      // / picked an episode) — the picker lives inside #episodeList, so a
+      // background re-render here would yank it closed mid-load and bounce the
+      // user back to the episode list.
+      if (episodeList?.querySelector(".side-source-picker")) return;
       if (state.activeShow?.id === show.id && (show.streamingEpisodes || show.banner)) renderEpisodeList(show);
     }).catch(() => {});
   }
@@ -6617,7 +6789,10 @@ function renderEpisodeList(show) {
             repeatedImages,
             repeatedTmdbImages
           );
-          const tmdbStill = (typeof ImageResolver !== "undefined") ? ImageResolver.getEpisodeStill(show, { episode: num }, activeSeasonNum) : "";
+          let tmdbStill = (typeof ImageResolver !== "undefined") ? ImageResolver.getEpisodeStill(show, { episode: num }, activeSeasonNum) : "";
+          if (!tmdbStill && typeof ImageResolver !== "undefined" && ImageResolver.getNearestEpisodeStill) {
+            tmdbStill = ImageResolver.getNearestEpisodeStill(show, { episode: num }, activeSeasonNum);
+          }
           const epOwnImage = episode.image || episode.thumbnail || episode.still || episode.snapshot || epMeta?.thumbnail || "";
           const epBackdrop = show.images?.backdrop || show.images?.banner || show.tmdbBackdrop || show.banner || show.bannerImage || "";
           const isAdultShow = show.adultSource || (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show));
@@ -6682,6 +6857,7 @@ function renderEpisodeList(show) {
                   data-ep-search="${escapeHtml(search)}">
             <span class="ep-thumb ${finalEpImgSrc ? "has-image" : "is-placeholder"}${isFallback ? " is-fallback" : ""}" style="--episode-hue:${fallbackHue}">
               ${finalEpImgSrc ? `<img referrerpolicy="no-referrer" class="ep-thumb-img" src="${escapeHtml(finalEpImgSrc)}" alt="" loading="lazy" decoding="async"${epFallbackData}>` : ""}
+              ${finalEpImgSrc ? "" : `<span class="ep-thumb-empty" aria-hidden="true"><span class="ep-thumb-empty-mark">Z</span><span class="ep-thumb-empty-copy">Preview pending</span></span>`}
               <span class="ep-thumb-num">${escapeHtml(String(num))}</span>
               <span class="ep-thumb-play" aria-hidden="true">▶</span>
               ${progressBar}
@@ -8199,7 +8375,7 @@ function proxiedStreamUrl(url = "") {
   const resolved = resolveSourceEndpoint(url);
   if (!isProxyableStreamUrl(resolved) || location.protocol === "file:") return resolved;
   const proxyHost = streamProxyHost(resolved);
-  const proxy = new URL(LOCAL_SOURCE_PROXY_ENDPOINT, location.href);
+  const proxy = new URL(LOCAL_SOURCE_PROXY_ENDPOINT, location.origin);
   proxy.searchParams.set("url", resolved);
   if (proxyHost) proxy.searchParams.set("refererHost", proxyHost);
   return proxy.toString();
@@ -8212,7 +8388,7 @@ function playerFitScaleValue(fit = state.uiPreferences.playerFit || "contain") {
 }
 
 function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null) {
-  const playerUrl = new URL("./player/player.html", location.href);
+  const playerUrl = new URL("/player/player.html", location.origin);
   playerUrl.searchParams.set("v", "2");
   playerUrl.searchParams.set("src", resolveSourceEndpoint(url));
   playerUrl.searchParams.set("audio", getLanguagePreferences().audio || "");
@@ -9586,7 +9762,7 @@ async function fetchTioAnimeSlugSearch(paramName, value, cacheKey) {
   if (!value || _tioAnimeMissCache.has(cacheKey)) return "";
   if (_tioAnimeSlugCache.has(cacheKey)) return _tioAnimeSlugCache.get(cacheKey);
   const qs = `${paramName}=${encodeURIComponent(value)}`;
-  const res = await fetchWithTimeout(`./api/tioanime/search?${qs}`, { cache: "no-store" }, TIOANIME_SEARCH_TIMEOUT_MS);
+  const res = await fetchWithTimeout(`/api/tioanime/search?${qs}`, { cache: "no-store" }, TIOANIME_SEARCH_TIMEOUT_MS);
   if (!res.ok) return "";
   const data = await res.json();
   const slug = data.ok ? tioAnimeSlugFromSearchPayload(data) : "";
@@ -9677,9 +9853,11 @@ let visibleMetadataWarmGeneration = 0;
 
 function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_LIMIT) {
   const generation = ++visibleMetadataWarmGeneration;
+  const providedShows = Array.isArray(shows) ? shows : [];
+  const latestShows = buildLatestEpisodesList(Math.min(HOME_CARD_LIMIT, limit));
   const prioritized = [
-    ...buildLatestEpisodesList(Math.min(HOME_CARD_LIMIT, limit)),
-    ...(Array.isArray(shows) ? shows : [])
+    ...(state.route === "library" ? providedShows : latestShows),
+    ...(state.route === "library" ? latestShows : providedShows)
   ];
   // Deduplicate by stable ID and cap at limit. Prioritise the first 20 on page
   // load so we don't fire 64× parallel hydrations at startup.
@@ -9823,7 +10001,7 @@ async function attachTioAnimeSources(show, episode) {
   }
   try {
     const res = await fetchWithTimeout(
-      `./api/tioanime/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}`,
+      `/api/tioanime/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}`,
       { cache: "no-store" }, TIOANIME_SOURCE_TIMEOUT_MS
     );
     if (!res.ok) {
@@ -9924,7 +10102,7 @@ async function fetchAnimeAv1SlugSearch(paramName, value, cacheKey) {
   if (!value || _animeAv1MissCache.has(cacheKey)) return "";
   if (_animeAv1SlugCache.has(cacheKey)) return _animeAv1SlugCache.get(cacheKey);
   const qs = `${paramName}=${encodeURIComponent(value)}`;
-  const res = await fetchWithTimeout(`./api/animeav1/search?${qs}`, { cache: "no-store" }, ANIMEAV1_SEARCH_TIMEOUT_MS);
+  const res = await fetchWithTimeout(`/api/animeav1/search?${qs}`, { cache: "no-store" }, ANIMEAV1_SEARCH_TIMEOUT_MS);
   if (!res.ok) {
     _animeAv1MissCache.add(cacheKey);
     return "";
@@ -10083,7 +10261,7 @@ async function attachAnimeAv1Sources(show, episode) {
   }
   try {
     const res = await fetchWithTimeout(
-      `./api/animeav1/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}&variant=SUB`,
+      `/api/animeav1/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}&variant=SUB`,
       { cache: "no-store" }, ANIMEAV1_SOURCE_TIMEOUT_MS
     );
     if (!res.ok) {
@@ -10168,7 +10346,7 @@ async function fetchJKAnimeSlugSearch(paramName, value, cacheKey) {
   if (!value || _jkAnimeMissCache.has(cacheKey)) return "";
   if (_jkAnimeSlugCache.has(cacheKey)) return _jkAnimeSlugCache.get(cacheKey);
   const qs = `${paramName}=${encodeURIComponent(value)}`;
-  const res = await fetchWithTimeout(`./api/jkanime/search?${qs}`, { cache: "no-store" }, JKANIME_SEARCH_TIMEOUT_MS);
+  const res = await fetchWithTimeout(`/api/jkanime/search?${qs}`, { cache: "no-store" }, JKANIME_SEARCH_TIMEOUT_MS);
   if (!res.ok) {
     _jkAnimeMissCache.add(cacheKey);
     return "";
@@ -10326,7 +10504,7 @@ async function attachJKAnimeSources(show, episode) {
   }
   try {
     const res = await fetchWithTimeout(
-      `./api/jkanime/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}`,
+      `/api/jkanime/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}`,
       { cache: "no-store" }, JKANIME_SOURCE_TIMEOUT_MS
     );
     if (!res.ok) {
@@ -10856,7 +11034,7 @@ function isExternalIframeEpisode(episode) {
 async function attemptResolveEmbed(embedUrl, siteReferer = "") {
   if (!embedUrl) return null;
   try {
-    const api = new URL("./api/resolve", location.href);
+    const api = new URL("/api/resolve", location.origin);
     api.searchParams.set("url", embedUrl);
     if (siteReferer) api.searchParams.set("referer", siteReferer);
     const response = await fetchWithTimeout(api.toString(), {}, 7000);
@@ -11807,6 +11985,11 @@ document.addEventListener("pointermove", () => {
 });
 
 document.querySelectorAll("[data-route]").forEach((element) => {
+  // <body> now carries a data-route attribute (set by the path-based router), so
+  // it must NOT get this nav handler — otherwise EVERY click bubbles to body and
+  // re-runs setRoute()/render(), which wipes open modals (e.g. the 18+ gate) and
+  // wastes a full re-render on every interaction. Only real nav controls qualify.
+  if (element === document.body || element === document.documentElement) return;
   element.addEventListener("click", (event) => {
     event.preventDefault();
     setRoute(element.dataset.route);
@@ -11864,6 +12047,11 @@ document.querySelector("#libraryResetFilters")?.addEventListener("click", () => 
   });
   const sortEl = document.querySelector("#librarySortFilter");
   if (sortEl) sortEl.value = "default";
+  render();
+});
+
+libraryMoreButton?.addEventListener("click", () => {
+  state.libraryVisibleLimit = (state.libraryVisibleLimit || LIBRARY_INITIAL_RENDER_LIMIT) + LIBRARY_RENDER_STEP;
   render();
 });
 
@@ -12346,7 +12534,7 @@ if ("scrollRestoration" in history) {
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+    navigator.serviceWorker.register("/service-worker.js").catch(() => {});
     navigator.serviceWorker.ready.then((registration) => {
       registration.sync?.register("animetv-update-check").catch(() => {});
     }).catch(() => {});
@@ -12892,7 +13080,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("update-manager.js?v=338");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=338");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
@@ -13007,7 +13195,7 @@ async function hydrateAnimeonlineNinjaSlug(show, options = {}) {
         return show;
       }
       const res = await fetchWithTimeout(
-        `./api/animeonlineninja/search?title=${encodeURIComponent(title)}`,
+        `/api/animeonlineninja/search?title=${encodeURIComponent(title)}`,
         { cache: "no-store" }, ANIMEONLINE_SEARCH_TIMEOUT_MS
       ).catch(() => null);
       if (res?.ok) {
@@ -13044,7 +13232,7 @@ async function attachAnimeonlineNinjaSources(show, episode) {
   }
   try {
     const res = await fetchWithTimeout(
-      `./api/animeonlineninja/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}&lang=LAT`,
+      `/api/animeonlineninja/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}&lang=LAT`,
       { cache: "no-store" }, ANIMEONLINE_SOURCE_TIMEOUT_MS
     );
     if (!res.ok) { episode.animeonlineNinjaSourcesChecked = true; return; }

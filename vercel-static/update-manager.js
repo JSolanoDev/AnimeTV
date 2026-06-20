@@ -17,8 +17,8 @@ const UPDATE_SETTINGS_KEYS = [
 class UpdateManager {
   constructor(options = {}) {
     this.currentVersion = options.currentVersion || ANIMETV_VERSION;
-    this.checkUrl = options.checkUrl || "./api/check-update";
-    this.applyUrl = options.applyUrl || "./api/apply-update";
+    this.checkUrl = options.checkUrl || "/api/check-update";
+    this.applyUrl = options.applyUrl || "/api/apply-update";
   }
 
   start() {

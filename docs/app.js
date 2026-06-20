@@ -1,6 +1,6 @@
 const ANILIST_ENDPOINT = "https://graphql.anilist.co";
-const LOCAL_METADATA_ENDPOINT = "./api/catalog";
-const LOCAL_SOURCE_PROXY_ENDPOINT = "./api/source";
+const LOCAL_METADATA_ENDPOINT = "/api/catalog";
+const LOCAL_SOURCE_PROXY_ENDPOINT = "/api/source";
 const JIKAN_TOP_ENDPOINT = "https://api.jikan.moe/v4/top/anime?filter=airing&limit=25";
 const JIKAN_POPULAR_ENDPOINT = "https://api.jikan.moe/v4/top/anime?filter=bypopularity&limit=25";
 const JIKAN_SEASON_ENDPOINT = "https://api.jikan.moe/v4/seasons/now?limit=25";
@@ -13,8 +13,8 @@ const ANIPUB_FALLBACK_CACHE_TTL = 1000 * 60 * 60;
 const API_TIMEOUT_MS = 5000;
 const RESPONSE_CACHE_TTL = 1000 * 60 * 5;
 const RESPONSE_CACHE_PREFIX = "animetv-response-cache:";
-const ANIPUB_FULL_CATALOG_ENDPOINT = "./api/anipub/catalog/all?limit=12000";
-const TRANSLATE_ENDPOINT = "./api/translate";
+const ANIPUB_FULL_CATALOG_ENDPOINT = "/api/anipub/catalog/all?limit=12000";
+const TRANSLATE_ENDPOINT = "/api/translate";
 const SUBTITLE_TRANSLATION_CACHE_PREFIX = "animetv-subtitle-translation:";
 const ANIPUB_EPISODE_FALLBACK_PREFIX = "animetv-anipub-episode:";
 const ANIPUB_EPISODE_FALLBACK_TTL = 1000 * 60 * 60;
@@ -503,7 +503,7 @@ function scheduleExternalSourcesLoad() {
 
 async function loadExternalSources() {
   try {
-    const response = await fetch("./sources.json", { cache: "no-store" });
+    const response = await fetch("/sources.json", { cache: "no-store" });
     if (!response.ok) throw new Error("sources.json unavailable");
     const config = await response.json();
     const sources = [...(Array.isArray(config.sources) ? config.sources : []), ...state.customSources];
@@ -675,7 +675,7 @@ function resolveSourceEndpoint(endpoint) {
 function getAniPubSource() {
   return state.localSources.find((source) => source.id === "anipub-catalog")
     || state.customSources.find((source) => source.id === "anipub-catalog")
-    || { id: "anipub-catalog", name: "AniPub", endpoint: "./api/anipub/catalog/all?limit=100&page=1", pageSize: 100, paginated: true };
+    || { id: "anipub-catalog", name: "AniPub", endpoint: "/api/anipub/catalog/all?limit=100&page=1", pageSize: 100, paginated: true };
 }
 
 function getAniPubSection() {
@@ -1865,7 +1865,7 @@ function setAniPubEpisodeCache(id, payload) {
 function setDefaultLanguage(audio = "japanese", subtitles = "spanish") {
   const preferences = { audio, subtitles };
   localStorage.setItem(LANGUAGE_PREFERENCES_KEY, JSON.stringify(preferences));
-  fetch("./api/language/preferences", {
+  fetch("/api/language/preferences", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(preferences)
@@ -2099,7 +2099,7 @@ async function resolveEpisodeWithAnime1vFallback(show, episode, seasonNumber = 1
   }
 
   try {
-    const searchUrl = withAnime1vApiKey(`./api/anime1v/search?q=${encodeURIComponent(stripSeasonFromTitle(show.title))}`);
+    const searchUrl = withAnime1vApiKey(`/api/anime1v/search?q=${encodeURIComponent(stripSeasonFromTitle(show.title))}`);
     const searchResponse = await fetchWithTimeout(searchUrl, { cache: "no-store" }, 12000);
     if (!searchResponse.ok) throw new Error("Anime1v search unavailable");
     const searchPayload = await searchResponse.json();
@@ -2113,7 +2113,7 @@ async function resolveEpisodeWithAnime1vFallback(show, episode, seasonNumber = 1
       return { type: "none" };
     }
 
-    const episodeUrl = new URL(withAnime1vApiKey("./api/anime1v/episodes"), location.href);
+    const episodeUrl = new URL(withAnime1vApiKey("/api/anime1v/episodes"), location.href);
     episodeUrl.searchParams.set("url", matched.anime1vUrl);
     if (matched.provider) episodeUrl.searchParams.set("provider", matched.provider);
     const episodeResponse = await fetchWithTimeout(episodeUrl.toString(), { cache: "no-store" }, 16000);
@@ -2746,7 +2746,7 @@ async function hydrateAnime1vEpisodes(show) {
   if (!show || show.anime1vEpisodesLoaded) return show;
   const animeUrl = show.anime1vUrl || show.siteUrl;
   const provider = show.provider || inferAnime1vProvider(animeUrl);
-  const endpoint = show.episodeEndpoint || "./api/anime1v/episodes";
+  const endpoint = show.episodeEndpoint || "/api/anime1v/episodes";
   if (!animeUrl || !endpoint) return show;
   try {
     const url = new URL(resolveSourceEndpoint(endpoint), location.href);
@@ -2809,7 +2809,7 @@ function isAnime1vShow(show) {
 async function hydrateJimovEpisodes(show) {
   if (!show || show.jimovEpisodesLoaded) return show;
   const jimovUrl = show.jimovUrl || show.siteUrl;
-  const endpoint = show.episodeEndpoint || "./api/jimov/tioanime/info";
+  const endpoint = show.episodeEndpoint || "/api/jimov/tioanime/info";
   if (!jimovUrl || !endpoint) return show;
   try {
     const url = new URL(resolveSourceEndpoint(endpoint), location.href);
@@ -2879,7 +2879,7 @@ async function hydrateAniPubEpisodes(show) {
   try {
     let payload = getAniPubEpisodeCache(aniPubId);
     if (!payload) {
-      const response = await fetchWithTimeout(`./api/anipub/episodes/${encodeURIComponent(aniPubId)}`, { cache: "no-store" }, 12000);
+      const response = await fetchWithTimeout(`/api/anipub/episodes/${encodeURIComponent(aniPubId)}`, { cache: "no-store" }, 12000);
       if (!response.ok) throw new Error("AniPub episode endpoint unavailable");
       payload = await response.json();
       setAniPubEpisodeCache(aniPubId, payload);
@@ -4312,7 +4312,7 @@ if ("scrollRestoration" in history) {
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+    navigator.serviceWorker.register("/service-worker.js").catch(() => {});
     navigator.serviceWorker.ready.then((registration) => {
       registration.sync?.register("animetv-update-check").catch(() => {});
     }).catch(() => {});

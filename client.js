@@ -430,7 +430,7 @@ async function loadAnimeSources() {
     state.carouselIndex = 0;
     setSourceStatus(catalogStatusLabel("Cached ZenkaiTV catalog", cachedCatalog));
     render();
-    warmVisibleShowMetadata(buildLatestEpisodesList(state.homeCardLimit), state.homeCardLimit);
+    scheduleVisibleMetadataWarm(buildLatestEpisodesList(state.homeCardLimit), state.homeCardLimit);
   }
 
   const serverCatalog = await timedRequest("ZenkaiTV metadata API", () => fetchLocalMetadataCatalog()).catch(() => []);
@@ -443,7 +443,7 @@ async function loadAnimeSources() {
     writeResponseCache("main-catalog", regularCatalogSnapshot());
     setSourceStatus(catalogStatusLabel("ZenkaiTV API", state.shows));
     render();
-    warmVisibleShowMetadata(buildLatestEpisodesList(state.homeCardLimit), state.homeCardLimit);
+    scheduleVisibleMetadataWarm(buildLatestEpisodesList(state.homeCardLimit), state.homeCardLimit);
     scheduleHomeRailExpansion();
     return;
   }
@@ -484,7 +484,7 @@ async function loadAnimeSources() {
     writeResponseCache("direct-catalog", merged);
     writeResponseCache("main-catalog", merged);
     setSourceStatus(catalogStatusLabel("AniList + Jikan", merged));
-    warmVisibleShowMetadata(buildLatestEpisodesList(state.homeCardLimit), state.homeCardLimit);
+    scheduleVisibleMetadataWarm(buildLatestEpisodesList(state.homeCardLimit), state.homeCardLimit);
   } else {
     state.apiStatus.direct = "Offline";
     if (!state.shows.length) replaceRegularCatalog(fallbackShows);
@@ -2172,30 +2172,86 @@ function getCardPosterCandidates(show = {}) {
   });
 }
 
-// Best wide cinematic backdrop: TMDB backdrop → AniList banner → TMDB season
-// poster → AniList cover → … (Pre-player background chain.) Known-broken URLs
-// are skipped so a 404'd image never wins.
+function getBackdropSeasonNumber(season = null) {
+  const explicit = Number(season?.season || season?.seasonNumber || 0);
+  if (explicit) return explicit;
+  const active = Number(state.activeSeasonIndex || 0) + 1;
+  return active > 0 ? active : 1;
+}
+
+function firstSeasonStillForBackdrop(show = {}, seasonNumber = 0) {
+  const scoped = seasonNumber && show.tmdbStillsBySeason && show.tmdbStillsBySeason[seasonNumber]
+    ? show.tmdbStillsBySeason[seasonNumber]
+    : null;
+  if (!scoped || typeof scoped !== "object") return "";
+  try {
+    if (typeof ImageResolver !== "undefined" && ImageResolver.firstSeasonStillFromMap) {
+      return ImageResolver.firstSeasonStillFromMap(scoped) || "";
+    }
+  } catch { /* resolver optional */ }
+  const numbers = Object.keys(scoped)
+    .map((key) => Number(key) || 0)
+    .filter((key) => key > 0 && scoped[key])
+    .sort((a, b) => a - b);
+  return numbers.length ? scoped[numbers[0]] : "";
+}
+
+function seasonWideBackdropCandidates(show = {}, season = null) {
+  const seasonNumber = getBackdropSeasonNumber(season);
+  return [
+    season?.tmdbBackdrop,
+    season?.highQualityBackground,
+    season?.banner,
+    season?.backdrop,
+    seasonNumber && show.tmdbSeasonBackdropsBySeason ? show.tmdbSeasonBackdropsBySeason[seasonNumber] : "",
+    firstSeasonStillForBackdrop(show, seasonNumber),
+    season?.wideImage,
+    season?.landscapeImage
+  ].map((value) => hqImage(String(value || "").trim()));
+}
+
+function seasonPosterFallbackCandidates(show = {}, season = null) {
+  const seasonNumber = getBackdropSeasonNumber(season);
+  let resolverSeasonBackdrop = "";
+  try {
+    resolverSeasonBackdrop = typeof ImageResolver !== "undefined" && ImageResolver.getSeasonBackdrop
+      ? ImageResolver.getSeasonBackdrop(show, seasonNumber, season)
+      : "";
+  } catch { resolverSeasonBackdrop = ""; }
+  return [
+    seasonNumber && show.tmdbSeasonPostersBySeason ? show.tmdbSeasonPostersBySeason[seasonNumber] : "",
+    resolverSeasonBackdrop,
+    show.tmdbSeasonPoster
+  ].map((value) => hqImage(String(value || "").trim()));
+}
+
+function watchBackdropKey(show = {}, season = null) {
+  return `${show?.id || show?.anilistId || show?.title || "show"}:s${getBackdropSeasonNumber(season)}`;
+}
+
+// Best wide cinematic backdrop: season-specific TMDB still/backdrop → season
+// banner/poster fallback → show-wide art. Known-broken URLs are skipped so a
+// 404'd image never wins.
 function getWatchBackdropArtwork(show = {}, season = null) {
   show = show || {};
   season = season || {};
   const candidates = [
+    ...seasonWideBackdropCandidates(show, season),
+    ...seasonPosterFallbackCandidates(show, season),
     show.images?.backdrop,
     show.images?.banner,
     show.tmdbBackdrop,
     show.highQualityBackground,
     show.banner,
     show.bannerImage,
-    season?.tmdbBackdrop,
     show.backdrop,
     show.heroImage,
     show.wideImage,
     show.landscapeImage,
     show.jikanBackground,
+    season?.image,
+    season?.poster,
     show.coverImageLarge,
-    show.tmdbSeasonPoster,
-    season?.highQualityBackground,
-    season?.banner,
-    season?.backdrop,
     show.images?.poster,
     show.images?.cover,
     show.image
@@ -6314,10 +6370,12 @@ function applyWatchBackdrop(show, season) {
   const backdrop = document.querySelector("#watchBackdrop");
   if (!backdrop) return;
   const blur = document.querySelector("#watchBackdropBlur");
+  const key = watchBackdropKey(show, season);
   // Wide art (TMDB backdrop, AniList banner, hero/landscape) covers the frame
   // cleanly. A poster/cover fallback is vertical, so cropping it with `cover`
   // looks bad — we show it `contain` over a blurred fill of itself instead.
   const wideSources = new Set([
+    ...seasonWideBackdropCandidates(show, season),
     show.images?.backdrop, show.images?.banner,
     show.tmdbBackdrop, show.highQualityBackground, show.banner, show.bannerImage,
     season?.tmdbBackdrop, show.backdrop, show.heroImage, show.wideImage,
@@ -6327,6 +6385,8 @@ function applyWatchBackdrop(show, season) {
   const paint = (url) => {
     const posterFit = Boolean(url) && !wideSources.has(url);
     backdrop.style.backgroundImage = url ? `url("${url}")` : animeBackdropFallback(show);
+    backdrop.dataset.backdropKey = key;
+    backdrop.dataset.backdropUrl = url || "";
     backdrop.classList.toggle("has-art", Boolean(url));
     backdrop.classList.toggle("has-fallback-art", !url);
     backdrop.classList.toggle("is-poster-fit", posterFit);
@@ -6340,7 +6400,15 @@ function applyWatchBackdrop(show, season) {
     overlay?.classList.toggle("has-backdrop-art", Boolean(url));
   };
 
-  const art = getWatchBackdropArtwork(show, season);
+  let art = getWatchBackdropArtwork(show, season);
+  const currentKey = backdrop.dataset.backdropKey || "";
+  const currentUrl = backdrop.dataset.backdropUrl || "";
+  let currentFailed = false;
+  try { currentFailed = Boolean(currentUrl && typeof ImageResolver !== "undefined" && ImageResolver.isImageFailed(currentUrl)); }
+  catch { currentFailed = false; }
+  if (currentKey === key && currentUrl && !currentFailed && art && art !== currentUrl) {
+    art = currentUrl;
+  }
   paint(art);
   if (art) {
     // Verify the winning art really loads; if it 404s, blacklist it and fall
@@ -6349,7 +6417,10 @@ function applyWatchBackdrop(show, season) {
     probe.referrerPolicy = "no-referrer";
     probe.onerror = () => {
       try { ImageResolver.markImageFailed(art); } catch { /* resolver optional */ }
-      if (state.activeShow?.id === show.id) paint(getWatchBackdropArtwork(show, season));
+      if (state.activeShow?.id === show.id) {
+        backdrop.dataset.backdropUrl = "";
+        paint(getWatchBackdropArtwork(show, season));
+      }
     };
     probe.src = art;
   }
@@ -6479,6 +6550,9 @@ function episodeThumb(episode = {}, season = {}, show = {}, repeatedImages = new
   if (!isAdultShow && comparable && (repeatedImages.has(comparable) || showLevelArt.has(comparable))) ownImage = "";
   if (typeof ImageResolver !== "undefined") {
     let tmdbStill = ImageResolver.getEpisodeStill(show, episode, seasonNum);
+    if (!tmdbStill && ImageResolver.getNearestEpisodeStill) {
+      tmdbStill = ImageResolver.getNearestEpisodeStill(show, episode, seasonNum);
+    }
     if (!isAdultShow && isAdultImageUrl(tmdbStill)) tmdbStill = "";
     const num = Number(episode?.episode || episode?.episodeNumber || 0);
     // When this season has its own TMDB-season map loaded, that map is
@@ -6715,7 +6789,10 @@ function renderEpisodeList(show) {
             repeatedImages,
             repeatedTmdbImages
           );
-          const tmdbStill = (typeof ImageResolver !== "undefined") ? ImageResolver.getEpisodeStill(show, { episode: num }, activeSeasonNum) : "";
+          let tmdbStill = (typeof ImageResolver !== "undefined") ? ImageResolver.getEpisodeStill(show, { episode: num }, activeSeasonNum) : "";
+          if (!tmdbStill && typeof ImageResolver !== "undefined" && ImageResolver.getNearestEpisodeStill) {
+            tmdbStill = ImageResolver.getNearestEpisodeStill(show, { episode: num }, activeSeasonNum);
+          }
           const epOwnImage = episode.image || episode.thumbnail || episode.still || episode.snapshot || epMeta?.thumbnail || "";
           const epBackdrop = show.images?.backdrop || show.images?.banner || show.tmdbBackdrop || show.banner || show.bannerImage || "";
           const isAdultShow = show.adultSource || (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show));
@@ -6780,6 +6857,7 @@ function renderEpisodeList(show) {
                   data-ep-search="${escapeHtml(search)}">
             <span class="ep-thumb ${finalEpImgSrc ? "has-image" : "is-placeholder"}${isFallback ? " is-fallback" : ""}" style="--episode-hue:${fallbackHue}">
               ${finalEpImgSrc ? `<img referrerpolicy="no-referrer" class="ep-thumb-img" src="${escapeHtml(finalEpImgSrc)}" alt="" loading="lazy" decoding="async"${epFallbackData}>` : ""}
+              ${finalEpImgSrc ? "" : `<span class="ep-thumb-empty" aria-hidden="true"><span class="ep-thumb-empty-mark">Z</span><span class="ep-thumb-empty-copy">Preview pending</span></span>`}
               <span class="ep-thumb-num">${escapeHtml(String(num))}</span>
               <span class="ep-thumb-play" aria-hidden="true">▶</span>
               ${progressBar}
@@ -9832,6 +9910,22 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
   Promise.allSettled([worker(), worker()]).then(() => {
     if (changed && generation === visibleMetadataWarmGeneration) render();
   }).catch(() => {});
+}
+
+// Defer the visible-metadata warm until the browser is idle so its ~6-calls-per-
+// show hydration cascade (AniList / TMDB / jkanime / tioanime — ~80 requests for
+// the first screen) doesn't fight the critical /api/catalog fetch and the hero
+// LCP image during the initial render. Cards already show catalog data; warming
+// only upgrades posters/episode metadata afterward — a big Speed-Index win with
+// no visible content lost. Opening a show before warming runs still works (it
+// hydrates on demand via hydrateOpenShowDetails).
+function scheduleVisibleMetadataWarm(shows = state.shows, limit = HOME_INITIAL_CARD_LIMIT) {
+  const run = () => { try { warmVisibleShowMetadata(shows, limit); } catch { /* non-fatal */ } };
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(run, { timeout: 2500 });
+  } else {
+    window.setTimeout(run, 1200);
+  }
 }
 
 function warmTioAnimeSlugCatalog(shows = state.shows) {

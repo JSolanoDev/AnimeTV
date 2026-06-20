@@ -1,4 +1,4 @@
-const CACHE_NAME = "zenkaitv-v361";
+const CACHE_NAME = "zenkaitv-v365";
 const SHELL_ASSETS = [
   "./",
   "./index.html",
@@ -93,6 +93,6 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("sync", (event) => {
   if (event.tag === "animetv-update-check") {
-    event.waitUntil(fetch("./api/check-update").catch(() => null));
+    event.waitUntil(fetch("/api/check-update").catch(() => null));
   }
 });

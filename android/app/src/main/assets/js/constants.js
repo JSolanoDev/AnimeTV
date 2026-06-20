@@ -1,6 +1,6 @@
 const ANILIST_ENDPOINT = "https://graphql.anilist.co";
-const LOCAL_METADATA_ENDPOINT = "./api/catalog";
-const LOCAL_SOURCE_PROXY_ENDPOINT = "./api/source";
+const LOCAL_METADATA_ENDPOINT = "/api/catalog";
+const LOCAL_SOURCE_PROXY_ENDPOINT = "/api/source";
 const JIKAN_TOP_ENDPOINT = "https://api.jikan.moe/v4/top/anime?filter=airing&limit=25";
 const JIKAN_POPULAR_ENDPOINT = "https://api.jikan.moe/v4/top/anime?filter=bypopularity&limit=25";
 const JIKAN_SEASON_ENDPOINT = "https://api.jikan.moe/v4/seasons/now?limit=25";
@@ -14,11 +14,11 @@ const ANIPUB_FALLBACK_CACHE_TTL = 1000 * 60 * 60;
 const API_TIMEOUT_MS = 5000;
 const RESPONSE_CACHE_TTL = 1000 * 60 * 5;
 const RESPONSE_CACHE_PREFIX = "animetv-response-cache:";
-const ANIPUB_FULL_CATALOG_ENDPOINT = "./api/anipub/catalog/all?limit=12000";
-const TIOANIME_SLUGS_ENDPOINT = "./api/tioanime/slugs";
-const ANIMEAV1_SLUGS_ENDPOINT = "./api/animeav1/slugs";
-const JKANIME_SLUGS_ENDPOINT = "./api/jkanime/slugs";
-const TRANSLATE_ENDPOINT = "./api/translate";
+const ANIPUB_FULL_CATALOG_ENDPOINT = "/api/anipub/catalog/all?limit=12000";
+const TIOANIME_SLUGS_ENDPOINT = "/api/tioanime/slugs";
+const ANIMEAV1_SLUGS_ENDPOINT = "/api/animeav1/slugs";
+const JKANIME_SLUGS_ENDPOINT = "/api/jkanime/slugs";
+const TRANSLATE_ENDPOINT = "/api/translate";
 const SUBTITLE_TRANSLATION_CACHE_PREFIX = "animetv-subtitle-translation:";
 const ANIPUB_EPISODE_FALLBACK_PREFIX = "animetv-anipub-episode:";
 const ANIPUB_EPISODE_FALLBACK_TTL = 1000 * 60 * 60;
@@ -38,8 +38,8 @@ const pendingSourceLookups = new Map();
 const ANILIST_META_CACHE_PREFIX = "animetv-anilist-meta:";
 const ANILIST_META_CACHE_TTL = 1000 * 60 * 60 * 24;   // 24 h — metadata is stable
 const ANILIST_SEARCH_CACHE_TTL = 1000 * 60 * 60 * 6;  // 6 h — search results
-const ANILIST_MEDIA_ENDPOINT = "./api/anilist/media";
-const ANILIST_SEARCH_ENDPOINT = "./api/anilist/search";
+const ANILIST_MEDIA_ENDPOINT = "/api/anilist/media";
+const ANILIST_SEARCH_ENDPOINT = "/api/anilist/search";
 // Format groups used for franchise display.
 // ONA (Original Net Animation) is included in TV formats because many modern
 // anime are classified as ONA by AniList when they stream first before TV

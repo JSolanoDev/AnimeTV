@@ -20,7 +20,7 @@ const ImageResolver = (function () {
   "use strict";
 
   const TMDB_IMG_BASE = "https://image.tmdb.org/t/p";
-  const MATCH_CACHE_PREFIX = "zenkaitv:tmdb-match:v11:";
+  const MATCH_CACHE_PREFIX = "zenkaitv:tmdb-match:v14:";
   const MATCH_CACHE_TTL_MS = 1000 * 60 * 60 * 24; // Refresh airing episode stills daily.
   const FAILED_CACHE_KEY = "zenkaitv:img-failed:v1";
   const FAILED_CACHE_MAX = 400;
@@ -393,7 +393,18 @@ const ImageResolver = (function () {
     // Tsue to Tsurugi no Wistoria — TMDB #245842 carries both S1 (2024) and S2 (2026).
     // The romaji title is long and the fuzzy search sometimes rejects it; pin so
     // pickTmdbSeason() can correctly map "2nd Season" to TMDB Season 2 stills.
-    { tmdb: 245842, names: ["Tsue to Tsurugi no Wistoria", "Wistoria: Wand and Sword", "Wistoria Wand and Sword", "Tsue to Tsurugi no Wistoria 2nd Season", "Wistoria: Wand and Sword Season 2"] }
+    { tmdb: 245842, names: ["Tsue to Tsurugi no Wistoria", "Wistoria: Wand and Sword", "Wistoria Wand and Sword", "Tsue to Tsurugi no Wistoria 2nd Season", "Wistoria: Wand and Sword Season 2"] },
+    // Otonari no Tenshi-sama S2 — TMDB stores the 2026 sequel as Season 2 under
+    // the English parent entry (#154743). Pin the romaji "2" catalog title so
+    // the season-aware still loader uses those actual episode images.
+    { tmdb: 154743, names: [
+      "Otonari no Tenshi-sama ni Itsunomanika Dame Ningen ni Sareteita Ken",
+      "Otonari no Tenshi-sama ni Itsunomanika Dame Ningen ni Sareteita Ken 2",
+      "Otonari no Tenshi-sama ni Itsunomanika Dame Ningen ni Sareteita Ken 2nd Season",
+      "The Angel Next Door Spoils Me Rotten",
+      "The Angel Next Door Spoils Me Rotten2",
+      "The Angel Next Door Spoils Me Rotten Season 2"
+    ] }
   ];
 
   // Compact key for override matching: lowercase, NFD-decompose, then drop every
@@ -452,6 +463,9 @@ const ImageResolver = (function () {
 
     const showPoster = tmdbPosterUrl(show?.poster_path || searchResult.poster_path);
     const showBackdrop = tmdbBackdropUrl(show?.backdrop_path || searchResult.backdrop_path);
+    const realSeasons = (show?.seasons || [])
+      .filter((s) => Number(s.season_number) > 0 && Number(s.episode_count) > 0)
+      .sort((a, b) => Number(a.season_number) - Number(b.season_number));
 
     // Season-specific art (poster + episode stills) when we can map it.
     let seasonPoster = "";
@@ -518,7 +532,7 @@ const ImageResolver = (function () {
     // and rebuild the stills map keyed by GLOBAL episode number (cumulative offset
     // across seasons), so episode 101 maps correctly to S3 ep 38, etc.
     const totalEps = Number(anime.totalEpisodes || anime.episodeCount || anime.episodes || 0);
-    if (show && totalEps > 100 && real.length > 2) {
+    if (show && totalEps > 100 && realSeasons.length > 2) {
       // Wipe local-numbered stills from the single-season pass; rebuild globally.
       for (const k of Object.keys(episodeStills)) delete episodeStills[k];
       for (const k of Object.keys(episodesByNum)) delete episodesByNum[k];
@@ -526,7 +540,7 @@ const ImageResolver = (function () {
       let _globalOffset = 0;
       // Compute per-season global offsets synchronously (before any await),
       // then fire all season fetches in parallel.
-      const seasonJobs = real.map((s) => {
+      const seasonJobs = realSeasons.map((s) => {
         const offset = _globalOffset;
         _globalOffset += Number(s.episode_count || 0);
         return { s, offset };
@@ -554,7 +568,7 @@ const ImageResolver = (function () {
       for (let i = 0; i < seasonJobs.length; i += 4) {
         await Promise.allSettled(seasonJobs.slice(i, i + 4).map(fetchSeasonJob));
       }
-      debug(`multi-season: ${Object.keys(episodeStills).length} global stills for ${idLabel} (${real.length} seasons)`);
+      debug(`multi-season: ${Object.keys(episodeStills).length} global stills for ${idLabel} (${realSeasons.length} seasons)`);
     }
 
     return {
@@ -725,6 +739,65 @@ const ImageResolver = (function () {
     return anime.tmdbEpisodeStills[num] || "";
   }
 
+  function getNearestEpisodeStill(anime, episode, appSeasonNumber) {
+    if (!anime) return "";
+    const num = Number(episode?.episode || episode?.episodeNumber || 0);
+    if (!num) return "";
+    const sNum = Number(appSeasonNumber || 0);
+    const scoped = sNum && anime.tmdbStillsBySeason && anime.tmdbStillsBySeason[sNum]
+      ? anime.tmdbStillsBySeason[sNum]
+      : null;
+    const pool = scoped || anime.tmdbEpisodeStills || {};
+    const numbers = Object.keys(pool)
+      .map((key) => Number(key) || 0)
+      .filter((key) => key > 0 && pool[key])
+      .sort((a, b) => a - b);
+    if (!numbers.length) return "";
+
+    const previous = [...numbers].reverse().find((key) => key < num);
+    const next = numbers.find((key) => key > num);
+    const previousDistance = previous ? num - previous : Infinity;
+    const nextDistance = next ? next - num : Infinity;
+
+    // Borrow only for tiny gaps, which usually means a newly aired episode has
+    // metadata but no dedicated still yet. Longer gaps keep the branded fallback
+    // so the app does not repeat one picture across a whole arc.
+    if (previous && previousDistance <= 2) return pool[previous] || "";
+    if (next && nextDistance <= 1) return pool[next] || "";
+    return "";
+  }
+
+  function firstSeasonStillFromMap(stills) {
+    if (!stills || typeof stills !== "object") return "";
+    const numbers = Object.keys(stills)
+      .map((key) => Number(key) || 0)
+      .filter((key) => key > 0 && stills[key])
+      .sort((a, b) => a - b);
+    if (!numbers.length) return "";
+    const preferred = [1, 2, 3, Math.ceil(numbers[numbers.length - 1] / 2)];
+    for (const key of preferred) {
+      if (stills[key]) return stills[key];
+    }
+    return stills[numbers[0]] || "";
+  }
+
+  function getSeasonBackdrop(anime, appSeasonNumber, appSeasonMeta) {
+    if (!anime) return "";
+    const sNum = Number(appSeasonNumber || appSeasonMeta?.season || 0);
+    const scopedStills = sNum && anime.tmdbStillsBySeason && anime.tmdbStillsBySeason[sNum]
+      ? anime.tmdbStillsBySeason[sNum]
+      : null;
+    return firstValidImage([
+      appSeasonMeta?.tmdbBackdrop,
+      appSeasonMeta?.highQualityBackground,
+      appSeasonMeta?.banner,
+      appSeasonMeta?.backdrop,
+      sNum && anime.tmdbSeasonBackdropsBySeason ? anime.tmdbSeasonBackdropsBySeason[sNum] : "",
+      firstSeasonStillFromMap(scopedStills),
+      sNum && anime.tmdbSeasonPostersBySeason ? anime.tmdbSeasonPostersBySeason[sNum] : ""
+    ]);
+  }
+
   function resolveEpisodeThumbnail(episode, anime, tmdbData) {
     anime = anime || {};
     tmdbData = tmdbData || {};
@@ -742,8 +815,12 @@ const ImageResolver = (function () {
       tmdbData.showBackdrop || anime.tmdbBackdrop,
       anime.highQualityBackground,
       anime.bannerImage || anime.banner,
-      tmdbData.seasonPoster || anime.tmdbSeasonPoster,
+      anime.backdrop,
+      anime.heroImage,
+      anime.wideImage,
+      anime.landscapeImage,
       anime.coverImageLarge,
+      tmdbData.seasonPoster || anime.tmdbSeasonPoster,
       episode && (episode.thumbnail || episode.image),
       anime.coverImage || anime.image
     ]) || "";
@@ -900,8 +977,14 @@ const ImageResolver = (function () {
       }
       if (!anime.tmdbStillsBySeason) anime.tmdbStillsBySeason = {};
       if (!anime.tmdbEpisodesBySeasonNum) anime.tmdbEpisodesBySeasonNum = {};
+      if (!anime.tmdbSeasonBackdropsBySeason) anime.tmdbSeasonBackdropsBySeason = {};
+      if (!anime.tmdbSeasonPostersBySeason) anime.tmdbSeasonPostersBySeason = {};
       anime.tmdbStillsBySeason[sNum] = stills;
       anime.tmdbEpisodesBySeasonNum[sNum] = metas;
+      const seasonPoster = tmdbPosterUrl(payload?.season?.poster_path);
+      const seasonBackdrop = firstSeasonStillFromMap(stills);
+      if (seasonBackdrop) anime.tmdbSeasonBackdropsBySeason[sNum] = seasonBackdrop;
+      if (seasonPoster) anime.tmdbSeasonPostersBySeason[sNum] = seasonPoster;
       debug(`season-aware: app S${sNum} -> TMDB S${tmdbSeasonNumber} (${Object.keys(stills).length} stills)`);
       if (typeof renderEpisodeList === "function" && typeof state !== "undefined" &&
           state.activeShow && state.activeShow.id === anime.id) {
@@ -938,6 +1021,9 @@ const ImageResolver = (function () {
     isImageFailed,
     hydrateTmdbImages,
     getEpisodeStill,
+    getNearestEpisodeStill,
+    getSeasonBackdrop,
+    firstSeasonStillFromMap,
     ensureSeasonStills,
     getSeasonEpisodeMeta,
     resolveEpisodeThumbnail,

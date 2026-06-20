@@ -341,7 +341,7 @@ async function loadExternalSources() {
   try {
     state.externalSourcesLoaded = false; // mark loading in progress for skeleton
     renderAddonSections();               // show "Loading sources…" hint immediately
-    const response = await fetch("./sources.json", { cache: "no-store" });
+    const response = await fetch("/sources.json", { cache: "no-store" });
     if (!response.ok) throw new Error("sources.json unavailable");
     const config = await response.json();
     const sources = [...(Array.isArray(config.sources) ? config.sources : []), ...state.customSources];
@@ -540,7 +540,7 @@ function resolveSourceEndpoint(endpoint) {
 function getAniPubSource() {
   return state.localSources.find((source) => source.id === "anipub-catalog")
     || state.customSources.find((source) => source.id === "anipub-catalog")
-    || { id: "anipub-catalog", name: "AniPub", endpoint: "./api/anipub/catalog/all?limit=100&page=1", pageSize: 100, paginated: true };
+    || { id: "anipub-catalog", name: "AniPub", endpoint: "/api/anipub/catalog/all?limit=100&page=1", pageSize: 100, paginated: true };
 }
 
 function getAniPubSection() {
@@ -1435,7 +1435,7 @@ async function resolveEpisodeWithAnime1vFallback(show, episode, seasonNumber = 1
   }
 
   try {
-    const searchUrl = withAnime1vApiKey(`./api/anime1v/search?q=${encodeURIComponent(stripSeasonFromTitle(show.title))}`);
+    const searchUrl = withAnime1vApiKey(`/api/anime1v/search?q=${encodeURIComponent(stripSeasonFromTitle(show.title))}`);
     const searchResponse = await fetchWithTimeout(searchUrl, { cache: "no-store" }, 12000);
     if (!searchResponse.ok) throw new Error("Anime1v search unavailable");
     const searchPayload = await searchResponse.json();
@@ -1449,7 +1449,7 @@ async function resolveEpisodeWithAnime1vFallback(show, episode, seasonNumber = 1
       return { type: "none" };
     }
 
-    const episodeUrl = new URL(withAnime1vApiKey("./api/anime1v/episodes"), location.href);
+    const episodeUrl = new URL(withAnime1vApiKey("/api/anime1v/episodes"), location.href);
     episodeUrl.searchParams.set("url", matched.anime1vUrl);
     if (matched.provider) episodeUrl.searchParams.set("provider", matched.provider);
     const episodeResponse = await fetchWithTimeout(episodeUrl.toString(), { cache: "no-store" }, 16000);
@@ -1530,7 +1530,7 @@ async function resolveEpisodeWithJimovFallback(show, episode, seasonNumber = 1) 
   }
 
   try {
-    const catalogUrl = new URL("./api/jimov/tioanime/catalog", location.href);
+    const catalogUrl = new URL("/api/jimov/tioanime/catalog", location.href);
     catalogUrl.searchParams.set("q", stripSeasonFromTitle(show.title));
     catalogUrl.searchParams.set("limit", "12");
     const catalogResponse = await fetchWithTimeout(catalogUrl.toString(), { cache: "no-store" }, 12000);
@@ -1546,7 +1546,7 @@ async function resolveEpisodeWithJimovFallback(show, episode, seasonNumber = 1) 
       return { type: "none" };
     }
 
-    const infoUrl = new URL("./api/jimov/tioanime/info", location.href);
+    const infoUrl = new URL("/api/jimov/tioanime/info", location.href);
     infoUrl.searchParams.set("url", matched.jimovUrl || matched.siteUrl);
     const infoResponse = await fetchWithTimeout(infoUrl.toString(), { cache: "no-store" }, 16000);
     if (!infoResponse.ok) throw new Error("JIMOV episode list unavailable");
@@ -1615,7 +1615,7 @@ async function resolveEpisodeWithAllAnimeFallback(show, episode, seasonNumber = 
 
   try {
     // 1. Search AllAnime for this show
-    const searchUrl = new URL("./api/allanime/search", location.href);
+    const searchUrl = new URL("/api/allanime/search", location.href);
     searchUrl.searchParams.set("q", stripSeasonFromTitle(show.title));
     searchUrl.searchParams.set("limit", "8");
     const searchResponse = await fetchWithTimeout(searchUrl.toString(), { cache: "no-store" }, 10000);
@@ -1632,7 +1632,7 @@ async function resolveEpisodeWithAllAnimeFallback(show, episode, seasonNumber = 
     }
 
     // 2. Get stream URLs for this episode
-    const watchUrl = new URL("./api/allanime/watch", location.href);
+    const watchUrl = new URL("/api/allanime/watch", location.href);
     watchUrl.searchParams.set("id", matched.allAnimeId || matched.id);
     watchUrl.searchParams.set("ep", String(episodeNumber));
     watchUrl.searchParams.set("lang", "sub");
@@ -1708,7 +1708,7 @@ async function resolveEpisodeWithRapidAnimeFallback(show, episode, seasonNumber 
   }
 
   try {
-    const searchUrl = new URL("./api/rapid-anime/search", location.href);
+    const searchUrl = new URL("/api/rapid-anime/search", location.href);
     searchUrl.searchParams.set("q", stripSeasonFromTitle(show.title));
     const searchResponse = await fetchWithTimeout(searchUrl.toString(), { cache: "no-store" }, 28000);
     if (!searchResponse.ok) throw new Error("RapidAPI search unavailable");
@@ -1724,7 +1724,7 @@ async function resolveEpisodeWithRapidAnimeFallback(show, episode, seasonNumber 
       return { type: "none" };
     }
 
-    const infoUrl = new URL("./api/rapid-anime/info", location.href);
+    const infoUrl = new URL("/api/rapid-anime/info", location.href);
     infoUrl.searchParams.set("id", rapidId);
     const infoResponse = await fetchWithTimeout(infoUrl.toString(), { cache: "no-store" }, 28000);
     if (!infoResponse.ok) throw new Error("RapidAPI episode list unavailable");
@@ -1783,7 +1783,7 @@ async function resolveEpisodeWithConsumetFallback(show, episode, seasonNumber = 
   }
 
   try {
-    const searchUrl = new URL("./api/consumet/kickassanime/search", location.href);
+    const searchUrl = new URL("/api/consumet/kickassanime/search", location.href);
     searchUrl.searchParams.set("q", getFranchiseKey(show.title) || show.title);
     searchUrl.searchParams.set("limit", "24");
     searchUrl.searchParams.set("pages", "2");
@@ -1800,7 +1800,7 @@ async function resolveEpisodeWithConsumetFallback(show, episode, seasonNumber = 
       return { type: "none" };
     }
 
-    const infoUrl = new URL("./api/consumet/kickassanime/info", location.href);
+    const infoUrl = new URL("/api/consumet/kickassanime/info", location.href);
     infoUrl.searchParams.set("id", matched.consumetId);
     const infoResponse = await fetchWithTimeout(infoUrl.toString(), { cache: "no-store" }, 20000);
     if (!infoResponse.ok) throw new Error("Consumet episode list unavailable");
@@ -2781,7 +2781,7 @@ async function hydrateAnime1vEpisodes(show) {
   if (!show || show.anime1vEpisodesLoaded) return show;
   const animeUrl = show.anime1vUrl || show.siteUrl;
   const provider = show.provider || inferAnime1vProvider(animeUrl);
-  const endpoint = show.episodeEndpoint || "./api/anime1v/episodes";
+  const endpoint = show.episodeEndpoint || "/api/anime1v/episodes";
   if (!animeUrl || !endpoint) return show;
   try {
     const url = new URL(resolveSourceEndpoint(endpoint), location.href);
@@ -2844,7 +2844,7 @@ function isAnime1vShow(show) {
 async function hydrateConsumetEpisodes(show) {
   if (!show || show.consumetEpisodesLoaded) return show;
   const consumetId = show.consumetId || show.consumetUrl || show.siteUrl;
-  const endpoint = show.episodeEndpoint || "./api/consumet/kickassanime/info";
+  const endpoint = show.episodeEndpoint || "/api/consumet/kickassanime/info";
   if (!consumetId || !endpoint) return show;
   try {
     const url = new URL(resolveSourceEndpoint(endpoint), location.href);
@@ -2902,7 +2902,7 @@ function isConsumetShow(show) {
 async function hydrateRapidAnimeEpisodes(show) {
   if (!show || show.rapidAnimeEpisodesLoaded) return show;
   const animeId = show.rapidAnimeId || show.aliases?.[0] || show.siteUrl || show.id;
-  const endpoint = show.episodeEndpoint || "./api/rapid-anime/info";
+  const endpoint = show.episodeEndpoint || "/api/rapid-anime/info";
   if (!animeId || !endpoint) return show;
   try {
     const url = new URL(resolveSourceEndpoint(endpoint), location.href);
@@ -2961,7 +2961,7 @@ function isRapidAnimeShow(show) {
 async function hydrateJimovEpisodes(show) {
   if (!show || show.jimovEpisodesLoaded) return show;
   const jimovUrl = show.jimovUrl || show.siteUrl;
-  const endpoint = show.episodeEndpoint || "./api/jimov/tioanime/info";
+  const endpoint = show.episodeEndpoint || "/api/jimov/tioanime/info";
   if (!jimovUrl || !endpoint) return show;
   try {
     const url = new URL(resolveSourceEndpoint(endpoint), location.href);
@@ -3073,7 +3073,7 @@ async function hydrateAniPubEpisodes(show) {
   try {
     let payload = getAniPubEpisodeCache(aniPubId);
     if (!payload) {
-      const response = await fetchWithTimeout(`./api/anipub/episodes/${encodeURIComponent(aniPubId)}`, { cache: "no-store" }, 12000);
+      const response = await fetchWithTimeout(`/api/anipub/episodes/${encodeURIComponent(aniPubId)}`, { cache: "no-store" }, 12000);
       if (!response.ok) throw new Error("AniPub episode endpoint unavailable");
       payload = await response.json();
       setAniPubEpisodeCache(aniPubId, payload);
@@ -4965,7 +4965,7 @@ if ("scrollRestoration" in history) {
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+    navigator.serviceWorker.register("/service-worker.js").catch(() => {});
     navigator.serviceWorker.ready.then((registration) => {
       registration.sync?.register("animetv-update-check").catch(() => {});
     }).catch(() => {});

@@ -12,13 +12,15 @@
     <meta property="og:description" content="Watch anime online in HD. Latest episodes, seasonal simulcasts, and full series — optimized for TV, desktop, and mobile.">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="icon" type="image/webp" href="logo-round-192.webp?v=361">
-    <link rel="shortcut icon" href="logo-round-192.webp?v=361">
-    <link rel="apple-touch-icon" href="logo-round-192.png?v=361">
-    <link rel="manifest" href="manifest.webmanifest?v=361">
-    <link rel="preconnect" href="https://graphql.anilist.co">
-    <link rel="preconnect" href="https://api.jikan.moe">
-    <link rel="preconnect" href="https://s4.anilist.co" crossorigin>
+    <link rel="icon" type="image/webp" href="logo-round-192.webp?v=365">
+    <link rel="shortcut icon" href="logo-round-192.webp?v=365">
+    <link rel="apple-touch-icon" href="logo-round-192.png?v=365">
+    <link rel="manifest" href="/manifest.webmanifest?v=365">
+    <!-- Only graphql.anilist.co is hit directly by the browser (trailers/extras).
+         Jikan + s4 poster images go through the same-origin /api proxy, so
+         preconnecting them is wasted. crossorigin matches the CORS GraphQL fetch. -->
+    <link rel="preconnect" href="https://graphql.anilist.co" crossorigin>
+    <link rel="dns-prefetch" href="https://graphql.anilist.co">
     <style>
       :root{color-scheme:dark;--bg:#070914;--panel:#111522;--text:#f7f8ff;--muted:#aeb6c8;--accent:#8a55ff;--cyan:#00d2ff}
       *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#070914;color:#f7f8ff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{overflow-x:hidden}.app-loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;align-content:center;gap:.8rem;background:#070914}.loader-mark{width:5rem;height:5rem;border-radius:1.45rem;overflow:hidden;background:#0d1b2a;box-shadow:0 0 2rem rgba(0,210,255,.25)}.loader-logo{display:block;width:100%;height:100%;object-fit:cover}.app-shell{display:grid;grid-template-columns:4.4rem minmax(0,1fr);min-height:100vh}.topbar{position:fixed;inset:0 auto 0 0;z-index:80;width:4.4rem;background:rgba(8,11,22,.92);display:flex;flex-direction:column;align-items:center;padding:1.1rem .45rem;gap:1rem}.brand{display:flex;align-items:center;color:inherit;text-decoration:none}.brand-mark{display:grid;place-items:center;width:3.2rem;height:3.2rem;border-radius:1.1rem;overflow:hidden;background:#0d1b2a}.brand-logo{width:100%;height:100%;object-fit:cover}.brand-copy,.nav-link span+*,.search-box,.sidebar-toggle{display:none}main{min-width:0}.hero{min-height:clamp(31rem,66vh,46rem);background:#070914}.carousel-stage{position:relative;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:1fr;align-items:start;min-height:clamp(31rem,66vh,46rem);overflow:hidden;padding:clamp(1rem,2.4vw,2.4rem) clamp(1.6rem,5vw,5.5rem) 6.2rem}.carousel-backdrop,.carousel-backdrop-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:linear-gradient(135deg,#121733,#1b1a3b 38%,#0b2637);filter:saturate(1.12) contrast(1.06) brightness(.82);transform:scale(1.002)}.carousel-info{position:relative;z-index:3;display:grid;align-self:center;grid-template-rows:auto auto auto auto auto;gap:.85rem;max-width:min(46rem,62vw);padding:0}.carousel-info h2{margin:0;padding-bottom:.18rem;font-size:clamp(1.55rem,3.1vw,3.1rem);line-height:1;letter-spacing:0;display:-webkit-box;overflow:hidden;overflow-wrap:anywhere;-webkit-line-clamp:2;-webkit-box-orient:vertical}.carousel-info p{margin:0;color:#c7cede;font-weight:700}.carousel-info p:not(.eyebrow){display:-webkit-box;max-width:40rem;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical}.eyebrow{color:#8a55ff!important;text-transform:uppercase}.play-action{margin-top:.25rem;min-height:3.4rem;border:0;border-radius:1rem;background:#8a55ff;color:white;font-weight:900;padding:0 1.4rem}.content-band{padding:clamp(1rem,2vw,1.75rem) 0 4rem}.rail-shell{display:grid;grid-template-columns:3rem minmax(0,1fr) 3rem;align-items:center;gap:.7rem}.poster-grid{--rail-gap:clamp(.65rem,1vw,.95rem);display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - (6 * var(--rail-gap))) / 7);grid-template-rows:repeat(2,auto);gap:var(--rail-gap);overflow-x:auto;overflow-y:visible;padding:.25rem 0 1rem;scrollbar-width:none}.show-card{display:grid;gap:.7rem;align-content:start;text-decoration:none;color:inherit}.thumb-art{display:grid;place-items:center;aspect-ratio:2/3;overflow:hidden;border-radius:.8rem;background:linear-gradient(135deg,#00d2ff,#251d47)}.thumb-poster{width:100%;height:100%;object-fit:cover;object-position:center top}
@@ -45,41 +47,33 @@
         .app-shell{display:block;padding:0 0 calc(4.9rem + env(safe-area-inset-bottom,0px)) 0}
         main{padding:1.5rem 1rem 3rem}
         .topbar{padding:1rem}
-        .hero{grid-template-columns:1fr;min-height:31rem}
+        .hero{grid-template-columns:1fr;height:31rem;min-height:31rem}
         .today-carousel{grid-template-columns:1fr}
-        .carousel-stage{grid-template-columns:minmax(0,1fr);min-height:31rem}
+        .carousel-stage{grid-template-columns:minmax(0,1fr);height:31rem;min-height:31rem}
         .carousel-info{min-height:14rem}
       }
     </style>
-    <script>
-      (function () {
-        var loadStyles = function () {
-          if (document.getElementById("fullStylesheet")) return;
-          var link = document.createElement("link");
-          link.id = "fullStylesheet";
-          link.rel = "stylesheet";
-          link.href = "styles.css?v=361";
-          document.head.appendChild(link);
-        };
-        if ("requestAnimationFrame" in window) requestAnimationFrame(loadStyles);
-        else setTimeout(loadStyles, 0);
-      })();
-    </script>
+    <!-- Render-blocking stylesheet. It was previously lazy-loaded via
+         requestAnimationFrame to shave FCP, but that paints the page with only
+         the inline critical CSS and then reflows the WHOLE layout when the full
+         sheet arrives — on Lighthouse's throttled network that async swap was the
+         root cause of CLS ≈ 0.83. The sheet is ~28 KB Brotli and immutably
+         cached, so blocking on it costs little FCP while dropping CLS to ~0. -->
+    <link id="fullStylesheet" rel="stylesheet" href="styles.css?v=365">
     <script>(function(){try{var p=localStorage.getItem("animetv-resume-positions");if(p&&p.length>2)document.documentElement.setAttribute("data-has-history","");}catch(e){}})()</script>
-    <noscript><link rel="stylesheet" href="styles.css?v=361"></noscript>
     <!-- Defer all JS — browser discovers them early but executes after DOM parse -->
-    <script defer src="js/constants.js?v=361"></script>
-    <script defer src="js/translations.js?v=361"></script>
-    <script defer src="js/utils.js?v=361"></script>
-    <script defer src="js/season-normalization.js?v=361"></script>
-    <script defer src="js/normalize.js?v=361"></script>
-    <script defer src="js/anilist-metadata.js?v=361"></script>
-    <script defer src="js/smart-source.js?v=361"></script>
-    <script defer src="js/image-resolver.js?v=361"></script>
-    <script defer src="js/adult-source-adapter.js?v=361"></script>
-    <script defer src="js/adult-mode.js?v=361"></script>
-    <script defer src="js/router.js?v=361"></script>
-    <script defer src="client.js?v=361"></script>
+    <script defer src="js/constants.js?v=365"></script>
+    <script defer src="js/translations.js?v=365"></script>
+    <script defer src="js/utils.js?v=365"></script>
+    <script defer src="js/season-normalization.js?v=365"></script>
+    <script defer src="js/normalize.js?v=365"></script>
+    <script defer src="js/anilist-metadata.js?v=365"></script>
+    <script defer src="js/smart-source.js?v=365"></script>
+    <script defer src="js/image-resolver.js?v=365"></script>
+    <script defer src="js/adult-source-adapter.js?v=365"></script>
+    <script defer src="js/adult-mode.js?v=365"></script>
+    <script defer src="js/router.js?v=365"></script>
+    <script defer src="client.js?v=365"></script>
   </head>
   <body>
     <script>(function(){var p=location.pathname.replace(/\/+$/,"")||"/";var h=(location.hash||"").replace(/^#/,"");var r=p==="/search"||p==="/browse"||/^\/(genre|year|season|studio)\//.test(p)?"library":p==="/schedule"?"schedule":p==="/favorites"?"favorites":p==="/settings"?"settings":p==="/sources"?"sources":p==="/profile"||p==="/login"?"profile":"home";var m={search:"library",browse:"library",library:"library",home:"home",schedule:"schedule",favorites:"favorites",settings:"settings",sources:"sources",profile:"profile"};if(p==="/"&&m[h])r=m[h];document.body.dataset.route=r;})()</script>
@@ -321,6 +315,7 @@
             <div class="poster-grid" id="libraryGrid"></div>
             <button class="rail-arrow rail-arrow-right focusable" data-scroll-rail="libraryGrid" data-scroll-dir="1" aria-label="Scroll anime library right">›</button>
           </div>
+          <button class="library-more-button focusable" id="libraryMoreButton" type="button" hidden>Show more</button>
         </section>
 
         <section class="content-band is-hidden" id="schedule" data-section="schedule">
@@ -394,7 +389,7 @@
           </div>
           <div class="profile-card">
             <div class="profile-info-row">
-              <img class="profile-avatar-large" id="profileAvatarLarge" src="https://api.dicebear.com/7.x/adventurer/svg?seed=guest" alt="User Avatar">
+              <img class="profile-avatar-large" id="profileAvatarLarge" src="https://api.dicebear.com/7.x/adventurer/svg?seed=guest" alt="User Avatar" width="72" height="72" loading="lazy" decoding="async">
               <div>
                 <h3 id="profileEmail">user@example.com</h3>
                 <p class="profile-joined">Authenticated User</p>
@@ -466,11 +461,11 @@
     <!-- Global topbar authentication controls -->
     <div class="topbar-auth" id="authControlsContainer">
       <button class="topbar-auth-btn focusable" id="authLoginBtn" type="button" aria-label="Login" title="Login">
-        <img class="topbar-avatar-img" src="https://api.dicebear.com/7.x/adventurer/svg?seed=guest" alt="Guest Avatar">
+        <img class="topbar-avatar-img" src="https://api.dicebear.com/7.x/adventurer/svg?seed=guest" alt="Guest Avatar" width="40" height="40" decoding="async">
       </button>
       <div class="user-profile-menu-container" id="userProfileMenuContainer" hidden>
         <button class="topbar-auth-btn focusable user-avatar-btn" id="userAvatarBtn" type="button" aria-label="User profile menu" title="User profile menu">
-          <img class="topbar-avatar-img" id="userAvatarImg" src="https://api.dicebear.com/7.x/adventurer/svg?seed=guest" alt="User Avatar">
+          <img class="topbar-avatar-img" id="userAvatarImg" src="https://api.dicebear.com/7.x/adventurer/svg?seed=guest" alt="User Avatar" width="40" height="40" decoding="async">
         </button>
         <div class="user-dropdown-menu" id="userDropdownMenu" hidden>
           <button class="dropdown-item focusable" id="menuProfileBtn" type="button">Profile</button>
