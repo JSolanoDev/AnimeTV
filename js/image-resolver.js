@@ -625,7 +625,18 @@ const ImageResolver = (function () {
 
       // Cached winning match? (reuse only when it doesn't contradict the override)
       const cached = readMatchCache(anilistId);
-      if (cached && (!overrideId || Number(cached.tmdbId) === Number(overrideId))) {
+      // For an AIRING show, a cached match with NO episode stills is stale: the
+      // /api/tmdb/season fetch failed/timed out at resolve time, or TMDB simply
+      // hadn't published the stills yet (it adds them over the days after each
+      // episode airs). Serving that 0-stills entry freezes every episode on
+      // "Preview pending" for the whole 24h cache TTL. Treat it as a miss so we
+      // re-resolve and pick up the stills. Finished shows keep their cache (a
+      // 0-stills result there is almost always genuine — no extra re-fetch churn).
+      const status = String(anime.status || "").toUpperCase();
+      const isAiring = status.includes("RELEASING") || status.includes("CURRENTLY AIRING") || status === "AIRING" || anime.airing === true;
+      const cachedStillCount = cached && cached.episodeStills ? Object.keys(cached.episodeStills).length : 0;
+      const cachedStale = cached && isAiring && cachedStillCount === 0;
+      if (cached && !cachedStale && (!overrideId || Number(cached.tmdbId) === Number(overrideId))) {
         applyResolvedMatch(anime, cached);
         anime._tmdbResolved = true;
         debug(`cache hit for ${anilistId} → TMDB ${cached.tmdbId} (confidence ${cached.confidence})`);
