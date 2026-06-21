@@ -165,7 +165,7 @@ const state = {
   activeEpisodeUrl: "",
   activeEpisode: null,
   preferredSource: localStorage.getItem("animetv-preferred-playback-source") || "auto",
-  sourcePickerFilter: "all",
+  sourcePickerFilter: "preferred:best-servers",
   activeDetailTab: "episodes",
   adultGalleryKey: "",
   adultGalleryHidden: false,
@@ -182,6 +182,13 @@ const state = {
   activeSeasonIndex: 0,
   carouselIndex: 0,
   shows: [],
+  av1Latest: (() => {
+    try {
+      const cached = localStorage.getItem("zenkaitv-av1-latest-cache");
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  })(),
+  av1LatestAt: Number(localStorage.getItem("zenkaitv-av1-latest-cache-at") || 0),
   isLoadingCatalog: true,
   homeCardLimit: HOME_INITIAL_CARD_LIMIT,
   addonSections: [],
@@ -416,13 +423,18 @@ async function fetchHomepageBootstrapCatalog() {
   return rawItems.map((item, index) => normalizeExternalShow(item, source, index)).filter(Boolean);
 }
 
-function scheduleAnimeAv1LatestLoad(delayMs = 45000) {
+function scheduleAnimeAv1LatestLoad(delayMs = 2500) {
   const loadLatest = () => loadAnimeAv1Latest();
   const run = () => {
     if ("requestIdleCallback" in window) window.requestIdleCallback(loadLatest, { timeout: 3000 });
     else window.setTimeout(loadLatest, 300);
   };
-  window.setTimeout(run, delayMs);
+  // Settle the real "Latest Episodes" (AnimeAV1 order) a couple seconds after
+  // first paint instead of 45s, so the home rail stops swapping order long after
+  // the user is looking at it. Gated on `load` + idle so it never delays paint.
+  const auto = () => window.setTimeout(run, delayMs);
+  if (document.readyState === "complete") auto();
+  else window.addEventListener("load", auto, { once: true });
 }
 
 function applyServerCatalog(serverCatalog = [], label = "ZenkaiTV API") {
@@ -440,7 +452,7 @@ function applyServerCatalog(serverCatalog = [], label = "ZenkaiTV API") {
   return true;
 }
 
-function scheduleDeferredServerCatalogRefresh(delayMs = 45000) {
+function scheduleDeferredServerCatalogRefresh(delayMs = 1500) {
   let started = false;
   const events = ["pointerdown", "keydown", "wheel", "touchstart"];
   const cleanup = () => events.forEach((event) => window.removeEventListener(event, startRefresh, true));
@@ -456,7 +468,15 @@ function scheduleDeferredServerCatalogRefresh(delayMs = 45000) {
     else refresh();
   }
   events.forEach((event) => window.addEventListener(event, startRefresh, { capture: true, once: true, passive: true }));
-  window.setTimeout(startRefresh, delayMs);
+  // Auto-load the FULL catalog (217 titles vs the 54-title bootstrap) shortly
+  // AFTER first paint — not the old 45s wait — so every title is available within
+  // a couple seconds even if the user never interacts. The fetch + 217-item merge
+  // still runs inside requestIdleCallback (startRefresh), and the slow catalog
+  // network latency naturally lands the re-render after the paint window, so
+  // FCP/LCP/SI stay protected.
+  const autoStart = () => window.setTimeout(startRefresh, delayMs);
+  if (document.readyState === "complete") autoStart();
+  else window.addEventListener("load", autoStart, { once: true });
 }
 
 async function loadAnimeSources() {
@@ -495,6 +515,7 @@ async function loadAnimeSources() {
     scheduleDeferredServerCatalogRefresh();
     scheduleHomeRailExpansion();
     scheduleAnimeAv1LatestLoad();
+    scheduleLazyAddonCatalogLoad();
     return;
   }
 
@@ -526,6 +547,35 @@ async function loadAnimeSources() {
   await loadDirectCatalogFallback();
   scheduleHomeRailExpansion();
   scheduleAnimeAv1LatestLoad();
+  scheduleLazyAddonCatalogLoad();
+}
+
+function scheduleLazyAddonCatalogLoad(delayMs = 6000) {
+  const run = () => {
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(() => loadLazyAddonCatalogs(), { timeout: 4000 });
+    } else {
+      window.setTimeout(() => loadLazyAddonCatalogs(), 300);
+    }
+  };
+  window.setTimeout(run, delayMs);
+}
+
+async function loadLazyAddonCatalogs() {
+  const anipub = state.localSources.find((s) => s.id === "anipub-catalog" && s.enabled);
+  if (!anipub) return;
+  try {
+    const catalog = await fetchExternalCatalogData(anipub);
+    if (catalog?.items?.length) {
+      const baseShows = [...state.shows];
+      state.shows = mergeShows([...baseShows, ...catalog.items]);
+      setSourceStatus(catalogStatusLabel("AniList + Jikan + Sources", state.shows));
+      enrichCatalogAiringData();
+      render();
+    }
+  } catch (error) {
+    console.warn("Lazy loading of AniPub catalog failed:", error);
+  }
 }
 
 async function loadDirectCatalogFallback() {
@@ -2144,7 +2194,16 @@ function imageDeliveryUrl(url, width = 360, quality = 70) {
       host === "s4.anilistcdn.com" ||
       host === "cdn.animeav1.com" ||
       host === "image.tmdb.org" ||
-      host === "media.themoviedb.org";
+      host === "media.themoviedb.org" ||
+      host === "static.underhentai.net" ||
+      host === "underhentai.net" ||
+      host === "veohentai.com" ||
+      host === "www.veohentai.com" ||
+      host === "hentaila.tv" ||
+      host === "www.hentaila.tv" ||
+      host === "img.hentaihaven.xxx" ||
+      host === "coverlanyvd.org" ||
+      host === "hentaiplayer.com";
     if (!allowed) return raw;
     const proxy = new URL("/api/image", location.origin);
     proxy.searchParams.set("src", parsed.toString());
@@ -2582,13 +2641,14 @@ document.addEventListener("error", (event) => {
     img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
     img.removeAttribute("srcset");
     img.style.opacity = "0";
-    // Add the branded "Z" fallback logo to the card
+    // Add the branded animated placeholder to the card
     const card = img.closest(".thumb-art") || img.closest(".schedule-thumb") || img.closest(".carousel-dot");
-    if (card && !card.querySelector(".thumb-fallback-mark")) {
-      const mark = document.createElement("div");
-      mark.className = "thumb-fallback-mark";
-      mark.setAttribute("aria-hidden", "true");
-      card.appendChild(mark);
+    if (card && !card.querySelector(".poster-placeholder")) {
+      const ph = document.createElement("div");
+      ph.className = "poster-placeholder";
+      ph.setAttribute("aria-hidden", "true");
+      ph.innerHTML = '<span class="poster-placeholder-mark">Z</span><span class="poster-placeholder-copy">Preview pending</span>';
+      card.appendChild(ph);
     }
   }
 }, true);
@@ -3186,11 +3246,21 @@ function handleCleanRoute(routeInfo = appRouter()?.current?.()) {
 
 
 
+function getStableShowHue(show = {}) {
+  const str = String(show.id || show.title || "");
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash) % 360;
+}
+
 function cardTemplate(show, index = 0) {
   const isFavorite = state.favorites.includes(show.id);
   const colors = Array.isArray(show.colors) && show.colors.length >= 2 ? show.colors : ["#00d2ff", "#251d47"];
   const title = escapeHtml(getShowTitle(show));
-  const artStyle = `--thumb-a: ${colors[0]}; --thumb-b: ${colors[1]}`;
+  const showHue = getStableShowHue(show);
+  const artStyle = `--thumb-a: ${colors[0]}; --thumb-b: ${colors[1]}; --episode-hue: ${showHue}`;
   const meta = cardMeta(show, isFavorite);
   const target = getCardTarget(show);
   const posterCandidates = getCardPosterCandidates(show);
@@ -3219,7 +3289,12 @@ function cardTemplate(show, index = 0) {
         <span class="art-sheen" aria-hidden="true"></span>
         <img referrerpolicy="no-referrer" class="thumb-poster" src="${escapeHtml(posterUrl)}" alt="" width="240" height="360" ${loadingAttrs} decoding="async"${srcsetAttr}${fallbackData}>
       `
-    : "";
+    : `
+        <span class="poster-placeholder" aria-hidden="true">
+          <span class="poster-placeholder-mark">Z</span>
+          <span class="poster-placeholder-copy">Preview pending</span>
+        </span>
+      `;
   return `
     <a class="show-card focusable" href="${escapeHtml(animePathForShow(show))}" style="--card-index: ${index}" data-open-show="${escapeHtml(show.id)}" data-open-season="${target.seasonNumber}" data-open-episode="${target.episodeNumber}" aria-label="Open ${title}">
       <span class="thumb-art" style="${artStyle}">
@@ -6519,16 +6594,25 @@ function applyWatchBackdrop(show, season) {
   const paint = (url) => {
     const posterFit = Boolean(url) && !wideSources.has(url);
     const optimized = url ? imageDeliveryUrl(url, 1920, 92) : "";
-    backdrop.style.backgroundImage = optimized ? `url("${optimized}")` : animeBackdropFallback(show);
+    
+    if (posterFit) {
+      // If it's a vertical poster, don't show the sharp version on the backdrop layer;
+      // let it show only as a blurred ambient background fill to avoid double-poster.
+      backdrop.style.backgroundImage = "none";
+      backdrop.classList.remove("has-art");
+      backdrop.classList.add("has-fallback-art");
+    } else {
+      backdrop.style.backgroundImage = optimized ? `url("${optimized}")` : animeBackdropFallback(show);
+      backdrop.classList.toggle("has-art", Boolean(url));
+      backdrop.classList.toggle("has-fallback-art", !url);
+    }
+    
     backdrop.dataset.backdropKey = key;
     backdrop.dataset.backdropUrl = url || "";
-    backdrop.classList.toggle("has-art", Boolean(url));
-    backdrop.classList.toggle("has-fallback-art", !url);
     backdrop.classList.toggle("is-poster-fit", posterFit);
     if (blur) {
-      // The blurred fill only earns its keep behind a contained poster.
-      blur.style.backgroundImage = posterFit ? `url("${url}")` : "";
-      blur.classList.toggle("is-visible", posterFit);
+      blur.style.backgroundImage = url ? `url("${url}")` : "";
+      blur.classList.toggle("is-visible", Boolean(url));
     }
     // Always cinematic; .has-art only switches image-backdrop vs gradient fallback.
     overlay?.classList.add("cinematic");
@@ -7374,6 +7458,7 @@ const PRIMARY_SOURCE_FILTERS = [
     label: "Best servers",
     match: (source) => (
       (isAnimeAv1Source(source) && isHlsSource(source)) ||
+      (isAnimeAv1Source(source) && isMp4UploadSource(source)) ||
       (isJKAnimeSource(source) && isMp4UploadSource(source))
     )
   }
@@ -7846,7 +7931,7 @@ function sourceRowMatchesFilter(row, filterValue) {
   return true;
 }
 
-function applySourcePickerFilter(root, rawValue = "all", select = null) {
+function applySourcePickerFilter(root, rawValue = "preferred:best-servers", select = null) {
   if (!root) return;
   let value = String(rawValue || "all");
   const pickerSelect = select || root.querySelector(".source-filter-select");
@@ -12625,6 +12710,11 @@ function setupTvTextInputs() {
 }
 
 document.addEventListener("keydown", (event) => {
+  if (event.key === "F11") {
+    event.preventDefault();
+    toggleNativeFullscreen();
+    return;
+  }
   lastInputWasPointer = false;
 
   // Intercept player shortcuts
@@ -12811,6 +12901,7 @@ if (typeof AdultMode !== "undefined") {
 // ── Supabase Authentication & Social Logins ──────────────────────────────────
 let supabaseClient = null;
 let supabaseInitPromise = null;
+let supabaseUnavailable = false;
 
 function loadExternalScript(url) {
   return new Promise((resolve, reject) => {
@@ -12834,8 +12925,23 @@ function hasSupabaseSession() {
   return false;
 }
 
+function hasSupabaseCallbackParams() {
+  try {
+    const hash = new URLSearchParams((location.hash || "").replace(/^#/, ""));
+    const query = new URLSearchParams(location.search || "");
+    return hash.has("access_token") ||
+      hash.has("refresh_token") ||
+      query.has("code") ||
+      query.has("error") ||
+      query.has("error_description");
+  } catch (e) {
+    return false;
+  }
+}
+
 async function initSupabase() {
   if (supabaseClient) return supabaseClient;
+  if (supabaseUnavailable) return null;
   if (supabaseInitPromise) return supabaseInitPromise;
   supabaseInitPromise = initSupabaseInternal().finally(() => {
     if (!supabaseClient) supabaseInitPromise = null;
@@ -12910,8 +13016,8 @@ function updateAuthUi() {
     if (menuContainer) menuContainer.hidden = true;
     if (profileEmail) profileEmail.textContent = "";
     if (profileAvatarLarge) profileAvatarLarge.src = "https://api.dicebear.com/7.x/adventurer/svg?seed=guest";
-    if (state.route === "profile") {
-      setRoute("home");
+    if (state.route === "profile" && !hasSupabaseSession() && !hasSupabaseCallbackParams()) {
+      showAuthModal("login");
     }
   }
 }
@@ -13187,6 +13293,8 @@ function setAuthLoading(button, isLoading) {
 
 function setupMockAuth() {
   supabaseClient = null;
+  supabaseUnavailable = true;
+  supabaseInitPromise = null;
   updateAuthUi();
 }
 
@@ -13204,7 +13312,6 @@ function renderProfile() {
     }
   } else {
     if (avatarEl) avatarEl.src = "https://api.dicebear.com/7.x/adventurer/svg?seed=guest";
-    setRoute("home");
     showAuthModal("login");
   }
 }
