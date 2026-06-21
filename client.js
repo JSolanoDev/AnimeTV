@@ -781,7 +781,12 @@ async function loadExternalSources() {
 
 async function fetchLocalMetadataCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(LOCAL_METADATA_ENDPOINT, { cache: "no-store" });
+  // /api/catalog (217 titles) is heavy and routinely takes 4-6s. The default 5s
+  // API_TIMEOUT_MS aborted it about half the time, which left the homepage stuck
+  // on the 54-title bootstrap ("only 66 titles"). It runs deferred/off the
+  // critical render path, so a generous 20s timeout is safe and just lets the
+  // full catalog finish loading.
+  const response = await fetchWithTimeout(LOCAL_METADATA_ENDPOINT, { cache: "no-store" }, 20000);
   if (!response.ok) throw new Error("ZenkaiTV metadata API unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
