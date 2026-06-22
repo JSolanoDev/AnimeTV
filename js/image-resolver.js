@@ -841,7 +841,24 @@ const ImageResolver = (function () {
       tmdbData.episodeStill !== undefined ? tmdbData.episodeStill : getEpisodeStill(anime, episode),
       episode?.image, episode?.thumbnail, episode?.still, episode?.snapshot
     ]);
-    return url || "";
+    if (url) return url;
+    // A MOVIE has a single "episode" that IS the whole film — TMDB stores no
+    // per-episode stills for it, so it would otherwise sit on "Preview pending"
+    // forever (e.g. Koe no Katachi). Use the film's own LANDSCAPE art as that
+    // episode's thumbnail: the TMDB backdrop, then the AniList banner, only
+    // falling back to a portrait poster as a last resort (the thumb slot is 16:9,
+    // so a portrait would crop). Accurate and not a misleading reuse — there is
+    // only one episode. Guarded to movies so multi-episode shows are untouched.
+    const isMovie = String(anime.format || "").toUpperCase() === "MOVIE";
+    if (isMovie) {
+      return firstValidImage([
+        tmdbData.showBackdrop || anime.tmdbBackdrop,
+        anime.bannerImage || anime.banner,
+        tmdbData.showPoster || anime.tmdbPoster,
+        anime.coverImageLarge
+      ]) || "";
+    }
+    return "";
   }
 
   function resolvePrePlayerBackground(episode, anime, tmdbData) {
