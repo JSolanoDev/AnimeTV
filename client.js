@@ -2241,6 +2241,10 @@ function imageDeliverySrcSet(url, widths, quality = 80) {
 function getCarouselArtwork(show = {}) {
   const poster = String(show.image || show.poster || show.cover || "").trim();
   const candidates = [
+    // Prefer the high-resolution TMDB backdrop when it has resolved — it's much
+    // sharper than the AniList banner, which keeps the hero looking professional.
+    show.tmdbBackdrop,
+    show.highQualityBackground,
     show.banner,
     show.backdrop,
     show.heroImage,
@@ -2486,11 +2490,27 @@ function renderCarousel() {
   _carouselPaintedId = String(show.id || "");
 
   const art = carouselArtworkOrPoster(show);
-  // Full-bleed hero: keep the single LCP image crisp but right-sized. The old
-  // 1600/1920 candidates looked great, but cost visible paint time on desktop.
-  const HERO_WIDTHS = [640, 960, 1280];
-  const HERO_QUALITY = 88;
-  const deliveredArt = imageDeliveryUrl(art, 1280, HERO_QUALITY);
+  // Upgrade the hero to the sharp TMDB backdrop the moment it resolves. The
+  // carousel pool is catalog shows that may not be TMDB-resolved yet (they'd show
+  // the softer AniList banner); resolve the one on screen, then repaint so it
+  // swaps up to the high-res backdrop. Bounded: once per show (_tmdbResolved), and
+  // only the currently-displayed item.
+  if (show && !show._tmdbResolved && typeof enrichTmdbImages === "function") {
+    enrichTmdbImages(show).then(() => {
+      if (state.route === "home" && String(items[state.carouselIndex]?.id || "") === String(show.id)
+          && carouselArtworkOrPoster(show) !== art) {
+        _carouselPaintedId = null; // force a repaint with the upgraded backdrop
+        renderCarousel();
+      }
+    }).catch(() => {});
+  }
+  // Full-bleed hero. srcset spans small→large so the browser fetches a right-sized
+  // file per viewport/DPR: phones still get ~640-960 (fast LCP), while large and
+  // retina desktops get a crisp 1600/1920 — "best quality" where the screen can
+  // show it, without bloating the common case.
+  const HERO_WIDTHS = [640, 960, 1280, 1600, 1920];
+  const HERO_QUALITY = 90;
+  const deliveredArt = imageDeliveryUrl(art, 1600, HERO_QUALITY);
   const heroSrcSet = art ? imageDeliverySrcSet(art, HERO_WIDTHS, HERO_QUALITY) : "";
   carouselBackdrop.classList.toggle("has-banner", Boolean(art));
   carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";

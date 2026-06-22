@@ -8380,21 +8380,21 @@ body.has-embedded-player .watch-side {
   transform: scale(1.02);
   opacity: 0.85;
 }
-/* Single, consistent loading animation: one brand-gradient sheen sweep matching
-   the poster/card .art-sheen and the skeleton loaders (was two competing
-   animations — a white sheen plus a spinning orbit circle). GPU transform only. */
+/* Loading state = a soft, out-of-focus colour fill that gently drifts — the same
+   "blurred fill" language as the watch backdrop's blur layer, instead of a sharp
+   sheen sweep. GPU transform only (one animation). */
 .ep-thumb.is-placeholder::before {
   content: "";
   position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(100deg,
-    transparent 28%,
-    rgba(138, 92, 255, 0.16) 46%,
-    rgba(0, 210, 255, 0.22) 54%,
-    transparent 72%);
-  transform: translateX(-100%);
-  animation: skeleton-sheen 1300ms ease-in-out infinite;
+  inset: -22%;
+  z-index: 0;
+  background:
+    radial-gradient(40% 48% at 30% 32%, hsla(var(--episode-hue), 92%, 64%, 0.55), transparent 72%),
+    radial-gradient(46% 54% at 74% 70%, hsla(calc(var(--episode-hue) + 58), 88%, 58%, 0.45), transparent 76%),
+    radial-gradient(36% 42% at 58% 48%, hsla(calc(var(--episode-hue) + 184), 72%, 54%, 0.30), transparent 80%);
+  filter: blur(7px) saturate(1.18);
+  transform: scale(1.12);
+  animation: blur-fill-drift 8s ease-in-out infinite;
   will-change: transform;
 }
 .ep-thumb-empty {
@@ -8485,37 +8485,22 @@ body.has-embedded-player .watch-side {
   overflow: hidden;
 }
 
+/* Same "blurred fill" loading language as the episode thumb + watch backdrop:
+   one soft, out-of-focus colour wash that gently drifts (was a white sheen sweep
+   PLUS a spinning orbit circle — two competing animations). */
 .poster-placeholder::before {
   content: "";
   position: absolute;
-  inset: 0;
-  z-index: 1;
+  inset: -18%;
+  z-index: 0;
   background:
-    linear-gradient(115deg, transparent 0 34%, rgba(255,255,255,0.14) 42%, transparent 52% 100%),
-    linear-gradient(28deg, transparent 0 56%, rgba(255,255,255,0.06) 58% 62%, transparent 64%),
-    radial-gradient(circle at 50% 115%, rgba(0, 210, 255, 0.12), transparent 50%);
-  opacity: 0.72;
-  transform: translateX(-42%);
-  animation: ep-thumb-sheen 3.8s ease-in-out infinite;
-}
-
-.poster-placeholder::after {
-  content: "";
-  position: absolute;
-  right: 1.2rem;
-  top: 1.2rem;
-  width: 2.2rem;
-  aspect-ratio: 1;
-  border-radius: 999rem;
-  border: 0.08rem solid rgba(255,255,255,0.14);
-  background:
-    linear-gradient(135deg, rgba(255,255,255,0.14), transparent 54%),
-    radial-gradient(circle at 50% 50%, hsla(280, 92%, 62%, 0.18), transparent 72%),
-    rgba(8, 10, 22, 0.42);
-  box-shadow:
-    0 0 1.5rem hsla(280, 92%, 62%, 0.25),
-    inset 0 0 1.5rem rgba(255,255,255,0.06);
-  animation: ep-thumb-orbit 4.2s ease-in-out infinite;
+    radial-gradient(38% 40% at 30% 30%, hsla(280, 92%, 64%, 0.5), transparent 72%),
+    radial-gradient(44% 46% at 74% 72%, hsla(196, 90%, 56%, 0.4), transparent 76%),
+    radial-gradient(34% 38% at 58% 50%, hsla(330, 80%, 60%, 0.28), transparent 80%);
+  filter: blur(10px) saturate(1.18);
+  transform: scale(1.1);
+  animation: blur-fill-drift 9s ease-in-out infinite;
+  will-change: transform;
 }
 
 .poster-placeholder-mark {
@@ -8568,9 +8553,20 @@ body.has-embedded-player .watch-side {
   50% { transform: scale(1.05); opacity: 1; }
 }
 
+/* Gentle out-of-focus drift for the "blurred fill" loading placeholders. Pure
+   GPU transform (translate/scale) so it never costs layout/paint. Start and end
+   match for a seamless loop. */
+@keyframes blur-fill-drift {
+  0%   { transform: scale(1.12) translate3d(-3%, -2%, 0); }
+  33%  { transform: scale(1.2) translate3d(2%, -3%, 0); }
+  66%  { transform: scale(1.16) translate3d(3%, 2%, 0); }
+  100% { transform: scale(1.12) translate3d(-3%, -2%, 0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ep-thumb.is-placeholder::before,
-  .ep-thumb.is-placeholder::after {
+  .ep-thumb.is-placeholder::after,
+  .poster-placeholder::before {
     animation: none;
   }
 }
