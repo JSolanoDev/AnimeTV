@@ -6639,12 +6639,16 @@ function applyWatchBackdrop(show, season) {
     const optimized = url ? imageDeliveryUrl(url, 1920, 92) : "";
     const prevUrl = backdrop.dataset.backdropUrl || "";
     const prevHadArt = backdrop.classList.contains("has-art");
-    // An UPGRADE is when a real wide backdrop is already showing and we're swapping
-    // to a different wide image — the AniList-banner→TMDB-backdrop handoff the user
-    // saw "pop" from low to high quality. Crossfade those instead of swapping the
-    // background-image instantly. First paints, poster fallbacks, and reduce-motion
-    // keep the immediate path (so the overlay's open is never delayed → no LCP hit).
-    const isUpgrade = Boolean(url) && !posterFit && prevHadArt && prevUrl && prevUrl !== url
+    // An UPGRADE is when a real wide backdrop is already showing FOR THE SAME SHOW/
+    // SEASON and we're swapping to a different wide image — the AniList-banner→TMDB-
+    // backdrop handoff the user saw "pop" from low to high quality. ONLY those get
+    // the crossfade. Critically, a SHOW SWITCH (different key) must NOT crossfade:
+    // prevUrl there is the *previous* show's backdrop, so fading from it showed the
+    // wrong anime for a beat ("different image → animation → low → good"). First
+    // paints, show switches, poster fallbacks and reduce-motion take the immediate
+    // path (overlay open is never delayed → no LCP hit).
+    const sameTarget = backdrop.dataset.backdropKey === key;
+    const isUpgrade = Boolean(url) && !posterFit && sameTarget && prevHadArt && prevUrl && prevUrl !== url
       && typeof Image !== "undefined" && !document.body.classList.contains("reduce-motion");
 
     if (!isUpgrade) {
@@ -6652,6 +6656,12 @@ function applyWatchBackdrop(show, season) {
       commitBackdropMeta(url);
       return;
     }
+
+    // Claim the target url now so the rapid re-renders of the enrichment burst
+    // (which call paint() with this same url) see prevUrl===url and skip — without
+    // this, each re-render would start another overlapping dip and the backdrop
+    // would flicker. The actual sharp swap still happens in commitSwap below.
+    backdrop.dataset.backdropUrl = url;
 
     // Decode the incoming image off-screen, then dip the sharp layer's opacity to
     // reveal the (re-blurred) fill behind it — never a flash to black — swap the
