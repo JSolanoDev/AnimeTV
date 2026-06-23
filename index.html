@@ -12,16 +12,16 @@
     <meta property="og:description" content="Watch anime online in HD. Latest episodes, seasonal simulcasts, and full series — optimized for TV, desktop, and mobile.">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="icon" type="image/webp" href="logo-round-192.webp?v=405">
-    <link rel="shortcut icon" href="logo-round-192.webp?v=405">
-    <link rel="apple-touch-icon" href="logo-round-192.png?v=405">
-    <link rel="manifest" href="/manifest.webmanifest?v=405">
+    <link rel="icon" type="image/webp" href="logo-round-192.webp?v=406">
+    <link rel="shortcut icon" href="logo-round-192.webp?v=406">
+    <link rel="apple-touch-icon" href="logo-round-192.png?v=406">
+    <link rel="manifest" href="/manifest.webmanifest?v=406">
     <!-- Only graphql.anilist.co is hit directly by the browser (trailers/extras).
          Jikan + s4 poster images go through the same-origin /api proxy, so
          preconnecting them is wasted. crossorigin matches the CORS GraphQL fetch. -->
     <link rel="preconnect" href="https://graphql.anilist.co" crossorigin>
     <link rel="dns-prefetch" href="https://graphql.anilist.co">
-    <link rel="preload" as="fetch" href="/homepage-bootstrap.json?v=405" crossorigin>
+    <link rel="preload" as="fetch" href="/homepage-bootstrap.json?v=406" crossorigin>
     <link rel="preload" as="image" fetchpriority="high" href="/api/image?src=https%3A%2F%2Fs4.anilist.co%2Ffile%2Fanilistcdn%2Fmedia%2Fanime%2Fbanner%2F187869-WuaolpHqNqHk.jpg&amp;w=1280&amp;q=88">
     <style>
       :root{color-scheme:dark;--bg:#070914;--panel:#111522;--text:#f7f8ff;--muted:#aeb6c8;--accent:#8a55ff;--cyan:#00d2ff}
@@ -59,27 +59,27 @@
          sheet arrives — on Lighthouse's throttled network that async swap was the
          root cause of CLS ≈ 0.83. The sheet is ~28 KB Brotli and immutably
          cached, so blocking on it costs little FCP while dropping CLS to ~0. -->
-    <link id="fullStylesheet" rel="stylesheet" href="styles.css?v=405">
+    <link id="fullStylesheet" rel="stylesheet" href="styles.css?v=406">
     <script>(function(){try{var p=localStorage.getItem("animetv-resume-positions");if(p&&p.length>2)document.documentElement.setAttribute("data-has-history","");}catch(e){}})()</script>
     <!-- Defer all JS - browser discovers them early but executes after DOM parse -->
-    <script defer src="js/constants.js?v=405"></script>
-    <script defer src="js/translations.js?v=405"></script>
-    <script defer src="js/utils.js?v=405"></script>
-    <script defer src="js/season-normalization.js?v=405"></script>
-    <script defer src="js/normalize.js?v=405"></script>
-    <script defer src="js/anilist-metadata.js?v=405"></script>
-    <script defer src="js/smart-source.js?v=405"></script>
-    <script defer src="js/image-resolver.js?v=405"></script>
-    <script defer src="js/adult-source-adapter.js?v=405"></script>
-    <script defer src="js/adult-mode.js?v=405"></script>
-    <script defer src="js/router.js?v=405"></script>
-    <script defer src="client.js?v=405"></script>
+    <script defer src="js/constants.js?v=406"></script>
+    <script defer src="js/translations.js?v=406"></script>
+    <script defer src="js/utils.js?v=406"></script>
+    <script defer src="js/season-normalization.js?v=406"></script>
+    <script defer src="js/normalize.js?v=406"></script>
+    <script defer src="js/anilist-metadata.js?v=406"></script>
+    <script defer src="js/smart-source.js?v=406"></script>
+    <script defer src="js/image-resolver.js?v=406"></script>
+    <script defer src="js/adult-source-adapter.js?v=406"></script>
+    <script defer src="js/adult-mode.js?v=406"></script>
+    <script defer src="js/router.js?v=406"></script>
+    <script defer src="client.js?v=406"></script>
   </head>
   <body>
     <script>(function(){var p=location.pathname.replace(/\/+$/,"")||"/";var h=(location.hash||"").replace(/^#/,"");var r=p==="/search"||p==="/browse"||/^\/(genre|year|season|studio)\//.test(p)?"library":p==="/schedule"?"schedule":p==="/favorites"?"favorites":p==="/settings"?"settings":p==="/sources"?"sources":p==="/profile"||p==="/login"?"profile":"home";var m={search:"library",browse:"library",library:"library",home:"home",schedule:"schedule",favorites:"favorites",settings:"settings",sources:"sources",profile:"profile"};if(p==="/"&&m[h])r=m[h];document.body.dataset.route=r;try{if(localStorage.getItem("animetv-sidebar-collapsed")!=="false")document.body.classList.add("sidebar-collapsed")}catch(e){document.body.classList.add("sidebar-collapsed")}})()</script>
     <div class="app-loader" id="appLoader" role="status" aria-live="polite">
       <div class="loader-mark" aria-hidden="true">
-        <img class="loader-logo" src="logo-mark-128.webp?v=405" alt="" width="128" height="128" decoding="async">
+        <img class="loader-logo" src="logo-mark-128.webp?v=406" alt="" width="128" height="128" decoding="async">
       </div>
       <strong>ZenkaiTV</strong>
       <small>Waking the anime lounge...</small>
@@ -89,7 +89,7 @@
       <header class="topbar">
         <a class="brand focusable" href="/" data-route="home" data-nav-label="Home" aria-label="ZenkaiTV — Home">
           <span class="brand-mark" aria-hidden="true">
-            <img class="brand-logo" src="logo-mark-128.webp?v=405" alt="" width="66" height="66" decoding="async">
+            <img class="brand-logo" src="logo-mark-128.webp?v=406" alt="" width="66" height="66" decoding="async">
             <span class="adult-mode-badge" id="adultModeBadge" hidden>+18</span>
           </span>
           <span class="brand-copy">
@@ -137,7 +137,7 @@
           <div class="today-carousel" aria-label="Today's anime carousel">
             <div class="carousel-stage focusable" id="carouselStage" tabindex="0" aria-label="Open selected carousel anime">
               <div class="carousel-backdrop" id="carouselBackdrop"></div>
-              <img class="carousel-backdrop-image" id="carouselBackdropImage" src="hero-backdrop-placeholder.webp?v=405" alt="" width="960" height="540" loading="eager" fetchpriority="high" decoding="async">
+              <img class="carousel-backdrop-image" id="carouselBackdropImage" src="hero-backdrop-placeholder.webp?v=406" alt="" width="960" height="540" loading="eager" fetchpriority="high" decoding="async">
               <div class="hero-motion" aria-hidden="true">
                 <span></span>
                 <span></span>
@@ -408,7 +408,7 @@
 
       <footer class="bottom-bar" aria-label="ZenkaiTV footer">
         <div class="footer-brand">
-          <img class="footer-wordmark" src="logo-wordmark-480.webp?v=405" alt="ZenkaiTV" width="240" height="74" loading="lazy" decoding="async">
+          <img class="footer-wordmark" src="logo-wordmark-480.webp?v=406" alt="ZenkaiTV" width="240" height="74" loading="lazy" decoding="async">
           <p class="footer-tagline">Your anime universe — organized, ad-free, always on.</p>
           <div class="footer-meta">
             <span class="footer-status">Catalogs refresh daily</span>
