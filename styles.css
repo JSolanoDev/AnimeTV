@@ -6017,19 +6017,38 @@ body.player-cinema-open .close-button {
   }
 
   /* On mobile the panel stacks vertically (player then episodes/sources).
-     Desktop fixed-height + top-margin would clip the side panel off-screen. */
-  .watch-side {
+     Desktop fixed-height + top-margin + overflow:hidden would clip the side panel
+     to ~0px on mobile. Force it to size to content and let the watch-panel scroll.
+     (.watch-overlay ancestor out-specifies the later base .watch-side rule.) */
+  .watch-overlay .watch-side {
     margin: 0;
     height: auto;
     max-height: none;
     border-radius: 0.8rem;
-    overflow-y: visible;
+    overflow: visible;
   }
 
-  .watch-side .episode-list {
+  /* The desktop episode panel fills a fixed-height side column via flex:1 +
+     overflow:hidden. On mobile the side is auto-height, so that whole chain
+     collapsed every pane to ~0px and the episodes vanished. Size the entire
+     chain to its content instead and let the watch-panel be the single scroller.
+     (The base .watch-side rules come later in the source, so we out-specify them
+     with the .watch-overlay ancestor.) */
+  .watch-overlay .watch-side .episode-list {
+    flex: 0 0 auto;
     height: auto;
-    max-height: 22rem;
-    overflow-y: auto;
+    max-height: none;
+    overflow: visible;
+  }
+  .watch-overlay .watch-side .detail-pane.is-active {
+    flex: 0 0 auto;
+    min-height: auto;
+    overflow: visible;
+  }
+  .watch-overlay .watch-side .detail-pane.is-active .ep-rows,
+  .watch-overlay .watch-side .season-card-grid {
+    max-height: none;
+    overflow: visible;
   }
 
   .watch-info {
@@ -6143,15 +6162,27 @@ body.player-cinema-open .close-button {
     padding-bottom: 0.15rem;
   }
 
+  /* Stack label over control with flexbox so the row GROWS to fit its content.
+     (As a 1-col grid it stayed pinned at min-height: 3.4rem, so the control
+     overflowed and overlapped the next setting on phones.) */
   .settings-line {
-    grid-template-columns: 1fr;
-    align-items: start;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    min-height: auto;
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
   }
+
+  .settings-line > span { min-width: 0; }
 
   .settings-select,
   .settings-switch,
-  .settings-status-pill {
+  .settings-status-pill,
+  .settings-segment {
     justify-self: start;
+    width: 100%;
   }
 
   .player-nav-action,
@@ -10339,10 +10370,19 @@ body.is-tv .topbar-auth {
     font-size: 1.34rem;
   }
 
-  /* Footer no longer needs the old sidebar offset once the bar is at the bottom. */
+  /* Footer no longer needs the old sidebar offset once the nav is at the bottom —
+     apply unconditionally (not just when sidebar-collapsed) so it's never shoved
+     left / overflowing on phones. */
+  .bottom-bar,
   body.sidebar-collapsed .bottom-bar {
     margin-left: 0;
     padding-left: clamp(1rem, 4vw, 1.5rem);
+    padding-right: clamp(1rem, 4vw, 1.5rem);
+    text-align: center;
+  }
+  .bottom-bar::before,
+  body.sidebar-collapsed .bottom-bar::before {
+    left: 0;
   }
 }
 
@@ -10364,5 +10404,82 @@ body.is-tv .topbar-auth {
 @media (min-width: 761px) and (max-width: 1024px) {
   .rail-shell .poster-grid {
     grid-auto-columns: calc((100% - (4 * var(--rail-gap))) / 5);
+  }
+}
+
+/* Phones: the Weekly Schedule shows only TODAY — scrolling all 7 day columns is
+   too much on a phone. The single day spans full width. */
+@media (max-width: 760px) {
+  .schedule-day-column:not(.is-today) { display: none; }
+  .schedule-day-column.is-today {
+    animation: none;            /* no pulse — it's the only column */
+    border-radius: 0.8rem;
+  }
+  .schedule-day-column.is-today h3 { font-size: 1.05rem; }
+}
+
+/* ── Mobile watch/detail overlay — flatten to one scrolling column ───────────
+   The desktop overlay is a fixed-height 2-column grid whose episode panel fills
+   the column via flex:1 + overflow:hidden. On a phone the column is auto-height,
+   so that whole chain collapses the episode list to ~0px and the watch-panel
+   clips it. Appended last so it reliably wins the cascade over the base rules. */
+@media (max-width: 760px) {
+  /* .cinematic is always added to the overlay and its rules are 0,3,0 — match it
+     so these win. */
+  .watch-overlay.cinematic .watch-panel,
+  .watch-overlay .watch-panel {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  .watch-overlay.cinematic .watch-stage,
+  .watch-overlay.cinematic .watch-side,
+  .watch-overlay .watch-stage,
+  .watch-overlay .watch-side {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    margin: 0;
+    overflow: visible;
+  }
+  .watch-overlay .watch-side { padding: 0 0.7rem 1.2rem; }
+  /* The player/poster frame must keep its own height (don't let it collapse). */
+  .watch-overlay .watch-side .video-frame {
+    height: auto;
+    min-height: 0;
+  }
+  .watch-overlay .watch-side .episode-list,
+  .watch-overlay .watch-side .detail-pane.is-active {
+    display: block;
+    flex: none;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+  }
+  .watch-overlay .watch-side .detail-pane.is-active .ep-rows,
+  .watch-overlay .watch-side .season-card-grid {
+    max-height: none;
+    overflow: visible;
+  }
+  /* Keep the Seasons / Episodes tabs reachable while scrolling the list, parked
+     just below the floating avatar/fullscreen header buttons so they don't hide
+     behind them. */
+  .watch-overlay .watch-side .detail-tabs.detail-tabs-2 {
+    position: sticky;
+    top: 3.6rem;
+    z-index: 7;
+    padding: 0.55rem 0.5rem;
+    margin: 0 -0.5rem 0.4rem;
+    border-radius: 0.8rem;
+    background: rgba(14, 15, 26, 0.96);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
   }
 }
