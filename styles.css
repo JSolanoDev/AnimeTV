@@ -10515,3 +10515,24 @@ body.is-tv .topbar-auth {
     backdrop-filter: blur(10px);
   }
 }
+
+/* Mini footer for mobile web — just the ZenkaiTV wordmark, compact and flush with
+   the bottom nav. The full tagline + credits footer read as a big empty gap on a
+   phone. Appended last so it wins over the earlier mobile footer rules. */
+@media (max-width: 760px) {
+  .bottom-bar,
+  body.sidebar-collapsed .bottom-bar {
+    min-height: 0;
+    gap: 0;
+    /* Cancel the app-shell nav-reservation padding (negative margin) and refill it
+       as the footer bottom padding, so the footer bg reaches behind the fixed
+       bottom nav with NO gap; the wordmark stays above the nav via padding-top. */
+    margin-bottom: calc(-4.9rem - env(safe-area-inset-bottom, 0px));
+    padding-top: 0.9rem;
+    padding-bottom: calc(0.9rem + 4.9rem + env(safe-area-inset-bottom, 0px));
+  }
+  .footer-brand { gap: 0; }
+  .footer-tagline,
+  .footer-meta { display: none; }
+  .footer-wordmark { width: min(10.5rem, 40vw); max-height: 2.3rem; }
+}
