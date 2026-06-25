@@ -10534,5 +10534,5 @@ body.is-tv .topbar-auth {
   .footer-brand { gap: 0; }
   .footer-tagline,
   .footer-meta { display: none; }
-  .footer-wordmark { width: min(10.5rem, 40vw); max-height: 2.3rem; }
+  .footer-wordmark { width: min(7.5rem, 30vw); max-height: 1.7rem; }
 }
