@@ -10528,8 +10528,10 @@ body.is-tv .topbar-auth {
        as the footer bottom padding, so the footer bg reaches behind the fixed
        bottom nav with NO gap; the wordmark stays above the nav via padding-top. */
     margin-bottom: calc(-4.9rem - env(safe-area-inset-bottom, 0px));
-    padding-top: 0.9rem;
-    padding-bottom: calc(0.9rem + 4.9rem + env(safe-area-inset-bottom, 0px));
+    padding-top: 0.5rem;
+    /* Sit the wordmark right above the bottom nav (~0.2rem gap). The +4.1rem
+       clears the nav height; the bg still fills down behind it (negative margin). */
+    padding-bottom: calc(0.1rem + 2.9rem + env(safe-area-inset-bottom, 0px));
   }
   .footer-brand { gap: 0; }
   .footer-tagline,
