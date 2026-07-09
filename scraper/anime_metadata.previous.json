@@ -5,11 +5,331 @@
     "AnimeFLV",
     "TioAnime"
   ],
-  "scrapedAt": "2026-07-07T09:23:29.899404+00:00",
-  "totalResults": 108,
-  "count": 108,
-  "episodeCount": 21,
+  "scrapedAt": "2026-07-08T08:10:43.239733+00:00",
+  "totalResults": 113,
+  "count": 113,
+  "episodeCount": 20,
   "items": [
+    {
+      "id": "tioanime-kimi-ga-shinu-made-koi-wo-shitai",
+      "malId": null,
+      "title": "Kimi ga Shinu made Koi wo Shitai",
+      "alternativeTitles": [],
+      "synopsis": "",
+      "description": "",
+      "poster": "",
+      "image": "",
+      "banner": "",
+      "genres": [],
+      "genre": "anime",
+      "status": "",
+      "type": "TV",
+      "year": null,
+      "season": "",
+      "aired": "",
+      "rating": null,
+      "score": null,
+      "source": "TioAnime",
+      "siteUrl": "https://tioanime.com/anime/kimi-ga-shinu-made-koi-wo-shitai",
+      "totalEpisodes": null,
+      "episode": null,
+      "lastScrapedAt": "2026-07-08T08:07:11.617510+00:00",
+      "episodes": [
+        {
+          "id": "tioanime-kimi-ga-shinu-made-koi-wo-shitai-ep-1",
+          "season": 1,
+          "episode": 1,
+          "number": 1,
+          "title": "Episode 1",
+          "siteUrl": "https://tioanime.com/ver/kimi-ga-shinu-made-koi-wo-shitai-1",
+          "videoUrl": "",
+          "externalUrl": "https://mega.nz/embed/!sLMUHRaZ!YB64tZ_CIDBi6G-WMk-rZJxwA05dLr_CgmHB_a0Ky5A",
+          "externalType": "iframe",
+          "server": "TioAnime",
+          "language": "es",
+          "subtitles": [],
+          "duration": "",
+          "scrapedAt": "2026-07-08T08:07:20.969593+00:00"
+        }
+      ],
+      "seasons": [
+        {
+          "season": 1,
+          "title": "Season 1",
+          "episodes": [
+            {
+              "id": "tioanime-kimi-ga-shinu-made-koi-wo-shitai-ep-1",
+              "season": 1,
+              "episode": 1,
+              "number": 1,
+              "title": "Episode 1",
+              "siteUrl": "https://tioanime.com/ver/kimi-ga-shinu-made-koi-wo-shitai-1",
+              "videoUrl": "",
+              "externalUrl": "https://mega.nz/embed/!sLMUHRaZ!YB64tZ_CIDBi6G-WMk-rZJxwA05dLr_CgmHB_a0Ky5A",
+              "externalType": "iframe",
+              "server": "TioAnime",
+              "language": "es",
+              "subtitles": [],
+              "duration": "",
+              "scrapedAt": "2026-07-08T08:07:20.969593+00:00"
+            }
+          ]
+        }
+      ],
+      "seasonNumber": 1,
+      "colors": [
+        "#40dfc2",
+        "#251d47"
+      ]
+    },
+    {
+      "id": "tioanime-koukaku-kidoutai-tv",
+      "malId": null,
+      "title": "Koukaku Kidoutai (TV)",
+      "alternativeTitles": [],
+      "synopsis": "",
+      "description": "",
+      "poster": "",
+      "image": "",
+      "banner": "",
+      "genres": [],
+      "genre": "anime",
+      "status": "",
+      "type": "TV",
+      "year": null,
+      "season": "",
+      "aired": "",
+      "rating": null,
+      "score": null,
+      "source": "TioAnime",
+      "siteUrl": "https://tioanime.com/anime/koukaku-kidoutai-tv",
+      "totalEpisodes": null,
+      "episode": null,
+      "lastScrapedAt": "2026-07-08T08:07:11.619019+00:00",
+      "episodes": [],
+      "seasons": [],
+      "seasonNumber": 1,
+      "colors": [
+        "#40dfc2",
+        "#251d47"
+      ]
+    },
+    {
+      "id": "tioanime-tefuda-ga-oome-no-victoria",
+      "malId": null,
+      "title": "Tefuda ga Oome no Victoria",
+      "alternativeTitles": [],
+      "synopsis": "",
+      "description": "",
+      "poster": "",
+      "image": "",
+      "banner": "",
+      "genres": [],
+      "genre": "anime",
+      "status": "",
+      "type": "TV",
+      "year": null,
+      "season": "",
+      "aired": "",
+      "rating": null,
+      "score": null,
+      "source": "TioAnime",
+      "siteUrl": "https://tioanime.com/anime/tefuda-ga-oome-no-victoria",
+      "totalEpisodes": null,
+      "episode": null,
+      "lastScrapedAt": "2026-07-08T08:07:11.619873+00:00",
+      "episodes": [
+        {
+          "id": "tioanime-tefuda-ga-oome-no-victoria-ep-1",
+          "season": 1,
+          "episode": 1,
+          "number": 1,
+          "title": "Episode 1",
+          "siteUrl": "https://tioanime.com/ver/tefuda-ga-oome-no-victoria-1",
+          "videoUrl": "",
+          "externalUrl": "https://mega.nz/embed/!wG1nDBzS!QwwexhUT1m27LXtIn4KbSCjveJUYcAQUWE0YwduV0IA",
+          "externalType": "iframe",
+          "server": "TioAnime",
+          "language": "es",
+          "subtitles": [],
+          "duration": "",
+          "scrapedAt": "2026-07-08T08:10:02.543372+00:00"
+        }
+      ],
+      "seasons": [
+        {
+          "season": 1,
+          "title": "Season 1",
+          "episodes": [
+            {
+              "id": "tioanime-tefuda-ga-oome-no-victoria-ep-1",
+              "season": 1,
+              "episode": 1,
+              "number": 1,
+              "title": "Episode 1",
+              "siteUrl": "https://tioanime.com/ver/tefuda-ga-oome-no-victoria-1",
+              "videoUrl": "",
+              "externalUrl": "https://mega.nz/embed/!wG1nDBzS!QwwexhUT1m27LXtIn4KbSCjveJUYcAQUWE0YwduV0IA",
+              "externalType": "iframe",
+              "server": "TioAnime",
+              "language": "es",
+              "subtitles": [],
+              "duration": "",
+              "scrapedAt": "2026-07-08T08:10:02.543372+00:00"
+            }
+          ]
+        }
+      ],
+      "seasonNumber": 1,
+      "colors": [
+        "#40dfc2",
+        "#251d47"
+      ]
+    },
+    {
+      "id": "tioanime-sora-wa-akai-kawa-no-hotori",
+      "malId": null,
+      "title": "Sora wa Akai Kawa no Hotori",
+      "alternativeTitles": [],
+      "synopsis": "",
+      "description": "",
+      "poster": "",
+      "image": "",
+      "banner": "",
+      "genres": [],
+      "genre": "anime",
+      "status": "",
+      "type": "TV",
+      "year": null,
+      "season": "",
+      "aired": "",
+      "rating": null,
+      "score": null,
+      "source": "TioAnime",
+      "siteUrl": "https://tioanime.com/anime/sora-wa-akai-kawa-no-hotori",
+      "totalEpisodes": null,
+      "episode": null,
+      "lastScrapedAt": "2026-07-08T08:07:11.620742+00:00",
+      "episodes": [
+        {
+          "id": "tioanime-sora-wa-akai-kawa-no-hotori-ep-1",
+          "season": 1,
+          "episode": 1,
+          "number": 1,
+          "title": "Episode 1",
+          "siteUrl": "https://tioanime.com/ver/sora-wa-akai-kawa-no-hotori-1",
+          "videoUrl": "",
+          "externalUrl": "https://mega.nz/embed/!lLF1QRqZ!a-aUhK-Dbu8bitdSmfliLw3PyN_pIdL-yI6RS_Sqgwc",
+          "externalType": "iframe",
+          "server": "TioAnime",
+          "language": "es",
+          "subtitles": [],
+          "duration": "",
+          "scrapedAt": "2026-07-08T08:10:04.885408+00:00"
+        }
+      ],
+      "seasons": [
+        {
+          "season": 1,
+          "title": "Season 1",
+          "episodes": [
+            {
+              "id": "tioanime-sora-wa-akai-kawa-no-hotori-ep-1",
+              "season": 1,
+              "episode": 1,
+              "number": 1,
+              "title": "Episode 1",
+              "siteUrl": "https://tioanime.com/ver/sora-wa-akai-kawa-no-hotori-1",
+              "videoUrl": "",
+              "externalUrl": "https://mega.nz/embed/!lLF1QRqZ!a-aUhK-Dbu8bitdSmfliLw3PyN_pIdL-yI6RS_Sqgwc",
+              "externalType": "iframe",
+              "server": "TioAnime",
+              "language": "es",
+              "subtitles": [],
+              "duration": "",
+              "scrapedAt": "2026-07-08T08:10:04.885408+00:00"
+            }
+          ]
+        }
+      ],
+      "seasonNumber": 1,
+      "colors": [
+        "#40dfc2",
+        "#251d47"
+      ]
+    },
+    {
+      "id": "tioanime-taiari-deshita-ojousama-wa-kakutou-game-nante-shinai",
+      "malId": null,
+      "title": "Tai-Ari deshita. Ojousama wa Kakutou Game nante Shinai",
+      "alternativeTitles": [],
+      "synopsis": "",
+      "description": "",
+      "poster": "",
+      "image": "",
+      "banner": "",
+      "genres": [],
+      "genre": "anime",
+      "status": "",
+      "type": "TV",
+      "year": null,
+      "season": "",
+      "aired": "",
+      "rating": null,
+      "score": null,
+      "source": "TioAnime",
+      "siteUrl": "https://tioanime.com/anime/taiari-deshita-ojousama-wa-kakutou-game-nante-shinai",
+      "totalEpisodes": null,
+      "episode": null,
+      "lastScrapedAt": "2026-07-08T08:07:11.621599+00:00",
+      "episodes": [
+        {
+          "id": "tioanime-taiari-deshita-ojousama-wa-kakutou-game-nante-shinai-ep-1",
+          "season": 1,
+          "episode": 1,
+          "number": 1,
+          "title": "Episode 1",
+          "siteUrl": "https://tioanime.com/ver/taiari-deshita-ojousama-wa-kakutou-game-nante-shinai-1",
+          "videoUrl": "",
+          "externalUrl": "https://mega.nz/embed/!JeUHTBTS!f_OA5-XHL9mhpDD56xCj_OXpJqECWe7gUF6dvmPr9TM",
+          "externalType": "iframe",
+          "server": "TioAnime",
+          "language": "es",
+          "subtitles": [],
+          "duration": "",
+          "scrapedAt": "2026-07-08T08:10:07.205121+00:00"
+        }
+      ],
+      "seasons": [
+        {
+          "season": 1,
+          "title": "Season 1",
+          "episodes": [
+            {
+              "id": "tioanime-taiari-deshita-ojousama-wa-kakutou-game-nante-shinai-ep-1",
+              "season": 1,
+              "episode": 1,
+              "number": 1,
+              "title": "Episode 1",
+              "siteUrl": "https://tioanime.com/ver/taiari-deshita-ojousama-wa-kakutou-game-nante-shinai-1",
+              "videoUrl": "",
+              "externalUrl": "https://mega.nz/embed/!JeUHTBTS!f_OA5-XHL9mhpDD56xCj_OXpJqECWe7gUF6dvmPr9TM",
+              "externalType": "iframe",
+              "server": "TioAnime",
+              "language": "es",
+              "subtitles": [],
+              "duration": "",
+              "scrapedAt": "2026-07-08T08:10:07.205121+00:00"
+            }
+          ]
+        }
+      ],
+      "seasonNumber": 1,
+      "colors": [
+        "#40dfc2",
+        "#251d47"
+      ]
+    },
     {
       "id": "tioanime-saikyou-degarashi-ouji-no-anyaku-teii-arasoi",
       "malId": null,
@@ -33,7 +353,7 @@
       "siteUrl": "https://tioanime.com/anime/saikyou-degarashi-ouji-no-anyaku-teii-arasoi",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.898896+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:11.622451+00:00",
       "episodes": [
         {
           "id": "tioanime-saikyou-degarashi-ouji-no-anyaku-teii-arasoi-ep-1",
@@ -49,7 +369,7 @@
           "language": "es",
           "subtitles": [],
           "duration": "",
-          "scrapedAt": "2026-07-07T09:22:46.994449+00:00"
+          "scrapedAt": "2026-07-08T08:10:09.537847+00:00"
         }
       ],
       "seasons": [
@@ -71,7 +391,7 @@
               "language": "es",
               "subtitles": [],
               "duration": "",
-              "scrapedAt": "2026-07-07T09:22:46.994449+00:00"
+              "scrapedAt": "2026-07-08T08:10:09.537847+00:00"
             }
           ]
         }
@@ -105,7 +425,7 @@
       "siteUrl": "https://tioanime.com/anime/tenkosaki",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.900328+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:11.623301+00:00",
       "episodes": [
         {
           "id": "tioanime-tenkosaki-ep-1",
@@ -121,7 +441,7 @@
           "language": "es",
           "subtitles": [],
           "duration": "",
-          "scrapedAt": "2026-07-07T09:22:49.196844+00:00"
+          "scrapedAt": "2026-07-08T08:10:11.854436+00:00"
         }
       ],
       "seasons": [
@@ -143,7 +463,7 @@
               "language": "es",
               "subtitles": [],
               "duration": "",
-              "scrapedAt": "2026-07-07T09:22:49.196844+00:00"
+              "scrapedAt": "2026-07-08T08:10:11.854436+00:00"
             }
           ]
         }
@@ -177,7 +497,7 @@
       "siteUrl": "https://tioanime.com/anime/buchigire-reijou-wa-houfuku-wo-chikaimashita",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.901110+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:11.624134+00:00",
       "episodes": [
         {
           "id": "tioanime-buchigire-reijou-wa-houfuku-wo-chikaimashita-ep-1",
@@ -193,7 +513,7 @@
           "language": "es",
           "subtitles": [],
           "duration": "",
-          "scrapedAt": "2026-07-07T09:22:51.394643+00:00"
+          "scrapedAt": "2026-07-08T08:10:14.200081+00:00"
         }
       ],
       "seasons": [
@@ -215,7 +535,7 @@
               "language": "es",
               "subtitles": [],
               "duration": "",
-              "scrapedAt": "2026-07-07T09:22:51.394643+00:00"
+              "scrapedAt": "2026-07-08T08:10:14.200081+00:00"
             }
           ]
         }
@@ -251,7 +571,7 @@
       "siteUrl": "https://tioanime.com/anime/gaikotsu-kishisama-tadaima-isekai-e-odekakechuu-ii",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.901895+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:11.624977+00:00",
       "episodes": [
         {
           "id": "tioanime-gaikotsu-kishisama-tadaima-isekai-e-odekakechuu-ii-ep-1",
@@ -267,7 +587,7 @@
           "language": "es",
           "subtitles": [],
           "duration": "",
-          "scrapedAt": "2026-07-07T09:22:53.607531+00:00"
+          "scrapedAt": "2026-07-08T08:10:16.532825+00:00"
         }
       ],
       "seasons": [
@@ -289,7 +609,7 @@
               "language": "es",
               "subtitles": [],
               "duration": "",
-              "scrapedAt": "2026-07-07T09:22:53.607531+00:00"
+              "scrapedAt": "2026-07-08T08:10:16.532825+00:00"
             }
           ]
         }
@@ -325,7 +645,7 @@
       "siteUrl": "https://tioanime.com/anime/toumei-na-yoru-ni-kakeru-kimi-to-me-ni-mienai-koi-wo-shita",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.902668+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:11.625810+00:00",
       "episodes": [
         {
           "id": "tioanime-toumei-na-yoru-ni-kakeru-kimi-to-me-ni-mienai-koi-wo-shita-ep-1",
@@ -341,7 +661,7 @@
           "language": "es",
           "subtitles": [],
           "duration": "",
-          "scrapedAt": "2026-07-07T09:22:55.821256+00:00"
+          "scrapedAt": "2026-07-08T08:10:18.854020+00:00"
         }
       ],
       "seasons": [
@@ -363,7 +683,7 @@
               "language": "es",
               "subtitles": [],
               "duration": "",
-              "scrapedAt": "2026-07-07T09:22:55.821256+00:00"
+              "scrapedAt": "2026-07-08T08:10:18.854020+00:00"
             }
           ]
         }
@@ -399,7 +719,7 @@
       "siteUrl": "https://tioanime.com/anime/suterare-seijo-no-isekai-gohan-tabi-kakure-skill-de-camping-car-wo-shoukan-shimashita",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.903491+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:11.626683+00:00",
       "episodes": [
         {
           "id": "tioanime-suterare-seijo-no-isekai-gohan-tabi-kakure-skill-de-camping-car-wo-shoukan-shima-ep-1",
@@ -415,7 +735,7 @@
           "language": "es",
           "subtitles": [],
           "duration": "",
-          "scrapedAt": "2026-07-07T09:22:58.017092+00:00"
+          "scrapedAt": "2026-07-08T08:10:21.174583+00:00"
         }
       ],
       "seasons": [
@@ -437,7 +757,7 @@
               "language": "es",
               "subtitles": [],
               "duration": "",
-              "scrapedAt": "2026-07-07T09:22:58.017092+00:00"
+              "scrapedAt": "2026-07-08T08:10:21.174583+00:00"
             }
           ]
         }
@@ -473,7 +793,7 @@
       "siteUrl": "https://tioanime.com/anime/sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.904313+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:11.627521+00:00",
       "episodes": [
         {
           "id": "tioanime-sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha-ep-1",
@@ -489,7 +809,7 @@
           "language": "es",
           "subtitles": [],
           "duration": "",
-          "scrapedAt": "2026-07-07T09:23:00.217282+00:00"
+          "scrapedAt": "2026-07-08T08:10:23.492351+00:00"
         }
       ],
       "seasons": [
@@ -511,7 +831,7 @@
               "language": "es",
               "subtitles": [],
               "duration": "",
-              "scrapedAt": "2026-07-07T09:23:00.217282+00:00"
+              "scrapedAt": "2026-07-08T08:10:23.492351+00:00"
             }
           ]
         }
@@ -545,7 +865,7 @@
       "siteUrl": "https://tioanime.com/anime/nijusseiki-denki-mokuroku-eureka-evrika",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.905134+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:11.628361+00:00",
       "episodes": [
         {
           "id": "tioanime-nijusseiki-denki-mokuroku-eureka-evrika-ep-1",
@@ -561,7 +881,7 @@
           "language": "es",
           "subtitles": [],
           "duration": "",
-          "scrapedAt": "2026-07-07T09:23:02.423985+00:00"
+          "scrapedAt": "2026-07-08T08:10:25.817504+00:00"
         }
       ],
       "seasons": [
@@ -583,7 +903,7 @@
               "language": "es",
               "subtitles": [],
               "duration": "",
-              "scrapedAt": "2026-07-07T09:23:02.423985+00:00"
+              "scrapedAt": "2026-07-08T08:10:25.817504+00:00"
             }
           ]
         }
@@ -619,7 +939,7 @@
       "siteUrl": "https://tioanime.com/anime/mushoku-tensei-iii-isekai-ittara-honki-dasu",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.905949+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:11.629188+00:00",
       "episodes": [
         {
           "id": "tioanime-mushoku-tensei-iii-isekai-ittara-honki-dasu-ep-1",
@@ -635,7 +955,7 @@
           "language": "es",
           "subtitles": [],
           "duration": "",
-          "scrapedAt": "2026-07-07T09:23:04.632652+00:00"
+          "scrapedAt": "2026-07-08T08:10:28.147056+00:00"
         },
         {
           "id": "tioanime-mushoku-tensei-iii-isekai-ittara-honki-dasu-ep-2",
@@ -651,7 +971,7 @@
           "language": "es",
           "subtitles": [],
           "duration": "",
-          "scrapedAt": "2026-07-07T09:23:05.628049+00:00"
+          "scrapedAt": "2026-07-08T08:10:29.206537+00:00"
         }
       ],
       "seasons": [
@@ -673,7 +993,7 @@
               "language": "es",
               "subtitles": [],
               "duration": "",
-              "scrapedAt": "2026-07-07T09:23:04.632652+00:00"
+              "scrapedAt": "2026-07-08T08:10:28.147056+00:00"
             },
             {
               "id": "tioanime-mushoku-tensei-iii-isekai-ittara-honki-dasu-ep-2",
@@ -689,7 +1009,7 @@
               "language": "es",
               "subtitles": [],
               "duration": "",
-              "scrapedAt": "2026-07-07T09:23:05.628049+00:00"
+              "scrapedAt": "2026-07-08T08:10:29.206537+00:00"
             }
           ]
         }
@@ -725,7 +1045,7 @@
       "siteUrl": "https://tioanime.com/anime/tetsunabe-no-jan",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.906751+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:11.630025+00:00",
       "episodes": [
         {
           "id": "tioanime-tetsunabe-no-jan-ep-1",
@@ -741,7 +1061,7 @@
           "language": "es",
           "subtitles": [],
           "duration": "",
-          "scrapedAt": "2026-07-07T09:23:07.822065+00:00"
+          "scrapedAt": "2026-07-08T08:10:31.548516+00:00"
         }
       ],
       "seasons": [
@@ -763,7 +1083,7 @@
               "language": "es",
               "subtitles": [],
               "duration": "",
-              "scrapedAt": "2026-07-07T09:23:07.822065+00:00"
+              "scrapedAt": "2026-07-08T08:10:31.548516+00:00"
             }
           ]
         }
@@ -797,7 +1117,7 @@
       "siteUrl": "https://tioanime.com/anime/lets-go-kaikigumi",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.907561+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:11.630886+00:00",
       "episodes": [
         {
           "id": "tioanime-lets-go-kaikigumi-ep-1",
@@ -813,7 +1133,7 @@
           "language": "es",
           "subtitles": [],
           "duration": "",
-          "scrapedAt": "2026-07-07T09:23:10.024682+00:00"
+          "scrapedAt": "2026-07-08T08:10:33.887716+00:00"
         }
       ],
       "seasons": [
@@ -835,7 +1155,7 @@
               "language": "es",
               "subtitles": [],
               "duration": "",
-              "scrapedAt": "2026-07-07T09:23:10.024682+00:00"
+              "scrapedAt": "2026-07-08T08:10:33.887716+00:00"
             }
           ]
         }
@@ -869,7 +1189,7 @@
       "siteUrl": "https://tioanime.com/anime/azur-lane-bisoku-zenshin-ni",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.908383+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:11.631749+00:00",
       "episodes": [
         {
           "id": "tioanime-azur-lane-bisoku-zenshin-ni-ep-1",
@@ -885,7 +1205,7 @@
           "language": "es",
           "subtitles": [],
           "duration": "",
-          "scrapedAt": "2026-07-07T09:23:12.238817+00:00"
+          "scrapedAt": "2026-07-08T08:10:36.230263+00:00"
         }
       ],
       "seasons": [
@@ -907,7 +1227,7 @@
               "language": "es",
               "subtitles": [],
               "duration": "",
-              "scrapedAt": "2026-07-07T09:23:12.238817+00:00"
+              "scrapedAt": "2026-07-08T08:10:36.230263+00:00"
             }
           ]
         }
@@ -941,7 +1261,7 @@
       "siteUrl": "https://tioanime.com/anime/seihantai-na-kimi-to-boku-2nd-season",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.909201+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:11.632601+00:00",
       "episodes": [
         {
           "id": "tioanime-seihantai-na-kimi-to-boku-2nd-season-ep-1",
@@ -957,7 +1277,7 @@
           "language": "es",
           "subtitles": [],
           "duration": "",
-          "scrapedAt": "2026-07-07T09:23:14.455052+00:00"
+          "scrapedAt": "2026-07-08T08:10:38.559422+00:00"
         }
       ],
       "seasons": [
@@ -979,7 +1299,7 @@
               "language": "es",
               "subtitles": [],
               "duration": "",
-              "scrapedAt": "2026-07-07T09:23:14.455052+00:00"
+              "scrapedAt": "2026-07-08T08:10:38.559422+00:00"
             }
           ]
         }
@@ -1013,7 +1333,7 @@
       "siteUrl": "https://tioanime.com/anime/sayonara-lara",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.910014+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:11.633458+00:00",
       "episodes": [
         {
           "id": "tioanime-sayonara-lara-ep-1",
@@ -1029,7 +1349,7 @@
           "language": "es",
           "subtitles": [],
           "duration": "",
-          "scrapedAt": "2026-07-07T09:23:16.670318+00:00"
+          "scrapedAt": "2026-07-08T08:10:40.891876+00:00"
         }
       ],
       "seasons": [
@@ -1051,7 +1371,7 @@
               "language": "es",
               "subtitles": [],
               "duration": "",
-              "scrapedAt": "2026-07-07T09:23:16.670318+00:00"
+              "scrapedAt": "2026-07-08T08:10:40.891876+00:00"
             }
           ]
         }
@@ -1085,7 +1405,7 @@
       "siteUrl": "https://tioanime.com/anime/iwamotosenpai-no-suisen",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.910838+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:12.923358+00:00",
       "episodes": [
         {
           "id": "tioanime-iwamotosenpai-no-suisen-ep-1",
@@ -1101,7 +1421,7 @@
           "language": "es",
           "subtitles": [],
           "duration": "",
-          "scrapedAt": "2026-07-07T09:23:18.858784+00:00"
+          "scrapedAt": "2026-07-08T08:10:43.239266+00:00"
         }
       ],
       "seasons": [
@@ -1123,7 +1443,7 @@
               "language": "es",
               "subtitles": [],
               "duration": "",
-              "scrapedAt": "2026-07-07T09:23:18.858784+00:00"
+              "scrapedAt": "2026-07-08T08:10:43.239266+00:00"
             }
           ]
         }
@@ -1157,49 +1477,9 @@
       "siteUrl": "https://tioanime.com/anime/oni-no-hanayome",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.911656+00:00",
-      "episodes": [
-        {
-          "id": "tioanime-oni-no-hanayome-ep-1",
-          "season": 1,
-          "episode": 1,
-          "number": 1,
-          "title": "Episode 1",
-          "siteUrl": "https://tioanime.com/ver/oni-no-hanayome-1",
-          "videoUrl": "",
-          "externalUrl": "https://mega.nz/embed/!pTF0TTBD!AHtFw_izECtSPK_vnU8mHcee0e6zfwbS0IAAwCeyFBY",
-          "externalType": "iframe",
-          "server": "TioAnime",
-          "language": "es",
-          "subtitles": [],
-          "duration": "",
-          "scrapedAt": "2026-07-07T09:23:21.053471+00:00"
-        }
-      ],
-      "seasons": [
-        {
-          "season": 1,
-          "title": "Season 1",
-          "episodes": [
-            {
-              "id": "tioanime-oni-no-hanayome-ep-1",
-              "season": 1,
-              "episode": 1,
-              "number": 1,
-              "title": "Episode 1",
-              "siteUrl": "https://tioanime.com/ver/oni-no-hanayome-1",
-              "videoUrl": "",
-              "externalUrl": "https://mega.nz/embed/!pTF0TTBD!AHtFw_izECtSPK_vnU8mHcee0e6zfwbS0IAAwCeyFBY",
-              "externalType": "iframe",
-              "server": "TioAnime",
-              "language": "es",
-              "subtitles": [],
-              "duration": "",
-              "scrapedAt": "2026-07-07T09:23:21.053471+00:00"
-            }
-          ]
-        }
-      ],
+      "lastScrapedAt": "2026-07-08T08:07:12.924218+00:00",
+      "episodes": [],
+      "seasons": [],
       "seasonNumber": 1,
       "colors": [
         "#40dfc2",
@@ -1229,49 +1509,9 @@
       "siteUrl": "https://tioanime.com/anime/kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushakusama-ga-nazeka-dekiai-shitekimasu",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.912464+00:00",
-      "episodes": [
-        {
-          "id": "tioanime-kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushakusama-ga-nazeka-dekiai-shitekimasu-ep-1",
-          "season": 1,
-          "episode": 1,
-          "number": 1,
-          "title": "Episode 1",
-          "siteUrl": "https://tioanime.com/ver/kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushakusama-ga-nazeka-dekiai-shitekimasu-1",
-          "videoUrl": "",
-          "externalUrl": "https://mega.nz/embed/!gWcEla6Y!or2kIm3BzREP76_SssM3kqHrm1ouYaRMbQi6Cep1zUI",
-          "externalType": "iframe",
-          "server": "TioAnime",
-          "language": "es",
-          "subtitles": [],
-          "duration": "",
-          "scrapedAt": "2026-07-07T09:23:23.257106+00:00"
-        }
-      ],
-      "seasons": [
-        {
-          "season": 1,
-          "title": "Season 1",
-          "episodes": [
-            {
-              "id": "tioanime-kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushakusama-ga-nazeka-dekiai-shitekimasu-ep-1",
-              "season": 1,
-              "episode": 1,
-              "number": 1,
-              "title": "Episode 1",
-              "siteUrl": "https://tioanime.com/ver/kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushakusama-ga-nazeka-dekiai-shitekimasu-1",
-              "videoUrl": "",
-              "externalUrl": "https://mega.nz/embed/!gWcEla6Y!or2kIm3BzREP76_SssM3kqHrm1ouYaRMbQi6Cep1zUI",
-              "externalType": "iframe",
-              "server": "TioAnime",
-              "language": "es",
-              "subtitles": [],
-              "duration": "",
-              "scrapedAt": "2026-07-07T09:23:23.257106+00:00"
-            }
-          ]
-        }
-      ],
+      "lastScrapedAt": "2026-07-08T08:07:12.925083+00:00",
+      "episodes": [],
+      "seasons": [],
       "seasonNumber": 1,
       "colors": [
         "#40dfc2",
@@ -1303,49 +1543,9 @@
       "siteUrl": "https://tioanime.com/anime/mahou-shoujo-lyrical-nanoha-exceeds-gun-blaze-vengeance",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.913279+00:00",
-      "episodes": [
-        {
-          "id": "tioanime-mahou-shoujo-lyrical-nanoha-exceeds-gun-blaze-vengeance-ep-1",
-          "season": 1,
-          "episode": 1,
-          "number": 1,
-          "title": "Episode 1",
-          "siteUrl": "https://tioanime.com/ver/mahou-shoujo-lyrical-nanoha-exceeds-gun-blaze-vengeance-1",
-          "videoUrl": "",
-          "externalUrl": "https://mega.nz/embed/!cGdShDLb!vqSSw0devhAI_qTterXOk5_65veFlKxVTXoEZLX4yIQ",
-          "externalType": "iframe",
-          "server": "TioAnime",
-          "language": "es",
-          "subtitles": [],
-          "duration": "",
-          "scrapedAt": "2026-07-07T09:23:25.479531+00:00"
-        }
-      ],
-      "seasons": [
-        {
-          "season": 1,
-          "title": "Season 1",
-          "episodes": [
-            {
-              "id": "tioanime-mahou-shoujo-lyrical-nanoha-exceeds-gun-blaze-vengeance-ep-1",
-              "season": 1,
-              "episode": 1,
-              "number": 1,
-              "title": "Episode 1",
-              "siteUrl": "https://tioanime.com/ver/mahou-shoujo-lyrical-nanoha-exceeds-gun-blaze-vengeance-1",
-              "videoUrl": "",
-              "externalUrl": "https://mega.nz/embed/!cGdShDLb!vqSSw0devhAI_qTterXOk5_65veFlKxVTXoEZLX4yIQ",
-              "externalType": "iframe",
-              "server": "TioAnime",
-              "language": "es",
-              "subtitles": [],
-              "duration": "",
-              "scrapedAt": "2026-07-07T09:23:25.479531+00:00"
-            }
-          ]
-        }
-      ],
+      "lastScrapedAt": "2026-07-08T08:07:12.925894+00:00",
+      "episodes": [],
+      "seasons": [],
       "seasonNumber": 1,
       "colors": [
         "#40dfc2",
@@ -1377,49 +1577,9 @@
       "siteUrl": "https://tioanime.com/anime/kabushikigaisha-magilumiere-2nd-season",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:37.914140+00:00",
-      "episodes": [
-        {
-          "id": "tioanime-kabushikigaisha-magilumiere-2nd-season-ep-1",
-          "season": 2,
-          "episode": 1,
-          "number": 1,
-          "title": "Episode 1",
-          "siteUrl": "https://tioanime.com/ver/kabushikigaisha-magilumiere-2nd-season-1",
-          "videoUrl": "",
-          "externalUrl": "https://mega.nz/embed/!QGNEjQzD!7GXcTImLoy6zn2mYoVRgKQlUMqnhJodXb4uOnpePqiA",
-          "externalType": "iframe",
-          "server": "TioAnime",
-          "language": "es",
-          "subtitles": [],
-          "duration": "",
-          "scrapedAt": "2026-07-07T09:23:27.688501+00:00"
-        }
-      ],
-      "seasons": [
-        {
-          "season": 2,
-          "title": "Season 2",
-          "episodes": [
-            {
-              "id": "tioanime-kabushikigaisha-magilumiere-2nd-season-ep-1",
-              "season": 2,
-              "episode": 1,
-              "number": 1,
-              "title": "Episode 1",
-              "siteUrl": "https://tioanime.com/ver/kabushikigaisha-magilumiere-2nd-season-1",
-              "videoUrl": "",
-              "externalUrl": "https://mega.nz/embed/!QGNEjQzD!7GXcTImLoy6zn2mYoVRgKQlUMqnhJodXb4uOnpePqiA",
-              "externalType": "iframe",
-              "server": "TioAnime",
-              "language": "es",
-              "subtitles": [],
-              "duration": "",
-              "scrapedAt": "2026-07-07T09:23:27.688501+00:00"
-            }
-          ]
-        }
-      ],
+      "lastScrapedAt": "2026-07-08T08:07:12.926727+00:00",
+      "episodes": [],
+      "seasons": [],
       "seasonNumber": 2,
       "colors": [
         "#40dfc2",
@@ -1449,49 +1609,9 @@
       "siteUrl": "https://tioanime.com/anime/black-torch",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.131910+00:00",
-      "episodes": [
-        {
-          "id": "tioanime-black-torch-ep-1",
-          "season": 1,
-          "episode": 1,
-          "number": 1,
-          "title": "Episode 1",
-          "siteUrl": "https://tioanime.com/ver/black-torch-1",
-          "videoUrl": "",
-          "externalUrl": "https://mega.nz/embed/!YLlzHCLS!ddsCkg35HgGxYX0bEkyOyggXwZyphjYNZgwlbY10rYE",
-          "externalType": "iframe",
-          "server": "TioAnime",
-          "language": "es",
-          "subtitles": [],
-          "duration": "",
-          "scrapedAt": "2026-07-07T09:23:29.898908+00:00"
-        }
-      ],
-      "seasons": [
-        {
-          "season": 1,
-          "title": "Season 1",
-          "episodes": [
-            {
-              "id": "tioanime-black-torch-ep-1",
-              "season": 1,
-              "episode": 1,
-              "number": 1,
-              "title": "Episode 1",
-              "siteUrl": "https://tioanime.com/ver/black-torch-1",
-              "videoUrl": "",
-              "externalUrl": "https://mega.nz/embed/!YLlzHCLS!ddsCkg35HgGxYX0bEkyOyggXwZyphjYNZgwlbY10rYE",
-              "externalType": "iframe",
-              "server": "TioAnime",
-              "language": "es",
-              "subtitles": [],
-              "duration": "",
-              "scrapedAt": "2026-07-07T09:23:29.898908+00:00"
-            }
-          ]
-        }
-      ],
+      "lastScrapedAt": "2026-07-08T08:07:12.927565+00:00",
+      "episodes": [],
+      "seasons": [],
       "seasonNumber": 1,
       "colors": [
         "#40dfc2",
@@ -1521,7 +1641,7 @@
       "siteUrl": "https://tioanime.com/anime/grow-up-show-himawari-no-circusdan",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.132836+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:12.928409+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -1553,7 +1673,7 @@
       "siteUrl": "https://tioanime.com/anime/saijo-no-osewa",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.133668+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:12.929245+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -1585,7 +1705,7 @@
       "siteUrl": "https://tioanime.com/anime/tenmaku-no-jaadugar",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.134456+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:12.930085+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -1617,7 +1737,7 @@
       "siteUrl": "https://tioanime.com/anime/uchi-no-otoutodomo-ga-sumimasen",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.135248+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:12.930923+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -1649,7 +1769,7 @@
       "siteUrl": "https://tioanime.com/anime/koko-wa-ore-ni-makasete-saki-ni-ike-to-itte-kara-10nen-ga-tattara-densetsu-ni-natteita",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.136099+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:12.931773+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -1681,7 +1801,7 @@
       "siteUrl": "https://tioanime.com/anime/kore-kaite-shine",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.136968+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:12.932642+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -1713,7 +1833,7 @@
       "siteUrl": "https://tioanime.com/anime/ryoumin-0nin-start-no-henkyou-ryoushusama",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.137806+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:12.933493+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -1747,7 +1867,7 @@
       "siteUrl": "https://tioanime.com/anime/hell-mode-yarikomizuki-no-gamer-wa-hai-settei-no-isekai-de-musou-suru-2nd-season",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.138674+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:12.934363+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 2,
@@ -1781,7 +1901,7 @@
       "siteUrl": "https://tioanime.com/anime/bang-dream-yumemita",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.139463+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:12.935152+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -1813,7 +1933,7 @@
       "siteUrl": "https://tioanime.com/anime/otome-kaijuu-carameliser",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.140297+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:12.935995+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -1845,7 +1965,7 @@
       "siteUrl": "https://tioanime.com/anime/reiwa-no-darasan",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.141104+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:12.936805+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -1877,7 +1997,7 @@
       "siteUrl": "https://tioanime.com/anime/yani-neko",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.141919+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:12.937676+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -1909,7 +2029,7 @@
       "siteUrl": "https://tioanime.com/anime/tsuihou-sareta-tensei-juukishi-wa-game-chishiki-de-musou-suru",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.142774+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:12.938548+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -1941,7 +2061,7 @@
       "siteUrl": "https://tioanime.com/anime/hanazakari-no-kimitachi-e-2nd-season",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.143624+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.220979+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 2,
@@ -1973,7 +2093,7 @@
       "siteUrl": "https://tioanime.com/anime/lv999-no-murabito",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.144445+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.221925+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2005,7 +2125,7 @@
       "siteUrl": "https://tioanime.com/anime/mujikaku-seijo-wa-kyou-mo-muishiki-ni-chikara-wo-tare-nagasu",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.145288+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.222752+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2037,7 +2157,7 @@
       "siteUrl": "https://tioanime.com/anime/neko-to-ryuu",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:39.146159+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.223632+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2069,7 +2189,7 @@
       "siteUrl": "https://tioanime.com/anime/rakudai-kenja-no-gakuin-musou-nidome-no-tensei-srank-cheat-majutsushi-boukenroku",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.356904+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.224504+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2101,7 +2221,7 @@
       "siteUrl": "https://tioanime.com/anime/heroine-seijo-iie-all-works-maid-desu-hokori",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.357784+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.225356+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2133,7 +2253,7 @@
       "siteUrl": "https://tioanime.com/anime/kobayashisan-chi-no-maid-dragon-samishigariya-no-ryuu",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.358608+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.226202+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2165,7 +2285,7 @@
       "siteUrl": "https://tioanime.com/anime/zombieland-saga-movie-yumeginga-paradise",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.359404+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.227043+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2197,7 +2317,7 @@
       "siteUrl": "https://tioanime.com/anime/dandelion",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.360200+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.227870+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2229,7 +2349,7 @@
       "siteUrl": "https://tioanime.com/anime/aishiteru-game-wo-owarasetai",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.361008+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.228713+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2261,7 +2381,7 @@
       "siteUrl": "https://tioanime.com/anime/yozakurasan-chi-no-daisakusen-2nd-season",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.361845+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.229550+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 2,
@@ -2293,7 +2413,7 @@
       "siteUrl": "https://tioanime.com/anime/kuroneko-to-majo-no-kyoushitsu",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.362697+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.230400+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2325,7 +2445,7 @@
       "siteUrl": "https://tioanime.com/anime/ichijouma-mankitsugurashi",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.363523+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.231231+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2357,7 +2477,7 @@
       "siteUrl": "https://tioanime.com/anime/yowayowa-sensei",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.364360+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.232083+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2389,7 +2509,7 @@
       "siteUrl": "https://tioanime.com/anime/kill-ao",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.365208+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.232939+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2421,7 +2541,7 @@
       "siteUrl": "https://tioanime.com/anime/hokuto-no-ken-fist-of-the-north-star",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.366056+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.233803+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2453,7 +2573,7 @@
       "siteUrl": "https://tioanime.com/anime/kamiina-botan-yoeru-sugata-wa-yuri-no-hana",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.366934+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.234670+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2485,167 +2605,7 @@
       "siteUrl": "https://tioanime.com/anime/kami-no-shizuku",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.367850+00:00",
-      "episodes": [],
-      "seasons": [],
-      "seasonNumber": 1,
-      "colors": [
-        "#40dfc2",
-        "#251d47"
-      ]
-    },
-    {
-      "id": "tioanime-awajima-hyakkei",
-      "malId": null,
-      "title": "Awajima Hyakkei",
-      "alternativeTitles": [],
-      "synopsis": "",
-      "description": "",
-      "poster": "",
-      "image": "",
-      "banner": "",
-      "genres": [],
-      "genre": "anime",
-      "status": "",
-      "type": "TV",
-      "year": null,
-      "season": "",
-      "aired": "",
-      "rating": null,
-      "score": null,
-      "source": "TioAnime",
-      "siteUrl": "https://tioanime.com/anime/awajima-hyakkei",
-      "totalEpisodes": null,
-      "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.368712+00:00",
-      "episodes": [],
-      "seasons": [],
-      "seasonNumber": 1,
-      "colors": [
-        "#40dfc2",
-        "#251d47"
-      ]
-    },
-    {
-      "id": "tioanime-marikachan-no-koukando-wa-bukkowareteiru",
-      "malId": null,
-      "title": "Marika-chan no Koukando wa Bukkowareteiru",
-      "alternativeTitles": [],
-      "synopsis": "",
-      "description": "",
-      "poster": "",
-      "image": "",
-      "banner": "",
-      "genres": [],
-      "genre": "anime",
-      "status": "",
-      "type": "TV",
-      "year": null,
-      "season": "",
-      "aired": "",
-      "rating": null,
-      "score": null,
-      "source": "TioAnime",
-      "siteUrl": "https://tioanime.com/anime/marikachan-no-koukando-wa-bukkowareteiru",
-      "totalEpisodes": null,
-      "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.369540+00:00",
-      "episodes": [],
-      "seasons": [],
-      "seasonNumber": 1,
-      "colors": [
-        "#40dfc2",
-        "#251d47"
-      ]
-    },
-    {
-      "id": "tioanime-himekishi-wa-barbaroi-no-yome",
-      "malId": null,
-      "title": "Himekishi wa Barbaroi no Yome",
-      "alternativeTitles": [],
-      "synopsis": "",
-      "description": "",
-      "poster": "",
-      "image": "",
-      "banner": "",
-      "genres": [],
-      "genre": "anime",
-      "status": "",
-      "type": "TV",
-      "year": null,
-      "season": "",
-      "aired": "",
-      "rating": null,
-      "score": null,
-      "source": "TioAnime",
-      "siteUrl": "https://tioanime.com/anime/himekishi-wa-barbaroi-no-yome",
-      "totalEpisodes": null,
-      "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.370341+00:00",
-      "episodes": [],
-      "seasons": [],
-      "seasonNumber": 1,
-      "colors": [
-        "#40dfc2",
-        "#251d47"
-      ]
-    },
-    {
-      "id": "tioanime-kujima-utaeba-ie-hororo",
-      "malId": null,
-      "title": "Kujima Utaeba Ie Hororo",
-      "alternativeTitles": [],
-      "synopsis": "",
-      "description": "",
-      "poster": "",
-      "image": "",
-      "banner": "",
-      "genres": [],
-      "genre": "anime",
-      "status": "",
-      "type": "TV",
-      "year": null,
-      "season": "",
-      "aired": "",
-      "rating": null,
-      "score": null,
-      "source": "TioAnime",
-      "siteUrl": "https://tioanime.com/anime/kujima-utaeba-ie-hororo",
-      "totalEpisodes": null,
-      "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.371147+00:00",
-      "episodes": [],
-      "seasons": [],
-      "seasonNumber": 1,
-      "colors": [
-        "#40dfc2",
-        "#251d47"
-      ]
-    },
-    {
-      "id": "tioanime-otaku-ni-yasashii-gal-wa-inai",
-      "malId": null,
-      "title": "Otaku ni Yasashii Gal wa Inai!?",
-      "alternativeTitles": [],
-      "synopsis": "",
-      "description": "",
-      "poster": "",
-      "image": "",
-      "banner": "",
-      "genres": [],
-      "genre": "anime",
-      "status": "",
-      "type": "TV",
-      "year": null,
-      "season": "",
-      "aired": "",
-      "rating": null,
-      "score": null,
-      "source": "TioAnime",
-      "siteUrl": "https://tioanime.com/anime/otaku-ni-yasashii-gal-wa-inai",
-      "totalEpisodes": null,
-      "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:40.371968+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:14.235540+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2677,7 +2637,39 @@
       "siteUrl": "https://www4.animeflv.net/anime/snowball-earth",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:42.212960+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:15.914643+00:00",
+      "episodes": [],
+      "seasons": [],
+      "seasonNumber": 1,
+      "colors": [
+        "#40dfc2",
+        "#251d47"
+      ]
+    },
+    {
+      "id": "animeflv-awajima-hyakkei",
+      "malId": null,
+      "title": "Awajima Hyakkei",
+      "alternativeTitles": [],
+      "synopsis": "",
+      "description": "",
+      "poster": "",
+      "image": "",
+      "banner": "",
+      "genres": [],
+      "genre": "anime",
+      "status": "",
+      "type": "TV",
+      "year": null,
+      "season": "",
+      "aired": "",
+      "rating": null,
+      "score": null,
+      "source": "AnimeFLV",
+      "siteUrl": "https://www4.animeflv.net/anime/awajima-hyakkei",
+      "totalEpisodes": null,
+      "episode": null,
+      "lastScrapedAt": "2026-07-08T08:07:15.915488+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2709,7 +2701,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/reincarnation-no-kaben",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:42.214619+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:15.916316+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2741,7 +2733,103 @@
       "siteUrl": "https://www4.animeflv.net/anime/dr-stone-science-future",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:42.215423+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:15.917170+00:00",
+      "episodes": [],
+      "seasons": [],
+      "seasonNumber": 1,
+      "colors": [
+        "#40dfc2",
+        "#251d47"
+      ]
+    },
+    {
+      "id": "animeflv-kujima-utaeba-ie-hororo",
+      "malId": null,
+      "title": "Kujima Utaeba Ie Hororo",
+      "alternativeTitles": [],
+      "synopsis": "",
+      "description": "",
+      "poster": "",
+      "image": "",
+      "banner": "",
+      "genres": [],
+      "genre": "anime",
+      "status": "",
+      "type": "TV",
+      "year": null,
+      "season": "",
+      "aired": "",
+      "rating": null,
+      "score": null,
+      "source": "AnimeFLV",
+      "siteUrl": "https://www4.animeflv.net/anime/kujima-utaeba-ie-hororo",
+      "totalEpisodes": null,
+      "episode": null,
+      "lastScrapedAt": "2026-07-08T08:07:15.918043+00:00",
+      "episodes": [],
+      "seasons": [],
+      "seasonNumber": 1,
+      "colors": [
+        "#40dfc2",
+        "#251d47"
+      ]
+    },
+    {
+      "id": "animeflv-himekishi-wa-barbaroi-no-yome",
+      "malId": null,
+      "title": "Himekishi wa Barbaroi no Yome",
+      "alternativeTitles": [],
+      "synopsis": "",
+      "description": "",
+      "poster": "",
+      "image": "",
+      "banner": "",
+      "genres": [],
+      "genre": "anime",
+      "status": "",
+      "type": "TV",
+      "year": null,
+      "season": "",
+      "aired": "",
+      "rating": null,
+      "score": null,
+      "source": "AnimeFLV",
+      "siteUrl": "https://www4.animeflv.net/anime/himekishi-wa-barbaroi-no-yome",
+      "totalEpisodes": null,
+      "episode": null,
+      "lastScrapedAt": "2026-07-08T08:07:15.918922+00:00",
+      "episodes": [],
+      "seasons": [],
+      "seasonNumber": 1,
+      "colors": [
+        "#40dfc2",
+        "#251d47"
+      ]
+    },
+    {
+      "id": "animeflv-otaku-ni-yasashii-gal-wa-inai",
+      "malId": null,
+      "title": "Otaku ni Yasashii Gal wa Inai!?",
+      "alternativeTitles": [],
+      "synopsis": "",
+      "description": "",
+      "poster": "",
+      "image": "",
+      "banner": "",
+      "genres": [],
+      "genre": "anime",
+      "status": "",
+      "type": "TV",
+      "year": null,
+      "season": "",
+      "aired": "",
+      "rating": null,
+      "score": null,
+      "source": "AnimeFLV",
+      "siteUrl": "https://www4.animeflv.net/anime/otaku-ni-yasashii-gal-wa-inai",
+      "totalEpisodes": null,
+      "episode": null,
+      "lastScrapedAt": "2026-07-08T08:07:15.919816+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2773,7 +2861,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/kanojo-okarishimasu-5th-season",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:42.218848+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:15.920713+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 5,
@@ -2805,7 +2893,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/jidou-hanbaiki-ni-umarekawatta-ore-wa-meikyuu-wo-samayou-3rd-season",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:42.219705+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:15.921573+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 3,
@@ -2837,7 +2925,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/youkoso-jitsuryoku-shijou-shugi-no-kyoushitsu-e-4th-season",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:42.220551+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:15.922442+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 4,
@@ -2869,7 +2957,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/tadaima-ojamasaremasu",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:42.221387+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:15.923264+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2903,7 +2991,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/megami-isekai-tensei-nani-ni-naritai-desu-ka-ore-yuusha-no-rokkotsu-de",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:42.222262+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:15.924188+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2937,7 +3025,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/class-de-2banme-ni-kawaii-onnanoko-to-tomodachi-ni-natta",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:42.223137+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:15.925083+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -2969,7 +3057,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/lastame-s2",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:42.224074+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:15.926037+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 2,
@@ -3001,7 +3089,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/ponkotsu-fuuki-iin-to-skirttake-ga-futekisetsu-na-jk-no-hanashi",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:42.224944+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:15.926901+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3033,7 +3121,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/tongari-boushi-no-atelier",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:42.225835+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:15.927784+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3067,7 +3155,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/ingoku-danchi",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:42.226695+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:15.928649+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3099,7 +3187,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/ghost-concert-missing-songs",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:42.227543+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:15.929518+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3131,7 +3219,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/nippon-sangoku",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:42.228410+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:15.930396+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3163,7 +3251,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/kami-no-niwatsuki-kusunokitei",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:43.504684+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:17.277994+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3195,7 +3283,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/kanansama-wa-akumade-choroi",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:43.505484+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:17.278882+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3227,7 +3315,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/akanebanashi",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:43.506277+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:17.279664+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3259,7 +3347,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/jishou-akuyaku-reijou-na-konyakusha-no-kansatsu-kiroku",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:43.507121+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:17.280501+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3291,7 +3379,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/mata-korosarete-shimatta-no-desu-ne-tanteisama",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:43.507974+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:17.281352+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3323,7 +3411,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/haibarakun-no-tsuyokute-seishun-new-game",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:43.508822+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:17.282189+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3355,7 +3443,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/mamonogurai-no-boukensha-ore-dake-mamono-wo-kuratte-tsuyoku-naru",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:43.509669+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:17.283035+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3387,7 +3475,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/kirio-fanclub",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:43.510488+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:17.283875+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3421,7 +3509,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/ganbare-nakamurakun",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:43.511293+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:17.284683+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3453,7 +3541,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/nigashita-sakana-wa-ookikatta-ga-tsuriageta-sakana-ga-ookisugita-ken",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:43.512125+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:17.285523+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3485,7 +3573,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/maidsan-wa-taberu-dake",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:43.512962+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:17.286363+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3517,7 +3605,39 @@
       "siteUrl": "https://www4.animeflv.net/anime/saikyou-no-shokugyou-wa-yuusha-demo-kenja-demo-naku-kanteishi-kari-rashii-desu-yo",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:43.513815+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:17.287196+00:00",
+      "episodes": [],
+      "seasons": [],
+      "seasonNumber": 1,
+      "colors": [
+        "#40dfc2",
+        "#251d47"
+      ]
+    },
+    {
+      "id": "animeflv-marikachan-no-koukando-wa-bukkowareteiru",
+      "malId": null,
+      "title": "Marika-chan no Koukando wa Bukkowareteiru",
+      "alternativeTitles": [],
+      "synopsis": "",
+      "description": "",
+      "poster": "",
+      "image": "",
+      "banner": "",
+      "genres": [],
+      "genre": "anime",
+      "status": "",
+      "type": "TV",
+      "year": null,
+      "season": "",
+      "aired": "",
+      "rating": null,
+      "score": null,
+      "source": "AnimeFLV",
+      "siteUrl": "https://www4.animeflv.net/anime/marikachan-no-koukando-wa-bukkowareteiru",
+      "totalEpisodes": null,
+      "episode": null,
+      "lastScrapedAt": "2026-07-08T08:07:17.288036+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3549,7 +3669,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/niwatori-fighter",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:43.515472+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:17.288869+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3581,7 +3701,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/honzuki-no-gekokujou-shisho-ni-naru-tame-ni-wa-shudan-wo-erandeiraremasen-4th-season",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:43.516319+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:17.289714+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 4,
@@ -3615,7 +3735,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/rezero-kara-hajimeru-isekai-seikatsu-4th-season",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.780988+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.628925+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 4,
@@ -3649,7 +3769,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/hidarikiki-no-eren",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.781829+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.629758+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3681,7 +3801,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/replica-datte-koi-wo-suru",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.782711+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.630636+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3713,7 +3833,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/marriagetoxin",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.783569+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.631514+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3745,7 +3865,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/liar-game",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.784420+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.632369+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3777,7 +3897,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/hikuidori-ushuu-boro-tobigumi",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.785275+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.633219+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3809,7 +3929,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/diamond-no-ace-act-ii-second-season",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.786146+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.634091+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 2,
@@ -3841,7 +3961,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/mao",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.786993+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.634931+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3873,7 +3993,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/needy-girl-overdose",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.787850+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.635795+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3905,7 +4025,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/yomi-no-tsugai",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.788717+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.636663+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3937,7 +4057,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/yuusha-no-kuzu",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.789542+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.637512+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -3969,7 +4089,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/jingai-kyoushitsu-no-ningengirai-kyoushi",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.790409+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.638386+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -4001,7 +4121,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/mairimashita-irumakun-4th-season",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.791271+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.639236+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 4,
@@ -4033,7 +4153,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/enen-no-shouboutai-san-no-shou",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.792115+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.640097+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -4065,7 +4185,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/tensei-shitara-slime-datta-ken-4th-season",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.792969+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.640967+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 4,
@@ -4097,7 +4217,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/koori-no-jouheki",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.793808+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.641819+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -4129,7 +4249,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/chitosekun-wa-ramune-bin-no-naka",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.794673+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.642696+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -4161,7 +4281,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/yuusha-party-ni-kawaii-ko-ga-ita-node-kokuhaku-shitemita",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.795527+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.643564+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -4193,7 +4313,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/darwin-jihen",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.796401+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.644441+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 1,
@@ -4225,7 +4345,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/golden-kamuy-saishuushou",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.797256+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.645281+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 5,
@@ -4257,7 +4377,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/himesama-goumon-no-jikan-desu-2nd-season",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.798109+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.646130+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 2,
@@ -4289,7 +4409,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/vigilante-boku-no-hero-academia-illegals-2nd-season",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.798953+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.646976+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 2,
@@ -4321,7 +4441,7 @@
       "siteUrl": "https://www4.animeflv.net/anime/jigokuraku-2nd-season",
       "totalEpisodes": null,
       "episode": null,
-      "lastScrapedAt": "2026-07-07T09:22:44.799781+00:00",
+      "lastScrapedAt": "2026-07-08T08:07:18.647808+00:00",
       "episodes": [],
       "seasons": [],
       "seasonNumber": 2,
