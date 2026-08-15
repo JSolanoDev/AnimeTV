@@ -7710,6 +7710,59 @@ body.reduce-motion .watch-backdrop.has-art { animation: none !important; transfo
     linear-gradient(90deg, rgba(7,7,15,0.94) 0%, rgba(7,7,15,0.7) 30%, rgba(7,7,15,0.34) 52%, rgba(7,7,15,0.2) 70%, rgba(7,7,15,0.74) 100%),
     linear-gradient(0deg, rgba(6,6,13,0.96) 1%, rgba(7,7,15,0.05) 46%, rgba(7,7,15,0.36) 100%);
 }
+body.adult-mode .watch-backdrop::after {
+  background: linear-gradient(90deg, rgba(10, 3, 6, 0.85) 0%, rgba(10, 3, 6, 0.45) 25%, transparent 65%) !important;
+}
+body.adult-mode .watch-backdrop.is-poster-fit {
+  background-size: cover !important;
+  background-position: center 20% !important;
+}
+
+.adult-provider-tabs {
+  display: none;
+  gap: 0.8rem;
+  margin: 1rem 0 1.2rem;
+  padding: 0.25rem;
+  background: rgba(17, 21, 34, 0.45);
+  border-radius: 0.85rem;
+  border: 1px solid rgba(247, 248, 255, 0.05);
+  width: fit-content;
+}
+
+body.adult-mode .adult-provider-tabs:not([hidden]) {
+  display: flex;
+}
+
+.adult-provider-tabs[hidden] {
+  display: none !important;
+}
+
+.adult-provider-tab {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.92rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.65rem;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.adult-provider-tab:hover {
+  color: var(--text);
+  background: rgba(247, 248, 255, 0.04);
+}
+
+.adult-provider-tab.is-selected {
+  color: #fff;
+  background: #e11d48;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.35);
+}
+
+.adult-provider-tab:focus-visible {
+  outline: 2px solid #e11d48;
+}
 
 /* The overlay lets the backdrop dominate (opaque base so nothing bleeds through). */
 .watch-overlay.cinematic {
