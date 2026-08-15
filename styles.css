@@ -6585,8 +6585,44 @@ body.player-cinema-open .close-button {
   object-fit: cover;
 }
 
+/* Placeholder shown until the mini thumbnail hydrates: a soft branded gradient
+   with a travelling sheen so the strip reads as "loading" instead of as flat
+   coloured blocks. */
 .carousel-dot span {
-  background: linear-gradient(135deg, var(--cyan), var(--rose));
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--cyan) 55%, #10142a), color-mix(in srgb, var(--rose) 55%, #10142a));
+}
+
+.carousel-dot span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  animation: skeleton-sheen 1.35s ease-in-out infinite;
+}
+
+/* Fade the real artwork in so it never pops in hard. */
+.carousel-dot img {
+  animation: carousel-dot-fade 320ms ease both;
+}
+
+@keyframes carousel-dot-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carousel-dot span::after {
+    animation: none;
+  }
+  .carousel-dot img {
+    animation: none;
+  }
 }
 
 .carousel-dot:is(:hover, :focus-visible, .is-tv-focused, .is-selected) {

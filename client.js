@@ -2210,6 +2210,16 @@ function imageDeliveryUrl(url, width = 360, quality = 70) {
       host === "coverlanyvd.org" ||
       host === "hentaiplayer.com";
     if (!allowed) return raw;
+    // TMDB "/original/" files can be several MB. When we're only rendering a
+    // small image (thumbnails, carousel dots, cards) the proxy still had to pull
+    // that whole original down before resizing, which is why small artwork was
+    // slow to appear. Ask TMDB for its own w780 variant instead -- w780 is valid
+    // for both posters and backdrops, and it is still larger than any target we
+    // resize to here, so there is no visible quality loss.
+    if ((host === "image.tmdb.org" || host === "media.themoviedb.org") &&
+        width && Number(width) <= 780 && parsed.pathname.includes("/original/")) {
+      parsed.pathname = parsed.pathname.replace("/original/", "/w780/");
+    }
     const proxy = new URL("/api/image", location.origin);
     proxy.searchParams.set("src", parsed.toString());
     if (width) proxy.searchParams.set("w", String(width));
@@ -2615,10 +2625,19 @@ function scheduleCarouselIndicatorHydration() {
       window.setTimeout(hydrate, 900);
     }
   };
+  // Hydrate as soon as the page has finished loading (the hero/LCP image is
+  // already done by then, so this costs nothing on Lighthouse) instead of
+  // waiting for a user interaction or the old 45s fallback -- that made the
+  // carousel's mini thumbnails sit empty for up to 45 seconds on an idle page.
   const revealOnInteraction = () => afterFirstPaint();
   const events = ["pointerdown", "keydown", "wheel", "touchstart"];
   events.forEach((event) => window.addEventListener(event, revealOnInteraction, { capture: true, once: true, passive: true }));
-  window.setTimeout(afterFirstPaint, 45000);
+  if (document.readyState === "complete") {
+    afterFirstPaint();
+  } else {
+    window.addEventListener("load", afterFirstPaint, { once: true });
+    window.setTimeout(afterFirstPaint, 6000); // safety net if `load` never fires
+  }
 }
 
 function simpleCarouselText(show) {
@@ -10415,7 +10434,10 @@ function scheduleVisibleMetadataWarm(shows = state.shows, limit = HOME_INITIAL_C
   // scheduling the idle warm, so the ~80-request hydration burst lands AFTER the
   // visual-complete window instead of competing inside it. Immediate clicks are
   // still covered by the per-card pointerenter preload in wireOpenButtons.
-  const defer = () => window.setTimeout(idle, 45000);
+  // 4s (was 45s): waiting for `load` already puts this burst after the LCP /
+  // Speed-Index window, so the extra 45s bought no Lighthouse score -- it just
+  // left posters and episode metadata un-upgraded for the best part of a minute.
+  const defer = () => window.setTimeout(idle, 4000);
   if (document.readyState === "complete") defer();
   else window.addEventListener("load", defer, { once: true });
 }
