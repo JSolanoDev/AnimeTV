@@ -834,7 +834,11 @@ body.sidebar-collapsed .sidebar-toggle span {
 }
 
 main {
-  flex: 1 0 auto;
+  /* flex: 0 (was 1) so main hugs its content instead of stretching to fill the
+     viewport. The old flex-grow shoved the footer a full screen below short
+     routes (e.g. Favorites), leaving a large gap before the ZenkaiTV footer.
+     .app-shell keeps min-height:100dvh so the bg still fills the viewport. */
+  flex: 0 0 auto;
   padding: 1.2rem clamp(1.4rem, 3.2vw, 3.4rem) 1.2rem;
   position: relative;
   z-index: 1;
@@ -1268,9 +1272,10 @@ body:not([data-route="home"]) .stremio-search {
 }
 
 .content-band {
-  min-height: 100vh;
+  /* No 100vh floor: it pushed the footer a full screen below short routes. */
+  min-height: 0;
   margin-top: 0;
-  padding: clamp(1rem, 2vw, 1.75rem) 0 4rem;
+  padding: clamp(1rem, 2vw, 1.75rem) 0 2.4rem;
   scroll-margin-top: 0;
   animation: rise-in 520ms ease both;
 }
