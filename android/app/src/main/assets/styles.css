@@ -1757,10 +1757,18 @@ body:not([data-route="home"]) .section-heading h2 {
 }
 
 .show-title {
-  display: block;
+  /* Long romaji titles used to wrap to 4-5 lines, making one card far taller
+     than its neighbours and breaking rail alignment. Clamp to two lines and
+     reserve that height so every card in a row lines up. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  min-height: calc(2 * 1.12em);
   margin: 0;
   color: #f9f7ff;
   font-size: clamp(0.95rem, 0.9vw, 1.08rem);
@@ -7849,12 +7857,36 @@ body.reduce-motion .watch-stage-body { animation: none; }
 .watch-overlay.cinematic .watch-title {
   margin: 0;
   font-size: clamp(2rem, 4.6vw, 4.2rem);
-  line-height: 1.0;
+  line-height: 1.05;
   letter-spacing: 0;
   font-weight: 900;
   color: #fff;
   text-shadow: 0 0.5rem 2rem rgba(0,0,0,0.6);
   text-wrap: balance;
+  /* A 120-character romaji title at the full hero size wrapped to ~10 lines and
+     swallowed the artwork. Cap the block and step the size down by length
+     (classes set in syncWatchHeading); the full title stays in the tooltip. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 20ch;
+}
+
+/* 46-80 chars: still prominent, but no longer full-bleed. */
+.watch-overlay.cinematic .watch-title.is-long-title {
+  font-size: clamp(1.7rem, 3.2vw, 2.9rem);
+  max-width: 26ch;
+}
+
+/* 80+ chars: smaller, four lines, wider measure so it reads as a paragraph. */
+.watch-overlay.cinematic .watch-title.is-xlong-title {
+  font-size: clamp(1.35rem, 2.3vw, 2.15rem);
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  max-width: 34ch;
+  line-height: 1.15;
 }
 
 .watch-meta-row {

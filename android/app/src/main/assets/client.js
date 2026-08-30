@@ -6862,7 +6862,15 @@ function syncWatchHeading(show = state.activeShow, season = null) {
   const title = getShowTitle(show) || "Selected anime";
   const titleNode = document.querySelector("#watchTitle");
   const metaNode = document.querySelector("#watchMeta");
-  if (titleNode) titleNode.textContent = title;
+  if (titleNode) {
+    titleNode.textContent = title;
+    // Size the hero title to its length so very long romaji names do not
+    // wrap to ~10 lines and cover the artwork (CSS steps the font down).
+    const titleLen = title.length;
+    titleNode.classList.toggle("is-long-title", titleLen > 45 && titleLen <= 80);
+    titleNode.classList.toggle("is-xlong-title", titleLen > 80);
+    titleNode.title = title;   // clamped visually, full text on hover
+  }
   if (metaNode) {
     metaNode.textContent = compactMetadataLine(show);
   }
