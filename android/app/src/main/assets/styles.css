@@ -10772,3 +10772,314 @@ body.is-tv .topbar-auth {
   }
 }
 
+/* Calm loading states -------------------------------------------------------
+   Keep loaded content opaque. Loading is shown with one small branded rail,
+   never by flashing or fading an entire section. */
+.topbar,
+.content-band,
+.show-card,
+.carousel-stage {
+  animation: none;
+}
+
+.app-loader {
+  gap: 0.72rem;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(138, 92, 255, 0.13), transparent 19rem),
+    #070914;
+  transition: opacity 240ms ease, visibility 240ms ease;
+}
+
+.app-loader::after {
+  width: min(11rem, 42vw);
+  height: 0.16rem;
+  margin-top: 0.38rem;
+  border-radius: 999rem;
+  background:
+    linear-gradient(90deg, transparent, #8a5cff 46%, #30cde8 54%, transparent) 0 0 / 38% 100% no-repeat,
+    rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 0.04rem rgba(255, 255, 255, 0.06);
+  animation: calm-loader-track 1.55s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.loader-mark {
+  width: 5.35rem;
+  height: 5.35rem;
+  border-radius: 1.45rem;
+  overflow: visible;
+  background: linear-gradient(155deg, #17182a, #0b0d17 72%);
+  box-shadow:
+    0 1.2rem 2.8rem rgba(0, 0, 0, 0.45),
+    0 0 2.4rem rgba(138, 92, 255, 0.18),
+    inset 0 0 0 0.06rem rgba(255, 255, 255, 0.1);
+  animation: none;
+}
+
+.loader-mark::before {
+  inset: -0.38rem;
+  border-radius: 1.82rem;
+  border-width: 0.12rem;
+  border-color: rgba(255, 255, 255, 0.07);
+  border-top-color: #8a5cff;
+  border-right-color: rgba(48, 205, 232, 0.42);
+  animation: loader-spin 1.8s linear infinite;
+}
+
+.loader-mark::after {
+  inset: 15%;
+  z-index: 0;
+  background: radial-gradient(circle, rgba(138, 92, 255, 0.2), transparent 70%);
+  transform: none;
+  animation: none;
+}
+
+.loader-logo {
+  z-index: 1;
+  width: 74%;
+  height: 74%;
+  filter: drop-shadow(0 0 0.65rem rgba(138, 92, 255, 0.34));
+  animation: none;
+}
+
+.app-loader small {
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.thumb-art {
+  background: #0d0f19;
+}
+
+.thumb-art::before {
+  content: "Z";
+  display: grid;
+  place-items: center;
+  color: rgba(235, 232, 255, 0.14);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(2rem, 3vw, 3.4rem);
+  font-weight: 950;
+  line-height: 1;
+  text-shadow: 0 0 1.6rem rgba(138, 92, 255, 0.24);
+  background:
+    radial-gradient(circle at 50% 43%, color-mix(in srgb, var(--thumb-a) 16%, transparent), transparent 34%),
+    linear-gradient(155deg, #171827, #0a0b13 72%);
+}
+
+.art-sheen,
+.skeleton-card .thumb-art::after,
+.carousel-poster-skeleton::after {
+  position: absolute;
+  inset: auto 16% 13%;
+  z-index: 1;
+  height: 0.15rem;
+  border-radius: 999rem;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent, #8a5cff 46%, #30cde8 54%, transparent) 0 0 / 38% 100% no-repeat,
+    rgba(255, 255, 255, 0.07);
+  transform: none;
+  will-change: background-position;
+  animation: calm-loader-track 1.7s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  transition: opacity 160ms ease;
+}
+
+.thumb-art.img-ready .art-sheen,
+.ep-thumb.img-ready .art-sheen {
+  opacity: 0;
+  animation: none;
+}
+
+.thumb-poster,
+.ep-thumb-img {
+  opacity: 1;
+}
+
+.skeleton-card .thumb-art,
+.carousel-poster-skeleton {
+  background: #0d0f19;
+}
+
+.skeleton-card .show-title,
+.skeleton-card .show-meta {
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.skeleton-card .show-title::after,
+.skeleton-card .show-meta::after {
+  content: none;
+  animation: none;
+}
+
+.poster-placeholder {
+  justify-content: center;
+  padding: 1rem;
+  background:
+    radial-gradient(circle at 50% 43%, rgba(138, 92, 255, 0.13), transparent 34%),
+    linear-gradient(155deg, #171827, #0a0b13 72%);
+}
+
+.poster-placeholder::before {
+  inset: 0;
+  background: radial-gradient(circle at 50% 43%, rgba(48, 205, 232, 0.07), transparent 44%);
+  filter: none;
+  transform: none;
+  animation: none;
+}
+
+.poster-placeholder-mark {
+  margin: 0;
+  color: rgba(235, 232, 255, 0.16);
+  font-size: 3rem;
+  text-shadow: 0 0 1.5rem rgba(138, 92, 255, 0.24);
+}
+
+.poster-placeholder-copy,
+.ep-thumb-empty-copy {
+  display: none;
+}
+
+.carousel-dot span {
+  background: linear-gradient(145deg, #171827, #0a0b13 74%);
+}
+
+.carousel-dot span::after {
+  inset: auto 12% 16%;
+  height: 0.12rem;
+  border-radius: 999rem;
+  background:
+    linear-gradient(90deg, transparent, #8a5cff 46%, #30cde8 54%, transparent) 0 0 / 38% 100% no-repeat,
+    rgba(255, 255, 255, 0.07);
+  transform: none;
+  animation: calm-loader-track 1.7s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.carousel-dot img {
+  opacity: 1;
+  animation: none;
+}
+
+.theme-flash {
+  display: none !important;
+}
+
+body.adult-mode .app-loader {
+  background:
+    radial-gradient(circle at 50% 48%, rgba(225, 29, 72, 0.13), transparent 19rem),
+    #0a0306;
+}
+
+body.adult-mode .app-loader::after,
+body.adult-mode .art-sheen,
+body.adult-mode .skeleton-card .thumb-art::after,
+body.adult-mode .carousel-poster-skeleton::after,
+body.adult-mode .carousel-dot span::after {
+  background:
+    linear-gradient(90deg, transparent, #e11d48 46%, #7a2bd6 54%, transparent) 0 0 / 38% 100% no-repeat,
+    rgba(255, 255, 255, 0.08);
+}
+
+body.adult-mode .loader-mark {
+  background: linear-gradient(155deg, #211019, #0b0609 72%);
+  box-shadow:
+    0 1.2rem 2.8rem rgba(0, 0, 0, 0.48),
+    0 0 2.4rem rgba(225, 29, 72, 0.18),
+    inset 0 0 0 0.06rem rgba(255, 255, 255, 0.1);
+}
+
+body.adult-mode .loader-mark::before {
+  border-top-color: #e11d48;
+  border-right-color: rgba(122, 43, 214, 0.52);
+}
+
+body.adult-mode .thumb-art::before,
+body.adult-mode .poster-placeholder {
+  color: rgba(255, 226, 234, 0.14);
+  text-shadow: 0 0 1.6rem rgba(225, 29, 72, 0.24);
+  background:
+    radial-gradient(circle at 50% 43%, rgba(225, 29, 72, 0.14), transparent 34%),
+    linear-gradient(155deg, #211019, #0b0609 72%);
+}
+
+body.adult-mode .poster-placeholder-mark {
+  color: rgba(255, 226, 234, 0.16);
+  text-shadow: 0 0 1.5rem rgba(225, 29, 72, 0.24);
+}
+
+@keyframes calm-loader-track {
+  from { background-position: -60% 0, 0 0; }
+  to { background-position: 160% 0, 0 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-loader::after,
+  .loader-mark::before,
+  .art-sheen,
+  .skeleton-card .thumb-art::after,
+  .carousel-poster-skeleton::after,
+  .carousel-dot span::after {
+    animation: none !important;
+  }
+}
+
+
+/* ── Gentle vertical settling (home feed only) ─────────────────────────────
+   Goal: the page eases onto a major row when you naturally stop, while you can
+   still stop almost anywhere. Explicitly NOT a slideshow.
+
+   Container : the VIEWPORT, via the root element. body keeps its normal
+               overflow - no wrapper is turned into a scroll container, so there
+               is no nested scroller and momentum scrolling is untouched.
+   Strictness: proximity only. `mandatory` is never used anywhere here.
+   Targets   : just the two main home rails. The hero is skipped (the top of the
+               page is already a natural resting point) and .addon-sections is
+               skipped (many bands would mean a snap point every screen).
+   Scope     : body[data-route=home] only, and stood down whenever an overlay
+               owns the screen. Detail pages, search, episode lists, settings,
+               sources, profile, schedule and favourites are all .is-hidden on
+               home and never receive scroll-snap-align at all.
+   Offset    : html already carries scroll-padding-top: 8rem, which positions
+               snap points clear of fixed chrome. Not duplicated per target.
+   :has() keeps this CSS-only; where unsupported nothing snaps, which is fine. */
+
+@media (min-width: 761px) and (prefers-reduced-motion: no-preference) {
+  html:has(> body[data-route="home"]:not(.watch-detail-open):not(.player-cinema-open):not(.has-embedded-player)) {
+    scroll-snap-type: y proximity;
+  }
+
+  /* Tablet and up: the Latest Episodes rail is the one row worth settling on. */
+  body[data-route="home"] #latest:not(.is-hidden) {
+    scroll-snap-align: start;
+    scroll-snap-stop: normal;   /* never `always` - a flick may cross it */
+  }
+}
+
+/* Desktop only: add Continue Watching as a second, still-sparse snap point. */
+@media (min-width: 1025px) and (prefers-reduced-motion: no-preference) {
+  body[data-route="home"] #continueWatching:not(.is-hidden) {
+    scroll-snap-align: start;
+    scroll-snap-stop: normal;
+  }
+}
+
+/* Phones: no vertical snapping at all - it fights native touch momentum. The
+   horizontal carousels keep their own snapping, which is what feels good there. */
+@media (max-width: 760px) {
+  html, html:has(> body[data-route="home"]) {
+    scroll-snap-type: none;
+  }
+  body[data-route="home"] #latest,
+  body[data-route="home"] #continueWatching {
+    scroll-snap-align: none;
+  }
+}
+
+/* Reduced motion: nothing settles, nothing animates. */
+@media (prefers-reduced-motion: reduce) {
+  html, html:has(> body[data-route="home"]) {
+    scroll-snap-type: none !important;
+  }
+  body[data-route="home"] #latest,
+  body[data-route="home"] #continueWatching {
+    scroll-snap-align: none !important;
+  }
+}
+
