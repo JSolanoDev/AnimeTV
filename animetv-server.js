@@ -1329,29 +1329,72 @@ async function refreshDailyApis({ force = false, reason = "scheduled" } = {}) {
   return dailyRefreshPromise;
 }
 
+// /api/catalog was the single slowest thing in the app: measured at 5,333ms
+// while nothing else exceeded 630ms. It had no cache, so EVERY request re-ran
+// one AniList call plus six Jikan pages, and Jikan rate-limits at ~3 req/sec so
+// those pages serialised with backoff. That also generated a good share of the
+// upstream 429s seen in the browser log.
+//
+// The payload is a trending/popular list that changes at most hourly, so it is
+// cached in memory. A single in-flight promise is shared, so a cold cache with
+// N simultaneous visitors still performs exactly one upstream pass, and a stale
+// entry is served if the upstream later fails rather than returning a 502.
+const CATALOG_RESPONSE_TTL_MS = Math.max(
+  60000,
+  Number(process.env.CATALOG_RESPONSE_TTL_MS || 10 * 60 * 1000)
+);
+let catalogResponseCache = null;   // { payload, ts }
+let catalogResponseInflight = null;
+
+async function buildCatalogPayload() {
+  const [anilist, jikanAiring, jikanSeason, jikanPopular] = await Promise.allSettled([
+    fetchAniListTrending(),
+    fetchJikanPages(JIKAN_TOP_ENDPOINT, "Jikan Airing", 2),
+    fetchJikanPages(JIKAN_SEASON_ENDPOINT, "Jikan Season", 2),
+    fetchJikanPages(JIKAN_POPULAR_ENDPOINT, "Jikan Popular", 2)
+  ]);
+
+  const items = [
+    ...(anilist.status === "fulfilled" ? anilist.value : []),
+    ...(jikanAiring.status === "fulfilled" ? jikanAiring.value : []),
+    ...(jikanSeason.status === "fulfilled" ? jikanSeason.value : []),
+    ...(jikanPopular.status === "fulfilled" ? jikanPopular.value : [])
+  ];
+
+  // Every upstream failing yields an empty list - do not cache that over a
+  // previously good catalog.
+  if (!items.length) throw new Error("All metadata upstreams returned nothing");
+
+  return {
+    ok: true,
+    source: "ZenkaiTV Metadata API",
+    count: items.length,
+    items: mergeShows(items).slice(0, 340)
+  };
+}
+
 async function handleCatalog(response) {
+  const now = Date.now();
+  if (catalogResponseCache && now - catalogResponseCache.ts < CATALOG_RESPONSE_TTL_MS) {
+    sendJson(response, { ...catalogResponseCache.payload, cached: true });
+    return;
+  }
+
   try {
-    const [anilist, jikanAiring, jikanSeason, jikanPopular] = await Promise.allSettled([
-      fetchAniListTrending(),
-      fetchJikanPages(JIKAN_TOP_ENDPOINT, "Jikan Airing", 2),
-      fetchJikanPages(JIKAN_SEASON_ENDPOINT, "Jikan Season", 2),
-      fetchJikanPages(JIKAN_POPULAR_ENDPOINT, "Jikan Popular", 2)
-    ]);
-
-    const items = [
-      ...(anilist.status === "fulfilled" ? anilist.value : []),
-      ...(jikanAiring.status === "fulfilled" ? jikanAiring.value : []),
-      ...(jikanSeason.status === "fulfilled" ? jikanSeason.value : []),
-      ...(jikanPopular.status === "fulfilled" ? jikanPopular.value : [])
-    ];
-
-    sendJson(response, {
-      ok: true,
-      source: "ZenkaiTV Metadata API",
-      count: items.length,
-      items: mergeShows(items).slice(0, 340)
-    });
+    if (!catalogResponseInflight) {
+      catalogResponseInflight = buildCatalogPayload()
+        .then((payload) => { catalogResponseCache = { payload, ts: Date.now() }; return payload; })
+        .finally(() => { catalogResponseInflight = null; });
+    }
+    const payload = await catalogResponseInflight;
+    sendJson(response, payload);
   } catch (error) {
+    log("warn", "Catalog build failed", { error: error.message });
+    if (catalogResponseCache) {
+      // Stale beats broken: keep the homepage populated through an outage.
+      sendJson(response, { ...catalogResponseCache.payload, cached: true, stale: true });
+      return;
+    }
     sendJson(response, { ok: false, error: "Metadata APIs unavailable" }, 502);
   }
 }
@@ -1440,11 +1483,18 @@ async function handleSourceProxy(request, url, response) {
       const value = upstream.headers.get(name);
       if (value) responseHeaders[name] = value;
     });
-    response.writeHead(upstream.status, responseHeaders);
     if (isPlaylist) {
-      response.end(rewriteM3u8Playlist(await upstream.text(), target, refererHost));
+      const playlist = rewriteM3u8Playlist(await upstream.text(), target, refererHost);
+      // Rewriting segment URIs makes the playlist larger than the upstream file.
+      // Passing through the old length truncates it before its final segment.
+      delete responseHeaders["content-length"];
+      delete responseHeaders["content-range"];
+      responseHeaders["Content-Length"] = String(Buffer.byteLength(playlist));
+      response.writeHead(upstream.status, responseHeaders);
+      response.end(playlist);
       return;
     }
+    response.writeHead(upstream.status, responseHeaders);
     if (!upstream.body) {
       response.end();
       return;
@@ -1460,7 +1510,8 @@ async function handleSourceProxy(request, url, response) {
 }
 
 function rewriteM3u8Playlist(text, baseUrl, refererHost = "") {
-  return String(text || "").split(/\r?\n/).map((line) => {
+  const source = String(text || "");
+  const lines = source.split(/\r?\n/).map((line) => {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) {
       return line.replace(/URI="([^"]+)"/g, (match, uri) => {
@@ -1471,7 +1522,16 @@ function rewriteM3u8Playlist(text, baseUrl, refererHost = "") {
     }
     if (/^data:|^blob:/i.test(trimmed)) return line;
     return sourceProxyPath(new URL(trimmed, baseUrl).toString(), refererHost);
-  }).join("\n");
+  });
+
+  // Some VOD providers omit ENDLIST even though they declare the playlist VOD.
+  // hls.js then reports duration as Infinity and disallows normal seeking.
+  if (/^#EXT-X-PLAYLIST-TYPE:VOD\s*$/mi.test(source)
+    && /^#EXTINF:/mi.test(source)
+    && !/^#EXT-X-ENDLIST\s*$/mi.test(source)) {
+    lines.push("#EXT-X-ENDLIST");
+  }
+  return lines.join("\n");
 }
 
 function sourceProxyPath(target, refererHost = "") {
