@@ -265,6 +265,7 @@ function isAnime1vEpisode(episode = {}) {
 function sourceLabelFromResolver(resolver = {}) {
   if (resolver.type === "anime1v") return "Anime1v";
   if (resolver.type === "anipub") return "AniPub";
+  if (resolver.type === "underhentai") return "Adult Source";
   if (resolver.type === "consumet-kickassanime") return "KickAssAnime";
   if (resolver.type === "rapid-anime") return "RapidAPI";
   return "Addon";
@@ -275,7 +276,11 @@ function comparePlaybackSources(a = {}, b = {}) {
 }
 
 function playbackSourceRank(source = {}) {
-  const label = `${source.id || ""} ${source.label || ""} ${source.streamResolver?.type || ""}`.toLowerCase();
+  const endpoint = `${source.streamResolver?.endpoint || ""} ${source.videoUrl || ""} ${source.externalUrl || ""}`.toLowerCase();
+  const label = `${source.id || ""} ${source.label || ""} ${source.streamResolver?.type || ""} ${endpoint}`.toLowerCase();
+  if (label.includes("veohentai") || label.includes("hentaiplayer") || label.includes("1hanime")) return 1;
+  if (label.includes("hentaila")) return 2;
+  if (label.includes("underhentai")) return 3;
   if (label.includes("anipub")) return 5;
   if (label.includes("kickassanime") || label.includes("consumet")) return 10;
   if (label.includes("anime1v")) return 20;

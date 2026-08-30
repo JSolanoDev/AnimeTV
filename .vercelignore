@@ -13,3 +13,9 @@ app
 components
 lib
 node_modules
+
+# Retired adult-source experiments. Production Adult Mode uses UnderHentai only.
+push.bat
+scraper/adult_scraper.js
+scraper/hentaila_*.json
+scraper/veohentai_*.json

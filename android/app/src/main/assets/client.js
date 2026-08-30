@@ -1595,8 +1595,8 @@ function catalogShows() {
   if (typeof AdultMode === "undefined") return state.shows;
   const filtered = AdultMode.filterCatalog(state.shows);
   if (!AdultMode.isEnabled()) return filtered;
-  const sourced = filtered.filter((show) => Boolean(show?.adultSource));
-  return (sourced.length ? sourced : filtered)
+  return filtered
+    .filter((show) => show?.adultSource === "UnderHentai" || show?.source === "UnderHentai")
     .slice()
     .sort(compareAdultShows);
 }
@@ -1630,8 +1630,7 @@ async function loadAdultCatalog(force = false) {
   }
   if (adultCatalogLoadingPromise && !force) return adultCatalogLoadingPromise;
   const adapter = AdultSourceRegistry.get();
-  const provider = localStorage.getItem("animetv-adult-provider") || "merge";
-  const cacheKey = `adult-catalog:${adapter.name}:${provider}`;
+  const cacheKey = `adult-catalog:${adapter.name}:underhentai-only-v2`;
   const cachedItems = readResponseCache(cacheKey, CATALOG_CACHE_TTL);
   const applyAdultItems = (items = [], labelPrefix = adapter.name) => {
     const adultItems = Array.isArray(items)
@@ -1700,18 +1699,6 @@ function syncAdultModeChrome() {
   document.body.classList.toggle("adult-mode", on);
   const badge = document.querySelector("#adultModeBadge");
   if (badge) badge.hidden = !on;
-  
-  const providerTabs = document.querySelector("#adultProviderTabs");
-  if (providerTabs) {
-    providerTabs.hidden = !on;
-  }
-  if (on) {
-    const activeProvider = localStorage.getItem("animetv-adult-provider") || "merge";
-    document.querySelectorAll("[data-adult-provider]").forEach(btn => {
-      btn.classList.toggle("is-selected", btn.dataset.adultProvider === activeProvider);
-    });
-  }
-  
   // The Weekly Schedule isn't shown in 18+ mode — bounce off it if we're there.
   if (on && state.route === "schedule") setRoute("home");
 }
@@ -7848,8 +7835,22 @@ function sourceIdentityText(source = {}) {
   ].filter(Boolean).join(" ").toLowerCase();
 }
 
+function isBlockedPlaybackUrl(value = "") {
+  try {
+    const host = new URL(value).hostname.toLowerCase();
+    return host === "candy.ai" || host === "www.candy.ai" || host === "player.zilla-networks.com";
+  } catch {
+    return false;
+  }
+}
+
+function isBlockedPlaybackSource(source = {}) {
+  const urls = [source.videoUrl, source.externalUrl, source.url, source.href].filter(Boolean);
+  return urls.some(isBlockedPlaybackUrl) || /\b(?:candy\.ai|player\.zilla-networks\.com)\b/i.test(sourceIdentityText(source));
+}
+
 function isPreferredAdultSource(source = {}) {
-  return /veohentai|hentaiplayer|1hanime/.test(sourceIdentityText(source));
+  return isAdultFallbackSource(source) && source.type === "direct" && !isBlockedPlaybackSource(source);
 }
 
 function isAdultFallbackSource(source = {}) {
@@ -7910,8 +7911,7 @@ function sourcePreferenceScore(source = {}) {
   const isAdFree = /yourupload|you\s*upload|youupload|ok\.?ru|okru|streamwish|filelions/.test(label);
   const isAdWalled = /\bvoe\b|netu|hqq|streamsb|embedsb|\bsb\b|dood|filemoon|vidhide|mixdrop/.test(label);
 
-  // Adult catalog: prefer the direct clean HentaiPlayer/1hanime stream that
-  // the VeoHentai scraper resolves before falling back to older embeds.
+  // Adult catalog: use a resolved direct stream before an in-page provider.
   if (isPreferredAdultSource(source))    return 0;
   if (identity.includes("hentaila"))     return 1;
 
@@ -7954,7 +7954,7 @@ function orderSourceOptions(sources = []) {
 
 function getEpisodePlaybackSources(episode = {}) {
   return orderSourceOptions(normalizeEpisodeSourceOptions(episode).filter((source) => (
-    isAnimeAv1Source(source) || isAdultFallbackSource(source)
+    !isBlockedPlaybackSource(source) && (isAnimeAv1Source(source) || isAdultFallbackSource(source))
   )));
 }
 
@@ -9073,6 +9073,7 @@ function originalStreamUrlFromProxy(url = "") {
 
 function streamTypeFromUrl(url = "") {
   const value = originalStreamUrlFromProxy(url).split("?")[0].split("#")[0].toLowerCase();
+  if (/player\.zilla-networks\.com\/m3u8\/[a-f0-9]{32}$/i.test(value)) return "hls";
   if (value.endsWith(".m3u8")) return "hls";
   if (value.endsWith(".mpd")) return "dash";
   if (/krakencloud\.net\/play\/video\//i.test(value)) return "file";
@@ -11246,9 +11247,10 @@ async function attachAnimeAv1Sources(show, episode) {
 
 function mergeAnimeAv1SourcesIntoEpisode(show, episode, data, slug, epNum) {
   if (!episode || !Array.isArray(data?.sources)) return;
-  const existing = new Set((episode.sourceOptions || []).map(s => s.videoUrl || s.externalUrl));
+  episode.sourceOptions = (episode.sourceOptions || []).filter((source) => !isBlockedPlaybackSource(source));
+  const existing = new Set(episode.sourceOptions.map(s => s.videoUrl || s.externalUrl));
   const newOptions = data.sources
-    .filter(s => (s.url || s.videoUrl || s.externalUrl) && !existing.has(s.url || s.videoUrl || s.externalUrl))
+    .filter(s => !isBlockedPlaybackSource(s) && (s.url || s.videoUrl || s.externalUrl) && !existing.has(s.url || s.videoUrl || s.externalUrl))
     .map((s, index) => {
       const url = s.videoUrl || s.externalUrl || s.url || "";
       const direct = s.type === "direct" || /\.(m3u8|mp4|webm|m4v)(?:$|[?#])/i.test(url);
@@ -12406,7 +12408,8 @@ async function resolveEpisodeStream(episode) {
     const response = await fetch(endpoint, { cache: "no-store" });
     if (!response.ok) return "";
     const payload = await response.json();
-    const url = pickPlayableUrl(payload);
+    const candidateUrl = pickPlayableUrl(payload);
+    const url = isBlockedPlaybackUrl(candidateUrl) ? "" : candidateUrl;
     const subtitles = normalizeSubtitleTracks(payload);
     if (subtitles.length) episode.subtitles = subtitles;
     if (payload.availableAudio?.length) episode.availableAudio = payload.availableAudio;
@@ -12425,8 +12428,8 @@ async function resolveEpisodeStream(episode) {
         ...(Array.isArray(payload.files) ? payload.files : [])
       ]
     });
-    if (resolvedSources.length) episode.sourceOptions = resolvedSources;
-    if (!url && payload.externalUrl) {
+    if (resolvedSources.length) episode.sourceOptions = resolvedSources.filter((source) => !isBlockedPlaybackSource(source));
+    if (!url && payload.externalUrl && !isBlockedPlaybackUrl(payload.externalUrl)) {
       episode.externalUrl = payload.externalUrl;
       episode.externalType = payload.externalType || "iframe";
       episode.locked = false;
@@ -12443,7 +12446,7 @@ async function resolveEpisodeStream(episode) {
 }
 
 function isEmbedUrl(url) {
-  return /youtube\.com\/embed|player\.vimeo\.com|\/embed(?:-video)?\/|player\.zilla-networks\.com\/play\/|animeav1\.uns\.bio\/|lulu(?:vdo|stream)\.com\/(?:e|embed)\/|gupload\.xyz\/data\/e\//i.test(url);
+  return /youtube\.com\/embed|player\.vimeo\.com|\/embed(?:-video)?\/|animeav1\.com\/media\/|animeav1\.uns\.bio\/|lulu(?:vdo|stream)\.com\/(?:e|embed)\/|gupload\.xyz\/data\/e\//i.test(url);
 }
 
 function renderExternalPlaybackOption(show, externalUrl) {
@@ -12452,6 +12455,13 @@ function renderExternalPlaybackOption(show, externalUrl) {
 
 function renderEmbeddedAniPubPlayer(show, externalUrl) {
   const frame = document.querySelector("#videoFrame");
+  if (isBlockedPlaybackUrl(externalUrl)) {
+    renderPlaybackError(frame, state.activeEpisode?.episode || {}, {
+      title: "Blocked playback source",
+      message: "This host cannot be embedded. Choose another available source."
+    });
+    return;
+  }
   const selected = state.activeEpisode;
   const episode = selected?.episode || {};
   const selectedSource = selected ? getSelectedEpisodeSource(episode) : null;
@@ -13027,23 +13037,6 @@ if (filterToggle && filterPanel) {
   });
 }
 
-// Adult provider tabs selection
-document.querySelectorAll("[data-adult-provider]").forEach((button) => {
-  button.addEventListener("click", () => {
-    const provider = button.dataset.adultProvider || "merge";
-    localStorage.setItem("animetv-adult-provider", provider);
-    
-    document.querySelectorAll("[data-adult-provider]").forEach((btn) => {
-      btn.classList.toggle("is-selected", btn === button);
-    });
-    
-    resetCatalogModeControls();
-    state.isLoadingCatalog = true;
-    render();
-    loadAdultCatalog(true);
-  });
-});
-
 document.querySelectorAll("[data-library-letter]").forEach((button) => {
   button.addEventListener("click", () => {
     state.libraryLetter = button.dataset.libraryLetter || "all";
@@ -13592,6 +13585,10 @@ if (typeof AdultMode !== "undefined") {
   syncAdultModeChrome();
   AdultMode.onChange(async (on) => {
     resetCatalogModeControls();
+    if (on) {
+      state.filter = "all";
+      state.sourcePickerFilter = "all";
+    }
     playThemeFlash(on);
     syncAdultModeChrome();
     if (on) await loadAdultCatalog();

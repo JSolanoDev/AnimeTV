@@ -67,14 +67,14 @@
     <script defer src="js/translations.js?v=462"></script>
     <script defer src="js/utils.js?v=462"></script>
     <script defer src="js/season-normalization.js?v=462"></script>
-    <script defer src="js/normalize.js?v=462"></script>
+    <script defer src="js/normalize.js?v=466"></script>
     <script defer src="js/anilist-metadata.js?v=462"></script>
     <script defer src="js/smart-source.js?v=462"></script>
     <script defer src="js/image-resolver.js?v=462"></script>
-    <script defer src="js/adult-source-adapter.js?v=462"></script>
+    <script defer src="js/adult-source-adapter.js?v=466"></script>
     <script defer src="js/adult-mode.js?v=462"></script>
     <script defer src="js/router.js?v=462"></script>
-    <script defer src="client.js?v=462"></script>
+    <script defer src="client.js?v=466"></script>
   </head>
   <body>
     <script>(function(){var p=location.pathname.replace(/\/+$/,"")||"/";var h=(location.hash||"").replace(/^#/,"");var r=p==="/search"||p==="/browse"||/^\/(genre|year|season|studio)\//.test(p)?"library":p==="/schedule"?"schedule":p==="/favorites"?"favorites":p==="/settings"?"settings":p==="/sources"?"sources":p==="/profile"||p==="/login"?"profile":"home";var m={search:"library",browse:"library",library:"library",home:"home",schedule:"schedule",favorites:"favorites",settings:"settings",sources:"sources",profile:"profile"};if(p==="/"&&m[h])r=m[h];document.body.dataset.route=r;try{if(localStorage.getItem("animetv-sidebar-collapsed")!=="false")document.body.classList.add("sidebar-collapsed")}catch(e){document.body.classList.add("sidebar-collapsed")}})()</script>
@@ -219,11 +219,6 @@
             <input class="focusable" id="searchInputLibrary" type="search" placeholder="Search anime..." autocomplete="off">
             <span aria-hidden="true">⌕</span>
           </label>
-          <div class="adult-provider-tabs" id="adultProviderTabs" hidden>
-            <button class="adult-provider-tab focusable is-selected" type="button" data-adult-provider="merge">Merged (All)</button>
-            <button class="adult-provider-tab focusable" type="button" data-adult-provider="underhentai">UnderHentai</button>
-            <button class="adult-provider-tab focusable" type="button" data-adult-provider="veohentai">VeoHentai</button>
-          </div>
           <div class="library-filter-panel" aria-label="Anime library filters" hidden style="display: none;">
             <div class="library-letter-row" role="group" aria-label="Filter by first letter">
               <button class="library-letter focusable is-selected" type="button" data-library-letter="all">#</button>
@@ -334,31 +329,6 @@
             <h2>Weekly Schedule</h2>
           </div>
           <div class="schedule-list" id="scheduleList"></div>
-        </section>
-
-        <section class="content-band is-hidden" id="anipub" data-section="anipub">
-          <div class="section-heading">
-            <span class="anipub-dot" aria-hidden="true"></span>
-            <h2>AniPub</h2>
-            <small id="anipubSummary">External playback catalog</small>
-          </div>
-          <label class="search-box anipub-search">
-            <span class="sr-only">Search AniPub</span>
-            <input class="focusable" id="searchInputAniPub" type="search" placeholder="Search AniPub..." autocomplete="off">
-            <span aria-hidden="true">⌕</span>
-          </label>
-          <div class="filters" role="group" aria-label="AniPub genre filters">
-            <button class="chip focusable is-selected" data-filter="all">All</button>
-            <button class="chip focusable" data-filter="action">Action</button>
-            <button class="chip focusable" data-filter="comedy">Comedy</button>
-            <button class="chip focusable" data-filter="fantasy">Fantasy</button>
-            <button class="chip focusable" data-filter="romance">Romance</button>
-          </div>
-          <div class="rail-shell">
-            <button class="rail-arrow rail-arrow-left focusable" data-scroll-rail="anipubGrid" data-scroll-dir="-1" aria-label="Scroll AniPub left">‹</button>
-            <div class="poster-grid" id="anipubGrid"></div>
-            <button class="rail-arrow rail-arrow-right focusable" data-scroll-rail="anipubGrid" data-scroll-dir="1" aria-label="Scroll AniPub right">›</button>
-          </div>
         </section>
 
         <section class="content-band is-hidden" id="favorites" data-section="favorites">

@@ -7,7 +7,13 @@ const OUTPUT = resolve("scraper", "underhentai_details.json");
 const TITLE_CONCURRENCY = Math.max(1, Math.min(8, Number(process.env.UNDERHENTAI_DETAIL_CONCURRENCY || 3)));
 const WATCH_CONCURRENCY = Math.max(1, Math.min(8, Number(process.env.UNDERHENTAI_WATCH_CONCURRENCY || 3)));
 const USER_AGENT = "Mozilla/5.0 (compatible; ZenkaiTVAdultCatalog/1.0)";
-const EMBED_URL_RE = /https:\/\/(?:www\.)?(?:krakenfiles\.com\/embed-video|luluvdo\.com\/embed|lulustream\.com\/embed)\/[A-Za-z0-9_-]+/gi;
+const ALLOWED_EMBED_HOSTS = new Set([
+  "krakenfiles.com", "www.krakenfiles.com",
+  "luluvdo.com", "www.luluvdo.com",
+  "lulustream.com", "www.lulustream.com",
+  "gupload.xyz", "www.gupload.xyz",
+  "hentaiplayer.com", "www.hentaiplayer.com"
+]);
 
 function decodeHtml(value = "") {
   return String(value)
@@ -31,12 +37,17 @@ function attr(tag = "", name = "") {
 function normalizeImageUrl(value = "") {
   if (!value) return "";
   const url = new URL(value, BASE_URL);
-  const wasPageSpeed = /\.pagespeed\./i.test(url.pathname);
-  let path = url.pathname.replace(/\.pagespeed\.[^/]+$/i, "");
-  let file = path.split("/").pop() || "";
-  file = file.replace(/^\d+x\d+x/i, "");
-  if (wasPageSpeed && file.startsWith("x")) file = file.slice(1);
-  url.pathname = `${path.slice(0, Math.max(0, path.lastIndexOf("/") + 1))}${file}`;
+  const pageSpeedMatch = url.pathname.match(/^(.*\/)x?([^/,]+\.(?:jpe?g|png|webp|avif)),[^/]*\.pagespeed\.[^/]+$/i);
+  if (pageSpeedMatch) {
+    url.pathname = `${pageSpeedMatch[1]}${pageSpeedMatch[2]}`;
+  } else {
+    const wasPageSpeed = /\.pagespeed\./i.test(url.pathname);
+    const path = url.pathname.replace(/\.pagespeed\.[^/]+$/i, "");
+    let file = path.split("/").pop() || "";
+    file = file.replace(/^\d+x\d+x/i, "");
+    if (wasPageSpeed && /^x(?=\d)/i.test(file)) file = file.slice(1);
+    url.pathname = `${path.slice(0, Math.max(0, path.lastIndexOf("/") + 1))}${file}`;
+  }
   url.search = "";
   url.hash = "";
   return url.toString();
@@ -94,31 +105,43 @@ async function mapConcurrent(items, concurrency, worker, label) {
 }
 
 function parseTitlePage(html, catalogItem) {
-  const sectionMatches = [...html.matchAll(/class\s*=\s*(?:"ep2-header"|'ep2-header'|ep2-header)[^>]*>([\s\S]*?)<\/div>/gi)];
+  const originalCover = [...html.matchAll(/<a\b[^>]*class\s*=\s*(?:"[^"]*\bglightbox\b[^"]*"|'[^']*\bglightbox\b[^']*')[^>]*>/gi)]
+    .map((match) => attr(match[0], "href"))
+    .find((value) => /static\.underhentai\.net\/assets\/images\//i.test(value)) || "";
+  const image = normalizeImageUrl(originalCover || catalogItem.image || "");
+  const sectionMatches = [...html.matchAll(/class\s*=\s*(?:"[^"]*\b(?:ep2-header|ep-header)\b[^"]*"|'[^']*\b(?:ep2-header|ep-header)\b[^']*'|(?:ep2-header|ep-header))[^>]*>([\s\S]*?)<\/div>/gi)];
   const episodes = sectionMatches.map((header, sectionIndex) => {
     const number = Number(stripHtml(header[1]).match(/(\d+)/)?.[1] || sectionIndex + 1);
     const sectionStart = header.index + header[0].length;
     const sectionEnd = sectionMatches[sectionIndex + 1]?.index ?? html.length;
     const section = html.slice(sectionStart, sectionEnd);
-    const screenshots = [...section.matchAll(/\bdata-src\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi)]
-      .map((match) => normalizeImageUrl(match[1] || match[2] || match[3] || ""))
-      .filter(Boolean);
-    const streamTags = [...section.matchAll(/<a\b[^>]*class\s*=\s*(?:"[^"]*\bep2-stream\b[^"]*"|'[^']*\bep2-stream\b[^']*'|ep2-stream)[^>]*>/gi)];
+    const screenshots = [
+      ...[...section.matchAll(/\bdata-src\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi)].map((match) => match[1] || match[2] || match[3] || ""),
+      ...[...section.matchAll(/https:\/\/static\.underhentai\.net\/thumbs\/[^"'\s<>]+/gi)].map((match) => match[0])
+    ].map(normalizeImageUrl).filter((value, index, values) => value && values.indexOf(value) === index);
+    const streamTags = [...section.matchAll(/<a\b[^>]*>/gi)].filter((stream) => {
+      const className = attr(stream[0], "class");
+      const href = attr(stream[0], "href");
+      return /\bep2-stream\b/i.test(className) || /\/watch\/\?/i.test(href);
+    });
     const sourceOptions = streamTags.map((stream, releaseIndex) => {
       const before = section.slice(0, stream.index);
       const cardStart = Math.max(
         before.lastIndexOf('class="ep2-card'),
         before.lastIndexOf("class='ep2-card"),
-        before.lastIndexOf("class=ep2-card")
+        before.lastIndexOf("class=ep2-card"),
+        before.lastIndexOf('class="variant-header'),
+        before.lastIndexOf("class='variant-header")
       );
       const card = before.slice(Math.max(0, cardStart));
       const variant = stripHtml(
         card.match(/class\s*=\s*(?:"ep2-vtype"|'ep2-vtype'|ep2-vtype)[^>]*>(?:\s*<span\b[^>]*>[\s\S]*?<\/span>)?\s*([^<]+)/i)?.[1]
+        || card.match(/class\s*=\s*(?:"[^"]*\bvariant-label\b[^"]*"|'[^']*\bvariant-label\b[^']*')[^>]*>([\s\S]*?)<\//i)?.[1]
         || "Stream"
       );
       const metadata = {};
-      for (const pair of card.matchAll(/class\s*=\s*(?:"ep2-meta-label"|'ep2-meta-label'|ep2-meta-label)[^>]*>([\s\S]*?)<\/span>\s*<span\b[^>]*class\s*=\s*(?:"ep2-meta-value"|'ep2-meta-value'|ep2-meta-value)[^>]*>([\s\S]*?)<\/span>/gi)) {
-        metadata[stripHtml(pair[1]).toLowerCase()] = stripHtml(pair[2]).replace(/^[^A-Za-z0-9]+/, "");
+      for (const pair of card.matchAll(/<(span|div)\b[^>]*class\s*=\s*(?:"[^"]*\b(?:ep2-meta-label|meta-label)\b[^"]*"|'[^']*\b(?:ep2-meta-label|meta-label)\b[^']*')[^>]*>([\s\S]*?)<\/\1>\s*<(span|div)\b[^>]*class\s*=\s*(?:"[^"]*\b(?:ep2-meta-value|meta-value)\b[^"]*"|'[^']*\b(?:ep2-meta-value|meta-value)\b[^']*')[^>]*>([\s\S]*?)<\/\3>/gi)) {
+        metadata[stripHtml(pair[2]).toLowerCase()] = stripHtml(pair[4]).replace(/^[^A-Za-z0-9]+/, "");
       }
       const watchUrl = new URL(attr(stream[0], "href"), catalogItem.url).toString();
       return {
@@ -137,7 +160,7 @@ function parseTitlePage(html, catalogItem) {
       episode: number,
       number,
       title: `Episode ${number}`,
-      image: screenshots[0] || catalogItem.banner || catalogItem.image,
+      image: screenshots[0] || catalogItem.banner || image,
       screenshots,
       sourceOptions,
       locked: !sourceOptions.length
@@ -146,7 +169,8 @@ function parseTitlePage(html, catalogItem) {
 
   return {
     ...catalogItem,
-    banner: episodes.find((episode) => episode.image)?.image || catalogItem.banner || catalogItem.image,
+    image,
+    banner: episodes.find((episode) => episode.image)?.image || catalogItem.banner || image,
     episodeCount: episodes.length || catalogItem.episodeCount || 0,
     episodes
   };
@@ -154,16 +178,28 @@ function parseTitlePage(html, catalogItem) {
 
 function parseEmbeds(html = "") {
   const embeds = [];
-  for (const match of String(html).matchAll(EMBED_URL_RE)) {
-    const url = match[0].replace(/^https:\/\/www\./i, "https://");
-    if (!embeds.includes(url)) embeds.push(url);
+  const candidates = [
+    ...[...String(html).matchAll(/<iframe\b[^>]*\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi)].map((match) => match[1] || match[2] || match[3] || ""),
+    ...[...String(html).matchAll(/https:\/\/(?:www\.)?(?:krakenfiles\.com|luluvdo\.com|lulustream\.com|gupload\.xyz|hentaiplayer\.com)\/[^"'\s<>\\]+/gi)].map((match) => match[0])
+  ];
+  for (const candidate of candidates) {
+    try {
+      const parsed = new URL(decodeHtml(candidate).replace(/\\\//g, "/"), BASE_URL);
+      if (ALLOWED_EMBED_HOSTS.has(parsed.hostname.toLowerCase()) && !embeds.includes(parsed.toString())) {
+        embeds.push(parsed.toString());
+      }
+    } catch {
+      // Ignore malformed provider URLs.
+    }
   }
   return embeds;
 }
 
-function hasDirectEmbed(sourceOption = {}) {
+function hasPlayableEmbed(sourceOption = {}) {
   return Array.isArray(sourceOption.embeds)
-    && sourceOption.embeds.some((embed) => /krakenfiles\.com\//i.test(String(embed)));
+    && sourceOption.embeds.some((embed) => {
+      try { return ALLOWED_EMBED_HOSTS.has(new URL(embed).hostname.toLowerCase()); } catch { return false; }
+    });
 }
 
 async function main() {
@@ -176,39 +212,50 @@ async function main() {
     // First build.
   }
   const existingBySlug = new Map((existing.items || []).map((item) => [item.slug, item]));
-  const missingItems = items.filter((item) => !existingBySlug.has(item.slug));
-  console.log(`Loading ${missingItems.length} missing detail pages for ${items.length} eligible titles.`);
+  const catalogChanged = existing.catalogGeneratedAt !== catalog.generatedAt;
+  const itemsToRefresh = catalogChanged ? items : items.filter((item) => !existingBySlug.has(item.slug));
+  console.log(`Loading ${itemsToRefresh.length} detail pages for ${items.length} eligible titles.`);
 
   const parsed = await mapConcurrent(
-    missingItems,
+    itemsToRefresh,
     TITLE_CONCURRENCY,
     async (item) => parseTitlePage(await fetchText(item.url), item),
     "Title pages"
   );
   const parsedBySlug = new Map(parsed.filter(Boolean).map((item) => [item.slug, item]));
   const details = items
-    .map((item) => existingBySlug.get(item.slug) || parsedBySlug.get(item.slug))
+    .map((item) => parsedBySlug.get(item.slug) || existingBySlug.get(item.slug))
     .filter(Boolean);
   const jobs = [];
   details.forEach((item) => {
     item.episodes.forEach((episode) => {
       episode.sourceOptions.forEach((sourceOption) => {
-        if (!sourceOption.embeds?.length) jobs.push({ item, episode, sourceOption });
+        if (!Array.isArray(sourceOption.embeds) || !sourceOption.embeds.length) {
+          jobs.push({ item, episode, sourceOption });
+        }
       });
     });
   });
-  console.log(`Resolving ${jobs.length} release routes that still need playback.`);
+  console.log(`Resolving embeds for ${jobs.length} release routes.`);
+
+async function resolveKrakenFiles(embedUrl) {
+  return null;
+}
 
   await mapConcurrent(
     jobs,
     WATCH_CONCURRENCY,
     async (job) => {
       try {
-        job.sourceOption.embeds = parseEmbeds(await fetchText(job.sourceOption.watchUrl));
+        const watchHtml = await fetchText(job.sourceOption.watchUrl);
+        const embeds = parseEmbeds(watchHtml);
+        job.sourceOption.embeds = embeds;
       } catch {
-        job.sourceOption.embeds = [];
+        if (!Array.isArray(job.sourceOption.embeds)) {
+          job.sourceOption.embeds = [];
+        }
       }
-      return job.sourceOption.embeds.length;
+      return job.sourceOption.embeds?.length || 0;
     },
     "Watch pages"
   );
@@ -221,9 +268,9 @@ async function main() {
     catalogGeneratedAt: catalog.generatedAt || null,
     count: details.length,
     releaseCount: allSourceOptions.length,
-    playableReleaseCount: allSourceOptions.filter(hasDirectEmbed).length,
+    playableReleaseCount: allSourceOptions.filter(hasPlayableEmbed).length,
     episodeCount: allEpisodes.length,
-    playableEpisodeCount: allEpisodes.filter((episode) => episode.sourceOptions.some(hasDirectEmbed)).length,
+    playableEpisodeCount: allEpisodes.filter((episode) => episode.sourceOptions.some(hasPlayableEmbed)).length,
     items: details
   };
   await mkdir(dirname(OUTPUT), { recursive: true });

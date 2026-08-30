@@ -1,10 +1,17 @@
 const http = require("http");
 const dns = require("dns");
+const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 const { spawn } = require("child_process");
 const { Readable } = require("stream");
+let sharp = null;
+try {
+  sharp = require("sharp");
+} catch {
+  sharp = null;
+}
 
 const root = path.resolve(__dirname);
 const serverStartedAt = Date.now();
@@ -42,7 +49,7 @@ const RAPIDAPI_ANIME_HOST = process.env.RAPIDAPI_ANIME_HOST || process.env.X_RAP
 const RAPIDAPI_ANIME_BASE = process.env.RAPIDAPI_ANIME_BASE || (RAPIDAPI_ANIME_HOST ? `https://${RAPIDAPI_ANIME_HOST}` : "");
 const RAPIDAPI_ANIME_TIMEOUT_MS = Math.max(5000, Number(process.env.RAPIDAPI_ANIME_TIMEOUT_MS || 18000));
 const RAPIDAPI_ANIME_CATALOG_LIMIT = Math.max(25, Number(process.env.RAPIDAPI_ANIME_CATALOG_LIMIT || 300));
-// ── TMDB (episode stills, season posters, backdrops) ─────────────────────────
+// ΓöÇΓöÇ TMDB (episode stills, season posters, backdrops) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 // Supports either a v3 API key (TMDB_API_KEY) or a v4 read access token
 // (TMDB_READ_ACCESS_TOKEN). When neither is set the /api/tmdb/* routes return
 // { ok:true, configured:false } and the client falls back to AniList artwork.
@@ -53,7 +60,7 @@ const TMDB_API_BASE = "https://api.themoviedb.org/3";
 const TMDB_PROXY_BASE = String(process.env.TMDB_PROXY_BASE || (!HOSTED_RUNTIME ? "https://zenkaitv.com/api/tmdb" : "")).replace(/\/+$/, "");
 const TMDB_AVAILABLE = TMDB_CONFIGURED || Boolean(TMDB_PROXY_BASE);
 const TMDB_TIMEOUT_MS = Math.max(4000, Number(process.env.TMDB_TIMEOUT_MS || 12000));
-const TMDB_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days — episode stills are stable
+const TMDB_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days ΓÇö episode stills are stable
 const tmdbSearchCache = new Map();  // `${normalizedTitle}|${year}` -> { data, ts }
 const tmdbTvCache = new Map();      // tmdbId -> { data, ts }
 const tmdbSeasonCache = new Map();  // `${tmdbId}:${season}` -> { data, ts }
@@ -83,6 +90,10 @@ const TIOANIME_HEADERS = {
 const UNDERHENTAI_BASE = "https://www.underhentai.net";
 const UNDERHENTAI_CATALOG_FILE = path.join(root, "scraper", "underhentai_catalog.json");
 const UNDERHENTAI_DETAILS_FILE = path.join(root, "scraper", "underhentai_details.json");
+const VEOHENTAI_CATALOG_FILE = path.join(root, "scraper", "veohentai_catalog.json");
+const VEOHENTAI_DETAILS_FILE = path.join(root, "scraper", "veohentai_details.json");
+const HENTAILA_CATALOG_FILE = path.join(root, "scraper", "hentaila_catalog.json");
+const HENTAILA_DETAILS_FILE = path.join(root, "scraper", "hentaila_details.json");
 const UNDERHENTAI_CACHE_TTL_MS = 1000 * 60 * 30;
 const UNDERHENTAI_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
@@ -96,17 +107,30 @@ const UNDERHENTAI_ALLOWED_EMBED_HOSTS = new Set([
   "luluvdo.com",
   "www.luluvdo.com",
   "lulustream.com",
-  "www.lulustream.com"
+  "www.lulustream.com",
+  "gupload.xyz",
+  "www.gupload.xyz",
+  "hentaiplayer.com",
+  "www.hentaiplayer.com"
+]);
+const BLOCKED_PLAYBACK_HOSTS = new Set([
+  "candy.ai",
+  "www.candy.ai",
+  "player.zilla-networks.com"
 ]);
 const UNDERHENTAI_MINOR_MARKERS = [
   "child", "children", "elementary", "junior high", "loli", "lolicon",
   "middle school", "minor", "schoolboy", "schoolgirl", "shota", "shotacon",
   "teen", "teenage", "underage", "young boy", "young girl",
-  "high school", "joshi kousei", "joshi kōsei"
+  "high school", "joshi kousei", "joshi kosei", "gakuen", "kodomo",
+  "shojo", "shoujo", "shonen", "shounen"
 ];
 const UNDERHENTAI_MINOR_PATTERNS = [/\bjk\b/i];
 const underHentaiDetailCache = new Map();
+const underHentaiLiveCatalogCache = new Map();
+const hentaiPlayerDirectCache = new Map();
 let underHentaiDetailsSnapshot = null;
+let veoHentaiDetailsSnapshot = null;
 const ANIMEAV1_BASE = "https://animeav1.com";
 const ANIMEAV1_SLUG_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
 const ANIMEAV1_CACHE_TTL_MS = 1000 * 60 * 30;
@@ -134,7 +158,7 @@ const animeAv1SourceCache = new Map(); // "slug:ep:variant" -> { data, ts }
 const animeAv1SlugSearchCache = new Map(); // normalized query -> { data, ts }
 let animeAv1LatestCache = null;          // [{ slug, episode, title, image }]
 let animeAv1LatestCacheAt = 0;
-const ANIMEAV1_LATEST_TTL_MS = 1000 * 60 * 5; // homepage "Últimos Episodios" — 5 min
+const ANIMEAV1_LATEST_TTL_MS = 1000 * 60 * 5; // homepage "├Ültimos Episodios" ΓÇö 5 min
 let animeAv1SlugCatalogMemory = null;
 let animeAv1SlugCatalogMemoryAt = 0;
 let animeAv1SlugCatalogPromise = null;
@@ -159,10 +183,10 @@ const JKANIME_SLUG_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
 const JKANIME_CACHE_TTL_MS = 1000 * 60 * 30;
 const JKANIME_MISS_CACHE_TTL_MS = 1000 * 60 * 8;
 
-const ANILIST_MEDIA_CACHE_TTL_MS  = 1000 * 60 * 60 * 24;  // 24 h — stable metadata
+const ANILIST_MEDIA_CACHE_TTL_MS  = 1000 * 60 * 60 * 24;  // 24 h ΓÇö stable metadata
 const ANILIST_SEARCH_CACHE_TTL_MS = 1000 * 60 * 60 * 6;   // 6 h
-const anilistMediaCache  = new Map(); // anilistId → { data, ts }
-const anilistSearchCache = new Map(); // normalizedTitle → { data, ts }
+const anilistMediaCache  = new Map(); // anilistId ΓåÆ { data, ts }
+const anilistSearchCache = new Map(); // normalizedTitle ΓåÆ { data, ts }
 const jikanEpisodeCache = new Map(); // malId -> { data, ts }
 const jikanFullCache = new Map(); // malId -> { data, ts }
 const jikanSearchCache = new Map(); // normalized title -> { data, ts }
@@ -194,7 +218,15 @@ const types = {
   ".avif": "image/avif",
   ".ico": "image/x-icon",
   ".json": "application/json; charset=utf-8",
-  ".webmanifest": "application/manifest+json"
+  ".webmanifest": "application/manifest+json",
+  ".txt": "text/plain; charset=utf-8",
+  ".xml": "application/xml; charset=utf-8",
+  ".md": "text/plain; charset=utf-8",
+  ".woff2": "font/woff2",
+  ".woff": "font/woff",
+  ".ttf": "font/ttf",
+  ".mp4": "video/mp4",
+  ".m3u8": "application/vnd.apple.mpegurl"
 };
 const IMAGE_PROXY_ALLOWED_HOSTS = new Set([
   "s4.anilist.co",
@@ -204,9 +236,21 @@ const IMAGE_PROXY_ALLOWED_HOSTS = new Set([
   "cdn.animeav1.com",
   "image.tmdb.org",
   "media.themoviedb.org",
-  "www.themoviedb.org"
+  "www.themoviedb.org",
+  "static.underhentai.net",
+  "underhentai.net",
+  "veohentai.com",
+  "www.veohentai.com",
+  "hentaila.tv",
+  "www.hentaila.tv",
+  "img.hentaihaven.xxx",
+  "coverlanyvd.org",
+  "hentaiplayer.com"
 ]);
 const IMAGE_PROXY_MAX_BYTES = 5 * 1024 * 1024;
+const IMAGE_PROXY_MAX_WIDTH = 1920;
+const IMAGE_PROXY_DEFAULT_WIDTH = 360;
+const IMAGE_PROXY_WEBP_QUALITY = 70;
 const STRICT_TRANSPORT_SECURITY = "max-age=31536000; includeSubDomains; preload";
 const SECURITY_HEADERS = {
   "Referrer-Policy": "no-referrer",
@@ -219,16 +263,17 @@ const SECURITY_HEADERS = {
     "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self' data:",
-    "img-src 'self' data: blob: http: https:",
-    "media-src 'self' blob: http: https:",
-    "connect-src 'self' http: https: ws: wss:",
-    "frame-src 'self' http: https: blob:",
+    "img-src 'self' data: blob: https:",
+    "media-src 'self' blob: https:",
+    "connect-src 'self' https://graphql.anilist.co https://api.jikan.moe https://s4.anilist.co https:",
+    "frame-src 'self' https:",
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'self'"
+    "frame-ancestors 'none'",
+    "upgrade-insecure-requests"
   ].join("; "),
   ...(HOSTED_RUNTIME ? { "Strict-Transport-Security": STRICT_TRANSPORT_SECURITY } : {})
 };
@@ -287,7 +332,7 @@ let anipubHealthState = {
   total: null
 };
 
-// ── Pre-warm caches for online sources ──────────────────────────────────────
+// ΓöÇΓöÇ Pre-warm caches for online sources ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 let jimovCatalogCache = null;
 let jimovCatalogCacheAt = 0;
 let jimovCatalogPromise = null;
@@ -301,7 +346,7 @@ const CONSUMET_CATALOG_TTL_MS = 1000 * 60 * 20;
 let rapidCatalogCache = null;
 let rapidCatalogCacheAt = 0;
 const RAPID_CATALOG_TTL_MS = 1000 * 60 * 20;
-// ─────────────────────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 let anime1vStartPromise = null;
 let apkOneAnimeModule = null;
@@ -443,7 +488,7 @@ function handleRequest(request, response) {
     // Accept the Supabase URL + PUBLIC (anon/publishable) key under any of the
     // common env-var names. The Vercel Supabase integration sets SUPABASE_URL +
     // SUPABASE_ANON_KEY, while Next/Vite/SvelteKit use NEXT_PUBLIC_/VITE_/PUBLIC_
-    // prefixes — so a var that's "set on Vercel" was being missed by the old,
+    // prefixes ΓÇö so a var that's "set on Vercel" was being missed by the old,
     // narrower list. NOTE: only the anon/publishable key is returned (it's sent
     // to the browser); the service-role key is intentionally never read here.
     const supabaseUrl =
@@ -746,7 +791,7 @@ function handleRequest(request, response) {
     return;
   }
 
-  // ── TioAnime proxy (requires python app.py running on port 5000) ──────────
+  // ΓöÇΓöÇ TioAnime proxy (requires python app.py running on port 5000) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   if (url.pathname === "/api/tioanime/search") {
     handleTioAnimeSearch(url, response);
     return;
@@ -848,18 +893,40 @@ function handleRequest(request, response) {
 
   fs.readFile(filePath, (error, data) => {
     if (error) {
+      const acceptsHtml = String(request.headers.accept || "").includes("text/html");
+      const looksLikeAsset = path.extname(pathname) !== "";
+      if (request.method === "GET" && acceptsHtml && !looksLikeAsset) {
+        const indexPath = path.join(root, "index.html");
+        fs.readFile(indexPath, (indexError, indexData) => {
+          if (indexError) {
+            response.writeHead(404);
+            response.end("Not found");
+            return;
+          }
+          response.writeHead(200, {
+            ...SECURITY_HEADERS,
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "no-cache"
+          });
+          response.end(indexData);
+        });
+        return;
+      }
       response.writeHead(404);
       response.end("Not found");
       return;
     }
 
-    // Versioned assets (?v=NNN) are content-addressed — safe to cache for 1 year.
-    // index.html is never versioned and must always be fresh.
+    // Versioned assets (?v=NNN) are content-addressed - safe to cache for 1 year.
+    // index.html must always be fresh (no-cache allows 304 Not Modified).
+    // Non-versioned static files (robots.txt, llms.txt) get 1h cache + SWR.
     const isVersioned = url.searchParams.has("v") || /[?&]v=\d+/.test(url.search);
     const isHtml = path.extname(filePath) === ".html" || pathname === "/index.html";
-    const cacheControl = (!isHtml && isVersioned)
-      ? "public, max-age=31536000, immutable"
-      : "no-store, max-age=0";
+    const cacheControl = isHtml
+      ? "no-cache"
+      : isVersioned
+        ? "public, max-age=31536000, immutable"
+        : "public, max-age=3600, stale-while-revalidate=86400";
 
     response.writeHead(200, {
       ...SECURITY_HEADERS,
@@ -979,19 +1046,47 @@ async function handleImageProxy(url, response) {
     return;
   }
 
-  const buffer = Buffer.from(await upstream.arrayBuffer());
-  if (buffer.length > IMAGE_PROXY_MAX_BYTES) {
+  const originalBuffer = Buffer.from(await upstream.arrayBuffer());
+  if (originalBuffer.length > IMAGE_PROXY_MAX_BYTES) {
     sendJson(response, { ok: false, error: "Image is too large" }, 413);
     return;
   }
 
+  const requestedWidth = Math.max(
+    64,
+    Math.min(IMAGE_PROXY_MAX_WIDTH, Number(url.searchParams.get("w") || IMAGE_PROXY_DEFAULT_WIDTH) || IMAGE_PROXY_DEFAULT_WIDTH)
+  );
+  const requestedQuality = Math.max(
+    45,
+    Math.min(92, Number(url.searchParams.get("q") || IMAGE_PROXY_WEBP_QUALITY) || IMAGE_PROXY_WEBP_QUALITY)
+  );
+  let outputBuffer = originalBuffer;
+  let outputType = contentType;
+  let optimized = false;
+  if (sharp && !/svg|gif/i.test(contentType)) {
+    try {
+      outputBuffer = await sharp(originalBuffer, { animated: false, limitInputPixels: 36_000_000 })
+        .rotate()
+        .resize({ width: requestedWidth, withoutEnlargement: true })
+        .webp({ quality: requestedQuality, effort: 5 })
+        .toBuffer();
+      outputType = "image/webp";
+      optimized = true;
+    } catch (error) {
+      console.warn("Image proxy optimization skipped:", error.message);
+      outputBuffer = originalBuffer;
+      outputType = contentType;
+    }
+  }
+
   response.writeHead(200, {
     ...SECURITY_HEADERS,
-    "Content-Type": contentType,
-    "Cache-Control": "public, max-age=31536000, immutable",
-    "Content-Length": String(buffer.length)
+    "Content-Type": outputType,
+    "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable, stale-while-revalidate=604800",
+    "Content-Length": String(outputBuffer.length),
+    "X-Image-Optimized": optimized ? "1" : "0"
   });
-  response.end(buffer);
+  response.end(outputBuffer);
 }
 
 function handleServerInfo(request, response) {
@@ -1019,7 +1114,7 @@ function handleServerInfo(request, response) {
 
 function checkRateLimit(request, url) {
   if (url.pathname === "/api/health") return { allowed: true, limit: RATE_LIMIT_API_MAX_REQUESTS, retryAfterMs: 0 };
-  // AniList metadata endpoints are called frequently during franchise traversal —
+  // AniList metadata endpoints are called frequently during franchise traversal ΓÇö
   // use a higher per-minute limit and a separate bucket so they don't starve other API calls.
   if (url.pathname.startsWith("/api/anilist/")) {
     const anilistLimit = Math.max(300, RATE_LIMIT_API_MAX_REQUESTS * 3);
@@ -1062,25 +1157,24 @@ function getClientIp(request) {
 }
 
 async function prewarmAllSources() {
-  log("info", "Pre-warming all online source catalogs...");
+  log("info", "Pre-warming AnimeAV1...");
   const tasks = [
-    checkAniPubHealth().catch((err) => log("warn", `AniPub health prewarm: ${err.message}`)),
-    fetchAllAniPubCatalog(12000, await fetchAniPubTotalCount().catch(() => 8343))
-      .catch((err) => log("warn", `AniPub catalog prewarm: ${err.message}`)),
-    fetchCachedJimovCatalog(JIMOV_DEFAULT_CATALOG_LIMIT)
-      .catch((err) => log("warn", `JIMOV prewarm: ${err.message}`)),
-    fetchCachedConsumetCatalog(CONSUMET_CATALOG_LIMIT)
-      .catch((err) => log("warn", `Consumet prewarm: ${err.message}`)),
-    checkAnime1vHealth(ANIME1V_API_KEY, 7000)
-      .catch((err) => log("warn", `Anime1v prewarm: ${err.message}`))
+    fetchAnimeAv1LatestEpisodes()
+      .catch((err) => log("warn", `AnimeAV1 latest prewarm: ${err.message}`)),
+    getAnimeAv1SlugCatalog({ pages: ANIMEAV1_CATALOG_PAGES })
+      .catch((err) => log("warn", `AnimeAV1 catalog prewarm: ${err.message}`))
   ];
-  if (isRapidAnimeConfigured()) {
-    tasks.push(fetchCachedRapidCatalog(RAPIDAPI_ANIME_CATALOG_LIMIT)
-      .catch((err) => log("warn", `RapidAPI prewarm: ${err.message}`)));
-  }
   const results = await Promise.allSettled(tasks);
   const ok = results.filter((r) => r.status === "fulfilled").length;
-  log("info", `Source pre-warm complete: ${ok}/${results.length} tasks succeeded`);
+  log("info", `AnimeAV1 pre-warm complete: ${ok}/${results.length} tasks succeeded`);
+}
+
+async function refreshUnderHentaiLiveCatalog() {
+  underHentaiLiveCatalogCache.clear();
+  underHentaiDetailCache.clear();
+  underHentaiDetailsSnapshot = null;
+  const items = await loadLiveUnderHentaiCatalog(1);
+  return { ok: items.length > 0, count: items.length };
 }
 
 function startLocalServer() {
@@ -1089,20 +1183,18 @@ function startLocalServer() {
     console.log(`ZenkaiTV running at http://localhost:${port}`);
     console.log(`For Android TV, open http://YOUR-COMPUTER-IP:${port}`);
     console.log(`Metadata API ready at http://localhost:${port}/api/catalog`);
-    ensureAnime1vServer();
-    setInterval(ensureAnime1vServer, ANIME1V_RESTART_INTERVAL_MS);
-    // Pre-warm all online source catalogs immediately so the first browser
-    // request gets cached data instead of waiting for cold API fetches.
+    // Pre-warm AnimeAV1 so the first episode lookup avoids a cold catalog fetch.
     prewarmAllSources().catch((err) => log("warn", `Source pre-warm error: ${err.message}`));
-    setTimeout(() => refreshDailyApis({ reason: "startup" }).catch((error) => {
-      console.warn(`Daily API refresh failed on startup: ${error.message}`);
+    const startupRefresh = setTimeout(() => refreshDailyApis({ reason: "startup" }).catch((error) => {
+      console.warn(`Startup daily refresh failed: ${error.message}`);
     }), DAILY_REFRESH_START_DELAY_MS);
-    setInterval(() => refreshDailyApis({ reason: "scheduled" }).catch((error) => {
+    startupRefresh.unref?.();
+    const dailyRefresh = setInterval(() => refreshDailyApis({ reason: "scheduled" }).catch((error) => {
       console.warn(`Daily API refresh failed: ${error.message}`);
     }), DAILY_REFRESH_INTERVAL_MS);
+    dailyRefresh.unref?.();
   });
 
-  checkAniPubHealth();
   return server;
 }
 
@@ -1113,7 +1205,6 @@ if (require.main === module) {
 module.exports = handleRequest;
 module.exports.handleRequest = handleRequest;
 module.exports.startLocalServer = startLocalServer;
-setInterval(checkAniPubHealth, 1000 * 60 * 60);
 
 async function handleDailyRefresh(url, response) {
   const force = url.searchParams.get("force") === "1";
@@ -1147,40 +1238,31 @@ async function refreshDailyApis({ force = false, reason = "scheduled" } = {}) {
   dailyRefreshPromise = (async () => {
     const startedAt = Date.now();
     console.log(`[ZenkaiTV] Daily API refresh started (${reason})`);
-    // Force-expire caches so each source re-fetches fresh data
-    jimovCatalogCacheAt = 0;
-    consumetCatalogCacheAt = 0;
-    rapidCatalogCacheAt = 0;
+    // Force-expire AnimeAV1 caches before the daily refresh.
+    animeAv1LatestCacheAt = 0;
+    animeAv1SlugCatalogMemoryAt = 0;
+    animeAv1SourceCache.clear();
     const results = await Promise.allSettled([
-      checkAniPubHealth(),                                                             // [0]
-      fetchAllAniPubCatalog(12000, await fetchAniPubTotalCount().catch(() => 8343)),  // [1]
-      checkAnime1vHealth(ANIME1V_API_KEY, 7000),                                      // [2]
-      fetchCachedJimovCatalog(JIMOV_DEFAULT_CATALOG_LIMIT),                           // [3]
-      fetchCachedConsumetCatalog(CONSUMET_CATALOG_LIMIT),                             // [4]
-      isRapidAnimeConfigured()                                                         // [5]
-        ? fetchCachedRapidCatalog(RAPIDAPI_ANIME_CATALOG_LIMIT)
-        : Promise.resolve([])
+      fetchAnimeAv1LatestEpisodes(),
+      getAnimeAv1SlugCatalog({ force: true, pages: ANIMEAV1_CATALOG_PAGES }),
+      refreshUnderHentaiLiveCatalog()
     ]);
     const payload = {
       status: results.every((result) => result.status === "fulfilled") ? "ok" : "degraded",
       reason,
       refreshedAt: new Date().toISOString(),
       durationMs: Date.now() - startedAt,
-      anipub: results[1].status === "fulfilled"
-        ? { ok: true, count: results[1].value.length }
-        : { ok: false, error: results[1].reason?.message || "AniPub refresh failed" },
-      anime1v: results[2].status === "fulfilled"
-        ? { ok: Boolean(results[2].value.ok), status: results[2].value.status || "" }
-        : { ok: false, error: results[2].reason?.message || "Anime1v health failed" },
-      jimov: results[3].status === "fulfilled"
-        ? { ok: true, count: results[3].value.length }
-        : { ok: false, error: results[3].reason?.message || "JIMOV refresh failed" },
-      consumet: results[4].status === "fulfilled"
-        ? { ok: true, count: results[4].value.length }
-        : { ok: false, error: results[4].reason?.message || "Consumet refresh failed" },
-      rapidApi: results[5].status === "fulfilled"
-        ? { ok: true, count: results[5].value.length }
-        : { ok: false, error: results[5].reason?.message || "RapidAPI refresh failed" }
+      animeav1: {
+        latest: results[0].status === "fulfilled"
+          ? { ok: results[0].value.length > 0, count: results[0].value.length }
+          : { ok: false, error: results[0].reason?.message || "AnimeAV1 latest refresh failed" },
+        catalog: results[1].status === "fulfilled"
+          ? { ok: Boolean(results[1].value.ok), count: results[1].value.count || 0 }
+          : { ok: false, error: results[1].reason?.message || "AnimeAV1 catalog refresh failed" }
+      },
+      underhentai: results[2].status === "fulfilled"
+        ? results[2].value
+        : { ok: false, error: results[2].reason?.message || "UnderHentai catalog refresh failed" }
     };
     lastDailyRefreshAt = Date.now();
     lastDailyRefreshResult = payload;
@@ -1559,13 +1641,15 @@ function decodeHtmlEntities(value = "") {
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, "\"")
     .replace(/&#39;|&apos;/g, "'")
-    .replace(/&ntilde;/gi, "ñ")
-    .replace(/&Ntilde;/g, "Ñ")
-    .replace(/&aacute;/gi, "á")
-    .replace(/&eacute;/gi, "é")
-    .replace(/&iacute;/gi, "í")
-    .replace(/&oacute;/gi, "ó")
-    .replace(/&uacute;/gi, "ú")
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)))
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&ntilde;/gi, "├▒")
+    .replace(/&Ntilde;/g, "├æ")
+    .replace(/&aacute;/gi, "├í")
+    .replace(/&eacute;/gi, "├⌐")
+    .replace(/&iacute;/gi, "├¡")
+    .replace(/&oacute;/gi, "├│")
+    .replace(/&uacute;/gi, "├║")
     .replace(/&nbsp;/g, " ");
 }
 
@@ -1670,7 +1754,7 @@ function readTioAnimeSlugsFromScrapedMetadata() {
   }
 }
 
-// ── Scraped catalog (generated by scraper/anime_scraper.py via GitHub Actions) ──
+// ΓöÇΓöÇ Scraped catalog (generated by scraper/anime_scraper.py via GitHub Actions) ΓöÇΓöÇ
 //
 // Reads anime_metadata.json. If that file is missing, empty, or corrupt,
 // falls back to anime_metadata.previous.json so the source never goes blank.
@@ -1687,7 +1771,7 @@ function handleScrapedCatalog(reqUrl, response) {
     fs.readFile(filePath, "utf8", (err, raw) => {
       if (err) {
         if (!fallbackUsed) {
-          // Primary missing — try previous
+          // Primary missing ΓÇö try previous
           return serveFile(fallbackPath, true);
         }
         sendJson(response, {
@@ -1796,7 +1880,7 @@ async function handleJimovTioAnimeCatalog(reqUrl, response) {
   try {
     let items;
     if (title) {
-      // Title search — bypass cache, hit the API directly
+      // Title search ΓÇö bypass cache, hit the API directly
       const settled = await Promise.allSettled([
         fetchWithTimeout(buildJimovFilterUrl({ title, status, type, sort }), { headers: { Accept: "application/json" } }, 12000)
           .then(async (upstream) => {
@@ -1821,7 +1905,7 @@ async function handleJimovTioAnimeCatalog(reqUrl, response) {
         .map((item, index) => normalizeJimovCatalogItem(item, index))
         .filter(Boolean);
     } else {
-      // Catalog mode — serve from pre-warmed in-memory cache
+      // Catalog mode ΓÇö serve from pre-warmed in-memory cache
       items = await fetchCachedJimovCatalog(limit);
     }
 
@@ -2025,7 +2109,7 @@ function repairServerEpisodes(episodes = [], seasonNumber = 1) {
   });
 }
 
-// ── AllAnime (https://api.allanime.day) ────────────────────────────────────
+// ΓöÇΓöÇ AllAnime (https://api.allanime.day) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 const ALLANIME_API = "https://api.allanime.day/api";
 const ALLANIME_REFERER = "https://allanime.day";
 const ALLANIME_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
@@ -2088,7 +2172,7 @@ async function handleAllAnimeSearch(reqUrl, response) {
       genre: "anime",
       genres: [],
       source: "AllAnime",
-      description: "Multi-language anime from AllAnime — sub and dub available.",
+      description: "Multi-language anime from AllAnime ΓÇö sub and dub available.",
       availableEpisodes: show.availableEpisodesDetail || {},
       colors: ["#00d2ff", "#251d47"],
       day: "Local",
@@ -2146,7 +2230,7 @@ async function handleAllAnimeWatch(reqUrl, response) {
     sendJson(response, { ok: true, source: "AllAnime", count: 0, sources: [], error: error.message }, 200);
   }
 }
-// ─────────────────────────────────────────────────────────────────────────────
+// ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 async function ensureAnime1vServer() {
   if (anime1vStartPromise) return anime1vStartPromise;
@@ -2796,11 +2880,11 @@ async function handleConsumetCatalog(reqUrl, response) {
   try {
     let items;
     if (query) {
-      // Search — bypass cache, hit Consumet directly
+      // Search ΓÇö bypass cache, hit Consumet directly
       const pages = Math.max(1, Math.min(CONSUMET_SEARCH_PAGES, Number(reqUrl.searchParams.get("pages") || 2)));
       items = await searchConsumetSeeds([query], { page, pages, limit });
     } else {
-      // Catalog — serve from pre-warmed cache
+      // Catalog ΓÇö serve from pre-warmed cache
       items = await fetchCachedConsumetCatalog(limit);
     }
     sendJson(response, {
@@ -3675,16 +3759,30 @@ async function handleLanguagePreferences(request, response) {
     return;
   }
   try {
-    const body = await readJsonBody(request);
-    const settings = readServerSettings();
-    settings.languagePrefs = {
+    let body = {};
+    try {
+      body = await readJsonBody(request);
+    } catch (_) {
+      body = {};
+    }
+    const languagePrefs = {
       audio: body.audio || body.languagePrefs?.audio || "japanese",
       subtitles: body.subtitles || body.subs || body.languagePrefs?.subtitles || "spanish"
     };
+    if (HOSTED_RUNTIME) {
+      sendJson(response, { ok: true, preferences: languagePrefs });
+      return;
+    }
+    const settings = readServerSettings();
+    settings.languagePrefs = languagePrefs;
     writeServerSettings(settings);
     sendJson(response, { ok: true, preferences: settings.languagePrefs });
   } catch (error) {
-    sendJson(response, { ok: false, error: error.message }, 400);
+    sendJson(response, {
+      ok: true,
+      preferences: { audio: "japanese", subtitles: "spanish" },
+      warning: error.message
+    });
   }
 }
 
@@ -5145,7 +5243,7 @@ function normalizeAnime1vSubtitlePayload(subtitles) {
     return subtitles.map((track) => ({
       url: track.url || track.file || track.src || "",
       language: track.language || track.lang || "es",
-      label: track.label || track.name || "Español",
+      label: track.label || track.name || "Espa├▒ol",
       default: track.default ?? normalizeLanguageName(track.language || track.label || "spanish") === "spanish"
     })).filter((track) => track.url);
   }
@@ -5153,7 +5251,7 @@ function normalizeAnime1vSubtitlePayload(subtitles) {
   return spanish ? [{
     url: spanish,
     language: "es",
-    label: "Español",
+    label: "Espa├▒ol",
     default: true
   }] : [];
 }
@@ -5298,9 +5396,9 @@ function getAvailableSubtitles(episode = {}) {
 
 function normalizeLanguageName(value) {
   const text = String(value || "").toLowerCase();
-  if (/\b(ja|jp|jpn|japanese|japon[eé]s)\b/.test(text)) return "japanese";
-  if (/\b(es|spa|spanish|español|castellano)\b/.test(text)) return "spanish";
-  if (/\b(en|eng|english|ingl[eé]s)\b/.test(text)) return "english";
+  if (/\b(ja|jp|jpn|japanese|japon[e├⌐]s)\b/.test(text)) return "japanese";
+  if (/\b(es|spa|spanish|espa├▒ol|castellano)\b/.test(text)) return "spanish";
+  if (/\b(en|eng|english|ingl[e├⌐]s)\b/.test(text)) return "english";
   return "";
 }
 
@@ -5423,7 +5521,7 @@ function absoluteAniPubUrl(value) {
   return text;
 }
 
-// ── TioAnime proxy ────────────────────────────────────────────────────────────
+// ΓöÇΓöÇ TioAnime proxy ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 // All three handlers simply proxy to the Python Flask service on port 5000.
 // If the service is offline they return {ok:false} without crashing the app.
 
@@ -5472,7 +5570,7 @@ async function handleTioAnimeSearch(url, response) {
   }
 
   if (HOSTED_RUNTIME || isLoopbackUrl(TIOANIME_SERVICE)) {
-    sendJson(response, { ok: false, error: "No matching TioAnime slug found.", id, title }, 404);
+    sendJson(response, { ok: false, found: false, error: "No matching TioAnime slug found.", id, title });
     return;
   }
 
@@ -5668,15 +5766,22 @@ function decodeTioAnimeEmbedUrl(value = "") {
   return url;
 }
 
-// ── AnimeAV1 direct scraper ──────────────────────────────────────────────────
+// ΓöÇΓöÇ AnimeAV1 direct scraper ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 async function handleAnimeAv1Health(response) {
+  // Actually test connectivity to AnimeAV1 instead of blindly returning ok:true.
+  let reachable = false;
+  try {
+    const probe = await fetchWithTimeout(ANIMEAV1_BASE, { method: "HEAD", headers: ANIMEAV1_HEADERS }, 5000);
+    reachable = probe.ok;
+  } catch { /* unreachable */ }
   sendJson(response, {
-    ok: true,
+    ok: reachable,
     source: "AnimeAV1 direct scraper",
     hosted: HOSTED_RUNTIME,
     baseUrl: ANIMEAV1_BASE,
-    catalogCached: Boolean(animeAv1SlugCatalogMemory)
+    catalogCached: Boolean(animeAv1SlugCatalogMemory),
+    catalogSize: animeAv1SlugCatalogMemory?.count || 0
   });
 }
 
@@ -5698,10 +5803,10 @@ async function handleAnimeAv1Slugs(url, response) {
   }
 }
 
-// ── Smart Source crawler: jkanime.net ─────────────────────────────────────────
+// ΓöÇΓöÇ Smart Source crawler: jkanime.net ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 // Powers the client's "Crawl & Add" (POST /api/crawl {kind,url}). jkanime episode
 // pages embed a `servers = [...]` array whose `remote` field is a base64-encoded
-// playable embed URL (Streamwish/Mega/Voe/…), so we resolve those into episodes
+// playable embed URL (Streamwish/Mega/Voe/ΓÇª), so we resolve those into episodes
 // the app can play like any external source.
 const JK_BASE = "https://jkanime.net";
 const JK_HEADERS = {
@@ -5774,8 +5879,8 @@ async function fetchJkanimeEpisode(slug, episode) {
   const ogTitle = (html.match(/property="og:title"\s+content="([^"]+)"/i) || [])[1] || "";
   const ogImage = (html.match(/property="og:image"\s+content="([^"]+)"/i) || [])[1] || "";
   const title = decodeHtmlEntities(ogTitle)
-    .replace(/\s+(?:Episodio\s+)?\d+\s+(?:Sub|Latino|Español|Castellano)[\s\S]*$/i, "")
-    .replace(/\s+Sub Español.*$/i, "")
+    .replace(/\s+(?:Episodio\s+)?\d+\s+(?:Sub|Latino|Espa├▒ol|Castellano)[\s\S]*$/i, "")
+    .replace(/\s+Sub Espa├▒ol.*$/i, "")
     .trim() || prettifyJkSlug(slug);
   return { slug, episode: Number(episode) || 0, title, image: ogImage, embeds, episodeUrl: epUrl };
 }
@@ -5887,8 +5992,14 @@ function parseJkUrl(rawUrl) {
 }
 
 async function handleJKAnimeHealth(response) {
+  // Actually test connectivity to JKAnime instead of blindly returning ok:true.
+  let reachable = false;
+  try {
+    const probe = await fetchWithTimeout(JK_BASE, { method: "HEAD", headers: JK_HEADERS }, 5000);
+    reachable = probe.ok;
+  } catch { /* unreachable */ }
   sendJson(response, {
-    ok: true,
+    ok: reachable,
     source: "JKAnime direct scraper",
     baseUrl: JK_BASE,
     hosted: HOSTED_RUNTIME,
@@ -5923,7 +6034,7 @@ async function handleJKAnimeSearch(url, response) {
   const cacheKey = normalizeTitle(`${id || ""} ${title || ""}`) || String(id || title);
   const cached = jkAnimeSlugSearchCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < JKANIME_SLUG_CACHE_TTL_MS) {
-    sendJson(response, cached.data, cached.data.ok ? 200 : 404);
+    sendJson(response, cached.data);
     return;
   }
 
@@ -5945,12 +6056,13 @@ async function handleJKAnimeSearch(url, response) {
           source: "JKAnime",
           match: match.match || "slug"
         }
-      : { ok: false, source: "JKAnime", error: "No matching JKAnime slug found.", id, title };
+      : { ok: false, found: false, source: "JKAnime", error: "No matching JKAnime slug found.", id, title };
     jkAnimeSlugSearchCache.set(cacheKey, { data: payload, ts: Date.now() });
-    sendJson(response, payload, payload.ok ? 200 : 404);
+    sendJson(response, payload);
   } catch (error) {
     const payload = {
       ok: false,
+      retryable: true,
       source: "JKAnime",
       error: "JKAnime search failed.",
       detail: error.message,
@@ -5958,7 +6070,7 @@ async function handleJKAnimeSearch(url, response) {
       title
     };
     jkAnimeSlugSearchCache.set(cacheKey, { data: payload, ts: Date.now() });
-    sendJson(response, payload, 502);
+    sendJson(response, payload);
   }
 }
 
@@ -6218,9 +6330,9 @@ function jkAnimeTitleKeys(title, slug = "") {
 
 function cleanJKAnimeTitle(value = "") {
   return stripHtml(String(value || ""))
-    .replace(/\s*[|\-–·»:].*$/, " ")
+    .replace(/\s*[|\-ΓÇô┬╖┬╗:].*$/, " ")
     .replace(/\s+(?:Episodio|Episode)\s*\d+.*$/i, "")
-    .replace(/\s+(?:Sub|Latino|Espa[nñ]ol|Online|JKAnime)\b.*$/i, "")
+    .replace(/\s+(?:Sub|Latino|Espa[n├▒]ol|Online|JKAnime)\b.*$/i, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -6240,16 +6352,16 @@ function jkAnimeSlugify(value = "") {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/&/g, " and ")
-    .replace(/['’`]/g, "")
+    .replace(/['ΓÇÖ`]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
 
-// ── AniméOnlineNinja (Latino dub) ─────────────────────────────────────────────
+// ΓöÇΓöÇ Anim├⌐OnlineNinja (Latino dub) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 // Site uses the Dooplay WordPress theme. Flow per episode:
-//   1. GET /episodio/{slug}-cap-{N}/ → extract nonce + data-post
-//   2. POST /wp-admin/admin-ajax.php (doo_player_ajax) → saidochesto embed URL
-//   3. GET saidochesto.top/embed.php?id=N → parse .OD_LAT server list
+//   1. GET /episodio/{slug}-cap-{N}/ ΓåÆ extract nonce + data-post
+//   2. POST /wp-admin/admin-ajax.php (doo_player_ajax) ΓåÆ saidochesto embed URL
+//   3. GET saidochesto.top/embed.php?id=N ΓåÆ parse .OD_LAT server list
 
 async function handleAnimeOnlineHealth(response) {
   try {
@@ -6348,7 +6460,7 @@ async function fetchAnimeonlineSources(slug, episode, lang = "LAT") {
   // Fallback: non-saidochesto direct iframe
   return {
     ok: true, source: "AnimeOnlineNinja", slug, episode, lang, count: 1,
-    sources: [{ provider: "AniméOnline", url: embedUrl, type: "iframe", externalUrl: embedUrl, videoUrl: "", language: lang === "LAT" ? "es-419" : "es", siteUrl: epUrl }]
+    sources: [{ provider: "Anim├⌐Online", url: embedUrl, type: "iframe", externalUrl: embedUrl, videoUrl: "", language: lang === "LAT" ? "es-419" : "es", siteUrl: epUrl }]
   };
 }
 
@@ -6405,7 +6517,7 @@ async function findAnimeonlineSlug(show = {}) {
       animeonlineSlugCache.set(slug, null);
     } catch { /* continue */ }
   }
-  // Search fallback — ask the site's own search to find the catalog URL
+  // Search fallback ΓÇö ask the site's own search to find the catalog URL
   const q = show.romajiTitle || show.title || show.englishTitle || "";
   if (q) {
     const found = await animeonlineSearchForSlug(q);
@@ -6460,15 +6572,15 @@ function animeonlineSlugCandidates(show = {}) {
 
 function animeonlineSlugify(value = "") {
   return String(value || "")
-    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .normalize("NFD").replace(/[╠Ç-═»]/g, "")
     .toLowerCase()
     .replace(/&/g, " and ").replace(/[''`]/g, "")
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
-// ── Generic crawler ───────────────────────────────────────────────────────────
+// ΓöÇΓöÇ Generic crawler ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 // Most anime sites embed the same handful of streaming hosts (Streamwish, Mega,
-// Voe, Filemoon, Streamtape, …) inside iframes, JSON "code"/"file" fields, or
+// Voe, Filemoon, Streamtape, ΓÇª) inside iframes, JSON "code"/"file" fields, or
 // base64 "remote" fields. We sniff those out of any episode page, so the crawler
 // can "figure out" sites it has no dedicated adapter for.
 const GENERIC_CRAWL_HEADERS = {
@@ -6519,11 +6631,11 @@ function extractCrawlMeta(html, fallbackTitle) {
     || (html.match(/<title>([^<]+)<\/title>/i) || [])[1] || "";
   const ogi = (html.match(/property=["']og:image["']\s+content=["']([^"']+)["']/i) || [])[1] || "";
   const title = decodeHtmlEntities(ogt)
-    .replace(/^\s*(?:ver\s+(?:anime|online)?|anime|pelicula|online)\s+/i, "")   // "Ver Anime X" → "X"
-    .replace(/\s*[|\-–·»:].*$/, " ")
-    .replace(/\s+(?:Episodio|Capitulo|Cap[íi]tulo|Episode|Ep\.?)\s*\d+.*$/i, "")
-    .replace(/\s+\d+\s+(?:Sub|Latino|Espa[nñ]ol|Castellano|Online)[\s\S]*$/i, "")
-    .replace(/\s+(?:Sub|Latino|Espa[nñ]ol|Online|Gratis|HD)\b.*$/i, "")
+    .replace(/^\s*(?:ver\s+(?:anime|online)?|anime|pelicula|online)\s+/i, "")   // "Ver Anime X" ΓåÆ "X"
+    .replace(/\s*[|\-ΓÇô┬╖┬╗:].*$/, " ")
+    .replace(/\s+(?:Episodio|Capitulo|Cap[├¡i]tulo|Episode|Ep\.?)\s*\d+.*$/i, "")
+    .replace(/\s+\d+\s+(?:Sub|Latino|Espa[n├▒]ol|Castellano|Online)[\s\S]*$/i, "")
+    .replace(/\s+(?:Sub|Latino|Espa[n├▒]ol|Online|Gratis|HD)\b.*$/i, "")
     .replace(/\s+/g, " ")
     .trim();
   return { title: title || fallbackTitle, image: ogi };
@@ -6565,7 +6677,7 @@ function findEpisodeLinks(html, base) {
   return out;
 }
 
-// AnimeFLV adapter: anime pages expose `var episodes = [[num,id],…]`.
+// AnimeFLV adapter: anime pages expose `var episodes = [[num,id],ΓÇª]`.
 function animeFlvBase(url) {
   const m = String(url).match(/^(https?:\/\/[a-z0-9.\-]*animeflv\.net)/i);
   return (m ? m[1] : "https://www3.animeflv.net").replace(/^http:/, "https:");
@@ -6619,9 +6731,9 @@ function ogMeta(html, prop) {
   return b ? b[1] : "";
 }
 
-// AnimeAV1 adapter — reuses the tested episode-source resolver so a crawl of
+// AnimeAV1 adapter ΓÇö reuses the tested episode-source resolver so a crawl of
 // animeav1.com/media/<slug> imports the same playable servers the AnimeAV1
-// scraper provides (Streamwish/Mega/HLS/…).
+// scraper provides (Streamwish/Mega/HLS/ΓÇª).
 async function fetchAnimeAv1CrawlEpisode(slug, ep, meta = {}) {
   const res = await fetchAnimeAv1EpisodeSourcesDirect(slug, ep, "ALL").catch(() => null);
   if (!res || !res.sources?.length) return null;
@@ -6644,7 +6756,7 @@ async function crawlAnimeAv1Anime(slug, cap = HOSTED_RUNTIME ? 24 : 60) {
   if (!nums.length) throw new Error("No episodes found on the AnimeAV1 page.");
   const meta = {
     title: decodeHtmlEntities(ogMeta(html, "title") || (html.match(/<h1[^>]*>([^<]+)<\/h1>/i) || [])[1] || prettifyJkSlug(slug))
-      .replace(/\s*[|\-–·»].*$/, "").trim() || prettifyJkSlug(slug),
+      .replace(/\s*[|\-ΓÇô┬╖┬╗].*$/, "").trim() || prettifyJkSlug(slug),
     image: ogMeta(html, "image")
       || (html.match(/name=["']twitter:image["'][^>]*content=["']([^"']+)["']/i) || [])[1]
       || (html.match(/https?:\/\/cdn\.animeav1\.com\/[^\s"')]+\.(?:jpg|jpeg|png|webp)/i) || [])[0]
@@ -6728,13 +6840,13 @@ async function handleCrawl(request, response) {
   }
 }
 
-// ── Embed resolver ────────────────────────────────────────────────────────────
-// Turn an embed page (Streamwish/Filemoon/Voe/Mp4upload/Streamtape/…) into a
+// ΓöÇΓöÇ Embed resolver ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+// Turn an embed page (Streamwish/Filemoon/Voe/Mp4upload/Streamtape/ΓÇª) into a
 // direct stream URL (.m3u8/.mp4) so the native Android player can play it. So the
 // app's "every source plays in the native player" works for iframe hosts too.
 function unpackPackedJs(packed) {
   // Dean Edwards' p,a,c,k,e,d unpacker (used by Streamwish/Filemoon/jwplayer skins).
-  // Greedy payload, anchored by the `,base,count,'keys'.split('|')` tail — the
+  // Greedy payload, anchored by the `,base,count,'keys'.split('|')` tail ΓÇö the
   // payload contains escaped quotes, so a non-greedy match stops too early.
   const m = String(packed).match(/}\s*\(\s*'([\s\S]*)'\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*'([\s\S]*?)'\.split\('\|'\)/);
   if (!m) return "";
@@ -6749,12 +6861,12 @@ function unpackPackedJs(packed) {
   }
   return out;
 }
-// A URL is a real stream FILE only when the extension sits at a path boundary —
+// A URL is a real stream FILE only when the extension sits at a path boundary ΓÇö
 // the next character must be ? # / a quote/space or the end, never another
 // letter. This is what stops the HOST "mp4upload.com" (which literally contains
 // ".mp4") from being mistaken for an ".mp4" video file, which used to make the
-// resolver hand the player a stylesheet (…/videojs.min.css) and hang it forever
-// on "Loading stream…". Page assets (css/js/img/font/subtitles) are rejected.
+// resolver hand the player a stylesheet (ΓÇª/videojs.min.css) and hang it forever
+// on "Loading streamΓÇª". Page assets (css/js/img/font/subtitles) are rejected.
 function classifyStreamUrl(raw) {
   if (!raw) return null;
   const url = String(raw).replace(/\\\//g, "/").trim();
@@ -6768,7 +6880,7 @@ function classifyStreamUrl(raw) {
 function extractStreamFromEmbed(html) {
   const text = String(html || "");
   // Walk EVERY match of a pattern and return the first that survives
-  // classifyStreamUrl — so a host-name false positive (…mp4upload…) is skipped
+  // classifyStreamUrl ΓÇö so a host-name false positive (ΓÇªmp4uploadΓÇª) is skipped
   // and the scan continues to the genuine video URL later in the page.
   const scan = (source, group) => {
     const re = new RegExp(source, "gi");
@@ -6779,7 +6891,7 @@ function extractStreamFromEmbed(html) {
     }
     return null;
   };
-  // 1) Explicit player config: file/src/source: "http…".
+  // 1) Explicit player config: file/src/source: "httpΓÇª".
   let got = scan("[\"'](?:file|src|source)[\"']\\s*:\\s*[\"'](https?://[^\"']+)[\"']", 1);
   if (got) return got;
   // 2) Any HLS playlist sitting in the markup / inline scripts.
@@ -6841,7 +6953,7 @@ async function handleResolveEmbed(reqUrl, response) {
   }
 }
 
-// Parse AnimeAV1's homepage "Últimos Episodios" grid in display order. Each card
+// Parse AnimeAV1's homepage "├Ültimos Episodios" grid in display order. Each card
 // is an <article> with an "Episodio <n>" badge, a title, a thumbnail, and an
 // anchor href="/media/<slug>/<ep>" carrying a sr-only "Ver <title> <ep>" label.
 function parseAnimeAv1Latest(html = "", limit = 40) {
@@ -7268,10 +7380,14 @@ function normalizeAnimeAv1SourceList(items = [], siteUrl = "", options = {}) {
   return (items || [])
     .map((item, index) => {
       const provider = String(item.provider || item.server || `Source ${index + 1}`).trim();
-      const url = normalizeExternalUrl(item.url || item.href || "");
+      const rawUrl = normalizeExternalUrl(item.url || item.href || "");
+      const zillaMatch = rawUrl.match(/^https?:\/\/player\.zilla-networks\.com\/play\/([a-f0-9]{32})(?:[?#].*)?$/i);
+      const url = zillaMatch
+        ? `${siteUrl}#player`
+        : rawUrl;
       if (!url || seen.has(url)) return null;
       seen.add(url);
-      const direct = /\.(m3u8|mp4|webm|m4v)(?:$|[?#])/i.test(url);
+      const direct = !zillaMatch && /\.(m3u8|mp4|webm|m4v)(?:$|[?#])/i.test(url);
       return {
         provider,
         url,
@@ -7341,8 +7457,8 @@ function animeAv1EquivalentTitleKeys(value = "") {
   const variants = new Set([raw]);
   variants.add(raw.replace(/\bre\s*[:\-]?\s*zero\b/ig, "rezero"));
   variants.add(raw.replace(/\brezero\b/ig, "re zero"));
-  variants.add(raw.replace(/[:.'’]/g, " "));
-  variants.add(raw.replace(/[:.'’]/g, ""));
+  variants.add(raw.replace(/[:.'ΓÇÖ]/g, " "));
+  variants.add(raw.replace(/[:.'ΓÇÖ]/g, ""));
   const compactSpecials = normalizeTitle(raw)
     .replace(/\bre\s+zero\b/g, "rezero")
     .replace(/\s+/g, " ")
@@ -7370,7 +7486,7 @@ function slugifyAnimeAv1Title(value = "") {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/&/g, " and ")
-    .replace(/[’']/g, "")
+    .replace(/[ΓÇÖ']/g, "")
     .replace(/[^a-zA-Z0-9]+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "")
@@ -7414,7 +7530,7 @@ function normalizeExternalUrl(value = "") {
   return url;
 }
 
-// ── AniList proxy endpoints ──────────────────────────────────────────────────
+// ΓöÇΓöÇ AniList proxy endpoints ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 const ANILIST_MEDIA_GQL = `
 query($id:Int){
@@ -7575,7 +7691,7 @@ async function handleAniListSearch(url, response) {
   }
 }
 
-// ── End AniList proxy ────────────────────────────────────────────────────────
+// ΓöÇΓöÇ End AniList proxy ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 
 async function fetchAniListTrending() {
   const query = `
@@ -7681,7 +7797,7 @@ function normalizeAniListShow(entry) {
     latestAiredEp,
     status: entry.status || "",
     nextAiringEpisodeNumber: nextAiringEp || null,
-    // Absolute instant (ms) the next episode airs — timezone-independent.
+    // Absolute instant (ms) the next episode airs ΓÇö timezone-independent.
     nextAiringAt: entry.nextAiringEpisode?.airingAt ? entry.nextAiringEpisode.airingAt * 1000 : null,
     genre,
     genres: entry.genres || [genre],
@@ -7850,13 +7966,18 @@ function decodeUnderHentaiImage(value = "") {
   if (!value) return "";
   try {
     const parsed = new URL(decodeHtmlEntities(value), UNDERHENTAI_BASE);
-    const wasPageSpeed = /\.pagespeed\./i.test(parsed.pathname);
-    let pathname = parsed.pathname.replace(/\.pagespeed\.[^/]+$/i, "");
-    let filename = pathname.split("/").pop() || "";
-    filename = filename.replace(/^\d+x\d+x/i, "");
-    if (wasPageSpeed && filename.startsWith("x")) filename = filename.slice(1);
-    const slash = pathname.lastIndexOf("/");
-    parsed.pathname = `${slash >= 0 ? pathname.slice(0, slash + 1) : "/"}${filename}`;
+    const pageSpeedMatch = parsed.pathname.match(/^(.*\/)x?([^/,]+\.(?:jpe?g|png|webp|avif)),[^/]*\.pagespeed\.[^/]+$/i);
+    if (pageSpeedMatch) {
+      parsed.pathname = `${pageSpeedMatch[1]}${pageSpeedMatch[2]}`;
+    } else {
+      const wasPageSpeed = /\.pagespeed\./i.test(parsed.pathname);
+      const pathname = parsed.pathname.replace(/\.pagespeed\.[^/]+$/i, "");
+      let filename = pathname.split("/").pop() || "";
+      filename = filename.replace(/^\d+x\d+x/i, "");
+      if (wasPageSpeed && /^x(?=\d)/i.test(filename)) filename = filename.slice(1);
+      const slash = pathname.lastIndexOf("/");
+      parsed.pathname = `${slash >= 0 ? pathname.slice(0, slash + 1) : "/"}${filename}`;
+    }
     parsed.search = "";
     parsed.hash = "";
     return parsed.toString();
@@ -7870,14 +7991,43 @@ function underHentaiAttribute(tag = "", name = "") {
   return decodeHtmlEntities(match?.[1] ?? match?.[2] ?? match?.[3] ?? "");
 }
 
+function normalizeUnderHentaiSafetyText(value = "") {
+  const confusables = {
+    "а": "a", "е": "e", "і": "i", "ј": "j", "к": "k", "м": "m",
+    "о": "o", "р": "p", "с": "c", "т": "t", "у": "y", "х": "x",
+    "α": "a", "β": "b", "ε": "e", "η": "h", "ι": "i", "κ": "k",
+    "μ": "m", "ν": "n", "ο": "o", "ρ": "p", "τ": "t", "χ": "x"
+  };
+  return String(value)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[аеіјкморстухαβεηικμνορτχ]/g, (character) => confusables[character] || character)
+    .replace(/[_-]+/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function isSafeAdultMetadata(item = {}) {
-  return true;
+  if (item.safetyExcluded === true) return false;
+  const searchable = normalizeUnderHentaiSafetyText([
+    item.title,
+    item.officialTitle,
+    item.description,
+    ...(Array.isArray(item.genres) ? item.genres : [])
+  ].filter(Boolean).join(" "));
+  const padded = ` ${searchable} `;
+  if (UNDERHENTAI_MINOR_MARKERS.some((marker) => padded.includes(` ${normalizeUnderHentaiSafetyText(marker)} `))) {
+    return false;
+  }
+  return !UNDERHENTAI_MINOR_PATTERNS.some((pattern) => pattern.test(searchable));
 }
 
 function readUnderHentaiCatalog() {
   try {
     const payload = JSON.parse(fs.readFileSync(UNDERHENTAI_CATALOG_FILE, "utf8"));
-    const items = Array.isArray(payload.items) ? payload.items.filter(isSafeAdultMetadata) : [];
+    const items = Array.isArray(payload.items) ? payload.items.filter((item) => item?.safetyExcluded !== true) : [];
     return { ...payload, items };
   } catch {
     return { source: "UnderHentai", generatedAt: null, totalFound: 0, excludedForSafety: 0, items: [] };
@@ -7888,7 +8038,7 @@ function readUnderHentaiDetails() {
   if (underHentaiDetailsSnapshot) return underHentaiDetailsSnapshot;
   try {
     const payload = JSON.parse(fs.readFileSync(UNDERHENTAI_DETAILS_FILE, "utf8"));
-    const items = Array.isArray(payload.items) ? payload.items.filter(isSafeAdultMetadata) : [];
+    const items = Array.isArray(payload.items) ? payload.items.filter((item) => item?.safetyExcluded !== true) : [];
     underHentaiDetailsSnapshot = {
       ...payload,
       items,
@@ -7911,66 +8061,194 @@ function hasUnderHentaiDirectEmbed(sourceOption = {}) {
     });
 }
 
+function isBlockedPlaybackUrl(value = "") {
+  try {
+    return BLOCKED_PLAYBACK_HOSTS.has(new URL(value).hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
+function cleanTitleForMatching(title) {
+  if (!title) return "";
+  return String(title)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .trim();
+}
+
+function findTitleMatch(underHentaiItem, collection) {
+  const uTitle = cleanTitleForMatching(underHentaiItem.title);
+  const uOfficial = cleanTitleForMatching(underHentaiItem.officialTitle);
+  if (!uTitle && !uOfficial) return null;
+
+  return collection.find(item => {
+    const oTitle = cleanTitleForMatching(item.title);
+    const oOfficial = cleanTitleForMatching(item.officialTitle);
+
+    if (uTitle && (uTitle === oTitle || uTitle === oOfficial)) return true;
+    if (uOfficial && (uOfficial === oTitle || uOfficial === oOfficial)) return true;
+    return false;
+  });
+}
+
 function prepareUnderHentaiSnapshotItem(item = {}) {
   const slug = String(item.slug || "").toLowerCase();
+  const image = decodeUnderHentaiImage(item.image || item.poster || item.cover || "");
+
+  const banner = decodeUnderHentaiImage(item.banner || item.image || "");
+
+  const displayImage = image || banner;
+
   return {
     ...item,
-    episodes: (Array.isArray(item.episodes) ? item.episodes : []).map((episode) => ({
-      ...episode,
-      sourceOptions: (Array.isArray(episode.sourceOptions) ? episode.sourceOptions : [])
+    image: displayImage,
+    banner,
+    poster: displayImage,
+    cover: displayImage,
+    thumbnail: displayImage,
+    coverImage: displayImage,
+    backdrop: banner || displayImage,
+    highQualityBackground: banner || displayImage,
+    images: {
+      poster: displayImage,
+      cover: displayImage,
+      thumbnail: displayImage,
+      banner,
+      backdrop: banner || displayImage
+    },
+    episodes: (Array.isArray(item.episodes) ? item.episodes : []).map((episode) => {
+      const epNum = Number(episode.number || episode.episode);
+
+      const underHentaiOptions = (Array.isArray(episode.sourceOptions) ? episode.sourceOptions : [])
         .filter(hasUnderHentaiDirectEmbed)
         .map((sourceOption, releaseIndex) => ({
-          id: `underhentai-e${episode.number || episode.episode}-v${releaseIndex + 1}`,
+          id: `underhentai-e${epNum}-v${releaseIndex + 1}`,
           label: sourceOption.label || `Stream ${releaseIndex + 1}`,
           type: "resolver",
           streamResolver: {
             type: "underhentai",
-            endpoint: `/api/adult/underhentai/stream?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(episode.number || episode.episode)}&release=${encodeURIComponent(sourceOption.releaseIndex ?? releaseIndex)}`
+            endpoint: `/api/adult/underhentai/stream?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}&release=${encodeURIComponent(sourceOption.releaseIndex ?? releaseIndex)}`
           },
           variant: sourceOption.variant || "",
           format: sourceOption.format || "",
           size: sourceOption.size || "",
           subtitles: sourceOption.subtitles || "",
           audio: sourceOption.audio || ""
-        })),
-      locked: !(Array.isArray(episode.sourceOptions) && episode.sourceOptions.some(hasUnderHentaiDirectEmbed))
-    }))
+        }));
+
+      const mergedOptions = underHentaiOptions;
+      const epImage = decodeUnderHentaiImage(episode.image || "");
+      const epThumbnail = decodeUnderHentaiImage(episode.thumbnail || episode.image || "");
+
+      return {
+        ...episode,
+        image: epImage,
+        thumbnail: epThumbnail,
+        banner: epImage || epThumbnail || banner || displayImage,
+        sourceOptions: mergedOptions,
+        locked: !mergedOptions.length
+      };
+    })
   };
 }
 
 function parseUnderHentaiListing(html = "", page = 1) {
   const items = [];
-  const articlePattern = /<article\b[^>]*class\s*=\s*(?:"[^"]*\bdata-block\b[^"]*"|'[^']*\bdata-block\b[^']*'|data-block)[^>]*>([\s\S]*?)<\/article>/gi;
+  const articlePattern = /<article\b[^>]*>([\s\S]*?)<\/article>/gi;
   for (const match of String(html).matchAll(articlePattern)) {
     const block = match[1];
-    const linkTag = block.match(/<h2\b[^>]*>[\s\S]*?<a\b[^>]*>/i)?.[0] || "";
+    const heading = block.match(/<h[23]\b[^>]*>([\s\S]*?)<\/h[23]>/i);
+    const linkTag = block.match(/<a\b[^>]*href\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)[^>]*>[\s\S]*?<h[23]\b/i)?.[0]
+      || block.match(/<h[23]\b[^>]*>[\s\S]*?<a\b[^>]*>/i)?.[0]
+      || block.match(/<a\b[^>]*href\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)[^>]*>/i)?.[0]
+      || "";
     const href = underHentaiAttribute(linkTag, "href");
-    const title = stripHtml(block.match(/<h2\b[^>]*>([\s\S]*?)<\/h2>/i)?.[1] || "");
+    const title = stripHtml(heading?.[1] || "");
     const imageTag = block.match(/<img\b[^>]*>/i)?.[0] || "";
     const image = decodeUnderHentaiImage(underHentaiAttribute(imageTag, "src"));
     if (!title || !href) continue;
     try {
       const itemUrl = new URL(href, UNDERHENTAI_BASE);
+      if (!["underhentai.net", "www.underhentai.net"].includes(itemUrl.hostname.toLowerCase())) continue;
       const slug = itemUrl.pathname.split("/").filter(Boolean).pop() || "";
-      if (slug) items.push({ slug, title, url: itemUrl.toString(), image, banner: image, page, genres: [], episodeCount: 0 });
+      if (slug && !["page", "watch", "out", "genre", "brand"].includes(slug)) {
+        items.push({ slug, title, url: itemUrl.toString(), image, banner: image, page, genres: [], episodeCount: 0 });
+      }
     } catch { /* malformed listing link */ }
   }
-  return items.filter(isSafeAdultMetadata);
+  const seen = new Set();
+  return items.filter((item) => isSafeAdultMetadata(item) && !seen.has(item.slug) && seen.add(item.slug));
+}
+
+async function loadLiveUnderHentaiCatalog(page = 1, query = "") {
+  const safePage = Math.max(1, Math.min(60, Number(page) || 1));
+  const cacheKey = `${safePage}:${normalizeUnderHentaiSafetyText(query)}`;
+  const cached = underHentaiLiveCatalogCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < UNDERHENTAI_CACHE_TTL_MS) return cached.items;
+
+  const listingUrl = new URL(safePage > 1 ? `/page/${safePage}/` : "/", UNDERHENTAI_BASE);
+  if (query) listingUrl.searchParams.set("s", query);
+  const listingResponse = await fetchWithRetry(listingUrl.toString(), { headers: UNDERHENTAI_HEADERS }, 2);
+  if (!listingResponse.ok) throw new Error(`Catalog page returned HTTP ${listingResponse.status}`);
+  const listed = parseUnderHentaiListing(await listingResponse.text(), safePage);
+  const detailed = (await Promise.all(listed.map(async (listedItem, sourceOrder) => {
+    try {
+      const detailResponse = await fetchWithRetry(listedItem.url, { headers: UNDERHENTAI_HEADERS }, 1);
+      if (!detailResponse.ok) return null;
+      const item = parseUnderHentaiTitlePage(await detailResponse.text(), listedItem.url);
+      if (!item) return null;
+      item.sourceOrder = sourceOrder;
+      underHentaiDetailCache.set(item.slug, { data: item, ts: Date.now() });
+      return item;
+    } catch {
+      return null;
+    }
+  }))).filter(Boolean);
+  underHentaiLiveCatalogCache.set(cacheKey, { items: detailed, ts: Date.now() });
+  return detailed;
 }
 
 async function handleUnderHentaiCatalog(url, response) {
+  const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+  const query = String(url.searchParams.get("q") || "").trim();
+
   const snapshot = readUnderHentaiCatalog();
-  let items = snapshot.items;
-  if (!items.length) {
-    try {
-      const upstream = await fetchWithRetry(`${UNDERHENTAI_BASE}/`, { headers: UNDERHENTAI_HEADERS }, 2);
-      if (upstream.ok) items = parseUnderHentaiListing(await upstream.text(), 1);
-    } catch { /* return an empty but valid catalog below */ }
+  let items = [];
+
+  let liveItems = [];
+  try {
+    liveItems = await loadLiveUnderHentaiCatalog(page, query);
+  } catch (error) {
+    log("warn", "Live UnderHentai catalog refresh failed", { error: error.message });
   }
-  const query = String(url.searchParams.get("q") || "").trim().toLowerCase();
-  const filtered = query
-    ? items.filter((item) => `${item.title} ${item.officialTitle || ""} ${(item.genres || []).join(" ")}`.toLowerCase().includes(query))
+  const seen = new Set();
+  items = [...liveItems, ...snapshot.items].filter((item) => item.slug && !seen.has(item.slug) && seen.add(item.slug));
+
+  const normalizedQuery = query.toLowerCase();
+  const filtered = normalizedQuery
+    ? items.filter((item) => `${item.title} ${item.officialTitle || ""} ${(item.genres || []).join(" ")}`.toLowerCase().includes(normalizedQuery))
     : items;
+
+  const processed = filtered.map(item => {
+    const image = decodeUnderHentaiImage(item.image || item.poster || item.cover || "");
+
+    const banner = decodeUnderHentaiImage(item.banner || item.image || "");
+
+    const displayImage = image || banner;
+    return {
+      ...item,
+      image: displayImage,
+      banner,
+      poster: displayImage,
+      cover: displayImage,
+      thumbnail: displayImage,
+      coverImage: displayImage,
+      backdrop: banner || displayImage,
+      highQualityBackground: banner || displayImage
+    };
+  });
+
   sendJson(response, {
     ok: true,
     source: "UnderHentai",
@@ -7979,8 +8257,34 @@ async function handleUnderHentaiCatalog(url, response) {
     count: filtered.length,
     totalFound: snapshot.totalFound || filtered.length,
     excludedForSafety: snapshot.excludedForSafety || 0,
-    items: filtered
+    items: processed
   }, 200, { "Cache-Control": "public, max-age=900, stale-while-revalidate=21600" });
+}
+
+function readVeoHentaiDetails() {
+  if (veoHentaiDetailsSnapshot) return veoHentaiDetailsSnapshot;
+  try {
+    const payload = JSON.parse(fs.readFileSync(VEOHENTAI_DETAILS_FILE, "utf8"));
+    const items = Array.isArray(payload.items) ? payload.items.filter(isSafeAdultMetadata) : [];
+    veoHentaiDetailsSnapshot = {
+      ...payload,
+      items,
+      bySlug: new Map(items.map((item) => [String(item.slug || "").toLowerCase(), item]))
+    };
+  } catch {
+    veoHentaiDetailsSnapshot = { source: "VeoHentai", generatedAt: null, items: [], bySlug: new Map() };
+  }
+  return veoHentaiDetailsSnapshot;
+}
+
+function readVeoHentaiCatalog() {
+  try {
+    const payload = JSON.parse(fs.readFileSync(VEOHENTAI_CATALOG_FILE, "utf8"));
+    const items = Array.isArray(payload.items) ? payload.items.filter(isSafeAdultMetadata) : [];
+    return { ...payload, items };
+  } catch {
+    return { source: "VeoHentai", generatedAt: null, totalFound: 0, excludedForSafety: 0, items: [] };
+  }
 }
 
 function parseUnderHentaiInfoBlock(html = "", label = "") {
@@ -7988,18 +8292,39 @@ function parseUnderHentaiInfoBlock(html = "", label = "") {
   return html.match(new RegExp(`<p>\\s*${escaped}\\s*<\\/p>([\\s\\S]*?)<\\/div>`, "i"))?.[1] || "";
 }
 
+function parseUnderHentaiMetaRow(html = "", label = "") {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(
+    `<([a-z0-9]+)\\b[^>]*class\\s*=\\s*(?:"[^"]*\\brow-label\\b[^"]*"|'[^']*\\brow-label\\b[^']*')[^>]*>\\s*${escaped}\\s*<\\/\\1>`
+      + `[\\s\\S]*?<([a-z0-9]+)\\b[^>]*class\\s*=\\s*(?:"[^"]*\\brow-value\\b[^"]*"|'[^']*\\brow-value\\b[^']*')[^>]*>([\\s\\S]*?)<\\/\\2>`,
+    "i"
+  );
+  return stripHtml(html.match(pattern)?.[3] || "");
+}
+
 function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
+  const slug = (() => {
+    try { return new URL(sourceUrl).pathname.split("/").filter(Boolean).pop() || ""; } catch { return ""; }
+  })();
   const title = stripHtml(html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1] || "");
-  const officialTitle = stripHtml(parseUnderHentaiInfoBlock(html, "Official Title"));
-  const brand = stripHtml(parseUnderHentaiInfoBlock(html, "Brand"));
-  const aired = stripHtml(parseUnderHentaiInfoBlock(html, "Aired"));
+  const currentOfficialTitle = html.match(/class\s*=\s*(?:"[^"]*\bsection-header\b[^"]*"|'[^']*\bsection-header\b[^']*')[^>]*>[\s\S]*?<h1\b[^>]*>[\s\S]*?<\/h1>\s*<p\b[^>]*>([\s\S]*?)<\/p>/i)?.[1] || "";
+  const officialTitle = stripHtml(parseUnderHentaiInfoBlock(html, "Official Title") || currentOfficialTitle);
+  const brand = stripHtml(parseUnderHentaiInfoBlock(html, "Brand")) || parseUnderHentaiMetaRow(html, "Brand");
+  const airedStart = stripHtml(parseUnderHentaiInfoBlock(html, "Aired")) || parseUnderHentaiMetaRow(html, "Aired");
+  const airedEnd = parseUnderHentaiMetaRow(html, "Ended");
+  const aired = [airedStart, airedEnd && airedEnd !== airedStart ? airedEnd : ""].filter(Boolean).join(" - ");
   const genreBlock = parseUnderHentaiInfoBlock(html, "Genres");
-  const genres = [...genreBlock.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/gi)]
+  const currentGenreBlock = html.match(/class\s*=\s*(?:"[^"]*\brow-tags\b[^"]*"|'[^']*\brow-tags\b[^']*')[^>]*>[\s\S]*?<ul\b[^>]*class\s*=\s*(?:"[^"]*\btags-list\b[^"]*"|'[^']*\btags-list\b[^']*')[^>]*>([\s\S]*?)<\/ul>/i)?.[1] || "";
+  const genreSource = genreBlock || currentGenreBlock;
+  const genres = [...genreSource.matchAll(/<a\b[^>]*href\s*=\s*(?:"[^"]*\/genre\/[^"]*"|'[^']*\/genre\/[^']*')[^>]*>([\s\S]*?)<\/a>/gi)]
     .map((match) => stripHtml(match[1]))
-    .filter(Boolean);
+    .filter((value, index, values) => value && values.indexOf(value) === index);
+  const originalCover = [...html.matchAll(/<a\b[^>]*class\s*=\s*(?:"[^"]*\bglightbox\b[^"]*"|'[^']*\bglightbox\b[^']*')[^>]*>/gi)]
+    .map((match) => underHentaiAttribute(match[0], "href"))
+    .find((value) => /static\.underhentai\.net\/assets\/images\//i.test(value)) || "";
   const coverTags = [...html.matchAll(/<img\b[^>]*(?:fetchpriority\s*=\s*(?:"high"|'high'|high)|\/uploads\/)[^>]*>/gi)];
-  const image = decodeUnderHentaiImage(coverTags.map((match) => underHentaiAttribute(match[0], "src")).find((value) => /\/uploads\//i.test(value)) || "");
-  const sectionMatches = [...html.matchAll(/class\s*=\s*(?:"ep2-header"|'ep2-header'|ep2-header)[^>]*>([\s\S]*?)<\/div>/gi)];
+  const image = decodeUnderHentaiImage(originalCover || coverTags.map((match) => underHentaiAttribute(match[0], "src")).find(Boolean) || "");
+  const sectionMatches = [...html.matchAll(/class\s*=\s*(?:"[^"]*\b(?:ep2-header|ep-header)\b[^"]*"|'[^']*\b(?:ep2-header|ep-header)\b[^']*'|(?:ep2-header|ep-header))[^>]*>([\s\S]*?)<\/div>/gi)];
   const episodes = new Map();
 
   sectionMatches.forEach((header, sectionIndex) => {
@@ -8007,31 +8332,46 @@ function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
     const sectionStart = header.index + header[0].length;
     const sectionEnd = sectionMatches[sectionIndex + 1]?.index ?? html.length;
     const section = html.slice(sectionStart, sectionEnd);
-    const screenshots = [...section.matchAll(/\bdata-src\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi)]
-      .map((match) => decodeUnderHentaiImage(match[1] || match[2] || match[3] || ""))
-      .filter(Boolean);
-    const streams = [...section.matchAll(/<a\b[^>]*class\s*=\s*(?:"[^"]*\bep2-stream\b[^"]*"|'[^']*\bep2-stream\b[^']*'|ep2-stream)[^>]*>/gi)];
+    const screenshots = [
+      ...[...section.matchAll(/\bdata-src\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi)].map((match) => match[1] || match[2] || match[3] || ""),
+      ...[...section.matchAll(/https:\/\/static\.underhentai\.net\/thumbs\/[^"'\s<>]+/gi)].map((match) => match[0])
+    ].map(decodeUnderHentaiImage).filter((value, index, values) => value && values.indexOf(value) === index);
+    const streams = [...section.matchAll(/<a\b[^>]*>/gi)].filter((stream) => {
+      const className = underHentaiAttribute(stream[0], "class");
+      const href = underHentaiAttribute(stream[0], "href");
+      return /\bep2-stream\b/i.test(className) || /\/watch\/\?/i.test(href);
+    });
     const sourceOptions = streams.map((stream, streamIndex) => {
       const before = section.slice(0, stream.index);
-      const cardStart = Math.max(before.lastIndexOf('class="ep2-card'), before.lastIndexOf("class=ep2-card"), before.lastIndexOf("class='ep2-card"));
+      const cardStart = Math.max(
+        before.lastIndexOf('class="ep2-card'),
+        before.lastIndexOf("class=ep2-card"),
+        before.lastIndexOf("class='ep2-card"),
+        before.lastIndexOf('class="variant-header'),
+        before.lastIndexOf("class='variant-header")
+      );
       const card = before.slice(Math.max(0, cardStart));
       const variant = stripHtml(
         card.match(/class\s*=\s*(?:"ep2-vtype"|'ep2-vtype'|ep2-vtype)[^>]*>(?:\s*<span\b[^>]*>[\s\S]*?<\/span>)?\s*([^<]+)/i)?.[1]
+        || card.match(/class\s*=\s*(?:"[^"]*\bvariant-label\b[^"]*"|'[^']*\bvariant-label\b[^']*')[^>]*>([\s\S]*?)<\//i)?.[1]
         || "Stream"
       );
       const metadata = {};
-      for (const pair of card.matchAll(/class\s*=\s*(?:"ep2-meta-label"|'ep2-meta-label'|ep2-meta-label)[^>]*>([\s\S]*?)<\/span>\s*<span\b[^>]*class\s*=\s*(?:"ep2-meta-value"|'ep2-meta-value'|ep2-meta-value)[^>]*>([\s\S]*?)<\/span>/gi)) {
-        metadata[stripHtml(pair[1]).toLowerCase()] = stripHtml(pair[2]).replace(/^[^A-Za-z0-9]+/, "");
+      for (const pair of card.matchAll(/<(span|div)\b[^>]*class\s*=\s*(?:"[^"]*\b(?:ep2-meta-label|meta-label)\b[^"]*"|'[^']*\b(?:ep2-meta-label|meta-label)\b[^']*')[^>]*>([\s\S]*?)<\/\1>\s*<(span|div)\b[^>]*class\s*=\s*(?:"[^"]*\b(?:ep2-meta-value|meta-value)\b[^"]*"|'[^']*\b(?:ep2-meta-value|meta-value)\b[^']*')[^>]*>([\s\S]*?)<\/\3>/gi)) {
+        metadata[stripHtml(pair[2]).toLowerCase()] = stripHtml(pair[4]).replace(/^[^A-Za-z0-9]+/, "");
       }
       const watchUrl = new URL(underHentaiAttribute(stream[0], "href"), sourceUrl || UNDERHENTAI_BASE).toString();
-      const details = [variant, metadata.subs, metadata.audio].filter(Boolean).join(" · ");
+      const details = [variant, metadata.subs, metadata.audio].filter(Boolean).join(" - ");
       return {
         id: `underhentai-e${number}-v${streamIndex + 1}`,
         label: details || `Stream ${streamIndex + 1}`,
         type: "resolver",
+        releaseIndex: streamIndex,
+        watchUrl,
+        embeds: [],
         streamResolver: {
           type: "underhentai",
-          endpoint: `/api/adult/underhentai/stream?watch=${encodeURIComponent(watchUrl)}`
+          endpoint: `/api/adult/underhentai/stream?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(number)}&release=${encodeURIComponent(streamIndex)}`
         },
         variant,
         format: metadata.format || "",
@@ -8051,10 +8391,9 @@ function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
     });
   });
 
+  const descriptionBlock = html.match(/class\s*=\s*(?:"[^"]*\brow-desc\b[^"]*"|'[^']*\brow-desc\b[^']*')[^>]*>[\s\S]*?class\s*=\s*(?:"[^"]*\brow-label\b[^"]*"|'[^']*\brow-label\b[^']*')[^>]*>[\s\S]*?<\/div>([\s\S]*?)<\/div>\s*<hr/i)?.[1] || "";
   const item = {
-    slug: (() => {
-      try { return new URL(sourceUrl).pathname.split("/").filter(Boolean).pop() || ""; } catch { return ""; }
-    })(),
+    slug,
     title,
     officialTitle,
     brand,
@@ -8064,10 +8403,66 @@ function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
     banner: [...episodes.values()].find((episode) => episode.image)?.image || image,
     url: sourceUrl,
     episodeCount: episodes.size,
-    description: [brand ? `Studio: ${brand}` : "", aired ? `Released: ${aired}` : ""].filter(Boolean).join(". "),
+    description: stripHtml(descriptionBlock) || [brand ? `Studio: ${brand}` : "", aired ? `Released: ${aired}` : ""].filter(Boolean).join(". "),
     episodes: [...episodes.values()].sort((a, b) => a.episode - b.episode)
   };
   return isSafeAdultMetadata(item) ? item : null;
+}
+
+function prepareVeoHentaiSnapshotItem(item = {}) {
+  const displayImage = String(item.image || item.banner || "").trim();
+  const banner = String(item.banner || item.image || "").trim();
+
+  return {
+    ...item,
+    slug: `veohentai-${item.slug}`,
+    image: displayImage,
+    banner,
+    poster: displayImage,
+    cover: displayImage,
+    thumbnail: displayImage,
+    coverImage: displayImage,
+    backdrop: banner || displayImage,
+    highQualityBackground: banner || displayImage,
+    images: {
+      poster: displayImage,
+      cover: displayImage,
+      thumbnail: displayImage,
+      banner,
+      backdrop: banner || displayImage
+    },
+    episodes: (Array.isArray(item.episodes) ? item.episodes : []).map((episode) => {
+      const epNum = Number(episode.number || episode.episode);
+
+      const sourceOptions = (Array.isArray(episode.sourceOptions) ? episode.sourceOptions : [])
+        .map((sourceOption, releaseIndex) => ({
+          id: `veohentai-e${epNum}-v${releaseIndex + 1}`,
+          label: sourceOption.label || `Stream ${releaseIndex + 1}`,
+          type: "resolver",
+          streamResolver: {
+            type: "underhentai",
+            endpoint: `/api/adult/underhentai/stream?watch=${encodeURIComponent(sourceOption.watchUrl)}`
+          },
+          variant: sourceOption.variant || "",
+          format: sourceOption.format || "",
+          size: sourceOption.size || "",
+          subtitles: sourceOption.subtitles || "",
+          audio: sourceOption.audio || ""
+        }));
+
+      const epImage = String(episode.image || "");
+      const epThumbnail = String(episode.thumbnail || episode.image || "");
+
+      return {
+        ...episode,
+        image: epImage,
+        thumbnail: epThumbnail,
+        banner: epImage || epThumbnail || banner || displayImage,
+        sourceOptions,
+        locked: !sourceOptions.length
+      };
+    })
+  };
 }
 
 async function handleUnderHentaiDetails(url, response) {
@@ -8082,12 +8477,6 @@ async function handleUnderHentaiDetails(url, response) {
     return;
   }
   const snapshotItem = readUnderHentaiDetails().bySlug.get(slug);
-  if (snapshotItem) {
-    const item = prepareUnderHentaiSnapshotItem(snapshotItem);
-    underHentaiDetailCache.set(slug, { data: item, ts: Date.now() });
-    sendJson(response, { ok: true, source: "UnderHentai", adultOnly: true, bundled: true, item });
-    return;
-  }
   try {
     const sourceUrl = `${UNDERHENTAI_BASE}/${encodeURIComponent(slug)}/`;
     const upstream = await fetchWithRetry(sourceUrl, { headers: UNDERHENTAI_HEADERS }, 2);
@@ -8097,25 +8486,229 @@ async function handleUnderHentaiDetails(url, response) {
       sendJson(response, { ok: false, error: "This title is excluded by the adult-content safety filter." }, 404);
       return;
     }
+    item.slug = slug;
     underHentaiDetailCache.set(slug, { data: item, ts: Date.now() });
     sendJson(response, { ok: true, source: "UnderHentai", adultOnly: true, item });
   } catch (error) {
+    if (snapshotItem) {
+      const item = prepareUnderHentaiSnapshotItem(snapshotItem);
+      underHentaiDetailCache.set(slug, { data: item, ts: Date.now() });
+      sendJson(response, { ok: true, source: "UnderHentai", adultOnly: true, bundled: true, stale: true, item });
+      return;
+    }
     sendJson(response, { ok: false, error: error.message || "Adult title metadata is unavailable." }, 502);
   }
 }
 
 function parseUnderHentaiEmbeds(html = "") {
   const urls = [];
-  const pattern = /https:\/\/(?:www\.)?(?:krakenfiles\.com\/embed-video|luluvdo\.com\/embed|lulustream\.com\/embed)\/[A-Za-z0-9_-]+/gi;
-  for (const match of String(html).matchAll(pattern)) {
+  const candidates = [
+    ...[...String(html).matchAll(/<iframe\b[^>]*\bsrc\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi)].map((match) => match[1] || match[2] || match[3] || ""),
+    ...[...String(html).matchAll(/https:\/\/(?:www\.)?(?:krakenfiles\.com|luluvdo\.com|lulustream\.com|gupload\.xyz|hentaiplayer\.com)\/[^"'\s<>\\]+/gi)].map((match) => match[0])
+  ];
+  for (const candidate of candidates) {
     try {
-      const parsed = new URL(match[0]);
+      const parsed = new URL(decodeHtmlEntities(candidate).replace(/\\\//g, "/"), UNDERHENTAI_BASE);
       if (UNDERHENTAI_ALLOWED_EMBED_HOSTS.has(parsed.hostname.toLowerCase()) && !urls.includes(parsed.toString())) {
         urls.push(parsed.toString());
       }
     } catch { /* malformed provider URL */ }
   }
   return urls;
+}
+
+function normalizeHentaiPlayerSubtitleTracks(value) {
+  const raw = Array.isArray(value)
+    ? value
+    : value && typeof value === "object"
+      ? Object.entries(value).map(([language, url]) => ({ language, url }))
+      : [];
+  return raw.map((track) => {
+    if (!track) return null;
+    if (typeof track === "string") {
+      return /^https?:\/\//i.test(track) ? { url: track, language: "es", label: "Español" } : null;
+    }
+    const url = track.url || track.file || track.src || track.href;
+    if (!url || !/^https?:\/\//i.test(String(url))) return null;
+    const label = track.label || track.name || track.language || track.lang || "Español";
+    const language = String(track.language || track.lang || track.srclang || label || "es").toLowerCase();
+    return { url: String(url), language, label: String(label), kind: track.kind || "subtitles" };
+  }).filter(Boolean);
+}
+
+async function resolveHentaiPlayerEmbedPage(embedUrl) {
+  if (!/\/v\//i.test(String(embedUrl))) return embedUrl;
+  const res = await fetchWithRetry(embedUrl, {
+    headers: {
+      "User-Agent": UNDERHENTAI_HEADERS["User-Agent"],
+      Accept: UNDERHENTAI_HEADERS.Accept,
+      Referer: "https://veohentai.com/"
+    }
+  }, 1);
+  if (!res.ok) return embedUrl;
+  const html = await res.text();
+  const match = html.match(/data-id\s*=\s*["'](\/player\.php\?[^"']+)["']/i);
+  return match ? `https://hentaiplayer.com${decodeHtmlEntities(match[1])}` : embedUrl;
+}
+
+async function resolveHentaiPlayer(embedUrl) {
+  const cacheKey = String(embedUrl || "");
+  const cached = hentaiPlayerDirectCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < 1000 * 60 * 20) return cached.data;
+
+  const headers = {
+    "User-Agent": UNDERHENTAI_HEADERS["User-Agent"],
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    Referer: "https://veohentai.com/"
+  };
+
+  const fallbackDecode = async (playerOrEmbedUrl) => {
+    try {
+      const res = await fetchWithRetry(playerOrEmbedUrl, { headers }, 1);
+      if (!res.ok) return null;
+      const html = await res.text();
+      const match = html.match(/data-id\s*=\s*["']\/player\.php\?([^"']+)["']/i) ||
+        html.match(/window\._pV\s*=\s*({[^}]+});/i);
+      if (!match) return null;
+      const queryStr = match[1].startsWith("{") ? "" : match[1];
+      const params = new URLSearchParams(queryStr);
+      const vid = params.get("vid") || (match[1].match(/vid\s*:\s*["']([^"']+)["']/) || [])[1];
+      if (!vid) return null;
+      const decodedVid = Buffer.from(vid, "base64").toString("utf8");
+      const videoUrl = decodedVid.split("|")[0];
+      return videoUrl && /^https?:\/\//i.test(videoUrl) ? { url: videoUrl, subtitles: [] } : null;
+    } catch {
+      return null;
+    }
+  };
+
+  try {
+    log("info", "Attempting HentaiPlayer resolution", { url: embedUrl });
+    const playerUrl = await resolveHentaiPlayerEmbedPage(embedUrl);
+    if (!/player\.php/i.test(playerUrl)) {
+      const decoded = await fallbackDecode(embedUrl);
+      if (decoded?.url) hentaiPlayerDirectCache.set(cacheKey, { data: decoded, ts: Date.now() });
+      return decoded;
+    }
+
+    const pageRes = await fetchWithRetry(playerUrl, { headers }, 1);
+    if (!pageRes.ok) return await fallbackDecode(embedUrl);
+    const pageHtml = await pageRes.text();
+
+    let cookies = [];
+    if (typeof pageRes.headers.getSetCookie === "function") {
+      cookies = pageRes.headers.getSetCookie().map((cookie) => cookie.split(";")[0]);
+    }
+    if (!cookies.length) {
+      const cookieHeader = pageRes.headers.get("set-cookie");
+      if (cookieHeader) cookies = [cookieHeader.split(";")[0]];
+    }
+    const cookieString = cookies.join("; ");
+
+    const pVMatch = pageHtml.match(/window\._pV\s*=\s*({[^}]+});/);
+    const scriptSrcMatch = pageHtml.match(/<script\s+src=["'](player-core-v2\.php\?[^"']+)["']/i);
+    if (!pVMatch || !scriptSrcMatch) return await fallbackDecode(embedUrl);
+
+    const pVStr = pVMatch[1];
+    const vid = (pVStr.match(/vid\s*:\s*["']([^"']+)["']/) || [])[1];
+    const ct = (pVStr.match(/c\s*:\s*["']([^"']+)["']/) || pVStr.match(/ct\s*:\s*["']([^"']+)["']/) || [])[1];
+    const pid = (pVStr.match(/pid\s*:\s*["']([^"']+)["']/) || [])[1] || "";
+    const st = (pVStr.match(/st\s*:\s*["']([^"']+)["']/) || [])[1] || "";
+    if (!vid || !ct) return await fallbackDecode(embedUrl);
+
+    const scriptUrl = `https://hentaiplayer.com/${scriptSrcMatch[1]}`;
+    const scriptRes = await fetchWithRetry(scriptUrl, {
+      headers: { ...headers, Cookie: cookieString, Referer: playerUrl }
+    }, 1);
+    if (!scriptRes.ok) return await fallbackDecode(embedUrl);
+    const scriptContent = await scriptRes.text();
+
+    const sc = (scriptContent.match(/var\s+[a-zA-Z0-9_$]+\s*=\s*['"]([a-f0-9]{8}\.[a-f0-9]{16})['"]/i) || [])[1];
+    const rid = (scriptContent.match(/var\s+[a-zA-Z0-9_$]+\s*=\s*['"]([a-f0-9]{16})['"]/i) || [])[1];
+    const idMatches = [...scriptContent.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map((match) => match[1]);
+    const attrMatches = [...scriptContent.matchAll(/getAttribute\(['"](data-[^'"]+)['"]\)/g)].map((match) => match[1]);
+    if (!sc || !rid || idMatches.length < 5 || attrMatches.length < 3) return await fallbackDecode(embedUrl);
+
+    const [id1, id2, id3, id4, id5] = idMatches;
+    const [attr1, attr2, attr3] = attrMatches;
+    const p1 = (pageHtml.match(new RegExp(`<[^>]*id=["']${id1}["'][^>]*${attr1}=["']([^"']+)["']`, "i")) || [])[1] || "";
+    const p2 = (pageHtml.match(new RegExp(`<input[^>]*id=["']${id2}["'][^>]*value=["']([^"']+)["']`, "i")) ||
+      pageHtml.match(new RegExp(`<input[^>]*value=["']([^"']+)["'][^>]*id=["']${id2}["']`, "i")) || [])[1] || "";
+    const p3 = (pageHtml.match(new RegExp(`<[^>]*id=["']${id3}["'][^>]*${attr2}=["']([^"']+)["']`, "i")) || [])[1] || "";
+    const p4 = (pageHtml.match(new RegExp(`<template[^>]*id=["']${id4}["'][^>]*>([\\s\\S]*?)<\\/template>`, "i")) || [])[1]?.replace(/<[^>]+>/g, "").trim() || "";
+    const ts = (pageHtml.match(new RegExp(`<[^>]*id=["']${id5}["'][^>]*${attr3}=["']([^"']+)["']`, "i")) || [])[1] || "";
+    if (!p1 || !p2 || !p3 || !p4 || !ts) return await fallbackDecode(embedUrl);
+
+    const powChallenge = p1 + p2 + p3 + p4 + ts;
+    let pow = "";
+    for (let n = 0; n < 10000000; n += 1) {
+      const hex = n.toString(16);
+      const hash = crypto.createHash("sha256").update(powChallenge + hex).digest();
+      if (hash[0] === 0 && hash[1] === 0) {
+        pow = hex;
+        break;
+      }
+    }
+    if (!pow) return await fallbackDecode(embedUrl);
+
+    const fp = Buffer.from(JSON.stringify({
+      t: 2500,
+      mm: [[100, 100, 100], [105, 105, 120], [110, 112, 140]],
+      tm: [],
+      cl: [[100, 100, 2000]],
+      kp: [],
+      sc: [],
+      i: 1,
+      mc: 3,
+      tc: 0,
+      cc: 1,
+      kc: 0,
+      b: {
+        w: "ANGLE (Google, Vulkan 1.3.0, SwiftShader)",
+        v: "Google Inc. (Google)",
+        sw: 1920,
+        sh: 1080,
+        aw: 1920,
+        ah: 1080,
+        cd: 24,
+        pd: 24,
+        tz: -120,
+        hc: 8,
+        dm: 8,
+        pl: "Win32",
+        lang: "en-US",
+        langs: "en-US,en",
+        dpr: 1,
+        ww: 1920,
+        wh: 1080,
+        touch: false,
+        pdf: true,
+        fonts: 0
+      }
+    })).toString("base64");
+
+    const params = new URLSearchParams({ vid, c: ct, p1, p2, p3, p4, t: ts, sc, rid, fp, df: "", pow, pid, st });
+    const getRes = await fetchWithRetry(`https://hentaiplayer.com/get-video-url-v2.php?${params.toString()}`, {
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        "User-Agent": headers["User-Agent"],
+        Referer: playerUrl,
+        Cookie: cookieString
+      }
+    }, 1);
+    if (!getRes.ok) return await fallbackDecode(embedUrl);
+    const payload = await getRes.json();
+    const direct = payload.url || payload.file || payload.src || payload.videoUrl || "";
+    if (!direct || !/^https?:\/\//i.test(String(direct))) return await fallbackDecode(embedUrl);
+    const subtitles = normalizeHentaiPlayerSubtitleTracks(payload.subtitles || payload.subs || payload.tracks || payload.captions || payload.vtt || payload.subtitle);
+    const data = { url: String(direct), subtitles };
+    hentaiPlayerDirectCache.set(cacheKey, { data, ts: Date.now() });
+    log("info", "HentaiPlayer resolution successful", { hasSubtitles: subtitles.length > 0 });
+    return data;
+  } catch (error) {
+    log("error", "HentaiPlayer resolution error", { url: embedUrl, error: error.message });
+    return await fallbackDecode(embedUrl);
+  }
 }
 
 async function resolveKrakenFiles(embedUrl) {
@@ -8205,34 +8798,64 @@ async function handleUnderHentaiStream(url, response) {
   const episodeNumber = Number(url.searchParams.get("episode"));
   const releaseIndex = Number(url.searchParams.get("release"));
   let embeds = [];
+  let sourceSubtitles = "";
+  let sourceAudio = "";
 
   try {
-    if (/^[a-z0-9][a-z0-9-]*$/.test(slug) && episodeNumber > 0 && releaseIndex >= 0) {
-      const snapshotItem = readUnderHentaiDetails().bySlug.get(slug);
-      const episode = snapshotItem?.episodes?.find((entry) => Number(entry.number || entry.episode) === episodeNumber);
+    if (/^[a-z0-9][a-z0-9-]*$/.test(slug) && episodeNumber > 0 && releaseIndex >= 0 && !slug.startsWith("veohentai-")) {
+      const cachedItem = underHentaiDetailCache.get(slug)?.data;
+      let sourceItem = cachedItem;
+      if (!sourceItem) {
+        try {
+          const sourceUrl = `${UNDERHENTAI_BASE}/${encodeURIComponent(slug)}/`;
+          const upstream = await fetchWithRetry(sourceUrl, { headers: UNDERHENTAI_HEADERS }, 2);
+          if (upstream.ok) {
+            sourceItem = parseUnderHentaiTitlePage(await upstream.text(), sourceUrl);
+            if (sourceItem) underHentaiDetailCache.set(slug, { data: sourceItem, ts: Date.now() });
+          }
+        } catch {
+          // Use the bundled title metadata until the source page is reachable again.
+        }
+      }
+      sourceItem ||= readUnderHentaiDetails().bySlug.get(slug);
+      if (!sourceItem || sourceItem.safetyExcluded === true) {
+        sendJson(response, { ok: false, error: "Adult title source is unavailable." }, 404);
+        return;
+      }
+      const episode = sourceItem.episodes?.find((entry) => Number(entry.number || entry.episode) === episodeNumber);
       const sourceOption = episode?.sourceOptions?.find((entry, index) => Number(entry.releaseIndex ?? index) === releaseIndex);
+      if (!sourceOption) {
+        sendJson(response, { ok: false, error: "Adult episode release is unavailable." }, 404);
+        return;
+      }
+      sourceSubtitles = sourceOption?.subtitles || episode?.subtitles || "";
+      sourceAudio = sourceOption?.audio || episode?.audio || "";
       embeds = Array.isArray(sourceOption?.embeds) ? sourceOption.embeds.filter((embed) => {
         try {
-          return UNDERHENTAI_ALLOWED_EMBED_HOSTS.has(new URL(embed).hostname.toLowerCase());
+          return UNDERHENTAI_ALLOWED_EMBED_HOSTS.has(new URL(embed).hostname.toLowerCase()) && !isBlockedPlaybackUrl(embed);
         } catch {
           return false;
         }
       }) : [];
+      if (sourceOption.watchUrl) {
+        const watchUrl = new URL(sourceOption.watchUrl);
+        const isAllowedWatch = ["underhentai.net", "www.underhentai.net"].includes(watchUrl.hostname.toLowerCase())
+          && watchUrl.pathname === "/watch/";
+        if (isAllowedWatch) {
+          try {
+            const upstream = await fetchWithRetry(watchUrl.toString(), { headers: UNDERHENTAI_HEADERS }, 2);
+            if (upstream.ok) {
+              const liveEmbeds = parseUnderHentaiEmbeds(await upstream.text());
+              if (liveEmbeds.length) embeds = liveEmbeds;
+            }
+          } catch {
+            // Keep the bundled provider list when a live refresh is unavailable.
+          }
+        }
+      }
     } else {
-      let watchUrl;
-      try {
-        watchUrl = new URL(watch);
-      } catch {
-        sendJson(response, { ok: false, error: "Missing adult episode source reference." }, 400);
-        return;
-      }
-      if (!["underhentai.net", "www.underhentai.net"].includes(watchUrl.hostname.toLowerCase()) || watchUrl.pathname !== "/watch/") {
-        sendJson(response, { ok: false, error: "Adult episode URL is not allowed." }, 400);
-        return;
-      }
-      const upstream = await fetchWithRetry(watchUrl.toString(), { headers: UNDERHENTAI_HEADERS }, 2);
-      if (!upstream.ok) throw new Error(`Episode page returned HTTP ${upstream.status}`);
-      embeds = parseUnderHentaiEmbeds(await upstream.text());
+      sendJson(response, { ok: false, error: "Missing adult episode source reference." }, 400);
+      return;
     }
     if (!embeds.length) {
       sendJson(response, { ok: false, error: "No supported playback provider was found for this release." }, 404);
@@ -8241,21 +8864,32 @@ async function handleUnderHentaiStream(url, response) {
 
     const sourceOptions = await Promise.all(embeds.map(async (embed, index) => {
       const isKraken = /krakenfiles/i.test(embed);
+      const isHentaiPlayer = /hentaiplayer/i.test(embed);
+      const isZoPlayer = /^https?:\/\/(?:www\.)?gupload\.xyz\//i.test(embed);
       let directUrl = null;
+      let subtitleTracks = [];
       if (isKraken) {
         directUrl = await resolveKrakenFiles(embed);
+      } else if (isHentaiPlayer) {
+        const resolved = await resolveHentaiPlayer(embed);
+        directUrl = typeof resolved === "string" ? resolved : (resolved?.url || "");
+        subtitleTracks = Array.isArray(resolved?.subtitles) ? resolved.subtitles : [];
       }
       return {
         id: `underhentai-provider-${index + 1}`,
-        label: isKraken ? "KrakenFiles" : "LuluStream",
+        label: isKraken ? "KrakenFiles" : isHentaiPlayer ? "HentaiPlayer" : isZoPlayer ? "ZoPlayer" : "LuluStream",
         type: directUrl ? "direct" : "iframe",
         videoUrl: directUrl || "",
         externalUrl: embed,
-        externalType: "iframe"
+        externalType: "iframe",
+        subtitles: subtitleTracks.length ? subtitleTracks : sourceSubtitles,
+        audio: sourceAudio,
+        hasSpanishSubtitles: /spanish|español|es\b|spa/i.test(String(sourceSubtitles)) || subtitleTracks.some((track) => /spanish|español|es\b|spa/i.test(`${track.language || ""} ${track.label || ""}`))
       };
     }));
 
     const directSources = sourceOptions.filter((sourceOption) => sourceOption.type === "direct" && sourceOption.videoUrl);
+    const zoPlayerSource = sourceOptions.find((sourceOption) => sourceOption.label === "ZoPlayer" && sourceOption.externalUrl);
     if (!sourceOptions.length) {
       sendJson(response, {
         ok: false,
@@ -8263,15 +8897,18 @@ async function handleUnderHentaiStream(url, response) {
       }, 404);
       return;
     }
-    const bestSource = directSources.length ? directSources[0] : sourceOptions[0];
+    const bestSource = directSources[0] || zoPlayerSource || sourceOptions[0];
     const payload = {
       ok: true,
       source: "UnderHentai",
       adultOnly: true,
-      videoUrl: bestSource.type === "direct" ? (bestSource.videoUrl || "") : "",
+      videoUrl: bestSource.type === "direct" ? (bestSource.videoUrl || "") : (bestSource.externalUrl || ""),
       externalUrl: bestSource.type === "iframe" ? (bestSource.externalUrl || "") : "",
       externalType: bestSource.type === "iframe" ? (bestSource.externalType || "iframe") : "",
-      sourceOptions
+      sourceOptions,
+      subtitles: Array.isArray(bestSource.subtitles) ? bestSource.subtitles : [],
+      defaultSubs: /spanish|español|es\b|spa/i.test(String(bestSource.subtitles || sourceSubtitles)) ? "spanish" : "",
+      hasSpanishSubtitles: Boolean(bestSource.hasSpanishSubtitles)
     };
     sendJson(response, payload);
   } catch (error) {
@@ -8408,7 +9045,7 @@ function normalizeJikanEpisode(ep) {
   };
 }
 
-// ── TMDB proxy ───────────────────────────────────────────────────────────────
+// ΓöÇΓöÇ TMDB proxy ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 // Thin proxy that keeps the TMDB credentials server-side. The client-side
 // ImageResolver does the title matching / confidence scoring / caching; here we
 // only forward search, show, and season requests (with shared server caching).

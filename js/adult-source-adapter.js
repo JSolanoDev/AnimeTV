@@ -36,8 +36,6 @@ class AdultSourceAdapter {
    * @returns {Promise<boolean>} true on success.
    */
   async login(email, password) {
-    // TODO: Implement with your adult source.
-    // e.g. POST credentials, store a session cookie/token on `this._session`.
     void email; void password;
     throw new Error(`AdultSourceAdapter[${this.name}].login is not implemented`);
   }
@@ -48,8 +46,6 @@ class AdultSourceAdapter {
    * @returns {Promise<Array<{id,title,thumbnail,url,isAdult:boolean,adultSource:string}>>}
    */
   async search(query, page = 1) {
-    // TODO: Implement with your adult source.
-    // Return [{ id, title, thumbnail, url, isAdult: true, adultSource: this.name }, ...]
     void query; void page;
     return [];
   }
@@ -59,7 +55,6 @@ class AdultSourceAdapter {
    * @returns {Promise<Array<object>>}
    */
   async listLatest(page = 1) {
-    // TODO: Implement with your adult source.
     void page;
     return [];
   }
@@ -69,8 +64,6 @@ class AdultSourceAdapter {
    * @returns {Promise<object|null>}
    */
   async getDetails(id) {
-    // TODO: Implement with your adult source.
-    // Return { id, title, description, thumbnail, episodes: [...], isAdult: true } or null.
     void id;
     return null;
   }
@@ -80,7 +73,6 @@ class AdultSourceAdapter {
    * @returns {Promise<{url:string,type:string}|null>}
    */
   async resolveStream(id, episode) {
-    // TODO: Implement with your adult source.
     void id; void episode;
     return null;
   }
@@ -117,21 +109,63 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
     return payload;
   }
 
+  _bestImage(item = {}) {
+    const screenshots = Array.isArray(item.screenshots) ? item.screenshots : [];
+    return String(
+      item.image ||
+      item.poster ||
+      item.cover ||
+      item.thumbnail ||
+      item.banner ||
+      screenshots[0] ||
+      ""
+    ).trim();
+  }
+
+  _bestBanner(item = {}, fallback = "") {
+    const screenshots = Array.isArray(item.screenshots) ? item.screenshots : [];
+    return String(
+      item.banner ||
+      item.backdrop ||
+      item.background ||
+      item.highQualityBackground ||
+      screenshots[0] ||
+      fallback ||
+      ""
+    ).trim();
+  }
+
   _catalogItem(item = {}, sourceIndex = 0) {
     const episodeCount = Math.max(0, Number(item.episodeCount || 0));
     const sourceOrder = Number.isFinite(Number(item.sourceOrder))
       ? Number(item.sourceOrder)
       : sourceIndex;
+    const image = this._bestImage(item);
+    const banner = this._bestBanner(item, image);
     return {
       id: `adult-underhentai-${item.slug}`,
       adultId: item.slug,
       slug: item.slug,
       title: item.title || item.slug,
       nativeTitle: item.officialTitle || "",
-      thumbnail: item.image || "",
-      image: item.image || "",
-      banner: item.banner || item.image || "",
-      highQualityBackground: item.banner || item.image || "",
+      thumbnail: image,
+      image,
+      poster: image,
+      cover: image,
+      coverImage: image,
+      banner,
+      backdrop: banner,
+      highQualityBackground: banner || image,
+      adultBackground: banner || image,
+      underHentaiImage: image,
+      underHentaiBackdrop: banner || image,
+      images: {
+        poster: image,
+        cover: image,
+        thumbnail: image,
+        banner,
+        backdrop: banner || image
+      },
       url: item.url || "",
       siteUrl: item.url || "",
       description: item.brand ? `Studio: ${item.brand}` : "Adult title.",
@@ -140,10 +174,10 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
       episode: episodeCount,
       totalEpisodes: episodeCount,
       status: item.aired || "",
-      source: this.name,
+      source: item.source || this.name,
       isAdult: true,
       adult: true,
-      adultSource: this.name,
+      adultSource: item.adultSource || this.name,
       sourceOrder,
       adultDetailsLoaded: false,
       seasons: [],
@@ -166,19 +200,49 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
     const payload = await this._request("/details", { slug });
     const item = payload.item || null;
     if (!item) return null;
-    const episodes = (item.episodes || []).map((episode) => ({
-      ...episode,
-      id: `${slug}-s1-e${episode.episode}`,
-      season: 1,
-      number: episode.episode,
-      server: this.name,
-      locked: !(episode.sourceOptions || []).length,
-      sourceOptions: (episode.sourceOptions || []).map((source, index) => ({
-        ...source,
-        id: source.id || `${slug}-e${episode.episode}-source-${index}`,
-        type: source.type || "resolver"
-      }))
-    }));
+    const image = this._bestImage(item);
+    const banner = this._bestBanner(item, image);
+    const episodes = (item.episodes || []).map((episode) => {
+      const episodeNumber = Number(episode.episode || episode.number || 1) || 1;
+      const sourceOptions = (episode.sourceOptions || []).map((source, index) => {
+        const resolver = source.streamResolver || source.resolver || {};
+        return {
+          ...source,
+          id: source.id || `${slug}-e${episodeNumber}-source-${index}`,
+          label: source.label || source.provider || source.server || `Adult Source ${index + 1}`,
+          type: "resolver",
+          streamResolver: {
+            type: resolver.type || "underhentai",
+            endpoint: resolver.endpoint || `/api/adult/underhentai/stream?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(episodeNumber)}&release=${encodeURIComponent(source.releaseIndex ?? index)}`
+          }
+        };
+      }).sort((a, b) => {
+        const score = (source = {}) => {
+          const text = `${source.id || ""} ${source.label || ""} ${source.provider || ""} ${source.streamResolver?.endpoint || ""}`.toLowerCase();
+          if (text.includes("veohentai") || text.includes("hentaiplayer") || text.includes("1hanime")) return 0;
+          if (text.includes("underhentai")) return 1;
+          if (text.includes("kraken")) return 2;
+          return 3;
+        };
+        return score(a) - score(b);
+      });
+      return {
+        ...episode,
+        id: `${slug}-s1-e${episodeNumber}`,
+        season: 1,
+        number: episodeNumber,
+        episode: episodeNumber,
+        image: this._bestImage(episode) || image,
+        thumbnail: this._bestImage(episode) || image,
+        banner: this._bestBanner(episode, banner || image),
+        adultBackground: this._bestImage(episode) || image || banner,
+        underHentaiImage: this._bestImage(episode) || image,
+        underHentaiBackdrop: this._bestBanner(episode, banner || image),
+        server: this.name,
+        locked: !sourceOptions.length,
+        sourceOptions
+      };
+    });
     return {
       ...this._catalogItem(item),
       description: item.description || (item.brand ? `Studio: ${item.brand}` : "Adult title."),
@@ -191,7 +255,12 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
         season: 1,
         title: "Season 1",
         sourceTitle: item.title,
-        image: item.image || "",
+        image,
+        banner,
+        highQualityBackground: banner || image,
+        adultBackground: image || banner,
+        underHentaiImage: image,
+        underHentaiBackdrop: banner || image,
         playable: true,
         episodes
       }],
@@ -228,6 +297,13 @@ const AdultSourceRegistry = (function () {
 })();
 
 AdultSourceRegistry.register(new UnderHentaiAdultSourceAdapter());
+
+if (typeof window !== "undefined") {
+  window.AdultSourceAdapter = AdultSourceAdapter;
+  window.NullAdultSourceAdapter = NullAdultSourceAdapter;
+  window.UnderHentaiAdultSourceAdapter = UnderHentaiAdultSourceAdapter;
+  window.AdultSourceRegistry = AdultSourceRegistry;
+}
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
