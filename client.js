@@ -130,7 +130,7 @@ function setScraperEnabled(id, enabled) {
 }
 
 const LIBRARY_INITIAL_RENDER_LIMIT = 84;
-const LIBRARY_RENDER_STEP = 84;
+const LIBRARY_RENDER_STEP = 56;
 
 const verticalArt = new Set();
 
@@ -219,7 +219,8 @@ const searchInputTop = document.querySelector("#searchInputTop");
 const searchInputLibrary = document.querySelector("#searchInputLibrary");
 const searchInputAniPub = document.querySelector("#searchInputAniPub");
 const libraryResultCount = document.querySelector("#libraryResultCount");
-const libraryMoreButton = document.querySelector("#libraryMoreButton");
+const libraryAutoLoader = document.querySelector("#libraryAutoLoader");
+const libraryAutoLoaderStatus = document.querySelector("#libraryAutoLoaderStatus");
 const sidebarToggle = document.querySelector("#sidebarToggle");
 const overlay = document.querySelector("#watchOverlay");
 const closeOverlay = document.querySelector("#closeOverlay");
@@ -433,7 +434,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=488`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=489`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -1550,13 +1551,129 @@ function updateLibraryResultCount(count) {
   libraryResultCount.textContent = `${count.toLocaleString()} Result${count === 1 ? "" : "s"}`;
 }
 
-function updateLibraryMoreButton(total = 0, visible = 0, cappedTotal = total) {
-  if (!libraryMoreButton) return;
-  const hasMore = visible < cappedTotal;
-  libraryMoreButton.hidden = !hasMore;
-  libraryMoreButton.textContent = hasMore
-    ? `Show more (${visible.toLocaleString()} / ${total.toLocaleString()})`
-    : "";
+let libraryAutoLoadObserver = null;
+let libraryAutoLoadPending = false;
+let libraryAutoLoadIndicatorTimer = 0;
+let libraryScrollSentinel = null;
+let libraryFallbackScrollWired = false;
+
+function setLibraryAutoLoadPending(isPending) {
+  libraryAutoLoadPending = isPending;
+  if (libraryGrid) libraryGrid.setAttribute("aria-busy", isPending ? "true" : "false");
+  window.clearTimeout(libraryAutoLoadIndicatorTimer);
+  if (!libraryAutoLoader) return;
+  if (!isPending) {
+    libraryAutoLoader.hidden = true;
+    return;
+  }
+  // Appending a local batch usually finishes inside one frame. Delay the visible
+  // indicator so a fast update feels seamless instead of flashing below the rail.
+  libraryAutoLoadIndicatorTimer = window.setTimeout(() => {
+    if (libraryAutoLoadPending) libraryAutoLoader.hidden = false;
+  }, 140);
+}
+
+function libraryRailIsNearEnd() {
+  if (!libraryGrid || libraryGrid.dataset.hasMore !== "true") return false;
+  const remaining = libraryGrid.scrollWidth - libraryGrid.clientWidth - libraryGrid.scrollLeft;
+  return remaining <= Math.max(640, libraryGrid.clientWidth * 1.15);
+}
+
+function requestNextLibraryBatch() {
+  if (libraryAutoLoadPending || state.route !== "library" || !libraryRailIsNearEnd()) return;
+  const querySig = state.libraryQuerySig;
+  const total = Number(libraryGrid?.dataset.totalCards || 0);
+  const visible = Number(libraryGrid?.dataset.visibleCards || 0);
+  if (!total || visible >= total) return;
+
+  setLibraryAutoLoadPending(true);
+  const appendBatch = () => {
+    if (state.route !== "library" || state.libraryQuerySig !== querySig) {
+      setLibraryAutoLoadPending(false);
+      return;
+    }
+    state.libraryVisibleLimit = Math.min(total, visible + LIBRARY_RENDER_STEP);
+    renderNow();
+    setLibraryAutoLoadPending(false);
+  };
+
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(appendBatch, { timeout: 280 });
+  } else {
+    window.setTimeout(appendBatch, 24);
+  }
+}
+
+function observeLibraryScrollSentinel(sentinel) {
+  if (!sentinel || !libraryGrid) return;
+  if (typeof window.IntersectionObserver === "function") {
+    if (!libraryAutoLoadObserver) {
+      libraryAutoLoadObserver = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) requestNextLibraryBatch();
+      }, {
+        root: libraryGrid,
+        rootMargin: "0px 115% 0px 0px",
+        threshold: 0
+      });
+    }
+    libraryAutoLoadObserver.observe(sentinel);
+    return;
+  }
+
+  if (!libraryFallbackScrollWired) {
+    libraryFallbackScrollWired = true;
+    let scrollFrame = 0;
+    libraryGrid.addEventListener("scroll", () => {
+      if (scrollFrame) return;
+      scrollFrame = window.requestAnimationFrame(() => {
+        scrollFrame = 0;
+        requestNextLibraryBatch();
+      });
+    }, { passive: true });
+  }
+}
+
+function ensureLibraryScrollSentinel() {
+  if (!libraryGrid) return null;
+  let sentinel = libraryGrid.querySelector(":scope > .library-scroll-sentinel");
+  if (!sentinel) {
+    sentinel = document.createElement("span");
+    sentinel.className = "library-scroll-sentinel";
+    sentinel.setAttribute("aria-hidden", "true");
+    libraryGrid.appendChild(sentinel);
+  }
+  if (libraryScrollSentinel !== sentinel) {
+    if (libraryScrollSentinel) libraryAutoLoadObserver?.unobserve(libraryScrollSentinel);
+    libraryScrollSentinel = sentinel;
+    observeLibraryScrollSentinel(sentinel);
+  }
+  return sentinel;
+}
+
+function updateLibraryAutoLoader(total = 0, visible = 0) {
+  if (!libraryGrid) return;
+  const hasMore = visible < total;
+  libraryGrid.dataset.hasMore = hasMore ? "true" : "false";
+  libraryGrid.dataset.totalCards = String(total);
+  libraryGrid.dataset.visibleCards = String(visible);
+  if (libraryAutoLoaderStatus) {
+    libraryAutoLoaderStatus.textContent = hasMore
+      ? `Loading more titles automatically. ${visible.toLocaleString()} of ${total.toLocaleString()} ready.`
+      : `All ${total.toLocaleString()} titles are ready.`;
+  }
+
+  if (!hasMore) {
+    if (libraryScrollSentinel) libraryAutoLoadObserver?.unobserve(libraryScrollSentinel);
+    libraryScrollSentinel?.remove();
+    libraryScrollSentinel = null;
+    setLibraryAutoLoadPending(false);
+    return;
+  }
+
+  ensureLibraryScrollSentinel();
+  // Covers browsers without IntersectionObserver and a rail that is initially
+  // too short to overflow after a narrow filter is applied.
+  window.requestAnimationFrame(requestNextLibraryBatch);
 }
 
 // The catalog limited to the currently-active mode. Adult mode shows ONLY adult
@@ -2552,7 +2669,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=488";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=489";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -3565,11 +3682,40 @@ function renderCards(container, list) {
       return `${show.id}:${cardEpisodeLabel(show)}:${isFavoriteShow(show) ? 1 : 0}:${posterKey}`;
     })
     .join("|");
-  if (container.dataset.cardsSig === signature) return;
+  const previousSignature = container.dataset.cardsSig || "";
+  const previousCount = Number(container.dataset.cardsCount || 0);
+  if (previousSignature === signature) {
+    return { changed: false, appendedFrom: list.length };
+  }
+
+  const renderedCards = container.querySelectorAll(":scope > .show-card").length;
+  const canAppend = previousSignature
+    && !container.classList.contains("is-skeleton-loading")
+    && previousCount > 0
+    && previousCount === renderedCards
+    && previousCount < list.length
+    && signature.startsWith(`${previousSignature}|`);
+
+  if (canAppend) {
+    const newCards = list
+      .slice(previousCount)
+      .map((show, index) => cardTemplate(show, previousCount + index))
+      .join("");
+    const sentinel = container.querySelector(":scope > .library-scroll-sentinel");
+    if (sentinel) sentinel.insertAdjacentHTML("beforebegin", newCards);
+    else container.insertAdjacentHTML("beforeend", newCards);
+    container.dataset.cardsSig = signature;
+    container.dataset.cardsCount = String(list.length);
+    syncCompletedArtwork(container);
+    return { changed: true, appendedFrom: previousCount };
+  }
+
   container.dataset.cardsSig = signature;
+  container.dataset.cardsCount = String(list.length);
   container.classList.remove("is-skeleton-loading");
   container.innerHTML = list.map((show, index) => cardTemplate(show, index)).join("");
   syncCompletedArtwork(container);
+  return { changed: true, appendedFrom: 0 };
 }
 
 function renderSkeletonCards(container, count = 7) {
@@ -3577,6 +3723,7 @@ function renderSkeletonCards(container, count = 7) {
   const signature = `skeleton:${count}`;
   if (container.dataset.cardsSig === signature && container.classList.contains("is-skeleton-loading")) return;
   container.dataset.cardsSig = signature;
+  container.dataset.cardsCount = "0";
   container.classList.add("is-skeleton-loading");
   container.innerHTML = Array.from({ length: count }, (_, index) => `
     <div class="show-card skeleton-card" style="--card-index: ${index}" aria-hidden="true">
@@ -5752,7 +5899,7 @@ function _render() {
     if (isLibrary) {
       renderSkeletonCards(libraryGrid, 14);
       updateLibraryResultCount(0);
-      updateLibraryMoreButton(0, 0, 0);
+      updateLibraryAutoLoader(0, 0);
     }
   } else {
     if (isHome) renderCards(latestGrid, buildLatestEpisodesList(state.homeCardLimit || HOME_INITIAL_CARD_LIMIT));
@@ -5777,19 +5924,18 @@ function _render() {
       if (state.libraryQuerySig !== libraryQuerySig) {
         state.libraryQuerySig = libraryQuerySig;
         state.libraryVisibleLimit = LIBRARY_INITIAL_RENDER_LIMIT;
+        if (libraryGrid) libraryGrid.scrollLeft = 0;
       }
-      const maxLibraryLimit = Math.min(
-        libraryFiltered.length,
-        state.search ? SEARCH_CARD_LIMIT : LIBRARY_CARD_LIMIT
-      );
       const visibleLimit = Math.min(
-        maxLibraryLimit,
+        libraryFiltered.length,
         Math.max(state.libraryVisibleLimit || LIBRARY_INITIAL_RENDER_LIMIT, LIBRARY_INITIAL_RENDER_LIMIT)
       );
       const visibleLibraryShows = libraryFiltered.slice(0, visibleLimit);
-      renderCards(libraryGrid, visibleLibraryShows);
-      updateLibraryMoreButton(libraryFiltered.length, visibleLimit, maxLibraryLimit);
-      warmVisibleShowMetadata(visibleLibraryShows, Math.min(visibleLibraryShows.length, 48));
+      const cardRender = renderCards(libraryGrid, visibleLibraryShows);
+      updateLibraryAutoLoader(libraryFiltered.length, visibleLimit);
+      const metadataStart = cardRender?.appendedFrom || 0;
+      const metadataBatch = visibleLibraryShows.slice(metadataStart, metadataStart + 48);
+      if (metadataBatch.length) warmVisibleShowMetadata(metadataBatch, metadataBatch.length);
     }
   }
 
@@ -13221,11 +13367,6 @@ document.querySelector("#libraryResetFilters")?.addEventListener("click", () => 
   render();
 });
 
-libraryMoreButton?.addEventListener("click", () => {
-  state.libraryVisibleLimit = (state.libraryVisibleLimit || LIBRARY_INITIAL_RENDER_LIMIT) + LIBRARY_RENDER_STEP;
-  render();
-});
-
 document.querySelector("[data-open-first]")?.addEventListener("click", () => openShow(visibleShows()[0]?.id));
 carouselOpen.addEventListener("click", (event) => {
   event.stopPropagation();
@@ -14289,7 +14430,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=488");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=489");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
