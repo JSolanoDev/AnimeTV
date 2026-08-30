@@ -1019,10 +1019,15 @@ main {
   background: linear-gradient(180deg, transparent, rgba(8, 10, 19, 0.74) 58%, var(--bg));
 }
 
-/* The loading hero deliberately carries NO geometry of its own. It previously
-   set a shorter min-height and margin-bottom: -2.4rem, which pulled the page up
-   while loading and dropped it ~38px when the real carousel arrived - the same
-   layout-shift defect as the rule above, one level up. */
+/* min-height is kept: measured at 1920x1080, 1366x768, 768, 412 and 375 wide it
+   never binds, because .carousel-stage inside is always taller, so it is not a
+   layout-shift source and there is no measured reason to delete it.
+   margin-bottom: -2.4rem was removed. That one IS loading-specific layout - it
+   pulled everything below the hero up by 38.4px for as long as the skeleton was
+   on screen, then handed it back the moment the real carousel rendered. */
+.hero:has(.carousel-stage.is-loading) {
+  min-height: clamp(19rem, 35vh, 25rem);
+}
 
 .eyebrow {
   margin: 0 0 0.7rem;
