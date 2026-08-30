@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=508`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=509`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2881,7 +2881,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=508";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=509";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -8466,16 +8466,68 @@ const PRIMARY_SOURCE_FILTERS = [
 //     episode the user has since switched to)
 //   - reuses getSelectedEpisodeSource for priority/preference, so ranking logic
 //     is not duplicated here
-function promoteResolvedEpisodeSource(episode) {
-  if (!episode) return false;
+// Dev-only breadcrumb. Stale-vs-replaced is the whole point of the identity rule
+// below and is otherwise invisible, but it must not chatter in production.
+function debugPromotion(message) {
+  if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+    console.debug(`[promote] ${message}`);
+  }
+}
+
+function promoteResolvedEpisodeSource(resolved) {
+  if (!resolved) return false;
   const active = state.activeEpisode?.episode;
-  if (!active || active !== episode) return false;      // stale or not current
-  if (getEpisodeUrl(episode)) return false;             // already playable
-  const selected = getSelectedEpisodeSource(episode);
-  if (!selected) return false;                          // nothing playable yet
-  if (!episode.selectedSourceId) episode.selectedSourceId = selected.id;
-  if (selected.videoUrl) episode.videoUrl = selected.videoUrl;
-  const url = getEpisodeUrl(episode);
+  if (!active) return false;
+
+  // Identity by canonical id, NOT object reference. The resolver closure holds
+  // the episode object that existed when the lookup started; a render or a
+  // direct /watch/<show>/s1-e10 navigation can leave a DIFFERENT object for the
+  // same episode in state (getDetailSeasons rebuilds episode objects on every
+  // call - verified: different references, identical ids). A reference-only
+  // check rejected those legitimate promotions and left the player unmounted
+  // with no spinner and no error.
+  //
+  // Ids are `<showId>-s<season>-e<episode>` (e.g. anilist-178789-s1-e10),
+  // verified present, unique and stable across renders, repeated
+  // getDetailSeasons() calls, and the episode list.
+  const sameEpisode = active === resolved
+    || Boolean(active.id && resolved.id && active.id === resolved.id);
+  if (!sameEpisode) {
+    // A genuinely different episode: the user moved on. The resolver's own
+    // object keeps its results for cache purposes; global playback is untouched.
+    debugPromotion(`stale resolution ignored (${resolved.id} finished while ${active.id} is active)`);
+    return false;
+  }
+
+  // Promote onto the object STATE owns. Mutating the resolver's copy would leave
+  // getEpisodeUrl(state.activeEpisode.episode) empty and change nothing.
+  const target = active;
+  if (target !== resolved) {
+    debugPromotion(`same episode via different object (${resolved.id}); promoting onto the state-owned copy`);
+    // Carry across only what the lookup produced, and only where the target has
+    // nothing already - never clobber a user's explicit choice or live state.
+    if (!Array.isArray(target.sourceOptions) || !target.sourceOptions.length) {
+      target.sourceOptions = resolved.sourceOptions;
+    }
+    if (resolved.sourceOptionsChecked) target.sourceOptionsChecked = resolved.sourceOptionsChecked;
+    if (resolved.serverChecks && !target.serverChecks) target.serverChecks = resolved.serverChecks;
+    if (resolved.animeAv1SourcesChecked) target.animeAv1SourcesChecked = true;
+    if (resolved.locked === false) target.locked = false;
+    target.sourceOptionsPending = false;
+  }
+
+  // Already playable: fill the cache above, but never restart a mounted player,
+  // reset playback, or reopen cinema.
+  if (getEpisodeUrl(target)) return false;
+
+  // Selection policy stays with the existing helper - honours an explicit
+  // selectedSourceId, the saved preference and sourcePreferenceScore. Never
+  // blindly sourceOptions[0].
+  const selected = getSelectedEpisodeSource(target);
+  if (!selected) return false;
+  if (!target.selectedSourceId) target.selectedSourceId = selected.id;
+  if (selected.videoUrl) target.videoUrl = selected.videoUrl;
+  const url = getEpisodeUrl(target);
   // An iframe/resolver source has no direct URL; those mount through their own
   // path, so only take over when there is a real URL to hand the player.
   if (!url) return false;
@@ -14829,7 +14881,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=508");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=509");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
