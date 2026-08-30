@@ -8803,6 +8803,7 @@ async function handleUnderHentaiStream(url, response) {
 
   try {
     if (/^[a-z0-9][a-z0-9-]*$/.test(slug) && episodeNumber > 0 && releaseIndex >= 0 && !slug.startsWith("veohentai-")) {
+      const bundledItem = readUnderHentaiDetails().bySlug.get(slug);
       const cachedItem = underHentaiDetailCache.get(slug)?.data;
       let sourceItem = cachedItem;
       if (!sourceItem) {
@@ -8817,28 +8818,36 @@ async function handleUnderHentaiStream(url, response) {
           // Use the bundled title metadata until the source page is reachable again.
         }
       }
-      sourceItem ||= readUnderHentaiDetails().bySlug.get(slug);
+      sourceItem ||= bundledItem;
       if (!sourceItem || sourceItem.safetyExcluded === true) {
         sendJson(response, { ok: false, error: "Adult title source is unavailable." }, 404);
         return;
       }
       const episode = sourceItem.episodes?.find((entry) => Number(entry.number || entry.episode) === episodeNumber);
-      const sourceOption = episode?.sourceOptions?.find((entry, index) => Number(entry.releaseIndex ?? index) === releaseIndex);
+      const bundledEpisode = bundledItem?.episodes?.find((entry) => Number(entry.number || entry.episode) === episodeNumber);
+      const bundledSourceOption = bundledEpisode?.sourceOptions?.find((entry, index) => Number(entry.releaseIndex ?? index) === releaseIndex);
+      const sourceOption = episode?.sourceOptions?.find((entry, index) => Number(entry.releaseIndex ?? index) === releaseIndex)
+        || bundledSourceOption;
       if (!sourceOption) {
         sendJson(response, { ok: false, error: "Adult episode release is unavailable." }, 404);
         return;
       }
-      sourceSubtitles = sourceOption?.subtitles || episode?.subtitles || "";
-      sourceAudio = sourceOption?.audio || episode?.audio || "";
-      embeds = Array.isArray(sourceOption?.embeds) ? sourceOption.embeds.filter((embed) => {
+      sourceSubtitles = sourceOption?.subtitles || bundledSourceOption?.subtitles || episode?.subtitles || bundledEpisode?.subtitles || "";
+      sourceAudio = sourceOption?.audio || bundledSourceOption?.audio || episode?.audio || bundledEpisode?.audio || "";
+      const knownEmbeds = [
+        ...(Array.isArray(sourceOption?.embeds) ? sourceOption.embeds : []),
+        ...(Array.isArray(bundledSourceOption?.embeds) ? bundledSourceOption.embeds : [])
+      ].filter((embed, index, values) => values.indexOf(embed) === index);
+      embeds = knownEmbeds.filter((embed) => {
         try {
           return UNDERHENTAI_ALLOWED_EMBED_HOSTS.has(new URL(embed).hostname.toLowerCase()) && !isBlockedPlaybackUrl(embed);
         } catch {
           return false;
         }
-      }) : [];
-      if (sourceOption.watchUrl) {
-        const watchUrl = new URL(sourceOption.watchUrl);
+      });
+      const watchReference = sourceOption.watchUrl || bundledSourceOption?.watchUrl || "";
+      if (watchReference) {
+        const watchUrl = new URL(watchReference);
         const isAllowedWatch = ["underhentai.net", "www.underhentai.net"].includes(watchUrl.hostname.toLowerCase())
           && watchUrl.pathname === "/watch/";
         if (isAllowedWatch) {
