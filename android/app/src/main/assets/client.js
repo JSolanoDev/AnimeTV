@@ -1706,20 +1706,6 @@ function syncAdultModeChrome() {
   if (on && state.route === "schedule") setRoute("home");
 }
 
-// Brief full-screen wash when the theme flips, so the swap feels intentional.
-function playThemeFlash(on) {
-  try {
-    const flash = document.createElement("div");
-    flash.className = "theme-flash";
-    flash.style.background = on
-      ? "radial-gradient(circle at 50% 38%, rgba(225,29,72,0.55), rgba(10,3,6,0.94) 72%)"
-      : "radial-gradient(circle at 50% 38%, rgba(138,92,255,0.45), rgba(8,10,19,0.94) 72%)";
-    document.body.appendChild(flash);
-    flash.addEventListener("animationend", () => flash.remove(), { once: true });
-    window.setTimeout(() => flash.remove(), 1000);
-  } catch { /* non-fatal */ }
-}
-
 // 18+ age-confirmation gate shown the first time adult mode is enabled.
 // Resolves true only on an explicit "I am 18+" confirmation.
 function confirmAdultMode() {
@@ -2790,23 +2776,31 @@ document.addEventListener("error", (event) => {
       const ph = document.createElement("div");
       ph.className = "poster-placeholder";
       ph.setAttribute("aria-hidden", "true");
-      ph.innerHTML = '<span class="poster-placeholder-mark">Z</span><span class="poster-placeholder-copy">Preview pending</span>';
+      ph.innerHTML = '<span class="poster-placeholder-mark">Z</span>';
       card.appendChild(ph);
     }
   }
 }, true);
 
-// Fade posters / episode thumbnails in once their image actually loads (paired
-// with the .art-sheen loading sweep in styles.css) so they appear smoothly
-// instead of popping. Delegated + capture because `load` doesn't bubble —
-// mirrors the error handler above. Tagging the host element stops its sheen.
+function markArtworkReady(img) {
+  if (!(img instanceof HTMLImageElement) || img.dataset.imgFallback) return;
+  if (!img.naturalWidth) return;
+  img.classList.add("img-ready");
+  img.closest(".thumb-art, .ep-thumb")?.classList.add("img-ready");
+}
+
+// Cached images can complete between innerHTML insertion and the delegated load
+// event. Checking `complete` immediately keeps their loading rail from replaying.
+function syncCompletedArtwork(root = document) {
+  root.querySelectorAll?.(".thumb-poster, .ep-thumb-img").forEach((img) => {
+    if (img.complete) markArtworkReady(img);
+  });
+}
+
 document.addEventListener("load", (event) => {
   const img = event.target;
-  if (!(img instanceof HTMLImageElement)) return;
-  if (img.classList.contains("thumb-poster") || img.classList.contains("ep-thumb-img")) {
-    img.classList.add("img-ready");
-    const host = img.closest(".thumb-art, .ep-thumb");
-    if (host) host.classList.add("img-ready");
+  if (img instanceof HTMLImageElement && (img.classList.contains("thumb-poster") || img.classList.contains("ep-thumb-img"))) {
+    markArtworkReady(img);
   }
 }, true);
 
@@ -3458,7 +3452,6 @@ function cardTemplate(show, index = 0) {
     : `
         <span class="poster-placeholder" aria-hidden="true">
           <span class="poster-placeholder-mark">Z</span>
-          <span class="poster-placeholder-copy">Preview pending</span>
         </span>
       `;
   return `
@@ -3539,11 +3532,14 @@ function renderCards(container, list) {
   container.dataset.cardsSig = signature;
   container.classList.remove("is-skeleton-loading");
   container.innerHTML = list.map((show, index) => cardTemplate(show, index)).join("");
+  syncCompletedArtwork(container);
 }
 
 function renderSkeletonCards(container, count = 7) {
   if (!container) return;
-  container.dataset.cardsSig = "";   // force the next real render to repaint
+  const signature = `skeleton:${count}`;
+  if (container.dataset.cardsSig === signature && container.classList.contains("is-skeleton-loading")) return;
+  container.dataset.cardsSig = signature;
   container.classList.add("is-skeleton-loading");
   container.innerHTML = Array.from({ length: count }, (_, index) => `
     <div class="show-card skeleton-card" style="--card-index: ${index}" aria-hidden="true">
@@ -7521,7 +7517,7 @@ function renderEpisodeList(show) {
                   data-ep-search="${escapeHtml(search)}">
             <span class="ep-thumb ${finalEpImgSrc ? "has-image" : "is-placeholder"}${isFallback ? " is-fallback" : ""}" style="--episode-hue:${fallbackHue}">
               ${finalEpImgSrc ? `<span class="art-sheen" aria-hidden="true"></span><img referrerpolicy="no-referrer" class="ep-thumb-img" src="${escapeHtml(finalEpImgSrc)}" alt="" loading="lazy" decoding="async"${epFallbackData}>` : ""}
-              ${finalEpImgSrc ? "" : `<span class="ep-thumb-empty" aria-hidden="true"><span class="ep-thumb-empty-mark">Z</span><span class="ep-thumb-empty-copy">Preview pending</span></span>`}
+              ${finalEpImgSrc ? "" : `<span class="ep-thumb-empty" aria-hidden="true"><span class="ep-thumb-empty-mark">Z</span></span>`}
               <span class="ep-thumb-num">${escapeHtml(String(num))}</span>
               <span class="ep-thumb-play" aria-hidden="true">▶</span>
               ${progressBar}
@@ -7598,6 +7594,7 @@ function renderEpisodeList(show) {
       </div>`}
     </section>
   `;
+  syncCompletedArtwork(episodeList);
 
   if (isAdultDetailShow && adultEpisodeGalleryGroups.length) {
     const galleryImages = adultEpisodeGalleryGroups.flatMap((group) =>
@@ -13647,7 +13644,6 @@ if (typeof AdultMode !== "undefined") {
       state.filter = "all";
       state.sourcePickerFilter = "all";
     }
-    playThemeFlash(on);
     syncAdultModeChrome();
     if (on) await loadAdultCatalog();
     refreshCatalogStatus();   // stat line reflects the now-active catalog
