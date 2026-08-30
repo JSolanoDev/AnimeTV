@@ -17,6 +17,7 @@ const {
 const { SmartSource } = require("../js/smart-source.js");
 const SeasonNormalization = require("../js/season-normalization.js");
 const ImageResolver = require("../js/image-resolver.js");
+const AdultMode = require("../js/adult-mode.js");
 
 let passed = 0;
 let failed = 0;
@@ -261,6 +262,62 @@ const normalizedEng = normalizeTitle(engTitle);
 const normalizedRomaji = normalizeTitle(romajiTitle);
 check("normalizeTitle cleans English title", normalizedEng === "outcast");
 check("normalizeTitle cleans Romaji title", normalizedRomaji === "yi ren zhi xia");
+
+
+console.log("");
+console.log("# Adult classifier (isAdultContent)");
+// Guards a real near-miss: an optimisation once turned the marker regexes
+// word boundaries into backspace characters, so every marker-based title
+// silently stopped classifying as adult and would have leaked into the
+// regular catalog. node --check cannot catch that - only behaviour can.
+const ADULT_CASES = [
+  ["marker netorare", { title: "Netorare Test" }, true],
+  ["marker tentacle", { title: "Tentacle Something" }, true],
+  ["word hentai", { title: "Some Hentai Show" }, true],
+  ["genre Hentai", { title: "Whatever", genres: ["Hentai"] }, true],
+  ["flag adultSource", { title: "X", adultSource: "provider" }, true],
+  ["flag isAdult", { title: "Y", isAdult: true }, true],
+  ["substring Analysis", { title: "Analysis Club" }, false],
+  ["substring Entry", { title: "Entry Level" }, false],
+  ["substring Grape", { title: "Grape Kun" }, false],
+  ["romance Yuri no Hana", { title: "Kamiina Botan Yoeru Sugata wa Yuri no Hana" }, false],
+  ["school High School Fleet", { title: "High School Fleet" }, false],
+  ["plain title", { title: "Spy x Family" }, false]
+];
+for (const [label, item, expected] of ADULT_CASES) {
+  check("isAdultContent - " + label, AdultMode.isAdultContent(item) === expected);
+}
+
+// filterCatalog must stay mutually exclusive: default mode yields ONLY
+// non-adult entries.
+const MIXED = [{ title: "Spy x Family" }, { title: "Netorare Test" }, { title: "Cowboy Bebop" }];
+const defaultView = AdultMode.filterCatalog(MIXED);
+check(
+  "filterCatalog keeps only non-adult entries in default mode",
+  defaultView.length === 2 && defaultView.every((s) => !AdultMode.isAdultContent(s))
+);
+
+// EVERY marker must be detected, not just a sample. A mutation test showed
+// that spot-checking two markers let a single broken marker pass unnoticed,
+// and the mangled-word-boundary bug class can hit one entry or all of them.
+const ALL_ADULT_MARKERS = [
+  "anal", "big boobs", "milf", "creampie", "incest", "netorare", "ntr",
+  "blowjob", "facial", "gangbang", "tentacle", "bondage", "bdsm",
+  "handjob", "masturbation", "paizuri", "rimjob", "bukkake", "ahegao"
+];
+const undetected = ALL_ADULT_MARKERS.filter(
+  (marker) => !AdultMode.isAdultContent({ title: "Anime " + marker + " Special" })
+);
+check("every adult marker is detected", undetected.length === 0);
+if (undetected.length) console.log("        undetected: " + undetected.join(", "));
+
+// Word boundaries must hold: a marker embedded in a larger word must NOT match.
+const falsePositives = ALL_ADULT_MARKERS.filter(
+  (marker) => AdultMode.isAdultContent({ title: "zz" + marker.split(" ").join("") + "zz Show" })
+);
+check("no adult marker matches inside a larger word", falsePositives.length === 0);
+if (falsePositives.length) console.log("        false positives: " + falsePositives.join(", "));
+
 
 console.log(`\n${passed} passed, ${failed} failed\n`);
 process.exit(failed === 0 ? 0 : 1);
