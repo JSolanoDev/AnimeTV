@@ -92,6 +92,48 @@ const AdultMode = (function () {
   // A content item counts as adult if anything flags it as such. Adapters that
   // supply adult content should set `isAdult: true` (and/or `adultSource`) on
   // each item so this stays accurate without guessing.
+  // ── Classifier regexes, compiled ONCE ──────────────────────────────────
+  // These used to be built with new RegExp(...) inside a .some() on EVERY
+  // call. filterCatalog() runs isAdultContent() for every show, and
+  // catalogShows() is called from visibleShows()/renderSchedule()/favourites
+  // (often several times per render), so a ~3,000-title catalog compiled
+  // ~57,000 regexes per pass - the main source of route-switch lag.
+  // Written as literals so the word-boundary escapes cannot be mangled.
+  const _HENTAI_RE = /\bhentai\b/i;
+
+  // Whole words: "anal" must not catch "analysis", "ntr" must not catch
+  // "entry", "rape" must not catch "grape". Mainstream romance genres
+  // (yuri/yaoi/girls love) are deliberately absent - regular anime.
+  // Safety markers that also imply adult content (to separate catalogs).
+    const _MINOR_MARKERS = [
+      "child", "children", "elementary", "high school", "junior high",
+      "loli", "lolicon", "middle school", "minor", "schoolboy", "schoolgirl",
+      "shishunki", "shota", "shotacon", "student", "teen", "teenage",
+      "underage", "young boy", "young girl", "joshi kousei", "joshi kōsei"
+    ];
+
+  const _ADULT_MARKER_RES = [
+    /\banal\b/i,
+    /\bbig boobs\b/i,
+    /\bmilf\b/i,
+    /\bcreampie\b/i,
+    /\bincest\b/i,
+    /\bnetorare\b/i,
+    /\bntr\b/i,
+    /\bblowjob\b/i,
+    /\bfacial\b/i,
+    /\bgangbang\b/i,
+    /\btentacle\b/i,
+    /\bbondage\b/i,
+    /\bbdsm\b/i,
+    /\bhandjob\b/i,
+    /\bmasturbation\b/i,
+    /\bpaizuri\b/i,
+    /\brimjob\b/i,
+    /\bbukkake\b/i,
+    /\bahegao\b/i
+  ];
+
   function isAdultContent(item) {
     if (!item) return false;
     if (item.isAdult === true || item.adult === true || item.nsfw === true || item.hentai === true) return true;
@@ -105,7 +147,7 @@ const AdultMode = (function () {
       item.genre
     ].filter(Boolean).join(" ").toLowerCase().replace(/[_-]+/g, " ");
 
-    if (/\bhentai\b/i.test(fields)) return true;
+    if (_HENTAI_RE.test(fields)) return true;
 
     // Explicit hentai-only keywords for content that isn't tagged "Hentai".
     // IMPORTANT: matched as WHOLE WORDS (so "anal" can't catch "analysis",
@@ -113,21 +155,12 @@ const AdultMode = (function () {
     // mainstream romance genres "yuri"/"yaoi"/"girls love" — those are regular
     // anime (e.g. "...Yoeru Sugata wa Yuri no Hana") and must stay in the normal
     // catalog. Real adult titles come in flagged via item.adultSource above.
-    const adultMarkers = [
-      "anal", "big boobs", "milf", "creampie", "incest", "netorare", "ntr",
-      "blowjob", "facial", "gangbang", "tentacle", "bondage", "bdsm",
-      "handjob", "masturbation", "paizuri", "rimjob", "bukkake", "ahegao"
-    ];
-    if (adultMarkers.some((marker) => new RegExp(`\\b${marker}\\b`, "i").test(fields))) return true;
+    // Whole-word adult markers (compiled once - see _ADULT_MARKER_RES).
+    if (_ADULT_MARKER_RES.some((re) => re.test(fields))) return true;
 
     // Safety markers that also imply adult content (to separate catalogs)
-    const minorMarkers = [
-      "child", "children", "elementary", "high school", "junior high",
-      "loli", "lolicon", "middle school", "minor", "schoolboy", "schoolgirl",
-      "shishunki", "shota", "shotacon", "student", "teen", "teenage",
-      "underage", "young boy", "young girl", "joshi kousei", "joshi kōsei"
-    ];
-    if (minorMarkers.some((marker) => fields.includes(marker)) && (item.genre === "Hentai" || item.isAdult)) return true;
+    // Safety markers (hoisted to _MINOR_MARKERS - see above).
+    if (_MINOR_MARKERS.some((marker) => fields.includes(marker)) && (item.genre === "Hentai" || item.isAdult)) return true;
 
     return false;
   }
