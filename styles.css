@@ -10718,3 +10718,31 @@ body.is-tv .topbar-auth {
   .footer-meta { display: none; }
   .footer-wordmark { width: min(7.5rem, 30vw); max-height: 1.7rem; }
 }
+
+/* ── Scroll polish ─────────────────────────────────────────────────────────
+   Most of what a "premium streaming" scroll feel needs already existed here:
+   html has scroll-behavior:smooth and scroll-padding-top:8rem, the rails carry
+   scroll-snap-type:x mandatory with scroll-snap-align:start on every card,
+   scrollbars are hidden, and card-rise / rise-in give staggered entrance
+   animation behind prefers-reduced-motion. Only this was missing:
+
+   Keep a sideways swipe INSIDE the rail instead of letting it chain out to the
+   browser back-gesture on touch devices - the usual way horizontal carousels
+   misbehave on phones. CSS-only, no listeners, no libraries.
+
+   Deliberately NOT added: vertical section snapping (scroll-snap-type:y).
+   The hero and content bands are ~590px tall, close to a full viewport, so even
+   `proximity` pulls hard and risks the reader being unable to stop where they
+   want - the opposite of the requirement that it never force the user into a
+   section. It also could not be validated in the local preview, which does not
+   respond to programmatic scrolling. Do not add it without shrinking sections
+   well below viewport height AND verifying on a real device.
+
+   Also NOT added: `body { overscroll-behavior-y: none }` - overscroll-behavior
+   on body propagates to the viewport and interacts badly with this layout. */
+.poster-grid,
+.schedule-day-rail,
+.source-picker-options {
+  overscroll-behavior-x: contain;
+}
+
