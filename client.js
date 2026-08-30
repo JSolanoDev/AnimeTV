@@ -78,10 +78,8 @@ const fallbackShows = [
   videoUrl: ""
 }));
 
-// Known playback server definitions — used by the source picker to show all server slots
-// even when only some resolve. `match` identifies a sourceOption belonging to this server.
-// AnimeAV1 is listed FIRST (most reliable; its HLS is the top pick). The picker
-// also re-orders by source preference, so the card holding AnimeAV1-HLS leads.
+// Regular anime uses AnimeAV1 exclusively. Adult playback stays isolated behind
+// the UnderHentai adapter and its resolved providers.
 const KNOWN_SOURCE_SERVERS = [
   {
     key: "underhentai",
@@ -96,6 +94,7 @@ const KNOWN_SOURCE_SERVERS = [
       (s.provider || "").toLowerCase().includes("veohentai") ||
       (s.provider || "").toLowerCase().includes("hentaiplayer") ||
       (s.streamResolver?.endpoint || "").toLowerCase().includes("/api/adult/underhentai/stream") ||
+      (s.label || "").toLowerCase().includes("zoplayer") ||
       (s.label || "").toLowerCase().includes("krakenfiles") ||
       (s.label || "").toLowerCase().includes("lulustream")
   },
@@ -107,23 +106,6 @@ const KNOWN_SOURCE_SERVERS = [
       (s.id || "").includes("animeav1") ||
       (s.label || "").toLowerCase().includes("animeav1") ||
       (s.externalUrl || s.videoUrl || "").includes("animeav1.com")
-  },
-  {
-    key: "tioanime",
-    label: "TioAnime",
-    desc: "Live scraper sources",
-    match: (s) =>
-      (s.id || "").includes("tioanime") ||
-      (s.label || "").toLowerCase().includes("tioanime")
-  },
-  {
-    key: "jkanime",
-    label: "JKAnime",
-    desc: "JKAnime.net embed servers (Spanish sub)",
-    match: (s) =>
-      (s.id || "").includes("jkanime") ||
-      (s.label || "").toLowerCase().includes("jkanime") ||
-      (s.externalUrl || s.videoUrl || "").includes("jkanime.net")
   }
 ];
 
@@ -135,20 +117,6 @@ const PLAYBACK_SCRAPERS = [
     desc: "Direct HLS / Mega / MP4Upload scraper — fast, ad-free playback.",
     endpoint: "/api/animeav1/sources",
     health: "/api/animeav1/info?slug=one-piece"
-  },
-  {
-    id: "tioanime",
-    name: "TioAnime",
-    desc: "Live episode source scraper (Spanish-subbed mirrors).",
-    endpoint: "/api/tioanime/sources",
-    health: "/api/tioanime/health"
-  },
-  {
-    id: "jkanime",
-    name: "JKAnime",
-    desc: "JKAnime.net embed servers — Spanish sub, multiple mirror players.",
-    endpoint: "/api/jkanime/sources",
-    health: "/api/jkanime/health"
   }
 ];
 
@@ -208,8 +176,8 @@ const state = {
   anipubFallbackCache: readAniPubFallbackCache(),
   localSources: [],
   customSources: JSON.parse(localStorage.getItem("animetv-custom-sources") || "[]"),
-  // Built-in playback scrapers the user can toggle on/off (default all on).
-  scraperEnabled: { animeav1: true, tioanime: true, ...JSON.parse(localStorage.getItem("zenkaitv-scrapers") || "{}") },
+  // AnimeAV1 is the only built-in regular-anime playback scraper.
+  scraperEnabled: { animeav1: true, ...JSON.parse(localStorage.getItem("zenkaitv-scrapers") || "{}") },
   // Compact (collapsed) icon rail is the DEFAULT; expand to reveal labels.
   sidebarCollapsed: localStorage.getItem("animetv-sidebar-collapsed") !== "false",
   apiStatus: {
@@ -544,7 +512,6 @@ async function loadAnimeSources() {
     scheduleDeferredServerCatalogRefresh();
     scheduleHomeRailExpansion();
     scheduleAnimeAv1LatestLoad();
-    scheduleLazyAddonCatalogLoad();
     return;
   }
 
@@ -576,7 +543,6 @@ async function loadAnimeSources() {
   await loadDirectCatalogFallback();
   scheduleHomeRailExpansion();
   scheduleAnimeAv1LatestLoad();
-  scheduleLazyAddonCatalogLoad();
 }
 
 function scheduleLazyAddonCatalogLoad(delayMs = 6000) {
@@ -711,9 +677,7 @@ async function loadExternalSources() {
     if (!response.ok) throw new Error("sources.json unavailable");
     const config = await response.json();
     const configuredSources = Array.isArray(config.sources) ? config.sources : [];
-    const sources = configuredSources.some((source) => source.id === LOCAL_FINDER_SOURCE_ID)
-      ? [...configuredSources, ...state.customSources]
-      : [...configuredSources, LOCAL_FINDER_SOURCE, ...state.customSources];
+    const sources = [...configuredSources, ...state.customSources];
     state.localSources = sources.map(applySourceOverride).filter((source) => !source.deleted);
     renderSources();
 
@@ -765,7 +729,6 @@ async function loadExternalSources() {
         // Update global state and re-render addon rails right away
         state.addonSections = [...addonSections];
       state.shows = mergeShows([...baseShows, ...allLoaded]);
-      if (_tioAnimeSlugTitleMap) state.shows.forEach((show) => applyTioAnimeSlugFromMap(show, _tioAnimeSlugTitleMap));
       if (_animeAv1SlugTitleMap) state.shows.forEach((show) => applyAnimeAv1SlugFromMap(show, _animeAv1SlugTitleMap));
       if (!source.playbackOnly) {
           renderAddonSections();
@@ -780,9 +743,7 @@ async function loadExternalSources() {
     state.addonSections = addonSections;
     if (allLoaded.length || addonSections.length) {
       state.shows = mergeShows([...baseShows, ...allLoaded]);
-      warmTioAnimeSlugCatalog(state.shows);
       warmAnimeAv1SlugCatalog(state.shows);
-      warmJKAnimeSlugCatalog(state.shows);
       warmVisibleShowMetadata(state.shows);
       const addonCount = addonSections.reduce((t, s) => t + (s.items?.length || 0), 0);
       state.apiStatus.local = allLoaded.length
@@ -3263,7 +3224,7 @@ function trailerEmbedUrl(trailer) {
   return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${id}&modestbranding=1&playsinline=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&enablejsapi=1`;
 }
 
-const APP_ROUTES = ["home", "library", "schedule", "favorites", "settings", "anipub", "sources", "profile", "not-found"];
+const APP_ROUTES = ["home", "library", "schedule", "favorites", "settings", "sources", "profile", "not-found"];
 const ROUTE_SLUG_ALIASES = {
   "demon-slayer": ["kimetsu-no-yaiba", "kimetsu-no-yaiba-yuukaku-hen", "kimetsu-no-yaiba-katanakaji-no-sato-hen"],
   "naruto": ["naruto", "naruto-shippuuden", "naruto-shippuden"],
@@ -3285,7 +3246,6 @@ function routePathFor(route) {
     settings: "/settings",
     sources: "/sources",
     profile: "/profile",
-    anipub: "/sources",
     "not-found": "/404"
   })[route] || "/";
 }
@@ -4747,12 +4707,9 @@ const SOURCE_FAST_SECOND_PASS_MS = 900;
 
 function hasFastPreferredPlaybackSource(episode) {
   return getEpisodePlaybackSources(episode).some((source) => {
-    const text = sourceIdentityText(source);
     return sourcePreferenceScore(source) <= 1
       || (isAnimeAv1Source(source) && isHlsSource(source))
-      || (isJKAnimeSource(source) && isMp4UploadSource(source))
-      || text.includes("animeav1")
-      || text.includes("mp4upload");
+      || isAnimeAv1Source(source);
   });
 }
 
@@ -4761,36 +4718,21 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
   const episodeNumber = Number(episode.episode || episode.number || 1);
   const lookupKey = `${normalizeTitle(show.title)}:s${seasonNumber}:e${episodeNumber}`;
   if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) {
-    const rawAdultSlug = String(show.adultId || show.slug || show.id || "")
-      .replace(/^adult-underhentai-/, "")
-      .replace(/^veohentai-/, "");
     const adultSources = Array.isArray(episode.sourceOptions) ? [...episode.sourceOptions] : [];
-    const hasCleanAdultResolver = adultSources.some((source) => isPreferredAdultSource(source));
-    if (rawAdultSlug && !hasCleanAdultResolver) {
-      adultSources.unshift({
-        id: `veohentai-e${episodeNumber}-fallback`,
-        label: "VeoHentai",
-        provider: "HentaiPlayer",
-        type: "resolver",
-        streamResolver: {
-          type: "underhentai",
-          endpoint: `/api/adult/underhentai/stream?slug=veohentai-${encodeURIComponent(rawAdultSlug)}&episode=${encodeURIComponent(episodeNumber)}`
-        }
-      });
-    }
     episode.sourceOptions = adultSources;
     episode.sourceOptions = normalizeEpisodeSourceOptions(episode);
     episode.sourceOptionsChecked = lookupKey;
-    episode.tioAnimeSourcesChecked = true;
     episode.animeAv1SourcesChecked = true;
-    episode.jkAnimeSourcesChecked = true;
     episode.serverChecks = {
       underhentai: episode.sourceOptions.length ? "found" : "notfound"
     };
     episode.locked = !episode.sourceOptions.length;
     return episode;
   }
-  if (episode.sourceOptionsChecked === lookupKey && episode.tioAnimeSourcesChecked && episode.animeAv1SourcesChecked && episode.jkAnimeSourcesChecked) return episode;
+  if (episode.sourceOptionsChecked === lookupKey && episode.animeAv1SourcesChecked) return episode;
+
+  // Drop stale sources left in cached episode metadata by retired providers.
+  episode.sourceOptions = normalizeEpisodeSourceOptions(episode).filter(isAnimeAv1Source);
 
   // Initialize per-server status tracking (undefined = still pending; "found" / "notfound")
   episode.serverChecks = {};
@@ -4812,8 +4754,7 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
     episode.sourceOptions = normalizeEpisodeSourceOptions(episode);
     const found = getEpisodePlaybackSources(episode).some(match);
     episode.serverChecks[key] = found ? "found" : "notfound";
-    // Record when each server first became ready, so the picker can float the
-    // first-ready scraper (TioAnime / AnimeAV1) to the top.
+    // Record when AnimeAV1 first becomes ready for the source picker.
     if (found) {
       episode.serverReadyAt = episode.serverReadyAt || {};
       if (!episode.serverReadyAt[key]) episode.serverReadyAt[key] = Date.now();
@@ -4837,23 +4778,9 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
     return lookup;
   };
 
-  lookups.push(Promise.resolve(attachLoadedAddonFallbacks(show, episode, seasonNumber))
-    .catch((error) => {
-      console.warn("Loaded addon source lookup failed:", error);
-      return null;
-    })
-    .then(() => refreshPicker()));
-  if (isScraperEnabled("tioanime")) {
-    addLookup("tioanime", "TioAnime scraper", attachTioAnimeSources(show, episode));
-  } else { episode.tioAnimeSourcesChecked = true; episode.serverChecks.tioanime = "notfound"; }
   if (isScraperEnabled("animeav1")) {
     addLookup("animeav1", "AnimeAV1 scraper", attachAnimeAv1Sources(show, episode), true);
   } else { episode.animeAv1SourcesChecked = true; episode.serverChecks.animeav1 = "notfound"; }
-  if (isScraperEnabled("jkanime")) {
-    addLookup("jkanime", "JKAnime scraper", attachJKAnimeSources(show, episode), true);
-  } else { episode.jkAnimeSourcesChecked = true; episode.serverChecks.jkanime = "notfound"; }
-  episode.animeonlineNinjaSourcesChecked = true;
-  episode.serverChecks.animeonlineninja = "notfound";
 
   const completeBackgroundLookup = Promise.allSettled(lookups)
     .then(() => {
@@ -4904,7 +4831,7 @@ function getKnownSourceServer(key) {
 
 function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options = {}) {
   const lookupKey = playbackLookupKey(show, episode, seasonNumber);
-  if (!lookupKey || (episode.sourceOptionsChecked === lookupKey && episode.tioAnimeSourcesChecked && episode.animeAv1SourcesChecked && episode.jkAnimeSourcesChecked && episode.animeonlineNinjaSourcesChecked)) return Promise.resolve(episode);
+  if (!lookupKey || (episode.sourceOptionsChecked === lookupKey && episode.animeAv1SourcesChecked)) return Promise.resolve(episode);
   if (sourceOptionsBackgroundLookups.has(lookupKey)) return sourceOptionsBackgroundLookups.get(lookupKey);
   if (pendingSourceLookups.has(lookupKey)) return pendingSourceLookups.get(lookupKey);
 
@@ -5738,11 +5665,21 @@ function render() {
   }, 80);
 }
 
+// User-initiated updates (tab switches) must paint NOW. Going through the
+// debounce meant a tab click could sit up to 80ms behind a queued background
+// render before anything appeared, which reads as lag. Background enrichment
+// still uses the debounced render().
+function renderNow() {
+  window.clearTimeout(_renderTimer);
+  _renderImmediate = false;
+  _renderCore();
+  _renderTimer = window.setTimeout(() => { _renderImmediate = true; }, 80);
+}
+
 function _render() {
   updateFilterButtons();
   const isHome = state.route === "home";
   const isLibrary = state.route === "library";
-  const isAniPub = state.route === "anipub";
   const isFavorites = state.route === "favorites";
   const isSchedule = state.route === "schedule";
   const isSources = state.route === "sources";
@@ -5801,7 +5738,6 @@ function _render() {
     renderCarousel();
     renderAddonSections();
   }
-  if (isAniPub) renderAniPubCatalog();
   if (isFavorites) {
     const favoriteShows = catalogShows().filter((show) => isFavoriteShow(show));
     renderCards(favoritesGrid, state.search ? favoriteShows.filter(matchesShowSearch) : favoriteShows);
@@ -5884,11 +5820,10 @@ function setRoute(route, options = {}) {
     renderCarousel();
     scheduleAnimeAv1LatestLoad();
   }
-  if (route === "anipub") ensureAniPubCatalogLoaded();
   if ((route === "sources" || route === "library") && !state.externalSourcesLoaded) {
     scheduleExternalSourcesLoad({ force: true });
   }
-  render();
+  renderNow();
   scrollToRoute(route);
   refreshFocusables();
 }
@@ -5924,7 +5859,7 @@ function scrollToRoute(route) {
       state.pendingRouteFocus = "";
       return;
     }
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "auto" });
   });
 }
 
@@ -6059,9 +5994,7 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
       canonicalMetadata.then(() => hydrateShowAniListFranchise(show)).then(refreshSeasonsIfActive),
       canonicalMetadata.then(() => fetchAniListShowExtras(show)).then(refreshSeasonsIfActive),
       canonicalMetadata.then(() => enrichTmdbImages(show)).then(refreshSeasonsIfActive),
-      // TioAnime slug resolution — stores show.tioAnimeSlug for episode playback
-      hydrateTioAnimeSlug(show),
-      hydrateJKAnimeSlug(show)
+      hydrateAnimeAv1Slug(show)
     ]);
     if (state.activeOpenToken !== openToken || state.activeShow?.id !== show.id) return;
     // Ensure every franchise entry (movies, OVAs, related seasons) has a minimal
@@ -7931,8 +7864,7 @@ const PRIMARY_SOURCE_FILTERS = [
     label: "Best servers",
     match: (source) => (
       (isAnimeAv1Source(source) && isHlsSource(source)) ||
-      (isAnimeAv1Source(source) && isMp4UploadSource(source)) ||
-      (isJKAnimeSource(source) && isMp4UploadSource(source))
+      (isAnimeAv1Source(source) && isMp4UploadSource(source))
     )
   }
 ];
@@ -7957,8 +7889,7 @@ function isPreferredAdultSource(source = {}) {
 }
 
 function isAdultFallbackSource(source = {}) {
-  const text = sourceIdentityText(source);
-  return text.includes("underhentai") || text.includes("kraken");
+  return Boolean(KNOWN_SOURCE_SERVERS.find((def) => def.key === "underhentai")?.match(source));
 }
 
 function isAnimeAv1Source(source = {}) {
@@ -8058,10 +7989,9 @@ function orderSourceOptions(sources = []) {
 }
 
 function getEpisodePlaybackSources(episode = {}) {
-  return orderSourceOptions(normalizeEpisodeSourceOptions(episode).filter((source) => {
-    const text = sourceIdentityText(source);
-    return !text.includes("animeonlineninja") && !text.includes("animéonline") && !text.includes("animeonline");
-  }));
+  return orderSourceOptions(normalizeEpisodeSourceOptions(episode).filter((source) => (
+    isAnimeAv1Source(source) || isAdultFallbackSource(source)
+  )));
 }
 
 function getSelectedEpisodeSource(episode = {}) {
@@ -10932,8 +10862,7 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
             isJimovShow(show)   ? hydrateJimovEpisodes(show)   : Promise.resolve(show),
             (!isNativeSource ? Promise.resolve(enrichShowFromAllSources(show)) : Promise.resolve(show)),
             hydrateShowAniListFranchise(show),
-            hydrateTioAnimeSlug(show),
-            hydrateJKAnimeSlug(show)
+            hydrateAnimeAv1Slug(show)
           ]);
           show._metadataPreloadComplete = true;
         }
@@ -11954,9 +11883,6 @@ async function playActiveShow(options = {}) {
     // Keep playback in this call. If we have nothing playable yet, wait below
     // for the source sweep before showing any final error state.
     lookupPromise = schedulePlaybackSourceOptions(show, activeEpisode, seasonNumber, { autoReplay: false });
-    if (!getEpisodePlaybackSources(activeEpisode).length) {
-      await playbackLookupWithTimeout("AniPub quick start", attachAniPubFallback(show, activeEpisode), 700);
-    }
     renderEpisodeList(show);
   }
 
@@ -12561,7 +12487,7 @@ async function resolveEpisodeStream(episode) {
 }
 
 function isEmbedUrl(url) {
-  return /youtube\.com\/embed|player\.vimeo\.com|\/embed(?:-video)?\/|lulu(?:vdo|stream)\.com\/(?:e|embed)\//i.test(url);
+  return /youtube\.com\/embed|player\.vimeo\.com|\/embed(?:-video)?\/|player\.zilla-networks\.com\/play\/|animeav1\.uns\.bio\/|lulu(?:vdo|stream)\.com\/(?:e|embed)\/|gupload\.xyz\/data\/e\//i.test(url);
 }
 
 function renderExternalPlaybackOption(show, externalUrl) {
