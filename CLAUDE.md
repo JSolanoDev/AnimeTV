@@ -192,7 +192,7 @@ bundler, so translate the verification steps as follows. Run what exists; don't 
 | Generic step | What to actually run here |
 | --- | --- |
 | Type checking | No TypeScript, no `tsconfig.json`. Closest gate: `npm run check` (runs `node --check` over every server/client/`js/*` file, then the security audit). |
-| Linting | `.eslintrc.json` exists but **ESLint is not installed** (devDeps are only `clean-css`, `terser`) and there is no `lint` script. Either add it deliberately or skip the step — do not claim lint passed when it never ran. |
+| Linting | `npm run lint` (ESLint 8 + `.eslintrc.json`). ESLint is intentionally **not** a devDependency — it would add ~98 packages to every Vercel install for a tool the build never runs — so install it locally first: `npm i -D eslint@8` (do not commit the resulting `package.json`/lockfile change). The ruleset is bug-focused (no-redeclare, no-dupe-keys, no-unreachable, …), not stylistic; `js/apk-oneanime.js` is exempt from `no-redeclare` only (vendored crypto helper). |
 | Tests | `npm test` → `scripts/test-grouping.mjs` (season/split-cour grouping). Run it after touching `js/season-normalization.js`. |
 | Production build | `npm run vercel-build` → `scripts/build-static.mjs` (copies repo root → `dist/` + `public/`, then minifies). |
 | Perf audit | `npm run perf:audit`. |

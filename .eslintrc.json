@@ -1,4 +1,5 @@
 {
+  "root": true,
   "env": {
     "browser": true,
     "node": true,
@@ -6,7 +7,58 @@
   },
   "extends": [],
   "parserOptions": {
-    "ecmaVersion": "latest"
+    "ecmaVersion": "latest",
+    "sourceType": "script"
   },
-  "rules": {}
+  "ignorePatterns": [
+    "dist/",
+    "public/",
+    "node_modules/",
+    "android/app/build/",
+    "vercel-static/",
+    "**/*.min.js",
+    "scraper/*.json"
+  ],
+  "rules": {
+    "no-dupe-keys": "error",
+    "no-dupe-args": "error",
+    "no-dupe-else-if": "error",
+    "no-duplicate-case": "error",
+    "no-unreachable": "error",
+    "no-redeclare": "error",
+    "no-self-assign": "error",
+    "no-self-compare": "error",
+    "no-unsafe-negation": "error",
+    "no-unsafe-finally": "error",
+    "no-cond-assign": "error",
+    "no-empty-pattern": "error",
+    "no-sparse-arrays": "error",
+    "no-func-assign": "error",
+    "no-import-assign": "error",
+    "no-obj-calls": "error",
+    "no-setter-return": "error",
+    "no-compare-neg-zero": "error",
+    "use-isnan": "error",
+    "valid-typeof": "error",
+    "getter-return": "error"
+  },
+  "overrides": [
+    {
+      "files": [
+        "*.mjs",
+        "scripts/*.mjs"
+      ],
+      "parserOptions": {
+        "sourceType": "module"
+      }
+    },
+    {
+      "files": [
+        "js/apk-oneanime.js"
+      ],
+      "rules": {
+        "no-redeclare": "off"
+      }
+    }
+  ]
 }

@@ -406,6 +406,26 @@ function setPlaceholder(input, key) {
   if (input) input.placeholder = t(key);
 }
 
+function resetCatalogModeControls() {
+  state.filter = "all";
+  state.search = "";
+  state.libraryLetter = "all";
+  state.libraryType = "all";
+  state.libraryGenre = "all";
+  state.libraryYear = "all";
+  state.libraryStatus = "all";
+  state.librarySort = "default";
+  state.libraryVisibleLimit = LIBRARY_INITIAL_RENDER_LIMIT;
+  state.libraryQuerySig = "";
+  state.carouselIndex = 0;
+  [searchInput, searchInputTop, searchInputLibrary, searchInputAniPub].forEach((el) => {
+    if (el) el.value = "";
+  });
+  document.querySelectorAll(".search-box .search-clear").forEach((button) => { button.hidden = true; });
+  if (typeof _carouselStableIds !== "undefined") _carouselStableIds = [];
+  if (typeof _carouselPaintedId !== "undefined") _carouselPaintedId = null;
+}
+
 function replaceRegularCatalog(items = []) {
   const adultItems = state.shows.filter((item) =>
     typeof AdultMode !== "undefined" && AdultMode.isAdultContent(item)
@@ -1215,10 +1235,10 @@ async function checkSourceRefreshes() {
 // The Smart Source modal: paste a link, see what ZenkaiTV will do, then confirm.
 function openSmartSourceModal() {
   if (!smartIntegrator) { addBasicAddonSource(window.prompt("Paste a catalog/addon URL.") || ""); return; }
-  document.querySelector(".ss-modal-backdrop")?.remove();
+  document.querySelector(".smart-source-backdrop")?.remove();
 
   const backdrop = document.createElement("div");
-  backdrop.className = "ss-modal-backdrop";
+  backdrop.className = "ss-modal-backdrop smart-source-backdrop";
   backdrop.innerHTML = `
     <div class="ss-modal" role="dialog" aria-modal="true" aria-label="Add a source">
       <button class="ss-modal-close focusable" type="button" aria-label="Close">✕</button>
@@ -1642,31 +1662,51 @@ function isolateAdultSourceMetadata(show) {
 }
 
 async function loadAdultCatalog(force = false) {
-  if (typeof AdultSourceRegistry === "undefined" || !AdultSourceRegistry.isConfigured()) return [];
+  if (typeof AdultSourceRegistry === "undefined" || !AdultSourceRegistry.isConfigured()) {
+    state.isLoadingCatalog = false;
+    render();
+    return [];
+  }
   if (adultCatalogLoadingPromise && !force) return adultCatalogLoadingPromise;
   const adapter = AdultSourceRegistry.get();
+  const provider = localStorage.getItem("animetv-adult-provider") || "merge";
+  const cacheKey = `adult-catalog:${adapter.name}:${provider}`;
+  const cachedItems = readResponseCache(cacheKey, CATALOG_CACHE_TTL);
+  const applyAdultItems = (items = [], labelPrefix = adapter.name) => {
+    const adultItems = Array.isArray(items)
+      ? items.filter((item) => item?.isAdult === true).map(isolateAdultSourceMetadata)
+      : [];
+    const regularItems = state.shows.filter((item) =>
+      typeof AdultMode === "undefined" ? item?.adultSource !== adapter.name : !AdultMode.isAdultContent(item)
+    );
+    state.shows = [...regularItems, ...adultItems];
+    if (typeof AdultMode !== "undefined" && AdultMode.isEnabled()) {
+      state.isLoadingCatalog = false;
+      state.carouselIndex = 0;
+      setSourceStatus(catalogStatusLabel(`${labelPrefix} adult catalog`, adultItems));
+      render();
+    }
+    return adultItems;
+  };
+  if (cachedItems?.length) {
+    const adultItems = applyAdultItems(cachedItems, `Cached ${adapter.name}`);
+    if (!force) return adultItems;
+  }
   adultCatalogLoadingPromise = Promise.resolve(adapter.listLatest(1))
     .then((items) => {
-      const adultItems = Array.isArray(items)
-        ? items.filter((item) => item?.isAdult === true).map(isolateAdultSourceMetadata)
-        : [];
-      const regularItems = state.shows.filter((item) => item?.adultSource !== adapter.name);
-      state.shows = [...regularItems, ...adultItems];
-      if (typeof AdultMode !== "undefined" && AdultMode.isEnabled()) {
-        state.isLoadingCatalog = false;
-        state.carouselIndex = 0;
-        setSourceStatus(catalogStatusLabel(`${adapter.name} adult catalog`, adultItems));
-        render();
-      }
+      const adultItems = applyAdultItems(items);
+      if (adultItems.length) writeResponseCache(cacheKey, adultItems);
       return adultItems;
     })
     .catch((error) => {
       console.warn("Adult catalog could not load:", error);
+      const adultItems = cachedItems?.length ? applyAdultItems(cachedItems, `Cached ${adapter.name}`) : [];
       if (typeof AdultMode !== "undefined" && AdultMode.isEnabled()) {
-        setSourceStatus("Adult catalog is temporarily unavailable");
+        state.isLoadingCatalog = false;
+        if (!adultItems.length) setSourceStatus("Adult catalog is temporarily unavailable");
         render();
       }
-      return [];
+      return adultItems;
     })
     .finally(() => {
       adultCatalogLoadingPromise = null;
@@ -10643,6 +10683,17 @@ let _tioAnimeWarmStarted = false;
 const TIOANIME_SEARCH_TIMEOUT_MS = 4200;
 const TIOANIME_SOURCE_TIMEOUT_MS = 6500;
 
+// TIOANIME_API points at a separate Python service (default http://localhost:5000).
+// When it is not reachable - the normal case in production - every lookup burned
+// its full 4.2s/6.5s timeout, once per show, stalling enrichment and flooding the
+// console. After a transport failure or a 5xx, skip TioAnime for a few minutes
+// instead of retrying it for every title. A per-title 404 is NOT treated as an
+// outage: that just means this show is not on TioAnime.
+const TIOANIME_COOLDOWN_MS = 5 * 60 * 1000;
+let _tioAnimeDownUntil = 0;
+function tioAnimeIsDown() { return Date.now() < _tioAnimeDownUntil; }
+function markTioAnimeDown() { _tioAnimeDownUntil = Date.now() + TIOANIME_COOLDOWN_MS; }
+
 function tioAnimeSearchCandidates(show = {}) {
   const candidates = [
     show.title,
@@ -10725,9 +10776,19 @@ function tioAnimeSlugFromSearchPayload(data = {}) {
 async function fetchTioAnimeSlugSearch(paramName, value, cacheKey) {
   if (!value || _tioAnimeMissCache.has(cacheKey)) return "";
   if (_tioAnimeSlugCache.has(cacheKey)) return _tioAnimeSlugCache.get(cacheKey);
+  if (tioAnimeIsDown()) return "";
   const qs = `${paramName}=${encodeURIComponent(value)}`;
-  const res = await fetchWithTimeout(`/api/tioanime/search?${qs}`, { cache: "no-store" }, TIOANIME_SEARCH_TIMEOUT_MS);
-  if (!res.ok) return "";
+  let res;
+  try {
+    res = await fetchWithTimeout(`/api/tioanime/search?${qs}`, { cache: "no-store" }, TIOANIME_SEARCH_TIMEOUT_MS);
+  } catch (error) {
+    markTioAnimeDown();
+    return "";
+  }
+  if (!res.ok) {
+    if (res.status >= 500) markTioAnimeDown();
+    return "";
+  }
   const data = await res.json();
   const slug = data.ok ? tioAnimeSlugFromSearchPayload(data) : "";
   if (slug) {
@@ -10997,12 +11058,17 @@ async function attachTioAnimeSources(show, episode) {
     episode.tioAnimeSourcesChecked = true;
     return;
   }
+  if (tioAnimeIsDown()) {
+    episode.tioAnimeSourcesChecked = true;
+    return;
+  }
   try {
     const res = await fetchWithTimeout(
       `/api/tioanime/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}`,
       { cache: "no-store" }, TIOANIME_SOURCE_TIMEOUT_MS
     );
     if (!res.ok) {
+      if (res.status >= 500) markTioAnimeDown();
       episode.tioAnimeSourcesChecked = true;
       return;
     }
@@ -11014,6 +11080,7 @@ async function attachTioAnimeSources(show, episode) {
     _tioAnimeEpisodeSourceCache.set(cacheKey, data);
     mergeTioAnimeSourcesIntoEpisode(show, episode, data, slug, epNum);
   } catch (error) {
+    markTioAnimeDown();
     console.warn("TioAnime episode sources unavailable:", error);
   }
   episode.tioAnimeSourcesChecked = true;
@@ -13082,6 +13149,7 @@ document.querySelectorAll("[data-adult-provider]").forEach((button) => {
       btn.classList.toggle("is-selected", btn === button);
     });
     
+    resetCatalogModeControls();
     state.isLoadingCatalog = true;
     render();
     loadAdultCatalog(true);
@@ -13640,7 +13708,7 @@ if (typeof AdultMode !== "undefined") {
   AdultMode.load();
   syncAdultModeChrome();
   AdultMode.onChange(async (on) => {
-    state.filter = "all";
+    resetCatalogModeControls();
     playThemeFlash(on);
     syncAdultModeChrome();
     if (on) await loadAdultCatalog();
