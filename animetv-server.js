@@ -187,7 +187,44 @@ const JKANIME_MISS_CACHE_TTL_MS = 1000 * 60 * 8;
 const ANILIST_MEDIA_CACHE_TTL_MS  = 1000 * 60 * 60 * 24;  // 24 h ΓÇö stable metadata
 const ANILIST_SEARCH_CACHE_TTL_MS = 1000 * 60 * 60 * 6;   // 6 h
 const anilistMediaCache  = new Map(); // anilistId ΓåÆ { data, ts }
-const anilistSearchCache = new Map(); // normalizedTitle ΓåÆ { data, ts }
+const anilistSearchCache = new Map();
+
+// Coalesce concurrent AniList lookups. Without this every caller for the same
+// key fired its own upstream request: the dev log showed ONE media id hitting
+// AniList 7 times in under 600ms, which tripped AniList's rate limit and came
+// back to the browser as 502s with missing metadata. Callers now share a
+// single in-flight promise per key; the existing caches handle repeat hits.
+const anilistInflight = new Map();
+
+// Coalescing alone was not enough: the 7 duplicate lookups for one id arrived
+// ~2ms apart and each failed FAST, so every one completed before the next
+// started and there was no overlap to merge. A short failure cooldown closes
+// that gap - the first failure is remembered, so the following requests fail
+// immediately from memory instead of hammering AniList, which is what tripped
+// its rate limit in the first place. Success clears the mark straight away.
+const anilistFailureCache = new Map();
+const ANILIST_FAILURE_TTL_MS = 30000;
+
+function anilistCoalesce(key, work) {
+  const existing = anilistInflight.get(key);
+  if (existing) return existing;
+  const failedAt = anilistFailureCache.get(key);
+  if (failedAt && Date.now() - failedAt < ANILIST_FAILURE_TTL_MS) {
+    return Promise.reject(new Error("AniList lookup cooling down after a recent failure"));
+  }
+  const pending = Promise.resolve().then(work)
+    .then((value) => { anilistFailureCache.delete(key); return value; })
+    .catch((error) => { anilistFailureCache.set(key, Date.now()); throw error; })
+    .finally(() => anilistInflight.delete(key));
+  anilistInflight.set(key, pending);
+  return pending;
+}
+
+// Keep the cooldown map from growing without bound on long-lived servers.
+setInterval(() => {
+  const cutoff = Date.now() - ANILIST_FAILURE_TTL_MS;
+  for (const [key, ts] of anilistFailureCache) if (ts < cutoff) anilistFailureCache.delete(key);
+}, ANILIST_FAILURE_TTL_MS).unref?.(); // normalizedTitle ΓåÆ { data, ts }
 const jikanEpisodeCache = new Map(); // malId -> { data, ts }
 const jikanFullCache = new Map(); // malId -> { data, ts }
 const jikanSearchCache = new Map(); // normalized title -> { data, ts }
@@ -7714,16 +7751,19 @@ async function handleAniListMedia(url, response) {
     return;
   }
   try {
-    const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ query: ANILIST_MEDIA_GQL, variables: { id } })
-    }, 14000);
-    if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
-    const payload = await upstream.json();
-    const media = payload?.data?.Media;
-    if (!media) throw new Error("No Media in response");
-    anilistMediaCache.set(cacheKey, { data: media, ts: Date.now() });
+    const media = await anilistCoalesce(`media:${cacheKey}`, async () => {
+      const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ query: ANILIST_MEDIA_GQL, variables: { id } })
+      }, 14000);
+      if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
+      const payload = await upstream.json();
+      const found = payload?.data?.Media;
+      if (!found) throw new Error("No Media in response");
+      anilistMediaCache.set(cacheKey, { data: found, ts: Date.now() });
+      return found;
+    });
     sendJson(response, { ok: true, media });
   } catch (err) {
     log("warn", "AniList media fetch failed", { id, error: err.message });
@@ -7744,16 +7784,19 @@ async function handleAniListSearch(url, response) {
     return;
   }
   try {
-    const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ query: ANILIST_SEARCH_GQL, variables: { search: q } })
-    }, 14000);
-    if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
-    const payload = await upstream.json();
-    const results = payload?.data?.Page?.media || [];
-    const best = results[0] || null;
-    if (best) anilistSearchCache.set(cacheKey, { data: best, ts: Date.now() });
+    const { best, results } = await anilistCoalesce(`search:${cacheKey}`, async () => {
+      const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ query: ANILIST_SEARCH_GQL, variables: { search: q } })
+      }, 14000);
+      if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
+      const payload = await upstream.json();
+      const list = payload?.data?.Page?.media || [];
+      const top = list[0] || null;
+      if (top) anilistSearchCache.set(cacheKey, { data: top, ts: Date.now() });
+      return { best: top, results: list };
+    });
     sendJson(response, { ok: true, media: best, results });
   } catch (err) {
     log("warn", "AniList search failed", { q, error: err.message });
