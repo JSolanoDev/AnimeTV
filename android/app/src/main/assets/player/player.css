@@ -341,19 +341,21 @@ body.fit-fill .art-video {
 
 .ztv-skip-icon {
   display: block;
-  width: 27px;
-  height: 27px;
+  width: 29px;
+  height: 29px;
 }
 
 .ztv-skip-value {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -35%);
+  transform: translate(-50%, -32%);
   color: currentColor;
-  font-size: 7.5px;
+  font-size: 10px;
   font-weight: 900;
   line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
 }
 
 .art-control-rewind-10:focus-visible,
@@ -472,5 +474,71 @@ body.fit-fill .art-video {
   .art-subtitle {
     bottom: calc(4.25rem + env(safe-area-inset-bottom)) !important;
     font-size: clamp(1rem, 4vw, 1.35rem) !important;
+  }
+}
+
+
+/* ── Mobile volume ────────────────────────────────────────────────────────
+   The stock panel is a 44x118 vertical popup that opens upward over the seek
+   bar, and on a touch screen there is no hover to dismiss it. Phones get a
+   horizontal <input type="range"> instead; desktop keeps ArtPlayer's control. */
+.art-control-volume-mobile {
+  /* !important on both sides: ArtPlayer injects its own .art-control { display:
+     flex } stylesheet at runtime, after this file, so an equal-specificity rule
+     would lose on cascade order and the phone control would show on desktop. */
+  display: none !important;
+  align-items: center;
+  padding: 0 0.35rem;
+}
+
+.ztv-volume-range {
+  width: 5.5rem;
+  height: 44px;               /* full-height touch target, thin visible track */
+  margin: 0;
+  background: transparent;
+  accent-color: #8a5cff;
+  cursor: pointer;
+}
+
+.ztv-volume-range:focus-visible {
+  outline: 2px solid rgba(0, 210, 255, 0.65);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (max-width: 760px) {
+  .art-control-volume-mobile { display: flex !important; }
+
+  /* The bottom bar does not fit a phone. Measured at 375px BEFORE this pass the
+     groups already summed to ~517px against a 375px viewport, so the right-hand
+     controls were clipped (the row does not scroll). Keep the priority set -
+     play/pause, -10, +10, next episode, time, volume, fullscreen - and drop the
+     rest, which stay available on wider screens.
+     The horizontal range replaces BOTH the stock volume button and its popup:
+     dragging to zero mutes and dragging up unmutes, so nothing is lost and only
+     one volume affordance is visible. */
+  .art-control-volume,
+  .art-control-pip,
+  .art-control-fullscreenWeb,
+  .art-control-setting { display: none !important; }
+
+  .ztv-volume-range { width: 3.5rem; }
+
+  /* ArtPlayer narrows its controls to 38px at phone widths. With the secondary
+     controls removed above there is room to bring the remaining touch targets
+     back to 44px, which is the minimum comfortable tap size. */
+  .art-control-rewind-10,
+  .art-control-forward-10,
+  .art-control-playAndPause,
+  .art-control-next-episode,
+  .art-control-fullscreen {
+    /* !important: ArtPlayer sets the control width in its own runtime stylesheet. */
+    min-width: 44px !important;
+  }
+
+  /* Reclaim width from the timestamp so the row fits without shrinking targets. */
+  .art-control-time {
+    font-size: 0.72rem;
+    padding: 0 0.3rem;
   }
 }

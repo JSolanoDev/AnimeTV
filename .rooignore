@@ -1,0 +1,22 @@
+# Ignore irrelevant/generated content
+node_modules/
+.git/
+dist/
+build/
+coverage/
+.cache/
+tmp/
+temp/
+*.log
+*.zip
+*.7z
+*.rar
+chrome-profile/
+outputs/
+**/*backup*/
+**/AnimeTV_backup*/
+
+# Ignore specific project files that should not be touched
+.env
+.env.example
+package-lock.json

@@ -186,10 +186,61 @@
         }
       });
     }
+    playerOptions.controls.push({
+      name: "volume-mobile",
+      position: "right",
+      index: 12,
+      html: '<input class="ztv-volume-range" type="range" min="0" max="100" step="1" value="100" aria-label="Volume">'
+    });
     if (subtitleConfig) playerOptions.subtitle = subtitleConfig;
 
     art = new window.Artplayer(playerOptions);
     wireArtEvents();
+    wireMobileVolume();
+  }
+
+  // ArtPlayer computes volume from VERTICAL pointer position, so its slider
+  // cannot be turned horizontal with CSS - a rotated one would read backwards.
+  // This is a real range input bound to the same underlying volume, used on
+  // phones where the stock popup opens over the seek bar and there is no hover
+  // to dismiss it. The existing volume button still handles mute, so there is
+  // one mute affordance and one level affordance, not two of either.
+  function wireMobileVolume() {
+    if (!art) return;
+    const input = document.querySelector(".ztv-volume-range");
+    if (!input) return;
+    let lastNonZero = art.volume > 0 ? art.volume : 1;
+
+    const sync = () => {
+      const level = art.muted ? 0 : Math.round((art.volume || 0) * 100);
+      if (input.value !== String(level)) input.value = String(level);
+      input.setAttribute("aria-valuetext", level + "%");
+    };
+
+    input.addEventListener("input", () => {
+      const level = Number(input.value) / 100;
+      if (level <= 0) {
+        art.muted = true;              // dragging to zero reads as mute
+      } else {
+        lastNonZero = level;
+        if (art.muted) art.muted = false;
+        art.volume = level;
+      }
+    });
+
+    // The player treats taps as play/pause and drags as seeks; keep both away
+    // from the slider so touch dragging adjusts volume only.
+    ["click", "pointerdown", "touchstart", "dblclick"].forEach((type) => {
+      input.addEventListener(type, (event) => event.stopPropagation());
+    });
+
+    art.on("video:volumechange", () => {
+      // Unmuting after a drag-to-zero would otherwise restore silence.
+      if (!art.muted && !art.volume && lastNonZero > 0) art.volume = lastNonZero;
+      sync();
+    });
+    art.on("ready", sync);
+    sync();
   }
 
   function wireArtEvents() {
