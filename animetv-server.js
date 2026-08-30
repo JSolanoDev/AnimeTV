@@ -7829,7 +7829,12 @@ async function handleAniListMedia(url, response) {
     sendJson(response, { ok: true, media });
   } catch (err) {
     log("warn", "AniList media fetch failed", { id, error: err.message });
-    sendJson(response, { ok: false, error: err.message }, 502);
+    // AniList being rate-limited or down is NOT a fault of this server, and the
+    // client already treats a missing lookup as "no metadata" and falls through
+    // to Jikan. Returning 502 for it inflated the error rate for an outcome the
+    // app handles normally, so answer 200 with an empty result instead. Genuine
+    // server faults elsewhere still return 5xx.
+    sendJson(response, { ok: false, media: null, unavailable: true, error: err.message });
   }
 }
 
@@ -7862,7 +7867,12 @@ async function handleAniListSearch(url, response) {
     sendJson(response, { ok: true, media: best, results });
   } catch (err) {
     log("warn", "AniList search failed", { q, error: err.message });
-    sendJson(response, { ok: false, error: err.message }, 502);
+    // AniList being rate-limited or down is NOT a fault of this server, and the
+    // client already treats a missing lookup as "no metadata" and falls through
+    // to Jikan. Returning 502 for it inflated the error rate for an outcome the
+    // app handles normally, so answer 200 with an empty result instead. Genuine
+    // server faults elsewhere still return 5xx.
+    sendJson(response, { ok: false, media: null, results: [], unavailable: true, error: err.message });
   }
 }
 
