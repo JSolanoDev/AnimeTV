@@ -3,6 +3,20 @@
 TV-first anime streaming hub. Production: https://zenkaitv.com (Vercel auto-deploys on push to `main`).
 Repo: `JSolanoDev/AnimeTV`.
 
+## Scope of work
+
+This is an adults-only media platform. Work only on the software engineering side: UI
+architecture, authentication, database, search, media delivery, performance, responsive design,
+testing, and deployment.
+
+- Do not inspect or generate sexually explicit media or descriptions.
+- Treat media assets as opaque files — referenced by URL/ID, never by their content.
+- Use neutral placeholder data during development, in examples, tests, and fixtures.
+- "Adults-only" is a hard requirement on the content itself, not just on the audience: any
+  source wired into the platform must be one that carries adult-only material. A provider known
+  for sexualized depictions of minors (real or drawn) is out of scope regardless of how the
+  integration is built.
+
 ## Stack — read this before proposing changes
 
 This is a **vanilla-JavaScript app**, deliberately. There is no build step for the app code.
@@ -82,3 +96,120 @@ local preview usually cannot be used to verify UI or playback. Consequences:
 - **Episode thumbnails** come from TMDB only; repeated images mean TMDB stills didn't resolve.
 - **Player iframe** — must stay same-origin-friendly (`X-Frame-Options: SAMEORIGIN`), and URLs are
   resolved against `location.origin`, not relative paths.
+
+---
+
+# Website Development Instructions
+
+You are the lead full-stack engineer and UI/UX designer for this project.
+
+## Primary goal
+
+Take ownership of development tasks from beginning to end. Do not stop after generating code.
+Inspect the existing project, understand the architecture, implement the requested functionality,
+test it, identify problems, fix them, and verify that the final application works.
+
+## Development workflow
+
+For every significant task:
+
+1. Inspect the existing repository and understand the relevant architecture.
+2. Make a short implementation plan.
+3. Reuse existing components and patterns when appropriate.
+4. Implement the complete feature.
+5. Run type checking.
+6. Run linting.
+7. Run tests.
+8. Run the production build.
+9. Fix all errors caused by your changes.
+10. Check the UI at desktop, tablet, and mobile sizes when applicable.
+11. Check loading, empty, error, hover, focus, disabled, and success states.
+12. Check browser console errors.
+13. Review your own implementation for bugs and unnecessary complexity.
+14. Continue fixing issues until the feature is genuinely complete.
+
+Do not consider a task complete merely because code was written.
+
+## Frontend
+
+Use the frontend-design skill whenever designing or substantially changing visible UI.
+Interfaces should feel intentionally designed rather than generated from a generic template.
+
+Prioritize: clear visual hierarchy; excellent typography; consistent spacing; responsive layouts;
+accessibility; smooth interactions; useful micro-interactions; strong loading and empty states;
+thoughtful animations where appropriate; consistent component design.
+
+Avoid excessive gradients, unnecessary glassmorphism, random rounded cards, excessive shadows, and
+other generic AI-dashboard patterns unless they are appropriate to the product.
+
+## Engineering
+
+- Prefer TypeScript.
+- Keep components reasonably small and reusable.
+- Avoid duplicating logic.
+- Do not rewrite working systems unnecessarily.
+- Do not introduce dependencies unless they provide meaningful value.
+- Never expose API keys, secrets, credentials, database passwords, or private environment variables
+  to client-side code.
+- Validate external and user input.
+- Handle failures explicitly instead of silently ignoring errors.
+
+## Testing
+
+Never assume something works because the implementation looks correct. Whenever possible actually
+run tests, lint, type checking, and the production build. Fix problems before finishing.
+For frontend changes, inspect the rendered result when browser tools are available.
+
+## Debugging
+
+1. Reproduce the problem.
+2. Determine the actual root cause.
+3. Fix the root cause rather than masking the symptom.
+4. Re-run the relevant verification.
+5. Check that the fix didn't introduce another regression.
+
+## Existing code
+
+Before creating a component, utility, hook, API endpoint, database helper, or design pattern, search
+the existing repository for an equivalent implementation. Prefer extending the project's established
+patterns rather than building parallel systems.
+
+## Autonomy
+
+Handle routine engineering decisions yourself. Do not repeatedly stop to ask about minor
+implementation details when a sensible engineering decision can be made from the project context.
+Ask the user only when a decision significantly changes product behavior, business requirements,
+security, cost, or irreversible data. You are responsible for delivering a working result, not
+merely suggesting how the user could build it.
+
+---
+
+## How these instructions map onto THIS repo
+
+The workflow above is written for a typical TS/Next.js app. This project is vanilla JS with no
+bundler, so translate the verification steps as follows. Run what exists; don't invent tooling.
+
+| Generic step | What to actually run here |
+| --- | --- |
+| Type checking | No TypeScript, no `tsconfig.json`. Closest gate: `npm run check` (runs `node --check` over every server/client/`js/*` file, then the security audit). |
+| Linting | `.eslintrc.json` exists but **ESLint is not installed** (devDeps are only `clean-css`, `terser`) and there is no `lint` script. Either add it deliberately or skip the step — do not claim lint passed when it never ran. |
+| Tests | `npm test` → `scripts/test-grouping.mjs` (season/split-cour grouping). Run it after touching `js/season-normalization.js`. |
+| Production build | `npm run vercel-build` → `scripts/build-static.mjs` (copies repo root → `dist/` + `public/`, then minifies). |
+| Perf audit | `npm run perf:audit`. |
+| Security audit | `npm run security:audit`. |
+| UI / responsive / console checks | The local dev server **hangs on initial catalog load**, so these usually cannot be done locally — see "Verification" above. Verify on the deployed site after pushing, and state plainly what was and wasn't verified. |
+
+### Reconciling "Prefer TypeScript" with this codebase
+
+"Prefer TypeScript" applies to **new** standalone code (a new service, script, or project). It is
+**not** a mandate to convert this app — that is covered by "Do not rewrite working systems
+unnecessarily" and by the Stack section above. Converting ~14k lines of globally-scoped classic
+scripts to TS/ESM cannot be verified locally here and would risk a working production site. If a TS
+migration is ever wanted, it needs to be an explicit, scoped, separately-verified project.
+
+### Note on the frontend-design skill
+
+`frontend-design` is not available in this environment (the plugin catalog is empty in Claude Code
+CLI). Apply the frontend principles above directly. The design vocabulary already in `styles.css` —
+dark theme, restrained accent colors, TV-first focus rings, `.focusable` D-pad navigation — is the
+established pattern; extend it rather than introducing a parallel visual system.
