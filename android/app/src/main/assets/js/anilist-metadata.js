@@ -664,57 +664,9 @@ async function hydrateShowAniListFranchise(show) {
  * After AniList franchise hydration, make sure every franchise entry
  * (movie, OVA, related TV seasons) has a minimal show object in state.shows.
  */
-function ensureFranchiseShowsInCatalog(show) {
-  const franchise = show.anilistFranchise;
-  if (!franchise || !franchise.groups) return;
-
-  const allEntries = franchise.groups.flatMap(g => g.items);
-
-  const added = [];
-  for (const entry of allEntries) {
-    const aniId = String(entry.anilistId || "");
-    if (!aniId) continue;
-
-    const syntheticId = `anilist-${aniId}`;
-    const alreadyIn = state.shows.some(s =>
-      s.id === syntheticId ||
-      (s.anilistId && String(s.anilistId) === aniId)
-    );
-    if (alreadyIn) continue;
-
-    const epCount = getAniListDisplayEpisodeCount(entry);
-    added.push({
-      id:           syntheticId,
-      anilistId:    Number(aniId),
-      malId:        entry.malId || null,
-      title:        entry.title || syntheticId,
-      romajiTitle:  entry.romajiTitle || "",
-      nativeTitle:  entry.nativeTitle || "",
-      episode:      epCount || "?",
-      totalEpisodes: entry.episodes || null,
-      latestAiredEp: entry.latestAiredEp || null,
-      nextAiringEp: entry.nextAiringEp || null,
-      nextAiringEpisodeNumber: entry.nextAiringEp || null,
-      genre:        show.genre || "anime",
-      genres:       entry.genres?.length ? entry.genres : (show.genres || []),
-      format:       entry.format || "",
-      status:       entry.status || "",
-      year:         entry.seasonYear || "",
-      source:       "AniList",
-      image:        entry.image || show.image || "",
-      banner:       show.banner || "",
-      description:  entry.description || show.description || "",
-      videoUrl:     "",
-      seasons:      [],
-      episodes:     [],
-      colors:       show.colors || ["#40dfc2", "#251d47"],
-      day:          "TBA",
-      time:         "",
-      score:        entry.score || null,
-    });
-  }
-
-  if (added.length > 0) {
-    state.shows = [...state.shows, ...added];
-  }
-}
+// ensureFranchiseShowsInCatalog lived here too, but client.js loads AFTER this
+// file and declares the same top-level name, so this copy was always silently
+// overridden - dead code that looked live, and they had drifted apart (this one
+// only understood franchise.groups; the surviving one also handles the legacy
+// tvSeasons/movies/ovas/... shape and de-dupes). Removed; client.js owns it.
+// Guarded by scripts/check-global-collisions.mjs.
