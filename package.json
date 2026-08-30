@@ -16,7 +16,7 @@
     "dev": "node animetv-local.js",
     "vercel-build": "node scripts/build-static.mjs",
     "deploy:vercel": "powershell -NoProfile -ExecutionPolicy Bypass -File ./deploy-vercel.ps1",
-    "check": "node --check animetv-local.js && node --check animetv-server.js && node --check api/[...path].js && node --check js/constants.js && node --check js/translations.js && node --check js/utils.js && node --check js/normalize.js && node --check js/season-normalization.js && node --check js/smart-source.js && node --check js/image-resolver.js && node --check js/router.js && node --check client.js && node --check scripts/build-underhentai-catalog.mjs && node --check scripts/build-underhentai-details.mjs && node scripts/security-audit.mjs",
+    "check": "node --check animetv-local.js && node --check animetv-server.js && node --check api/[...path].js && node --check js/constants.js && node --check js/translations.js && node --check js/utils.js && node --check js/normalize.js && node --check js/season-normalization.js && node --check js/smart-source.js && node --check js/image-resolver.js && node --check js/router.js && node --check client.js && node --check scripts/build-underhentai-catalog.mjs && node --check scripts/build-underhentai-details.mjs && node scripts/check-asset-versions.mjs && node scripts/security-audit.mjs",
     "perf:audit": "node scripts/perf-audit.mjs",
     "test": "node scripts/test-grouping.mjs",
     "security:audit": "node scripts/security-audit.mjs",
@@ -24,7 +24,8 @@
     "adult:details": "node scripts/build-underhentai-details.mjs",
     "android:build": "cd android && .\\gradlew.bat assembleDebug",
     "android:install": "adb install -r android/app/build/outputs/apk/debug/app-debug.apk",
-    "lint": "eslint client.js animetv-local.js animetv-server.js \"js/*.js\" \"player/*.js\" \"scripts/*.mjs\" \"api/**/*.js\""
+    "lint": "eslint client.js animetv-local.js animetv-server.js \"js/*.js\" \"player/*.js\" \"scripts/*.mjs\" \"api/**/*.js\"",
+    "check:versions": "node scripts/check-asset-versions.mjs"
   },
   "keywords": [
     "anime",
