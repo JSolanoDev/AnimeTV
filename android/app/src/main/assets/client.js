@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=507`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=508`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2881,7 +2881,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=507";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=508";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -5196,6 +5196,11 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
       episode.sourceOptionsPending = false;
       refreshPicker();
       refreshFocusables();
+      // Resolution is done: hand the result to the player. Without this the
+      // episode stayed resolved-but-unplayable until some later render happened
+      // to promote it - which is why a working source could sit behind an empty
+      // screen for 15-20s. See promoteResolvedEpisodeSource.
+      promoteResolvedEpisodeSource(episode);
     });
   sourceOptionsBackgroundLookups.set(lookupKey, completeBackgroundLookup);
 
@@ -8441,6 +8446,45 @@ const PRIMARY_SOURCE_FILTERS = [
 
 // Source classification and ranking (sourceIdentityText ... getEpisodePlaybackSources)
 // now lives in js/source-classification.js, loaded before this file.
+
+// The single transition that turns a RESOLVED source list into active player
+// state. Source resolution is async: selectEpisode/playEpisodeByPosition set
+// state.activeEpisodeUrl = getEpisodeUrl(episode) immediately, which is "" while
+// the lookup is still running, and playActiveShow mounts nothing. When the lookup
+// finished, attachPlaybackSourceOptions only refreshed the source PICKER - it
+// never selected a source, never promoted a URL, and never re-invoked the mount.
+//
+// getEpisodeUrl -> pickPlayableUrl reads only episode.videoUrl and its siblings;
+// it does not look at episode.sourceOptions. So a fully resolved episode could
+// sit with sourceOptions[0].videoUrl valid, selectedSourceId null, videoUrl "",
+// activeEpisodeUrl "" and no player at all - no spinner, no error, nothing.
+//
+// Deliberately conservative so it cannot disturb a working playback path:
+//   - only acts when the episode has NO playable URL yet
+//   - only acts when this episode is STILL the active one (stale-response guard:
+//     a late response for a previously-clicked episode must never mount over the
+//     episode the user has since switched to)
+//   - reuses getSelectedEpisodeSource for priority/preference, so ranking logic
+//     is not duplicated here
+function promoteResolvedEpisodeSource(episode) {
+  if (!episode) return false;
+  const active = state.activeEpisode?.episode;
+  if (!active || active !== episode) return false;      // stale or not current
+  if (getEpisodeUrl(episode)) return false;             // already playable
+  const selected = getSelectedEpisodeSource(episode);
+  if (!selected) return false;                          // nothing playable yet
+  if (!episode.selectedSourceId) episode.selectedSourceId = selected.id;
+  if (selected.videoUrl) episode.videoUrl = selected.videoUrl;
+  const url = getEpisodeUrl(episode);
+  // An iframe/resolver source has no direct URL; those mount through their own
+  // path, so only take over when there is a real URL to hand the player.
+  if (!url) return false;
+  state.activeEpisodeUrl = url;
+  // allowSourceLookup:false - the lookup that triggered this has just finished;
+  // re-running it here would loop.
+  Promise.resolve(playActiveShow({ allowSourceLookup: false })).catch(() => {});
+  return true;
+}
 
 function getSelectedEpisodeSource(episode = {}) {
   const sources = getEpisodePlaybackSources(episode);
@@ -14785,7 +14829,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=507");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=508");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
