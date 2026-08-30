@@ -15,5 +15,32 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      - run: npm run check
-      - run: npm run vercel-build
+
+      # Syntax across every server/client/js file, asset-version consistency
+      # (guards the stale-helper white-screen: a js/*.js left on an older ?v=
+      # than client.js throws a ReferenceError and blanks the app), and the
+      # secret/env-file audit.
+      - name: Static checks, asset versions, security audit
+        run: npm run check
+
+      # The regression suite: season/split-cour grouping, image fallback, and
+      # the adult classifier. That last group exists because a refactor once
+      # silently disabled adult detection while BOTH node --check and eslint
+      # passed - only behaviour caught it, so it has to run here.
+      - name: Tests
+        run: npm test
+
+      # ESLint is deliberately not a devDependency: it would add ~98 packages to
+      # every Vercel install for a tool the production build never runs. Install
+      # it for this step only, without touching package.json or the lockfile.
+      - name: Install lint tooling
+        run: npm i --no-save eslint@8
+
+      # Bug-focused rules (no-redeclare, no-dupe-keys, no-unreachable, ...).
+      # no-redeclare is what would have caught the `supabase` global collision
+      # that broke login.
+      - name: Lint
+        run: npm run lint
+
+      - name: Production build
+        run: npm run vercel-build
