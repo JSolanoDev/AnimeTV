@@ -393,7 +393,7 @@ function applyAppLanguage() {
   updateFilterButtons();
   if (fakePlay) fakePlay.textContent = t("play");
   if (castButton) castButton.textContent = t("cast");
-  setFavoriteButtonState(Boolean(state.activeShow && state.favorites.includes(state.activeShow.id)));
+  setFavoriteButtonState(Boolean(state.activeShow && isFavoriteShow(state.activeShow)));
   document.querySelector("#videoFrame [data-i18n-placeholder]")?.removeAttribute("data-i18n-placeholder");
 }
 
@@ -3376,7 +3376,7 @@ function getStableShowHue(show = {}) {
 }
 
 function cardTemplate(show, index = 0) {
-  const isFavorite = state.favorites.includes(show.id);
+  const isFavorite = isFavoriteShow(show);
   const colors = Array.isArray(show.colors) && show.colors.length >= 2 ? show.colors : ["#00d2ff", "#251d47"];
   const title = escapeHtml(getShowTitle(show));
   const showHue = getStableShowHue(show);
@@ -3401,8 +3401,11 @@ function cardTemplate(show, index = 0) {
   // Above-the-fold posters load eagerly, but the hero remains the only
   // high-priority image so LCP is not delayed by a dozen competing card fetches.
   const eager = Number(index) < 7;
+  // Above-the-fold posters were eager but had no priority hint, so they queued
+  // behind lazy/low-priority artwork. Mark them high so the first visible row
+  // paints as early as possible.
   const loadingAttrs = eager
-    ? `loading="eager"`
+    ? `loading="eager" fetchpriority="high"`
     : `loading="lazy" fetchpriority="low"`;
   const image = posterUrl
     ? `
@@ -3485,7 +3488,7 @@ function renderCards(container, list) {
   const signature = list
     .map((show) => {
       const posterKey = getCardPosterCandidates(show)[0] || "";
-      return `${show.id}:${cardEpisodeLabel(show)}:${state.favorites.includes(show.id) ? 1 : 0}:${posterKey}`;
+      return `${show.id}:${cardEpisodeLabel(show)}:${isFavoriteShow(show) ? 1 : 0}:${posterKey}`;
     })
     .join("|");
   if (container.dataset.cardsSig === signature) return;
@@ -5724,7 +5727,7 @@ function _render() {
   }
   if (isAniPub) renderAniPubCatalog();
   if (isFavorites) {
-    const favoriteShows = catalogShows().filter((show) => state.favorites.includes(show.id));
+    const favoriteShows = catalogShows().filter((show) => isFavoriteShow(show));
     renderCards(favoritesGrid, state.search ? favoriteShows.filter(matchesShowSearch) : favoriteShows);
     const emptyFavorites = document.querySelector("#emptyFavorites");
     if (emptyFavorites && favoritesGrid) emptyFavorites.hidden = favoritesGrid.children.length > 0;
@@ -5909,7 +5912,7 @@ async function openShow(id, target = {}) {
   resetVideoFrame();
   syncWatchHeading(show);
   document.querySelector("#watchDescription").textContent = show.description;
-  setFavoriteButtonState(state.favorites.includes(show.id));
+  setFavoriteButtonState(isFavoriteShow(show));
   overlay.hidden = false;
   document.body.classList.add("watch-detail-open");
   // Land focus on the Play action (remote-friendly) so OK plays and D-pad reaches
@@ -6005,7 +6008,7 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
     syncWatchHeading(show);
     const descriptionNode = document.querySelector("#watchDescription");
     if (descriptionNode) descriptionNode.textContent = show.description;
-    setFavoriteButtonState(state.favorites.includes(show.id));
+    setFavoriteButtonState(isFavoriteShow(show));
     // Pre-fetch sources in the background so they're ready, but only OPEN the
     // source picker when the user explicitly intends to play (Play button or an
     // episode click). Opening a show from a card/poster lands on the detail view.
@@ -6499,15 +6502,36 @@ function stopActivePlayback() {
   frame.innerHTML = "";
 }
 
+// A favourite matches on EITHER the catalog id (legacy saves) or the stable
+// getShowKey() identity. Catalog ids are NOT stable between sessions - the same
+// show can arrive from AniList one load and AnimeAV1 the next, changing show.id -
+// which silently emptied the Favorites tab. Compared as strings so a number id
+// saved earlier still matches a string id today.
+function isFavoriteShow(show) {
+  if (!show || !Array.isArray(state.favorites) || !state.favorites.length) return false;
+  const wanted = [show.id, getShowKey(show)]
+    .filter((v) => v !== undefined && v !== null && v !== "")
+    .map(String);
+  if (!wanted.length) return false;
+  return state.favorites.some((fav) => wanted.includes(String(fav)));
+}
+
 function toggleFavorite() {
   if (!state.activeShow) return;
   const id = state.activeShow.id;
-  const isAdding = !state.favorites.includes(id);
-  state.favorites = isAdding
-    ? [...state.favorites, id]
-    : state.favorites.filter((favorite) => favorite !== id);
+  const key = getShowKey(state.activeShow);
+  const isAdding = !isFavoriteShow(state.activeShow);
+  if (isAdding) {
+    // Save BOTH the catalog id and the stable key so the entry survives the
+    // show being served by a different source next session.
+    state.favorites = Array.from(new Set([...state.favorites, id, key]
+      .filter((v) => v !== undefined && v !== null && v !== "")));
+  } else {
+    const drop = [id, key].filter(Boolean).map(String);
+    state.favorites = state.favorites.filter((fav) => !drop.includes(String(fav)));
+  }
   localStorage.setItem("anime-tv-favorites", JSON.stringify(state.favorites));
-  setFavoriteButtonState(state.favorites.includes(id));
+  setFavoriteButtonState(isFavoriteShow(state.activeShow));
   render();
   
   // Database sync
@@ -7975,7 +7999,13 @@ function getSelectedEpisodeSource(episode = {}) {
   if (savedPreference && savedPreference !== "auto") {
     const preferred = sources.find((source) => source.id === savedPreference);
     if (preferred && (!cleanAdultSource || isPreferredAdultSource(preferred))) {
-      return preferred;
+      // Only honour the remembered server when it is at least as good as the
+      // best one available for THIS episode. Otherwise one past manual pick
+      // outranked AnimeAV1/HLS (preference score 0) on every anime forever,
+      // so the top source was never the one that opened first.
+      if (sourcePreferenceScore(preferred) <= sourcePreferenceScore(sources[0])) {
+        return preferred;
+      }
     }
   }
   return sources[0];
