@@ -12,18 +12,20 @@
     <meta property="og:description" content="Watch anime online in HD. Latest episodes, seasonal simulcasts, and full series — optimized for TV, desktop, and mobile.">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="icon" type="image/webp" href="logo-round-192.webp?v=365">
-    <link rel="shortcut icon" href="logo-round-192.webp?v=365">
-    <link rel="apple-touch-icon" href="logo-round-192.png?v=365">
-    <link rel="manifest" href="/manifest.webmanifest?v=365">
+    <link rel="icon" type="image/webp" href="logo-round-192.webp?v=455">
+    <link rel="shortcut icon" href="logo-round-192.webp?v=455">
+    <link rel="apple-touch-icon" href="logo-round-192.png?v=455">
+    <link rel="manifest" href="/manifest.webmanifest?v=455">
     <!-- Only graphql.anilist.co is hit directly by the browser (trailers/extras).
          Jikan + s4 poster images go through the same-origin /api proxy, so
          preconnecting them is wasted. crossorigin matches the CORS GraphQL fetch. -->
     <link rel="preconnect" href="https://graphql.anilist.co" crossorigin>
     <link rel="dns-prefetch" href="https://graphql.anilist.co">
+    <link rel="preload" as="fetch" href="/homepage-bootstrap.json?v=455" crossorigin>
+    <link rel="preload" as="image" fetchpriority="high" href="/api/image?src=https%3A%2F%2Fs4.anilist.co%2Ffile%2Fanilistcdn%2Fmedia%2Fanime%2Fbanner%2F187869-WuaolpHqNqHk.jpg&amp;w=1280&amp;q=88">
     <style>
       :root{color-scheme:dark;--bg:#070914;--panel:#111522;--text:#f7f8ff;--muted:#aeb6c8;--accent:#8a55ff;--cyan:#00d2ff}
-      *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#070914;color:#f7f8ff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{overflow-x:hidden}.app-loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;align-content:center;gap:.8rem;background:#070914}.loader-mark{width:5rem;height:5rem;border-radius:1.45rem;overflow:hidden;background:#0d1b2a;box-shadow:0 0 2rem rgba(0,210,255,.25)}.loader-logo{display:block;width:100%;height:100%;object-fit:cover}.app-shell{display:grid;grid-template-columns:4.4rem minmax(0,1fr);min-height:100vh}.topbar{position:fixed;inset:0 auto 0 0;z-index:80;width:4.4rem;background:rgba(8,11,22,.92);display:flex;flex-direction:column;align-items:center;padding:1.1rem .45rem;gap:1rem}.brand{display:flex;align-items:center;color:inherit;text-decoration:none}.brand-mark{display:grid;place-items:center;width:3.2rem;height:3.2rem;border-radius:1.1rem;overflow:hidden;background:#0d1b2a}.brand-logo{width:100%;height:100%;object-fit:cover}.brand-copy,.nav-link span+*,.search-box,.sidebar-toggle{display:none}main{min-width:0}.hero{min-height:clamp(31rem,66vh,46rem);background:#070914}.carousel-stage{position:relative;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:1fr;align-items:start;min-height:clamp(31rem,66vh,46rem);overflow:hidden;padding:clamp(1rem,2.4vw,2.4rem) clamp(1.6rem,5vw,5.5rem) 6.2rem}.carousel-backdrop,.carousel-backdrop-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:linear-gradient(135deg,#121733,#1b1a3b 38%,#0b2637);filter:saturate(1.12) contrast(1.06) brightness(.82);transform:scale(1.002)}.carousel-info{position:relative;z-index:3;display:grid;align-self:center;grid-template-rows:auto auto auto auto auto;gap:.85rem;max-width:min(46rem,62vw);padding:0}.carousel-info h2{margin:0;padding-bottom:.18rem;font-size:clamp(1.55rem,3.1vw,3.1rem);line-height:1;letter-spacing:0;display:-webkit-box;overflow:hidden;overflow-wrap:anywhere;-webkit-line-clamp:2;-webkit-box-orient:vertical}.carousel-info p{margin:0;color:#c7cede;font-weight:700}.carousel-info p:not(.eyebrow){display:-webkit-box;max-width:40rem;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical}.eyebrow{color:#8a55ff!important;text-transform:uppercase}.play-action{margin-top:.25rem;min-height:3.4rem;border:0;border-radius:1rem;background:#8a55ff;color:white;font-weight:900;padding:0 1.4rem}.content-band{padding:clamp(1rem,2vw,1.75rem) 0 4rem}.rail-shell{display:grid;grid-template-columns:3rem minmax(0,1fr) 3rem;align-items:center;gap:.7rem}.poster-grid{--rail-gap:clamp(.65rem,1vw,.95rem);display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - (6 * var(--rail-gap))) / 7);grid-template-rows:repeat(2,auto);gap:var(--rail-gap);overflow-x:auto;overflow-y:visible;padding:.25rem 0 1rem;scrollbar-width:none}.show-card{display:grid;gap:.7rem;align-content:start;text-decoration:none;color:inherit}.thumb-art{display:grid;place-items:center;aspect-ratio:2/3;overflow:hidden;border-radius:.8rem;background:linear-gradient(135deg,#00d2ff,#251d47)}.thumb-poster{width:100%;height:100%;object-fit:cover;object-position:center top}
+      *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#070914;color:#f7f8ff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{overflow-x:hidden}.app-loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;align-content:center;gap:.8rem;background:#070914}.loader-mark{width:5rem;height:5rem;border-radius:1.45rem;overflow:hidden;background:#0d1b2a;box-shadow:0 0 2rem rgba(0,210,255,.25)}.loader-logo{display:block;width:100%;height:100%;object-fit:cover}.app-shell{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;padding-left:4.2rem;background:linear-gradient(180deg,rgba(8,10,19,0) 0%,rgba(8,10,19,.5) 66%,#050710 100%)}.topbar{position:fixed;inset:0 auto 0 0;z-index:80;width:4.2rem;background:rgba(8,11,22,.92);display:flex;flex-direction:column;align-items:center;padding:1.1rem .4rem;gap:1rem}.brand{display:flex;align-items:center;color:inherit;text-decoration:none}.brand-mark{display:grid;place-items:center;width:3.1rem;height:3.1rem;border-radius:1.1rem;overflow:hidden;background:#0d1b2a}.brand-logo{width:100%;height:100%;object-fit:cover}.brand-copy,.nav-link span+*,.topbar .search-box,.sidebar-toggle{display:none}.search-box{position:relative;display:block;width:100%}.stremio-search{display:block;max-width:min(54rem,100%);position:relative;z-index:9;margin:2.7rem 0 1.2rem}.stremio-search input{width:100%;min-height:4rem;border:0;border-radius:1rem;background:rgba(7,9,19,.62);color:#f7f8ff;padding:0 3.3rem 0 1.25rem}.search-box span:last-child{position:absolute;right:1.2rem;top:50%;transform:translateY(-50%);color:#8b84a6}main{min-width:0;padding:1.2rem clamp(1.4rem,3.2vw,3.4rem) 1.2rem}.hero{min-height:clamp(31rem,66vh,46rem);background:#070914}.carousel-stage{position:relative;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:1fr;align-items:start;min-height:clamp(31rem,66vh,46rem);overflow:hidden;padding:clamp(1rem,2.4vw,2.4rem) clamp(1.6rem,5vw,5.5rem) 6.2rem}.carousel-backdrop,.carousel-backdrop-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:linear-gradient(135deg,#121733,#1b1a3b 38%,#0b2637);filter:none;transform:none}.carousel-info{position:relative;z-index:3;display:grid;align-self:center;grid-template-rows:auto auto auto auto auto;gap:.85rem;max-width:min(46rem,62vw);padding:0}.carousel-info h2{margin:0;padding-bottom:.18rem;font-size:clamp(1.55rem,3.1vw,3.1rem);line-height:1;letter-spacing:0;display:-webkit-box;overflow:hidden;overflow-wrap:anywhere;-webkit-line-clamp:2;-webkit-box-orient:vertical}.carousel-info p{margin:0;color:#c7cede;font-weight:700}.carousel-info p:not(.eyebrow){display:-webkit-box;max-width:40rem;overflow:hidden;-webkit-line-clamp:2;-webkit-box-orient:vertical}.eyebrow{color:#8a55ff!important;text-transform:uppercase}.play-action{margin-top:.25rem;min-height:3.4rem;border:0;border-radius:1rem;background:#8a55ff;color:white;font-weight:900;padding:0 1.4rem}.content-band{padding:clamp(1rem,2vw,1.75rem) 0 4rem}.rail-shell{display:grid;grid-template-columns:3rem minmax(0,1fr) 3rem;align-items:center;gap:.7rem}.poster-grid{--rail-gap:clamp(.65rem,1vw,.95rem);display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - (6 * var(--rail-gap))) / 7);grid-template-rows:repeat(2,auto);gap:var(--rail-gap);overflow-x:auto;overflow-y:visible;padding:.25rem .35rem 1rem;scrollbar-width:none}.show-card{display:grid;gap:.7rem;align-content:start;text-decoration:none;color:inherit}.thumb-art{display:grid;place-items:center;aspect-ratio:2/3;overflow:hidden;border-radius:.8rem;background:linear-gradient(135deg,#00d2ff,#251d47)}.thumb-poster{width:100%;height:100%;object-fit:cover;object-position:center top}
       /* Critical visibility: must apply before the async stylesheet loads,
          otherwise every non-home route shows the home sections stacked on top
          (a large empty gap) until styles.css arrives. */
@@ -35,9 +37,7 @@
       .carousel-indicators{position:absolute;left:clamp(2rem,5vw,5.2rem);right:clamp(2rem,5vw,5.2rem);bottom:1.45rem;z-index:4;display:flex;gap:.65rem;align-items:center;overflow-x:auto;padding:.25rem 0}
       .carousel-dot{flex:0 0 auto;width:4rem;height:2.55rem;padding:0;overflow:hidden;border:0;border-radius:.5rem;opacity:.72}
       .carousel-stage.is-loading .carousel-indicators{display:none}
-      /* Home search bar is shown on the home route; reserve its box so it doesn't
-         appear (and push the rails down ~90px) when styles.css loads. */
-      body[data-route="home"] .stremio-search{display:block;height:4rem;overflow:hidden;margin:1.2rem 0}
+
       /* Mobile above-the-fold layout MUST mirror styles.css @media(max-width:760px),
          otherwise first paint uses the desktop hero (~916px tall) and the async
          stylesheet then collapses it to ~496px, shoving the page up ~300px (huge CLS). */
@@ -59,27 +59,28 @@
          sheet arrives — on Lighthouse's throttled network that async swap was the
          root cause of CLS ≈ 0.83. The sheet is ~28 KB Brotli and immutably
          cached, so blocking on it costs little FCP while dropping CLS to ~0. -->
-    <link id="fullStylesheet" rel="stylesheet" href="styles.css?v=365">
+    <link id="fullStylesheet" rel="stylesheet" href="styles.css?v=455">
     <script>(function(){try{var p=localStorage.getItem("animetv-resume-positions");if(p&&p.length>2)document.documentElement.setAttribute("data-has-history","");}catch(e){}})()</script>
-    <!-- Defer all JS — browser discovers them early but executes after DOM parse -->
-    <script defer src="js/constants.js?v=365"></script>
-    <script defer src="js/translations.js?v=365"></script>
-    <script defer src="js/utils.js?v=365"></script>
-    <script defer src="js/season-normalization.js?v=365"></script>
-    <script defer src="js/normalize.js?v=365"></script>
-    <script defer src="js/anilist-metadata.js?v=365"></script>
-    <script defer src="js/smart-source.js?v=365"></script>
-    <script defer src="js/image-resolver.js?v=365"></script>
-    <script defer src="js/adult-source-adapter.js?v=365"></script>
-    <script defer src="js/adult-mode.js?v=365"></script>
-    <script defer src="js/router.js?v=365"></script>
-    <script defer src="client.js?v=365"></script>
+    <!-- Defer all JS - browser discovers them early but executes after DOM parse -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <script defer src="js/constants.js?v=455"></script>
+    <script defer src="js/translations.js?v=455"></script>
+    <script defer src="js/utils.js?v=455"></script>
+    <script defer src="js/season-normalization.js?v=455"></script>
+    <script defer src="js/normalize.js?v=455"></script>
+    <script defer src="js/anilist-metadata.js?v=455"></script>
+    <script defer src="js/smart-source.js?v=455"></script>
+    <script defer src="js/image-resolver.js?v=455"></script>
+    <script defer src="js/adult-source-adapter.js?v=455"></script>
+    <script defer src="js/adult-mode.js?v=455"></script>
+    <script defer src="js/router.js?v=455"></script>
+    <script defer src="client.js?v=455"></script>
   </head>
   <body>
-    <script>(function(){var p=location.pathname.replace(/\/+$/,"")||"/";var h=(location.hash||"").replace(/^#/,"");var r=p==="/search"||p==="/browse"||/^\/(genre|year|season|studio)\//.test(p)?"library":p==="/schedule"?"schedule":p==="/favorites"?"favorites":p==="/settings"?"settings":p==="/sources"?"sources":p==="/profile"||p==="/login"?"profile":"home";var m={search:"library",browse:"library",library:"library",home:"home",schedule:"schedule",favorites:"favorites",settings:"settings",sources:"sources",profile:"profile"};if(p==="/"&&m[h])r=m[h];document.body.dataset.route=r;})()</script>
+    <script>(function(){var p=location.pathname.replace(/\/+$/,"")||"/";var h=(location.hash||"").replace(/^#/,"");var r=p==="/search"||p==="/browse"||/^\/(genre|year|season|studio)\//.test(p)?"library":p==="/schedule"?"schedule":p==="/favorites"?"favorites":p==="/settings"?"settings":p==="/sources"?"sources":p==="/profile"||p==="/login"?"profile":"home";var m={search:"library",browse:"library",library:"library",home:"home",schedule:"schedule",favorites:"favorites",settings:"settings",sources:"sources",profile:"profile"};if(p==="/"&&m[h])r=m[h];document.body.dataset.route=r;try{if(localStorage.getItem("animetv-sidebar-collapsed")!=="false")document.body.classList.add("sidebar-collapsed")}catch(e){document.body.classList.add("sidebar-collapsed")}})()</script>
     <div class="app-loader" id="appLoader" role="status" aria-live="polite">
       <div class="loader-mark" aria-hidden="true">
-        <img class="loader-logo" src="logo-mark-128.webp?v=338" alt="" width="128" height="128" decoding="async">
+        <img class="loader-logo" src="logo-mark-128.webp?v=455" alt="" width="128" height="128" decoding="async">
       </div>
       <strong>ZenkaiTV</strong>
       <small>Waking the anime lounge...</small>
@@ -89,7 +90,7 @@
       <header class="topbar">
         <a class="brand focusable" href="/" data-route="home" data-nav-label="Home" aria-label="ZenkaiTV — Home">
           <span class="brand-mark" aria-hidden="true">
-            <img class="brand-logo" src="logo-mark-128.webp?v=338" alt="" width="66" height="66" decoding="async">
+            <img class="brand-logo" src="logo-mark-128.webp?v=455" alt="" width="66" height="66" decoding="async">
             <span class="adult-mode-badge" id="adultModeBadge" hidden>+18</span>
           </span>
           <span class="brand-copy">
@@ -99,23 +100,23 @@
         </a>
 
         <nav class="main-nav" aria-label="Primary">
-          <button class="nav-link focusable is-active" data-route="home">
+          <button class="nav-link focusable is-active" data-route="home" aria-label="Open home">
             <span aria-hidden="true">⌂</span>
             Home
           </button>
-          <button class="nav-link focusable" data-route="library">
+          <button class="nav-link focusable" data-route="library" aria-label="Open anime library">
             <span aria-hidden="true">▣</span>
             Search
           </button>
-          <button class="nav-link focusable" data-route="schedule">
+          <button class="nav-link focusable" data-route="schedule" aria-label="Open weekly schedule">
             <span aria-hidden="true">★</span>
             Schedule
           </button>
-          <button class="nav-link focusable" data-route="favorites">
+          <button class="nav-link focusable" data-route="favorites" aria-label="Open favorites">
             <span aria-hidden="true">♥</span>
             Favorites
           </button>
-          <button class="nav-link focusable" data-route="settings">
+          <button class="nav-link focusable" data-route="settings" aria-label="Open settings">
             <span aria-hidden="true">⚙</span>
             Settings
           </button>
@@ -137,7 +138,7 @@
           <div class="today-carousel" aria-label="Today's anime carousel">
             <div class="carousel-stage focusable" id="carouselStage" tabindex="0" aria-label="Open selected carousel anime">
               <div class="carousel-backdrop" id="carouselBackdrop"></div>
-              <img class="carousel-backdrop-image" id="carouselBackdropImage" src="hero-backdrop-placeholder.webp?v=338" alt="" width="960" height="540" fetchpriority="high" decoding="async">
+              <img class="carousel-backdrop-image" id="carouselBackdropImage" src="hero-backdrop-placeholder.webp?v=455" alt="" width="960" height="540" loading="eager" fetchpriority="high" decoding="async">
               <div class="hero-motion" aria-hidden="true">
                 <span></span>
                 <span></span>
@@ -148,7 +149,7 @@
                 <h2 id="carouselTitle">Loading anime...</h2>
                 <p id="carouselText">Fetching today's anime from AniList and Jikan.</p>
                 <p class="carousel-meta-line" id="carouselMeta">Loading</p>
-                <button class="play-action focusable" id="carouselOpen">
+                <button class="play-action focusable" id="carouselOpen" aria-label="Play featured anime">
                   <span class="play-icon" aria-hidden="true"></span>
                   <span>Play</span>
                 </button>
@@ -208,13 +209,22 @@
           <div class="section-heading">
             <span class="library-dot" aria-hidden="true"></span>
             <h2>Anime Library</h2>
+            <button class="library-filter-toggle focusable" id="libraryFilterToggle" type="button" aria-expanded="false" aria-label="Toggle filters">
+              <span class="filter-icon" aria-hidden="true">⌥</span>
+              <span>Filters</span>
+            </button>
           </div>
           <label class="search-box library-search">
             <span class="sr-only">Search anime library</span>
             <input class="focusable" id="searchInputLibrary" type="search" placeholder="Search anime..." autocomplete="off">
             <span aria-hidden="true">⌕</span>
           </label>
-          <div class="library-filter-panel" aria-label="Anime library filters">
+          <div class="adult-provider-tabs" id="adultProviderTabs" hidden>
+            <button class="adult-provider-tab focusable is-selected" type="button" data-adult-provider="merge">Merged (All)</button>
+            <button class="adult-provider-tab focusable" type="button" data-adult-provider="underhentai">UnderHentai</button>
+            <button class="adult-provider-tab focusable" type="button" data-adult-provider="veohentai">VeoHentai</button>
+          </div>
+          <div class="library-filter-panel" aria-label="Anime library filters" hidden style="display: none;">
             <div class="library-letter-row" role="group" aria-label="Filter by first letter">
               <button class="library-letter focusable is-selected" type="button" data-library-letter="all">#</button>
               <button class="library-letter focusable" type="button" data-library-letter="A">A</button>
@@ -404,7 +414,7 @@
 
       <footer class="bottom-bar" aria-label="ZenkaiTV footer">
         <div class="footer-brand">
-          <img class="footer-wordmark" src="logo-wordmark-480.webp?v=338" alt="ZenkaiTV" width="240" height="74" loading="lazy" decoding="async">
+          <img class="footer-wordmark" src="logo-wordmark-480.webp?v=455" alt="ZenkaiTV" width="240" height="74" loading="lazy" decoding="async">
           <p class="footer-tagline">Your anime universe — organized, ad-free, always on.</p>
           <div class="footer-meta">
             <span class="footer-status">Catalogs refresh daily</span>
@@ -426,14 +436,14 @@
         <div class="watch-stage">
           <div class="watch-stage-body">
             <img class="watch-logo" id="watchLogo" alt="" hidden>
-            <h2 class="watch-title" id="watchTitle">Title</h2>
+            <h1 class="watch-title" id="watchTitle">Title</h1>
             <p class="watch-meta-row" id="watchMetaRow" aria-label="Details"></p>
             <div class="watch-taglist" id="watchGenres" aria-label="Genres"></div>
             <div class="watch-taglist watch-castlist" id="watchCast" aria-label="Cast" hidden></div>
             <p class="watch-summary" id="watchDescription"></p>
             <p class="eyebrow" id="watchMeta" hidden>Episode</p>
             <div class="watch-actions">
-              <button class="primary-action focusable" id="fakePlay">Play</button>
+              <button class="primary-action focusable" id="fakePlay" aria-label="Play selected anime">Play</button>
               <button class="icon-action focusable" id="trailerButton" type="button" aria-label="Watch trailer" data-tip="Trailer" hidden>
                 <span aria-hidden="true">▶</span>
               </button>
@@ -514,11 +524,11 @@
           <div class="auth-divider"><span>or continue with</span></div>
           
           <div class="social-login-buttons">
-            <button class="social-btn google-btn focusable" id="googleLoginBtn" type="button">
+            <button class="social-btn google-btn focusable" id="googleLoginBtn" type="button" aria-label="Continue with Google">
               <svg class="social-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z"/></svg>
               Google
             </button>
-            <button class="social-btn facebook-btn focusable" id="facebookLoginBtn" type="button">
+            <button class="social-btn facebook-btn focusable" id="facebookLoginBtn" type="button" aria-label="Continue with Facebook">
               <svg class="social-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c4.56-.93 8-4.96 8-9.75z"/></svg>
               Facebook
             </button>
@@ -583,4 +593,3 @@
     </div>
   </body>
 </html>
-

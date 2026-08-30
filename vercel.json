@@ -13,12 +13,15 @@
     { "source": "/api/(.*)", "destination": "/api/[...path]" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
+  "redirects": [
+    { "source": "/anime/player/player.html", "destination": "/player/player.html", "permanent": false }
+  ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
         { "key": "Strict-Transport-Security",  "value": "max-age=31536000; includeSubDomains; preload" },
-        { "key": "Content-Security-Policy",     "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://vjs.zencdn.net; font-src 'self' data:; img-src 'self' data: blob: http: https:; media-src 'self' blob: http: https:; connect-src 'self' http: https: ws: wss:; frame-src 'self' http: https: blob:; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; navigate-to 'self'" },
+        { "key": "Content-Security-Policy",     "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' data:; img-src 'self' data: blob: http: https:; media-src 'self' blob: http: https:; connect-src 'self' http: https: ws: wss:; frame-src 'self' http: https: blob:; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'" },
         { "key": "Referrer-Policy",             "value": "no-referrer" },
         { "key": "X-Content-Type-Options",      "value": "nosniff" },
         { "key": "X-Frame-Options",             "value": "SAMEORIGIN" },
@@ -49,12 +52,6 @@
       "source": "/api/(animeav1|tioanime|jkanime|animeonlineninja)/slugs",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400" }
-      ]
-    },
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store, max-age=0" }
       ]
     },
     {

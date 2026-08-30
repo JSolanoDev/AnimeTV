@@ -27,7 +27,7 @@ function installAdBlockGuards() {
 
 // TRANSLATIONS is defined in js/translations.js
 
-let anipubCatalogCache = readResponseCache("anipub-full-catalog");
+let anipubCatalogCache = readResponseCache("anipub-full-catalog", CATALOG_CACHE_TTL);
 let anipubCatalogLoadingPromise = null;
 let adultCatalogLoadingPromise = null;
 const anipubEpisodesCache = new Map();
@@ -89,6 +89,13 @@ const KNOWN_SOURCE_SERVERS = [
     desc: "Selected adult release and provider",
     match: (s) =>
       (s.id || "").includes("underhentai") ||
+      (s.label || "").toLowerCase().includes("underhentai") ||
+      (s.label || "").toLowerCase().includes("veohentai") ||
+      (s.label || "").toLowerCase().includes("hentaiplayer") ||
+      (s.label || "").toLowerCase().includes("hentaila") ||
+      (s.provider || "").toLowerCase().includes("veohentai") ||
+      (s.provider || "").toLowerCase().includes("hentaiplayer") ||
+      (s.streamResolver?.endpoint || "").toLowerCase().includes("/api/adult/underhentai/stream") ||
       (s.label || "").toLowerCase().includes("krakenfiles") ||
       (s.label || "").toLowerCase().includes("lulustream")
   },
@@ -117,15 +124,6 @@ const KNOWN_SOURCE_SERVERS = [
       (s.id || "").includes("jkanime") ||
       (s.label || "").toLowerCase().includes("jkanime") ||
       (s.externalUrl || s.videoUrl || "").includes("jkanime.net")
-  },
-  {
-    key: "animeonlineninja",
-    label: "AniméOnline",
-    desc: "AniméOnlineNinja Latino dub servers",
-    match: (s) =>
-      (s.id || "").includes("animeonlineninja") ||
-      (s.label || "").toLowerCase().includes("animéonline") ||
-      (s.label || "").toLowerCase().includes("animeonineninja")
   }
 ];
 
@@ -151,13 +149,6 @@ const PLAYBACK_SCRAPERS = [
     desc: "JKAnime.net embed servers — Spanish sub, multiple mirror players.",
     endpoint: "/api/jkanime/sources",
     health: "/api/jkanime/health"
-  },
-  {
-    id: "animeonlineninja",
-    name: "AniméOnline Ninja",
-    desc: "Latino voice (Audio Latino) — AniméOnlineNinja.com multiserver scraper.",
-    endpoint: "/api/animeonlineninja/sources",
-    health: "/api/animeonlineninja/health"
   }
 ];
 
@@ -173,6 +164,8 @@ function setScraperEnabled(id, enabled) {
 const LIBRARY_INITIAL_RENDER_LIMIT = 84;
 const LIBRARY_RENDER_STEP = 84;
 
+const verticalArt = new Set();
+
 const state = {
   route: "home",
   filter: "all",
@@ -181,7 +174,7 @@ const state = {
   activeEpisodeUrl: "",
   activeEpisode: null,
   preferredSource: localStorage.getItem("animetv-preferred-playback-source") || "auto",
-  sourcePickerFilter: "all",
+  sourcePickerFilter: "preferred:best-servers",
   activeDetailTab: "episodes",
   adultGalleryKey: "",
   adultGalleryHidden: false,
@@ -198,6 +191,13 @@ const state = {
   activeSeasonIndex: 0,
   carouselIndex: 0,
   shows: [],
+  av1Latest: (() => {
+    try {
+      const cached = localStorage.getItem("zenkaitv-av1-latest-cache");
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  })(),
+  av1LatestAt: Number(localStorage.getItem("zenkaitv-av1-latest-cache-at") || 0),
   isLoadingCatalog: true,
   homeCardLimit: HOME_INITIAL_CARD_LIMIT,
   addonSections: [],
@@ -209,7 +209,7 @@ const state = {
   localSources: [],
   customSources: JSON.parse(localStorage.getItem("animetv-custom-sources") || "[]"),
   // Built-in playback scrapers the user can toggle on/off (default all on).
-  scraperEnabled: { animeav1: true, tioanime: true, animeonlineninja: true, ...JSON.parse(localStorage.getItem("zenkaitv-scrapers") || "{}") },
+  scraperEnabled: { animeav1: true, tioanime: true, ...JSON.parse(localStorage.getItem("zenkaitv-scrapers") || "{}") },
   // Compact (collapsed) icon rail is the DEFAULT; expand to reveal labels.
   sidebarCollapsed: localStorage.getItem("animetv-sidebar-collapsed") !== "false",
   apiStatus: {
@@ -271,6 +271,8 @@ const carouselOpen = document.querySelector("#carouselOpen");
 const carouselStage = document.querySelector("#carouselStage");
 const carouselIndicators = document.querySelector("#carouselIndicators");
 let carouselTimer = null;
+let _carouselIndicatorImagesReady = false;
+let _carouselIndicatorHydrationQueued = false;
 let lastInputWasPointer = false;
 
 function hideAppLoader() {
@@ -418,49 +420,176 @@ function regularCatalogSnapshot() {
   );
 }
 
+async function fetchHomepageBootstrapCatalog() {
+  if (location.protocol === "file:") return [];
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=380`, { cache: "force-cache" }, 2500);
+  if (!response.ok) throw new Error("Homepage bootstrap unavailable");
+  const payload = await response.json();
+  const rawItems = Array.isArray(payload)
+    ? payload
+    : payload.items || payload.results || payload.anime || payload.catalog || payload.data || [];
+  const source = { id: "homepage-bootstrap", name: payload.source || "ZenkaiTV Bootstrap" };
+  return rawItems.map((item, index) => normalizeExternalShow(item, source, index)).filter(Boolean);
+}
+
+function scheduleAnimeAv1LatestLoad(delayMs = 2500) {
+  const loadLatest = () => loadAnimeAv1Latest();
+  const run = () => {
+    if ("requestIdleCallback" in window) window.requestIdleCallback(loadLatest, { timeout: 3000 });
+    else window.setTimeout(loadLatest, 300);
+  };
+  // Settle the real "Latest Episodes" (AnimeAV1 order) a couple seconds after
+  // first paint instead of 45s, so the home rail stops swapping order long after
+  // the user is looking at it. Gated on `load` + idle so it never delays paint.
+  const auto = () => window.setTimeout(run, delayMs);
+  if (document.readyState === "complete") auto();
+  else window.addEventListener("load", auto, { once: true });
+}
+
+function applyServerCatalog(serverCatalog = [], label = "ZenkaiTV API") {
+  if (!serverCatalog.length) return false;
+  replaceRegularCatalog(mergeShows(serverCatalog));
+  state.isLoadingCatalog = false;
+  state.carouselIndex = 0;
+  state.apiStatus.metadata = "Online";
+  state.apiStatus.direct = "Standby";
+  writeResponseCache("main-catalog", regularCatalogSnapshot());
+  setSourceStatus(catalogStatusLabel(label, state.shows));
+  render();
+  scheduleVisibleMetadataWarm(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
+  scheduleHomeRailExpansion();
+  return true;
+}
+
+function scheduleDeferredServerCatalogRefresh(delayMs = 1500) {
+  let started = false;
+  const events = ["pointerdown", "keydown", "wheel", "touchstart"];
+  const cleanup = () => events.forEach((event) => window.removeEventListener(event, startRefresh, true));
+  const refresh = async () => {
+    const serverCatalog = await timedRequest("ZenkaiTV metadata API", () => fetchLocalMetadataCatalog()).catch(() => []);
+    if (serverCatalog.length) applyServerCatalog(serverCatalog);
+  };
+  function startRefresh() {
+    if (started) return;
+    started = true;
+    cleanup();
+    if ("requestIdleCallback" in window) window.requestIdleCallback(refresh, { timeout: 5000 });
+    else refresh();
+  }
+  events.forEach((event) => window.addEventListener(event, startRefresh, { capture: true, once: true, passive: true }));
+  // Auto-load the FULL catalog (217 titles vs the 54-title bootstrap) shortly
+  // AFTER first paint — not the old 45s wait — so every title is available within
+  // a couple seconds even if the user never interacts. The fetch + 217-item merge
+  // still runs inside requestIdleCallback (startRefresh), and the slow catalog
+  // network latency naturally lands the re-render after the paint window, so
+  // FCP/LCP/SI stay protected.
+  const autoStart = () => window.setTimeout(startRefresh, delayMs);
+  if (document.readyState === "complete") autoStart();
+  else window.addEventListener("load", autoStart, { once: true });
+}
+
 async function loadAnimeSources() {
   setSourceStatus("Loading ZenkaiTV metadata API...");
   render();
   hideAppLoader();
 
-  const cachedCatalog = readResponseCache("main-catalog");
+  let hasInitialCatalog = false;
+  const cachedCatalog = readResponseCache("main-catalog", CATALOG_CACHE_TTL);
   if (cachedCatalog?.length) {
     replaceRegularCatalog(cachedCatalog);
     state.isLoadingCatalog = false;
     state.carouselIndex = 0;
     setSourceStatus(catalogStatusLabel("Cached ZenkaiTV catalog", cachedCatalog));
     render();
-    warmVisibleShowMetadata(buildLatestEpisodesList(state.homeCardLimit), state.homeCardLimit);
+    hasInitialCatalog = true;
+    scheduleVisibleMetadataWarm(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
   }
 
-  const serverCatalog = await timedRequest("ZenkaiTV metadata API", () => fetchLocalMetadataCatalog()).catch(() => []);
-  if (serverCatalog.length) {
-    replaceRegularCatalog(mergeShows(serverCatalog));
-    state.isLoadingCatalog = false;
-    state.carouselIndex = 0;
-    state.apiStatus.metadata = "Online";
-    state.apiStatus.direct = "Standby";
-    writeResponseCache("main-catalog", regularCatalogSnapshot());
-    setSourceStatus(catalogStatusLabel("ZenkaiTV API", state.shows));
-    render();
-    warmVisibleShowMetadata(buildLatestEpisodesList(state.homeCardLimit), state.homeCardLimit);
+  if (!hasInitialCatalog) {
+    const bootstrapCatalog = await fetchHomepageBootstrapCatalog().catch(() => []);
+    if (bootstrapCatalog.length) {
+      replaceRegularCatalog(bootstrapCatalog);
+      state.isLoadingCatalog = false;
+      state.carouselIndex = 0;
+      setSourceStatus(catalogStatusLabel("ZenkaiTV bootstrap", bootstrapCatalog));
+      render();
+      hasInitialCatalog = true;
+      scheduleVisibleMetadataWarm(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
+    }
+  }
+
+  if (hasInitialCatalog && state.route === "home") {
+    state.apiStatus.metadata = "Deferred";
+    setSourceStatus("Using fast ZenkaiTV homepage catalog");
+    scheduleDeferredServerCatalogRefresh();
     scheduleHomeRailExpansion();
+    scheduleAnimeAv1LatestLoad();
+    scheduleLazyAddonCatalogLoad();
     return;
   }
 
-  state.apiStatus.metadata = "Unavailable";
-  state.apiStatus.direct = "Loading";
-  setSourceStatus("Loading AniList and Jikan directly...");
+  const serverCatalog = await timedRequest("ZenkaiTV metadata API", () => fetchLocalMetadataCatalog()).catch(() => []);
+  if (applyServerCatalog(serverCatalog)) return;
 
-  const cachedDirect = readResponseCache("direct-catalog");
+  state.apiStatus.metadata = "Unavailable";
+  state.apiStatus.direct = hasInitialCatalog ? "Deferred" : "Loading";
+  setSourceStatus(hasInitialCatalog ? "Using cached ZenkaiTV catalog" : "Loading AniList and Jikan directly...");
+
+  const cachedDirect = readResponseCache("direct-catalog", CATALOG_CACHE_TTL);
   if (!state.shows.length && cachedDirect?.length) {
     replaceRegularCatalog(cachedDirect);
     state.isLoadingCatalog = false;
     state.carouselIndex = 0;
     setSourceStatus(catalogStatusLabel("Cached AniList + Jikan", cachedDirect));
     render();
+    hasInitialCatalog = true;
   }
 
+  if (hasInitialCatalog) {
+    render();
+    window.setTimeout(() => loadDirectCatalogFallback(), 14000);
+    scheduleHomeRailExpansion();
+    scheduleAnimeAv1LatestLoad();
+    return;
+  }
+
+  await loadDirectCatalogFallback();
+  scheduleHomeRailExpansion();
+  scheduleAnimeAv1LatestLoad();
+  scheduleLazyAddonCatalogLoad();
+}
+
+function scheduleLazyAddonCatalogLoad(delayMs = 6000) {
+  const run = () => {
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(() => loadLazyAddonCatalogs(), { timeout: 4000 });
+    } else {
+      window.setTimeout(() => loadLazyAddonCatalogs(), 300);
+    }
+  };
+  window.setTimeout(run, delayMs);
+}
+
+async function loadLazyAddonCatalogs() {
+  const anipub = state.localSources.find((s) => s.id === "anipub-catalog" && s.enabled);
+  if (!anipub) return;
+  try {
+    const catalog = await fetchExternalCatalogData(anipub);
+    if (catalog?.items?.length) {
+      const baseShows = [...state.shows];
+      state.shows = mergeShows([...baseShows, ...catalog.items]);
+      setSourceStatus(catalogStatusLabel("AniList + Jikan + Sources", state.shows));
+      enrichCatalogAiringData();
+      render();
+    }
+  } catch (error) {
+    console.warn("Lazy loading of AniPub catalog failed:", error);
+  }
+}
+
+async function loadDirectCatalogFallback() {
+  if (state.apiStatus.direct === "Online") return;
+  state.apiStatus.direct = "Loading";
   const [anilist, jikanTop, jikanSeason, jikanPopular] = await Promise.allSettled([
     timedRequest("AniList", () => fetchAniListTrending()),
     timedRequest("Jikan Airing", () => fetchJikanPages(JIKAN_TOP_ENDPOINT, "Jikan Airing", 3)),
@@ -484,7 +613,7 @@ async function loadAnimeSources() {
     writeResponseCache("direct-catalog", merged);
     writeResponseCache("main-catalog", merged);
     setSourceStatus(catalogStatusLabel("AniList + Jikan", merged));
-    warmVisibleShowMetadata(buildLatestEpisodesList(state.homeCardLimit), state.homeCardLimit);
+    scheduleVisibleMetadataWarm(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
   } else {
     state.apiStatus.direct = "Offline";
     if (!state.shows.length) replaceRegularCatalog(fallbackShows);
@@ -496,10 +625,7 @@ async function loadAnimeSources() {
   // Always patch in authoritative airing data (latest-aired episode, ids) from
   // the server catalog — regardless of whether shows came from cache, the live
   // merge, or the offline fallback.
-  enrichCatalogAiringData();
-  scheduleHomeRailExpansion();
-  // Mirror AnimeAV1's "Últimos Episodios" order in the Home Latest Episodes rail.
-  loadAnimeAv1Latest();
+  window.setTimeout(() => enrichCatalogAiringData(), 7000);
 }
 
 // The client builds its catalog from AniList trending + Jikan directly, but some
@@ -664,7 +790,12 @@ async function loadExternalSources() {
 
 async function fetchLocalMetadataCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(LOCAL_METADATA_ENDPOINT, { cache: "no-store" });
+  // /api/catalog (217 titles) is heavy and routinely takes 4-6s. The default 5s
+  // API_TIMEOUT_MS aborted it about half the time, which left the homepage stuck
+  // on the 54-title bootstrap ("only 66 titles"). It runs deferred/off the
+  // critical render path, so a generous 20s timeout is safe and just lets the
+  // full catalog finish loading.
+  const response = await fetchWithTimeout(LOCAL_METADATA_ENDPOINT, { cache: "no-store" }, 20000);
   if (!response.ok) throw new Error("ZenkaiTV metadata API unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -692,7 +823,7 @@ async function fetchExternalCatalogData(source, page = null) {
   }
   const cacheKey = `external:${source.id || source.name}:${page || getSourcePage(source) || 1}`;
   const useCache = !source.noCache && !source.playbackOnly;
-  const cached = useCache ? readResponseCache(cacheKey) : null;
+  const cached = useCache ? readResponseCache(cacheKey, CATALOG_CACHE_TTL) : null;
   if (cached) return cached;
   const response = await fetchCatalogResponse(source);
   if (!response.ok) throw new Error(`${source.name} failed`);
@@ -1456,9 +1587,15 @@ function parseAdultAiredDate(aired = "") {
 // Primary:   sourceOrder ascending (position on the source website = newest first).
 // Secondary: most recent date parsed from the "aired" string (descending).
 function adultShowRank(show) {
+  if (!show) {
+    return { order: Number.MAX_SAFE_INTEGER, airedMs: -Infinity, ep: 0 };
+  }
+  if (show._airedMs === undefined) {
+    show._airedMs = parseAdultAiredDate(show.aired || show.status || "");
+  }
   return {
     order:    Number(show.sourceOrder ?? Number.MAX_SAFE_INTEGER),
-    airedMs:  parseAdultAiredDate(show.aired || show.status || ""),
+    airedMs:  show._airedMs,
     ep:       Number(show.episode || show.totalEpisodes || show.latestAiredEp || 0)
   };
 }
@@ -1562,6 +1699,18 @@ function syncAdultModeChrome() {
   document.body.classList.toggle("adult-mode", on);
   const badge = document.querySelector("#adultModeBadge");
   if (badge) badge.hidden = !on;
+  
+  const providerTabs = document.querySelector("#adultProviderTabs");
+  if (providerTabs) {
+    providerTabs.hidden = !on;
+  }
+  if (on) {
+    const activeProvider = localStorage.getItem("animetv-adult-provider") || "merge";
+    document.querySelectorAll("[data-adult-provider]").forEach(btn => {
+      btn.classList.toggle("is-selected", btn.dataset.adultProvider === activeProvider);
+    });
+  }
+  
   // The Weekly Schedule isn't shown in 18+ mode — bounce off it if we're there.
   if (on && state.route === "schedule") setRoute("home");
 }
@@ -1633,22 +1782,14 @@ function matchesShowSearch(show) {
   if (!state.search) return true;
   const query = normalizeSearchText(state.search);
   if (!query) return true;
-  // Search EVERY title variant (English, Romaji, Native, the title shown in the
-  // UI) plus aliases/source/genre — so typing "yomi" finds "Yomi no Tsugai" even
-  // though its English title is "Daemons of the Shadow Realm".
-  const haystack = normalizeSearchText([
-    getShowTitle(show),
-    show.title,
-    show.romajiTitle,
-    show.nativeTitle,
-    show.source,
-    show.genre,
-    ...(show.genres || []),
-    ...(show.aliases || [])
-  ].filter(Boolean).join(" "));
-  // Each token must appear (partial match) so "yomi", "yomi no" and
   // "yomi tsugai" all match.
-  return query.split(" ").every((token) => haystack.includes(token));
+  if (!show._searchHaystack) {
+    show._searchHaystack = normalizeSearchText([
+      getShowTitle(show), show.title, show.romajiTitle, show.nativeTitle,
+      show.source, show.genre, ...(show.genres || []), ...(show.aliases || [])
+    ].filter(Boolean).join(" "));
+  }
+  return query.split(" ").every((token) => show._searchHaystack.includes(token));
 }
 
 // ── Live AniList search ───────────────────────────────────────────────────────
@@ -1876,6 +2017,7 @@ function latestEpisodeReleases(limit = HOME_CARD_LIMIT) {
 
 function adultSourceOrderedShows(limit = HOME_CARD_LIMIT) {
   return visibleShows()
+    .filter(show => show.adultSource === "UnderHentai" || show.source === "UnderHentai")
     .slice()
     .sort(compareAdultShows)
     .slice(0, limit);
@@ -2003,9 +2145,11 @@ async function loadAnimeAv1Latest(force = false) {
       if (cached) {
         state.av1Latest = JSON.parse(cached);
         state.av1LatestAt = Number(cachedAt) || 0;
-        // Paint immediately with cached data
+        // Paint immediately with cached data. Deeper metadata hydration is
+        // delayed by scheduleVisibleMetadataWarm so it cannot compete with
+        // the hero and first visible row during Speed Index measurement.
         render();
-        warmVisibleShowMetadata(buildLatestEpisodesList(HOME_CARD_LIMIT), HOME_CARD_LIMIT);
+        scheduleVisibleMetadataWarm(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
       }
     } catch (e) {
       console.warn("Failed to load av1-latest cache:", e);
@@ -2032,7 +2176,7 @@ async function loadAnimeAv1Latest(force = false) {
 
       if (isChanged) {
         render();   // repaint the rail in AnimeAV1 order
-        warmVisibleShowMetadata(buildLatestEpisodesList(HOME_CARD_LIMIT), HOME_CARD_LIMIT);
+        scheduleVisibleMetadataWarm(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
       }
     }
   } catch (err) {
@@ -2056,6 +2200,9 @@ function hqImage(url) {
   if (u.includes("cdn.animeav1.com")) {
     return u.replace("/thumbnails/", "/covers/");
   }
+  if (u.includes("image.tmdb.org/t/p/")) {
+    return u.replace(/\/w(?:92|154|185|300|342|500)\//, "/w780/");
+  }
   return u;
 }
 
@@ -2072,7 +2219,16 @@ function imageDeliveryUrl(url, width = 360, quality = 70) {
       host === "s4.anilistcdn.com" ||
       host === "cdn.animeav1.com" ||
       host === "image.tmdb.org" ||
-      host === "media.themoviedb.org";
+      host === "media.themoviedb.org" ||
+      host === "static.underhentai.net" ||
+      host === "underhentai.net" ||
+      host === "veohentai.com" ||
+      host === "www.veohentai.com" ||
+      host === "hentaila.tv" ||
+      host === "www.hentaila.tv" ||
+      host === "img.hentaihaven.xxx" ||
+      host === "coverlanyvd.org" ||
+      host === "hentaiplayer.com";
     if (!allowed) return raw;
     const proxy = new URL("/api/image", location.origin);
     proxy.searchParams.set("src", parsed.toString());
@@ -2105,6 +2261,10 @@ function imageDeliverySrcSet(url, widths, quality = 80) {
 function getCarouselArtwork(show = {}) {
   const poster = String(show.image || show.poster || show.cover || "").trim();
   const candidates = [
+    // Prefer the high-resolution TMDB backdrop when it has resolved — it's much
+    // sharper than the AniList banner, which keeps the hero looking professional.
+    show.tmdbBackdrop,
+    show.highQualityBackground,
     show.banner,
     show.backdrop,
     show.heroImage,
@@ -2139,6 +2299,7 @@ function getWatchPosterArtwork(show = {}, season = null) {
     show.banner,
     show.backdrop
   ].map((value) => hqImage(String(value || "").trim()));
+  candidates.forEach((url) => { if (url) verticalArt.add(url); });
   return pickImage(candidates);
 }
 
@@ -2166,6 +2327,7 @@ function getCardPosterCandidates(show = {}) {
     if (upgraded) expanded.push(upgraded);
     if (raw !== upgraded) expanded.push(raw);
   });
+  expanded.forEach((url) => { if (url) verticalArt.add(url); });
   return [...new Set(expanded)].filter((url) => {
     try { return typeof ImageResolver === "undefined" || !ImageResolver.isImageFailed(url); }
     catch { return true; }
@@ -2179,23 +2341,6 @@ function getBackdropSeasonNumber(season = null) {
   return active > 0 ? active : 1;
 }
 
-function firstSeasonStillForBackdrop(show = {}, seasonNumber = 0) {
-  const scoped = seasonNumber && show.tmdbStillsBySeason && show.tmdbStillsBySeason[seasonNumber]
-    ? show.tmdbStillsBySeason[seasonNumber]
-    : null;
-  if (!scoped || typeof scoped !== "object") return "";
-  try {
-    if (typeof ImageResolver !== "undefined" && ImageResolver.firstSeasonStillFromMap) {
-      return ImageResolver.firstSeasonStillFromMap(scoped) || "";
-    }
-  } catch { /* resolver optional */ }
-  const numbers = Object.keys(scoped)
-    .map((key) => Number(key) || 0)
-    .filter((key) => key > 0 && scoped[key])
-    .sort((a, b) => a - b);
-  return numbers.length ? scoped[numbers[0]] : "";
-}
-
 function seasonWideBackdropCandidates(show = {}, season = null) {
   const seasonNumber = getBackdropSeasonNumber(season);
   return [
@@ -2204,7 +2349,6 @@ function seasonWideBackdropCandidates(show = {}, season = null) {
     season?.banner,
     season?.backdrop,
     seasonNumber && show.tmdbSeasonBackdropsBySeason ? show.tmdbSeasonBackdropsBySeason[seasonNumber] : "",
-    firstSeasonStillForBackdrop(show, seasonNumber),
     season?.wideImage,
     season?.landscapeImage
   ].map((value) => hqImage(String(value || "").trim()));
@@ -2212,21 +2356,58 @@ function seasonWideBackdropCandidates(show = {}, season = null) {
 
 function seasonPosterFallbackCandidates(show = {}, season = null) {
   const seasonNumber = getBackdropSeasonNumber(season);
-  let resolverSeasonBackdrop = "";
-  try {
-    resolverSeasonBackdrop = typeof ImageResolver !== "undefined" && ImageResolver.getSeasonBackdrop
-      ? ImageResolver.getSeasonBackdrop(show, seasonNumber, season)
-      : "";
-  } catch { resolverSeasonBackdrop = ""; }
   return [
     seasonNumber && show.tmdbSeasonPostersBySeason ? show.tmdbSeasonPostersBySeason[seasonNumber] : "",
-    resolverSeasonBackdrop,
-    show.tmdbSeasonPoster
+    season?.tmdbSeasonPoster,
+    show.tmdbSeasonPoster,
+    season?.poster,
+    season?.image
   ].map((value) => hqImage(String(value || "").trim()));
 }
 
 function watchBackdropKey(show = {}, season = null) {
   return `${show?.id || show?.anilistId || show?.title || "show"}:s${getBackdropSeasonNumber(season)}`;
+}
+
+function isAdultCatalogShow(show = {}) {
+  if (!show) return false;
+  return Boolean(
+    show.adultSource ||
+    show.isAdult ||
+    show.adult ||
+    String(show.id || "").startsWith("adult-underhentai-") ||
+    (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show))
+  );
+}
+
+function underHentaiBackdropCandidates(show = {}, season = null) {
+  if (!isAdultCatalogShow(show)) return [];
+  const screenshots = [
+    ...(Array.isArray(season?.screenshots) ? season.screenshots : []),
+    ...(Array.isArray(show?.screenshots) ? show.screenshots : [])
+  ];
+  return [
+    show.underHentaiBackdrop,
+    season?.underHentaiBackdrop,
+    show.adultBackground,
+    season?.adultBackground,
+    show.images?.backdrop,
+    show.images?.banner,
+    show.backdrop,
+    show.banner,
+    season?.backdrop,
+    season?.banner,
+    ...screenshots,
+    show.underHentaiImage,
+    season?.underHentaiImage,
+    show.images?.poster,
+    show.images?.cover,
+    show.image,
+    show.poster,
+    show.cover,
+    show.thumbnail,
+    show.coverImage
+  ].map((value) => hqImage(String(value || "").trim()));
 }
 
 // Best wide cinematic backdrop: season-specific TMDB still/backdrop → season
@@ -2235,9 +2416,10 @@ function watchBackdropKey(show = {}, season = null) {
 function getWatchBackdropArtwork(show = {}, season = null) {
   show = show || {};
   season = season || {};
+  const adultArt = pickImage(underHentaiBackdropCandidates(show, season));
+  if (adultArt) return adultArt;
   const candidates = [
     ...seasonWideBackdropCandidates(show, season),
-    ...seasonPosterFallbackCandidates(show, season),
     show.images?.backdrop,
     show.images?.banner,
     show.tmdbBackdrop,
@@ -2249,11 +2431,14 @@ function getWatchBackdropArtwork(show = {}, season = null) {
     show.wideImage,
     show.landscapeImage,
     show.jikanBackground,
-    season?.image,
-    season?.poster,
+    ...seasonPosterFallbackCandidates(show, season),
     show.coverImageLarge,
     show.images?.poster,
     show.images?.cover,
+    show.tmdbPoster,
+    show.poster,
+    show.cover,
+    show.coverImage,
     show.image
   ].map((value) => hqImage(String(value || "").trim()));
   return pickImage(candidates);
@@ -2369,18 +2554,61 @@ function renderCarousel() {
   if (String(show.id || "") === _carouselPaintedId) return;
   _carouselPaintedId = String(show.id || "");
 
-  const art = carouselArtworkOrPoster(show);
-  // Full-bleed hero: serve a per-device width via srcset (mobile pulls ~768px,
-  // desktop up to 1920px) at the proxy's MAX quality (q92) so the showcase image
-  // is as crisp as the source allows, while still right-sized per device.
-  const HERO_WIDTHS = [768, 1024, 1280, 1600, 1920];
-  const HERO_QUALITY = 92;
-  const deliveredArt = imageDeliveryUrl(art, 1600, HERO_QUALITY);
+  // Load ONLY the high-resolution TMDB backdrop for the hero — never the lower-res
+  // AniList banner first and then swap to TMDB (that read as "two different images
+  // loading"). While the backdrop is still resolving, show just the dark gradient
+  // (no image), then load the one high-res file. A show with no TMDB match
+  // (_tmdbResolved flips true on every resolve outcome) falls back to its banner as
+  // the single image. Bounded: resolve once per show, current item only.
+  const hiResArt = hqImage(String(show.tmdbBackdrop || show.highQualityBackground || "").trim());
+  // Resolve the backdrop AT MOST ONCE per show (_carouselResolveTried). Without
+  // this guard, a show whose TMDB resolution THROWS (network error) never sets
+  // _tmdbResolved, so `resolving` stays true and the .then below re-renders the
+  // carousel forever — an infinite loop that freezes the tab and spams the proxy.
+  // After one attempt we just fall back to the banner.
+  const resolving = !hiResArt && !show._tmdbResolved && !show._carouselResolveTried && typeof enrichTmdbImages === "function";
+  if (resolving) {
+    show._carouselResolveTried = true;
+    enrichTmdbImages(show).then(() => {
+      if (state.route === "home" && String(items[state.carouselIndex]?.id || "") === String(show.id)) {
+        _carouselPaintedId = null; // force a repaint now that the backdrop resolved
+        renderCarousel();
+      }
+    }).catch(() => {});
+  }
+  // The full-bleed hero shows the backdrop with object-fit: cover; 1600 keeps it
+  // crisp on a large/full-screen hero while staying lighter than 1920.
+  const HERO_WIDTHS = [640, 960, 1280, 1600];
+  const HERO_QUALITY = 90;
+  // Warm the next few slides' TMDB backdrops in the background, and PRELOAD the
+  // immediate next slide's hero image, so auto-advance shows it instantly instead
+  // of fetching on change. Deduped/cheap: the resolver no-ops on resolved shows.
+  const preloadHeroImage = (s) => {
+    const a = s && hqImage(String(s.tmdbBackdrop || s.highQualityBackground || "").trim());
+    if (a) { const im = new Image(); im.referrerPolicy = "no-referrer"; im.decoding = "async"; im.src = imageDeliveryUrl(a, 1600, HERO_QUALITY); }
+  };
+  if (typeof enrichTmdbImages === "function" && items.length > 1) {
+    for (let off = 1; off <= 3; off++) {
+      const next = items[(state.carouselIndex + off) % items.length];
+      if (!next || String(next.id) === String(show.id)) continue;
+      if (next._tmdbResolved) { if (off === 1) preloadHeroImage(next); continue; }
+      enrichTmdbImages(next).then(() => { if (off === 1) preloadHeroImage(next); }).catch(() => {});
+    }
+  }
+  const hasLandscapeBanner = Boolean(hiResArt || show.banner || show.backdrop || show.heroImage || show.wideImage || show.landscapeImage);
+  const art = hiResArt || (resolving ? "" : carouselArtworkOrPoster(show));
+  const deliveredArt = art ? imageDeliveryUrl(art, 1600, HERO_QUALITY) : "";
   const heroSrcSet = art ? imageDeliverySrcSet(art, HERO_WIDTHS, HERO_QUALITY) : "";
   carouselBackdrop.classList.toggle("has-banner", Boolean(art));
-  carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
+  carouselBackdrop.classList.toggle("is-portrait-blur", Boolean(art && !hasLandscapeBanner));
+  if (art && !hasLandscapeBanner) {
+    carouselBackdrop.style.backgroundImage = `url("${deliveredArt}")`;
+  } else {
+    carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
+  }
   if (carouselBackdropImage) {
     carouselBackdropImage.classList.toggle("has-banner", Boolean(art));
+    carouselBackdropImage.classList.toggle("is-portrait-art", Boolean(art && !hasLandscapeBanner));
     if (art && carouselBackdropImage.getAttribute("src") !== deliveredArt) {
       if (heroSrcSet) {
         carouselBackdropImage.setAttribute("srcset", heroSrcSet);
@@ -2390,7 +2618,9 @@ function renderCarousel() {
       }
       carouselBackdropImage.src = deliveredArt;
     } else if (!art) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=338";
+      // Resolving (or genuinely no art): show only the dark gradient behind a
+      // transparent image, so we never load a second placeholder/banner picture.
+      carouselBackdropImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
       carouselBackdropImage.removeAttribute("srcset");
     }
   }
@@ -2422,7 +2652,7 @@ function renderCarouselIndicators(items) {
   if (!carouselIndicators) return;
   carouselIndicators.innerHTML = items.slice(0, 8).map((show, index) => `
     <button class="carousel-dot focusable ${index === state.carouselIndex ? "is-selected" : ""}" data-carousel-index="${index}" aria-label="Show ${escapeHtml(getShowTitle(show))}">
-      ${carouselArtworkOrPoster(show) ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(carouselArtworkOrPoster(show), 240, 75))}" alt="" width="240" height="135" loading="lazy" decoding="async">` : "<span></span>"}
+      ${_carouselIndicatorImagesReady && carouselArtworkOrPoster(show) ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(carouselArtworkOrPoster(show), 180, 72))}" alt="" width="180" height="101" loading="lazy" decoding="async" fetchpriority="low">` : "<span></span>"}
     </button>
   `).join("");
 
@@ -2436,6 +2666,29 @@ function renderCarouselIndicators(items) {
       restartCarouselTimer();
     });
   });
+  if (!_carouselIndicatorImagesReady) scheduleCarouselIndicatorHydration();
+}
+
+function scheduleCarouselIndicatorHydration() {
+  if (_carouselIndicatorHydrationQueued || _carouselIndicatorImagesReady) return;
+  _carouselIndicatorHydrationQueued = true;
+  const hydrate = () => {
+    if (_carouselIndicatorImagesReady) return;
+    _carouselIndicatorImagesReady = true;
+    _carouselIndicatorHydrationQueued = false;
+    if (state.route === "home") renderCarousel();
+  };
+  const afterFirstPaint = () => {
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(hydrate, { timeout: 1800 });
+    } else {
+      window.setTimeout(hydrate, 900);
+    }
+  };
+  const revealOnInteraction = () => afterFirstPaint();
+  const events = ["pointerdown", "keydown", "wheel", "touchstart"];
+  events.forEach((event) => window.addEventListener(event, revealOnInteraction, { capture: true, once: true, passive: true }));
+  window.setTimeout(afterFirstPaint, 45000);
 }
 
 function simpleCarouselText(show) {
@@ -2457,7 +2710,8 @@ document.addEventListener("error", (event) => {
                         img.classList.contains("thumb-backdrop") ||
                         img.classList.contains("ep-thumb-img") ||
                         img.classList.contains("season-card-img") ||
-                        img.classList.contains("watch-poster");
+                        img.classList.contains("watch-poster") ||
+                        img.classList.contains("schedule-thumb-img");
                         
   if (hasCandidates) {
     try { ImageResolver.markImageFailed(img.currentSrc || img.src); } catch { /* resolver optional */ }
@@ -2501,20 +2755,35 @@ document.addEventListener("error", (event) => {
     }
   } else if (img.classList.contains("season-card-img")) {
     img.style.display = "none";
-  } else if (img.classList.contains("thumb-poster") || img.classList.contains("thumb-backdrop") || img.closest(".carousel-dot")) {
+  } else if (img.classList.contains("thumb-poster") || img.classList.contains("thumb-backdrop") || img.classList.contains("schedule-thumb-img") || img.closest(".carousel-dot")) {
     // Set a transparent 1x1 gif to clear the broken image icon, then fade out
     // so the card's brand gradient (.thumb-art background) shows through.
     img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
     img.removeAttribute("srcset");
     img.style.opacity = "0";
-    // Add the branded "Z" fallback logo to the card
-    const card = img.closest(".thumb-art") || img.closest(".carousel-dot");
-    if (card && !card.querySelector(".thumb-fallback-mark")) {
-      const mark = document.createElement("div");
-      mark.className = "thumb-fallback-mark";
-      mark.setAttribute("aria-hidden", "true");
-      card.appendChild(mark);
+    // Add the branded animated placeholder to the card
+    const card = img.closest(".thumb-art") || img.closest(".schedule-thumb") || img.closest(".carousel-dot");
+    if (card && !card.querySelector(".poster-placeholder")) {
+      const ph = document.createElement("div");
+      ph.className = "poster-placeholder";
+      ph.setAttribute("aria-hidden", "true");
+      ph.innerHTML = '<span class="poster-placeholder-mark">Z</span><span class="poster-placeholder-copy">Preview pending</span>';
+      card.appendChild(ph);
     }
+  }
+}, true);
+
+// Fade posters / episode thumbnails in once their image actually loads (paired
+// with the .art-sheen loading sweep in styles.css) so they appear smoothly
+// instead of popping. Delegated + capture because `load` doesn't bubble —
+// mirrors the error handler above. Tagging the host element stops its sheen.
+document.addEventListener("load", (event) => {
+  const img = event.target;
+  if (!(img instanceof HTMLImageElement)) return;
+  if (img.classList.contains("thumb-poster") || img.classList.contains("ep-thumb-img")) {
+    img.classList.add("img-ready");
+    const host = img.closest(".thumb-art, .ep-thumb");
+    if (host) host.classList.add("img-ready");
   }
 }, true);
 
@@ -2548,7 +2817,7 @@ function restartCarouselTimer() {
 // only fetched for the on-air carousel pool (≤ a couple dozen ids), then cached.
 
 const CAROUSEL_IMAGE_HOLD_MS = 2600;   // show the cover this long before the video
-const CAROUSEL_ADVANCE_MS    = 15000;  // auto-advance dwell per slide
+const CAROUSEL_ADVANCE_MS    = 7000;  // auto-advance dwell per slide
 const _trailerCache = new Map();       // anilistId(str) -> {id, site} | null | undefined
 const _TRAILER_LS_PREFIX = "zenkaitv-trailer:";
 let _trailerFetchInFlight = false;
@@ -3066,7 +3335,11 @@ function handleCleanRoute(routeInfo = appRouter()?.current?.()) {
 
   if (routeInfo.name === "login") {
     setRoute("profile", { skipHistory: true });
-    document.querySelector("[data-auth-open]")?.click?.();
+    if (state.user) {
+      appRouter()?.replace?.("/profile", { silent: true });
+    } else {
+      showAuthModal("login");
+    }
     return;
   }
 
@@ -3093,11 +3366,21 @@ function handleCleanRoute(routeInfo = appRouter()?.current?.()) {
 
 
 
+function getStableShowHue(show = {}) {
+  const str = String(show.id || show.title || "");
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash) % 360;
+}
+
 function cardTemplate(show, index = 0) {
   const isFavorite = state.favorites.includes(show.id);
   const colors = Array.isArray(show.colors) && show.colors.length >= 2 ? show.colors : ["#00d2ff", "#251d47"];
   const title = escapeHtml(getShowTitle(show));
-  const artStyle = `--thumb-a: ${colors[0]}; --thumb-b: ${colors[1]}`;
+  const showHue = getStableShowHue(show);
+  const artStyle = `--thumb-a: ${colors[0]}; --thumb-b: ${colors[1]}; --episode-hue: ${showHue}`;
   const meta = cardMeta(show, isFavorite);
   const target = getCardTarget(show);
   const posterCandidates = getCardPosterCandidates(show);
@@ -3115,18 +3398,23 @@ function cardTemplate(show, index = 0) {
   const fallbackData = deliveredCandidates.length
     ? ` data-image-fallbacks="${escapeHtml(encodeURIComponent(JSON.stringify(deliveredCandidates)))}" data-image-fallback-index="0"`
     : "";
-  // Above-the-fold posters (first row or two of a rail) load eagerly with high
-  // priority so they appear immediately on first load instead of trickling in;
-  // the rest stay lazy to avoid hammering the image proxy.
-  const eager = Number(index) < 12;
+  // Above-the-fold posters load eagerly, but the hero remains the only
+  // high-priority image so LCP is not delayed by a dozen competing card fetches.
+  const eager = Number(index) < 7;
   const loadingAttrs = eager
-    ? `loading="eager" fetchpriority="high"`
+    ? `loading="eager"`
     : `loading="lazy" fetchpriority="low"`;
   const image = posterUrl
     ? `
+        <span class="art-sheen" aria-hidden="true"></span>
         <img referrerpolicy="no-referrer" class="thumb-poster" src="${escapeHtml(posterUrl)}" alt="" width="240" height="360" ${loadingAttrs} decoding="async"${srcsetAttr}${fallbackData}>
       `
-    : "";
+    : `
+        <span class="poster-placeholder" aria-hidden="true">
+          <span class="poster-placeholder-mark">Z</span>
+          <span class="poster-placeholder-copy">Preview pending</span>
+        </span>
+      `;
   return `
     <a class="show-card focusable" href="${escapeHtml(animePathForShow(show))}" style="--card-index: ${index}" data-open-show="${escapeHtml(show.id)}" data-open-season="${target.seasonNumber}" data-open-episode="${target.episodeNumber}" aria-label="Open ${title}">
       <span class="thumb-art" style="${artStyle}">
@@ -3221,6 +3509,9 @@ function renderSkeletonCards(container, count = 7) {
   `).join("");
 }
 
+// Memo for the Schedule's airing-show computation (see renderSchedule).
+let _scheduleMemo = { key: "", at: 0, value: null };
+
 function renderSchedule() {
   // Fixed Mon → Sun order
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -3228,7 +3519,14 @@ function renderSchedule() {
   // Only shows with a confirmed weekly broadcast day AND an active airing status.
   // Exclude anything AniList/Jikan marks as FINISHED or CANCELLED — these are
   // completed series that still have a stored broadcast day (e.g. Naruto, HxH).
-  const airingShows = (() => {
+  // This filter+sort+dedupe walks the entire catalog (normalizeTitle per show)
+  // and used to re-run on EVERY render() - and render() fires many times a
+  // second during catalog enrichment, which is what made the Schedule route
+  // feel laggy. Reuse the last result for a short window instead.
+  const _schedKey = state.shows.length + ":" + ((typeof AdultMode !== "undefined" && AdultMode.isEnabled()) ? 1 : 0);
+  const _schedNow = Date.now();
+  const _schedFresh = Boolean(_scheduleMemo.value) && _scheduleMemo.key === _schedKey && (_schedNow - _scheduleMemo.at) < 500;
+  const airingShows = _schedFresh ? _scheduleMemo.value : (() => {
     const seen = new Map();
     [...catalogShows()]
       .filter((show) => {
@@ -3272,10 +3570,21 @@ function renderSchedule() {
       });
     return [...seen.values()];
   })();
+  if (!_schedFresh) _scheduleMemo = { key: _schedKey, at: _schedNow, value: airingShows };
 
   // Highlight the current weekday. getDay() is 0=Sun..6=Sat; our columns run
   // Mon..Sun, so shift by 6 to line up.
   const todayIdx = (new Date().getDay() + 6) % 7;
+
+  // Skip the rebuild when nothing changed. render() fires repeatedly during the
+  // post-navigation metadata-enrichment burst; without this guard every one of
+  // those renders tore down and recreated all ~84 schedule <img> elements
+  // (re-decoding artwork each time) — a major cause of the Schedule freeze.
+  const scheduleSig = `${todayIdx}|` + airingShows
+    .map((s) => `${s.id}:${s.day}:${cardEpisodeLabel(s)}:${(s.image || s.images?.poster || s.cover || s.poster || "")}`)
+    .join("|");
+  if (scheduleList.dataset.schedSig === scheduleSig) return;
+  scheduleList.dataset.schedSig = scheduleSig;
 
   scheduleList.innerHTML = days.map((day, idx) => {
     const isToday = idx === todayIdx;
@@ -3290,10 +3599,32 @@ function renderSchedule() {
             <a class="schedule-item focusable" href="${escapeHtml(animePathForShow(show))}" data-open-show="${escapeHtml(show.id)}" data-open-season="${getCardTarget(show).seasonNumber}" data-open-episode="${getCardTarget(show).episodeNumber}">
               <span class="schedule-thumb">
                 ${(() => {
-                  const schedImg = show.image || show.images?.poster || show.images?.cover ||
-                    show.coverImageLarge || show.cover || show.poster || show.thumbnail || "";
-                  return schedImg
-                    ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(schedImg, 360, 86))}" alt="" width="160" height="90" loading="lazy" decoding="async">`
+                  const scheduleCandidates = [
+                    show.image,
+                    show.images?.poster,
+                    show.images?.cover,
+                    show.coverImageLarge,
+                    show.cover,
+                    show.poster,
+                    show.thumbnail,
+                    show.images?.backdrop,
+                    show.images?.banner,
+                    show.tmdbBackdrop,
+                    show.highQualityBackground,
+                    show.banner,
+                    show.bannerImage,
+                    show.backdrop,
+                    show.heroImage,
+                    show.wideImage,
+                    show.landscapeImage
+                  ].map((v) => hqImage(String(v || "").trim())).filter(Boolean);
+                  const uniqueCandidates = [...new Set(scheduleCandidates)];
+                  const deliveredCandidates = uniqueCandidates.map((url) => imageDeliveryUrl(url, 360, 86));
+                  const fallbackData = deliveredCandidates.length > 1
+                    ? ` data-image-fallbacks="${escapeHtml(encodeURIComponent(JSON.stringify(deliveredCandidates)))}" data-image-fallback-index="0"`
+                    : "";
+                  return deliveredCandidates[0]
+                    ? `<img referrerpolicy="no-referrer" class="schedule-thumb-img" src="${escapeHtml(deliveredCandidates[0])}" alt="" width="160" height="90" loading="lazy" decoding="async"${fallbackData}>`
                     : "";
                 })()}
                 <span>${cardEpisodeLabel(show)}</span>
@@ -4332,11 +4663,43 @@ function playbackLookupWithTimeout(label, promise, timeoutMs = 6500) {
   ]);
 }
 
+const SOURCE_FAST_FIRST_PASS_MS = 1800;
+const SOURCE_FAST_SECOND_PASS_MS = 900;
+
+function hasFastPreferredPlaybackSource(episode) {
+  return getEpisodePlaybackSources(episode).some((source) => {
+    const text = sourceIdentityText(source);
+    return sourcePreferenceScore(source) <= 1
+      || (isAnimeAv1Source(source) && isHlsSource(source))
+      || (isJKAnimeSource(source) && isMp4UploadSource(source))
+      || text.includes("animeav1")
+      || text.includes("mp4upload");
+  });
+}
+
 async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
   if (!show || !episode) return episode;
   const episodeNumber = Number(episode.episode || episode.number || 1);
   const lookupKey = `${normalizeTitle(show.title)}:s${seasonNumber}:e${episodeNumber}`;
   if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) {
+    const rawAdultSlug = String(show.adultId || show.slug || show.id || "")
+      .replace(/^adult-underhentai-/, "")
+      .replace(/^veohentai-/, "");
+    const adultSources = Array.isArray(episode.sourceOptions) ? [...episode.sourceOptions] : [];
+    const hasCleanAdultResolver = adultSources.some((source) => isPreferredAdultSource(source));
+    if (rawAdultSlug && !hasCleanAdultResolver) {
+      adultSources.unshift({
+        id: `veohentai-e${episodeNumber}-fallback`,
+        label: "VeoHentai",
+        provider: "HentaiPlayer",
+        type: "resolver",
+        streamResolver: {
+          type: "underhentai",
+          endpoint: `/api/adult/underhentai/stream?slug=veohentai-${encodeURIComponent(rawAdultSlug)}&episode=${encodeURIComponent(episodeNumber)}`
+        }
+      });
+    }
+    episode.sourceOptions = adultSources;
     episode.sourceOptions = normalizeEpisodeSourceOptions(episode);
     episode.sourceOptionsChecked = lookupKey;
     episode.tioAnimeSourcesChecked = true;
@@ -4380,37 +4743,73 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
   };
 
   // Respect the user's per-scraper enable toggles (Sources tab).
-  const lookups = [
-    playbackLookupWithTimeout("Loaded addons", attachLoadedAddonFallbacks(show, episode, seasonNumber), 1800)
-      .then(() => refreshPicker())
-  ];
+  const lookups = [];
+  const preferredLookups = [];
+  const addLookup = (key, label, task, preferred = false) => {
+    const def = getKnownSourceServer(key);
+    const lookup = Promise.resolve(task)
+      .catch((error) => {
+        console.warn(`${label} source lookup failed:`, error);
+        return null;
+      })
+      .then(() => updateServerCheck(key, def.match));
+    lookups.push(lookup);
+    if (preferred) preferredLookups.push(lookup);
+    return lookup;
+  };
+
+  lookups.push(Promise.resolve(attachLoadedAddonFallbacks(show, episode, seasonNumber))
+    .catch((error) => {
+      console.warn("Loaded addon source lookup failed:", error);
+      return null;
+    })
+    .then(() => refreshPicker()));
   if (isScraperEnabled("tioanime")) {
-    lookups.push(playbackLookupWithTimeout("TioAnime scraper", attachTioAnimeSources(show, episode), 10000)
-      .then(() => updateServerCheck("tioanime", getKnownSourceServer("tioanime").match)));
+    addLookup("tioanime", "TioAnime scraper", attachTioAnimeSources(show, episode));
   } else { episode.tioAnimeSourcesChecked = true; episode.serverChecks.tioanime = "notfound"; }
   if (isScraperEnabled("animeav1")) {
-    lookups.push(playbackLookupWithTimeout("AnimeAV1 scraper", attachAnimeAv1Sources(show, episode), 10000)
-      .then(() => updateServerCheck("animeav1", getKnownSourceServer("animeav1").match)));
+    addLookup("animeav1", "AnimeAV1 scraper", attachAnimeAv1Sources(show, episode), true);
   } else { episode.animeAv1SourcesChecked = true; episode.serverChecks.animeav1 = "notfound"; }
   if (isScraperEnabled("jkanime")) {
-    lookups.push(playbackLookupWithTimeout("JKAnime scraper", attachJKAnimeSources(show, episode), 12000)
-      .then(() => updateServerCheck("jkanime", getKnownSourceServer("jkanime").match)));
+    addLookup("jkanime", "JKAnime scraper", attachJKAnimeSources(show, episode), true);
   } else { episode.jkAnimeSourcesChecked = true; episode.serverChecks.jkanime = "notfound"; }
-  if (isScraperEnabled("animeonlineninja")) {
-    lookups.push(playbackLookupWithTimeout("AniméOnlineNinja scraper", attachAnimeonlineNinjaSources(show, episode), 15000)
-      .then(() => updateServerCheck("animeonlineninja", getKnownSourceServer("animeonlineninja").match)));
-  } else { episode.animeonlineNinjaSourcesChecked = true; episode.serverChecks.animeonlineninja = "notfound"; }
-  await Promise.allSettled(lookups);
+  episode.animeonlineNinjaSourcesChecked = true;
+  episode.serverChecks.animeonlineninja = "notfound";
 
-  // Ensure any timed-out servers are marked not-found after every source has had a chance.
-  for (const def of KNOWN_SOURCE_SERVERS) {
-    if (!episode.serverChecks[def.key]) episode.serverChecks[def.key] = "notfound";
+  const completeBackgroundLookup = Promise.allSettled(lookups)
+    .then(() => {
+      // Ensure unresolved servers are marked not-found after every source has had a chance.
+      for (const def of KNOWN_SOURCE_SERVERS) {
+        if (!episode.serverChecks[def.key]) episode.serverChecks[def.key] = "notfound";
+      }
+      episode.sourceOptions = normalizeEpisodeSourceOptions(episode);
+      episode.sourceOptionsChecked = lookupKey;
+      if (episode.sourceOptions.length > beforeCount) {
+        console.info(`Loaded ${episode.sourceOptions.length} playback server option(s) for ${show.title} episode ${episodeNumber}.`);
+      }
+    })
+    .finally(() => {
+      sourceOptionsBackgroundLookups.delete(lookupKey);
+      episode.sourceOptionsPending = false;
+      refreshPicker();
+      refreshFocusables();
+    });
+  sourceOptionsBackgroundLookups.set(lookupKey, completeBackgroundLookup);
+
+  const fastLane = preferredLookups.length ? preferredLookups : lookups;
+  await Promise.race([
+    Promise.allSettled(fastLane),
+    wait(SOURCE_FAST_FIRST_PASS_MS)
+  ]);
+  if (!hasFastPreferredPlaybackSource(episode) && !getEpisodePlaybackSources(episode).length) {
+    await Promise.race([
+      completeBackgroundLookup,
+      wait(SOURCE_FAST_SECOND_PASS_MS)
+    ]);
   }
 
   episode.sourceOptionsChecked = lookupKey;
-  if (episode.sourceOptions.length > beforeCount) {
-    console.info(`Loaded ${episode.sourceOptions.length} playback server option(s) for ${show.title} episode ${episodeNumber}.`);
-  }
+  episode.sourceOptions = normalizeEpisodeSourceOptions(episode);
   return episode;
 }
 
@@ -4427,6 +4826,7 @@ function getKnownSourceServer(key) {
 function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options = {}) {
   const lookupKey = playbackLookupKey(show, episode, seasonNumber);
   if (!lookupKey || (episode.sourceOptionsChecked === lookupKey && episode.tioAnimeSourcesChecked && episode.animeAv1SourcesChecked && episode.jkAnimeSourcesChecked && episode.animeonlineNinjaSourcesChecked)) return Promise.resolve(episode);
+  if (sourceOptionsBackgroundLookups.has(lookupKey)) return sourceOptionsBackgroundLookups.get(lookupKey);
   if (pendingSourceLookups.has(lookupKey)) return pendingSourceLookups.get(lookupKey);
 
   episode.sourceOptionsPending = true;
@@ -4436,7 +4836,7 @@ function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options 
       return episode;
     })
     .finally(() => {
-      episode.sourceOptionsPending = false;
+      episode.sourceOptionsPending = sourceOptionsBackgroundLookups.has(lookupKey);
       pendingSourceLookups.delete(lookupKey);
       const selected = state.activeEpisode;
       if (selected?.episode === episode && state.activeShow === show) {
@@ -5324,7 +5724,8 @@ function _render() {
   }
   if (isAniPub) renderAniPubCatalog();
   if (isFavorites) {
-    renderCards(favoritesGrid, filtered.filter((show) => state.favorites.includes(show.id)));
+    const favoriteShows = catalogShows().filter((show) => state.favorites.includes(show.id));
+    renderCards(favoritesGrid, state.search ? favoriteShows.filter(matchesShowSearch) : favoriteShows);
     const emptyFavorites = document.querySelector("#emptyFavorites");
     if (emptyFavorites && favoritesGrid) emptyFavorites.hidden = favoritesGrid.children.length > 0;
   }
@@ -5400,7 +5801,10 @@ function setRoute(route, options = {}) {
   });
 
   syncRouteVisibility();
-  if (route === "home") { renderCarousel(); loadAnimeAv1Latest(); }
+  if (route === "home") {
+    renderCarousel();
+    scheduleAnimeAv1LatestLoad();
+  }
   if (route === "anipub") ensureAniPubCatalogLoaded();
   if ((route === "sources" || route === "library") && !state.externalSourcesLoaded) {
     scheduleExternalSourcesLoad({ force: true });
@@ -5447,6 +5851,12 @@ function scrollToRoute(route) {
 
 async function openShow(id, target = {}) {
   const wantedId = String(id || "");
+  // Remember the card + scroll offset so closing the detail view returns the
+  // user exactly where they were instead of snapping back to the top.
+  if (!overlay || overlay.hidden) {
+    state.lastOpenedShowId = wantedId;
+    state.catalogScrollY = window.scrollY || window.pageYOffset || 0;
+  }
   let show = state.shows.find((entry) => String(entry.id) === wantedId || getShowKey(entry) === wantedId);
   if (!show) {
     const addonShow = state.addonSections.flatMap((section) => section.items || []).find((entry) => String(entry.id) === wantedId || getShowKey(entry) === wantedId);
@@ -6018,8 +6428,24 @@ function closeShow() {
     }
     hideAdultGalleryPanel();
     refreshFocusables();
-    const firstCard = document.querySelector(".show-card:not([hidden])");
-    if (firstCard) focusElement(firstCard);
+    // Focus memory: return to the card that was opened and restore the catalog
+    // scroll offset. focusElement() calls scrollIntoView(), which on the FIRST
+    // card yanked the page back to the top - so focus without scrolling here.
+    const savedY = Number(state.catalogScrollY || 0);
+    let returnCard = null;
+    if (state.lastOpenedShowId) {
+      try {
+        const raw = String(state.lastOpenedShowId);
+        const safe = (typeof CSS !== "undefined" && CSS.escape) ? CSS.escape(raw) : null;
+        if (safe) returnCard = document.querySelector("[data-open-show=\"" + safe + "\"]");
+      } catch (_) { returnCard = null; }
+    }
+    const targetCard = returnCard || document.querySelector(".show-card:not([hidden])");
+    if (targetCard) {
+      try { targetCard.focus({ preventScroll: true }); } catch (_) { /* ignore */ }
+      try { setTvFocus(targetCard); } catch (_) { /* ignore */ }
+    }
+    if (savedY > 0) window.scrollTo({ top: savedY, behavior: "auto" });
     // Returning to Home — resume the hero cover→trailer cycle.
     if (state.route === "home") renderCarousel();
   }, 200);
@@ -6106,6 +6532,22 @@ function toggleFavorite() {
   }
 }
 
+// Recompute ONLY the watch hero backdrop for the active show + season. Called
+// when season-specific TMDB art arrives asynchronously (ensureSeasonStills) so
+// each season shows its own backdrop without a heavy full resetVideoFrame (which
+// would stop playback). No-op while the cinematic player is open.
+function refreshActiveWatchBackdrop() {
+  const show = state.activeShow;
+  if (!show) return;
+  if (document.body.classList.contains("player-cinema-open")) return;
+  const frame = document.querySelector("#videoFrame");
+  if (!frame) return;
+  const seasons = getDetailSeasons(show);
+  const activeSeason = seasons[state.activeSeasonIndex] || seasons[0] || null;
+  const background = getWatchBackdropArtwork(show, activeSeason);
+  frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
+}
+
 function resetVideoFrame() {
   stopActivePlayback();
   const show = state.activeShow;
@@ -6139,10 +6581,12 @@ function resetVideoFrame() {
     show?.coverImageLarge,
     show?.image,
     "logo-round.png"
-  ].map(u => String(u || "").trim()).filter(Boolean);
-  const watchPosterUrl = watchPosterCandidates[0] || "";
-  const watchFallbackData = watchPosterCandidates.length
-    ? ` data-image-fallbacks="${escapeHtml(encodeURIComponent(JSON.stringify(watchPosterCandidates)))}" data-image-fallback-index="0"`
+  ].map(u => hqImage(String(u || "").trim())).filter(Boolean);
+  const uniqueCandidates = [...new Set(watchPosterCandidates)];
+  const deliveredCandidates = uniqueCandidates.map(url => imageDeliveryUrl(url, 480, 88));
+  const watchPosterUrl = deliveredCandidates[0] || "";
+  const watchFallbackData = deliveredCandidates.length
+    ? ` data-image-fallbacks="${escapeHtml(encodeURIComponent(JSON.stringify(deliveredCandidates)))}" data-image-fallback-index="0"`
     : "";
 
   frame.innerHTML = `
@@ -6381,23 +6825,163 @@ function applyWatchBackdrop(show, season) {
     season?.tmdbBackdrop, show.backdrop, show.heroImage, show.wideImage,
     show.landscapeImage, show.jikanBackground, season?.highQualityBackground,
     season?.banner, season?.backdrop
+  ].map((value) => hqImage(String(value || "").trim()))
+   .filter((url) => url && !verticalArt.has(url)));
+  // The genuinely high-resolution "final" art — the TMDB backdrop (show or season)
+  // and any explicitly-high-quality background. Used to decide whether the current
+  // art is good enough to show sharp, or whether to hold on the blurred fill until
+  // TMDB resolves (an AniList banner is wide but NOT in here, so it's "low-res").
+  const seasonNum = getBackdropSeasonNumber(season);
+  const highResSources = new Set([
+    show.tmdbBackdrop, season?.tmdbBackdrop,
+    seasonNum && show.tmdbSeasonBackdropsBySeason ? show.tmdbSeasonBackdropsBySeason[seasonNum] : "",
+    show.highQualityBackground, season?.highQualityBackground
   ].map((value) => hqImage(String(value || "").trim())).filter(Boolean));
-  const paint = (url) => {
-    const posterFit = Boolean(url) && !wideSources.has(url);
-    backdrop.style.backgroundImage = url ? `url("${url}")` : animeBackdropFallback(show);
+  // Set the sharp backdrop image + classes (no crossfade — used for the first
+  // paint and the fallback/poster cases).
+  const setBackdropArt = (url, optimized, posterFit) => {
+    backdrop.classList.remove("is-blur-hold"); // leaving the blurred-hold state
+    if (posterFit) {
+      backdrop.style.backgroundImage = optimized ? `url("${optimized}")` : animeBackdropFallback(show);
+      backdrop.classList.remove("has-art");
+      backdrop.classList.add("has-fallback-art");
+    } else {
+      backdrop.style.backgroundImage = optimized ? `url("${optimized}")` : animeBackdropFallback(show);
+      backdrop.classList.toggle("has-art", Boolean(url));
+      backdrop.classList.toggle("has-fallback-art", !url);
+    }
+    backdrop.classList.toggle("is-poster-fit", posterFit);
+  };
+  const commitBackdropMeta = (url) => {
     backdrop.dataset.backdropKey = key;
     backdrop.dataset.backdropUrl = url || "";
-    backdrop.classList.toggle("has-art", Boolean(url));
-    backdrop.classList.toggle("has-fallback-art", !url);
-    backdrop.classList.toggle("is-poster-fit", posterFit);
     if (blur) {
-      // The blurred fill only earns its keep behind a contained poster.
-      blur.style.backgroundImage = posterFit ? `url("${url}")` : "";
-      blur.classList.toggle("is-visible", posterFit);
+      blur.style.backgroundImage = url ? `url("${imageDeliveryUrl(url, 640, 70)}")` : "";
+      blur.classList.toggle("is-visible", Boolean(url));
     }
     // Always cinematic; .has-art only switches image-backdrop vs gradient fallback.
     overlay?.classList.add("cinematic");
     overlay?.classList.toggle("has-backdrop-art", Boolean(url));
+  };
+
+  // Safety net for the blurred-hold below: if TMDB resolution never flips
+  // _tmdbResolved (e.g. the search request threw), don't sit on the blur forever —
+  // after a few seconds force the best-available sharp art for this show/season.
+  const scheduleHighResFallback = () => {
+    if (backdrop.dataset.backdropFallbackKey === key) return; // already armed for this key
+    backdrop.dataset.backdropFallbackKey = key;
+    window.setTimeout(() => {
+      if (backdrop.dataset.backdropKey === key
+          && backdrop.classList.contains("is-blur-hold")
+          && state.activeShow?.id === show.id) {
+        show._backdropForceSharp = true;
+        applyWatchBackdrop(show, season);
+      }
+    }, 4000);
+  };
+
+  const paint = (url) => {
+    const isAdultShow = Boolean(show.adultSource || show.isAdult || (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)));
+    const posterFit = false;
+    const artIsHighRes = Boolean(url) && highResSources.has(url);
+    const optimized = url ? imageDeliveryUrl(url, 1920, 92) : "";
+    const sameTarget = backdrop.dataset.backdropKey === key;
+    const reduceMotion = document.body.classList.contains("reduce-motion");
+
+    // HOLD FOR HIGH-RES (user preference): while TMDB is still resolving and the
+    // only wide art we have is lower-res (e.g. an AniList banner), DON'T show that
+    // sharp — display just the blurred fill and fade the high-res TMDB backdrop in
+    // when it lands, instead of popping low→high. _tmdbResolved flips true on every
+    // resolve outcome (match / no-match / reject), so a show that truly has no TMDB
+    // art falls through to its AniList sharp; scheduleHighResFallback covers the
+    // rare case where resolution threw and never set the flag.
+    const tmdbPending = !show._tmdbResolved && !show._backdropForceSharp;
+    const blurHold = Boolean(url) && !posterFit && !artIsHighRes && tmdbPending;
+
+    if (blurHold) {
+      // Dedupe across the enrichment render-burst (same show + same held url).
+      if (backdrop.classList.contains("is-blur-hold")
+          && backdrop.dataset.backdropKey === key
+          && backdrop.dataset.backdropHeldUrl === url) return;
+      backdrop.style.backgroundImage = "none";
+      backdrop.style.transition = "";
+      backdrop.style.opacity = "";
+      backdrop.classList.remove("has-art", "has-fallback-art", "is-poster-fit");
+      backdrop.classList.add("is-blur-hold"); // makes the sharp layer transparent → blur shows
+      backdrop.dataset.backdropKey = key;
+      backdrop.dataset.backdropUrl = "";        // no committed sharp art yet
+      backdrop.dataset.backdropHeldUrl = url;
+      if (blur) { blur.style.backgroundImage = `url("${imageDeliveryUrl(url, 640, 70)}")`; blur.classList.add("is-visible"); }
+      overlay?.classList.add("cinematic");
+      overlay?.classList.add("has-backdrop-art");
+      scheduleHighResFallback();
+      return;
+    }
+
+    const prevUrl = backdrop.dataset.backdropUrl || "";
+    const prevHadArt = backdrop.classList.contains("has-art");
+    const fromBlurHold = backdrop.classList.contains("is-blur-hold");
+    // FADE the sharp art in when, for the SAME show/season, we're either revealing
+    // the high-res art after a blurred hold, OR upgrading one already-shown wide
+    // image to a different one. A SHOW SWITCH (different key) must NOT fade — prevUrl
+    // there is the previous show's backdrop. First paints, poster fallbacks and
+    // reduce-motion take the immediate path (overlay open is never delayed).
+    const wantFade = Boolean(url) && !posterFit && sameTarget && typeof Image !== "undefined" && !reduceMotion
+      && (fromBlurHold || (prevHadArt && prevUrl && prevUrl !== url));
+
+    if (!wantFade) {
+      setBackdropArt(url, optimized, posterFit);
+      commitBackdropMeta(url);
+      return;
+    }
+
+    // Claim the target url now so the rapid re-renders of the enrichment burst
+    // (which call paint() with this same url) see prevUrl===url and skip — without
+    // this, each re-render would start another overlapping dip and the backdrop
+    // would flicker. The actual sharp swap still happens in commitSwap below.
+    backdrop.dataset.backdropUrl = url;
+
+    // Decode the incoming image off-screen, then dip the sharp layer's opacity to
+    // reveal the (re-blurred) fill behind it — never a flash to black — swap the
+    // image while hidden, and fade it back in. Idempotent + self-healing: a safety
+    // timer guarantees the new art is committed at opacity 1 even if transitionend
+    // never fires, so the worst case degrades to today's instant swap, never to a
+    // stuck/blank backdrop.
+    let done = false;
+    const commitSwap = () => {
+      if (done) return;
+      done = true;
+      // Bail if the overlay moved on to a different show/season in the meantime.
+      if (backdrop.dataset.backdropKey !== key && state.activeShow?.id !== show.id) {
+        backdrop.style.transition = "";
+        backdrop.style.opacity = "";
+        return;
+      }
+      setBackdropArt(url, optimized, posterFit);
+      commitBackdropMeta(url);
+      void backdrop.offsetWidth; // flush before fading back in
+      backdrop.style.opacity = "1";
+      setTimeout(() => { backdrop.style.transition = ""; backdrop.style.opacity = ""; }, 280);
+    };
+    const beginDip = () => {
+      // Match the incoming image on the blurred fill first so the dip shows the
+      // NEW art (blurred), not the old one.
+      if (blur) blur.style.backgroundImage = `url("${imageDeliveryUrl(url, 640, 70)}")`;
+      backdrop.style.transition = "opacity 220ms ease";
+      backdrop.style.opacity = "0";
+      backdrop.addEventListener("transitionend", commitSwap, { once: true });
+      setTimeout(commitSwap, 300); // safety net if transitionend is missed
+    };
+    const probe = new Image();
+    probe.referrerPolicy = "no-referrer";
+    if (typeof probe.decode === "function") {
+      probe.src = optimized || url;
+      probe.decode().then(beginDip).catch(beginDip);
+    } else {
+      probe.onload = beginDip;
+      probe.onerror = beginDip;
+      probe.src = optimized || url;
+    }
   };
 
   let art = getWatchBackdropArtwork(show, season);
@@ -6407,7 +6991,12 @@ function applyWatchBackdrop(show, season) {
   try { currentFailed = Boolean(currentUrl && typeof ImageResolver !== "undefined" && ImageResolver.isImageFailed(currentUrl)); }
   catch { currentFailed = false; }
   if (currentKey === key && currentUrl && !currentFailed && art && art !== currentUrl) {
-    art = currentUrl;
+    // Keep an existing real wide backdrop if a later render temporarily offers a
+    // poster fallback, but allow hydration to upgrade a poster/placeholder into
+    // TMDB/AniList wide art. This avoids both flicker and sticky bad artwork.
+    const currentIsWide = wideSources.has(currentUrl);
+    const nextIsWide = wideSources.has(art);
+    if (currentIsWide && !nextIsWide) art = currentUrl;
   }
   paint(art);
   if (art) {
@@ -6856,7 +7445,7 @@ function renderEpisodeList(show) {
                   data-season-index="${state.activeSeasonIndex}" data-episode-index="${episodeIndex}"
                   data-ep-search="${escapeHtml(search)}">
             <span class="ep-thumb ${finalEpImgSrc ? "has-image" : "is-placeholder"}${isFallback ? " is-fallback" : ""}" style="--episode-hue:${fallbackHue}">
-              ${finalEpImgSrc ? `<img referrerpolicy="no-referrer" class="ep-thumb-img" src="${escapeHtml(finalEpImgSrc)}" alt="" loading="lazy" decoding="async"${epFallbackData}>` : ""}
+              ${finalEpImgSrc ? `<span class="art-sheen" aria-hidden="true"></span><img referrerpolicy="no-referrer" class="ep-thumb-img" src="${escapeHtml(finalEpImgSrc)}" alt="" loading="lazy" decoding="async"${epFallbackData}>` : ""}
               ${finalEpImgSrc ? "" : `<span class="ep-thumb-empty" aria-hidden="true"><span class="ep-thumb-empty-mark">Z</span><span class="ep-thumb-empty-copy">Preview pending</span></span>`}
               <span class="ep-thumb-num">${escapeHtml(String(num))}</span>
               <span class="ep-thumb-play" aria-hidden="true">▶</span>
@@ -7228,13 +7817,77 @@ function episodeAvailabilityText(episode = {}) {
   return "Not available yet";
 }
 
-// Provider group for source ordering: scraper sources (TioAnime/AnimeAV1) on top,
-// then AniPub, then anything else.
+const PRIMARY_SOURCE_FILTERS = [
+  {
+    value: "preferred:best-servers",
+    label: "Best servers",
+    match: (source) => (
+      (isAnimeAv1Source(source) && isHlsSource(source)) ||
+      (isAnimeAv1Source(source) && isMp4UploadSource(source)) ||
+      (isJKAnimeSource(source) && isMp4UploadSource(source))
+    )
+  }
+];
+
+function sourceIdentityText(source = {}) {
+  return [
+    source.id,
+    source.label,
+    source.provider,
+    source.server,
+    source.type,
+    source.videoUrl,
+    source.externalUrl,
+    source.siteUrl,
+    source.streamResolver?.type,
+    source.streamResolver?.endpoint
+  ].filter(Boolean).join(" ").toLowerCase();
+}
+
+function isPreferredAdultSource(source = {}) {
+  return /veohentai|hentaiplayer|1hanime/.test(sourceIdentityText(source));
+}
+
+function isAdultFallbackSource(source = {}) {
+  const text = sourceIdentityText(source);
+  return text.includes("underhentai") || text.includes("kraken");
+}
+
+function isAnimeAv1Source(source = {}) {
+  const text = sourceIdentityText(source);
+  return text.includes("animeav1") || Boolean(KNOWN_SOURCE_SERVERS.find((d) => d.key === "animeav1")?.match(source));
+}
+
+function isJKAnimeSource(source = {}) {
+  const text = sourceIdentityText(source);
+  return text.includes("jkanime") || Boolean(KNOWN_SOURCE_SERVERS.find((d) => d.key === "jkanime")?.match(source));
+}
+
+function isHlsSource(source = {}) {
+  const url = (source.videoUrl || source.externalUrl || "").toLowerCase();
+  const text = sourceIdentityText(source);
+  return /\.m3u8(\?|#|$)/i.test(url) || /\bhls\b/.test(text);
+}
+
+function isMp4UploadSource(source = {}) {
+  return /mp4\s*upload|mp4upload/.test(sourceIdentityText(source));
+}
+
+function sourcePreferredFilterValue(source = {}) {
+  return PRIMARY_SOURCE_FILTERS.find((filter) => filter.match(source))?.value || "";
+}
+
+function getPrimarySourceFilterOptions(show = null) {
+  if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) return [];
+  return PRIMARY_SOURCE_FILTERS.map(({ value, label }) => ({ value, label }));
+}
+
+// Provider group for source ordering: preferred scrapers on top, then AniPub,
+// then anything else.
 function _sourceGroupPriority(source = {}) {
-  const id = (source.id || "").toLowerCase();
-  const label = (source.label || "").toLowerCase();
-  if (id.includes("tioanime") || id.includes("animeav1") ||
-      label.includes("tioanime") || label.includes("animeav1")) return 0;
+  const text = sourceIdentityText(source);
+  if (isAnimeAv1Source(source) || isJKAnimeSource(source)) return 0;
+  if (text.includes("tioanime")) return 1;
   if (KNOWN_SOURCE_SERVERS.find(d => d.key === "anipub")?.match(source)) return 1;
   return 2;
 }
@@ -7242,29 +7895,37 @@ function _sourceGroupPriority(source = {}) {
 // Fine-grained "best server" preference. Lower = shown / auto-selected first.
 // AnimeAV1 is the most reliable provider — its HLS stream is the #1 pick.
 function sourcePreferenceScore(source = {}) {
-  const id    = (source.id || "").toLowerCase();
   const label = (source.label || "").toLowerCase();
   const url   = (source.videoUrl || source.externalUrl || "").toLowerCase();
+  const identity = sourceIdentityText(source);
   const isDirect = source.type === "direct";
-  const isHls    = /\.m3u8(\?|#|$)/i.test(url) || /\bhls\b/.test(label);
-  const isAnimeAv1 = id.includes("animeav1") || label.includes("animeav1");
+  const isHls    = isHlsSource(source);
+  const isAnimeAv1 = isAnimeAv1Source(source);
+  const isJKAnime = isJKAnimeSource(source);
   const isMega = /\bmega\b/.test(label) || /mega\.nz/.test(url);
-  const isMp4  = /mp4\s*upload|mp4upload/.test(label) || /mp4upload/.test(url);
+  const isMp4  = isMp4UploadSource(source);
   const isAdFree = /yourupload|you\s*upload|youupload|ok\.?ru|okru|streamwish|filelions/.test(label);
   const isAdWalled = /\bvoe\b|netu|hqq|streamsb|embedsb|\bsb\b|dood|filemoon|vidhide|mixdrop/.test(label);
 
+  // Adult catalog: prefer the direct clean HentaiPlayer/1hanime stream that
+  // the VeoHentai scraper resolves before falling back to older embeds.
+  if (isPreferredAdultSource(source))    return 0;
+  if (identity.includes("hentaila"))     return 1;
+
   // ── AnimeAV1 first (most reliable) — HLS is the very top pick ────────────
   if (isAnimeAv1 && isHls)              return 0; // AnimeAV1 — HLS  (best)
-  if (isAnimeAv1 && isDirect)           return 1; // AnimeAV1 — other direct
-  if (isAnimeAv1 && (isMega || isMp4))  return 2; // AnimeAV1 — Mega / MP4Upload
-  if (isAnimeAv1 && !isAdWalled)        return 3; // AnimeAV1 — other ad-free embed
+  if (isJKAnime && isMp4)               return 1; // JKAnime — MP4Upload
+  if (isAnimeAv1 && isDirect)           return 2; // AnimeAV1 — other direct
+  if (isAnimeAv1 && (isMega || isMp4))  return 3; // AnimeAV1 — Mega / MP4Upload
+  if (isAnimeAv1 && !isAdWalled)        return 4; // AnimeAV1 — other ad-free embed
   // ── Then the other dependable, ad-free servers ─────────────────────────
-  if (isHls || isDirect)               return 4; // any other direct / HLS stream
-  if (isMega || isMp4)                 return 5; // Mega / MP4Upload (TioAnime etc.)
-  if (isAdFree)                        return 6; // YourUpload / Ok.ru / …
+  if (isHls || isDirect)               return 5; // any other direct / HLS stream
+  if (isMega || isMp4)                 return 6; // Mega / MP4Upload (TioAnime etc.)
+  if (isAdFree)                        return 7; // YourUpload / Ok.ru / …
+  if (isAdultFallbackSource(source))    return 8; // UnderHentai/Kraken fallback
   // ── Ad-walled hosts sink to the bottom ─────────────────────────────────
   if (isAdWalled)                      return 9;
-  return 7;                                       // neutral / unknown
+  return 8;                                       // neutral / unknown
 }
 
 // Order sources so the auto-selected one (index 0) is the best playable pick:
@@ -7289,16 +7950,49 @@ function orderSourceOptions(sources = []) {
 }
 
 function getEpisodePlaybackSources(episode = {}) {
-  return orderSourceOptions(normalizeEpisodeSourceOptions(episode));
+  return orderSourceOptions(normalizeEpisodeSourceOptions(episode).filter((source) => {
+    const text = sourceIdentityText(source);
+    return !text.includes("animeonlineninja") && !text.includes("animéonline") && !text.includes("animeonline");
+  }));
 }
 
 function getSelectedEpisodeSource(episode = {}) {
   const sources = getEpisodePlaybackSources(episode);
   if (!sources.length) return null;
-  const explicit = episode.selectedSourceId || state.preferredSource;
-  return explicit && explicit !== "auto"
-    ? sources.find((source) => source.id === explicit) || sources[0]
-    : sources[0];
+  const cleanAdultSource = sources.find(isPreferredAdultSource);
+  if (episode.selectedSourceId && episode.selectedSourceId !== "auto") {
+    const selected = sources.find((source) => source.id === episode.selectedSourceId);
+    if (selected && cleanAdultSource && isAdultFallbackSource(selected)) {
+      episode.selectedSourceId = cleanAdultSource.id;
+      episode.videoUrl = "";
+      state.activeEpisodeUrl = "";
+      episode._failedSourceIds?.clear?.();
+      return cleanAdultSource;
+    }
+    return selected || sources[0];
+  }
+  const savedPreference = state.preferredSource;
+  if (savedPreference && savedPreference !== "auto") {
+    const preferred = sources.find((source) => source.id === savedPreference);
+    if (preferred && (!cleanAdultSource || isPreferredAdultSource(preferred))) {
+      return preferred;
+    }
+  }
+  return sources[0];
+}
+
+function selectEpisodePlaybackSource(episode, sourceId) {
+  if (!episode || !sourceId) return null;
+  episode.selectedSourceId = sourceId;
+  const selected = getEpisodePlaybackSources(episode).find((source) => source.id === sourceId) || null;
+  if (selected?.streamResolver || selected?.type === "resolver" || selected?.type === "iframe") {
+    episode.videoUrl = "";
+    state.activeEpisodeUrl = "";
+  }
+  if (episode._failedSourceIds) {
+    episode._failedSourceIds.clear();
+  }
+  return selected;
 }
 
 function renderPlayerSourceOptions(episode = {}, selectedSource = null) {
@@ -7616,14 +8310,14 @@ function setupDeferredHomeAddons() {
     scheduleExternalSourcesLoad({ force: true });
   };
   if (!("IntersectionObserver" in window)) {
-    window.setTimeout(request, 5000);
+    window.setTimeout(request, 12000);
     return;
   }
   const observer = new IntersectionObserver((entries) => {
     if (!entries.some((entry) => entry.isIntersecting)) return;
     observer.disconnect();
     request();
-  }, { rootMargin: "900px 0px" });
+  }, { rootMargin: "120px 0px" });
   observer.observe(addonSections);
 }
 
@@ -7635,6 +8329,10 @@ function sourceFilterOption(value, label) {
 function sourceRowMatchesFilter(row, filterValue) {
   const value = String(filterValue || "all");
   if (value === "all") return true;
+  if (value.startsWith("preferred:")) {
+    return Boolean(row.getAttribute("data-player-source"))
+      && row.getAttribute("data-source-preferred-key") === value;
+  }
   if (value.startsWith("provider:")) {
     return row.getAttribute("data-source-provider-key") === value.slice("provider:".length);
   }
@@ -7646,7 +8344,7 @@ function sourceRowMatchesFilter(row, filterValue) {
   return true;
 }
 
-function applySourcePickerFilter(root, rawValue = "all", select = null) {
+function applySourcePickerFilter(root, rawValue = "preferred:best-servers", select = null) {
   if (!root) return;
   let value = String(rawValue || "all");
   const pickerSelect = select || root.querySelector(".source-filter-select");
@@ -7734,6 +8432,7 @@ function renderSourcePickerInSidePanel() {
         data-source-provider-key="${escapeHtml(sourceFilterKey(providerName))}"
         data-source-type="${escapeHtml(source.type || "")}"
         data-source-type-key="${escapeHtml(sourceFilterKey(source.type || ""))}"
+        data-source-preferred-key="${escapeHtml(sourcePreferredFilterValue(source))}"
         type="button">
         <div class="source-picker-left">
           <span class="source-provider-title">${escapeHtml(providerName)}</span>
@@ -7810,8 +8509,12 @@ function renderSourcePickerInSidePanel() {
     if (isPending && serverChecks[def.key] === undefined) uniqueProviders.add(def.label);
   });
   let filterSelectHtml = "";
-  if ((allSources.length > 0 || isPending) && (uniqueProviders.size > 1 || uniqueTypes.size > 1)) {
+  const primaryFilterOptions = getPrimarySourceFilterOptions(show);
+  if ((allSources.length > 0 || isPending) && (uniqueProviders.size > 1 || uniqueTypes.size > 1 || primaryFilterOptions.length > 0)) {
     let optionsHtml = sourceFilterOption("all", "All sources");
+    optionsHtml += primaryFilterOptions
+      .map((option) => sourceFilterOption(option.value, option.label))
+      .join("");
     if (uniqueProviders.size > 1) {
       optionsHtml += Array.from(uniqueProviders).sort()
         .map((p) => sourceFilterOption(`provider:${sourceFilterKey(p)}`, p)).join("");
@@ -7940,15 +8643,14 @@ function renderSourcePickerInSidePanel() {
   }
 
   // Wire source selection
+  wireSourceButtonWarmups(episodeList, state.activeEpisode?.episode);
   episodeList.querySelectorAll("[data-player-source]").forEach((button) => {
     button.addEventListener("click", () => {
       const selectedEpisode = state.activeEpisode?.episode;
       if (!selectedEpisode) return;
-      selectedEpisode.selectedSourceId = button.dataset.playerSource;
+      warmEpisodeSourceById(selectedEpisode, button.dataset.playerSource, { timeoutMs: 1600 });
+      selectEpisodePlaybackSource(selectedEpisode, button.dataset.playerSource);
       state.preferredSource = selectedEpisode.selectedSourceId;
-      if (selectedEpisode._failedSourceIds) {
-        selectedEpisode._failedSourceIds.clear();
-      }
       hideAdultGalleryPanel();
       playActiveShow({ allowSourceLookup: false });
     });
@@ -8113,6 +8815,7 @@ function renderSourcePickerIn(frame) {
             data-source-provider-key="${escapeHtml(sourceFilterKey(providerName))}" 
             data-source-type="${escapeHtml(source.type || "")}" 
             data-source-type-key="${escapeHtml(sourceFilterKey(source.type || ""))}" 
+            data-source-preferred-key="${escapeHtml(sourcePreferredFilterValue(source))}" 
             type="button">
             <div class="source-picker-left">
               <span class="source-provider-title">${escapeHtml(providerName)}</span>
@@ -8186,6 +8889,7 @@ function renderSourcePickerIn(frame) {
           data-source-provider-key="${escapeHtml(sourceFilterKey(providerName))}" 
           data-source-type="${escapeHtml(source.type || "")}" 
           data-source-type-key="${escapeHtml(sourceFilterKey(source.type || ""))}" 
+          data-source-preferred-key="${escapeHtml(sourcePreferredFilterValue(source))}" 
           type="button">
           <div class="source-picker-left">
             <span class="source-provider-title">${escapeHtml(providerName)}</span>
@@ -8228,8 +8932,12 @@ function renderSourcePickerIn(frame) {
   });
 
   let filterSelectHtml = "";
+  const primaryFilterOptions = getPrimarySourceFilterOptions(show);
   if (foundCount > 0 || isPending) {
     let optionsHtml = sourceFilterOption("all", "All sources");
+    optionsHtml += primaryFilterOptions
+      .map((option) => sourceFilterOption(option.value, option.label))
+      .join("");
 
     // Add providers group/options
     if (uniqueProviders.size > 1) {
@@ -8251,7 +8959,7 @@ function renderSourcePickerIn(frame) {
     }
 
     // Only render filter dropdown if there's actually more than 1 filterable group/option!
-    if (uniqueProviders.size > 1 || uniqueTypes.size > 1) {
+    if (uniqueProviders.size > 1 || uniqueTypes.size > 1 || primaryFilterOptions.length > 0) {
       filterSelectHtml = `
         <select class="source-filter-select focusable language-select" aria-label="Filter sources">
           ${optionsHtml}
@@ -8342,8 +9050,21 @@ function loadHlsScript() {
   return hlsScriptPromise;
 }
 
+function originalStreamUrlFromProxy(url = "") {
+  const value = String(url || "");
+  try {
+    const parsed = new URL(value, location.origin);
+    if (parsed.pathname === LOCAL_SOURCE_PROXY_ENDPOINT && parsed.searchParams.get("url")) {
+      return parsed.searchParams.get("url") || value;
+    }
+  } catch (error) {
+    // Keep the original value when URL parsing is unavailable.
+  }
+  return value;
+}
+
 function streamTypeFromUrl(url = "") {
-  const value = String(url || "").split("?")[0].split("#")[0].toLowerCase();
+  const value = originalStreamUrlFromProxy(url).split("?")[0].split("#")[0].toLowerCase();
   if (value.endsWith(".m3u8")) return "hls";
   if (value.endsWith(".mpd")) return "dash";
   if (/krakencloud\.net\/play\/video\//i.test(value)) return "file";
@@ -8373,6 +9094,7 @@ function isProxyableStreamUrl(url = "") {
 
 function proxiedStreamUrl(url = "") {
   const resolved = resolveSourceEndpoint(url);
+  if (isLocalSourceProxyUrl(resolved)) return localSourceProxyPath(resolved);
   if (!isProxyableStreamUrl(resolved) || location.protocol === "file:") return resolved;
   const proxyHost = streamProxyHost(resolved);
   const proxy = new URL(LOCAL_SOURCE_PROXY_ENDPOINT, location.origin);
@@ -8381,33 +9103,209 @@ function proxiedStreamUrl(url = "") {
   return proxy.toString();
 }
 
+function streamTypeQueryValue(type = "") {
+  if (type === "hls") return "hls";
+  if (type === "dash") return "dash";
+  if (type === "file") return "file";
+  return "";
+}
+
+function sourceDirectUrl(source = {}) {
+  return source?.videoUrl || source?.url || source?.href || source?.streamUrl || source?.file || "";
+}
+
+function preconnectStreamOrigin(url = "") {
+  if (!url || location.protocol === "file:") return;
+  let origin = "";
+  try {
+    origin = new URL(url, location.origin).origin;
+  } catch (error) {
+    return;
+  }
+  if (!origin || playableStreamPreconnects.has(origin)) return;
+  playableStreamPreconnects.add(origin);
+  ["preconnect", "dns-prefetch"].forEach((rel) => {
+    const link = document.createElement("link");
+    link.rel = rel;
+    link.href = origin;
+    if (rel === "preconnect") link.crossOrigin = "";
+    document.head.appendChild(link);
+  });
+}
+
+function warmPlayableStream(url = "", options = {}) {
+  const resolved = resolveSourceEndpoint(url);
+  if (!resolved || /^javascript:/i.test(resolved)) return Promise.resolve(null);
+  const original = originalStreamUrlFromProxy(resolved);
+  preconnectStreamOrigin(original);
+  preconnectStreamOrigin(location.origin);
+
+  const probeUrl = proxiedStreamUrl(resolved);
+  if (!probeUrl) return Promise.resolve(null);
+  let cacheKey = "";
+  try {
+    cacheKey = new URL(probeUrl, location.origin).href;
+  } catch {
+    return Promise.resolve(null);
+  }
+  if (!/^https?:\/\//i.test(cacheKey)) return Promise.resolve(null);
+  const cached = playableStreamWarmups.get(cacheKey);
+  const now = Date.now();
+  if (cached && now - cached.time < PLAYABLE_STREAM_WARMUP_TTL) return cached.promise;
+
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), options.timeoutMs || 2200);
+  const headers = {};
+  if (streamTypeFromUrl(resolved) === "file") headers.Range = "bytes=0-0";
+  const promise = fetch(cacheKey, {
+    method: "GET",
+    cache: "no-store",
+    mode: cacheKey.startsWith(location.origin) ? "same-origin" : "cors",
+    credentials: "omit",
+    headers,
+    signal: controller.signal
+  }).catch(() => null).finally(() => window.clearTimeout(timeout));
+
+  playableStreamWarmups.set(cacheKey, { time: now, promise });
+  promise.finally(() => {
+    const current = playableStreamWarmups.get(cacheKey);
+    if (current?.promise === promise) current.time = Date.now();
+  });
+  return promise;
+}
+
+function warmEpisodeSourceById(episode, sourceId, options = {}) {
+  const source = getEpisodePlaybackSources(episode).find((item) => item.id === sourceId);
+  const url = sourceDirectUrl(source);
+  if (!url || source?.streamResolver || source?.type === "resolver") return Promise.resolve(null);
+  return warmPlayableStream(url, options);
+}
+
+function warmTopEpisodeSources(episode, limit = 2) {
+  getEpisodePlaybackSources(episode)
+    .filter((source) => {
+      const url = sourceDirectUrl(source);
+      return url && source.type !== "resolver" && !source.streamResolver;
+    })
+    .slice(0, limit)
+    .forEach((source) => warmPlayableStream(sourceDirectUrl(source), { timeoutMs: 1800 }));
+}
+
+function wireSourceButtonWarmups(root, episode) {
+  if (!root || !episode) return;
+  root.querySelectorAll("[data-player-source]").forEach((button) => {
+    const warm = () => warmEpisodeSourceById(episode, button.dataset.playerSource, { timeoutMs: 1800 });
+    button.addEventListener("pointerenter", warm, { once: true, passive: true });
+    button.addEventListener("focus", warm, { once: true });
+    button.addEventListener("pointerdown", warm, { once: true, passive: true });
+  });
+  warmTopEpisodeSources(episode, 2);
+}
+
+function isLocalSourceProxyUrl(url = "") {
+  try {
+    const parsed = new URL(String(url || ""), location.origin);
+    return parsed.origin === location.origin && parsed.pathname === LOCAL_SOURCE_PROXY_ENDPOINT;
+  } catch (error) {
+    return String(url || "").startsWith(LOCAL_SOURCE_PROXY_ENDPOINT);
+  }
+}
+
+function localSourceProxyPath(url = "") {
+  try {
+    const parsed = new URL(String(url || ""), location.origin);
+    if (parsed.origin === location.origin && parsed.pathname === LOCAL_SOURCE_PROXY_ENDPOINT) {
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+  } catch (error) {}
+  return url;
+}
+
 function playerFitScaleValue(fit = state.uiPreferences.playerFit || "contain") {
   if (fit === "cover") return 1;
   if (fit === "fill") return 2;
   return 0;
 }
 
-function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null) {
+function buildPlayerUrl(videoUrl = "", title = "", options = {}) {
   const playerUrl = new URL("/player/player.html", location.origin);
-  playerUrl.searchParams.set("v", "2");
-  playerUrl.searchParams.set("src", resolveSourceEndpoint(url));
-  playerUrl.searchParams.set("audio", getLanguagePreferences().audio || "");
-  playerUrl.searchParams.set("quality", String(Number(state.uiPreferences.playerQuality || 0)));
+  playerUrl.searchParams.set("v", "6");
+  const source = isLocalSourceProxyUrl(videoUrl)
+    ? localSourceProxyPath(videoUrl)
+    : resolveSourceEndpoint(videoUrl);
+  playerUrl.searchParams.set("src", source);
+  if (title) playerUrl.searchParams.set("title", title);
+  if (options.episode) playerUrl.searchParams.set("episode", options.episode);
+  if (options.poster) playerUrl.searchParams.set("poster", options.poster);
+  if (options.subtitle) playerUrl.searchParams.set("subtitle", options.subtitle);
+  if (options.type) playerUrl.searchParams.set("type", options.type);
+  if (options.start) playerUrl.searchParams.set("start", String(options.start));
+  if (options.fit) playerUrl.searchParams.set("fit", options.fit);
+  if (options.controls) playerUrl.searchParams.set("controls", "1");
+  if (options.audio) playerUrl.searchParams.set("audio", options.audio);
+  if (options.subtitles) playerUrl.searchParams.set("subtitles", options.subtitles);
+  if (options.forceSubtitles) playerUrl.searchParams.set("forceSubtitles", "1");
+  if (Array.isArray(options.tracks) && options.tracks.length) {
+    playerUrl.searchParams.set("tracks", encodeURIComponent(JSON.stringify(options.tracks.slice(0, 8))));
+  }
+  if (options.quality != null) playerUrl.searchParams.set("quality", String(options.quality));
+  return playerUrl.toString();
+}
+
+function openPlayer(videoUrl, title = "", options = {}) {
+  if (!videoUrl) {
+    showToast("No playable video source found.");
+    return "";
+  }
+  const playerUrl = buildPlayerUrl(videoUrl, title, options);
+  window.location.assign(playerUrl);
+  return playerUrl;
+}
+
+window.openPlayer = openPlayer;
+
+function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null) {
+  const options = {};
+  const typeHint = streamTypeQueryValue(streamTypeFromUrl(url));
+  if (typeHint) options.type = typeHint;
+  const preferences = getLanguagePreferences();
+  const selectedSource = episode ? getSelectedEpisodeSource(episode) : null;
+  const isAdultSource = Boolean(
+    selectedSource && isPreferredAdultSource(selectedSource)
+      || (state.activeShow && typeof AdultMode !== "undefined" && AdultMode.isAdultContent(state.activeShow))
+  );
+  options.audio = preferences.audio || "";
+  options.subtitles = isAdultSource ? "spanish" : (preferences.subtitles || "");
+  options.forceSubtitles = isAdultSource;
+  const externalTracks = [
+    ...normalizeSubtitleTracks(episode || {}),
+    ...normalizeSubtitleTracks(selectedSource || {})
+  ].filter((track, index, tracks) => track.url && tracks.findIndex((candidate) => candidate.url === track.url) === index);
+  if (externalTracks.length) options.tracks = externalTracks;
+  options.quality = Number(state.uiPreferences.playerQuality || 0);
   if (useNativeControls || state.uiPreferences.playerInterface === "native") {
-    playerUrl.searchParams.set("controls", "1");
+    options.controls = true;
   }
   if (episode) {
     const resumeAt = getResumePosition(episode);
     if (resumeAt > 0) {
-      playerUrl.searchParams.set("start", String(resumeAt));
+      options.start = resumeAt;
     }
   }
+  options.fit = state.uiPreferences.playerFit || "cover";
+  options.episode = currentEpisodeLabel();
+  options.poster = episodeThumb(
+    episode || state.activeEpisode?.episode || {},
+    state.activeEpisode?.season || {},
+    state.activeShow || {}
+  );
+  const playerTitle = state.activeShow?.title || state.activeShow?.romajiTitle || episode?.showTitle || "ZenkaiTV";
   const hash = streamTypeFromUrl(url) === "dash"
     ? "#dash"
     : streamTypeFromUrl(url) === "file"
       ? "#file"
       : "";
-  return `${playerUrl.toString()}${hash}`;
+  return `${buildPlayerUrl(url, playerTitle, options)}${hash}`;
 }
 
 function createApkPlayerController(iframe, options = {}) {
@@ -8824,13 +9722,14 @@ function openPlayerPanel(frame, type, video, episode, url, tracks = []) {
   panel.innerHTML = renderPlayerPanelContent(type, episode, url, tracks);
   panel.hidden = false;
   // Sources panel — switch server (re-mounts the player, staying in cinema).
+  wireSourceButtonWarmups(panel, episode);
   panel.querySelectorAll("[data-player-source]").forEach((button) => {
     button.addEventListener("click", () => {
       const ep = state.activeEpisode?.episode;
       if (!ep) return;
-      ep.selectedSourceId = button.dataset.playerSource;
+      warmEpisodeSourceById(ep, button.dataset.playerSource, { timeoutMs: 1600 });
+      selectEpisodePlaybackSource(ep, button.dataset.playerSource);
       state.preferredSource = ep.selectedSourceId;
-      if (ep._failedSourceIds) ep._failedSourceIds.clear();
       try {
         localStorage.setItem(PREFERRED_SOURCE_KEY, state.preferredSource);
       } catch (error) {
@@ -9212,15 +10111,14 @@ function showEpisodeListTab() {
 }
 
 function wirePlayerChrome(frame) {
+  wireSourceButtonWarmups(frame, state.activeEpisode?.episode);
   frame.querySelectorAll("[data-player-source]").forEach((button) => {
     button.addEventListener("click", () => {
       const selectedEpisode = state.activeEpisode?.episode;
       if (!selectedEpisode) return;
-      selectedEpisode.selectedSourceId = button.dataset.playerSource;
+      warmEpisodeSourceById(selectedEpisode, button.dataset.playerSource, { timeoutMs: 1600 });
+      selectEpisodePlaybackSource(selectedEpisode, button.dataset.playerSource);
       state.preferredSource = selectedEpisode.selectedSourceId;
-      if (selectedEpisode._failedSourceIds) {
-        selectedEpisode._failedSourceIds.clear();
-      }
       try {
         localStorage.setItem(PREFERRED_SOURCE_KEY, state.preferredSource);
       } catch (error) {
@@ -9873,6 +10771,12 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
     while (cursor < queue.length && generation === visibleMetadataWarmGeneration) {
       const show = queue[cursor++];
       if (!show || show._metadataPreloadComplete || show.adultDetailsLoaded) continue;
+      // Bounded retry. Previously a failure reset _metadataPreloadStarted, so a
+      // show whose metadata kept failing (Jikan 429 / AniList 502 / TMDB 429) was
+      // re-requested on EVERY render - effectively an endless request loop.
+      // Back off after each failure, then stop asking altogether.
+      if (show._metadataPreloadNextTry && Date.now() < show._metadataPreloadNextTry) continue;
+      if ((show._metadataPreloadFails || 0) >= 3) continue;
       show._metadataPreloadStarted = true;
       try {
         if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) {
@@ -9900,6 +10804,9 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
         }
         changed = true;
       } catch (err) {
+        show._metadataPreloadFails = (show._metadataPreloadFails || 0) + 1;
+        // 30s, then 2min, then 8min - after 3 failures the show is left alone.
+        show._metadataPreloadNextTry = Date.now() + 30000 * Math.pow(4, show._metadataPreloadFails - 1);
         show._metadataPreloadStarted = false;
       }
     }
@@ -9910,6 +10817,28 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
   Promise.allSettled([worker(), worker()]).then(() => {
     if (changed && generation === visibleMetadataWarmGeneration) render();
   }).catch(() => {});
+}
+
+// Defer the visible-metadata warm until the browser is idle so its ~6-calls-per-
+// show hydration cascade (AniList / TMDB / jkanime / tioanime — ~80 requests for
+// the first screen) doesn't fight the critical /api/catalog fetch and the hero
+// LCP image during the initial render. Cards already show catalog data; warming
+// only upgrades posters/episode metadata afterward — a big Speed-Index win with
+// no visible content lost. Opening a show before warming runs still works (it
+// hydrates on demand via hydrateOpenShowDetails).
+function scheduleVisibleMetadataWarm(shows = state.shows, limit = HOME_INITIAL_CARD_LIMIT) {
+  const run = () => { try { warmVisibleShowMetadata(shows, limit); } catch { /* non-fatal */ } };
+  const idle = () => {
+    if ("requestIdleCallback" in window) window.requestIdleCallback(run, { timeout: 2500 });
+    else window.setTimeout(run, 300);
+  };
+  // Wait for `load` (hero LCP image + critical resources done) before even
+  // scheduling the idle warm, so the ~80-request hydration burst lands AFTER the
+  // visual-complete window instead of competing inside it. Immediate clicks are
+  // still covered by the per-card pointerenter preload in wireOpenButtons.
+  const defer = () => window.setTimeout(idle, 45000);
+  if (document.readyState === "complete") defer();
+  else window.addEventListener("load", defer, { once: true });
 }
 
 function warmTioAnimeSlugCatalog(shows = state.shows) {
@@ -10850,6 +11779,9 @@ async function playActiveShow(options = {}) {
   }
   const activeEpisode = state.activeEpisode?.episode;
   const seasonNumber = state.activeEpisode?.season?.season || state.activeSeasonIndex + 1 || activeEpisode?.season || 1;
+  if (activeEpisode && typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) {
+    await attachPlaybackSourceOptions(show, activeEpisode, seasonNumber);
+  }
   const activeLookupKey = activeEpisode ? playbackLookupKey(show, activeEpisode, seasonNumber) : "";
   let lookupPromise = activeLookupKey ? pendingSourceLookups.get(activeLookupKey) : null;
   let waitedForLookup = false;
@@ -10879,7 +11811,7 @@ async function playActiveShow(options = {}) {
     // for the source sweep before showing any final error state.
     lookupPromise = schedulePlaybackSourceOptions(show, activeEpisode, seasonNumber, { autoReplay: false });
     if (!getEpisodePlaybackSources(activeEpisode).length) {
-      await playbackLookupWithTimeout("AniPub quick start", attachAniPubFallback(show, activeEpisode), 1500);
+      await playbackLookupWithTimeout("AniPub quick start", attachAniPubFallback(show, activeEpisode), 700);
     }
     renderEpisodeList(show);
   }
@@ -10895,7 +11827,7 @@ async function playActiveShow(options = {}) {
       "Checking servers...",
       "Finding every available playback source for this episode."
     );
-    await playbackLookupWithTimeout("Playback source sweep", lookupPromise, 9500);
+    await playbackLookupWithTimeout("Playback source quick pass", lookupPromise, 2600);
     waitedForLookup = true;
     renderEpisodeList(show);
   }
@@ -10963,6 +11895,11 @@ async function playActiveShow(options = {}) {
       source = getSelectedEpisodeSource(activeEpisode);
       if (!source || source.type === "direct") {
         url = source?.videoUrl || getPlayableUrl(show);
+      }
+      const lateResolver = source?.streamResolver || activeEpisode?.streamResolver;
+      if (!url && lateResolver) {
+        activeEpisode.streamResolver = lateResolver;
+        url = await resolveEpisodeStream(activeEpisode);
       }
       if (url) {
         return playActiveShow({ allowSourceLookup: false });
@@ -11050,6 +11987,7 @@ async function attemptResolveEmbed(embedUrl, siteReferer = "") {
 }
 
 function renderDirectVideoPlayer(frame, url, episode) {
+  warmPlayableStream(url, { timeoutMs: 2000 });
   const tracks = normalizeSubtitleTracks(episode);
   const preferences = getLanguagePreferences();
   const preferredTrack = tracks.find((track) => normalizeLanguagePreference(track.language || track.label) === preferences.subtitles);
@@ -11508,6 +12446,11 @@ function renderEmbeddedAniPubPlayer(show, externalUrl) {
       });
     }
   }
+  const isAdultShow = show?.isAdult || show?.adult || false;
+  const sandboxAttr = isAdultShow
+    ? "allow-scripts allow-same-origin allow-forms allow-presentation"
+    : "allow-scripts allow-same-origin allow-forms allow-presentation allow-popups allow-popups-to-escape-sandbox";
+
   frame.innerHTML = `
     <div class="embedded-player-container anipub-embedded vidstream-player is-iframe">
       <div class="vid-player-stage iframe-wrapper">
@@ -11518,15 +12461,12 @@ function renderEmbeddedAniPubPlayer(show, externalUrl) {
           frameborder="0"
           allowfullscreen
           allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-popups allow-popups-to-escape-sandbox"
+          sandbox="${sandboxAttr}"
           referrerpolicy="no-referrer"
         ></iframe>
-        <!-- The iframe stays sandboxed: we grant popups so the embed host's
-             player will actually run (otherwise it shows "Sandboxed: player not
-             allowed"), but we deliberately WITHHOLD allow-top-navigation so the
-             host can NEVER redirect or hijack the real ZenkaiTV tab — ad popups
-             are confined to a separate tab the user can close. Minimal-ad source
-             ordering (ad-free hosts first) keeps popups rare in practice. -->
+        <!-- The iframe stays sandboxed: we grant popups for regular shows so the embed host's
+             player will actually run, but for adult shows we withhold them to block all redirects
+             and popups entirely. -->
         ${renderVidstreamTopbar(label)}
       </div>
       ${renderPlayerEpisodeActions("")}
@@ -11792,47 +12732,74 @@ async function copyExternalUrl(externalUrl) {
   }
 }
 
+// Hover/focus prefetch for a card: warm the backdrop into cache and kick off
+// metadata hydration once, so opening the show feels instant.
+function preloadOpenShow(id) {
+  const show = state.shows.find((entry) => String(entry.id) === String(id));
+  if (!show) return;
+  const preloadArtwork = () => {
+    const knownBackdrop = getWatchBackdropArtwork(show);
+    if (!knownBackdrop) return;
+    const image = new Image();
+    image.referrerPolicy = "no-referrer";
+    image.decoding = "async";
+    image.src = knownBackdrop;
+  };
+  if (!show._artworkPreloaded) { show._artworkPreloaded = true; preloadArtwork(); }
+  if (!show._metadataPreloadStarted && (show.anilistId || show.malId || show.title)) {
+    show._metadataPreloadStarted = true;
+    Promise.resolve(hydrateCanonicalAnimeMetadata(show))
+      .then(() => Promise.allSettled([
+        fetchAniListShowExtras(show),
+        enrichTmdbImages(show)
+      ]))
+      .then(() => {
+        applyTmdbEpisodeMetadata(show);
+        preloadArtwork();
+      })
+      .catch(() => {});
+  }
+}
+
+// Open-show handling is DELEGATED from the document once, instead of attaching
+// three listeners to every [data-open-show] element on every render(). The old
+// per-element wiring re-walked the whole catalog/addon DOM each render (and
+// leaked a fresh pointerenter/focus closure per card per render) — at prod scale
+// that ran for seconds during the post-navigation enrichment render-burst, which
+// is what froze the Schedule/Favorites switch. Delegation is O(1) per render.
+let _openButtonsDelegated = false;
+let _lastPreloadHoverId = "";
 function wireOpenButtons() {
-  document.querySelectorAll("[data-open-show]").forEach((button) => {
-    const preload = () => {
-      const show = state.shows.find((entry) => String(entry.id) === String(button.dataset.openShow));
-      if (!show) return;
-      const preloadArtwork = () => {
-        const knownBackdrop = getWatchBackdropArtwork(show);
-        if (!knownBackdrop) return;
-        const image = new Image();
-        image.referrerPolicy = "no-referrer";
-        image.decoding = "async";
-        image.src = knownBackdrop;
-      };
-      preloadArtwork();
-      if (!show._metadataPreloadStarted && (show.anilistId || show.malId || show.title)) {
-        show._metadataPreloadStarted = true;
-        Promise.resolve(hydrateCanonicalAnimeMetadata(show))
-          .then(() => Promise.allSettled([
-            fetchAniListShowExtras(show),
-            enrichTmdbImages(show)
-          ]))
-          .then(() => {
-            applyTmdbEpisodeMetadata(show);
-            preloadArtwork();
-          })
-          .catch(() => {});
-      }
-    };
-    button.addEventListener("pointerenter", preload, { once: true, passive: true });
-    button.addEventListener("focus", preload, { once: true, passive: true });
-    button.onclick = (e) => {
-      // The card is now an <a href="/anime/<slug>">. Modified clicks (Ctrl/Cmd/
-      // Shift) and middle-click let the browser open that link in a NEW TAB
-      // natively — don't hijack those. Plain left-click = in-app navigation.
-      if (e && (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1)) return;
-      e?.preventDefault();
-      openShow(button.dataset.openShow, {
-        seasonNumber: button.dataset.openSeason,
-        episodeNumber: button.dataset.openEpisode
-      });
-    };
+  if (_openButtonsDelegated) return;
+  _openButtonsDelegated = true;
+  const buttonFrom = (event) => (event.target && event.target.closest)
+    ? event.target.closest("[data-open-show]")
+    : null;
+  // pointerover/focusin bubble (unlike pointerenter/focus), so one document
+  // listener covers every card. Dedupe on the hovered id so we don't re-run the
+  // state.shows lookup on every intra-card mousemove.
+  const onHover = (event) => {
+    const button = buttonFrom(event);
+    if (!button) return;
+    const id = button.dataset.openShow;
+    if (id === _lastPreloadHoverId) return;
+    _lastPreloadHoverId = id;
+    preloadOpenShow(id);
+  };
+  document.addEventListener("pointerover", onHover, { passive: true });
+  document.addEventListener("focusin", onHover);
+  document.addEventListener("click", (e) => {
+    const button = buttonFrom(e);
+    if (!button) return;
+    // The card is an <a href="/anime/<slug>">. Modified clicks (Ctrl/Cmd/Shift)
+    // and middle-click let the browser open that link in a NEW TAB natively —
+    // don't hijack those. Plain left-click = in-app navigation.
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+    e.preventDefault();
+    openShow(button.dataset.openShow, {
+      seasonNumber: button.dataset.openSeason,
+      episodeNumber: button.dataset.openEpisode
+    });
   });
 }
 
@@ -11859,7 +12826,12 @@ function getFocusableItems() {
 }
 
 function refreshFocusables() {
-  getFocusableItems().forEach((element) => element.classList.remove("is-tv-focused"));
+  // Only elements that actually carry the TV focus ring need clearing (usually
+  // 0–1). The old form called getFocusableItems(), which does a `.closest()`
+  // tree-walk for EVERY ".focusable" in the document (~30ms on a large catalog/
+  // addon DOM) and ran on every render() — a big contributor to the route-switch
+  // freeze. This is behaviour-equivalent and effectively O(1).
+  document.querySelectorAll(".is-tv-focused").forEach((element) => element.classList.remove("is-tv-focused"));
 }
 
 function setTvFocus(element) {
@@ -12001,6 +12973,42 @@ document.querySelectorAll("[data-filter]").forEach((button) => {
     state.filter = button.dataset.filter;
     document.querySelectorAll("[data-filter]").forEach((chip) => chip.classList.toggle("is-selected", chip === button));
     render();
+  });
+});
+
+// Toggle library filter panel visibility
+const filterToggle = document.getElementById("libraryFilterToggle");
+const filterPanel = document.querySelector(".library-filter-panel");
+if (filterToggle && filterPanel) {
+  filterToggle.addEventListener("click", () => {
+    const isHidden = filterPanel.hasAttribute("hidden") || filterPanel.style.display === "none";
+    if (isHidden) {
+      filterPanel.removeAttribute("hidden");
+      filterPanel.style.display = "grid";
+      filterToggle.setAttribute("aria-expanded", "true");
+      filterToggle.classList.add("is-active");
+    } else {
+      filterPanel.setAttribute("hidden", "");
+      filterPanel.style.display = "none";
+      filterToggle.setAttribute("aria-expanded", "false");
+      filterToggle.classList.remove("is-active");
+    }
+  });
+}
+
+// Adult provider tabs selection
+document.querySelectorAll("[data-adult-provider]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const provider = button.dataset.adultProvider || "merge";
+    localStorage.setItem("animetv-adult-provider", provider);
+    
+    document.querySelectorAll("[data-adult-provider]").forEach((btn) => {
+      btn.classList.toggle("is-selected", btn === button);
+    });
+    
+    state.isLoadingCatalog = true;
+    render();
+    loadAdultCatalog(true);
   });
 });
 
@@ -12372,6 +13380,11 @@ function setupTvTextInputs() {
 }
 
 document.addEventListener("keydown", (event) => {
+  if (event.key === "F11") {
+    event.preventDefault();
+    toggleNativeFullscreen();
+    return;
+  }
   lastInputWasPointer = false;
 
   // Intercept player shortcuts
@@ -12558,6 +13571,7 @@ if (typeof AdultMode !== "undefined") {
 // ── Supabase Authentication & Social Logins ──────────────────────────────────
 let supabaseClient = null;
 let supabaseInitPromise = null;
+let supabaseUnavailable = false;
 
 function loadExternalScript(url) {
   return new Promise((resolve, reject) => {
@@ -12581,8 +13595,23 @@ function hasSupabaseSession() {
   return false;
 }
 
+function hasSupabaseCallbackParams() {
+  try {
+    const hash = new URLSearchParams((location.hash || "").replace(/^#/, ""));
+    const query = new URLSearchParams(location.search || "");
+    return hash.has("access_token") ||
+      hash.has("refresh_token") ||
+      query.has("code") ||
+      query.has("error") ||
+      query.has("error_description");
+  } catch (e) {
+    return false;
+  }
+}
+
 async function initSupabase() {
   if (supabaseClient) return supabaseClient;
+  if (supabaseUnavailable) return null;
   if (supabaseInitPromise) return supabaseInitPromise;
   supabaseInitPromise = initSupabaseInternal().finally(() => {
     if (!supabaseClient) supabaseInitPromise = null;
@@ -12657,8 +13686,8 @@ function updateAuthUi() {
     if (menuContainer) menuContainer.hidden = true;
     if (profileEmail) profileEmail.textContent = "";
     if (profileAvatarLarge) profileAvatarLarge.src = "https://api.dicebear.com/7.x/adventurer/svg?seed=guest";
-    if (state.route === "profile") {
-      setRoute("home");
+    if (state.route === "profile" && !hasSupabaseSession() && !hasSupabaseCallbackParams()) {
+      showAuthModal("login");
     }
   }
 }
@@ -12760,6 +13789,11 @@ async function ensureSupabaseForAuth() {
   }
 }
 
+function authRedirectUrl(path = "/profile") {
+  const cleanPath = String(path || "/profile").startsWith("/") ? path : `/${path}`;
+  return `${window.location.origin}${cleanPath}`;
+}
+
 function showAuthModal(viewName) {
   const overlay = document.getElementById("authOverlay");
   if (overlay) {
@@ -12859,7 +13893,7 @@ async function handleForgotSubmit() {
   setAuthLoading(submitBtn, true);
   try {
     const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/#profile`
+      redirectTo: authRedirectUrl("/profile")
     });
     if (error) throw error;
     showAuthSuccess(successMsg, "Reset link sent! Check your inbox.");
@@ -12881,19 +13915,21 @@ async function handleLogout() {
 async function handleSocialLogin(provider) {
   if (!supabaseClient) await ensureSupabaseForAuth();
   if (!supabaseClient) {
-    alert("Authentication is not configured.");
+    showAuthModal("login");
+    showAuthError(document.getElementById("loginErrorMsg"), "Authentication service is not available.");
     return;
   }
   try {
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/`
+        redirectTo: authRedirectUrl("/profile")
       }
     });
     if (error) throw error;
   } catch (err) {
-    alert(`OAuth login failed: ${err.message}`);
+    showAuthModal("login");
+    showAuthError(document.getElementById("loginErrorMsg"), `OAuth login failed: ${err.message}`);
   }
 }
 
@@ -12926,12 +13962,10 @@ function setAuthLoading(button, isLoading) {
 }
 
 function setupMockAuth() {
-  const loginBtn = document.getElementById("authLoginBtn");
-  if (loginBtn) {
-    loginBtn.onclick = () => {
-      alert("Authentication config (SUPABASE_URL/SUPABASE_KEY) is missing. Set these environment variables in your server configuration to enable logins.");
-    };
-  }
+  supabaseClient = null;
+  supabaseUnavailable = true;
+  supabaseInitPromise = null;
+  updateAuthUi();
 }
 
 function renderProfile() {
@@ -12948,7 +13982,6 @@ function renderProfile() {
     }
   } else {
     if (avatarEl) avatarEl.src = "https://api.dicebear.com/7.x/adventurer/svg?seed=guest";
-    setRoute("home");
     showAuthModal("login");
   }
 }
@@ -13087,13 +14120,16 @@ function startUpdateManagerWhenIdle() {
       }
     } catch { /* Update checks are non-critical for first paint. */ }
   };
-  if ("requestIdleCallback" in window) window.requestIdleCallback(start, { timeout: 5000 });
-  else window.setTimeout(start, 3500);
+  const later = () => {
+    if ("requestIdleCallback" in window) window.requestIdleCallback(start, { timeout: 5000 });
+    else start();
+  };
+  window.setTimeout(later, 15000);
 }
 startUpdateManagerWhenIdle();
 window.setTimeout(hideAppLoader, 850);
 // Best-effort background refresh of stale full-site crawls (if a crawler is wired).
-window.setTimeout(() => { try { checkSourceRefreshes(); } catch { /* ignore */ } }, 9000);
+window.setTimeout(() => { try { checkSourceRefreshes(); } catch { /* ignore */ } }, 30000);
 
 window.runZenkaiDebugReport = window.runDevelopmentDebugReport = function() {
   console.log("=== ZenkaiTV / AnimeTV Diagnostics Report ===");

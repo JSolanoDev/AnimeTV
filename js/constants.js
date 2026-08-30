@@ -14,6 +14,9 @@ const ANIPUB_FALLBACK_CACHE_KEY = "animetv-anipub-title-map";
 const ANIPUB_FALLBACK_CACHE_TTL = 1000 * 60 * 60;
 const API_TIMEOUT_MS = 5000;
 const RESPONSE_CACHE_TTL = 1000 * 60 * 5;
+// Catalog snapshots are refreshed in the background on every load, so they can
+// be served instantly from cache for much longer than short-lived source lookups.
+const CATALOG_CACHE_TTL = 1000 * 60 * 60 * 6;
 const RESPONSE_CACHE_PREFIX = "animetv-response-cache:";
 const ANIPUB_FULL_CATALOG_ENDPOINT = "/api/anipub/catalog/all?limit=12000";
 const TIOANIME_SLUGS_ENDPOINT = "/api/tioanime/slugs";
@@ -36,6 +39,10 @@ const PREFERRED_SOURCE_KEY = "animetv-preferred-playback-source";
 const WATCH_HISTORY_KEY = "animetv-watch-history";
 const RESUME_POSITIONS_KEY = "animetv-resume-positions";
 const pendingSourceLookups = new Map();
+const sourceOptionsBackgroundLookups = new Map();
+const playableStreamWarmups = new Map();
+const playableStreamPreconnects = new Set();
+const PLAYABLE_STREAM_WARMUP_TTL = 1000 * 45;
 const ANILIST_META_CACHE_PREFIX = "animetv-anilist-meta:";
 const ANILIST_META_CACHE_TTL = 1000 * 60 * 60 * 24;   // 24 h — metadata is stable
 const ANILIST_SEARCH_CACHE_TTL = 1000 * 60 * 60 * 6;  // 6 h — search results

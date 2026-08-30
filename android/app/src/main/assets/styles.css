@@ -71,6 +71,24 @@ body {
   background-color: #050710;
 }
 
+/* App-like UX: a stray drag or Ctrl+A shouldn't paint the whole chrome blue.
+   Disable text selection globally and re-enable it only on the anime title (the
+   one thing worth copying) — plus form fields, which must stay editable. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+.watch-title,
+.carousel-info h2,
+.show-title,
+.schedule-title,
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 body[data-theme="light"] {
   background:
     radial-gradient(circle at 14% 0%, rgba(0, 210, 255, 0.16), transparent 28rem),
@@ -170,13 +188,17 @@ button {
   inset: 0;
   z-index: 100;
   display: grid;
+  /* True optical centering: content block centered on both axes, and the glow
+     centered with it (it used to sit at 42%/58%, reading as high on screen). */
   place-items: center;
-  align-content: center;
+  place-content: center;
+  justify-items: center;
+  text-align: center;
   gap: 0.75rem;
   color: #ffffff;
   background:
-    radial-gradient(circle at 50% 42%, rgba(59, 130, 246, 0.2), transparent 18rem),
-    radial-gradient(circle at 52% 58%, rgba(37, 99, 235, 0.14), transparent 22rem),
+    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.2), transparent 18rem),
+    radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.14), transparent 22rem),
     linear-gradient(180deg, #0D1B2A, #081320 96%);
   transition: opacity 180ms ease, visibility 180ms ease;
 }
@@ -964,7 +986,7 @@ main {
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: clamp(1.4rem, 3vw, 3rem);
-  min-height: clamp(28rem, 56vh, 39rem);
+  min-height: min(82vh, 56.25vw);
   margin: -1.2rem calc(clamp(1.4rem, 3.2vw, 3.4rem) * -1) -1.5rem;
   padding: 1.2rem clamp(1.4rem, 3.2vw, 3.4rem) 3.2rem;
   padding: 0;
@@ -2862,6 +2884,19 @@ body.soft-focus .is-tv-focused {
   outline: 0.14rem solid rgba(255, 255, 255, 0.82);
   outline-offset: 0.18rem;
   box-shadow: 0 0 0 0.28rem rgba(0, 210, 255, 0.13);
+}
+
+/* Text fields report :focus-visible on a plain MOUSE CLICK too (browsers assume
+   keyboard interaction is coming), so the big white keyboard ring would flash on
+   every click. Drive their ring from .is-tv-focused only — which our focusin
+   handler adds for keyboard/D-pad focus and strips for pointer focus — so the
+   ring appears just on Tab, while mouse clicks keep the subtle field :focus
+   style. */
+input.focusable:focus-visible:not(.is-tv-focused),
+textarea.focusable:focus-visible:not(.is-tv-focused),
+select.focusable:focus-visible:not(.is-tv-focused) {
+  outline: none;
+  box-shadow: none;
 }
 
 .primary-action.focusable:focus-visible,
@@ -5986,19 +6021,38 @@ body.player-cinema-open .close-button {
   }
 
   /* On mobile the panel stacks vertically (player then episodes/sources).
-     Desktop fixed-height + top-margin would clip the side panel off-screen. */
-  .watch-side {
+     Desktop fixed-height + top-margin + overflow:hidden would clip the side panel
+     to ~0px on mobile. Force it to size to content and let the watch-panel scroll.
+     (.watch-overlay ancestor out-specifies the later base .watch-side rule.) */
+  .watch-overlay .watch-side {
     margin: 0;
     height: auto;
     max-height: none;
     border-radius: 0.8rem;
-    overflow-y: visible;
+    overflow: visible;
   }
 
-  .watch-side .episode-list {
+  /* The desktop episode panel fills a fixed-height side column via flex:1 +
+     overflow:hidden. On mobile the side is auto-height, so that whole chain
+     collapsed every pane to ~0px and the episodes vanished. Size the entire
+     chain to its content instead and let the watch-panel be the single scroller.
+     (The base .watch-side rules come later in the source, so we out-specify them
+     with the .watch-overlay ancestor.) */
+  .watch-overlay .watch-side .episode-list {
+    flex: 0 0 auto;
     height: auto;
-    max-height: 22rem;
-    overflow-y: auto;
+    max-height: none;
+    overflow: visible;
+  }
+  .watch-overlay .watch-side .detail-pane.is-active {
+    flex: 0 0 auto;
+    min-height: auto;
+    overflow: visible;
+  }
+  .watch-overlay .watch-side .detail-pane.is-active .ep-rows,
+  .watch-overlay .watch-side .season-card-grid {
+    max-height: none;
+    overflow: visible;
   }
 
   .watch-info {
@@ -6112,15 +6166,27 @@ body.player-cinema-open .close-button {
     padding-bottom: 0.15rem;
   }
 
+  /* Stack label over control with flexbox so the row GROWS to fit its content.
+     (As a 1-col grid it stayed pinned at min-height: 3.4rem, so the control
+     overflowed and overlapped the next setting on phones.) */
   .settings-line {
-    grid-template-columns: 1fr;
-    align-items: start;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    min-height: auto;
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
   }
+
+  .settings-line > span { min-width: 0; }
 
   .settings-select,
   .settings-switch,
-  .settings-status-pill {
+  .settings-status-pill,
+  .settings-segment {
     justify-self: start;
+    width: 100%;
   }
 
   .player-nav-action,
@@ -6156,7 +6222,9 @@ body.player-cinema-open .close-button {
   grid-template-rows: 1fr;
   align-items: start;
   gap: 0;
-  min-height: clamp(31rem, 66vh, 46rem);
+  /* Large, immersive "full screen" hero. Taller also means the 16:9 backdrop is
+     closer to the hero's aspect on a normal display, so cover crops very little. */
+  min-height: min(82vh, 56.25vw);
   height: auto;
   padding: clamp(1rem, 2.4vw, 2.4rem) clamp(1.6rem, 5vw, 5.5rem) 6.2rem;
   border-radius: 0;
@@ -6209,12 +6277,22 @@ body.player-cinema-open .close-button {
 .carousel-backdrop-image {
   display: block;
   color: transparent;
+  background: none;
+  /* Full-bleed cover so the hero fills the screen edge-to-edge ("full screen").
+     The crop is biased upward (center 30%) so characters' faces are kept — anime
+     backdrops frame their subjects in the upper-middle, so the bottom (floor/legs)
+     is what gets trimmed on screens wider than 16:9. The taller hero below keeps
+     the crop small on standard displays. */
+  object-fit: cover;
+  object-position: center 30%;
 }
 
-.carousel-backdrop.has-banner,
-.carousel-backdrop-image.has-banner {
+.carousel-backdrop.has-banner {
   background-position: center center;
   background-size: cover;
+}
+.carousel-backdrop-image.has-banner {
+  background-position: center center;
   image-rendering: auto;
 }
 
@@ -7612,6 +7690,13 @@ body.reduce-motion .watch-backdrop-blur { transform: scale(1.08); }
   background-repeat: no-repeat;
   animation: none;
 }
+/* Holding for the high-res (TMDB) backdrop: keep the sharp layer transparent so
+   only the blurred fill behind it shows, until the good art fades in. */
+.watch-backdrop.is-blur-hold {
+  background-color: transparent;
+  background-image: none;
+  animation: none;
+}
 @keyframes watch-backdrop-zoom {
   from { transform: scale(1.02); }
   to   { transform: scale(1.12); }
@@ -7628,6 +7713,59 @@ body.reduce-motion .watch-backdrop.has-art { animation: none !important; transfo
   background:
     linear-gradient(90deg, rgba(7,7,15,0.94) 0%, rgba(7,7,15,0.7) 30%, rgba(7,7,15,0.34) 52%, rgba(7,7,15,0.2) 70%, rgba(7,7,15,0.74) 100%),
     linear-gradient(0deg, rgba(6,6,13,0.96) 1%, rgba(7,7,15,0.05) 46%, rgba(7,7,15,0.36) 100%);
+}
+body.adult-mode .watch-backdrop::after {
+  background: linear-gradient(90deg, rgba(10, 3, 6, 0.85) 0%, rgba(10, 3, 6, 0.45) 25%, transparent 65%) !important;
+}
+body.adult-mode .watch-backdrop.is-poster-fit {
+  background-size: cover !important;
+  background-position: center 20% !important;
+}
+
+.adult-provider-tabs {
+  display: none;
+  gap: 0.8rem;
+  margin: 1rem 0 1.2rem;
+  padding: 0.25rem;
+  background: rgba(17, 21, 34, 0.45);
+  border-radius: 0.85rem;
+  border: 1px solid rgba(247, 248, 255, 0.05);
+  width: fit-content;
+}
+
+body.adult-mode .adult-provider-tabs:not([hidden]) {
+  display: flex;
+}
+
+.adult-provider-tabs[hidden] {
+  display: none !important;
+}
+
+.adult-provider-tab {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.92rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.65rem;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.adult-provider-tab:hover {
+  color: var(--text);
+  background: rgba(247, 248, 255, 0.04);
+}
+
+.adult-provider-tab.is-selected {
+  color: #fff;
+  background: #e11d48;
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.35);
+}
+
+.adult-provider-tab:focus-visible {
+  outline: 2px solid #e11d48;
 }
 
 /* The overlay lets the backdrop dominate (opaque base so nothing bleeds through). */
@@ -8373,21 +8511,21 @@ body.has-embedded-player .watch-side {
   transform: scale(1.02);
   opacity: 0.85;
 }
-/* Single, consistent loading animation: one brand-gradient sheen sweep matching
-   the poster/card .art-sheen and the skeleton loaders (was two competing
-   animations — a white sheen plus a spinning orbit circle). GPU transform only. */
+/* Loading state = a soft, out-of-focus colour fill that gently drifts — the same
+   "blurred fill" language as the watch backdrop's blur layer, instead of a sharp
+   sheen sweep. GPU transform only (one animation). */
 .ep-thumb.is-placeholder::before {
   content: "";
   position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(100deg,
-    transparent 28%,
-    rgba(138, 92, 255, 0.16) 46%,
-    rgba(0, 210, 255, 0.22) 54%,
-    transparent 72%);
-  transform: translateX(-100%);
-  animation: skeleton-sheen 1300ms ease-in-out infinite;
+  inset: -22%;
+  z-index: 0;
+  background:
+    radial-gradient(40% 48% at 30% 32%, hsla(var(--episode-hue), 92%, 64%, 0.55), transparent 72%),
+    radial-gradient(46% 54% at 74% 70%, hsla(calc(var(--episode-hue) + 58), 88%, 58%, 0.45), transparent 76%),
+    radial-gradient(36% 42% at 58% 48%, hsla(calc(var(--episode-hue) + 184), 72%, 54%, 0.30), transparent 80%);
+  filter: blur(7px) saturate(1.18);
+  transform: scale(1.12);
+  animation: blur-fill-drift 8s ease-in-out infinite;
   will-change: transform;
 }
 .ep-thumb-empty {
@@ -8478,37 +8616,22 @@ body.has-embedded-player .watch-side {
   overflow: hidden;
 }
 
+/* Same "blurred fill" loading language as the episode thumb + watch backdrop:
+   one soft, out-of-focus colour wash that gently drifts (was a white sheen sweep
+   PLUS a spinning orbit circle — two competing animations). */
 .poster-placeholder::before {
   content: "";
   position: absolute;
-  inset: 0;
-  z-index: 1;
+  inset: -18%;
+  z-index: 0;
   background:
-    linear-gradient(115deg, transparent 0 34%, rgba(255,255,255,0.14) 42%, transparent 52% 100%),
-    linear-gradient(28deg, transparent 0 56%, rgba(255,255,255,0.06) 58% 62%, transparent 64%),
-    radial-gradient(circle at 50% 115%, rgba(0, 210, 255, 0.12), transparent 50%);
-  opacity: 0.72;
-  transform: translateX(-42%);
-  animation: ep-thumb-sheen 3.8s ease-in-out infinite;
-}
-
-.poster-placeholder::after {
-  content: "";
-  position: absolute;
-  right: 1.2rem;
-  top: 1.2rem;
-  width: 2.2rem;
-  aspect-ratio: 1;
-  border-radius: 999rem;
-  border: 0.08rem solid rgba(255,255,255,0.14);
-  background:
-    linear-gradient(135deg, rgba(255,255,255,0.14), transparent 54%),
-    radial-gradient(circle at 50% 50%, hsla(280, 92%, 62%, 0.18), transparent 72%),
-    rgba(8, 10, 22, 0.42);
-  box-shadow:
-    0 0 1.5rem hsla(280, 92%, 62%, 0.25),
-    inset 0 0 1.5rem rgba(255,255,255,0.06);
-  animation: ep-thumb-orbit 4.2s ease-in-out infinite;
+    radial-gradient(38% 40% at 30% 30%, hsla(280, 92%, 64%, 0.5), transparent 72%),
+    radial-gradient(44% 46% at 74% 72%, hsla(196, 90%, 56%, 0.4), transparent 76%),
+    radial-gradient(34% 38% at 58% 50%, hsla(330, 80%, 60%, 0.28), transparent 80%);
+  filter: blur(10px) saturate(1.18);
+  transform: scale(1.1);
+  animation: blur-fill-drift 9s ease-in-out infinite;
+  will-change: transform;
 }
 
 .poster-placeholder-mark {
@@ -8561,9 +8684,20 @@ body.has-embedded-player .watch-side {
   50% { transform: scale(1.05); opacity: 1; }
 }
 
+/* Gentle out-of-focus drift for the "blurred fill" loading placeholders. Pure
+   GPU transform (translate/scale) so it never costs layout/paint. Start and end
+   match for a seamless loop. */
+@keyframes blur-fill-drift {
+  0%   { transform: scale(1.12) translate3d(-3%, -2%, 0); }
+  33%  { transform: scale(1.2) translate3d(2%, -3%, 0); }
+  66%  { transform: scale(1.16) translate3d(3%, 2%, 0); }
+  100% { transform: scale(1.12) translate3d(-3%, -2%, 0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ep-thumb.is-placeholder::before,
-  .ep-thumb.is-placeholder::after {
+  .ep-thumb.is-placeholder::after,
+  .poster-placeholder::before {
     animation: none;
   }
 }
@@ -10293,10 +10427,25 @@ body.is-tv .topbar-auth {
     font-size: 1.34rem;
   }
 
-  /* Footer no longer needs the old sidebar offset once the bar is at the bottom. */
+  /* Footer no longer needs the old sidebar offset once the nav is at the bottom —
+     apply unconditionally (not just when sidebar-collapsed) so it's never shoved
+     left / overflowing on phones. */
+  .bottom-bar,
   body.sidebar-collapsed .bottom-bar {
     margin-left: 0;
+    /* No negative footer-bleed on phones — it left a gap between the footer and
+       the fixed bottom nav. Sit flush against the nav instead. */
+    margin-bottom: 0;
     padding-left: clamp(1rem, 4vw, 1.5rem);
+    padding-right: clamp(1rem, 4vw, 1.5rem);
+    text-align: center;
+  }
+  .bottom-bar::before,
+  body.sidebar-collapsed .bottom-bar::before {
+    left: 0;
+  }
+  .bottom-bar::after {
+    inset: 0;          /* the aurora layer also used the footer-bleed offset */
   }
 }
 
@@ -10319,4 +10468,130 @@ body.is-tv .topbar-auth {
   .rail-shell .poster-grid {
     grid-auto-columns: calc((100% - (4 * var(--rail-gap))) / 5);
   }
+}
+
+/* Phones: the Weekly Schedule shows only TODAY — scrolling all 7 day columns is
+   too much on a phone. The single day spans full width. */
+@media (max-width: 760px) {
+  .schedule-day-column:not(.is-today) { display: none; }
+  .schedule-day-column.is-today {
+    animation: none;            /* no pulse — it's the only column */
+    border-radius: 0.8rem;
+  }
+  .schedule-day-column.is-today h3 { font-size: 1.05rem; }
+}
+
+/* ── Mobile watch/detail overlay — flatten to one scrolling column ───────────
+   The desktop overlay is a fixed-height 2-column grid whose episode panel fills
+   the column via flex:1 + overflow:hidden. On a phone the column is auto-height,
+   so that whole chain collapses the episode list to ~0px and the watch-panel
+   clips it. Appended last so it reliably wins the cascade over the base rules. */
+@media (max-width: 760px) {
+  /* .cinematic is always added to the overlay and its rules are 0,3,0 — match it
+     so these win. */
+  .watch-overlay.cinematic .watch-panel,
+  .watch-overlay .watch-panel {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    /* The modal-rise animation leaves an identity transform that would make the
+       position:fixed Back button a child of the (scrolling) panel. Drop it so
+       fixed is relative to the viewport. */
+    animation: none;
+    transform: none;
+  }
+  .watch-overlay.cinematic .watch-stage,
+  .watch-overlay.cinematic .watch-side,
+  .watch-overlay .watch-stage,
+  .watch-overlay .watch-side {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    margin: 0;
+    overflow: visible;
+  }
+  .watch-overlay .watch-side { padding: 0 0.7rem 1.2rem; }
+  /* The player/poster frame must keep its own height (don't let it collapse). */
+  .watch-overlay .watch-side .video-frame {
+    height: auto;
+    min-height: 0;
+  }
+  .watch-overlay .watch-side .episode-list,
+  .watch-overlay .watch-side .detail-pane.is-active {
+    display: block;
+    flex: none;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
+  }
+  .watch-overlay .watch-side .detail-pane.is-active .ep-rows,
+  .watch-overlay .watch-side .season-card-grid {
+    max-height: none;
+    overflow: visible;
+  }
+  /* Seasons / Episodes tabs scroll WITH the list — no sticky "follow". */
+  .watch-overlay .watch-side .detail-tabs.detail-tabs-2 {
+    position: static;
+    top: auto;
+    z-index: auto;
+    margin: 0 0 0.6rem;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  /* Pin Back to the viewport so it stays reachable while the panel scrolls
+     (it's inside the scrolling panel, so absolute scrolled it off-screen). */
+  .watch-overlay .close-button,
+  .watch-overlay .watch-panel .close-button {
+    position: fixed;
+    top: 0.65rem;
+    left: 0.65rem;
+    right: auto;
+    z-index: 90;
+    display: grid;
+    place-items: center;
+    width: 2.9rem;
+    height: 2.9rem;
+    padding: 0;
+    font-size: 1.85rem;
+    line-height: 1;
+    color: #fff;
+    background: rgba(8, 9, 16, 0.85);
+    box-shadow: 0 0.4rem 1.1rem rgba(0, 0, 0, 0.5), inset 0 0 0 0.06rem rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+}
+
+/* Mini footer for mobile web — just the ZenkaiTV wordmark, compact and flush with
+   the bottom nav. The full tagline + credits footer read as a big empty gap on a
+   phone. Appended last so it wins over the earlier mobile footer rules. */
+@media (max-width: 760px) {
+  .bottom-bar,
+  body.sidebar-collapsed .bottom-bar {
+    min-height: 0;
+    gap: 0;
+    /* Cancel the app-shell nav-reservation padding (negative margin) and refill it
+       as the footer bottom padding, so the footer bg reaches behind the fixed
+       bottom nav with NO gap; the wordmark stays above the nav via padding-top. */
+    margin-bottom: calc(-4.9rem - env(safe-area-inset-bottom, 0px));
+    padding-top: 0.5rem;
+    /* Sit the wordmark right above the bottom nav (~0.2rem gap). The +4.1rem
+       clears the nav height; the bg still fills down behind it (negative margin). */
+    padding-bottom: calc(0.1rem + 2.9rem + env(safe-area-inset-bottom, 0px));
+  }
+  .footer-brand { gap: 0; }
+  .footer-tagline,
+  .footer-meta { display: none; }
+  .footer-wordmark { width: min(7.5rem, 30vw); max-height: 1.7rem; }
 }

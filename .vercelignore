@@ -12,3 +12,4 @@ middleware.ts
 app
 components
 lib
+node_modules

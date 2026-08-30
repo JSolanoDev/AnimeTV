@@ -27,7 +27,7 @@ function installAdBlockGuards() {
 
 // TRANSLATIONS is defined in js/translations.js
 
-let anipubCatalogCache = readResponseCache("anipub-full-catalog");
+let anipubCatalogCache = readResponseCache("anipub-full-catalog", CATALOG_CACHE_TTL);
 let anipubCatalogLoadingPromise = null;
 let adultCatalogLoadingPromise = null;
 const anipubEpisodesCache = new Map();
@@ -89,6 +89,13 @@ const KNOWN_SOURCE_SERVERS = [
     desc: "Selected adult release and provider",
     match: (s) =>
       (s.id || "").includes("underhentai") ||
+      (s.label || "").toLowerCase().includes("underhentai") ||
+      (s.label || "").toLowerCase().includes("veohentai") ||
+      (s.label || "").toLowerCase().includes("hentaiplayer") ||
+      (s.label || "").toLowerCase().includes("hentaila") ||
+      (s.provider || "").toLowerCase().includes("veohentai") ||
+      (s.provider || "").toLowerCase().includes("hentaiplayer") ||
+      (s.streamResolver?.endpoint || "").toLowerCase().includes("/api/adult/underhentai/stream") ||
       (s.label || "").toLowerCase().includes("krakenfiles") ||
       (s.label || "").toLowerCase().includes("lulustream")
   },
@@ -156,6 +163,8 @@ function setScraperEnabled(id, enabled) {
 
 const LIBRARY_INITIAL_RENDER_LIMIT = 84;
 const LIBRARY_RENDER_STEP = 84;
+
+const verticalArt = new Set();
 
 const state = {
   route: "home",
@@ -485,7 +494,7 @@ async function loadAnimeSources() {
   hideAppLoader();
 
   let hasInitialCatalog = false;
-  const cachedCatalog = readResponseCache("main-catalog");
+  const cachedCatalog = readResponseCache("main-catalog", CATALOG_CACHE_TTL);
   if (cachedCatalog?.length) {
     replaceRegularCatalog(cachedCatalog);
     state.isLoadingCatalog = false;
@@ -526,7 +535,7 @@ async function loadAnimeSources() {
   state.apiStatus.direct = hasInitialCatalog ? "Deferred" : "Loading";
   setSourceStatus(hasInitialCatalog ? "Using cached ZenkaiTV catalog" : "Loading AniList and Jikan directly...");
 
-  const cachedDirect = readResponseCache("direct-catalog");
+  const cachedDirect = readResponseCache("direct-catalog", CATALOG_CACHE_TTL);
   if (!state.shows.length && cachedDirect?.length) {
     replaceRegularCatalog(cachedDirect);
     state.isLoadingCatalog = false;
@@ -814,7 +823,7 @@ async function fetchExternalCatalogData(source, page = null) {
   }
   const cacheKey = `external:${source.id || source.name}:${page || getSourcePage(source) || 1}`;
   const useCache = !source.noCache && !source.playbackOnly;
-  const cached = useCache ? readResponseCache(cacheKey) : null;
+  const cached = useCache ? readResponseCache(cacheKey, CATALOG_CACHE_TTL) : null;
   if (cached) return cached;
   const response = await fetchCatalogResponse(source);
   if (!response.ok) throw new Error(`${source.name} failed`);
@@ -1578,9 +1587,15 @@ function parseAdultAiredDate(aired = "") {
 // Primary:   sourceOrder ascending (position on the source website = newest first).
 // Secondary: most recent date parsed from the "aired" string (descending).
 function adultShowRank(show) {
+  if (!show) {
+    return { order: Number.MAX_SAFE_INTEGER, airedMs: -Infinity, ep: 0 };
+  }
+  if (show._airedMs === undefined) {
+    show._airedMs = parseAdultAiredDate(show.aired || show.status || "");
+  }
   return {
     order:    Number(show.sourceOrder ?? Number.MAX_SAFE_INTEGER),
-    airedMs:  parseAdultAiredDate(show.aired || show.status || ""),
+    airedMs:  show._airedMs,
     ep:       Number(show.episode || show.totalEpisodes || show.latestAiredEp || 0)
   };
 }
@@ -1684,6 +1699,18 @@ function syncAdultModeChrome() {
   document.body.classList.toggle("adult-mode", on);
   const badge = document.querySelector("#adultModeBadge");
   if (badge) badge.hidden = !on;
+  
+  const providerTabs = document.querySelector("#adultProviderTabs");
+  if (providerTabs) {
+    providerTabs.hidden = !on;
+  }
+  if (on) {
+    const activeProvider = localStorage.getItem("animetv-adult-provider") || "merge";
+    document.querySelectorAll("[data-adult-provider]").forEach(btn => {
+      btn.classList.toggle("is-selected", btn.dataset.adultProvider === activeProvider);
+    });
+  }
+  
   // The Weekly Schedule isn't shown in 18+ mode — bounce off it if we're there.
   if (on && state.route === "schedule") setRoute("home");
 }
@@ -1755,22 +1782,14 @@ function matchesShowSearch(show) {
   if (!state.search) return true;
   const query = normalizeSearchText(state.search);
   if (!query) return true;
-  // Search EVERY title variant (English, Romaji, Native, the title shown in the
-  // UI) plus aliases/source/genre — so typing "yomi" finds "Yomi no Tsugai" even
-  // though its English title is "Daemons of the Shadow Realm".
-  const haystack = normalizeSearchText([
-    getShowTitle(show),
-    show.title,
-    show.romajiTitle,
-    show.nativeTitle,
-    show.source,
-    show.genre,
-    ...(show.genres || []),
-    ...(show.aliases || [])
-  ].filter(Boolean).join(" "));
-  // Each token must appear (partial match) so "yomi", "yomi no" and
   // "yomi tsugai" all match.
-  return query.split(" ").every((token) => haystack.includes(token));
+  if (!show._searchHaystack) {
+    show._searchHaystack = normalizeSearchText([
+      getShowTitle(show), show.title, show.romajiTitle, show.nativeTitle,
+      show.source, show.genre, ...(show.genres || []), ...(show.aliases || [])
+    ].filter(Boolean).join(" "));
+  }
+  return query.split(" ").every((token) => show._searchHaystack.includes(token));
 }
 
 // ── Live AniList search ───────────────────────────────────────────────────────
@@ -1998,6 +2017,7 @@ function latestEpisodeReleases(limit = HOME_CARD_LIMIT) {
 
 function adultSourceOrderedShows(limit = HOME_CARD_LIMIT) {
   return visibleShows()
+    .filter(show => show.adultSource === "UnderHentai" || show.source === "UnderHentai")
     .slice()
     .sort(compareAdultShows)
     .slice(0, limit);
@@ -2289,6 +2309,7 @@ function getWatchPosterArtwork(show = {}, season = null) {
     show.banner,
     show.backdrop
   ].map((value) => hqImage(String(value || "").trim()));
+  candidates.forEach((url) => { if (url) verticalArt.add(url); });
   return pickImage(candidates);
 }
 
@@ -2316,6 +2337,7 @@ function getCardPosterCandidates(show = {}) {
     if (upgraded) expanded.push(upgraded);
     if (raw !== upgraded) expanded.push(raw);
   });
+  expanded.forEach((url) => { if (url) verticalArt.add(url); });
   return [...new Set(expanded)].filter((url) => {
     try { return typeof ImageResolver === "undefined" || !ImageResolver.isImageFailed(url); }
     catch { return true; }
@@ -2357,12 +2379,55 @@ function watchBackdropKey(show = {}, season = null) {
   return `${show?.id || show?.anilistId || show?.title || "show"}:s${getBackdropSeasonNumber(season)}`;
 }
 
+function isAdultCatalogShow(show = {}) {
+  if (!show) return false;
+  return Boolean(
+    show.adultSource ||
+    show.isAdult ||
+    show.adult ||
+    String(show.id || "").startsWith("adult-underhentai-") ||
+    (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show))
+  );
+}
+
+function underHentaiBackdropCandidates(show = {}, season = null) {
+  if (!isAdultCatalogShow(show)) return [];
+  const screenshots = [
+    ...(Array.isArray(season?.screenshots) ? season.screenshots : []),
+    ...(Array.isArray(show?.screenshots) ? show.screenshots : [])
+  ];
+  return [
+    show.underHentaiBackdrop,
+    season?.underHentaiBackdrop,
+    show.adultBackground,
+    season?.adultBackground,
+    show.images?.backdrop,
+    show.images?.banner,
+    show.backdrop,
+    show.banner,
+    season?.backdrop,
+    season?.banner,
+    ...screenshots,
+    show.underHentaiImage,
+    season?.underHentaiImage,
+    show.images?.poster,
+    show.images?.cover,
+    show.image,
+    show.poster,
+    show.cover,
+    show.thumbnail,
+    show.coverImage
+  ].map((value) => hqImage(String(value || "").trim()));
+}
+
 // Best wide cinematic backdrop: season-specific TMDB still/backdrop → season
 // banner/poster fallback → show-wide art. Known-broken URLs are skipped so a
 // 404'd image never wins.
 function getWatchBackdropArtwork(show = {}, season = null) {
   show = show || {};
   season = season || {};
+  const adultArt = pickImage(underHentaiBackdropCandidates(show, season));
+  if (adultArt) return adultArt;
   const candidates = [
     ...seasonWideBackdropCandidates(show, season),
     show.images?.backdrop,
@@ -2540,15 +2605,20 @@ function renderCarousel() {
       enrichTmdbImages(next).then(() => { if (off === 1) preloadHeroImage(next); }).catch(() => {});
     }
   }
+  const hasLandscapeBanner = Boolean(hiResArt || show.banner || show.backdrop || show.heroImage || show.wideImage || show.landscapeImage);
   const art = hiResArt || (resolving ? "" : carouselArtworkOrPoster(show));
   const deliveredArt = art ? imageDeliveryUrl(art, 1600, HERO_QUALITY) : "";
   const heroSrcSet = art ? imageDeliverySrcSet(art, HERO_WIDTHS, HERO_QUALITY) : "";
   carouselBackdrop.classList.toggle("has-banner", Boolean(art));
-  // The cover image fills the frame, so the backdrop layer is just a gradient
-  // fallback (shown only while a slide is still resolving — no second picture).
-  carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
+  carouselBackdrop.classList.toggle("is-portrait-blur", Boolean(art && !hasLandscapeBanner));
+  if (art && !hasLandscapeBanner) {
+    carouselBackdrop.style.backgroundImage = `url("${deliveredArt}")`;
+  } else {
+    carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
+  }
   if (carouselBackdropImage) {
     carouselBackdropImage.classList.toggle("has-banner", Boolean(art));
+    carouselBackdropImage.classList.toggle("is-portrait-art", Boolean(art && !hasLandscapeBanner));
     if (art && carouselBackdropImage.getAttribute("src") !== deliveredArt) {
       if (heroSrcSet) {
         carouselBackdropImage.setAttribute("srcset", heroSrcSet);
@@ -3243,6 +3313,23 @@ function ensureNotFoundSection() {
 function updateRouteMeta(routeInfo = {}, show = null, target = {}) {
   let title = routeInfo.title || "ZenkaiTV - Watch Anime Online";
   let description = routeInfo.description || "Watch anime online in HD on ZenkaiTV.";
+  const isAdultMode = typeof AdultMode !== "undefined" && AdultMode.isEnabled();
+
+  if (isAdultMode && !show) {
+    title = title
+      .replace("Watch Anime Online", "Watch Adult Anime Online")
+      .replace("Search Anime", "Search Adult Anime")
+      .replace("Anime Library", "Adult Anime Library")
+      .replace("Latest Episodes", "Latest Adult Episodes")
+      .replace("Weekly Schedule", "Weekly Adult Schedule")
+      .replace("Favorites", "Adult Favorites");
+
+    description = description
+      .replace("Watch anime online", "Watch adult anime online")
+      .replace("Search anime", "Search adult anime")
+      .replace("Browse the full ZenkaiTV anime library", "Browse the full ZenkaiTV 18+ adult catalog");
+  }
+
   if (show) {
     const showTitle = getShowTitle(show);
     const ep = Number(target.episodeNumber || state.activeEpisode?.episode?.episode || 0);
@@ -3458,6 +3545,9 @@ function renderSkeletonCards(container, count = 7) {
   `).join("");
 }
 
+// Memo for the Schedule's airing-show computation (see renderSchedule).
+let _scheduleMemo = { key: "", at: 0, value: null };
+
 function renderSchedule() {
   // Fixed Mon → Sun order
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -3465,7 +3555,14 @@ function renderSchedule() {
   // Only shows with a confirmed weekly broadcast day AND an active airing status.
   // Exclude anything AniList/Jikan marks as FINISHED or CANCELLED — these are
   // completed series that still have a stored broadcast day (e.g. Naruto, HxH).
-  const airingShows = (() => {
+  // This filter+sort+dedupe walks the entire catalog (normalizeTitle per show)
+  // and used to re-run on EVERY render() - and render() fires many times a
+  // second during catalog enrichment, which is what made the Schedule route
+  // feel laggy. Reuse the last result for a short window instead.
+  const _schedKey = state.shows.length + ":" + ((typeof AdultMode !== "undefined" && AdultMode.isEnabled()) ? 1 : 0);
+  const _schedNow = Date.now();
+  const _schedFresh = Boolean(_scheduleMemo.value) && _scheduleMemo.key === _schedKey && (_schedNow - _scheduleMemo.at) < 500;
+  const airingShows = _schedFresh ? _scheduleMemo.value : (() => {
     const seen = new Map();
     [...catalogShows()]
       .filter((show) => {
@@ -3509,6 +3606,7 @@ function renderSchedule() {
       });
     return [...seen.values()];
   })();
+  if (!_schedFresh) _scheduleMemo = { key: _schedKey, at: _schedNow, value: airingShows };
 
   // Highlight the current weekday. getDay() is 0=Sun..6=Sat; our columns run
   // Mon..Sun, so shift by 6 to line up.
@@ -4601,11 +4699,43 @@ function playbackLookupWithTimeout(label, promise, timeoutMs = 6500) {
   ]);
 }
 
+const SOURCE_FAST_FIRST_PASS_MS = 1800;
+const SOURCE_FAST_SECOND_PASS_MS = 900;
+
+function hasFastPreferredPlaybackSource(episode) {
+  return getEpisodePlaybackSources(episode).some((source) => {
+    const text = sourceIdentityText(source);
+    return sourcePreferenceScore(source) <= 1
+      || (isAnimeAv1Source(source) && isHlsSource(source))
+      || (isJKAnimeSource(source) && isMp4UploadSource(source))
+      || text.includes("animeav1")
+      || text.includes("mp4upload");
+  });
+}
+
 async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
   if (!show || !episode) return episode;
   const episodeNumber = Number(episode.episode || episode.number || 1);
   const lookupKey = `${normalizeTitle(show.title)}:s${seasonNumber}:e${episodeNumber}`;
   if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) {
+    const rawAdultSlug = String(show.adultId || show.slug || show.id || "")
+      .replace(/^adult-underhentai-/, "")
+      .replace(/^veohentai-/, "");
+    const adultSources = Array.isArray(episode.sourceOptions) ? [...episode.sourceOptions] : [];
+    const hasCleanAdultResolver = adultSources.some((source) => isPreferredAdultSource(source));
+    if (rawAdultSlug && !hasCleanAdultResolver) {
+      adultSources.unshift({
+        id: `veohentai-e${episodeNumber}-fallback`,
+        label: "VeoHentai",
+        provider: "HentaiPlayer",
+        type: "resolver",
+        streamResolver: {
+          type: "underhentai",
+          endpoint: `/api/adult/underhentai/stream?slug=veohentai-${encodeURIComponent(rawAdultSlug)}&episode=${encodeURIComponent(episodeNumber)}`
+        }
+      });
+    }
+    episode.sourceOptions = adultSources;
     episode.sourceOptions = normalizeEpisodeSourceOptions(episode);
     episode.sourceOptionsChecked = lookupKey;
     episode.tioAnimeSourcesChecked = true;
@@ -4649,35 +4779,73 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
   };
 
   // Respect the user's per-scraper enable toggles (Sources tab).
-  const lookups = [
-    playbackLookupWithTimeout("Loaded addons", attachLoadedAddonFallbacks(show, episode, seasonNumber), 1800)
-      .then(() => refreshPicker())
-  ];
+  const lookups = [];
+  const preferredLookups = [];
+  const addLookup = (key, label, task, preferred = false) => {
+    const def = getKnownSourceServer(key);
+    const lookup = Promise.resolve(task)
+      .catch((error) => {
+        console.warn(`${label} source lookup failed:`, error);
+        return null;
+      })
+      .then(() => updateServerCheck(key, def.match));
+    lookups.push(lookup);
+    if (preferred) preferredLookups.push(lookup);
+    return lookup;
+  };
+
+  lookups.push(Promise.resolve(attachLoadedAddonFallbacks(show, episode, seasonNumber))
+    .catch((error) => {
+      console.warn("Loaded addon source lookup failed:", error);
+      return null;
+    })
+    .then(() => refreshPicker()));
   if (isScraperEnabled("tioanime")) {
-    lookups.push(playbackLookupWithTimeout("TioAnime scraper", attachTioAnimeSources(show, episode), 10000)
-      .then(() => updateServerCheck("tioanime", getKnownSourceServer("tioanime").match)));
+    addLookup("tioanime", "TioAnime scraper", attachTioAnimeSources(show, episode));
   } else { episode.tioAnimeSourcesChecked = true; episode.serverChecks.tioanime = "notfound"; }
   if (isScraperEnabled("animeav1")) {
-    lookups.push(playbackLookupWithTimeout("AnimeAV1 scraper", attachAnimeAv1Sources(show, episode), 10000)
-      .then(() => updateServerCheck("animeav1", getKnownSourceServer("animeav1").match)));
+    addLookup("animeav1", "AnimeAV1 scraper", attachAnimeAv1Sources(show, episode), true);
   } else { episode.animeAv1SourcesChecked = true; episode.serverChecks.animeav1 = "notfound"; }
   if (isScraperEnabled("jkanime")) {
-    lookups.push(playbackLookupWithTimeout("JKAnime scraper", attachJKAnimeSources(show, episode), 12000)
-      .then(() => updateServerCheck("jkanime", getKnownSourceServer("jkanime").match)));
+    addLookup("jkanime", "JKAnime scraper", attachJKAnimeSources(show, episode), true);
   } else { episode.jkAnimeSourcesChecked = true; episode.serverChecks.jkanime = "notfound"; }
   episode.animeonlineNinjaSourcesChecked = true;
   episode.serverChecks.animeonlineninja = "notfound";
-  await Promise.allSettled(lookups);
 
-  // Ensure any timed-out servers are marked not-found after every source has had a chance.
-  for (const def of KNOWN_SOURCE_SERVERS) {
-    if (!episode.serverChecks[def.key]) episode.serverChecks[def.key] = "notfound";
+  const completeBackgroundLookup = Promise.allSettled(lookups)
+    .then(() => {
+      // Ensure unresolved servers are marked not-found after every source has had a chance.
+      for (const def of KNOWN_SOURCE_SERVERS) {
+        if (!episode.serverChecks[def.key]) episode.serverChecks[def.key] = "notfound";
+      }
+      episode.sourceOptions = normalizeEpisodeSourceOptions(episode);
+      episode.sourceOptionsChecked = lookupKey;
+      if (episode.sourceOptions.length > beforeCount) {
+        console.info(`Loaded ${episode.sourceOptions.length} playback server option(s) for ${show.title} episode ${episodeNumber}.`);
+      }
+    })
+    .finally(() => {
+      sourceOptionsBackgroundLookups.delete(lookupKey);
+      episode.sourceOptionsPending = false;
+      refreshPicker();
+      refreshFocusables();
+    });
+  sourceOptionsBackgroundLookups.set(lookupKey, completeBackgroundLookup);
+
+  const fastLane = preferredLookups.length ? preferredLookups : lookups;
+  await Promise.race([
+    Promise.allSettled(fastLane),
+    wait(SOURCE_FAST_FIRST_PASS_MS)
+  ]);
+  if (!hasFastPreferredPlaybackSource(episode) && !getEpisodePlaybackSources(episode).length) {
+    await Promise.race([
+      completeBackgroundLookup,
+      wait(SOURCE_FAST_SECOND_PASS_MS)
+    ]);
   }
 
   episode.sourceOptionsChecked = lookupKey;
-  if (episode.sourceOptions.length > beforeCount) {
-    console.info(`Loaded ${episode.sourceOptions.length} playback server option(s) for ${show.title} episode ${episodeNumber}.`);
-  }
+  episode.sourceOptions = normalizeEpisodeSourceOptions(episode);
   return episode;
 }
 
@@ -4694,6 +4862,7 @@ function getKnownSourceServer(key) {
 function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options = {}) {
   const lookupKey = playbackLookupKey(show, episode, seasonNumber);
   if (!lookupKey || (episode.sourceOptionsChecked === lookupKey && episode.tioAnimeSourcesChecked && episode.animeAv1SourcesChecked && episode.jkAnimeSourcesChecked && episode.animeonlineNinjaSourcesChecked)) return Promise.resolve(episode);
+  if (sourceOptionsBackgroundLookups.has(lookupKey)) return sourceOptionsBackgroundLookups.get(lookupKey);
   if (pendingSourceLookups.has(lookupKey)) return pendingSourceLookups.get(lookupKey);
 
   episode.sourceOptionsPending = true;
@@ -4703,7 +4872,7 @@ function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options 
       return episode;
     })
     .finally(() => {
-      episode.sourceOptionsPending = false;
+      episode.sourceOptionsPending = sourceOptionsBackgroundLookups.has(lookupKey);
       pendingSourceLookups.delete(lookupKey);
       const selected = state.activeEpisode;
       if (selected?.episode === episode && state.activeShow === show) {
@@ -5591,7 +5760,8 @@ function _render() {
   }
   if (isAniPub) renderAniPubCatalog();
   if (isFavorites) {
-    renderCards(favoritesGrid, filtered.filter((show) => state.favorites.includes(show.id)));
+    const favoriteShows = catalogShows().filter((show) => state.favorites.includes(show.id));
+    renderCards(favoritesGrid, state.search ? favoriteShows.filter(matchesShowSearch) : favoriteShows);
     const emptyFavorites = document.querySelector("#emptyFavorites");
     if (emptyFavorites && favoritesGrid) emptyFavorites.hidden = favoritesGrid.children.length > 0;
   }
@@ -5717,6 +5887,12 @@ function scrollToRoute(route) {
 
 async function openShow(id, target = {}) {
   const wantedId = String(id || "");
+  // Remember the card + scroll offset so closing the detail view returns the
+  // user exactly where they were instead of snapping back to the top.
+  if (!overlay || overlay.hidden) {
+    state.lastOpenedShowId = wantedId;
+    state.catalogScrollY = window.scrollY || window.pageYOffset || 0;
+  }
   let show = state.shows.find((entry) => String(entry.id) === wantedId || getShowKey(entry) === wantedId);
   if (!show) {
     const addonShow = state.addonSections.flatMap((section) => section.items || []).find((entry) => String(entry.id) === wantedId || getShowKey(entry) === wantedId);
@@ -6288,8 +6464,24 @@ function closeShow() {
     }
     hideAdultGalleryPanel();
     refreshFocusables();
-    const firstCard = document.querySelector(".show-card:not([hidden])");
-    if (firstCard) focusElement(firstCard);
+    // Focus memory: return to the card that was opened and restore the catalog
+    // scroll offset. focusElement() calls scrollIntoView(), which on the FIRST
+    // card yanked the page back to the top - so focus without scrolling here.
+    const savedY = Number(state.catalogScrollY || 0);
+    let returnCard = null;
+    if (state.lastOpenedShowId) {
+      try {
+        const raw = String(state.lastOpenedShowId);
+        const safe = (typeof CSS !== "undefined" && CSS.escape) ? CSS.escape(raw) : null;
+        if (safe) returnCard = document.querySelector("[data-open-show=\"" + safe + "\"]");
+      } catch (_) { returnCard = null; }
+    }
+    const targetCard = returnCard || document.querySelector(".show-card:not([hidden])");
+    if (targetCard) {
+      try { targetCard.focus({ preventScroll: true }); } catch (_) { /* ignore */ }
+      try { setTvFocus(targetCard); } catch (_) { /* ignore */ }
+    }
+    if (savedY > 0) window.scrollTo({ top: savedY, behavior: "auto" });
     // Returning to Home — resume the hero cover→trailer cycle.
     if (state.route === "home") renderCarousel();
   }, 200);
@@ -6669,7 +6861,8 @@ function applyWatchBackdrop(show, season) {
     season?.tmdbBackdrop, show.backdrop, show.heroImage, show.wideImage,
     show.landscapeImage, show.jikanBackground, season?.highQualityBackground,
     season?.banner, season?.backdrop
-  ].map((value) => hqImage(String(value || "").trim())).filter(Boolean));
+  ].map((value) => hqImage(String(value || "").trim()))
+   .filter((url) => url && !verticalArt.has(url)));
   // The genuinely high-resolution "final" art — the TMDB backdrop (show or season)
   // and any explicitly-high-quality background. Used to decide whether the current
   // art is good enough to show sharp, or whether to hold on the blurred fill until
@@ -6685,9 +6878,7 @@ function applyWatchBackdrop(show, season) {
   const setBackdropArt = (url, optimized, posterFit) => {
     backdrop.classList.remove("is-blur-hold"); // leaving the blurred-hold state
     if (posterFit) {
-      // If it's a vertical poster, don't show the sharp version on the backdrop layer;
-      // let it show only as a blurred ambient background fill to avoid double-poster.
-      backdrop.style.backgroundImage = "none";
+      backdrop.style.backgroundImage = optimized ? `url("${optimized}")` : animeBackdropFallback(show);
       backdrop.classList.remove("has-art");
       backdrop.classList.add("has-fallback-art");
     } else {
@@ -6701,7 +6892,7 @@ function applyWatchBackdrop(show, season) {
     backdrop.dataset.backdropKey = key;
     backdrop.dataset.backdropUrl = url || "";
     if (blur) {
-      blur.style.backgroundImage = url ? `url("${url}")` : "";
+      blur.style.backgroundImage = url ? `url("${imageDeliveryUrl(url, 640, 70)}")` : "";
       blur.classList.toggle("is-visible", Boolean(url));
     }
     // Always cinematic; .has-art only switches image-backdrop vs gradient fallback.
@@ -6726,7 +6917,8 @@ function applyWatchBackdrop(show, season) {
   };
 
   const paint = (url) => {
-    const posterFit = Boolean(url) && !wideSources.has(url);
+    const isAdultShow = Boolean(show.adultSource || show.isAdult || (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)));
+    const posterFit = false;
     const artIsHighRes = Boolean(url) && highResSources.has(url);
     const optimized = url ? imageDeliveryUrl(url, 1920, 92) : "";
     const sameTarget = backdrop.dataset.backdropKey === key;
@@ -6755,7 +6947,7 @@ function applyWatchBackdrop(show, season) {
       backdrop.dataset.backdropKey = key;
       backdrop.dataset.backdropUrl = "";        // no committed sharp art yet
       backdrop.dataset.backdropHeldUrl = url;
-      if (blur) { blur.style.backgroundImage = `url("${url}")`; blur.classList.add("is-visible"); }
+      if (blur) { blur.style.backgroundImage = `url("${imageDeliveryUrl(url, 640, 70)}")`; blur.classList.add("is-visible"); }
       overlay?.classList.add("cinematic");
       overlay?.classList.add("has-backdrop-art");
       scheduleHighResFallback();
@@ -6801,7 +6993,7 @@ function applyWatchBackdrop(show, season) {
         backdrop.style.opacity = "";
         return;
       }
-      setBackdropArt(url, optimized, false);
+      setBackdropArt(url, optimized, posterFit);
       commitBackdropMeta(url);
       void backdrop.offsetWidth; // flush before fading back in
       backdrop.style.opacity = "1";
@@ -6810,7 +7002,7 @@ function applyWatchBackdrop(show, season) {
     const beginDip = () => {
       // Match the incoming image on the blurred fill first so the dip shows the
       // NEW art (blurred), not the old one.
-      if (blur) blur.style.backgroundImage = `url("${url}")`;
+      if (blur) blur.style.backgroundImage = `url("${imageDeliveryUrl(url, 640, 70)}")`;
       backdrop.style.transition = "opacity 220ms ease";
       backdrop.style.opacity = "0";
       backdrop.addEventListener("transitionend", commitSwap, { once: true });
@@ -7682,8 +7874,19 @@ function sourceIdentityText(source = {}) {
     source.type,
     source.videoUrl,
     source.externalUrl,
-    source.siteUrl
+    source.siteUrl,
+    source.streamResolver?.type,
+    source.streamResolver?.endpoint
   ].filter(Boolean).join(" ").toLowerCase();
+}
+
+function isPreferredAdultSource(source = {}) {
+  return /veohentai|hentaiplayer|1hanime/.test(sourceIdentityText(source));
+}
+
+function isAdultFallbackSource(source = {}) {
+  const text = sourceIdentityText(source);
+  return text.includes("underhentai") || text.includes("kraken");
 }
 
 function isAnimeAv1Source(source = {}) {
@@ -7730,6 +7933,7 @@ function _sourceGroupPriority(source = {}) {
 function sourcePreferenceScore(source = {}) {
   const label = (source.label || "").toLowerCase();
   const url   = (source.videoUrl || source.externalUrl || "").toLowerCase();
+  const identity = sourceIdentityText(source);
   const isDirect = source.type === "direct";
   const isHls    = isHlsSource(source);
   const isAnimeAv1 = isAnimeAv1Source(source);
@@ -7738,6 +7942,11 @@ function sourcePreferenceScore(source = {}) {
   const isMp4  = isMp4UploadSource(source);
   const isAdFree = /yourupload|you\s*upload|youupload|ok\.?ru|okru|streamwish|filelions/.test(label);
   const isAdWalled = /\bvoe\b|netu|hqq|streamsb|embedsb|\bsb\b|dood|filemoon|vidhide|mixdrop/.test(label);
+
+  // Adult catalog: prefer the direct clean HentaiPlayer/1hanime stream that
+  // the VeoHentai scraper resolves before falling back to older embeds.
+  if (isPreferredAdultSource(source))    return 0;
+  if (identity.includes("hentaila"))     return 1;
 
   // ── AnimeAV1 first (most reliable) — HLS is the very top pick ────────────
   if (isAnimeAv1 && isHls)              return 0; // AnimeAV1 — HLS  (best)
@@ -7749,6 +7958,7 @@ function sourcePreferenceScore(source = {}) {
   if (isHls || isDirect)               return 5; // any other direct / HLS stream
   if (isMega || isMp4)                 return 6; // Mega / MP4Upload (TioAnime etc.)
   if (isAdFree)                        return 7; // YourUpload / Ok.ru / …
+  if (isAdultFallbackSource(source))    return 8; // UnderHentai/Kraken fallback
   // ── Ad-walled hosts sink to the bottom ─────────────────────────────────
   if (isAdWalled)                      return 9;
   return 8;                                       // neutral / unknown
@@ -7785,10 +7995,40 @@ function getEpisodePlaybackSources(episode = {}) {
 function getSelectedEpisodeSource(episode = {}) {
   const sources = getEpisodePlaybackSources(episode);
   if (!sources.length) return null;
-  const explicit = episode.selectedSourceId || state.preferredSource;
-  return explicit && explicit !== "auto"
-    ? sources.find((source) => source.id === explicit) || sources[0]
-    : sources[0];
+  const cleanAdultSource = sources.find(isPreferredAdultSource);
+  if (episode.selectedSourceId && episode.selectedSourceId !== "auto") {
+    const selected = sources.find((source) => source.id === episode.selectedSourceId);
+    if (selected && cleanAdultSource && isAdultFallbackSource(selected)) {
+      episode.selectedSourceId = cleanAdultSource.id;
+      episode.videoUrl = "";
+      state.activeEpisodeUrl = "";
+      episode._failedSourceIds?.clear?.();
+      return cleanAdultSource;
+    }
+    return selected || sources[0];
+  }
+  const savedPreference = state.preferredSource;
+  if (savedPreference && savedPreference !== "auto") {
+    const preferred = sources.find((source) => source.id === savedPreference);
+    if (preferred && (!cleanAdultSource || isPreferredAdultSource(preferred))) {
+      return preferred;
+    }
+  }
+  return sources[0];
+}
+
+function selectEpisodePlaybackSource(episode, sourceId) {
+  if (!episode || !sourceId) return null;
+  episode.selectedSourceId = sourceId;
+  const selected = getEpisodePlaybackSources(episode).find((source) => source.id === sourceId) || null;
+  if (selected?.streamResolver || selected?.type === "resolver" || selected?.type === "iframe") {
+    episode.videoUrl = "";
+    state.activeEpisodeUrl = "";
+  }
+  if (episode._failedSourceIds) {
+    episode._failedSourceIds.clear();
+  }
+  return selected;
 }
 
 function renderPlayerSourceOptions(episode = {}, selectedSource = null) {
@@ -8439,15 +8679,14 @@ function renderSourcePickerInSidePanel() {
   }
 
   // Wire source selection
+  wireSourceButtonWarmups(episodeList, state.activeEpisode?.episode);
   episodeList.querySelectorAll("[data-player-source]").forEach((button) => {
     button.addEventListener("click", () => {
       const selectedEpisode = state.activeEpisode?.episode;
       if (!selectedEpisode) return;
-      selectedEpisode.selectedSourceId = button.dataset.playerSource;
+      warmEpisodeSourceById(selectedEpisode, button.dataset.playerSource, { timeoutMs: 1600 });
+      selectEpisodePlaybackSource(selectedEpisode, button.dataset.playerSource);
       state.preferredSource = selectedEpisode.selectedSourceId;
-      if (selectedEpisode._failedSourceIds) {
-        selectedEpisode._failedSourceIds.clear();
-      }
       hideAdultGalleryPanel();
       playActiveShow({ allowSourceLookup: false });
     });
@@ -8847,8 +9086,21 @@ function loadHlsScript() {
   return hlsScriptPromise;
 }
 
+function originalStreamUrlFromProxy(url = "") {
+  const value = String(url || "");
+  try {
+    const parsed = new URL(value, location.origin);
+    if (parsed.pathname === LOCAL_SOURCE_PROXY_ENDPOINT && parsed.searchParams.get("url")) {
+      return parsed.searchParams.get("url") || value;
+    }
+  } catch (error) {
+    // Keep the original value when URL parsing is unavailable.
+  }
+  return value;
+}
+
 function streamTypeFromUrl(url = "") {
-  const value = String(url || "").split("?")[0].split("#")[0].toLowerCase();
+  const value = originalStreamUrlFromProxy(url).split("?")[0].split("#")[0].toLowerCase();
   if (value.endsWith(".m3u8")) return "hls";
   if (value.endsWith(".mpd")) return "dash";
   if (/krakencloud\.net\/play\/video\//i.test(value)) return "file";
@@ -8878,6 +9130,7 @@ function isProxyableStreamUrl(url = "") {
 
 function proxiedStreamUrl(url = "") {
   const resolved = resolveSourceEndpoint(url);
+  if (isLocalSourceProxyUrl(resolved)) return localSourceProxyPath(resolved);
   if (!isProxyableStreamUrl(resolved) || location.protocol === "file:") return resolved;
   const proxyHost = streamProxyHost(resolved);
   const proxy = new URL(LOCAL_SOURCE_PROXY_ENDPOINT, location.origin);
@@ -8886,33 +9139,209 @@ function proxiedStreamUrl(url = "") {
   return proxy.toString();
 }
 
+function streamTypeQueryValue(type = "") {
+  if (type === "hls") return "hls";
+  if (type === "dash") return "dash";
+  if (type === "file") return "file";
+  return "";
+}
+
+function sourceDirectUrl(source = {}) {
+  return source?.videoUrl || source?.url || source?.href || source?.streamUrl || source?.file || "";
+}
+
+function preconnectStreamOrigin(url = "") {
+  if (!url || location.protocol === "file:") return;
+  let origin = "";
+  try {
+    origin = new URL(url, location.origin).origin;
+  } catch (error) {
+    return;
+  }
+  if (!origin || playableStreamPreconnects.has(origin)) return;
+  playableStreamPreconnects.add(origin);
+  ["preconnect", "dns-prefetch"].forEach((rel) => {
+    const link = document.createElement("link");
+    link.rel = rel;
+    link.href = origin;
+    if (rel === "preconnect") link.crossOrigin = "";
+    document.head.appendChild(link);
+  });
+}
+
+function warmPlayableStream(url = "", options = {}) {
+  const resolved = resolveSourceEndpoint(url);
+  if (!resolved || /^javascript:/i.test(resolved)) return Promise.resolve(null);
+  const original = originalStreamUrlFromProxy(resolved);
+  preconnectStreamOrigin(original);
+  preconnectStreamOrigin(location.origin);
+
+  const probeUrl = proxiedStreamUrl(resolved);
+  if (!probeUrl) return Promise.resolve(null);
+  let cacheKey = "";
+  try {
+    cacheKey = new URL(probeUrl, location.origin).href;
+  } catch {
+    return Promise.resolve(null);
+  }
+  if (!/^https?:\/\//i.test(cacheKey)) return Promise.resolve(null);
+  const cached = playableStreamWarmups.get(cacheKey);
+  const now = Date.now();
+  if (cached && now - cached.time < PLAYABLE_STREAM_WARMUP_TTL) return cached.promise;
+
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), options.timeoutMs || 2200);
+  const headers = {};
+  if (streamTypeFromUrl(resolved) === "file") headers.Range = "bytes=0-0";
+  const promise = fetch(cacheKey, {
+    method: "GET",
+    cache: "no-store",
+    mode: cacheKey.startsWith(location.origin) ? "same-origin" : "cors",
+    credentials: "omit",
+    headers,
+    signal: controller.signal
+  }).catch(() => null).finally(() => window.clearTimeout(timeout));
+
+  playableStreamWarmups.set(cacheKey, { time: now, promise });
+  promise.finally(() => {
+    const current = playableStreamWarmups.get(cacheKey);
+    if (current?.promise === promise) current.time = Date.now();
+  });
+  return promise;
+}
+
+function warmEpisodeSourceById(episode, sourceId, options = {}) {
+  const source = getEpisodePlaybackSources(episode).find((item) => item.id === sourceId);
+  const url = sourceDirectUrl(source);
+  if (!url || source?.streamResolver || source?.type === "resolver") return Promise.resolve(null);
+  return warmPlayableStream(url, options);
+}
+
+function warmTopEpisodeSources(episode, limit = 2) {
+  getEpisodePlaybackSources(episode)
+    .filter((source) => {
+      const url = sourceDirectUrl(source);
+      return url && source.type !== "resolver" && !source.streamResolver;
+    })
+    .slice(0, limit)
+    .forEach((source) => warmPlayableStream(sourceDirectUrl(source), { timeoutMs: 1800 }));
+}
+
+function wireSourceButtonWarmups(root, episode) {
+  if (!root || !episode) return;
+  root.querySelectorAll("[data-player-source]").forEach((button) => {
+    const warm = () => warmEpisodeSourceById(episode, button.dataset.playerSource, { timeoutMs: 1800 });
+    button.addEventListener("pointerenter", warm, { once: true, passive: true });
+    button.addEventListener("focus", warm, { once: true });
+    button.addEventListener("pointerdown", warm, { once: true, passive: true });
+  });
+  warmTopEpisodeSources(episode, 2);
+}
+
+function isLocalSourceProxyUrl(url = "") {
+  try {
+    const parsed = new URL(String(url || ""), location.origin);
+    return parsed.origin === location.origin && parsed.pathname === LOCAL_SOURCE_PROXY_ENDPOINT;
+  } catch (error) {
+    return String(url || "").startsWith(LOCAL_SOURCE_PROXY_ENDPOINT);
+  }
+}
+
+function localSourceProxyPath(url = "") {
+  try {
+    const parsed = new URL(String(url || ""), location.origin);
+    if (parsed.origin === location.origin && parsed.pathname === LOCAL_SOURCE_PROXY_ENDPOINT) {
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+  } catch (error) {}
+  return url;
+}
+
 function playerFitScaleValue(fit = state.uiPreferences.playerFit || "contain") {
   if (fit === "cover") return 1;
   if (fit === "fill") return 2;
   return 0;
 }
 
-function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null) {
+function buildPlayerUrl(videoUrl = "", title = "", options = {}) {
   const playerUrl = new URL("/player/player.html", location.origin);
-  playerUrl.searchParams.set("v", "2");
-  playerUrl.searchParams.set("src", resolveSourceEndpoint(url));
-  playerUrl.searchParams.set("audio", getLanguagePreferences().audio || "");
-  playerUrl.searchParams.set("quality", String(Number(state.uiPreferences.playerQuality || 0)));
+  playerUrl.searchParams.set("v", "6");
+  const source = isLocalSourceProxyUrl(videoUrl)
+    ? localSourceProxyPath(videoUrl)
+    : resolveSourceEndpoint(videoUrl);
+  playerUrl.searchParams.set("src", source);
+  if (title) playerUrl.searchParams.set("title", title);
+  if (options.episode) playerUrl.searchParams.set("episode", options.episode);
+  if (options.poster) playerUrl.searchParams.set("poster", options.poster);
+  if (options.subtitle) playerUrl.searchParams.set("subtitle", options.subtitle);
+  if (options.type) playerUrl.searchParams.set("type", options.type);
+  if (options.start) playerUrl.searchParams.set("start", String(options.start));
+  if (options.fit) playerUrl.searchParams.set("fit", options.fit);
+  if (options.controls) playerUrl.searchParams.set("controls", "1");
+  if (options.audio) playerUrl.searchParams.set("audio", options.audio);
+  if (options.subtitles) playerUrl.searchParams.set("subtitles", options.subtitles);
+  if (options.forceSubtitles) playerUrl.searchParams.set("forceSubtitles", "1");
+  if (Array.isArray(options.tracks) && options.tracks.length) {
+    playerUrl.searchParams.set("tracks", encodeURIComponent(JSON.stringify(options.tracks.slice(0, 8))));
+  }
+  if (options.quality != null) playerUrl.searchParams.set("quality", String(options.quality));
+  return playerUrl.toString();
+}
+
+function openPlayer(videoUrl, title = "", options = {}) {
+  if (!videoUrl) {
+    showToast("No playable video source found.");
+    return "";
+  }
+  const playerUrl = buildPlayerUrl(videoUrl, title, options);
+  window.location.assign(playerUrl);
+  return playerUrl;
+}
+
+window.openPlayer = openPlayer;
+
+function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null) {
+  const options = {};
+  const typeHint = streamTypeQueryValue(streamTypeFromUrl(url));
+  if (typeHint) options.type = typeHint;
+  const preferences = getLanguagePreferences();
+  const selectedSource = episode ? getSelectedEpisodeSource(episode) : null;
+  const isAdultSource = Boolean(
+    selectedSource && isPreferredAdultSource(selectedSource)
+      || (state.activeShow && typeof AdultMode !== "undefined" && AdultMode.isAdultContent(state.activeShow))
+  );
+  options.audio = preferences.audio || "";
+  options.subtitles = isAdultSource ? "spanish" : (preferences.subtitles || "");
+  options.forceSubtitles = isAdultSource;
+  const externalTracks = [
+    ...normalizeSubtitleTracks(episode || {}),
+    ...normalizeSubtitleTracks(selectedSource || {})
+  ].filter((track, index, tracks) => track.url && tracks.findIndex((candidate) => candidate.url === track.url) === index);
+  if (externalTracks.length) options.tracks = externalTracks;
+  options.quality = Number(state.uiPreferences.playerQuality || 0);
   if (useNativeControls || state.uiPreferences.playerInterface === "native") {
-    playerUrl.searchParams.set("controls", "1");
+    options.controls = true;
   }
   if (episode) {
     const resumeAt = getResumePosition(episode);
     if (resumeAt > 0) {
-      playerUrl.searchParams.set("start", String(resumeAt));
+      options.start = resumeAt;
     }
   }
+  options.fit = state.uiPreferences.playerFit || "cover";
+  options.episode = currentEpisodeLabel();
+  options.poster = episodeThumb(
+    episode || state.activeEpisode?.episode || {},
+    state.activeEpisode?.season || {},
+    state.activeShow || {}
+  );
+  const playerTitle = state.activeShow?.title || state.activeShow?.romajiTitle || episode?.showTitle || "ZenkaiTV";
   const hash = streamTypeFromUrl(url) === "dash"
     ? "#dash"
     : streamTypeFromUrl(url) === "file"
       ? "#file"
       : "";
-  return `${playerUrl.toString()}${hash}`;
+  return `${buildPlayerUrl(url, playerTitle, options)}${hash}`;
 }
 
 function createApkPlayerController(iframe, options = {}) {
@@ -9329,13 +9758,14 @@ function openPlayerPanel(frame, type, video, episode, url, tracks = []) {
   panel.innerHTML = renderPlayerPanelContent(type, episode, url, tracks);
   panel.hidden = false;
   // Sources panel — switch server (re-mounts the player, staying in cinema).
+  wireSourceButtonWarmups(panel, episode);
   panel.querySelectorAll("[data-player-source]").forEach((button) => {
     button.addEventListener("click", () => {
       const ep = state.activeEpisode?.episode;
       if (!ep) return;
-      ep.selectedSourceId = button.dataset.playerSource;
+      warmEpisodeSourceById(ep, button.dataset.playerSource, { timeoutMs: 1600 });
+      selectEpisodePlaybackSource(ep, button.dataset.playerSource);
       state.preferredSource = ep.selectedSourceId;
-      if (ep._failedSourceIds) ep._failedSourceIds.clear();
       try {
         localStorage.setItem(PREFERRED_SOURCE_KEY, state.preferredSource);
       } catch (error) {
@@ -9717,15 +10147,14 @@ function showEpisodeListTab() {
 }
 
 function wirePlayerChrome(frame) {
+  wireSourceButtonWarmups(frame, state.activeEpisode?.episode);
   frame.querySelectorAll("[data-player-source]").forEach((button) => {
     button.addEventListener("click", () => {
       const selectedEpisode = state.activeEpisode?.episode;
       if (!selectedEpisode) return;
-      selectedEpisode.selectedSourceId = button.dataset.playerSource;
+      warmEpisodeSourceById(selectedEpisode, button.dataset.playerSource, { timeoutMs: 1600 });
+      selectEpisodePlaybackSource(selectedEpisode, button.dataset.playerSource);
       state.preferredSource = selectedEpisode.selectedSourceId;
-      if (selectedEpisode._failedSourceIds) {
-        selectedEpisode._failedSourceIds.clear();
-      }
       try {
         localStorage.setItem(PREFERRED_SOURCE_KEY, state.preferredSource);
       } catch (error) {
@@ -10378,6 +10807,12 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
     while (cursor < queue.length && generation === visibleMetadataWarmGeneration) {
       const show = queue[cursor++];
       if (!show || show._metadataPreloadComplete || show.adultDetailsLoaded) continue;
+      // Bounded retry. Previously a failure reset _metadataPreloadStarted, so a
+      // show whose metadata kept failing (Jikan 429 / AniList 502 / TMDB 429) was
+      // re-requested on EVERY render - effectively an endless request loop.
+      // Back off after each failure, then stop asking altogether.
+      if (show._metadataPreloadNextTry && Date.now() < show._metadataPreloadNextTry) continue;
+      if ((show._metadataPreloadFails || 0) >= 3) continue;
       show._metadataPreloadStarted = true;
       try {
         if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) {
@@ -10405,6 +10840,9 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
         }
         changed = true;
       } catch (err) {
+        show._metadataPreloadFails = (show._metadataPreloadFails || 0) + 1;
+        // 30s, then 2min, then 8min - after 3 failures the show is left alone.
+        show._metadataPreloadNextTry = Date.now() + 30000 * Math.pow(4, show._metadataPreloadFails - 1);
         show._metadataPreloadStarted = false;
       }
     }
@@ -11380,6 +11818,9 @@ async function playActiveShow(options = {}) {
   }
   const activeEpisode = state.activeEpisode?.episode;
   const seasonNumber = state.activeEpisode?.season?.season || state.activeSeasonIndex + 1 || activeEpisode?.season || 1;
+  if (activeEpisode && typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) {
+    await attachPlaybackSourceOptions(show, activeEpisode, seasonNumber);
+  }
   const activeLookupKey = activeEpisode ? playbackLookupKey(show, activeEpisode, seasonNumber) : "";
   let lookupPromise = activeLookupKey ? pendingSourceLookups.get(activeLookupKey) : null;
   let waitedForLookup = false;
@@ -11409,7 +11850,7 @@ async function playActiveShow(options = {}) {
     // for the source sweep before showing any final error state.
     lookupPromise = schedulePlaybackSourceOptions(show, activeEpisode, seasonNumber, { autoReplay: false });
     if (!getEpisodePlaybackSources(activeEpisode).length) {
-      await playbackLookupWithTimeout("AniPub quick start", attachAniPubFallback(show, activeEpisode), 1500);
+      await playbackLookupWithTimeout("AniPub quick start", attachAniPubFallback(show, activeEpisode), 700);
     }
     renderEpisodeList(show);
   }
@@ -11425,7 +11866,7 @@ async function playActiveShow(options = {}) {
       "Checking servers...",
       "Finding every available playback source for this episode."
     );
-    await playbackLookupWithTimeout("Playback source sweep", lookupPromise, 9500);
+    await playbackLookupWithTimeout("Playback source quick pass", lookupPromise, 2600);
     waitedForLookup = true;
     renderEpisodeList(show);
   }
@@ -11493,6 +11934,11 @@ async function playActiveShow(options = {}) {
       source = getSelectedEpisodeSource(activeEpisode);
       if (!source || source.type === "direct") {
         url = source?.videoUrl || getPlayableUrl(show);
+      }
+      const lateResolver = source?.streamResolver || activeEpisode?.streamResolver;
+      if (!url && lateResolver) {
+        activeEpisode.streamResolver = lateResolver;
+        url = await resolveEpisodeStream(activeEpisode);
       }
       if (url) {
         return playActiveShow({ allowSourceLookup: false });
@@ -11580,6 +12026,7 @@ async function attemptResolveEmbed(embedUrl, siteReferer = "") {
 }
 
 function renderDirectVideoPlayer(frame, url, episode) {
+  warmPlayableStream(url, { timeoutMs: 2000 });
   const tracks = normalizeSubtitleTracks(episode);
   const preferences = getLanguagePreferences();
   const preferredTrack = tracks.find((track) => normalizeLanguagePreference(track.language || track.label) === preferences.subtitles);
@@ -11735,6 +12182,11 @@ function renderDirectVideoPlayer(frame, url, episode) {
       episodeIndex: nav.next.episodeIndex
     };
     state.activeEpisodeUrl = getEpisodeUrl(nextEpisode);
+    const nextSeasonNum = nextSeason?.season || nav.next.seasonIndex + 1 || 1;
+    const nextEpisodeNum = nextEpisode?.episode || nav.next.episodeIndex + 1 || 1;
+    appRouter()?.navigate?.(episodePathForShow(state.activeShow, nextSeasonNum, nextEpisodeNum, nextSeason.part || ""), { silent: true });
+    state.currentRouteInfo = appRouter()?.parsePath?.(location.pathname) || state.currentRouteInfo;
+    updateRouteMeta(state.currentRouteInfo || {}, state.activeShow, { seasonNumber: nextSeasonNum, episodeNumber: nextEpisodeNum });
     renderEpisodeList(state.activeShow);
     playActiveShow();
   });
@@ -12038,6 +12490,11 @@ function renderEmbeddedAniPubPlayer(show, externalUrl) {
       });
     }
   }
+  const isAdultShow = show?.isAdult || show?.adult || false;
+  const sandboxAttr = isAdultShow
+    ? "allow-scripts allow-same-origin allow-forms allow-presentation"
+    : "allow-scripts allow-same-origin allow-forms allow-presentation allow-popups allow-popups-to-escape-sandbox";
+
   frame.innerHTML = `
     <div class="embedded-player-container anipub-embedded vidstream-player is-iframe">
       <div class="vid-player-stage iframe-wrapper">
@@ -12048,15 +12505,12 @@ function renderEmbeddedAniPubPlayer(show, externalUrl) {
           frameborder="0"
           allowfullscreen
           allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-popups allow-popups-to-escape-sandbox"
+          sandbox="${sandboxAttr}"
           referrerpolicy="no-referrer"
         ></iframe>
-        <!-- The iframe stays sandboxed: we grant popups so the embed host's
-             player will actually run (otherwise it shows "Sandboxed: player not
-             allowed"), but we deliberately WITHHOLD allow-top-navigation so the
-             host can NEVER redirect or hijack the real ZenkaiTV tab — ad popups
-             are confined to a separate tab the user can close. Minimal-ad source
-             ordering (ad-free hosts first) keeps popups rare in practice. -->
+        <!-- The iframe stays sandboxed: we grant popups for regular shows so the embed host's
+             player will actually run, but for adult shows we withhold them to block all redirects
+             and popups entirely. -->
         ${renderVidstreamTopbar(label)}
       </div>
       ${renderPlayerEpisodeActions("")}
@@ -12394,7 +12848,9 @@ function wireOpenButtons() {
 }
 
 function openCarouselShow() {
-  const current = todayShows()[state.carouselIndex] || state.shows.find((show) => String(show.id) === String(carouselOpen.dataset.openShow));
+  const openShowId = String(carouselOpen.dataset.openShow || carouselStage.dataset.openShow || "");
+  const current = catalogShows().find((show) => String(show.id) === openShowId)
+    || state.shows.find((show) => String(show.id) === openShowId);
   if (!current) return;
   const target = getCardTarget(current);
   openShow(current.id, {
@@ -12586,6 +13042,22 @@ if (filterToggle && filterPanel) {
   });
 }
 
+// Adult provider tabs selection
+document.querySelectorAll("[data-adult-provider]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const provider = button.dataset.adultProvider || "merge";
+    localStorage.setItem("animetv-adult-provider", provider);
+    
+    document.querySelectorAll("[data-adult-provider]").forEach((btn) => {
+      btn.classList.toggle("is-selected", btn === button);
+    });
+    
+    state.isLoadingCatalog = true;
+    render();
+    loadAdultCatalog(true);
+  });
+});
+
 document.querySelectorAll("[data-library-letter]").forEach((button) => {
   button.addEventListener("click", () => {
     state.libraryLetter = button.dataset.libraryLetter || "all";
@@ -12738,6 +13210,11 @@ fakePlay.addEventListener("click", () => {
   const frame = document.querySelector("#videoFrame");
   const show = state.activeShow;
   if (frame && show && ep) {
+    const seasonNumber = ep.season?.season || ep.seasonIndex + 1 || 1;
+    const episodeNumber = ep.episode?.episode || ep.episodeIndex + 1 || 1;
+    appRouter()?.navigate?.(episodePathForShow(show, seasonNumber, episodeNumber, ep.season?.part || ""), { silent: true });
+    state.currentRouteInfo = appRouter()?.parsePath?.(location.pathname) || state.currentRouteInfo;
+    updateRouteMeta(state.currentRouteInfo || {}, show, { seasonNumber, episodeNumber });
     // If already in cinema mode, just play
     if (document.body.classList.contains("player-cinema-open")) {
       playActiveShow();
@@ -13143,9 +13620,12 @@ if (typeof AdultMode !== "undefined") {
 }
 
 // ── Supabase Authentication & Social Logins ──────────────────────────────────
+// Set ENABLE_SUPABASE_AUTH to true to re-enable accounts & cloud sync when the
+// database is ready. While false the app runs entirely on local storage.
+const ENABLE_SUPABASE_AUTH = false;
 let supabaseClient = null;
 let supabaseInitPromise = null;
-let supabaseUnavailable = false;
+let supabaseUnavailable = !ENABLE_SUPABASE_AUTH; // pre-disabled when flag is false
 
 function loadExternalScript(url) {
   return new Promise((resolve, reject) => {
@@ -13671,7 +14151,8 @@ if (typeof window !== "undefined") {
   const startAuth = () => {
     wireAuthEvents();
     updateAuthUi();
-    if (hasSupabaseSession()) {
+    // Only attempt Supabase session restore when auth is enabled
+    if (ENABLE_SUPABASE_AUTH && hasSupabaseSession()) {
       const run = () => initSupabase();
       if ("requestIdleCallback" in window) window.requestIdleCallback(run, { timeout: 3000 });
       else window.setTimeout(run, 1600);

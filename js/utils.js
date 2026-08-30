@@ -74,10 +74,10 @@ function saveAniPubFallbackCache() {
   }));
 }
 
-function readResponseCache(key) {
+function readResponseCache(key, ttl = RESPONSE_CACHE_TTL) {
   try {
     const cached = JSON.parse(localStorage.getItem(`${RESPONSE_CACHE_PREFIX}${key}`) || "null");
-    if (!cached?.timestamp || Date.now() - cached.timestamp > RESPONSE_CACHE_TTL) {
+    if (!cached?.timestamp || Date.now() - cached.timestamp > ttl) {
       localStorage.removeItem(`${RESPONSE_CACHE_PREFIX}${key}`);
       return null;
     }

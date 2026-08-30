@@ -1,4 +1,9 @@
-const CACHE_NAME = "zenkaitv-v454";
+const CACHE_NAME = "zenkaitv-v455";
+// Remote artwork lives in its OWN cache that survives version bumps. It used
+// to share CACHE_NAME, so every deploy wiped every poster and the app
+// re-downloaded all artwork from scratch.
+const IMAGE_CACHE = "zenkaitv-images-v1";
+const IMAGE_CACHE_MAX = 500;
 const SHELL_ASSETS = [
   "./",
   "./index.html",
@@ -18,11 +23,22 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
+      Promise.all(keys.filter((key) => key !== CACHE_NAME && key !== IMAGE_CACHE).map((key) => caches.delete(key)))
     )
   );
   self.clients.claim();
 });
+
+// Keep the artwork cache bounded (FIFO): drop the oldest entries past the cap.
+let trimPending = false;
+function trimImageCache(cache) {
+  if (trimPending) return;
+  trimPending = true;
+  cache.keys().then((keys) => {
+    const excess = keys.length - IMAGE_CACHE_MAX;
+    if (excess > 0) return Promise.all(keys.slice(0, excess).map((k) => cache.delete(k)));
+  }).catch(() => {}).then(() => { trimPending = false; });
+}
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
@@ -63,12 +79,16 @@ self.addEventListener("fetch", (event) => {
   // External images and CDN resources: stale-while-revalidate
   if (url.origin !== self.location.origin) {
     event.respondWith(
-      caches.open(CACHE_NAME).then((cache) =>
+      caches.open(IMAGE_CACHE).then((cache) =>
         cache.match(event.request).then((cached) => {
           const networkFetch = fetch(event.request).then((response) => {
-            if (response.ok) cache.put(event.request, response.clone());
+            if (response.ok) {
+              cache.put(event.request, response.clone()).then(() => trimImageCache(cache));
+            }
             return response;
           }).catch(() => cached);
+          // Serve the cached copy immediately when we have one; only revalidate
+          // in the background so repeat visits do not re-request every poster.
           return cached || networkFetch;
         })
       )
