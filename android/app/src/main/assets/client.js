@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=491`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=504`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -1822,7 +1822,7 @@ async function loadAdultCatalog(force = false) {
   }
   if (adultCatalogLoadingPromise && !force) return adultCatalogLoadingPromise;
   const adapter = AdultSourceRegistry.get();
-  const cacheKey = `adult-catalog:${adapter.name}:underhentai-only-v5`;
+  const cacheKey = `adult-catalog:${adapter.name}:underhentai-only-v6`;
   const cachedItems = readResponseCache(cacheKey, CATALOG_CACHE_TTL);
   const applyAdultItems = (items = [], labelPrefix = adapter.name) => {
     const adultItems = Array.isArray(items)
@@ -2419,7 +2419,7 @@ function imageDeliveryUrl(url, width = 360, quality = 70) {
 // Builds a responsive srcset string so each device downloads an image sized for
 // its own viewport/DPR instead of one giant width for everyone. This keeps full
 // per-device sharpness while cutting bytes (and LCP) on smaller screens — the
-// proxy clamps width at 1920 and never upscales (withoutEnlargement).
+// proxy clamps width at 2560 and never upscales (withoutEnlargement).
 function imageDeliverySrcSet(url, widths, quality = 80) {
   const raw = String(url || "").trim();
   if (!raw) return "";
@@ -2432,6 +2432,169 @@ function imageDeliverySrcSet(url, widths, quality = 80) {
   return widths
     .map((w) => `${imageDeliveryUrl(raw, w, quality)} ${w}w`)
     .join(", ");
+}
+
+const artworkImagePreloads = new Map();
+const relatedSeasonWarmFlights = new Map();
+
+function watchBackdropDeliveryWidth() {
+  const viewportWidth = Math.max(
+    Number(window.innerWidth || 0),
+    Number(document.documentElement?.clientWidth || 0),
+    Number(window.screen?.width || 0)
+  );
+  const density = Math.min(2, Math.max(1, Number(window.devicePixelRatio || 1)));
+  const wanted = Math.ceil((viewportWidth * density) / 320) * 320;
+  return Math.max(1280, Math.min(2560, wanted || 1920));
+}
+
+function preloadArtworkImage(url, width, quality, priority = false) {
+  const raw = String(url || "").trim();
+  if (!raw || typeof Image === "undefined") return Promise.resolve(false);
+  const delivered = imageDeliveryUrl(raw, width, quality);
+  if (artworkImagePreloads.has(delivered)) return artworkImagePreloads.get(delivered);
+
+  const request = new Promise((resolve) => {
+    const image = new Image();
+    image.referrerPolicy = "no-referrer";
+    image.decoding = "async";
+    image.fetchPriority = priority ? "high" : "low";
+    const finish = (loaded) => {
+      if (!loaded) artworkImagePreloads.delete(delivered);
+      resolve(loaded);
+    };
+    image.onload = () => {
+      if (typeof image.decode === "function") {
+        image.decode().then(() => finish(true)).catch(() => finish(true));
+      } else {
+        finish(true);
+      }
+    };
+    image.onerror = () => finish(false);
+    image.src = delivered;
+  });
+  artworkImagePreloads.set(delivered, request);
+  return request;
+}
+
+async function warmSeasonArtwork(show, seasonIndex = 0, options = {}) {
+  if (!show) return show;
+  let seasons = getDetailSeasons(show);
+  const index = Math.max(0, Math.min(Number(seasonIndex || 0), Math.max(0, seasons.length - 1)));
+  let season = seasons[index] || seasons[0] || null;
+  const seasonNumber = Number(season?.season || index + 1 || 1);
+
+  const needsSeasonScopedArt = seasons.length > 1 || Boolean(show.isFranchiseEntry);
+  if (needsSeasonScopedArt && show.tmdbId && typeof ImageResolver !== "undefined" && ImageResolver.ensureSeasonStills) {
+    await ImageResolver.ensureSeasonStills(show, seasonNumber, season);
+    seasons = getDetailSeasons(show);
+    season = seasons[index] || seasons[0] || season;
+  }
+
+  const priority = Boolean(options.priority);
+  const visibleCount = Math.max(0, Number(options.visibleCount ?? (priority ? 12 : 6)));
+  const jobs = [];
+  const backdrop = getWatchBackdropArtwork(show, season);
+  const poster = getWatchPosterArtwork(show, season);
+  if (backdrop) jobs.push(preloadArtworkImage(backdrop, watchBackdropDeliveryWidth(), 92, priority));
+  if (poster) jobs.push(preloadArtworkImage(poster, 640, 90, false));
+
+  const episodes = (season?.episodes || []).slice(0, visibleCount);
+  const repeatedImages = repeatedEpisodeArtwork(episodes, show, seasonNumber);
+  const repeatedTmdb = repeatedTmdbStillSet(episodes, show, seasonNumber);
+  episodes.forEach((episode) => {
+    const thumb = episodeThumb(episode, season, show, repeatedImages, repeatedTmdb);
+    if (thumb) jobs.push(preloadArtworkImage(thumb, 360, 88, priority));
+  });
+  await Promise.allSettled(jobs);
+  return show;
+}
+
+function scheduleSeasonArtworkWarm(show, activeIndex = 0) {
+  if (!show) return;
+  const seasons = getDetailSeasons(show);
+  if (!seasons.length) return;
+  const current = Math.max(0, Math.min(Number(activeIndex || 0), seasons.length - 1));
+  const key = `${show.id || show.anilistId || show.title}:${show.tmdbId || "pending"}:${show.isFranchiseEntry ? "franchise" : "standard"}:${seasons.length}:${current}`;
+  if (show._seasonArtworkWarmKey === key) return;
+  show._seasonArtworkWarmKey = key;
+
+  const order = [current];
+  for (let distance = 1; distance < seasons.length; distance += 1) {
+    if (current + distance < seasons.length) order.push(current + distance);
+    if (current - distance >= 0) order.push(current - distance);
+  }
+  let cursor = 0;
+  const next = async () => {
+    const index = order[cursor++];
+    if (index === undefined) return;
+    const distance = Math.abs(index - current);
+    await warmSeasonArtwork(show, index, {
+      priority: distance === 0,
+      visibleCount: distance <= 1 ? 12 : 3
+    });
+    if (cursor >= order.length) return;
+    if ("requestIdleCallback" in window) window.requestIdleCallback(next, { timeout: 1800 });
+    else window.setTimeout(next, 180);
+  };
+  next();
+}
+
+function warmRelatedSeasonShow(target, priority = false) {
+  if (!target) return Promise.resolve(target);
+  const key = String(target.id || target.anilistId || target.title);
+  if (target._relatedSeasonArtworkReady) return warmSeasonArtwork(target, 0, { priority, visibleCount: 12 });
+  if (relatedSeasonWarmFlights.has(key)) return relatedSeasonWarmFlights.get(key);
+
+  const request = (async () => {
+    const initialSeason = getDetailSeasons(target)[0] || null;
+    const initialBackdrop = getWatchBackdropArtwork(target, initialSeason);
+    if (initialBackdrop) await preloadArtworkImage(initialBackdrop, watchBackdropDeliveryWidth(), 92, priority);
+    await hydrateCanonicalAnimeMetadata(target);
+    await Promise.allSettled([
+      fetchAniListShowExtras(target),
+      enrichTmdbImages(target)
+    ]);
+    applyTmdbEpisodeMetadata(target);
+    await warmSeasonArtwork(target, 0, { priority, visibleCount: 12 });
+    target._relatedSeasonArtworkReady = true;
+    return target;
+  })().catch(() => target).finally(() => relatedSeasonWarmFlights.delete(key));
+
+  relatedSeasonWarmFlights.set(key, request);
+  return request;
+}
+
+function scheduleFranchiseArtworkWarm(show) {
+  if (!show?.anilistFranchise) return;
+  ensureFranchiseShowsInCatalog(show);
+  const seasons = getDetailSeasons(show);
+  const nav = buildSeasonNav(show, seasons);
+  let active = nav.findIndex((entry) => entry.isCurrent);
+  if (active < 0) active = 0;
+  const ordered = nav
+    .map((entry, index) => ({ entry, index, distance: Math.abs(index - active) }))
+    .filter(({ entry }) => entry.relatedShowId)
+    .sort((a, b) => a.distance - b.distance || a.index - b.index);
+  const targets = ordered
+    .map(({ entry, distance }) => ({
+      target: state.shows.find((candidate) => String(candidate.id) === String(entry.relatedShowId) || getShowKey(candidate) === String(entry.relatedShowId)),
+      priority: distance <= 1
+    }))
+    .filter(({ target }) => target);
+  if (!targets.length) return;
+
+  const warmKey = targets.map(({ target }) => target.id || target.anilistId).join("|");
+  if (show._franchiseArtworkWarmKey === warmKey) return;
+  show._franchiseArtworkWarmKey = warmKey;
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < targets.length) {
+      const item = targets[cursor++];
+      await warmRelatedSeasonShow(item.target, item.priority);
+    }
+  };
+  Promise.allSettled([worker(), worker()]).catch(() => {});
 }
 
 function getCarouselArtwork(show = {}) {
@@ -2718,7 +2881,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=491";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=504";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -3265,6 +3428,7 @@ function enrichTmdbImages(show) {
     if (!enriched || !enriched.tmdbId) return;
     applyTmdbEpisodeMetadata(show);
     state.shows = state.shows.map((entry) => entry.id === show.id ? show : entry);
+    scheduleSeasonArtworkWarm(show, state.activeShow?.id === show.id ? state.activeSeasonIndex : 0);
     if (state.activeShow?.id === show.id && !overlay?.hidden) {
       syncWatchHeading(show);
       renderEpisodeList(show);
@@ -5517,20 +5681,6 @@ function renderSettings() {
 
         <div class="settings-group-label">Playback</div>
         <div class="settings-line">
-          <span>Player engine <small>Use the APK-style video.js player for direct streams</small></span>
-          <div class="settings-row settings-segment">
-            <button class="settings-choice focusable ${ui.playerEngine !== "native" ? "is-selected" : ""}" data-player-engine="apk" type="button">APK</button>
-            <button class="settings-choice focusable ${ui.playerEngine === "native" ? "is-selected" : ""}" data-player-engine="native" type="button">Native</button>
-          </div>
-        </div>
-        <div class="settings-line">
-          <span>Controls style <small>Use ZenkaiTV overlay or the player's own clean controls</small></span>
-          <div class="settings-row settings-segment">
-            <button class="settings-choice focusable ${ui.playerInterface !== "native" ? "is-selected" : ""}" data-player-interface="custom" type="button">ZenkaiTV</button>
-            <button class="settings-choice focusable ${ui.playerInterface === "native" ? "is-selected" : ""}" data-player-interface="native" type="button">Clean / Native</button>
-          </div>
-        </div>
-        <div class="settings-line">
           <span>Video fit <small>Same contain, cover, and fill modes as the APK player</small></span>
           <div class="settings-row settings-segment">
             ${["contain", "cover", "fill"].map((fit) => `
@@ -6218,8 +6368,11 @@ async function openShow(id, target = {}) {
     const _preloadSeason = _preloadSeasons[0] || null;
     const _preloadPoster = getWatchPosterArtwork(show, _preloadSeason);
     const _preloadBg = getWatchBackdropArtwork(show, _preloadSeason);
-    if (_preloadPoster) { const _p = new Image(); _p.referrerPolicy = "no-referrer"; _p.src = _preloadPoster; }
-    if (_preloadBg && _preloadBg !== _preloadPoster) { const _b = new Image(); _b.referrerPolicy = "no-referrer"; _b.src = _preloadBg; }
+    if (_preloadPoster) preloadArtworkImage(_preloadPoster, 640, 90, true);
+    if (_preloadBg && _preloadBg !== _preloadPoster) {
+      preloadArtworkImage(_preloadBg, watchBackdropDeliveryWidth(), 92, true);
+    }
+    scheduleSeasonArtworkWarm(show, 0);
   } catch { /* non-fatal */ }
 
   // ── Show the overlay shell INSTANTLY (poster + title) so opening feels snappy.
@@ -6240,6 +6393,7 @@ async function openShow(id, target = {}) {
     if (state.activeOpenToken !== openToken) return; // user already closed/navigated
     applyOpenTarget(show, target);
     renderEpisodeList(show);
+    resetEpisodePanelScroll();
     refreshFocusables();
     hydrateOpenShowDetails(show, target, openToken);
   });
@@ -6281,6 +6435,8 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
       if (episodeList?.querySelector(".side-source-picker")) return;
       try {
         ensureFranchiseShowsInCatalog(show);
+        scheduleFranchiseArtworkWarm(show);
+        scheduleSeasonArtworkWarm(show, state.activeSeasonIndex);
         syncWatchHeading(show);
         const descriptionNode = document.querySelector("#watchDescription");
         if (descriptionNode) descriptionNode.textContent = show.description || "";
@@ -6303,6 +6459,8 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
     // Ensure every franchise entry (movies, OVAs, related seasons) has a minimal
     // show object in state.shows so openShow() can navigate to them on click.
     ensureFranchiseShowsInCatalog(show);
+    scheduleFranchiseArtworkWarm(show);
+    scheduleSeasonArtworkWarm(show, state.activeSeasonIndex);
     // Only re-apply the open target if no episode was selected yet (e.g. episodes
     // weren't loaded at openShow time). Skip if the user already navigated manually.
     if (!state.activeEpisode) {
@@ -6808,6 +6966,12 @@ function stopActivePlayback() {
     }
   });
   frame.querySelectorAll("iframe").forEach((iframe) => {
+    try {
+      iframe._zenkaiPlayerController?.destroy?.();
+      iframe._zenkaiPlayerController = null;
+    } catch (error) {
+      console.warn("Embedded player controller could not be stopped cleanly:", error);
+    }
     iframe.src = "about:blank";
     iframe.removeAttribute("src");
   });
@@ -7159,6 +7323,7 @@ function applyWatchBackdrop(show, season) {
   if (!backdrop) return;
   const blur = document.querySelector("#watchBackdropBlur");
   const key = watchBackdropKey(show, season);
+  const showKey = String(show?.id || show?.anilistId || show?.title || "show");
   // Wide art (TMDB backdrop, AniList banner, hero/landscape) covers the frame
   // cleanly. A poster/cover fallback is vertical, so cropping it with `cover`
   // looks bad — we show it `contain` over a blurred fill of itself instead.
@@ -7199,6 +7364,12 @@ function applyWatchBackdrop(show, season) {
   const commitBackdropMeta = (url) => {
     backdrop.dataset.backdropKey = key;
     backdrop.dataset.backdropUrl = url || "";
+    backdrop.dataset.backdropShowKey = showKey;
+    if (backdrop.dataset.backdropPendingKey === key) {
+      delete backdrop.dataset.backdropPendingKey;
+      delete backdrop.dataset.backdropPendingUrl;
+    }
+    delete backdrop.dataset.backdropHeldUrl;
     if (blur) {
       blur.style.backgroundImage = url ? `url("${imageDeliveryUrl(url, 640, 70)}")` : "";
       blur.classList.toggle("is-visible", Boolean(url));
@@ -7215,9 +7386,10 @@ function applyWatchBackdrop(show, season) {
     if (backdrop.dataset.backdropFallbackKey === key) return; // already armed for this key
     backdrop.dataset.backdropFallbackKey = key;
     window.setTimeout(() => {
-      if (backdrop.dataset.backdropKey === key
-          && backdrop.classList.contains("is-blur-hold")
-          && state.activeShow?.id === show.id) {
+      const activeShowKey = String(state.activeShow?.id || state.activeShow?.anilistId || state.activeShow?.title || "show");
+      if ((backdrop.dataset.backdropKey === key || backdrop.dataset.backdropPendingKey === key)
+          && (backdrop.classList.contains("is-blur-hold") || backdrop.dataset.backdropPendingKey === key)
+          && activeShowKey === showKey) {
         show._backdropForceSharp = true;
         applyWatchBackdrop(show, season);
       }
@@ -7228,9 +7400,10 @@ function applyWatchBackdrop(show, season) {
     const isAdultShow = Boolean(show.adultSource || show.isAdult || (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)));
     const posterFit = false;
     const artIsHighRes = Boolean(url) && highResSources.has(url);
-    const optimized = url ? imageDeliveryUrl(url, 1920, 92) : "";
+    const optimized = url ? imageDeliveryUrl(url, watchBackdropDeliveryWidth(), 92) : "";
     const sameTarget = backdrop.dataset.backdropKey === key;
     const reduceMotion = document.body.classList.contains("reduce-motion");
+    const detailVisible = Boolean(overlay && !overlay.hidden);
 
     // HOLD FOR HIGH-RES (user preference): while TMDB is still resolving and the
     // only wide art we have is lower-res (e.g. an AniList banner), DON'T show that
@@ -7243,6 +7416,21 @@ function applyWatchBackdrop(show, season) {
     const blurHold = Boolean(url) && !posterFit && !artIsHighRes && tmdbPending;
 
     if (blurHold) {
+      const keepCurrentArt = detailVisible
+        && backdrop.classList.contains("has-art")
+        && Boolean(backdrop.dataset.backdropKey)
+        && backdrop.dataset.backdropKey !== key;
+      if (keepCurrentArt) {
+        if (backdrop.dataset.backdropPendingKey === key && backdrop.dataset.backdropPendingUrl === url) return;
+        backdrop.dataset.backdropPendingKey = key;
+        backdrop.dataset.backdropPendingUrl = url;
+        if (blur) {
+          blur.style.backgroundImage = `url("${imageDeliveryUrl(url, 640, 70)}")`;
+          blur.classList.add("is-visible");
+        }
+        scheduleHighResFallback();
+        return;
+      }
       // Dedupe across the enrichment render-burst (same show + same held url).
       if (backdrop.classList.contains("is-blur-hold")
           && backdrop.dataset.backdropKey === key
@@ -7265,13 +7453,12 @@ function applyWatchBackdrop(show, season) {
     const prevUrl = backdrop.dataset.backdropUrl || "";
     const prevHadArt = backdrop.classList.contains("has-art");
     const fromBlurHold = backdrop.classList.contains("is-blur-hold");
-    // FADE the sharp art in when, for the SAME show/season, we're either revealing
-    // the high-res art after a blurred hold, OR upgrading one already-shown wide
-    // image to a different one. A SHOW SWITCH (different key) must NOT fade — prevUrl
-    // there is the previous show's backdrop. First paints, poster fallbacks and
-    // reduce-motion take the immediate path (overlay open is never delayed).
-    const wantFade = Boolean(url) && !posterFit && sameTarget && typeof Image !== "undefined" && !reduceMotion
-      && (fromBlurHold || (prevHadArt && prevUrl && prevUrl !== url));
+    // While the detail view is already open, keep the old season art visible until
+    // the incoming image has decoded. This removes the blank/blurred gap on season
+    // changes while preserving an immediate first paint when opening from home.
+    const canTransitionVisibleDetail = detailVisible && prevHadArt && prevUrl && prevUrl !== url;
+    const wantFade = Boolean(url) && !posterFit && typeof Image !== "undefined" && !reduceMotion
+      && (fromBlurHold || (canTransitionVisibleDetail && (sameTarget || backdrop.dataset.backdropKey !== key)));
 
     if (!wantFade) {
       setBackdropArt(url, optimized, posterFit);
@@ -7279,11 +7466,18 @@ function applyWatchBackdrop(show, season) {
       return;
     }
 
-    // Claim the target url now so the rapid re-renders of the enrichment burst
-    // (which call paint() with this same url) see prevUrl===url and skip — without
-    // this, each re-render would start another overlapping dip and the backdrop
-    // would flicker. The actual sharp swap still happens in commitSwap below.
-    backdrop.dataset.backdropUrl = url;
+    if (backdrop.dataset.backdropPendingKey === key && backdrop.dataset.backdropPendingUrl === url) return;
+    backdrop.dataset.backdropPendingKey = key;
+    backdrop.dataset.backdropPendingUrl = url;
+
+    const targetIsCurrent = () => {
+      const activeShow = state.activeShow;
+      const activeShowKey = String(activeShow?.id || activeShow?.anilistId || activeShow?.title || "show");
+      if (!activeShow || activeShowKey !== showKey) return false;
+      const activeSeasons = getDetailSeasons(activeShow);
+      const activeSeason = activeSeasons[state.activeSeasonIndex] || activeSeasons[0] || null;
+      return watchBackdropKey(activeShow, activeSeason) === key;
+    };
 
     // Decode the incoming image off-screen, then dip the sharp layer's opacity to
     // reveal the (re-blurred) fill behind it — never a flash to black — swap the
@@ -7295,10 +7489,13 @@ function applyWatchBackdrop(show, season) {
     const commitSwap = () => {
       if (done) return;
       done = true;
-      // Bail if the overlay moved on to a different show/season in the meantime.
-      if (backdrop.dataset.backdropKey !== key && state.activeShow?.id !== show.id) {
-        backdrop.style.transition = "";
-        backdrop.style.opacity = "";
+      if (!targetIsCurrent()) {
+        if (backdrop.dataset.backdropPendingKey === key) {
+          delete backdrop.dataset.backdropPendingKey;
+          delete backdrop.dataset.backdropPendingUrl;
+          backdrop.style.transition = "";
+          backdrop.style.opacity = "";
+        }
         return;
       }
       setBackdropArt(url, optimized, posterFit);
@@ -7308,6 +7505,13 @@ function applyWatchBackdrop(show, season) {
       setTimeout(() => { backdrop.style.transition = ""; backdrop.style.opacity = ""; }, 280);
     };
     const beginDip = () => {
+      if (!targetIsCurrent()) {
+        if (backdrop.dataset.backdropPendingKey === key) {
+          delete backdrop.dataset.backdropPendingKey;
+          delete backdrop.dataset.backdropPendingUrl;
+        }
+        return;
+      }
       // Match the incoming image on the blurred fill first so the dip shows the
       // NEW art (blurred), not the old one.
       if (blur) blur.style.backgroundImage = `url("${imageDeliveryUrl(url, 640, 70)}")`;
@@ -7553,6 +7757,13 @@ function buildSeasonNav(show, seasons) {
   }));
 }
 
+function resetEpisodePanelScroll() {
+  const sidePanel = episodeList?.closest(".watch-side") || episodeList?.parentElement;
+  if (sidePanel) sidePanel.scrollTop = 0;
+  const rows = episodeList?.querySelector("#epRows");
+  if (rows) rows.scrollTop = 0;
+}
+
 function renderEpisodeList(show) {
   if (!episodeList || !show) return;
   hideAdultGalleryPanel();
@@ -7592,7 +7803,7 @@ function renderEpisodeList(show) {
   // load the TMDB stills for THIS season so they don't collide with Season 1's.
   // Gated to genuinely multi-season shows so single-list absolute shows
   // (Naruto/Bleach) keep using the proven flat/lazy path untouched.
-  if (seasons.length > 1 && show.tmdbId &&
+  if ((seasons.length > 1 || show.isFranchiseEntry) && show.tmdbId &&
       typeof ImageResolver !== "undefined" && ImageResolver.ensureSeasonStills) {
     ImageResolver.ensureSeasonStills(show, activeSeasonNum, activeSeason);
   }
@@ -7769,10 +7980,15 @@ function renderEpisodeList(show) {
             repeatedImages.has(compSrc) ||
             showLevelArt.has(compSrc)
           );
-          const finalEpImgSrc = isFallback ? "" : epImgSrc;
+          const deliveredEpFallbacks = [...new Set(epFallbacks
+            .map((url) => imageDeliveryUrl(url, 360, 88))
+            .filter(Boolean))];
+          const finalEpImgSrc = isFallback ? "" : (deliveredEpFallbacks[0] || "");
+          const eagerThumb = chunkLocalIndex < 10;
+          const priorityThumb = chunkLocalIndex < 4;
 
-          const epFallbackData = epFallbacks.length
-            ? ` data-image-fallbacks="${escapeHtml(encodeURIComponent(JSON.stringify(epFallbacks)))}" data-image-fallback-index="0"`
+          const epFallbackData = deliveredEpFallbacks.length
+            ? ` data-image-fallbacks="${escapeHtml(encodeURIComponent(JSON.stringify(deliveredEpFallbacks)))}" data-image-fallback-index="0"`
             : "";
           const date = episodeAirDateLabel({ ...episode, aired: episode.aired || epMeta?.aired });
           const fallbackHue = (stableVisualHue(show.id || show.title) + (Number(num) * 19)) % 360;
@@ -7796,8 +8012,8 @@ function renderEpisodeList(show) {
                   data-season-index="${state.activeSeasonIndex}" data-episode-index="${episodeIndex}"
                   data-ep-search="${escapeHtml(search)}">
             <span class="ep-thumb ${finalEpImgSrc ? "has-image" : "is-placeholder"}${isFallback ? " is-fallback" : ""}" style="--episode-hue:${fallbackHue}">
-              ${finalEpImgSrc ? `<span class="art-sheen" aria-hidden="true"></span><img referrerpolicy="no-referrer" class="ep-thumb-img" src="${escapeHtml(finalEpImgSrc)}" alt="" loading="lazy" decoding="async"${epFallbackData}>` : ""}
-              ${finalEpImgSrc ? "" : `<span class="ep-thumb-empty" aria-hidden="true"><span class="ep-thumb-empty-mark">Z</span></span>`}
+              ${finalEpImgSrc ? `<span class="art-sheen" aria-hidden="true"></span><img referrerpolicy="no-referrer" class="ep-thumb-img" src="${escapeHtml(finalEpImgSrc)}" alt="" width="360" height="203" loading="${eagerThumb ? "eager" : "lazy"}" fetchpriority="${priorityThumb ? "high" : "auto"}" decoding="async"${epFallbackData}>` : ""}
+              ${finalEpImgSrc ? "" : `<span class="ep-thumb-empty" aria-hidden="true"></span>`}
               <span class="ep-thumb-num">${escapeHtml(String(num))}</span>
               <span class="ep-thumb-play" aria-hidden="true">▶</span>
               ${progressBar}
@@ -8047,6 +8263,7 @@ function renderEpisodeList(show) {
         tgt.anilistFranchiseLoaded = true;
         tgt._franchiseVersion = ctx._franchiseVersion;
       }
+      if (tgt) warmRelatedSeasonShow(tgt, true);
       openShow(target.relatedShowId);
       return;
     }
@@ -8056,6 +8273,7 @@ function renderEpisodeList(show) {
     state.activeEpisodeChunkIndex = 0;
     state.detailTabSwitched = true;
     renderEpisodeList(ctx);
+    resetEpisodePanelScroll();
     resetVideoFrame();
     refreshFocusables();
   };
@@ -8263,10 +8481,31 @@ function getEpisodeNavigationTargets() {
   const episodeIndex = Number(selected.episodeIndex || 0);
   const season = seasons[seasonIndex];
   const episodes = season?.episodes || [];
+  let previous = episodeIndex > 0 ? { seasonIndex, episodeIndex: episodeIndex - 1 } : null;
+  let next = episodeIndex < episodes.length - 1 ? { seasonIndex, episodeIndex: episodeIndex + 1 } : null;
+
+  if (!previous) {
+    for (let index = seasonIndex - 1; index >= 0; index -= 1) {
+      const priorEpisodes = seasons[index]?.episodes || [];
+      if (priorEpisodes.length) {
+        previous = { seasonIndex: index, episodeIndex: priorEpisodes.length - 1 };
+        break;
+      }
+    }
+  }
+  if (!next) {
+    for (let index = seasonIndex + 1; index < seasons.length; index += 1) {
+      if (seasons[index]?.episodes?.length) {
+        next = { seasonIndex: index, episodeIndex: 0 };
+        break;
+      }
+    }
+  }
+
   return {
-    previous: episodeIndex > 0 ? { seasonIndex, episodeIndex: episodeIndex - 1 } : null,
-    next: episodeIndex < episodes.length - 1 ? { seasonIndex, episodeIndex: episodeIndex + 1 } : null,
-    total: episodes.length
+    previous,
+    next,
+    total: seasons.reduce((count, item) => count + (item?.episodes?.length || 0), 0)
   };
 }
 
@@ -9483,7 +9722,7 @@ function playerFitScaleValue(fit = state.uiPreferences.playerFit || "contain") {
 
 function buildPlayerUrl(videoUrl = "", title = "", options = {}) {
   const playerUrl = new URL("/player/player.html", location.origin);
-  playerUrl.searchParams.set("v", "7");
+  playerUrl.searchParams.set("v", "9");
   const source = isLocalSourceProxyUrl(videoUrl)
     ? localSourceProxyPath(videoUrl)
     : resolveSourceEndpoint(videoUrl);
@@ -9499,6 +9738,7 @@ function buildPlayerUrl(videoUrl = "", title = "", options = {}) {
   if (options.audio) playerUrl.searchParams.set("audio", options.audio);
   if (options.subtitles) playerUrl.searchParams.set("subtitles", options.subtitles);
   if (options.forceSubtitles) playerUrl.searchParams.set("forceSubtitles", "1");
+  if (options.hasNext) playerUrl.searchParams.set("hasNext", "1");
   if (Array.isArray(options.tracks) && options.tracks.length) {
     playerUrl.searchParams.set("tracks", encodeURIComponent(JSON.stringify(options.tracks.slice(0, 8))));
   }
@@ -9546,8 +9786,9 @@ function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null) 
       options.start = resumeAt;
     }
   }
-  options.fit = state.uiPreferences.playerFit || "cover";
+  options.fit = state.uiPreferences.playerFit || "contain";
   options.episode = currentEpisodeLabel();
+  options.hasNext = Boolean(getEpisodeNavigationTargets().next);
   options.poster = episodeThumb(
     episode || state.activeEpisode?.episode || {},
     state.activeEpisode?.season || {},
@@ -9640,6 +9881,14 @@ function createApkPlayerController(iframe, options = {}) {
     const value = data.val;
     if (command === "activity") {
       iframe.dispatchEvent(new PointerEvent("pointermove", { bubbles: true }));
+      return;
+    }
+    if (command === "next") {
+      options.onNext?.();
+      return;
+    }
+    if (command === "back") {
+      options.onBack?.();
       return;
     }
     if (command === "toggleFullscreen") {
@@ -11846,12 +12095,21 @@ function ensureFranchiseShowsInCatalog(show) {
     seenEntries.add(aniId);
 
     const syntheticId = `anilist-${aniId}`;
-    const alreadyIn = state.shows.some(s =>
+    const existing = state.shows.find(s =>
       s.id === syntheticId ||
       (s.anilistId && String(s.anilistId) === aniId) ||
       (extraId && s.anilistId && String(s.anilistId) === extraId)
     );
-    if (alreadyIn) continue;
+    if (existing) {
+      existing.isFranchiseEntry = true;
+      if (entry.image && !existing.image) existing.image = entry.image;
+      if (entry.image && !existing.coverImageLarge) existing.coverImageLarge = entry.image;
+      if (entry.banner && !existing.banner) existing.banner = entry.banner;
+      if (entry.banner && !existing.highQualityBackground) existing.highQualityBackground = entry.banner;
+      if (entry.description && (!existing.description || existing.description.length < 60)) existing.description = cleanDescription(entry.description);
+      if (entry.genres?.length && !existing.genres?.length) existing.genres = entry.genres;
+      continue;
+    }
 
     const epCount = getSeasonEpisodeLimit(entry);
     added.push({
@@ -11872,8 +12130,11 @@ function ensureFranchiseShowsInCatalog(show) {
       status:       entry.status || "",
       year:         entry.seasonYear || "",
       source:       "AniList",
+      isFranchiseEntry: true,
       image:        entry.image || show.image || "",
-      banner:       show.banner || "",
+      coverImageLarge: entry.image || show.coverImageLarge || show.image || "",
+      banner:       entry.banner || show.banner || "",
+      highQualityBackground: entry.banner || "",
       description:  entry.description || show.description || "",
       videoUrl:     "",
       seasons:      [],
@@ -12327,34 +12588,33 @@ function renderDirectVideoPlayer(frame, url, episode) {
   const selectedSource = getSelectedEpisodeSource(episode);
   const streamType = streamTypeFromUrl(url);
   const useApkPlayer = state.uiPreferences.playerEngine !== "native";
-  if (useApkPlayer && (!state.uiPreferences.playerFit || state.uiPreferences.playerFit === "contain")) {
-    saveUiPreferences({ playerFit: "cover" });
-  }
-  const fit = state.uiPreferences.playerFit || "cover";
-  const useNativeControls = state.uiPreferences.playerInterface === "native";
+  const fit = state.uiPreferences.playerFit || "contain";
+  const useNativeControls = !useApkPlayer && state.uiPreferences.playerInterface === "native";
 
   frame.innerHTML = `
-    <div class="video-player-shell vidstream-player fit-${escapeHtml(fit)} ${useNativeControls ? "is-iframe" : ""}" data-stream-type="${escapeHtml(streamType || "direct")}">
+    <div class="video-player-shell vidstream-player fit-${escapeHtml(fit)} ${useApkPlayer ? "is-artplayer-frame" : useNativeControls ? "is-iframe" : ""}" data-stream-type="${escapeHtml(streamType || "direct")}">
       <div class="vid-player-stage">
         ${useApkPlayer
-          ? `<iframe id="animePlayerFrame" class="apk-video-frame" src="${escapeHtml(buildApkPlayerUrl(url, useNativeControls, episode))}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer" title="ZenkaiTV video player"></iframe>`
+          ? `<iframe id="animePlayerFrame" class="apk-video-frame" src="${escapeHtml(buildApkPlayerUrl(url, true, episode))}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer" title="ZenkaiTV video player"></iframe>`
           : `<video id="animePlayer" ${useNativeControls ? "controls" : ""} autoplay playsinline x-webkit-airplay="allow" crossorigin="anonymous">
               ${spanishTrack ? `<track kind="subtitles" srclang="es" label="Español" src="${escapeHtml(spanishTrack.url)}" default>` : ""}
             </video>`}
-        <div class="vid-loader" aria-live="polite">
-          <div class="vid-loader-animation">
-            <div class="vid-loader-ring"></div>
-            <div class="vid-loader-ring-glow"></div>
-            <div class="vid-loader-inner"></div>
+        ${useApkPlayer ? "" : `
+          <div class="vid-loader" aria-live="polite">
+            <div class="vid-loader-animation">
+              <div class="vid-loader-ring"></div>
+              <div class="vid-loader-ring-glow"></div>
+              <div class="vid-loader-inner"></div>
+            </div>
+            <span class="vid-loader-text">Loading stream...</span>
           </div>
-          <span class="vid-loader-text">Loading stream...</span>
-        </div>
-        ${renderVidstreamTopbar(currentEpisodeLabel())}
-        <div class="translated-caption" id="translatedCaption" hidden></div>
-        <div class="subtitle-status" id="subtitleStatus">${streamType ? streamType.toUpperCase() : "Direct"} stream · Spanish subtitles preferred</div>
-        ${useNativeControls ? "" : renderVidstreamControls()}
+          ${renderVidstreamTopbar(currentEpisodeLabel())}
+          <div class="translated-caption" id="translatedCaption" hidden></div>
+          <div class="subtitle-status" id="subtitleStatus">${streamType ? streamType.toUpperCase() : "Direct"} stream · Spanish subtitles preferred</div>
+          ${useNativeControls ? "" : renderVidstreamControls()}
+        `}
       </div>
-      ${renderPlayerEpisodeActions(url)}
+      ${useApkPlayer ? "" : renderPlayerEpisodeActions(url)}
     </div>
   `;
   const shell = frame.querySelector(".vidstream-player");
@@ -12362,6 +12622,8 @@ function renderDirectVideoPlayer(frame, url, episode) {
   const iframe = frame.querySelector("#animePlayerFrame");
   const player = useApkPlayer
     ? createApkPlayerController(iframe, {
+        onBack: exitPlayerToSources,
+        onNext: () => playAdjacentEpisode("next"),
         onResolution: (resolution) => {
           const status = document.querySelector("#subtitleStatus");
           if (status && resolution && state.uiPreferences.metadataDetail) {
@@ -12456,34 +12718,12 @@ function renderDirectVideoPlayer(frame, url, episode) {
   if (player) _activeProgressPlayer = { player, episode };
   player?.addEventListener("ended", () => {
     saveWatchProgress(player, episode, { force: true, completed: true });
-    const nav = getEpisodeNavigationTargets();
-    if (!nav.next) {
+    if (!playAdjacentEpisode("next")) {
       showToast("You've reached the last episode.");
-      return;
     }
-    const seasons = getDetailSeasons(state.activeShow || {});
-    const nextSeason = seasons[nav.next.seasonIndex];
-    const nextEpisode = nextSeason?.episodes?.[nav.next.episodeIndex];
-    if (!nextSeason || !nextEpisode) return;
-    state.activeSeasonIndex = nav.next.seasonIndex;
-    state.activeDetailTab = "episodes";
-    state.activeEpisode = {
-      season: nextSeason,
-      episode: nextEpisode,
-      seasonIndex: nav.next.seasonIndex,
-      episodeIndex: nav.next.episodeIndex
-    };
-    state.activeEpisodeUrl = getEpisodeUrl(nextEpisode);
-    const nextSeasonNum = nextSeason?.season || nav.next.seasonIndex + 1 || 1;
-    const nextEpisodeNum = nextEpisode?.episode || nav.next.episodeIndex + 1 || 1;
-    appRouter()?.navigate?.(episodePathForShow(state.activeShow, nextSeasonNum, nextEpisodeNum, nextSeason.part || ""), { silent: true });
-    state.currentRouteInfo = appRouter()?.parsePath?.(location.pathname) || state.currentRouteInfo;
-    updateRouteMeta(state.currentRouteInfo || {}, state.activeShow, { seasonNumber: nextSeasonNum, episodeNumber: nextEpisodeNum });
-    renderEpisodeList(state.activeShow);
-    playActiveShow();
-  });
+  }, { once: true });
   setupSpanishSubtitles(episode, tracks, player);
-  wireVidstreamControls(frame, player, episode, url, tracks);
+  if (!useApkPlayer) wireVidstreamControls(frame, player, episode, url, tracks);
   wirePlayerChrome(frame);
   refreshFocusables();
 }
@@ -12532,8 +12772,9 @@ function playEpisodeByPosition(seasonIndex, episodeIndex) {
   const seasons = getDetailSeasons(state.activeShow || {});
   const season = seasons[seasonIndex];
   const episode = season?.episodes?.[episodeIndex];
-  if (!season || !episode) return;
+  if (!season || !episode) return false;
   const wasCinema = document.body.classList.contains("player-cinema-open");
+  stopActivePlayback();
   state.activeSeasonIndex = seasonIndex;
   state.activeDetailTab = "episodes";
   state.activeEpisode = { season, episode, seasonIndex, episodeIndex };
@@ -12542,13 +12783,25 @@ function playEpisodeByPosition(seasonIndex, episodeIndex) {
   if (episode._failedSourceIds) {
     episode._failedSourceIds.clear();
   }
+  const seasonNumber = season?.season || seasonIndex + 1 || 1;
+  const episodeNumber = episode?.episode || episodeIndex + 1 || 1;
+  appRouter()?.navigate?.(episodePathForShow(state.activeShow, seasonNumber, episodeNumber, season.part || ""), { silent: true });
+  state.currentRouteInfo = appRouter()?.parsePath?.(location.pathname) || state.currentRouteInfo;
+  updateRouteMeta(state.currentRouteInfo || {}, state.activeShow, { seasonNumber, episodeNumber });
   renderEpisodeList(state.activeShow);
-  playActiveShow().then(() => {
+  Promise.resolve(playActiveShow()).then(() => {
     if (wasCinema) {
       const shell = document.querySelector(".vidstream-player");
       if (shell) setPlayerCinema(shell, true, { silent: true });
     }
   });
+  return true;
+}
+
+function playAdjacentEpisode(direction = "next") {
+  const target = getEpisodeNavigationTargets()[direction];
+  if (!target) return false;
+  return playEpisodeByPosition(target.seasonIndex, target.episodeIndex);
 }
 
 async function setupSpanishSubtitles(episode, tracks = [], media = null) {
@@ -14475,7 +14728,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=491");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=504");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

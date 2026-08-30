@@ -377,7 +377,7 @@ const IMAGE_PROXY_ALLOWED_HOSTS = new Set([
   "hentaiplayer.com"
 ]);
 const IMAGE_PROXY_MAX_BYTES = 5 * 1024 * 1024;
-const IMAGE_PROXY_MAX_WIDTH = 1920;
+const IMAGE_PROXY_MAX_WIDTH = 2560;
 const IMAGE_PROXY_DEFAULT_WIDTH = 360;
 const IMAGE_PROXY_WEBP_QUALITY = 70;
 const STRICT_TRANSPORT_SECURITY = "max-age=31536000; includeSubDomains; preload";

@@ -1019,10 +1019,10 @@ main {
   background: linear-gradient(180deg, transparent, rgba(8, 10, 19, 0.74) 58%, var(--bg));
 }
 
-.hero:has(.carousel-stage.is-loading) {
-  min-height: clamp(19rem, 35vh, 25rem);
-  margin-bottom: -2.4rem;
-}
+/* The loading hero deliberately carries NO geometry of its own. It previously
+   set a shorter min-height and margin-bottom: -2.4rem, which pulled the page up
+   while loading and dropped it ~38px when the real carousel arrived - the same
+   layout-shift defect as the rule above, one level up. */
 
 .eyebrow {
   margin: 0 0 0.7rem;
@@ -5126,6 +5126,24 @@ body.player-cinema-open .close-button {
   transition: none;
 }
 
+/* The iframe contains the complete Artplayer experience. Do not layer the
+   legacy app chrome or spacing over it. */
+.vidstream-player.is-cinema.is-artplayer-frame .vid-player-stage,
+.vidstream-player.is-cinema.is-artplayer-frame .apk-video-frame {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
 /* ── Playback-error overlay — full-screen, with "Try another source" ──────── */
 .vidstream-player .vid-error-overlay {
   position: absolute;
@@ -6309,7 +6327,14 @@ body.player-cinema-open .close-button {
 .carousel-stage.is-loading {
   grid-template-columns: minmax(0, 1fr);
   align-items: center;
-  min-height: clamp(31rem, 66vh, 46rem);
+  /* No min-height here on purpose. The skeleton must reserve exactly the space
+     the loaded carousel will occupy, and .carousel-stage resolves to three
+     different heights - min(82vh,56.25vw) at base, 30rem under 1150px, 31rem
+     under 760px. Any literal value here matches at most one breakpoint; this
+     used to be clamp(31rem,66vh,46rem), which moved the content below the hero
+     by +173px at 1920x1080 and -196px at 768px wide. Inheriting is the only
+     value that is zero-delta at every width, and it stays correct if a
+     breakpoint is ever retuned. */
   gap: 0;
   cursor: default;
 }
@@ -8671,9 +8696,8 @@ body.has-embedded-player .watch-side {
   transform: scale(1.02);
   opacity: 0.85;
 }
-/* Loading state = a soft, out-of-focus colour fill that gently drifts — the same
-   "blurred fill" language as the watch backdrop's blur layer, instead of a sharp
-   sheen sweep. GPU transform only (one animation). */
+/* Keep unloaded episode art calm and stable while the real season still is
+   prefetched. Movement here made a season change read as a flashing reload. */
 .ep-thumb.is-placeholder::before {
   content: "";
   position: absolute;
@@ -8685,23 +8709,18 @@ body.has-embedded-player .watch-side {
     radial-gradient(36% 42% at 58% 48%, hsla(calc(var(--episode-hue) + 184), 72%, 54%, 0.30), transparent 80%);
   filter: blur(7px) saturate(1.18);
   transform: scale(1.12);
-  animation: blur-fill-drift 8s ease-in-out infinite;
-  will-change: transform;
+  opacity: 0.72;
 }
 .ep-thumb-empty {
   position: absolute;
   inset: 0.45rem;
   z-index: 1;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: flex-start;
-  gap: 0.12rem;
+  justify-content: center;
+  align-items: center;
   border-radius: 0.38rem;
   border: 0.05rem solid rgba(255, 255, 255, 0.08);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 42%),
-    linear-gradient(180deg, transparent 0 48%, rgba(0, 0, 0, 0.34));
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(8, 9, 18, 0.18));
   overflow: hidden;
 }
 .ep-thumb-empty::before {
@@ -8710,18 +8729,8 @@ body.has-embedded-player .watch-side {
   inset: auto -12% -45% 35%;
   height: 86%;
   border-radius: 999rem 999rem 0 0;
-  background: radial-gradient(circle at 50% 24%, hsla(var(--episode-hue), 90%, 62%, 0.24), transparent 62%);
-  opacity: 0.88;
-}
-.ep-thumb-empty-mark {
-  position: relative;
-  margin-left: 0.42rem;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: clamp(0.92rem, 5vw, 1.2rem);
-  font-weight: 950;
-  line-height: 1;
-  letter-spacing: 0;
-  text-shadow: 0 0 0.9rem hsla(var(--episode-hue), 90%, 62%, 0.45);
+  background: radial-gradient(circle at 50% 24%, hsla(var(--episode-hue), 90%, 62%, 0.16), transparent 62%);
+  opacity: 0.7;
 }
 .ep-thumb-empty-copy {
   position: relative;

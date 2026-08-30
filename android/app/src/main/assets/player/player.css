@@ -89,6 +89,7 @@ button {
 }
 
 .ztv-title-block {
+  flex: 1;
   min-width: 0;
 }
 
@@ -98,7 +99,7 @@ button {
   font-size: clamp(0.78rem, 1.5vw, 0.9rem);
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
 }
 
 .ztv-title-block h1 {
@@ -110,6 +111,33 @@ button {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ztv-player-brand {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  min-width: 124px;
+  margin-left: auto;
+  padding-left: 1rem;
+  opacity: 0.9;
+  pointer-events: none;
+  user-select: none;
+}
+
+.ztv-brand-wordmark {
+  display: block;
+  width: clamp(108px, 10vw, 142px);
+  height: auto;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.45));
+}
+
+.ztv-brand-mark {
+  display: none;
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.45));
 }
 
 .ztv-player-shell {
@@ -292,12 +320,121 @@ body.fit-fill .art-video {
 }
 
 .art-control-volume,
+.art-control-rewind-10,
+.art-control-forward-10,
+.art-control-next-episode,
 .art-control-playbackRate,
 .art-control-setting,
 .art-control-pip,
 .art-control-fullscreenWeb,
 .art-control-fullscreen {
   min-width: 40px;
+}
+
+.art-control-rewind-10,
+.art-control-forward-10,
+.art-control-next-episode {
+  position: relative;
+  display: grid !important;
+  place-items: center;
+}
+
+.ztv-skip-icon {
+  display: block;
+  width: 27px;
+  height: 27px;
+}
+
+.ztv-skip-value {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -35%);
+  color: currentColor;
+  font-size: 7.5px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.art-control-rewind-10:focus-visible,
+.art-control-forward-10:focus-visible,
+.art-control-next-episode:focus-visible {
+  outline: 2px solid var(--ztv-cyan);
+  outline-offset: -4px;
+}
+
+.ztv-next-icon {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+
+/* Let the controls sit over the picture without covering it with an opaque bar. */
+.art-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+  background: linear-gradient(
+    to top,
+    rgba(2, 3, 10, 0.82) 0%,
+    rgba(2, 3, 10, 0.42) 48%,
+    rgba(2, 3, 10, 0) 100%
+  ) !important;
+}
+
+/* Artplayer supplies the interaction; these rules give its volume panel the
+   narrow, transparent rail used by the rest of the player. */
+.art-control-volume .art-volume-panel {
+  width: 44px !important;
+  height: 118px !important;
+  padding: 0 4px 8px !important;
+}
+
+.art-control-volume .art-volume-inner {
+  width: 36px !important;
+  height: 110px !important;
+  background: rgba(4, 6, 16, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 5px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.art-control-volume .art-volume-val {
+  display: none !important;
+}
+
+.art-control-volume .art-volume-slider {
+  height: 88px !important;
+}
+
+.art-control-volume .art-volume-handle {
+  width: 3px !important;
+  height: 88px !important;
+  border-radius: 3px !important;
+  background: rgba(255, 255, 255, 0.34) !important;
+}
+
+.art-control-volume .art-volume-loaded {
+  width: 3px !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+}
+
+.art-control-volume .art-volume-indicator {
+  width: 14px !important;
+  height: 14px !important;
+  margin-left: -5.5px !important;
+  background: #fff !important;
+  border: 2px solid rgba(255, 255, 255, 0.72) !important;
+  box-shadow: 0 2px 9px rgba(0, 0, 0, 0.48) !important;
+}
+
+/* Keep captions above Artplayer's timeline and the device safe area. */
+.art-subtitle {
+  bottom: calc(4.75rem + env(safe-area-inset-bottom)) !important;
+  max-width: min(92%, 76rem);
+  margin-inline: auto;
+  padding-inline: clamp(0.75rem, 3vw, 2rem);
+  line-height: 1.35 !important;
+  white-space: normal !important;
 }
 
 @media (max-width: 700px) {
@@ -317,5 +454,23 @@ body.fit-fill .art-video {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+  }
+
+  .ztv-player-brand {
+    min-width: 34px;
+    padding-left: 0.35rem;
+  }
+
+  .ztv-brand-wordmark {
+    display: none;
+  }
+
+  .ztv-brand-mark {
+    display: block;
+  }
+
+  .art-subtitle {
+    bottom: calc(4.25rem + env(safe-area-inset-bottom)) !important;
+    font-size: clamp(1rem, 4vw, 1.35rem) !important;
   }
 }

@@ -11,6 +11,7 @@
   const startAt = Number(params.get("start") || 0);
   const fit = String(params.get("fit") || params.get("scale") || "contain").toLowerCase();
   const forceSubtitles = params.get("forceSubtitles") === "1";
+  const hasNextEpisode = params.get("hasNext") === "1";
   let art = null;
   let hls = null;
   let statusTimer = null;
@@ -20,6 +21,7 @@
   let recoveryCount = 0;
   let networkRecoveryCount = 0;
   let mediaRecoveryCount = 0;
+  let seekRecoveryUntil = 0;
   let lastProgressPosition = -1;
   let lastSeekToast = 0;
 
@@ -106,6 +108,7 @@
     recoveryCount = 0;
     networkRecoveryCount = 0;
     mediaRecoveryCount = 0;
+    seekRecoveryUntil = 0;
     lastProgressPosition = -1;
     armStartupWatchdog();
 
@@ -146,6 +149,43 @@
         }
       }
     };
+    playerOptions.controls = [
+      {
+        name: "rewind-10",
+        position: "left",
+        index: 5,
+        html: '<svg class="ztv-skip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5H6.5"></path><path d="m9 2.5-3 2.5 3 2.5"></path><path d="M6.25 9a7.5 7.5 0 1 0 3.25-3.25"></path></svg><span class="ztv-skip-value" aria-hidden="true">10</span>',
+        tooltip: "Rewind 10 seconds",
+        click: (_component, event) => {
+          event.stopPropagation();
+          seekBy(-10);
+        }
+      },
+      {
+        name: "forward-10",
+        position: "left",
+        index: 15,
+        html: '<svg class="ztv-skip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5h5.5"></path><path d="m15 2.5 3 2.5-3 2.5"></path><path d="M17.75 9a7.5 7.5 0 1 1-3.25-3.25"></path></svg><span class="ztv-skip-value" aria-hidden="true">10</span>',
+        tooltip: "Forward 10 seconds",
+        click: (_component, event) => {
+          event.stopPropagation();
+          seekBy(10);
+        }
+      }
+    ];
+    if (hasNextEpisode) {
+      playerOptions.controls.push({
+        name: "next-episode",
+        position: "left",
+        index: 30,
+        html: '<svg class="ztv-next-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 4 10 8-10 8z"></path><path d="M19 5v14"></path></svg>',
+        tooltip: "Next episode",
+        click: (_component, event) => {
+          event.stopPropagation();
+          requestNextEpisode();
+        }
+      });
+    }
     if (subtitleConfig) playerOptions.subtitle = subtitleConfig;
 
     art = new window.Artplayer(playerOptions);
@@ -160,11 +200,13 @@
     }
 
     art.on("ready", () => {
+      makeCustomControlsAccessible();
       send("ready", getStatus());
       send("loadedmetadata", getStatus());
       armStartupWatchdog();
       if (startAt > 0) {
-        try { video.currentTime = startAt; } catch (error) {}
+        armSeekRecoveryGrace();
+        try { art.seek = startAt; } catch (error) {}
       }
       if (forceSubtitles && art.subtitle) {
         try { art.subtitle.show = true; } catch (error) {}
@@ -188,6 +230,8 @@
     });
     art.on("video:canplay", () => {
       clearStartupWatchdog();
+      cancelScheduledRecovery();
+      seekRecoveryUntil = 0;
       hideLoading();
       send("canplay", getStatus());
       reportResolution();
@@ -199,6 +243,8 @@
     });
     art.on("video:playing", () => {
       clearStartupWatchdog();
+      cancelScheduledRecovery();
+      seekRecoveryUntil = 0;
       hideLoading();
       send("playing", getStatus());
       send("play", getStatus());
@@ -216,6 +262,9 @@
     art.on("video:stalled", () => {
       send("stalled", getStatus());
       scheduleRecovery("stalled");
+    });
+    art.on("video:seeking", () => {
+      armSeekRecoveryGrace();
     });
     art.on("video:ended", () => {
       send("complete", getStatus());
@@ -490,7 +539,10 @@
     const value = data.val;
     if (command === "play") video.play?.();
     if (command === "pause") video.pause?.();
-    if (command === "seek") video.currentTime = Math.max(0, Number(value) || 0);
+    if (command === "seek") {
+      armSeekRecoveryGrace();
+      art.seek = Math.max(0, Number(value) || 0);
+    }
     if (command === "speed") video.playbackRate = Number(value) || 1;
     if (command === "volume") video.volume = Math.max(0, Math.min(1, Number(value) || 0));
     if (command === "muted") video.muted = Boolean(value);
@@ -523,7 +575,8 @@
     const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : Infinity;
     const nextTime = Math.max(0, Math.min(duration, (video.currentTime || 0) + delta));
     try {
-      video.currentTime = nextTime;
+      armSeekRecoveryGrace();
+      art.seek = nextTime;
       if (video.paused) {
         const playAttempt = video.play?.();
         if (playAttempt && typeof playAttempt.catch === "function") playAttempt.catch(() => {});
@@ -578,10 +631,19 @@
   function scheduleRecovery(reason) {
     const video = art?.video;
     if (!video || recoveryTimer || bufferedAhead(video) > 2) return;
+    const seekGraceRemaining = seekRecoveryUntil - Date.now();
+    if (seekGraceRemaining > 0) {
+      recoveryTimer = setTimeout(() => {
+        recoveryTimer = null;
+        scheduleRecovery("seek-timeout");
+      }, seekGraceRemaining + 100);
+      return;
+    }
     recoveryTimer = setTimeout(() => {
       recoveryTimer = null;
       const currentVideo = art?.video;
       if (!currentVideo || bufferedAhead(currentVideo) > 2 || elements.error.hidden === false) return;
+      if (!currentVideo.paused && currentVideo.readyState >= 3) return;
       recoveryCount += 1;
       send("recover", { reason, count: recoveryCount, ...getStatus() });
       if (hls) {
@@ -592,6 +654,16 @@
       const playAttempt = currentVideo.play?.();
       if (playAttempt && typeof playAttempt.catch === "function") playAttempt.catch(() => {});
     }, 1200);
+  }
+
+  function armSeekRecoveryGrace() {
+    seekRecoveryUntil = Date.now() + 8000;
+    cancelScheduledRecovery();
+  }
+
+  function cancelScheduledRecovery() {
+    if (recoveryTimer) clearTimeout(recoveryTimer);
+    recoveryTimer = null;
   }
 
   function send(command, value) {
@@ -620,11 +692,36 @@
   }
 
   function goBack() {
+    if (window.parent && window.parent !== window) {
+      send("back", getStatus());
+      return;
+    }
     if (window.history.length > 1) {
       window.history.back();
     } else {
       window.location.href = "/";
     }
+  }
+
+  function makeCustomControlsAccessible() {
+    ["rewind-10", "forward-10", "next-episode"].forEach((name) => {
+      const control = elements.player.querySelector(`.art-control-${name}`);
+      if (!control || control.dataset.keyboardReady === "1") return;
+      control.dataset.keyboardReady = "1";
+      control.setAttribute("role", "button");
+      control.setAttribute("tabindex", "0");
+      control.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        event.stopPropagation();
+        control.click();
+      });
+    });
+  }
+
+  function requestNextEpisode() {
+    if (!hasNextEpisode) return;
+    send("next", getStatus());
   }
 
   function destroyHls() {
@@ -636,8 +733,7 @@
   function destroyPlayer() {
     stopStatusLoop();
     clearStartupWatchdog();
-    if (recoveryTimer) clearTimeout(recoveryTimer);
-    recoveryTimer = null;
+    cancelScheduledRecovery();
     if (hlsRecoveryTimer) clearTimeout(hlsRecoveryTimer);
     hlsRecoveryTimer = null;
     destroyHls();

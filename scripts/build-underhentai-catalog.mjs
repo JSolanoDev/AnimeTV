@@ -2,12 +2,14 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 const BASE_URL = "https://www.underhentai.net";
+const SITEMAP_INDEX_URL = `${BASE_URL}/sitemap.xml`;
 const DEFAULT_TITLE_ARTWORK = "https://static.underhentai.net/themes/undernet-bs5/assets/images/no_image_p.jpg";
 const OUTPUT = resolve("scraper", "underhentai_catalog.json");
 const ANDROID_OUTPUT = resolve("android", "app", "src", "main", "assets", "scraper", "underhentai_catalog.json");
 const CONCURRENCY = Math.max(1, Math.min(8, Number(process.env.UNDERHENTAI_CRAWL_CONCURRENCY || 2)));
 const REQUEST_INTERVAL_MS = Math.max(250, Number(process.env.UNDERHENTAI_REQUEST_INTERVAL_MS || 550));
 const RECENT_DETAIL_LIMIT = Math.max(12, Math.min(120, Number(process.env.UNDERHENTAI_RECENT_DETAIL_LIMIT || 24)));
+const EXCLUDED_RECHECK_LIMIT = Math.max(0, Math.min(1200, Number(process.env.UNDERHENTAI_EXCLUDED_RECHECK_LIMIT || 48)));
 const USER_AGENT = "Mozilla/5.0 (compatible; ZenkaiTVAdultCatalog/1.0)";
 const UNSAFE_MINOR_MARKERS = [
   "child", "children", "elementary", "junior high", "loli", "lolicon",
@@ -184,6 +186,55 @@ function parseListing(html, page) {
   return items;
 }
 
+function sitemapLocations(xml = "") {
+  return [...String(xml).matchAll(/<loc>([\s\S]*?)<\/loc>/gi)]
+    .map((match) => decodeHtml(match[1]).trim())
+    .filter(Boolean);
+}
+
+function titleFromSlug(slug = "") {
+  return String(slug).replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+async function loadSitemapListings() {
+  try {
+    const indexXml = await fetchText(SITEMAP_INDEX_URL);
+    const postSitemaps = sitemapLocations(indexXml)
+      .filter((url) => /\/post-sitemap\d*\.xml(?:\?|$)/i.test(url));
+    if (!postSitemaps.length) return [];
+
+    const documents = await Promise.allSettled(postSitemaps.map((url) => fetchText(url)));
+    const seen = new Set();
+    const items = [];
+    documents.forEach((result) => {
+      if (result.status !== "fulfilled") return;
+      sitemapLocations(result.value).forEach((value) => {
+        try {
+          const url = new URL(value, BASE_URL);
+          if (!["underhentai.net", "www.underhentai.net"].includes(url.hostname.toLowerCase())) return;
+          const parts = url.pathname.split("/").filter(Boolean);
+          if (parts.length !== 1) return;
+          const slug = parts[0].toLowerCase();
+          if (!slug || seen.has(slug)) return;
+          seen.add(slug);
+          items.push({
+            slug,
+            title: titleFromSlug(slug),
+            url: new URL(`/${slug}/`, BASE_URL).toString(),
+            image: "",
+            page: 0,
+            discoveredFrom: "sitemap"
+          });
+        } catch { /* Ignore malformed sitemap entries. */ }
+      });
+    });
+    return items;
+  } catch (error) {
+    console.warn(`Sitemap discovery unavailable: ${error.message}`);
+    return [];
+  }
+}
+
 function extractMetadata(html, item) {
   const genreBlock = html.match(/<p>\s*Genres\s*<\/p>([\s\S]*?)<\/div>/i)?.[1] || "";
   const currentGenreBlock = html.match(/class\s*=\s*(?:"[^"]*\brow-tags\b[^"]*"|'[^']*\brow-tags\b[^']*')[^>]*>[\s\S]*?<ul\b[^>]*class\s*=\s*(?:"[^"]*\btags-list\b[^"]*"|'[^']*\btags-list\b[^']*')[^>]*>([\s\S]*?)<\/ul>/i)?.[1] || "";
@@ -264,12 +315,15 @@ async function main() {
   const pageNumbers = [...firstHtml.matchAll(/page\/(\d+)\//gi)].map((match) => Number(match[1]));
   const lastPage = Math.max(1, ...pageNumbers);
   const pageUrls = Array.from({ length: lastPage }, (_, index) => index === 0 ? `${BASE_URL}/` : `${BASE_URL}/page/${index + 1}/`);
-  const pages = await mapConcurrent(pageUrls, async (url, index) => parseListing(await fetchText(url), index + 1));
+  const [pages, sitemapItems] = await Promise.all([
+    mapConcurrent(pageUrls, async (url, index) => parseListing(await fetchText(url), index + 1)),
+    loadSitemapListings()
+  ]);
   const seen = new Set();
-  const listed = pages.flat()
+  const listed = [...pages.flat(), ...sitemapItems]
     .filter((item) => item.slug && !seen.has(item.slug) && seen.add(item.slug))
     .map((item, sourceOrder) => ({ ...item, sourceOrder }));
-  console.log(`Found ${listed.length} title pages across ${lastPage} listing pages.`);
+  console.log(`Found ${listed.length} title pages across ${lastPage} listing pages and ${sitemapItems.length} sitemap entries.`);
 
   const generatedAt = Date.parse(existing.generatedAt || "");
   const inferredLegacyExclusions = !Array.isArray(existing.excludedSlugs)
@@ -298,12 +352,25 @@ async function main() {
       banner: titleArtwork
     };
   });
+  // Excluded pages used to be skipped forever. Revalidate a rotating slice on
+  // every daily run so corrected source metadata or parser improvements can
+  // restore genuinely adult titles. A one-time full audit can set the limit high.
+  const excludedCandidates = mergedListings.filter((item) => knownExcluded.has(item.slug));
+  const recheckStart = excludedCandidates.length
+    ? (Math.floor(Date.now() / (24 * 60 * 60 * 1000)) * Math.max(1, EXCLUDED_RECHECK_LIMIT)) % excludedCandidates.length
+    : 0;
+  const excludedRechecks = new Set(
+    Array.from({ length: Math.min(EXCLUDED_RECHECK_LIMIT, excludedCandidates.length) }, (_, offset) =>
+      excludedCandidates[(recheckStart + offset) % excludedCandidates.length]?.slug
+    ).filter(Boolean)
+  );
   const metadataTargets = mergedListings.filter((item) =>
     item.sourceOrder < RECENT_DETAIL_LIMIT
       || (!existingBySlug.has(item.slug) && !knownExcluded.has(item.slug))
       || (existingBySlug.has(item.slug) && !Number(item.episodeCount))
+      || excludedRechecks.has(item.slug)
   );
-  console.log(`Refreshing ${metadataTargets.length} new or recent title pages.`);
+  console.log(`Refreshing ${metadataTargets.length} new, recent, or previously excluded title pages.`);
   const enriched = await mapConcurrent(metadataTargets, async (item) => extractMetadata(await fetchText(item.url), item));
   const freshBySlug = new Map(enriched.filter(Boolean).map((item) => [item.slug, item]));
   const safeItems = mergedListings
@@ -315,6 +382,8 @@ async function main() {
     source: "UnderHentai",
     generatedAt: new Date().toISOString(),
     totalFound: listed.length,
+    listingPageCount: lastPage,
+    sitemapCount: sitemapItems.length,
     excludedForSafety: listed.length - safeItems.length,
     excludedSlugs: listed.filter((item) => !safeSlugs.has(item.slug)).map((item) => item.slug),
     items: safeItems

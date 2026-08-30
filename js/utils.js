@@ -7,20 +7,21 @@ function readUiPreferences() {
     focusGlow: true,
     autoplayHero: true,
     defaultVolume: 0.1,
-    playerFit: "cover",
+    playerFit: "contain",
     playerEngine: "apk",
     playerQuality: 0,
     metadataDetail: true,
     subtitleTranslation: true,
     titleLanguage: "romaji",  // "english" | "romaji"
-    playerInterface: "custom" // "custom" | "native"
+    playerInterface: "native" // Artplayer provides the single visible control layer.
   };
   try {
     let parsed = JSON.parse(localStorage.getItem(APP_UI_PREFS_KEY) || "{}");
-    const migrationKey = "zenkaitv:migrated-player-interface:v10";
+    const migrationKey = "zenkaitv:migrated-player-interface:v12";
     if (localStorage.getItem(migrationKey) !== "1") {
-      parsed.playerInterface = "custom";
+      parsed.playerInterface = "native";
       parsed.playerEngine = "apk";
+      parsed.playerFit = "contain";
       localStorage.setItem(APP_UI_PREFS_KEY, JSON.stringify({ ...defaults, ...parsed }));
       localStorage.setItem(migrationKey, "1");
     }

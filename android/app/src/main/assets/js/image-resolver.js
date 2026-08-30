@@ -22,6 +22,8 @@ const ImageResolver = (function () {
   const TMDB_IMG_BASE = "https://image.tmdb.org/t/p";
   const MATCH_CACHE_PREFIX = "zenkaitv:tmdb-match:v15:";
   const MATCH_CACHE_TTL_MS = 1000 * 60 * 60 * 24; // Refresh airing episode stills daily.
+  const SEASON_ART_CACHE_PREFIX = "zenkaitv:tmdb-season-art:v3:";
+  const SEASON_ART_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
   const FAILED_CACHE_KEY = "zenkaitv:img-failed:v1";
   const FAILED_CACHE_MAX = 400;
   const CONFIDENCE_THRESHOLD = 72; // reject loose matches that can attach the wrong anime artwork
@@ -325,7 +327,45 @@ const ImageResolver = (function () {
     } catch { /* small TV storage quota — fine, we just re-resolve next time */ }
   }
 
-  const _inFlight = new Set();
+  function seasonArtCacheKey(anime, seasonNumber) {
+    const id = anime?.anilistId || anime?.id || anime?.tmdbId || "unknown";
+    return `${SEASON_ART_CACHE_PREFIX}${id}:s${seasonNumber}`;
+  }
+
+  function readSeasonArtCache(anime, seasonNumber) {
+    try {
+      const key = seasonArtCacheKey(anime, seasonNumber);
+      const cached = JSON.parse(localStorage.getItem(key) || "null");
+      if (!cached || Date.now() - Number(cached.savedAt || 0) > SEASON_ART_CACHE_TTL_MS) {
+        if (cached) localStorage.removeItem(key);
+        return null;
+      }
+      return cached.data || null;
+    } catch { return null; }
+  }
+
+  function writeSeasonArtCache(anime, seasonNumber, data) {
+    try {
+      localStorage.setItem(
+        seasonArtCacheKey(anime, seasonNumber),
+        JSON.stringify({ savedAt: Date.now(), data })
+      );
+    } catch { /* Artwork still remains in memory when storage is full. */ }
+  }
+
+  function applySeasonArtwork(anime, seasonNumber, data = {}) {
+    if (!anime || !seasonNumber) return;
+    if (!anime.tmdbStillsBySeason) anime.tmdbStillsBySeason = {};
+    if (!anime.tmdbEpisodesBySeasonNum) anime.tmdbEpisodesBySeasonNum = {};
+    if (!anime.tmdbSeasonBackdropsBySeason) anime.tmdbSeasonBackdropsBySeason = {};
+    if (!anime.tmdbSeasonPostersBySeason) anime.tmdbSeasonPostersBySeason = {};
+    anime.tmdbStillsBySeason[seasonNumber] = data.stills || {};
+    anime.tmdbEpisodesBySeasonNum[seasonNumber] = data.metas || {};
+    if (data.poster) anime.tmdbSeasonPostersBySeason[seasonNumber] = data.poster;
+    if (data.backdrop) anime.tmdbSeasonBackdropsBySeason[seasonNumber] = data.backdrop;
+  }
+
+  const _inFlight = new Map();
   let _tmdbConfigured = null; // null=unknown, true/false once a route has answered
 
   function applyResolvedMatch(anime, data) {
@@ -614,10 +654,10 @@ const ImageResolver = (function () {
     if (!anilistId) return anime;
     if (_tmdbConfigured === false) return anime; // server already told us there's no key
     const flightKey = String(anilistId);
-    if (_inFlight.has(flightKey)) return anime;
-    _inFlight.add(flightKey);
+    if (_inFlight.has(flightKey)) return _inFlight.get(flightKey);
 
-    try {
+    const request = Promise.resolve().then(async () => {
+      try {
       // Curated override: pin the correct TMDB id for shows the fuzzy search
       // can't match by title. Checked alongside the cache so the pin always wins,
       // but a cache entry that already agrees with the pin is reused.
@@ -750,9 +790,12 @@ const ImageResolver = (function () {
       anime._tmdbResolved = true;
       writeMatchCache(anilistId, resolved);
       return anime;
-    } finally {
-      _inFlight.delete(flightKey);
-    }
+      } finally {
+        _inFlight.delete(flightKey);
+      }
+    });
+    _inFlight.set(flightKey, request);
+    return request;
   }
 
   // ── Per-surface resolution (the documented priority chains) ─────────────────
@@ -973,13 +1016,17 @@ const ImageResolver = (function () {
     const seasons = anime.tmdbSeasons || [];
     if (!seasons.length) return null;
     const meta = appSeasonMeta || {};
+    const metaTitle = String(meta.sourceTitle || meta.title || "").trim();
+    const genericMetaTitle = /^(?:episodes?|season\s*\d+|part\s*\d+)$/i.test(metaTitle);
     const pseudo = {
-      title: meta.sourceTitle || meta.title || anime.title,
+      title: genericMetaTitle || !metaTitle ? anime.title : metaTitle,
       romajiTitle: anime.romajiTitle,
       englishTitle: anime.englishTitle,
       nativeTitle: anime.nativeTitle,
       synonyms: anime.synonyms,
-      seasonNumber: appSeasonNumber,
+      // Related AniList entries restart at local Season 1. Their own title/year
+      // must select the TMDB season instead of blindly mapping every part to S1.
+      seasonNumber: anime.isFranchiseEntry ? null : appSeasonNumber,
       seasonYear: meta.year || meta.startYear || (meta.startDate && meta.startDate.year) ||
                   anime.seasonYear || anime.year
     };
@@ -987,86 +1034,123 @@ const ImageResolver = (function () {
     return season ? Number(season.season_number) : null;
   }
 
-  const _seasonStillsFetching = new Set();
-  async function ensureSeasonStills(anime, appSeasonNumber, appSeasonMeta) {
-    if (!anime || !anime.tmdbId) return;
+  const _seasonStillsFetching = new Map();
+  function ensureSeasonStills(anime, appSeasonNumber, appSeasonMeta) {
+    if (!anime || !anime.tmdbId) return Promise.resolve(anime);
     const sNum = Number(appSeasonNumber || 0);
-    if (!sNum) return;
-    // Already resolved (or tried) — don't re-fetch on every repaint.
-    if (anime.tmdbStillsBySeason && anime.tmdbStillsBySeason[sNum]) return;
-    if (anime._seasonStillsTried && anime._seasonStillsTried.has(sNum)) return;
+    if (!sNum) return Promise.resolve(anime);
+    if (anime.tmdbStillsBySeason && Object.prototype.hasOwnProperty.call(anime.tmdbStillsBySeason, sNum)) {
+      return Promise.resolve(anime);
+    }
+
+    const cached = readSeasonArtCache(anime, sNum);
+    if (cached) {
+      applySeasonArtwork(anime, sNum, cached);
+      return Promise.resolve(anime);
+    }
+    if (anime._seasonStillsTried && anime._seasonStillsTried.has(sNum)) return Promise.resolve(anime);
+
     const tmdbSeasonNumber = mapAppSeasonToTmdb(anime, sNum, appSeasonMeta);
-    if (!tmdbSeasonNumber) return;
-    const key = `${anime.anilistId || anime.id}:app${sNum}`;
-    if (_seasonStillsFetching.has(key)) return;
-    _seasonStillsFetching.add(key);
-    try {
-      const url = `/api/tmdb/season?id=${encodeURIComponent(anime.tmdbId)}&season=${encodeURIComponent(tmdbSeasonNumber)}`;
-      const resp = typeof fetchWithTimeout === "function"
-        ? await fetchWithTimeout(url, { cache: "no-store" }, 12000)
-        : await fetch(url);
-      const payload = resp.ok ? await resp.json() : null;
-      const eps = payload?.season?.episodes || [];
-      if (!eps.length) return;
-      // TMDB seasons sometimes number episodes absolutely (e.g. Naruto S5 = 89..),
-      // so rebase to 1..N against the season's lowest episode number.
-      const nums = eps.map((e) => Number(e.episode_number || 0)).filter((n) => n > 0);
-      const minEp = nums.length ? Math.min(...nums) : 1;
-      const offset = minEp > 0 ? minEp - 1 : 0;
-      const stills = {};
-      const metas = {};
-      const stillPaths = [];
-      for (const ep of eps) {
-        const local = Number(ep.episode_number) - offset;
-        if (local <= 0) continue;
-        const still = tmdbStillUrl(ep.still_path);
-        if (still) stills[local] = still;
-        if (ep.still_path) stillPaths.push(ep.still_path);
-        metas[local] = {
-          episode: local,
-          title: ep.name || "",
-          description: ep.overview || "",
-          aired: ep.air_date || "",
-          thumbnail: still
-        };
-      }
-      if (!anime.tmdbStillsBySeason) anime.tmdbStillsBySeason = {};
-      if (!anime.tmdbEpisodesBySeasonNum) anime.tmdbEpisodesBySeasonNum = {};
-      if (!anime.tmdbSeasonBackdropsBySeason) anime.tmdbSeasonBackdropsBySeason = {};
-      if (!anime.tmdbSeasonPostersBySeason) anime.tmdbSeasonPostersBySeason = {};
-      anime.tmdbStillsBySeason[sNum] = stills;
-      anime.tmdbEpisodesBySeasonNum[sNum] = metas;
-      const seasonPoster = tmdbPosterUrl(payload?.season?.poster_path);
-      if (seasonPoster) anime.tmdbSeasonPostersBySeason[sNum] = seasonPoster;
-      // TMDB seasons carry no backdrop of their own, so give each season its OWN
-      // wide hero art from a representative high-res episode still — otherwise
-      // every season of a multi-season show shares the single show backdrop. The
-      // pick is biased by APP-season position (frac grows with sNum) for two
-      // reasons: (1) shows TMDB stores as ONE continuous season (e.g. Re:Zero =
-      // 85 eps under TMDB S1) still get a DIFFERENT, era-appropriate still per app
-      // season instead of all sharing one; (2) for true multi-TMDB-season shows it
-      // just varies WHERE in that season's own pool the still comes from — still
-      // season-matched. Avoids ep1 title cards / finale spoilers.
-      if (stillPaths.length) {
-        const frac = Math.min(0.85, 0.2 + Math.max(0, sNum - 1) * 0.18);
-        const pick = stillPaths[Math.min(stillPaths.length - 1, Math.floor(stillPaths.length * frac))];
-        const seasonBackdrop = tmdbBackdropUrl(pick); // "original" — proxy downsizes on delivery
-        if (seasonBackdrop) anime.tmdbSeasonBackdropsBySeason[sNum] = seasonBackdrop;
-      }
-      debug(`season-aware: app S${sNum} -> TMDB S${tmdbSeasonNumber} (${Object.keys(stills).length} stills)`);
-      if (typeof renderEpisodeList === "function" && typeof state !== "undefined" &&
-          state.activeShow && state.activeShow.id === anime.id) {
-        renderEpisodeList(state.activeShow);
-        // Season art just landed → swap the hero to this season's own backdrop.
-        if (typeof refreshActiveWatchBackdrop === "function") refreshActiveWatchBackdrop();
-      }
-    } catch (err) {
-      debug(`season-aware fetch failed: ${err && err.message}`);
-    } finally {
+    if (!tmdbSeasonNumber) {
       if (!anime._seasonStillsTried) anime._seasonStillsTried = new Set();
       anime._seasonStillsTried.add(sNum);
-      _seasonStillsFetching.delete(key);
+      return Promise.resolve(anime);
     }
+
+    const key = `${anime.anilistId || anime.id}:app${sNum}`;
+    if (_seasonStillsFetching.has(key)) return _seasonStillsFetching.get(key);
+
+    const request = (async () => {
+      try {
+        const url = `/api/tmdb/season?id=${encodeURIComponent(anime.tmdbId)}&season=${encodeURIComponent(tmdbSeasonNumber)}`;
+        const resp = typeof fetchWithTimeout === "function"
+          ? await fetchWithTimeout(url, { cache: "no-store" }, 12000)
+          : await fetch(url);
+        const payload = resp.ok ? await resp.json() : null;
+        const eps = payload?.season?.episodes || [];
+        if (!eps.length) return anime;
+
+        // Some anime parts are separate AniList entries but one continuous TMDB
+        // season (Bleach TYBW is 40 episodes there). Scope that long TMDB season
+        // to the target entry's year and episode count before rebasing it; without
+        // this, every part reused episodes 1..N and showed the wrong title cards.
+        const targetYear = Number(
+          appSeasonMeta?.year || appSeasonMeta?.startYear || appSeasonMeta?.startDate?.year ||
+          anime.seasonYear || anime.year || 0
+        );
+        const expectedCount = Math.max(0, Number(
+          appSeasonMeta?.episodes?.length || appSeasonMeta?.episodeCount ||
+          anime.totalEpisodes || anime.episodeCount ||
+          (Array.isArray(anime.episodes) ? anime.episodes.length : 0) || 0
+        ));
+        let scopedEpisodes = eps;
+        if (targetYear && eps.length > Math.max(12, expectedCount || 12)) {
+          let start = eps.findIndex((episode) => yearOf(episode.air_date) === targetYear);
+          if (start < 0) {
+            start = eps.findIndex((episode) => {
+              const airedYear = yearOf(episode.air_date);
+              return airedYear && Math.abs(airedYear - targetYear) <= 1;
+            });
+          }
+          if (start >= 0) {
+            const end = expectedCount > 0 ? Math.min(eps.length, start + expectedCount) : eps.length;
+            scopedEpisodes = eps.slice(start, end);
+          }
+        }
+
+        // TMDB seasons sometimes number episodes absolutely (e.g. Naruto S5 = 89..),
+        // so rebase to 1..N against the season's lowest episode number.
+        const nums = scopedEpisodes.map((episode) => Number(episode.episode_number || 0)).filter((number) => number > 0);
+        const minEp = nums.length ? Math.min(...nums) : 1;
+        const offset = minEp > 0 ? minEp - 1 : 0;
+        const stills = {};
+        const metas = {};
+        const stillPaths = [];
+        for (const episode of scopedEpisodes) {
+          const local = Number(episode.episode_number) - offset;
+          if (local <= 0) continue;
+          const still = tmdbStillUrl(episode.still_path);
+          if (still) stills[local] = still;
+          if (episode.still_path) stillPaths.push(episode.still_path);
+          metas[local] = {
+            episode: local,
+            title: episode.name || "",
+            description: episode.overview || "",
+            aired: episode.air_date || "",
+            thumbnail: still
+          };
+        }
+
+        const poster = tmdbPosterUrl(payload?.season?.poster_path);
+        let backdrop = "";
+        if (stillPaths.length) {
+          const fraction = Math.min(0.85, 0.2 + Math.max(0, sNum - 1) * 0.18);
+          const pick = stillPaths[Math.min(stillPaths.length - 1, Math.floor(stillPaths.length * fraction))];
+          backdrop = tmdbBackdropUrl(pick);
+        }
+        const data = { stills, metas, poster, backdrop };
+        applySeasonArtwork(anime, sNum, data);
+        writeSeasonArtCache(anime, sNum, data);
+
+        debug(`season-aware: app S${sNum} -> TMDB S${tmdbSeasonNumber} (${Object.keys(stills).length} stills)`);
+        if (typeof renderEpisodeList === "function" && typeof state !== "undefined" &&
+            state.activeShow && state.activeShow.id === anime.id) {
+          renderEpisodeList(state.activeShow);
+          if (typeof refreshActiveWatchBackdrop === "function") refreshActiveWatchBackdrop();
+        }
+        return anime;
+      } catch (err) {
+        debug(`season-aware fetch failed: ${err && err.message}`);
+        return anime;
+      } finally {
+        if (!anime._seasonStillsTried) anime._seasonStillsTried = new Set();
+        anime._seasonStillsTried.add(sNum);
+        _seasonStillsFetching.delete(key);
+      }
+    })();
+
+    _seasonStillsFetching.set(key, request);
+    return request;
   }
 
   // Per-season episode metadata (title/aired/still), preferring the season-aware
