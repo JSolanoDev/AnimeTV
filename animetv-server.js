@@ -231,6 +231,29 @@ const jikanSearchCache = new Map(); // normalized title -> { data, ts }
 const JIKAN_EPISODE_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 let jikanRequestQueue = Promise.resolve();
 let jikanLastRequestAt = 0;
+
+// Jikan is a free, heavily rate-limited upstream and returns 504 regularly. Its
+// handlers used to translate that straight into OUR 500, so a single flaky
+// upstream showed up as a server error on our own error budget - and because
+// nothing remembered the failure, the same query retried on every render. One
+// title ("Gintama Movie 3") produced a steady stream of 500s on every page load.
+//
+// Same treatment AniList already got: remember the failure briefly, and answer
+// 200 with unavailable:true instead of 5xx. A missing optional enrichment is a
+// normal outcome, not a server fault - the client already renders fine without
+// it. Stale cache is preferred over an empty answer when we have one.
+const jikanFailureCache = new Map();
+const JIKAN_FAILURE_TTL_MS = 60000;
+
+function jikanCoolingDown(key) {
+  const failedAt = jikanFailureCache.get(key);
+  return Boolean(failedAt && Date.now() - failedAt < JIKAN_FAILURE_TTL_MS);
+}
+
+setInterval(() => {
+  const cutoff = Date.now() - JIKAN_FAILURE_TTL_MS;
+  for (const [key, ts] of jikanFailureCache) if (ts < cutoff) jikanFailureCache.delete(key);
+}, JIKAN_FAILURE_TTL_MS).unref?.();
 const ANIPUB_CATALOG_TTL_MS = 1000 * 60 * 20;
 const ANIPUB_RAW_CATALOG_TTL_MS = ANIPUB_CATALOG_TTL_MS;
 const ANIPUB_EPISODE_CACHE_TTL_MS = 1000 * 60 * 60;
@@ -9324,18 +9347,24 @@ function fetchJikanJson(pathname) {
 async function handleJikanFull(url, response) {
   const malId = url.searchParams.get("id");
   if (!malId) return sendJson(response, { error: "Missing ID" }, 400);
+  const fullKey = `full:${malId}`;
+  const cached = jikanFullCache.get(String(malId));
   try {
-    const cached = jikanFullCache.get(String(malId));
     if (cached && Date.now() - cached.ts < JIKAN_EPISODE_CACHE_TTL_MS) {
       return sendJson(response, { data: cached.data, cached: true });
+    }
+    if (jikanCoolingDown(fullKey)) {
+      return sendJson(response, { data: cached?.data || null, stale: Boolean(cached), unavailable: !cached });
     }
     const payload = await fetchJikanJson(`/anime/${encodeURIComponent(malId)}/full`);
     const data = payload.data || null;
     if (data) jikanFullCache.set(String(malId), { data, ts: Date.now() });
+    jikanFailureCache.delete(fullKey);
     sendJson(response, { data });
   } catch (error) {
-    console.error("[Jikan] full metadata error:", error);
-    sendJson(response, { error: error.message }, 500);
+    jikanFailureCache.set(fullKey, Date.now());
+    console.error("[Jikan] full metadata unavailable:", error.message);
+    sendJson(response, { data: cached?.data || null, stale: Boolean(cached), unavailable: !cached });
   }
 }
 
@@ -9343,18 +9372,24 @@ async function handleJikanSearch(url, response) {
   const query = String(url.searchParams.get("q") || "").trim();
   if (!query) return sendJson(response, { error: "Missing query" }, 400);
   const cacheKey = normalizeTitle(query);
+  const cached = jikanSearchCache.get(cacheKey);
   try {
-    const cached = jikanSearchCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < JIKAN_EPISODE_CACHE_TTL_MS) {
       return sendJson(response, { data: cached.data, cached: true });
+    }
+    // Serve whatever we have rather than re-hitting an upstream we just saw fail.
+    if (jikanCoolingDown(cacheKey)) {
+      return sendJson(response, { data: cached?.data || [], stale: Boolean(cached), unavailable: !cached });
     }
     const payload = await fetchJikanJson(`/anime?q=${encodeURIComponent(query)}&limit=5&sfw=true`);
     const data = payload.data || [];
     jikanSearchCache.set(cacheKey, { data, ts: Date.now() });
+    jikanFailureCache.delete(cacheKey);
     sendJson(response, { data });
   } catch (error) {
-    console.error("[Jikan] search error:", error);
-    sendJson(response, { error: error.message }, 500);
+    jikanFailureCache.set(cacheKey, Date.now());
+    console.error("[Jikan] search unavailable:", error.message);
+    sendJson(response, { data: cached?.data || [], stale: Boolean(cached), unavailable: !cached });
   }
 }
 
@@ -9362,10 +9397,14 @@ async function handleJikanEpisodes(url, response) {
   const malId = url.searchParams.get("id");
   if (!malId) return sendJson(response, { error: "Missing ID" }, 400);
 
+  const episodesKey = `episodes:${malId}`;
+  const cached = jikanEpisodeCache.get(String(malId));
   try {
-    const cached = jikanEpisodeCache.get(String(malId));
     if (cached && Date.now() - cached.ts < JIKAN_EPISODE_CACHE_TTL_MS) {
       return sendJson(response, { data: cached.data, cached: true });
+    }
+    if (jikanCoolingDown(episodesKey)) {
+      return sendJson(response, { data: cached?.data || [], stale: Boolean(cached), unavailable: !cached });
     }
 
     const firstPayload = await fetchJikanJson(`/anime/${encodeURIComponent(malId)}/episodes?page=1`);
@@ -9385,10 +9424,12 @@ async function handleJikanEpisodes(url, response) {
       .map(normalizeJikanEpisode)
       .sort((a, b) => Number(a.episode || 0) - Number(b.episode || 0));
     jikanEpisodeCache.set(String(malId), { data: episodes, ts: Date.now() });
+    jikanFailureCache.delete(episodesKey);
     sendJson(response, { data: episodes, pages: pageCount });
   } catch (error) {
-    console.error("[Jikan] episodes error:", error);
-    sendJson(response, { error: error.message }, 500);
+    jikanFailureCache.set(episodesKey, Date.now());
+    console.error("[Jikan] episodes unavailable:", error.message);
+    sendJson(response, { data: cached?.data || [], stale: Boolean(cached), unavailable: !cached });
   }
 }
 

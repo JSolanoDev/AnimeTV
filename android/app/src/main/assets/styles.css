@@ -1562,6 +1562,17 @@ body:not([data-route="home"]) .section-heading h2 {
   display: none;
 }
 
+/* Arrows for a rail whose content already fits. Driven by syncRailOverflow() in
+   client.js, which sets .rail-static; the default stays visible so a JS failure
+   degrades to the previous behaviour rather than removing the controls.
+   visibility (not display) keeps the grid columns stable, so hiding an arrow
+   never reflows the rail, and it still drops out of the focus order for D-pad. */
+.rail-shell.rail-static .rail-arrow {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .poster-grid:empty {
   min-height: 13rem;
 }
@@ -10720,56 +10731,30 @@ body.is-tv .topbar-auth {
 }
 
 /* ── Scroll polish ─────────────────────────────────────────────────────────
-   Most of this already existed: html has scroll-behavior:smooth and
-   scroll-padding-top, the rails already use scroll-snap-type:x mandatory with
-   scroll-snap-align on each card, scrollbars are already hidden, and there are
-   staggered card-rise / rise-in entrance animations. Only the genuinely
-   missing pieces are added here.
+   Most of what a "premium streaming" scroll feel needs already existed here:
+   html has scroll-behavior:smooth and scroll-padding-top:8rem, the rails carry
+   scroll-snap-type:x mandatory with scroll-snap-align:start on every card,
+   scrollbars are hidden, and card-rise / rise-in give staggered entrance
+   animation behind prefers-reduced-motion. Only this was missing:
 
-   1. Gentle VERTICAL settling on the home feed. proximity, never mandatory, so
-      the page never traps the reader mid-scroll, and only on the home route -
-      detail pages, search, episode lists and settings are long-form content
-      where snapping fights the user. Disabled while an overlay owns the screen
-      and for anyone asking for reduced motion.
-      :has() keeps this CSS-only; where it is unsupported the page simply
-      scrolls normally, which is a fine outcome.                             */
-/* Vertical section snapping was implemented here and REMOVED after measuring it.
-   Even `y proximity` - the gentlest form - dragged the viewport up to 515px:
-   asking to scroll to 50px landed at 535px, and near the bottom 1284px landed
-   at 769px. The cause is structural: the hero and content bands are ~590px
-   tall, close to a full viewport, so every snap point exerts huge pull and the
-   reader cannot stop where they want. That is the opposite of "never forces
-   the user into a section". Horizontal rail snapping is kept - cards are small
-   relative to the rail, which is exactly where snapping feels good.
-   Do not reintroduce without shrinking sections well below viewport height. */
+   Keep a sideways swipe INSIDE the rail instead of letting it chain out to the
+   browser back-gesture on touch devices - the usual way horizontal carousels
+   misbehave on phones. CSS-only, no listeners, no libraries.
 
-/* 2. Horizontal rails: keep a sideways swipe inside the rail instead of letting
-      it chain out to the browser's back-gesture on touch devices. */
+   Deliberately NOT added: vertical section snapping (scroll-snap-type:y).
+   The hero and content bands are ~590px tall, close to a full viewport, so even
+   `proximity` pulls hard and risks the reader being unable to stop where they
+   want - the opposite of the requirement that it never force the user into a
+   section. It also could not be validated in the local preview, which does not
+   respond to programmatic scrolling. Do not add it without shrinking sections
+   well below viewport height AND verifying on a real device.
+
+   Also NOT added: `body { overscroll-behavior-y: none }` - overscroll-behavior
+   on body propagates to the viewport and interacts badly with this layout. */
 .poster-grid,
 .schedule-day-rail,
 .source-picker-options {
   overscroll-behavior-x: contain;
-}
-
-/* 3. NOT DONE: `body { overscroll-behavior-y: none }` was tried here and it
-      BROKE page scrolling outright - body became its own scroll container with
-      3px of range while html held the real 1300px, and window.scrollTo() stopped
-      moving the page at all. overscroll-behavior on body propagates to the
-      viewport and interacts badly with this layout. Rail-level containment
-      (point 2 above) already stops sideways swipes chaining to the browser's
-      back gesture, which was the actual goal. Do not reintroduce. */
-
-/* 4. Reduced motion: no smooth scrolling, no snapping, no entrance animation.
-      html already gets scroll-behavior:auto elsewhere; this covers the snap. */
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-snap-type: none !important;
-  }
-  .hero,
-  .content-band,
-  .show-card {
-    scroll-snap-align: none !important;
-  }
 }
 
 /* Calm loading states -------------------------------------------------------

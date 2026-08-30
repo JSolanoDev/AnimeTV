@@ -433,7 +433,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=380`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=488`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2552,7 +2552,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=487";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=488";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -5827,7 +5827,59 @@ function _render() {
   }
 }
 
+// Rail arrows used to show on rails that cannot scroll: #latest exactly fills
+// the 7x2 grid at most desktop widths, and Continue Watching often holds a
+// single card, so the page offered two controls that visibly did nothing. CSS
+// already hides the empty case (:has(.poster-grid:empty)) but cannot express
+// "has cards yet does not overflow", so that part is driven from here.
+//
+// Deliberately NOT wired into render(): render() fires ~12x/sec during catalog
+// enrichment and reading scrollWidth forces synchronous layout. These observers
+// fire only when a rail's content or box actually changes, and every read is
+// batched into a single rAF, so a burst of card renders costs one layout pass.
+const railOverflowObserved = new WeakSet();
+let railOverflowFrame = 0;
+
+function syncRailOverflow() {
+  railOverflowFrame = 0;
+  document.querySelectorAll(".rail-shell").forEach((shell) => {
+    const grid = shell.querySelector(".poster-grid");
+    if (!grid) return;
+    // 4px tolerance: sub-pixel grid rounding otherwise reports phantom overflow.
+    const scrollable = grid.scrollWidth - grid.clientWidth > 4;
+    // The class HIDES arrows, so a JS failure degrades to the old always-visible
+    // behaviour instead of stripping the controls entirely.
+    shell.classList.toggle("rail-static", !scrollable);
+  });
+}
+
+function scheduleRailOverflowSync() {
+  if (railOverflowFrame) return;
+  railOverflowFrame = requestAnimationFrame(syncRailOverflow);
+}
+
+const railResizeObserver = typeof ResizeObserver === "function"
+  ? new ResizeObserver(scheduleRailOverflowSync)
+  : null;
+const railContentObserver = typeof MutationObserver === "function"
+  ? new MutationObserver(scheduleRailOverflowSync)
+  : null;
+
+function observeRailOverflow() {
+  let added = false;
+  document.querySelectorAll(".poster-grid").forEach((grid) => {
+    if (railOverflowObserved.has(grid)) return;
+    railOverflowObserved.add(grid);
+    added = true;
+    // Resize catches viewport/sidebar changes; childList catches cards arriving.
+    railResizeObserver?.observe(grid);
+    railContentObserver?.observe(grid, { childList: true });
+  });
+  if (added) scheduleRailOverflowSync();
+}
+
 function wireRailButtons() {
+  observeRailOverflow();
   document.querySelectorAll("[data-scroll-rail]").forEach((button) => {
     button.onclick = (event) => {
       event.stopPropagation();
@@ -14237,7 +14289,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=487");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=488");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

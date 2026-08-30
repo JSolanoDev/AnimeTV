@@ -1562,6 +1562,17 @@ body:not([data-route="home"]) .section-heading h2 {
   display: none;
 }
 
+/* Arrows for a rail whose content already fits. Driven by syncRailOverflow() in
+   client.js, which sets .rail-static; the default stays visible so a JS failure
+   degrades to the previous behaviour rather than removing the controls.
+   visibility (not display) keeps the grid columns stable, so hiding an arrow
+   never reflows the rail, and it still drops out of the focus order for D-pad. */
+.rail-shell.rail-static .rail-arrow {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .poster-grid:empty {
   min-height: 13rem;
 }
