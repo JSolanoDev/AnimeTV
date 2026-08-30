@@ -4,6 +4,7 @@ import { dirname, resolve } from "node:path";
 const BASE_URL = "https://www.underhentai.net";
 const CATALOG = resolve("scraper", "underhentai_catalog.json");
 const OUTPUT = resolve("scraper", "underhentai_details.json");
+const ANDROID_OUTPUT = resolve("android", "app", "src", "main", "assets", "scraper", "underhentai_details.json");
 const TITLE_CONCURRENCY = Math.max(1, Math.min(8, Number(process.env.UNDERHENTAI_DETAIL_CONCURRENCY || 2)));
 const WATCH_CONCURRENCY = Math.max(1, Math.min(8, Number(process.env.UNDERHENTAI_WATCH_CONCURRENCY || 2)));
 const REQUEST_INTERVAL_MS = Math.max(250, Number(process.env.UNDERHENTAI_REQUEST_INTERVAL_MS || 550));
@@ -54,32 +55,57 @@ function normalizeImageUrl(value = "") {
   return url.toString();
 }
 
+function isTitleArtworkUrl(value = "") {
+  try {
+    const url = new URL(decodeHtml(value), BASE_URL);
+    const pathname = url.pathname.toLowerCase();
+    if (pathname.endsWith("/no_image_p.jpg")) return true;
+    return url.hostname.toLowerCase() === "static.underhentai.net"
+      && (pathname.startsWith("/assets/") || pathname.startsWith("/uploads/"))
+      && /\.(?:avif|jpe?g|png|webp)$/.test(pathname)
+      && !pathname.includes("/themes/");
+  } catch {
+    return false;
+  }
+}
+
 async function fetchText(url, attempts = 3) {
   let lastError;
   let retryAfterMs = 0;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     await waitForRequestSlot();
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20000);
+    let timer;
     try {
-      const response = await fetch(url, {
+      const request = fetch(url, {
         headers: {
           "User-Agent": USER_AGENT,
           Accept: "text/html,application/xhtml+xml",
           "Accept-Language": "en-US,en;q=0.9",
-          Referer: BASE_URL
+          Referer: BASE_URL,
+          Connection: "close"
         },
         redirect: "follow",
         signal: controller.signal
+      }).then(async (response) => ({
+        response,
+        body: response.ok ? await response.text() : ""
+      }));
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          controller.abort();
+          reject(new Error(`Timed out fetching ${url}`));
+        }, 20000);
       });
-      if (response.ok) return await response.text();
+      const { response, body } = await Promise.race([request, timeout]);
+      if (response.ok) return body;
       lastError = new Error(`${response.status} ${response.statusText}`);
       const retryAfter = Number(response.headers.get("retry-after"));
-      retryAfterMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 0;
+      retryAfterMs = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter * 1000, 30000) : 0;
     } catch (error) {
       lastError = error;
     } finally {
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
     }
     const backoff = Math.max(retryAfterMs, 1200 * (attempt + 1));
     await new Promise((resolvePromise) => setTimeout(resolvePromise, backoff));
@@ -121,7 +147,7 @@ async function mapConcurrent(items, concurrency, worker, label) {
 function parseTitlePage(html, catalogItem) {
   const originalCover = [...html.matchAll(/<a\b[^>]*class\s*=\s*(?:"[^"]*\bglightbox\b[^"]*"|'[^']*\bglightbox\b[^']*')[^>]*>/gi)]
     .map((match) => attr(match[0], "href"))
-    .find((value) => /static\.underhentai\.net\/assets\/images\//i.test(value)) || "";
+    .find(isTitleArtworkUrl) || "";
   const image = normalizeImageUrl(originalCover || catalogItem.image || "");
   const sectionMatches = [...html.matchAll(/class\s*=\s*(?:"[^"]*\b(?:ep2-header|ep-header)\b[^"]*"|'[^']*\b(?:ep2-header|ep-header)\b[^']*'|(?:ep2-header|ep-header))[^>]*>([\s\S]*?)<\/div>/gi)];
   const episodes = sectionMatches.map((header, sectionIndex) => {
@@ -302,9 +328,12 @@ async function resolveKrakenFiles(embedUrl) {
     playableEpisodeCount: allEpisodes.filter((episode) => episode.sourceOptions.some(hasPlayableEmbed)).length,
     items: details
   };
-  await mkdir(dirname(OUTPUT), { recursive: true });
-  await writeFile(OUTPUT, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
-  console.log(`Saved ${payload.count} titles and ${payload.playableEpisodeCount}/${payload.episodeCount} playable episodes to ${OUTPUT}.`);
+  const serialized = `${JSON.stringify(payload, null, 2)}\n`;
+  await Promise.all([OUTPUT, ANDROID_OUTPUT].map(async (output) => {
+    await mkdir(dirname(output), { recursive: true });
+    await writeFile(output, serialized, "utf8");
+  }));
+  console.log(`Saved ${payload.count} titles and ${payload.playableEpisodeCount}/${payload.episodeCount} playable episodes to the web and Android catalogs.`);
 }
 
 main().catch((error) => {

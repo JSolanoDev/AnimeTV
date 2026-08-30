@@ -2,9 +2,12 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 const BASE_URL = "https://www.underhentai.net";
+const DEFAULT_TITLE_ARTWORK = "https://static.underhentai.net/themes/undernet-bs5/assets/images/no_image_p.jpg";
 const OUTPUT = resolve("scraper", "underhentai_catalog.json");
+const ANDROID_OUTPUT = resolve("android", "app", "src", "main", "assets", "scraper", "underhentai_catalog.json");
 const CONCURRENCY = Math.max(1, Math.min(8, Number(process.env.UNDERHENTAI_CRAWL_CONCURRENCY || 2)));
 const REQUEST_INTERVAL_MS = Math.max(250, Number(process.env.UNDERHENTAI_REQUEST_INTERVAL_MS || 550));
+const RECENT_DETAIL_LIMIT = Math.max(12, Math.min(120, Number(process.env.UNDERHENTAI_RECENT_DETAIL_LIMIT || 24)));
 const USER_AGENT = "Mozilla/5.0 (compatible; ZenkaiTVAdultCatalog/1.0)";
 const UNSAFE_MINOR_MARKERS = [
   "child", "children", "elementary", "junior high", "loli", "lolicon",
@@ -53,6 +56,20 @@ function normalizeImageUrl(value = "") {
   return url.toString();
 }
 
+function isTitleArtworkUrl(value = "") {
+  try {
+    const url = new URL(decodeHtml(value), BASE_URL);
+    const pathname = url.pathname.toLowerCase();
+    if (pathname.endsWith("/no_image_p.jpg")) return true;
+    return url.hostname.toLowerCase() === "static.underhentai.net"
+      && (pathname.startsWith("/assets/") || pathname.startsWith("/uploads/"))
+      && /\.(?:avif|jpe?g|png|webp)$/.test(pathname)
+      && !pathname.includes("/themes/");
+  } catch {
+    return false;
+  }
+}
+
 function normalizeSafetyText(value = "") {
   const confusables = {
     "а": "a", "е": "e", "і": "i", "ј": "j", "к": "k", "м": "m",
@@ -99,20 +116,34 @@ async function fetchText(url, attempts = 3) {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     await waitForRequestSlot();
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 18000);
+    let timer;
     try {
-      const response = await fetch(url, {
-        headers: { "User-Agent": USER_AGENT, Accept: "text/html,application/xhtml+xml" },
+      const request = fetch(url, {
+        headers: {
+          "User-Agent": USER_AGENT,
+          Accept: "text/html,application/xhtml+xml",
+          Connection: "close"
+        },
         signal: controller.signal
+      }).then(async (response) => ({
+        response,
+        body: response.ok ? await response.text() : ""
+      }));
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          controller.abort();
+          reject(new Error(`Timed out fetching ${url}`));
+        }, 18000);
       });
-      if (response.ok) return await response.text();
+      const { response, body } = await Promise.race([request, timeout]);
+      if (response.ok) return body;
       lastError = new Error(`${response.status} ${response.statusText}`);
       const retryAfter = Number(response.headers.get("retry-after"));
-      retryAfterMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 0;
+      retryAfterMs = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter * 1000, 30000) : 0;
     } catch (error) {
       lastError = error;
     } finally {
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
     }
     const backoff = Math.max(retryAfterMs, 1200 * (attempt + 1));
     await new Promise((resolvePromise) => setTimeout(resolvePromise, backoff));
@@ -139,8 +170,9 @@ function parseListing(html, page) {
       || block.match(/<a\b[^>]*href\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)[^>]*>/i)?.[0];
     const title = stripHtml(heading?.[1] || "");
     const href = attr(linkTag, "href");
-    const imgTag = block.match(/<img\b[^>]*>/i)?.[0] || "";
-    const image = normalizeImageUrl(attr(imgTag, "src"));
+    const image = [...block.matchAll(/<img\b[^>]*>/gi)]
+      .map((imageMatch) => attr(imageMatch[0], "src") || attr(imageMatch[0], "data-src"))
+      .find(isTitleArtworkUrl) || "";
     if (!title || !href) continue;
     const url = new URL(href, BASE_URL).toString();
     const parsedUrl = new URL(url);
@@ -167,9 +199,11 @@ function extractMetadata(html, item) {
   const descriptionBlock = html.match(/class\s*=\s*(?:"[^"]*\brow-desc\b[^"]*"|'[^']*\brow-desc\b[^']*')[^>]*>[\s\S]*?class\s*=\s*(?:"[^"]*\brow-label\b[^"]*"|'[^']*\brow-label\b[^']*')[^>]*>[\s\S]*?<\/div>([\s\S]*?)<\/div>\s*<hr/i)?.[1] || "";
   const originalCover = [...html.matchAll(/<a\b[^>]*class\s*=\s*(?:"[^"]*\bglightbox\b[^"]*"|'[^']*\bglightbox\b[^']*')[^>]*>/gi)]
     .map((match) => attr(match[0], "href"))
-    .find((value) => /static\.underhentai\.net\/assets\/images\//i.test(value)) || "";
-  const coverTags = [...html.matchAll(/<img\b[^>]*(?:fetchpriority\s*=\s*(?:"high"|'high'|high)|\/uploads\/)[^>]*>/gi)];
-  const cover = normalizeImageUrl(originalCover || coverTags.map((match) => attr(match[0], "src")).find(Boolean) || item.image);
+    .find(isTitleArtworkUrl) || "";
+  const inlineCover = [...html.matchAll(/<img\b[^>]*>/gi)]
+    .map((match) => attr(match[0], "src") || attr(match[0], "data-src"))
+    .find(isTitleArtworkUrl) || "";
+  const cover = normalizeImageUrl(originalCover || inlineCover || item.image);
   const screenshots = [
     ...[...html.matchAll(/\bdata-src\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi)].map((match) => match[1] || match[2] || match[3] || ""),
     ...[...html.matchAll(/https:\/\/static\.underhentai\.net\/thumbs\/[^"'\s<>]+/gi)].map((match) => match[0])
@@ -200,6 +234,7 @@ function extractMetadata(html, item) {
 async function mapConcurrent(items, worker) {
   const result = new Array(items.length);
   let next = 0;
+  let completed = 0;
   const runners = Array.from({ length: CONCURRENCY }, async () => {
     while (next < items.length) {
       const index = next++;
@@ -209,7 +244,8 @@ async function mapConcurrent(items, worker) {
         console.warn(`Skipping metadata for ${items[index].url}: ${error.message}`);
         result[index] = null;
       }
-      if ((index + 1) % 25 === 0) console.log(`Metadata ${index + 1}/${items.length}`);
+      completed += 1;
+      if (completed % 25 === 0 || completed === items.length) console.log(`Metadata ${completed}/${items.length}`);
     }
   });
   await Promise.all(runners);
@@ -235,21 +271,60 @@ async function main() {
     .map((item, sourceOrder) => ({ ...item, sourceOrder }));
   console.log(`Found ${listed.length} title pages across ${lastPage} listing pages.`);
 
-  const enriched = await mapConcurrent(listed, async (item) => extractMetadata(await fetchText(item.url), item));
+  const generatedAt = Date.parse(existing.generatedAt || "");
+  const inferredLegacyExclusions = !Array.isArray(existing.excludedSlugs)
+    && Number(existing.totalFound) === Number(existing.items?.length || 0) + Number(existing.excludedForSafety || 0)
+    && Number.isFinite(generatedAt)
+    && Date.now() - generatedAt < 24 * 60 * 60 * 1000;
+  const knownExcluded = new Set(
+    Array.isArray(existing.excludedSlugs)
+      ? existing.excludedSlugs
+      : inferredLegacyExclusions
+        ? listed.filter((item) => !existingBySlug.has(item.slug)).map((item) => item.slug)
+        : []
+  );
+
+  const mergedListings = listed.map((listedItem) => {
+    const previous = existingBySlug.get(listedItem.slug) || {};
+    const listingArtwork = isTitleArtworkUrl(listedItem.image) ? normalizeImageUrl(listedItem.image) : "";
+    const previousCandidate = String(previous.mainWallpaper || previous.image || "").trim();
+    const previousArtwork = isTitleArtworkUrl(previousCandidate) ? normalizeImageUrl(previousCandidate) : "";
+    const titleArtwork = listingArtwork || previousArtwork || DEFAULT_TITLE_ARTWORK;
+    return {
+      ...previous,
+      ...listedItem,
+      image: titleArtwork,
+      mainWallpaper: titleArtwork,
+      banner: titleArtwork
+    };
+  });
+  const metadataTargets = mergedListings.filter((item) =>
+    item.sourceOrder < RECENT_DETAIL_LIMIT
+      || (!existingBySlug.has(item.slug) && !knownExcluded.has(item.slug))
+      || (existingBySlug.has(item.slug) && !Number(item.episodeCount))
+  );
+  console.log(`Refreshing ${metadataTargets.length} new or recent title pages.`);
+  const enriched = await mapConcurrent(metadataTargets, async (item) => extractMetadata(await fetchText(item.url), item));
   const freshBySlug = new Map(enriched.filter(Boolean).map((item) => [item.slug, item]));
-  const safeItems = listed
-    .map((listedItem) => freshBySlug.get(listedItem.slug) || existingBySlug.get(listedItem.slug))
-    .filter((item) => item && !item.safetyExcluded && item.episodeCount > 0);
+  const safeItems = mergedListings
+    .map((item) => freshBySlug.get(item.slug) || item)
+    .filter((item) => item && isSafeAdultMetadata(item) && item.episodeCount > 0)
+    .map((item) => ({ ...item, safetyExcluded: false }));
+  const safeSlugs = new Set(safeItems.map((item) => item.slug));
   const payload = {
     source: "UnderHentai",
     generatedAt: new Date().toISOString(),
-    totalFound: enriched.length,
+    totalFound: listed.length,
     excludedForSafety: listed.length - safeItems.length,
+    excludedSlugs: listed.filter((item) => !safeSlugs.has(item.slug)).map((item) => item.slug),
     items: safeItems
   };
-  await mkdir(dirname(OUTPUT), { recursive: true });
-  await writeFile(OUTPUT, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
-  console.log(`Saved ${safeItems.length} adult-only titles to ${OUTPUT}.`);
+  const serialized = `${JSON.stringify(payload, null, 2)}\n`;
+  await Promise.all([OUTPUT, ANDROID_OUTPUT].map(async (output) => {
+    await mkdir(dirname(output), { recursive: true });
+    await writeFile(output, serialized, "utf8");
+  }));
+  console.log(`Saved ${safeItems.length} adult-only titles to the web and Android catalogs.`);
 }
 
 main().catch((error) => {

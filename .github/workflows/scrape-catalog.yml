@@ -169,6 +169,8 @@ jobs:
             scraper/anime_metadata.previous.json
             scraper/underhentai_catalog.json
             scraper/underhentai_details.json
+            android/app/src/main/assets/scraper/underhentai_catalog.json
+            android/app/src/main/assets/scraper/underhentai_details.json
           commit_user_name: "github-actions[bot]"
           commit_user_email: "github-actions[bot]@users.noreply.github.com"
 

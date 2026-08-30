@@ -1633,7 +1633,7 @@ async function loadAdultCatalog(force = false) {
   }
   if (adultCatalogLoadingPromise && !force) return adultCatalogLoadingPromise;
   const adapter = AdultSourceRegistry.get();
-  const cacheKey = `adult-catalog:${adapter.name}:underhentai-only-v4`;
+  const cacheKey = `adult-catalog:${adapter.name}:underhentai-only-v5`;
   const cachedItems = readResponseCache(cacheKey, CATALOG_CACHE_TTL);
   const applyAdultItems = (items = [], labelPrefix = adapter.name) => {
     const adultItems = Array.isArray(items)
@@ -7909,14 +7909,21 @@ const PRIMARY_SOURCE_FILTERS = [
 function getSelectedEpisodeSource(episode = {}) {
   const sources = getEpisodePlaybackSources(episode);
   if (!sources.length) return null;
-  const cleanAdultSource = sources.find(isPreferredAdultSource);
+  const failedSourceIds = episode._failedSourceIds;
+  const cleanAdultSource = sources.find((source) => (
+    isPreferredAdultSource(source) && !failedSourceIds?.has(source.id)
+  ));
   if (episode.selectedSourceId && episode.selectedSourceId !== "auto") {
     const selected = sources.find((source) => source.id === episode.selectedSourceId);
-    if (selected && cleanAdultSource && isAdultFallbackSource(selected)) {
+    if (
+      selected
+      && cleanAdultSource
+      && isAdultFallbackSource(selected)
+      && !isPreferredAdultSource(selected)
+    ) {
       episode.selectedSourceId = cleanAdultSource.id;
       episode.videoUrl = "";
       state.activeEpisodeUrl = "";
-      episode._failedSourceIds?.clear?.();
       return cleanAdultSource;
     }
     return selected || sources[0];
@@ -8109,10 +8116,7 @@ function renderVidstreamControls() {
         </div>
         <span class="vid-spacer"></span>
         <button class="vid-tool-button focusable" type="button" data-player-fit aria-label="Video fit mode">${fit === "cover" ? "□" : fit === "fill" ? "▣" : "▭"}</button>
-        <button class="vid-tool-button focusable" type="button" data-player-panel="sources" aria-label="Servers and quality" title="Servers & quality">⇄</button>
         <button class="vid-tool-button focusable" type="button" data-player-panel="speed" aria-label="Playback speed">◴</button>
-        <button class="vid-tool-button focusable" type="button" data-player-panel="subtitles" aria-label="Subtitles">▤</button>
-        <button class="vid-tool-button focusable" type="button" data-player-cast aria-label="Cast">▱</button>
         <button class="vid-tool-button focusable" type="button" data-player-fullscreen aria-label="Fullscreen (F)">⛶</button>
         <button class="vid-tool-button focusable" type="button" data-player-panel="more" aria-label="More options">⋮</button>
       </div>
@@ -12426,12 +12430,15 @@ async function translateSubtitleLine(text, from = "en") {
 async function resolveEpisodeStream(episode) {
   const endpoint = withAnime1vApiKey(episode?.streamResolver?.endpoint || "");
   if (!endpoint) return "";
+  const resolverType = episode?.streamResolver?.type || "";
+  const selectedBeforeResolve = getSelectedEpisodeSource(episode);
+  const resolverSourceId = selectedBeforeResolve?.type === "resolver" ? selectedBeforeResolve.id : "";
   try {
     const response = await fetch(endpoint, { cache: "no-store" });
     if (!response.ok) return "";
     const payload = await response.json();
     const candidateUrl = pickPlayableUrl(payload);
-    const url = isBlockedPlaybackUrl(candidateUrl) ? "" : candidateUrl;
+    let url = isBlockedPlaybackUrl(candidateUrl) ? "" : candidateUrl;
     const subtitles = normalizeSubtitleTracks(payload);
     if (subtitles.length) episode.subtitles = subtitles;
     if (payload.availableAudio?.length) episode.availableAudio = payload.availableAudio;
@@ -12440,14 +12447,18 @@ async function resolveEpisodeStream(episode) {
     if (payload.defaultSubs || payload.defaultSubtitles) episode.defaultSubs = payload.defaultSubs || payload.defaultSubtitles;
     if (payload.hasSpanishSubtitles !== undefined) episode.hasSpanishSubtitles = payload.hasSpanishSubtitles;
     if (payload.subtitleWarning) episode.subtitleWarning = payload.subtitleWarning;
+    const resolvedPayloadSources = [
+      ...(Array.isArray(payload.sourceOptions) ? payload.sourceOptions : []),
+      ...(Array.isArray(payload.sources) ? payload.sources : []),
+      ...(Array.isArray(payload.streams) ? payload.streams : []),
+      ...(Array.isArray(payload.files) ? payload.files : [])
+    ];
     const resolvedSources = normalizeEpisodeSourceOptions({
       ...episode,
+      videoUrl: resolverType === "underhentai" ? "" : episode.videoUrl,
       sourceOptions: [
         ...(episode.sourceOptions || []),
-        ...(Array.isArray(payload.sourceOptions) ? payload.sourceOptions : []),
-        ...(Array.isArray(payload.sources) ? payload.sources : []),
-        ...(Array.isArray(payload.streams) ? payload.streams : []),
-        ...(Array.isArray(payload.files) ? payload.files : [])
+        ...resolvedPayloadSources
       ]
     });
     if (resolvedSources.length) episode.sourceOptions = resolvedSources.filter((source) => !isBlockedPlaybackSource(source));
@@ -12458,7 +12469,24 @@ async function resolveEpisodeStream(episode) {
       return "";
     }
     if (!url) return "";
-    episode.videoUrl = url;
+    if (resolverType === "underhentai") {
+      const payloadSourceIds = new Set(resolvedPayloadSources.map((source) => source?.id).filter(Boolean));
+      const failedSourceIds = episode._failedSourceIds || new Set();
+      episode._failedSourceIds = failedSourceIds;
+      if (resolverSourceId) failedSourceIds.add(resolverSourceId);
+      const resolvedDirectSource = (episode.sourceOptions || []).find((source) => (
+        payloadSourceIds.has(source.id)
+        && source.type === "direct"
+        && source.videoUrl
+        && !failedSourceIds.has(source.id)
+      ));
+      if (!resolvedDirectSource) return "";
+      episode.selectedSourceId = resolvedDirectSource.id;
+      episode.videoUrl = "";
+      url = resolvedDirectSource.videoUrl;
+    } else {
+      episode.videoUrl = url;
+    }
     episode.locked = false;
     state.activeEpisodeUrl = url;
     return url;

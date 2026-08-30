@@ -310,7 +310,7 @@ const SECURITY_HEADERS = {
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'none'",
+    "frame-ancestors 'self'",
     "upgrade-insecure-requests"
   ].join("; "),
   ...(HOSTED_RUNTIME ? { "Strict-Transport-Security": STRICT_TRANSPORT_SECURITY } : {})
@@ -8171,6 +8171,20 @@ function decodeUnderHentaiImage(value = "") {
   }
 }
 
+function isUnderHentaiTitleArtwork(value = "") {
+  try {
+    const parsed = new URL(decodeHtmlEntities(value), UNDERHENTAI_BASE);
+    const pathname = parsed.pathname.toLowerCase();
+    if (pathname.endsWith("/no_image_p.jpg")) return true;
+    return parsed.hostname.toLowerCase() === "static.underhentai.net"
+      && (pathname.startsWith("/assets/") || pathname.startsWith("/uploads/"))
+      && /\.(?:avif|jpe?g|png|webp)$/.test(pathname)
+      && !pathname.includes("/themes/");
+  } catch {
+    return false;
+  }
+}
+
 function underHentaiAttribute(tag = "", name = "") {
   const match = String(tag).match(new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, "i"));
   return decodeHtmlEntities(match?.[1] ?? match?.[2] ?? match?.[3] ?? "");
@@ -8367,8 +8381,9 @@ function parseUnderHentaiListing(html = "", page = 1) {
       || "";
     const href = underHentaiAttribute(linkTag, "href");
     const title = stripHtml(heading?.[1] || "");
-    const imageTag = block.match(/<img\b[^>]*>/i)?.[0] || "";
-    const image = decodeUnderHentaiImage(underHentaiAttribute(imageTag, "src"));
+    const image = [...block.matchAll(/<img\b[^>]*>/gi)]
+      .map((imageMatch) => underHentaiAttribute(imageMatch[0], "src") || underHentaiAttribute(imageMatch[0], "data-src"))
+      .find(isUnderHentaiTitleArtwork) || "";
     if (!title || !href) continue;
     try {
       const itemUrl = new URL(href, UNDERHENTAI_BASE);
@@ -8526,9 +8541,11 @@ function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
     .filter((value, index, values) => value && values.indexOf(value) === index);
   const originalCover = [...html.matchAll(/<a\b[^>]*class\s*=\s*(?:"[^"]*\bglightbox\b[^"]*"|'[^']*\bglightbox\b[^']*')[^>]*>/gi)]
     .map((match) => underHentaiAttribute(match[0], "href"))
-    .find((value) => /static\.underhentai\.net\/assets\/images\//i.test(value)) || "";
-  const coverTags = [...html.matchAll(/<img\b[^>]*(?:fetchpriority\s*=\s*(?:"high"|'high'|high)|\/uploads\/)[^>]*>/gi)];
-  const image = decodeUnderHentaiImage(originalCover || coverTags.map((match) => underHentaiAttribute(match[0], "src")).find(Boolean) || "");
+    .find(isUnderHentaiTitleArtwork) || "";
+  const inlineCover = [...html.matchAll(/<img\b[^>]*>/gi)]
+    .map((match) => underHentaiAttribute(match[0], "src") || underHentaiAttribute(match[0], "data-src"))
+    .find(isUnderHentaiTitleArtwork) || "";
+  const image = decodeUnderHentaiImage(originalCover || inlineCover || "");
   const sectionMatches = [...html.matchAll(/class\s*=\s*(?:"[^"]*\b(?:ep2-header|ep-header)\b[^"]*"|'[^']*\b(?:ep2-header|ep-header)\b[^']*'|(?:ep2-header|ep-header))[^>]*>([\s\S]*?)<\/div>/gi)];
   const episodes = new Map();
 
@@ -9220,7 +9237,7 @@ async function handleUnderHentaiStream(url, response) {
         directUrl = sourceProxyPath(directUrl, "hentaiplayer.com");
       }
       return {
-        id: `underhentai-provider-${index + 1}`,
+        id: `underhentai-r${releaseIndex + 1}-provider-${index + 1}`,
         label: isKraken ? "KrakenFiles" : isHentaiPlayer ? "HentaiPlayer" : isZoPlayer ? "ZoPlayer" : "LuluStream",
         type: directUrl ? "direct" : "iframe",
         videoUrl: directUrl || "",
