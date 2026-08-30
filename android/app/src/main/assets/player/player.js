@@ -279,7 +279,17 @@
     });
     hls.on(window.Hls.Events.ERROR, (_, data) => {
       if (!data?.fatal) return;
-      console.error("[ZenkaiPlayer] HLS fatal error", data);
+      console.error("[ZenkaiPlayer] HLS fatal error", JSON.stringify({
+        type: data.type,
+        details: data.details,
+        reason: data.reason,
+        error: data.error?.message || String(data.error || ""),
+        response: data.response ? {
+          code: data.response.code,
+          text: data.response.text,
+          url: data.response.url
+        } : null
+      }));
       if (data.type === window.Hls.ErrorTypes.NETWORK_ERROR) {
         recoveryCount += 1;
         if (recoveryCount <= 4) {

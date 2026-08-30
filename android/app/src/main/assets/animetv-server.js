@@ -8656,25 +8656,36 @@ async function resolveLuluStream(embedUrl = "") {
   try {
     const parsed = new URL(embedUrl);
     if (!/(?:^|\.)(?:luluvdo|lulustream)\.com$/i.test(parsed.hostname)) return "";
-    const upstream = await fetchWithRetry(parsed.toString(), {
-      headers: {
-        "User-Agent": UNDERHENTAI_HEADERS["User-Agent"],
-        Accept: UNDERHENTAI_HEADERS.Accept,
-        Referer: UNDERHENTAI_BASE
+    const mediaId = parsed.pathname.match(/\/(?:embed|e)\/([a-z0-9_-]+)(?:\/|$)/i)?.[1] || "";
+    const providerPages = [parsed];
+    if (mediaId) providerPages.push(new URL(`https://www.lulustream.com/e/${mediaId}`));
+
+    for (const providerPage of providerPages) {
+      const providerHost = providerPage.hostname.toLowerCase();
+      const upstream = await fetchWithRetry(providerPage.toString(), {
+        headers: {
+          "User-Agent": UNDERHENTAI_HEADERS["User-Agent"],
+          Accept: "*/*",
+          Referer: `https://${providerHost}/`,
+          Origin: `https://${providerHost}`,
+          "Sec-Fetch-Dest": "empty",
+          "Sec-Fetch-Mode": "cors",
+          "Sec-Fetch-Site": "cross-site"
+        }
+      }, 1);
+      if (!upstream.ok) continue;
+      const html = await upstream.text();
+      for (const scriptMatch of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {
+        if (!scriptMatch[1].includes("eval(function(p,a,c,k,e,d)")) continue;
+        const unpacked = unpackPackerScript(scriptMatch[1]);
+        const mediaMatch = unpacked.match(/(?:file|src)\s*:\s*["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/i);
+        if (!mediaMatch) continue;
+        const mediaUrl = new URL(decodeHtmlEntities(mediaMatch[1]).replace(/\\\//g, "/"));
+        if (mediaUrl.protocol !== "https:" || isBlockedPlaybackUrl(mediaUrl.toString())) continue;
+        const url = sourceProxyPath(mediaUrl.toString(), providerHost);
+        luluStreamDirectCache.set(cacheKey, { url, ts: Date.now() });
+        return url;
       }
-    }, 1);
-    if (!upstream.ok) return "";
-    const html = await upstream.text();
-    for (const scriptMatch of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {
-      if (!scriptMatch[1].includes("eval(function(p,a,c,k,e,d)")) continue;
-      const unpacked = unpackPackerScript(scriptMatch[1]);
-      const mediaMatch = unpacked.match(/(?:file|src)\s*:\s*["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/i);
-      if (!mediaMatch) continue;
-      const mediaUrl = new URL(decodeHtmlEntities(mediaMatch[1]).replace(/\\\//g, "/"));
-      if (mediaUrl.protocol !== "https:" || isBlockedPlaybackUrl(mediaUrl.toString())) continue;
-      const url = sourceProxyPath(mediaUrl.toString(), parsed.hostname.toLowerCase());
-      luluStreamDirectCache.set(cacheKey, { url, ts: Date.now() });
-      return url;
     }
   } catch (error) {
     log("warn", "LuluStream direct resolution failed", { url: embedUrl, error: error.message });
@@ -9053,6 +9064,11 @@ async function handleUnderHentaiStream(url, response) {
         directUrl = resolveZoPlayer(embed);
       } else if (isLuluStream) {
         directUrl = await resolveLuluStream(embed);
+      }
+      if (directUrl && isKraken) {
+        directUrl = sourceProxyPath(directUrl, "krakenfiles.com");
+      } else if (directUrl && isHentaiPlayer && /^https?:\/\//i.test(directUrl)) {
+        directUrl = sourceProxyPath(directUrl, "hentaiplayer.com");
       }
       return {
         id: `underhentai-provider-${index + 1}`,
