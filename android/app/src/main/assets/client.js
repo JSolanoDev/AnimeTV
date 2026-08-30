@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=506`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=507`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2881,7 +2881,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=506";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=507";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -9761,9 +9761,25 @@ function playerFitScaleValue(fit = state.uiPreferences.playerFit || "contain") {
   return 0;
 }
 
+// The version index.html actually loaded this file at. Using it for the player
+// iframe keeps ONE source of truth: bump index.html and the player URL follows.
+// It used to be a hand-maintained "9" that sat still for ~500 releases while the
+// shell moved on, and because the service worker treats any ?v= URL as immutable
+// cache-first, that frozen URL was cached cache-first as though it were a
+// versioned asset.
+const PLAYER_SHELL_VERSION = (() => {
+  try {
+    const tags = document.querySelectorAll('script[src*="client.js"]');
+    const src = tags.length ? tags[tags.length - 1].src : "";
+    return src ? (new URL(src, location.origin).searchParams.get("v") || "") : "";
+  } catch (err) {
+    return "";
+  }
+})();
+
 function buildPlayerUrl(videoUrl = "", title = "", options = {}) {
   const playerUrl = new URL("/player/player.html", location.origin);
-  playerUrl.searchParams.set("v", "9");
+  if (PLAYER_SHELL_VERSION) playerUrl.searchParams.set("v", PLAYER_SHELL_VERSION);
   const source = isLocalSourceProxyUrl(videoUrl)
     ? localSourceProxyPath(videoUrl)
     : resolveSourceEndpoint(videoUrl);
@@ -14769,7 +14785,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=506");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=507");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

@@ -89,6 +89,10 @@ for (const { html, sw, label } of TARGETS) {
 // otherwise.
 const SCANNED_JS = [
   "client.js",
+  // player.html references player.css/player.js with their own ?v=; those drifted
+  // to v504 while the shell was on v506 and nothing noticed.
+  "player/player.html",
+  "player/player.js",
   ...(existsSync("js") ? readdirSync("js").filter((f) => f.endsWith(".js")).map((f) => `js/${f}`) : [])
 ];
 const ASSET_REF = /["'`]([\w./-]+\.(?:webp|png|jpe?g|svg|css|js|json))\?v=(\d+)/g;
@@ -111,6 +115,24 @@ if (rootVersionMatch) {
   }
   if (!jsDrift) console.log(`  PASS  js: no stale ?v= asset refs across ${SCANNED_JS.length} script files`);
 }
+
+// The player iframe URL must derive its version, never carry a literal.
+// client.js used to do `playerUrl.searchParams.set("v", "9")` - a hand-maintained
+// revision that stayed at 9 while the shell moved through ~500 releases. Because
+// the service worker treats ANY ?v= URL as immutable cache-first, that frozen URL
+// was cached as though it were a versioned asset. Bumping it by hand is not a fix
+// if the next person can reintroduce the literal, so it is asserted here.
+const HARDCODED_PLAYER_VERSION = /searchParams\.set\(\s*["']v["']\s*,\s*["'](\d+)["']\s*\)/;
+for (const file of ["client.js", "android/app/src/main/assets/client.js"]) {
+  if (!existsSync(file)) continue;
+  const hit = readFileSync(file, "utf8").match(HARDCODED_PLAYER_VERSION);
+  if (hit) {
+    failed++;
+    console.log(`  FAIL  ${file} hardcodes the player URL version ("${hit[1]}")`);
+    console.log("        Derive it instead (see PLAYER_SHELL_VERSION) so one bump moves everything.");
+  }
+}
+if (!failed) console.log("  PASS  player iframe URL derives its version (no hardcoded literal)");
 
 if (failed) {
   console.log(`\nAsset version check FAILED (${failed} problem${failed === 1 ? "" : "s"}).`);

@@ -16,6 +16,12 @@ if (!Number.isFinite(next) || next <= 0) { console.error(`Bad target version: ${
 
 const files = [
   "index.html", "service-worker.js", "client.js",
+  // player.html carries its OWN ?v= refs to player.css/player.js. They were not
+  // bumped here, so they sat at v504 while the shell moved to v506 - and since
+  // .js/.css are served immutable for a year, anyone who had cached v504 kept a
+  // stale player until the URL changed. Same failure as /update-manager.js?v=338.
+  "player/player.html",
+  "android/app/src/main/assets/player/player.html",
   "android/app/src/main/assets/index.html",
   "android/app/src/main/assets/service-worker.js",
   "android/app/src/main/assets/client.js",
