@@ -197,9 +197,9 @@ button {
   gap: 0.75rem;
   color: #ffffff;
   background:
-    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.2), transparent 18rem),
-    radial-gradient(circle at 50% 50%, rgba(37, 99, 235, 0.14), transparent 22rem),
-    linear-gradient(180deg, #0D1B2A, #081320 96%);
+    radial-gradient(circle at 50% 46%, rgba(138, 92, 255, 0.20), transparent 20rem),
+    radial-gradient(circle at 50% 58%, rgba(0, 210, 255, 0.12), transparent 24rem),
+    #070914;
   transition: opacity 180ms ease, visibility 180ms ease;
 }
 
@@ -210,10 +210,21 @@ button {
   margin-top: 0.45rem;
   border-radius: 999rem;
   background:
-    linear-gradient(90deg, rgba(59, 130, 246, 0), rgba(92, 155, 255, 0.95), rgba(59, 130, 246, 0.95), rgba(59, 130, 246, 0));
+    linear-gradient(90deg, rgba(138, 92, 255, 0), rgba(138, 92, 255, 0.95), rgba(0, 210, 255, 0.95), rgba(0, 210, 255, 0));
   background-size: 180% 100%;
-  box-shadow: 0 0 1.3rem rgba(59, 130, 246, 0.28);
+  box-shadow: 0 0 1.4rem rgba(138, 92, 255, 0.32);
   animation: loader-fill 1.15s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader-mark,
+  .loader-mark::before,
+  .loader-mark::after,
+  .loader-logo,
+  .app-loader::after {
+    animation: none !important;
+  }
+  .loader-mark::before { border-top-color: #8a5cff; }
 }
 
 .app-loader.is-hidden {
@@ -233,8 +244,8 @@ button {
   background: #0D1B2A;
   box-shadow:
     0 1.3rem 2.8rem rgba(0, 0, 0, 0.42),
-    0 0 2.4rem rgba(59, 130, 246, 0.3),
-    inset 0 0 0 0.08rem rgba(92, 155, 255, 0.22);
+    0 0 2.6rem rgba(138, 92, 255, 0.30),
+    inset 0 0 0 0.08rem rgba(138, 92, 255, 0.24);
   overflow: hidden;
   animation: loader-breathe 2.4s ease-in-out infinite;
 }
@@ -245,9 +256,9 @@ button {
   position: absolute;
   inset: -0.42rem;
   border-radius: 2rem;
-  border: 0.17rem solid rgba(92, 155, 255, 0.14);
-  border-top-color: #3B82F6;
-  border-right-color: rgba(59, 130, 246, 0.5);
+  border: 0.17rem solid rgba(255, 255, 255, 0.07);
+  border-top-color: #8a5cff;
+  border-right-color: rgba(0, 210, 255, 0.55);
   animation: loader-spin 1.05s linear infinite;
 }
 
@@ -258,7 +269,7 @@ button {
   inset: 0;
   z-index: 2;
   border-radius: inherit;
-  background: linear-gradient(115deg, transparent 40%, rgba(180, 210, 255, 0.42) 50%, transparent 60%);
+  background: linear-gradient(115deg, transparent 40%, rgba(233, 226, 255, 0.34) 50%, transparent 60%);
   transform: translateX(-130%);
   animation: logo-shimmer 3.4s ease-in-out infinite;
   pointer-events: none;
@@ -270,7 +281,7 @@ button {
   width: 72%;
   height: 72%;
   object-fit: contain;
-  filter: drop-shadow(0 0 0.7rem rgba(59, 130, 246, 0.42));
+  filter: drop-shadow(0 0 0.8rem rgba(138, 92, 255, 0.45));
   animation: loader-logo-pulse 2.4s ease-in-out infinite;
 }
 
