@@ -1127,6 +1127,22 @@ function checkRateLimit(request, url) {
     rateLimitBuckets.set(key, bucket);
     return { allowed: bucket.count <= anilistLimit, limit: anilistLimit, retryAfterMs: Math.max(0, bucket.resetAt - now) };
   }
+  // /api/image is a POSTER PROXY, not an expensive API. One homepage paint
+  // legitimately asks for a poster + backdrop per card (84 cards initially),
+  // so sharing the 120/min API budget made the app rate-limit ITSELF within
+  // seconds: posters came back 429 and simply never rendered. Give images
+  // their own generous bucket - the responses are idempotent, cacheable GETs
+  // and the service worker keeps them, so volume here is normal, not abuse.
+  if (url.pathname === "/api/image") {
+    const imageLimit = Math.max(1200, RATE_LIMIT_API_MAX_REQUESTS * 10);
+    const key = `${getClientIp(request)}:image`;
+    const now = Date.now();
+    const bucket = rateLimitBuckets.get(key) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
+    if (now > bucket.resetAt) { bucket.count = 0; bucket.resetAt = now + RATE_LIMIT_WINDOW_MS; }
+    bucket.count += 1;
+    rateLimitBuckets.set(key, bucket);
+    return { allowed: bucket.count <= imageLimit, limit: imageLimit, retryAfterMs: Math.max(0, bucket.resetAt - now) };
+  }
   const limit = url.pathname.startsWith("/api/") ? RATE_LIMIT_API_MAX_REQUESTS : RATE_LIMIT_MAX_REQUESTS;
   const key = `${getClientIp(request)}:${url.pathname.startsWith("/api/") ? "api" : "web"}`;
   const now = Date.now();
