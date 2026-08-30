@@ -129,6 +129,7 @@ const UNDERHENTAI_MINOR_PATTERNS = [/\bjk\b/i];
 const underHentaiDetailCache = new Map();
 const underHentaiLiveCatalogCache = new Map();
 const hentaiPlayerDirectCache = new Map();
+const luluStreamDirectCache = new Map();
 let underHentaiDetailsSnapshot = null;
 let veoHentaiDetailsSnapshot = null;
 const ANIMEAV1_BASE = "https://animeav1.com";
@@ -1172,6 +1173,7 @@ async function prewarmAllSources() {
 async function refreshUnderHentaiLiveCatalog() {
   underHentaiLiveCatalogCache.clear();
   underHentaiDetailCache.clear();
+  luluStreamDirectCache.clear();
   underHentaiDetailsSnapshot = null;
   const items = await loadLiveUnderHentaiCatalog(1);
   return { ok: items.length > 0, count: items.length };
@@ -1310,11 +1312,56 @@ async function handleSourceProxy(request, url, response) {
 
   try {
     const refererHost = String(url.searchParams.get("refererHost") || "").trim();
-    const targetHost = new URL(target).hostname.toLowerCase();
+    const targetUrl = new URL(target);
+    const targetHost = targetUrl.hostname.toLowerCase();
+    const isZilla = targetHost === "player.zilla-networks.com";
+    const isGupload = targetHost === "gupload.xyz" || targetHost === "www.gupload.xyz";
+    const isLuluMedia = /(?:^|\.)(?:luluvdo|lulustream)\.com$/i.test(refererHost);
+    const zillaHash = isZilla
+      ? targetUrl.pathname.match(/^\/(?:m3u8|segs)\/([a-f0-9]{32})(?:\/|$)/i)?.[1] || ""
+      : "";
+    const guploadId = isGupload
+      ? targetUrl.pathname.match(/^\/data\/e\/hls\/([a-z0-9_-]+)(?:\/|$)/i)?.[1] || ""
+      : "";
+    const luluMediaId = isLuluMedia
+      ? targetUrl.pathname.match(/\/([a-z0-9]+)_h(?:\/|$)/i)?.[1] || ""
+      : "";
+    const isZillaSegment = isZilla && /^\/segs\/[a-f0-9]{32}\/.+\.html$/i.test(targetUrl.pathname);
+    const isGuploadSegment = isGupload && /^\/data\/e\/hls\/[a-z0-9_-]+\/[^/]+\.jpg$/i.test(targetUrl.pathname);
     const headers = {
       "User-Agent": String(request.headers["user-agent"] || UNDERHENTAI_HEADERS["User-Agent"])
     };
-    if (/(?:^|\.)krakencloud\.net$/i.test(targetHost)) {
+    if (isZilla) {
+      headers["User-Agent"] = UNDERHENTAI_HEADERS["User-Agent"];
+      headers.Accept = "*/*";
+      headers.Referer = zillaHash
+        ? `https://player.zilla-networks.com/play/${zillaHash}`
+        : "https://player.zilla-networks.com/";
+      headers.Origin = "https://player.zilla-networks.com";
+      headers["Sec-Fetch-Dest"] = "empty";
+      headers["Sec-Fetch-Mode"] = "cors";
+      headers["Sec-Fetch-Site"] = "same-origin";
+    } else if (isGupload) {
+      headers["User-Agent"] = UNDERHENTAI_HEADERS["User-Agent"];
+      headers.Accept = "*/*";
+      headers.Referer = guploadId
+        ? `https://gupload.xyz/data/e/${guploadId}`
+        : "https://gupload.xyz/";
+      headers.Origin = "https://gupload.xyz";
+      headers["Sec-Fetch-Dest"] = "empty";
+      headers["Sec-Fetch-Mode"] = "cors";
+      headers["Sec-Fetch-Site"] = "same-origin";
+    } else if (isLuluMedia) {
+      headers["User-Agent"] = UNDERHENTAI_HEADERS["User-Agent"];
+      headers.Accept = "*/*";
+      headers.Referer = luluMediaId
+        ? `https://${refererHost}/e/${luluMediaId}`
+        : `https://${refererHost}/`;
+      headers.Origin = `https://${refererHost}`;
+      headers["Sec-Fetch-Dest"] = "empty";
+      headers["Sec-Fetch-Mode"] = "cors";
+      headers["Sec-Fetch-Site"] = "cross-site";
+    } else if (/(?:^|\.)krakencloud\.net$/i.test(targetHost)) {
       headers["User-Agent"] = UNDERHENTAI_HEADERS["User-Agent"];
       headers.Referer = "https://krakenfiles.com/";
       headers.Origin = "https://krakenfiles.com";
@@ -1324,7 +1371,11 @@ async function handleSourceProxy(request, url, response) {
     }
     if (request.headers.range) headers.Range = request.headers.range;
     const upstream = await fetchWithTimeout(target, { headers }, 12000);
-    const contentType = upstream.headers.get("content-type") || "application/json; charset=utf-8";
+    const contentType = isZillaSegment
+      ? "video/mp4"
+      : isGuploadSegment
+        ? "video/mp2t"
+        : upstream.headers.get("content-type") || "application/json; charset=utf-8";
     const isPlaylist = /mpegurl|m3u8/i.test(contentType) || /\.m3u8(\?|#|$)/i.test(target);
     const responseHeaders = {
       ...SECURITY_HEADERS,
@@ -7382,12 +7433,15 @@ function normalizeAnimeAv1SourceList(items = [], siteUrl = "", options = {}) {
       const provider = String(item.provider || item.server || `Source ${index + 1}`).trim();
       const rawUrl = normalizeExternalUrl(item.url || item.href || "");
       const zillaMatch = rawUrl.match(/^https?:\/\/player\.zilla-networks\.com\/play\/([a-f0-9]{32})(?:[?#].*)?$/i);
-      const url = zillaMatch
-        ? `${siteUrl}#player`
+      const zillaHlsUrl = zillaMatch
+        ? `https://player.zilla-networks.com/m3u8/${zillaMatch[1]}`
+        : "";
+      const url = zillaMatch && !options.downloads
+        ? sourceProxyPath(zillaHlsUrl, "player.zilla-networks.com")
         : rawUrl;
       if (!url || seen.has(url)) return null;
       seen.add(url);
-      const direct = !zillaMatch && /\.(m3u8|mp4|webm|m4v)(?:$|[?#])/i.test(url);
+      const direct = Boolean(zillaMatch) || /\.(m3u8|mp4|webm|m4v)(?:$|[?#])/i.test(url);
       return {
         provider,
         url,
@@ -7401,7 +7455,7 @@ function normalizeAnimeAv1SourceList(items = [], siteUrl = "", options = {}) {
         quality: provider
       };
     })
-    .filter(Boolean);
+    .filter((item) => item && (options.downloads || item.type === "direct"));
 }
 
 function parseAnimeAv1Info(html = "", slug = "") {
@@ -8027,8 +8081,13 @@ function isSafeAdultMetadata(item = {}) {
 function readUnderHentaiCatalog() {
   try {
     const payload = JSON.parse(fs.readFileSync(UNDERHENTAI_CATALOG_FILE, "utf8"));
-    const items = Array.isArray(payload.items) ? payload.items.filter((item) => item?.safetyExcluded !== true) : [];
-    return { ...payload, items };
+    const storedItems = Array.isArray(payload.items) ? payload.items : [];
+    const items = storedItems.filter(isSafeAdultMetadata);
+    return {
+      ...payload,
+      excludedForSafety: Number(payload.excludedForSafety || 0) + (storedItems.length - items.length),
+      items
+    };
   } catch {
     return { source: "UnderHentai", generatedAt: null, totalFound: 0, excludedForSafety: 0, items: [] };
   }
@@ -8038,7 +8097,7 @@ function readUnderHentaiDetails() {
   if (underHentaiDetailsSnapshot) return underHentaiDetailsSnapshot;
   try {
     const payload = JSON.parse(fs.readFileSync(UNDERHENTAI_DETAILS_FILE, "utf8"));
-    const items = Array.isArray(payload.items) ? payload.items.filter((item) => item?.safetyExcluded !== true) : [];
+    const items = Array.isArray(payload.items) ? payload.items.filter(isSafeAdultMetadata) : [];
     underHentaiDetailsSnapshot = {
       ...payload,
       items,
@@ -8517,6 +8576,112 @@ function parseUnderHentaiEmbeds(html = "") {
   return urls;
 }
 
+function resolveZoPlayer(embedUrl = "") {
+  try {
+    const parsed = new URL(embedUrl);
+    if (!["gupload.xyz", "www.gupload.xyz"].includes(parsed.hostname.toLowerCase())) return "";
+    const mediaId = parsed.pathname.match(/^\/(?:data\/)?e\/([a-z0-9_-]+)(?:\/|$)/i)?.[1] || "";
+    if (!mediaId) return "";
+    return sourceProxyPath(`https://gupload.xyz/data/e/hls/${mediaId}/720p.m3u8`, "gupload.xyz");
+  } catch {
+    return "";
+  }
+}
+
+function decodePackedJsString(value = "") {
+  let decoded = "";
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    if (character !== "\\") {
+      decoded += character;
+      continue;
+    }
+    const escaped = value[index + 1] || "";
+    index += 1;
+    if (escaped === "n") decoded += "\n";
+    else if (escaped === "r") decoded += "\r";
+    else if (escaped === "t") decoded += "\t";
+    else if (escaped === "b") decoded += "\b";
+    else if (escaped === "f") decoded += "\f";
+    else if (escaped === "v") decoded += "\v";
+    else if (escaped === "x" && /^[a-f0-9]{2}$/i.test(value.slice(index + 1, index + 3))) {
+      decoded += String.fromCharCode(Number.parseInt(value.slice(index + 1, index + 3), 16));
+      index += 2;
+    } else if (escaped === "u" && /^[a-f0-9]{4}$/i.test(value.slice(index + 1, index + 5))) {
+      decoded += String.fromCharCode(Number.parseInt(value.slice(index + 1, index + 5), 16));
+      index += 4;
+    } else {
+      decoded += escaped;
+    }
+  }
+  return decoded;
+}
+
+// Decode provider configuration as inert text. Never execute the packed script.
+function unpackPackerScript(script = "") {
+  const match = String(script).match(
+    /eval\(function\(p,a,c,k,e,d\)\{[\s\S]*?\}\('((?:\\.|[^'])*)',(\d+),(\d+),'((?:\\.|[^'])*)'\.split\('\|'\)/i
+  );
+  if (!match) return "";
+  const radix = Number(match[2]);
+  const symbolCount = Number(match[3]);
+  if (radix < 2 || radix > 62 || symbolCount < 1 || symbolCount > 10000) return "";
+  const payload = decodePackedJsString(match[1]);
+  const symbols = decodePackedJsString(match[4]).split("|");
+  if (symbols.length < symbolCount) return "";
+
+  const digitValue = (character) => {
+    const code = character.charCodeAt(0);
+    if (code >= 48 && code <= 57) return code - 48;
+    if (code >= 97 && code <= 122) return code - 87;
+    if (code >= 65 && code <= 90) return code - 29;
+    return -1;
+  };
+  return payload.replace(/\b[0-9A-Za-z]+\b/g, (token) => {
+    let value = 0;
+    for (const character of token) {
+      const digit = digitValue(character);
+      if (digit < 0 || digit >= radix) return token;
+      value = value * radix + digit;
+    }
+    return symbols[value] || token;
+  });
+}
+
+async function resolveLuluStream(embedUrl = "") {
+  const cacheKey = String(embedUrl || "");
+  const cached = luluStreamDirectCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < 1000 * 60 * 15) return cached.url;
+
+  try {
+    const parsed = new URL(embedUrl);
+    if (!/(?:^|\.)(?:luluvdo|lulustream)\.com$/i.test(parsed.hostname)) return "";
+    const upstream = await fetchWithRetry(parsed.toString(), {
+      headers: {
+        "User-Agent": UNDERHENTAI_HEADERS["User-Agent"],
+        Accept: UNDERHENTAI_HEADERS.Accept,
+        Referer: UNDERHENTAI_BASE
+      }
+    }, 1);
+    if (!upstream.ok) return "";
+    const html = await upstream.text();
+    for (const scriptMatch of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {
+      if (!scriptMatch[1].includes("eval(function(p,a,c,k,e,d)")) continue;
+      const unpacked = unpackPackerScript(scriptMatch[1]);
+      const mediaMatch = unpacked.match(/(?:file|src)\s*:\s*["'](https?:\/\/[^"']+\.m3u8[^"']*)["']/i);
+      if (!mediaMatch) continue;
+      const mediaUrl = new URL(decodeHtmlEntities(mediaMatch[1]).replace(/\\\//g, "/"));
+      if (mediaUrl.protocol !== "https:" || isBlockedPlaybackUrl(mediaUrl.toString())) continue;
+      const url = sourceProxyPath(mediaUrl.toString(), parsed.hostname.toLowerCase());
+      luluStreamDirectCache.set(cacheKey, { url, ts: Date.now() });
+      return url;
+    }
+  } catch (error) {
+    log("warn", "LuluStream direct resolution failed", { url: embedUrl, error: error.message });
+  }
+  return "";
+}
+
 function normalizeHentaiPlayerSubtitleTracks(value) {
   const raw = Array.isArray(value)
     ? value
@@ -8871,10 +9036,11 @@ async function handleUnderHentaiStream(url, response) {
       return;
     }
 
-    const sourceOptions = await Promise.all(embeds.map(async (embed, index) => {
+    const resolvedSourceOptions = await Promise.all(embeds.map(async (embed, index) => {
       const isKraken = /krakenfiles/i.test(embed);
       const isHentaiPlayer = /hentaiplayer/i.test(embed);
       const isZoPlayer = /^https?:\/\/(?:www\.)?gupload\.xyz\//i.test(embed);
+      const isLuluStream = /^https?:\/\/(?:www\.)?(?:luluvdo|lulustream)\.com\//i.test(embed);
       let directUrl = null;
       let subtitleTracks = [];
       if (isKraken) {
@@ -8883,37 +9049,40 @@ async function handleUnderHentaiStream(url, response) {
         const resolved = await resolveHentaiPlayer(embed);
         directUrl = typeof resolved === "string" ? resolved : (resolved?.url || "");
         subtitleTracks = Array.isArray(resolved?.subtitles) ? resolved.subtitles : [];
+      } else if (isZoPlayer) {
+        directUrl = resolveZoPlayer(embed);
+      } else if (isLuluStream) {
+        directUrl = await resolveLuluStream(embed);
       }
       return {
         id: `underhentai-provider-${index + 1}`,
         label: isKraken ? "KrakenFiles" : isHentaiPlayer ? "HentaiPlayer" : isZoPlayer ? "ZoPlayer" : "LuluStream",
         type: directUrl ? "direct" : "iframe",
         videoUrl: directUrl || "",
-        externalUrl: embed,
-        externalType: "iframe",
+        externalUrl: directUrl ? "" : embed,
+        externalType: directUrl ? "" : "iframe",
         subtitles: subtitleTracks.length ? subtitleTracks : sourceSubtitles,
         audio: sourceAudio,
         hasSpanishSubtitles: /spanish|español|es\b|spa/i.test(String(sourceSubtitles)) || subtitleTracks.some((track) => /spanish|español|es\b|spa/i.test(`${track.language || ""} ${track.label || ""}`))
       };
     }));
 
-    const directSources = sourceOptions.filter((sourceOption) => sourceOption.type === "direct" && sourceOption.videoUrl);
-    const zoPlayerSource = sourceOptions.find((sourceOption) => sourceOption.label === "ZoPlayer" && sourceOption.externalUrl);
+    const sourceOptions = resolvedSourceOptions.filter((sourceOption) => sourceOption.type === "direct" && sourceOption.videoUrl);
     if (!sourceOptions.length) {
       sendJson(response, {
         ok: false,
-        error: "No playback source is currently available for this release."
+        error: "No direct in-app playback source is currently available for this release."
       }, 404);
       return;
     }
-    const bestSource = directSources[0] || zoPlayerSource || sourceOptions[0];
+    const bestSource = sourceOptions[0];
     const payload = {
       ok: true,
       source: "UnderHentai",
       adultOnly: true,
-      videoUrl: bestSource.type === "direct" ? (bestSource.videoUrl || "") : (bestSource.externalUrl || ""),
-      externalUrl: bestSource.type === "iframe" ? (bestSource.externalUrl || "") : "",
-      externalType: bestSource.type === "iframe" ? (bestSource.externalType || "iframe") : "",
+      videoUrl: bestSource.videoUrl || "",
+      externalUrl: "",
+      externalType: "",
       sourceOptions,
       subtitles: Array.isArray(bestSource.subtitles) ? bestSource.subtitles : [],
       defaultSubs: /spanish|español|es\b|spa/i.test(String(bestSource.subtitles || sourceSubtitles)) ? "spanish" : "",

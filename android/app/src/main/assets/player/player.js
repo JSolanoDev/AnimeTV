@@ -232,11 +232,11 @@
 
   function loadHls(video, url) {
     destroyHls();
-    if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = url;
-      return;
-    }
     if (!window.Hls || !window.Hls.isSupported()) {
+      if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = url;
+        return;
+      }
       showError("HLS is not supported", "This browser cannot play HLS streams and hls.js is not available.");
       send("error", "hls-not-supported");
       return;

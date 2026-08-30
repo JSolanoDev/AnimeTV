@@ -7846,7 +7846,15 @@ function isBlockedPlaybackUrl(value = "") {
 
 function isBlockedPlaybackSource(source = {}) {
   const urls = [source.videoUrl, source.externalUrl, source.url, source.href].filter(Boolean);
-  return urls.some(isBlockedPlaybackUrl) || /\b(?:candy\.ai|player\.zilla-networks\.com)\b/i.test(sourceIdentityText(source));
+  const identitySource = {
+    ...source,
+    videoUrl: isLocalSourceProxyUrl(source.videoUrl) ? "" : source.videoUrl,
+    externalUrl: isLocalSourceProxyUrl(source.externalUrl) ? "" : source.externalUrl,
+    url: isLocalSourceProxyUrl(source.url) ? "" : source.url,
+    href: isLocalSourceProxyUrl(source.href) ? "" : source.href
+  };
+  return urls.some((url) => !isLocalSourceProxyUrl(url) && isBlockedPlaybackUrl(url))
+    || /\b(?:candy\.ai|player\.zilla-networks\.com)\b/i.test(sourceIdentityText(identitySource));
 }
 
 function isPreferredAdultSource(source = {}) {
