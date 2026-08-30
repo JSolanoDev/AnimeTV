@@ -297,6 +297,13 @@ function noteJikanSuccess(key) {
 // Successful lookups are cacheable; an "upstream is unwell" answer must NOT be,
 // or the CDN would keep serving it after Jikan recovers and delay recovery by up
 // to its TTL. This is the one header that really matters for outage recovery.
+//
+// This is also why vercel.json no longer puts a blanket s-maxage on
+// /api/(anilist|jikan)/(.*): a static edge rule cannot tell a real result from an
+// outage payload, so caching had to move here where the outcome is known. Note
+// that vercel.json is schema-validated and supports NO comments - adding one
+// there fails the deployment before it builds, which is exactly how v491 was
+// lost - so the rationale lives here instead.
 const JIKAN_OK_CACHE = { "Cache-Control": "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400" };
 const JIKAN_UNAVAILABLE_CACHE = { "Cache-Control": "no-store, max-age=0" };
 

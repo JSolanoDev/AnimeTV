@@ -43,7 +43,6 @@
       ]
     },
     {
-      "_comment": "AniList/Jikan caching is set PER RESPONSE by the origin, not here. A blanket s-maxage would also cache an 'upstream unavailable' answer at the edge, so after Jikan recovered the CDN would keep serving the outage payload for up to its TTL. The handlers send a cacheable header on real results and no-store on unavailable ones.",
       "source": "/api/(anilist|jikan)/(.*)",
       "headers": [
         { "key": "Vary", "value": "Accept-Encoding" }
