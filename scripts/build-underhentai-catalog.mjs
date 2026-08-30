@@ -1,9 +1,10 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
 const BASE_URL = "https://www.underhentai.net";
 const OUTPUT = resolve("scraper", "underhentai_catalog.json");
-const CONCURRENCY = Math.max(2, Math.min(16, Number(process.env.UNDERHENTAI_CRAWL_CONCURRENCY || 8)));
+const CONCURRENCY = Math.max(1, Math.min(8, Number(process.env.UNDERHENTAI_CRAWL_CONCURRENCY || 2)));
+const REQUEST_INTERVAL_MS = Math.max(250, Number(process.env.UNDERHENTAI_REQUEST_INTERVAL_MS || 550));
 const USER_AGENT = "Mozilla/5.0 (compatible; ZenkaiTVAdultCatalog/1.0)";
 const UNSAFE_MINOR_MARKERS = [
   "child", "children", "elementary", "junior high", "loli", "lolicon",
@@ -94,7 +95,9 @@ function currentMetaRow(html = "", label = "") {
 
 async function fetchText(url, attempts = 3) {
   let lastError;
+  let retryAfterMs = 0;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
+    await waitForRequestSlot();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 18000);
     try {
@@ -104,14 +107,25 @@ async function fetchText(url, attempts = 3) {
       });
       if (response.ok) return await response.text();
       lastError = new Error(`${response.status} ${response.statusText}`);
+      const retryAfter = Number(response.headers.get("retry-after"));
+      retryAfterMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 0;
     } catch (error) {
       lastError = error;
     } finally {
       clearTimeout(timer);
     }
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 500 * (attempt + 1)));
+    const backoff = Math.max(retryAfterMs, 1200 * (attempt + 1));
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, backoff));
   }
   throw lastError || new Error(`Could not fetch ${url}`);
+}
+
+let nextRequestAt = 0;
+async function waitForRequestSlot() {
+  const scheduledAt = Math.max(Date.now(), nextRequestAt);
+  nextRequestAt = scheduledAt + REQUEST_INTERVAL_MS;
+  const delay = scheduledAt - Date.now();
+  if (delay > 0) await new Promise((resolvePromise) => setTimeout(resolvePromise, delay));
 }
 
 function parseListing(html, page) {
@@ -173,7 +187,9 @@ function extractMetadata(html, item) {
     description: stripHtml(descriptionBlock),
     genres,
     image: cover,
-    banner: screenshots[0] || cover,
+    mainWallpaper: cover,
+    banner: cover,
+    screenshots,
     episodeCount: new Set(episodeNumbers).size || Math.max(1, episodeNumbers.length),
     releaseCount: streamCount
   };
@@ -191,7 +207,7 @@ async function mapConcurrent(items, worker) {
         result[index] = await worker(items[index], index);
       } catch (error) {
         console.warn(`Skipping metadata for ${items[index].url}: ${error.message}`);
-        result[index] = { ...items[index], episodeCount: 0, releaseCount: 0, genres: [], safetyExcluded: true };
+        result[index] = null;
       }
       if ((index + 1) % 25 === 0) console.log(`Metadata ${index + 1}/${items.length}`);
     }
@@ -201,6 +217,13 @@ async function mapConcurrent(items, worker) {
 }
 
 async function main() {
+  let existing = { items: [] };
+  try {
+    existing = JSON.parse(await readFile(OUTPUT, "utf8"));
+  } catch {
+    // An unavailable source must not erase a previously verified catalog.
+  }
+  const existingBySlug = new Map((existing.items || []).map((item) => [item.slug, item]));
   const firstHtml = await fetchText(`${BASE_URL}/`);
   const pageNumbers = [...firstHtml.matchAll(/page\/(\d+)\//gi)].map((match) => Number(match[1]));
   const lastPage = Math.max(1, ...pageNumbers);
@@ -213,12 +236,15 @@ async function main() {
   console.log(`Found ${listed.length} title pages across ${lastPage} listing pages.`);
 
   const enriched = await mapConcurrent(listed, async (item) => extractMetadata(await fetchText(item.url), item));
-  const safeItems = enriched.filter((item) => !item.safetyExcluded && item.episodeCount > 0);
+  const freshBySlug = new Map(enriched.filter(Boolean).map((item) => [item.slug, item]));
+  const safeItems = listed
+    .map((listedItem) => freshBySlug.get(listedItem.slug) || existingBySlug.get(listedItem.slug))
+    .filter((item) => item && !item.safetyExcluded && item.episodeCount > 0);
   const payload = {
     source: "UnderHentai",
     generatedAt: new Date().toISOString(),
     totalFound: enriched.length,
-    excludedForSafety: enriched.length - safeItems.length,
+    excludedForSafety: listed.length - safeItems.length,
     items: safeItems
   };
   await mkdir(dirname(OUTPUT), { recursive: true });

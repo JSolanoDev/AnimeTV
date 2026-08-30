@@ -322,7 +322,8 @@ if (falsePositives.length) console.log("        false positives: " + falsePositi
 console.log("");
 console.log("# UnderHentai artwork and metadata mapping");
 const adultAdapter = new UnderHentaiAdultSourceAdapter();
-const workingAdultImage = "https://static.underhentai.net/thumbs/11035/1/1.jpg";
+const workingAdultWallpaper = "https://static.underhentai.net/assets/images/11035-72DA8D5C.jpg";
+const episodeScreenshot = "https://static.underhentai.net/thumbs/11035/1/1.jpg";
 const mappedAdultTitle = adultAdapter._catalogItem({
   slug: "source-metadata-test",
   title: "Source Metadata Test",
@@ -332,12 +333,15 @@ const mappedAdultTitle = adultAdapter._catalogItem({
   status: "Ongoing",
   format: "OVA",
   image: "https://static.underhentai.net/uploads/anime/source-metadata-test.jpg",
-  banner: workingAdultImage,
+  mainWallpaper: workingAdultWallpaper,
+  banner: episodeScreenshot,
+  screenshots: [episodeScreenshot],
   episodeCount: 3,
   releaseCount: 5,
   genres: ["Hentai", "Fantasy"]
 });
-check("broken UnderHentai upload falls back to working thumbnail", mappedAdultTitle.image === workingAdultImage);
+check("UnderHentai title wallpaper wins over an episode screenshot", mappedAdultTitle.image === workingAdultWallpaper);
+check("UnderHentai title wallpaper is used as the backdrop", mappedAdultTitle.backdrop === workingAdultWallpaper);
 check("UnderHentai aired date supplies the catalog year", mappedAdultTitle.year === 2026);
 check("UnderHentai ongoing status maps to RELEASING", mappedAdultTitle.status === "RELEASING");
 check("UnderHentai brand is preserved as a studio", mappedAdultTitle.studios.includes("Test Studio"));

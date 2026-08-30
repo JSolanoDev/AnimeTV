@@ -147,6 +147,7 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
   _bestImage(item = {}) {
     const screenshots = Array.isArray(item.screenshots) ? item.screenshots : [];
     const candidates = [
+      item.mainWallpaper,
       item.image,
       item.poster,
       item.cover,
@@ -160,6 +161,7 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
   _bestBanner(item = {}, fallback = "") {
     const screenshots = Array.isArray(item.screenshots) ? item.screenshots : [];
     return String(
+      item.mainWallpaper ||
       item.banner ||
       item.backdrop ||
       item.background ||
@@ -195,6 +197,7 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
       poster: image,
       cover: image,
       coverImage: image,
+      mainWallpaper: banner || image,
       banner,
       backdrop: banner,
       highQualityBackground: banner || image,
@@ -241,8 +244,8 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
     return (payload.items || []).map((item, index) => this._catalogItem(item, index));
   }
 
-  async listLatest(page = 1) {
-    const payload = await this._request("/catalog", { page });
+  async listLatest(page = 1, options = {}) {
+    const payload = await this._request("/catalog", { page, refresh: options.refresh ? 1 : "" });
     return (payload.items || []).map((item, index) => this._catalogItem(item, index));
   }
 

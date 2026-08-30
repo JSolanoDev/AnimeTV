@@ -1633,7 +1633,7 @@ async function loadAdultCatalog(force = false) {
   }
   if (adultCatalogLoadingPromise && !force) return adultCatalogLoadingPromise;
   const adapter = AdultSourceRegistry.get();
-  const cacheKey = `adult-catalog:${adapter.name}:underhentai-only-v3`;
+  const cacheKey = `adult-catalog:${adapter.name}:underhentai-only-v4`;
   const cachedItems = readResponseCache(cacheKey, CATALOG_CACHE_TTL);
   const applyAdultItems = (items = [], labelPrefix = adapter.name) => {
     const adultItems = Array.isArray(items)
@@ -1655,7 +1655,7 @@ async function loadAdultCatalog(force = false) {
     const adultItems = applyAdultItems(cachedItems, `Cached ${adapter.name}`);
     if (!force) return adultItems;
   }
-  adultCatalogLoadingPromise = Promise.resolve(adapter.listLatest(1))
+  adultCatalogLoadingPromise = Promise.resolve(adapter.listLatest(1, { refresh: force }))
     .then((items) => {
       const adultItems = applyAdultItems(items);
       if (adultItems.length) writeResponseCache(cacheKey, adultItems);
@@ -2221,6 +2221,16 @@ function imageDeliveryUrl(url, width = 360, quality = 70) {
       host === "coverlanyvd.org" ||
       host === "hentaiplayer.com";
     if (!allowed) return raw;
+    // TMDB "/original/" files can be several MB. When we're only rendering a
+    // small image (thumbnails, carousel dots, cards) the proxy still had to pull
+    // that whole original down before resizing, which is why small artwork was
+    // slow to appear. Ask TMDB for its own w780 variant instead -- w780 is valid
+    // for both posters and backdrops, and it is still larger than any target we
+    // resize to here, so there is no visible quality loss.
+    if ((host === "image.tmdb.org" || host === "media.themoviedb.org") &&
+        width && Number(width) <= 780 && parsed.pathname.includes("/original/")) {
+      parsed.pathname = parsed.pathname.replace("/original/", "/w780/");
+    }
     const proxy = new URL("/api/image", location.origin);
     proxy.searchParams.set("src", parsed.toString());
     if (width) proxy.searchParams.set("w", String(width));
@@ -2389,6 +2399,8 @@ function underHentaiBackdropCandidates(show = {}, season = null) {
     ...(Array.isArray(show?.screenshots) ? show.screenshots : [])
   ];
   return [
+    show.mainWallpaper,
+    season?.mainWallpaper,
     show.underHentaiBackdrop,
     season?.underHentaiBackdrop,
     show.adultBackground,
@@ -2687,10 +2699,19 @@ function scheduleCarouselIndicatorHydration() {
       window.setTimeout(hydrate, 900);
     }
   };
+  // Hydrate as soon as the page has finished loading (the hero/LCP image is
+  // already done by then, so this costs nothing on Lighthouse) instead of
+  // waiting for a user interaction or the old 45s fallback -- that made the
+  // carousel's mini thumbnails sit empty for up to 45 seconds on an idle page.
   const revealOnInteraction = () => afterFirstPaint();
   const events = ["pointerdown", "keydown", "wheel", "touchstart"];
   events.forEach((event) => window.addEventListener(event, revealOnInteraction, { capture: true, once: true, passive: true }));
-  window.setTimeout(afterFirstPaint, 45000);
+  if (document.readyState === "complete") {
+    afterFirstPaint();
+  } else {
+    window.addEventListener("load", afterFirstPaint, { once: true });
+    window.setTimeout(afterFirstPaint, 6000); // safety net if `load` never fires
+  }
 }
 
 function simpleCarouselText(show) {
@@ -3295,6 +3316,23 @@ function ensureNotFoundSection() {
 function updateRouteMeta(routeInfo = {}, show = null, target = {}) {
   let title = routeInfo.title || "ZenkaiTV - Watch Anime Online";
   let description = routeInfo.description || "Watch anime online in HD on ZenkaiTV.";
+  const isAdultMode = typeof AdultMode !== "undefined" && AdultMode.isEnabled();
+
+  if (isAdultMode && !show) {
+    title = title
+      .replace("Watch Anime Online", "Watch Adult Anime Online")
+      .replace("Search Anime", "Search Adult Anime")
+      .replace("Anime Library", "Adult Anime Library")
+      .replace("Latest Episodes", "Latest Adult Episodes")
+      .replace("Weekly Schedule", "Weekly Adult Schedule")
+      .replace("Favorites", "Adult Favorites");
+
+    description = description
+      .replace("Watch anime online", "Watch adult anime online")
+      .replace("Search anime", "Search adult anime")
+      .replace("Browse the full ZenkaiTV anime library", "Browse the full ZenkaiTV 18+ adult catalog");
+  }
+
   if (show) {
     const showTitle = getShowTitle(show);
     const ep = Number(target.episodeNumber || state.activeEpisode?.episode?.episode || 0);
@@ -5229,6 +5267,10 @@ function renderSettings() {
           <span>Loaded catalog <small>Live source / title / episode totals</small></span>
           <span class="settings-stat" id="settingsCatalogStatus">${escapeHtml(state.catalogStatus || "Syncing anime metadata…")}</span>
         </div>
+        <div class="settings-line">
+          <span>Adult catalog <small>Sync current UnderHentai releases and title artwork</small></span>
+          <button class="secondary-action focusable" data-refresh-adult-catalog type="button">Refresh</button>
+        </div>
 
         <div class="settings-divider"></div>
         <div class="settings-group-label">Data</div>
@@ -5457,6 +5499,21 @@ function wireSettingsButtons() {
     if (!wasOn && !nowOn) {
       renderSettings();   // user declined the 18+ gate — keep the switch off
       refreshFocusables();
+    }
+  });
+
+  settingsGrid.querySelector("[data-refresh-adult-catalog]")?.addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      await loadAdultCatalog(true);
+      refreshCatalogStatus();
+      showToast("Adult catalog refreshed");
+    } catch {
+      showToast("Adult catalog refresh is temporarily unavailable");
+    } finally {
+      button.disabled = false;
+      if (state.route === "settings") renderSettings();
     }
   });
 
@@ -8111,6 +8168,18 @@ function formatPlayerTime(value = 0) {
     : `${minutes}:${String(rest).padStart(2, "0")}`;
 }
 
+function getPlayableDuration(player) {
+  const duration = Number(player?.duration);
+  if (Number.isFinite(duration) && duration > 0) return duration;
+  try {
+    const ranges = player?.seekable;
+    const end = ranges?.length ? Number(ranges.end(ranges.length - 1)) : 0;
+    return Number.isFinite(end) && end > 0 ? end : 0;
+  } catch {
+    return 0;
+  }
+}
+
 function renderVidstreamTopbar(label = "", filterHtml = "") {
   const nav = getEpisodeNavigationTargets();
   return `
@@ -8167,16 +8236,20 @@ function renderVidstreamControls() {
   return `
     <div class="vid-controls" aria-label="Video controls">
       <button class="vid-skip-intro focusable" type="button" data-player-skip-intro hidden>Skip Intro »</button>
-      <input class="vid-seek focusable" id="playerSeek" type="range" min="0" max="1000" value="0" aria-label="Seek">
+      <div class="vid-timeline">
+        <input class="vid-seek focusable" id="playerSeek" type="range" min="0" max="1000" value="0" aria-label="Seek">
+        <span class="vid-time" id="playerTime">0:00 / --:--</span>
+      </div>
       <div class="vid-control-row">
         <button class="vid-icon-button focusable" type="button" data-player-prev ${nav.previous ? "" : "disabled"} aria-label="Previous episode" title="Previous episode">⏮</button>
+        <button class="vid-icon-button vid-skip-button focusable" type="button" data-player-rewind aria-label="Rewind 10 seconds" title="Rewind 10 seconds">↶<span>10</span></button>
         <button class="vid-icon-button focusable" type="button" data-player-toggle aria-label="Play or pause">▶</button>
+        <button class="vid-icon-button vid-skip-button focusable" type="button" data-player-forward aria-label="Forward 10 seconds" title="Forward 10 seconds">↷<span>10</span></button>
         <button class="vid-icon-button focusable" type="button" data-player-next ${nav.next ? "" : "disabled"} aria-label="Next episode" title="Next episode">⏭</button>
         <div class="vid-volume-control">
           <button class="vid-icon-button focusable" type="button" data-player-volume aria-label="Mute or unmute">▸</button>
           <input class="vid-volume-slider focusable" id="playerVolume" type="range" min="0" max="100" value="50" aria-label="Volume">
         </div>
-        <span class="vid-time" id="playerTime">0:00 / 0:00</span>
         <span class="vid-spacer"></span>
         <button class="vid-tool-button focusable" type="button" data-player-fit aria-label="Video fit mode">${fit === "cover" ? "□" : fit === "fill" ? "▣" : "▭"}</button>
         <button class="vid-tool-button focusable" type="button" data-player-panel="sources" aria-label="Servers and quality" title="Servers & quality">⇄</button>
@@ -9272,7 +9345,7 @@ function playerFitScaleValue(fit = state.uiPreferences.playerFit || "contain") {
 
 function buildPlayerUrl(videoUrl = "", title = "", options = {}) {
   const playerUrl = new URL("/player/player.html", location.origin);
-  playerUrl.searchParams.set("v", "6");
+  playerUrl.searchParams.set("v", "7");
   const source = isLocalSourceProxyUrl(videoUrl)
     ? localSourceProxyPath(videoUrl)
     : resolveSourceEndpoint(videoUrl);
@@ -9454,6 +9527,10 @@ function createApkPlayerController(iframe, options = {}) {
       emit("pause");
     } else if (command === "time") {
       emit("timeupdate");
+    } else if (command === "durationchange") {
+      emit("durationchange");
+    } else if (command === "progress") {
+      emit("progress");
     } else if (command === "waiting" || command === "initializing") {
       emit("waiting");
     } else if (command === "canplay" || command === "playing") {
@@ -9580,24 +9657,56 @@ class VideoPlayer {
             }
           });
 
+          let networkRecoveries = 0;
+          let mediaRecoveries = 0;
+          const failPlayback = () => {
+            hls.destroy();
+            video._animeTvHls = null;
+            const errEvent = new Event("error");
+            video.dispatchEvent(errEvent);
+          };
+
           hls.on(Hls.Events?.ERROR || "hlsError", (event, data) => {
             if (data.fatal) {
               console.error(`[VideoPlayer] Fatal HLS error: ${data.type} - ${data.details}`, data);
               switch (data.type) {
                 case Hls.ErrorTypes.NETWORK_ERROR:
+                  networkRecoveries += 1;
+                  if (networkRecoveries > 3) {
+                    console.error("[VideoPlayer] Network recovery exhausted. Triggering fallback.");
+                    failPlayback();
+                    break;
+                  }
                   console.log("[VideoPlayer] Network error, attempting to recover...");
-                  hls.startLoad();
+                  setTimeout(() => {
+                    if (video._animeTvHls !== hls) return;
+                    try {
+                      hls.stopLoad();
+                      hls.startLoad(video.currentTime || -1);
+                      video.play()?.catch(() => {});
+                    } catch (error) {
+                      failPlayback();
+                    }
+                  }, networkRecoveries * 300);
                   break;
                 case Hls.ErrorTypes.MEDIA_ERROR:
+                  mediaRecoveries += 1;
+                  if (mediaRecoveries > 2) {
+                    console.error("[VideoPlayer] Media recovery exhausted. Triggering fallback.");
+                    failPlayback();
+                    break;
+                  }
                   console.log("[VideoPlayer] Media error, attempting to recover...");
-                  hls.recoverMediaError();
+                  try {
+                    hls.recoverMediaError();
+                    video.play()?.catch(() => {});
+                  } catch (error) {
+                    failPlayback();
+                  }
                   break;
                 default:
                   console.error("[VideoPlayer] Unrecoverable HLS error. Triggering fallback.");
-                  hls.destroy();
-                  video._animeTvHls = null;
-                  const errEvent = new Event("error");
-                  video.dispatchEvent(errEvent);
+                  failPlayback();
                   break;
               }
             }
@@ -9881,6 +9990,8 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
   const seek = frame.querySelector("#playerSeek");
   const time = frame.querySelector("#playerTime");
   const toggle = frame.querySelector("[data-player-toggle]");
+  const rewind = frame.querySelector("[data-player-rewind]");
+  const forward = frame.querySelector("[data-player-forward]");
   const volume = frame.querySelector("[data-player-volume]");
   const volumeSlider = frame.querySelector("#playerVolume");
   const loader = frame.querySelector(".vid-loader");
@@ -9903,12 +10014,19 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
   });
 
   const updateTime = () => {
-    const duration = video.duration || 0;
+    const duration = getPlayableDuration(video);
     const current = video.currentTime || 0;
-    if (time) time.textContent = `${formatPlayerTime(current)} / ${formatPlayerTime(duration)}`;
+    if (time) time.textContent = `${formatPlayerTime(current)} / ${duration ? formatPlayerTime(duration) : "--:--"}`;
     if (seek && duration && !seek.matches(":active")) {
       seek.value = String(Math.round((current / duration) * 1000));
     }
+  };
+
+  const seekBy = (delta) => {
+    const duration = getPlayableDuration(video) || Infinity;
+    video.currentTime = Math.max(0, Math.min(duration, (video.currentTime || 0) + delta));
+    updateTime();
+    showToast(delta < 0 ? "Rewind 10s" : "Forward 10s");
   };
 
   const updateToggle = () => {
@@ -9927,6 +10045,8 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
     if (video.paused) video.play().catch(() => showToast("Tap play again if the browser blocked autoplay."));
     else video.pause();
   });
+  rewind?.addEventListener("click", () => seekBy(-10));
+  forward?.addEventListener("click", () => seekBy(10));
   volume?.addEventListener("click", () => {
     video.muted = !video.muted;
     updateVolume();
@@ -9938,8 +10058,9 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
     updateVolume();
   });
   seek?.addEventListener("input", () => {
-    if (!video.duration) return;
-    video.currentTime = (Number(seek.value) / 1000) * video.duration;
+    const duration = getPlayableDuration(video);
+    if (!duration) return;
+    video.currentTime = (Number(seek.value) / 1000) * duration;
   });
   frame.querySelector("[data-player-exit]")?.addEventListener("click", exitPlayerToSources);
   frame.querySelector("[data-player-back]")?.addEventListener("click", () => showEpisodeListTab());
@@ -9973,11 +10094,9 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
     const rect = stage.getBoundingClientRect();
     const rel = (clientX - rect.left) / (rect.width || 1);
     if (rel < 0.35) {
-      video.currentTime = Math.max(0, (video.currentTime || 0) - 10);
-      showToast("Rewind 10s");
+      seekBy(-10);
     } else if (rel > 0.65) {
-      video.currentTime = Math.min(video.duration || Infinity, (video.currentTime || 0) + 10);
-      showToast("Forward 10s");
+      seekBy(10);
     } else {
       toggleNativeFullscreen(shell);
     }
@@ -10004,6 +10123,9 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
   }, { passive: false });
 
   video.addEventListener("loadedmetadata", updateTime);
+  video.addEventListener("durationchange", updateTime);
+  video.addEventListener("progress", updateTime);
+  video.addEventListener("canplay", updateTime);
   video.addEventListener("timeupdate", updateTime);
   video.addEventListener("timeupdate", updateSkipIntro);
   video.addEventListener("play", updateToggle);
@@ -10899,7 +11021,10 @@ function scheduleVisibleMetadataWarm(shows = state.shows, limit = HOME_INITIAL_C
   // scheduling the idle warm, so the ~80-request hydration burst lands AFTER the
   // visual-complete window instead of competing inside it. Immediate clicks are
   // still covered by the per-card pointerenter preload in wireOpenButtons.
-  const defer = () => window.setTimeout(idle, 45000);
+  // 4s (was 45s): waiting for `load` already puts this burst after the LCP /
+  // Speed-Index window, so the extra 45s bought no Lighthouse score -- it just
+  // left posters and episode metadata un-upgraded for the best part of a minute.
+  const defer = () => window.setTimeout(idle, 4000);
   if (document.readyState === "complete") defer();
   else window.addEventListener("load", defer, { once: true });
 }
@@ -12107,6 +12232,7 @@ function renderDirectVideoPlayer(frame, url, episode) {
         }
       })
     : frame.querySelector("#animePlayer");
+  if (iframe && player?.isApkPlayer) iframe._zenkaiPlayerController = player;
   // Apply the saved default volume (factory default is 10% so it's not jarring)
   if (player) {
     const savedVol = Number(state.uiPreferences.defaultVolume ?? 0.1);
@@ -12210,6 +12336,11 @@ function renderDirectVideoPlayer(frame, url, episode) {
       episodeIndex: nav.next.episodeIndex
     };
     state.activeEpisodeUrl = getEpisodeUrl(nextEpisode);
+    const nextSeasonNum = nextSeason?.season || nav.next.seasonIndex + 1 || 1;
+    const nextEpisodeNum = nextEpisode?.episode || nav.next.episodeIndex + 1 || 1;
+    appRouter()?.navigate?.(episodePathForShow(state.activeShow, nextSeasonNum, nextEpisodeNum, nextSeason.part || ""), { silent: true });
+    state.currentRouteInfo = appRouter()?.parsePath?.(location.pathname) || state.currentRouteInfo;
+    updateRouteMeta(state.currentRouteInfo || {}, state.activeShow, { seasonNumber: nextSeasonNum, episodeNumber: nextEpisodeNum });
     renderEpisodeList(state.activeShow);
     playActiveShow();
   });
@@ -12879,7 +13010,9 @@ function wireOpenButtons() {
 }
 
 function openCarouselShow() {
-  const current = todayShows()[state.carouselIndex] || state.shows.find((show) => String(show.id) === String(carouselOpen.dataset.openShow));
+  const openShowId = String(carouselOpen.dataset.openShow || carouselStage.dataset.openShow || "");
+  const current = catalogShows().find((show) => String(show.id) === openShowId)
+    || state.shows.find((show) => String(show.id) === openShowId);
   if (!current) return;
   const target = getCardTarget(current);
   openShow(current.id, {
@@ -13223,6 +13356,11 @@ fakePlay.addEventListener("click", () => {
   const frame = document.querySelector("#videoFrame");
   const show = state.activeShow;
   if (frame && show && ep) {
+    const seasonNumber = ep.season?.season || ep.seasonIndex + 1 || 1;
+    const episodeNumber = ep.episode?.episode || ep.episodeIndex + 1 || 1;
+    appRouter()?.navigate?.(episodePathForShow(show, seasonNumber, episodeNumber, ep.season?.part || ""), { silent: true });
+    state.currentRouteInfo = appRouter()?.parsePath?.(location.pathname) || state.currentRouteInfo;
+    updateRouteMeta(state.currentRouteInfo || {}, show, { seasonNumber, episodeNumber });
     // If already in cinema mode, just play
     if (document.body.classList.contains("player-cinema-open")) {
       playActiveShow();
@@ -13448,8 +13586,9 @@ document.addEventListener("keydown", (event) => {
 
   // Intercept player shortcuts
   const cinema = document.querySelector(".vidstream-player.is-cinema");
-  const player = document.querySelector("#animePlayer");
-  if (cinema && player && !player.isApkPlayer && !cinema.querySelector(".source-picker")) {
+  const player = document.querySelector("#animePlayer")
+    || document.querySelector("#animePlayerFrame")?._zenkaiPlayerController;
+  if (cinema && player && !cinema.querySelector(".source-picker")) {
     const ae = document.activeElement;
     const editingText = !!ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA") && ae.type !== "range" && !ae.readOnly;
     const isControlFocused = ae && (ae.classList.contains("focusable") || ae.closest(".vid-controls") || ae.closest(".vid-topbar") || ae.closest(".vid-panel"));
@@ -13470,7 +13609,7 @@ document.addEventListener("keydown", (event) => {
         handled = true;
       } else if (event.key === "ArrowRight" && !isControlFocused) {
         event.preventDefault();
-        player.currentTime = Math.min(player.duration || 0, player.currentTime + 10);
+        player.currentTime = Math.min(getPlayableDuration(player) || Infinity, player.currentTime + 10);
         showToast("Forward 10s");
         handled = true;
       } else if (event.key === "ArrowUp" && !isControlFocused) {
@@ -13632,9 +13771,12 @@ if (typeof AdultMode !== "undefined") {
 }
 
 // ── Supabase Authentication & Social Logins ──────────────────────────────────
+// Set ENABLE_SUPABASE_AUTH to true to re-enable accounts & cloud sync when the
+// database is ready. While false the app runs entirely on local storage.
+const ENABLE_SUPABASE_AUTH = false;
 let supabaseClient = null;
 let supabaseInitPromise = null;
-let supabaseUnavailable = false;
+let supabaseUnavailable = !ENABLE_SUPABASE_AUTH; // pre-disabled when flag is false
 
 function loadExternalScript(url) {
   return new Promise((resolve, reject) => {
@@ -14160,7 +14302,8 @@ if (typeof window !== "undefined") {
   const startAuth = () => {
     wireAuthEvents();
     updateAuthUi();
-    if (hasSupabaseSession()) {
+    // Only attempt Supabase session restore when auth is enabled
+    if (ENABLE_SUPABASE_AUTH && hasSupabaseSession()) {
       const run = () => initSupabase();
       if ("requestIdleCallback" in window) window.requestIdleCallback(run, { timeout: 3000 });
       else window.setTimeout(run, 1600);

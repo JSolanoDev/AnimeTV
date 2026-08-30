@@ -4,8 +4,9 @@ import { dirname, resolve } from "node:path";
 const BASE_URL = "https://www.underhentai.net";
 const CATALOG = resolve("scraper", "underhentai_catalog.json");
 const OUTPUT = resolve("scraper", "underhentai_details.json");
-const TITLE_CONCURRENCY = Math.max(1, Math.min(8, Number(process.env.UNDERHENTAI_DETAIL_CONCURRENCY || 3)));
-const WATCH_CONCURRENCY = Math.max(1, Math.min(8, Number(process.env.UNDERHENTAI_WATCH_CONCURRENCY || 3)));
+const TITLE_CONCURRENCY = Math.max(1, Math.min(8, Number(process.env.UNDERHENTAI_DETAIL_CONCURRENCY || 2)));
+const WATCH_CONCURRENCY = Math.max(1, Math.min(8, Number(process.env.UNDERHENTAI_WATCH_CONCURRENCY || 2)));
+const REQUEST_INTERVAL_MS = Math.max(250, Number(process.env.UNDERHENTAI_REQUEST_INTERVAL_MS || 550));
 const USER_AGENT = "Mozilla/5.0 (compatible; ZenkaiTVAdultCatalog/1.0)";
 const ALLOWED_EMBED_HOSTS = new Set([
   "krakenfiles.com", "www.krakenfiles.com",
@@ -55,7 +56,9 @@ function normalizeImageUrl(value = "") {
 
 async function fetchText(url, attempts = 3) {
   let lastError;
+  let retryAfterMs = 0;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
+    await waitForRequestSlot();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 20000);
     try {
@@ -71,14 +74,25 @@ async function fetchText(url, attempts = 3) {
       });
       if (response.ok) return await response.text();
       lastError = new Error(`${response.status} ${response.statusText}`);
+      const retryAfter = Number(response.headers.get("retry-after"));
+      retryAfterMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 0;
     } catch (error) {
       lastError = error;
     } finally {
       clearTimeout(timer);
     }
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 500 * (attempt + 1)));
+    const backoff = Math.max(retryAfterMs, 1200 * (attempt + 1));
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, backoff));
   }
   throw lastError || new Error(`Could not fetch ${url}`);
+}
+
+let nextRequestAt = 0;
+async function waitForRequestSlot() {
+  const scheduledAt = Math.max(Date.now(), nextRequestAt);
+  nextRequestAt = scheduledAt + REQUEST_INTERVAL_MS;
+  const delay = scheduledAt - Date.now();
+  if (delay > 0) await new Promise((resolvePromise) => setTimeout(resolvePromise, delay));
 }
 
 async function mapConcurrent(items, concurrency, worker, label) {
@@ -167,10 +181,13 @@ function parseTitlePage(html, catalogItem) {
     };
   });
 
+  const screenshots = [...new Set(episodes.flatMap((episode) => episode.screenshots || []))];
   return {
     ...catalogItem,
     image,
-    banner: episodes.find((episode) => episode.image)?.image || catalogItem.banner || image,
+    mainWallpaper: image,
+    banner: image,
+    screenshots,
     episodeCount: episodes.length || catalogItem.episodeCount || 0,
     episodes
   };
@@ -212,8 +229,9 @@ async function main() {
     // First build.
   }
   const existingBySlug = new Map((existing.items || []).map((item) => [item.slug, item]));
-  const catalogChanged = existing.catalogGeneratedAt !== catalog.generatedAt;
-  const itemsToRefresh = catalogChanged ? items : items.filter((item) => !existingBySlug.has(item.slug));
+  const itemsToRefresh = existingBySlug.size === 0
+    ? items
+    : items.filter((item) => !existingBySlug.has(item.slug) || Number(item.sourceOrder) < 24);
   console.log(`Loading ${itemsToRefresh.length} detail pages for ${items.length} eligible titles.`);
 
   const parsed = await mapConcurrent(
@@ -224,7 +242,18 @@ async function main() {
   );
   const parsedBySlug = new Map(parsed.filter(Boolean).map((item) => [item.slug, item]));
   const details = items
-    .map((item) => parsedBySlug.get(item.slug) || existingBySlug.get(item.slug))
+    .map((item) => {
+      const detail = parsedBySlug.get(item.slug) || existingBySlug.get(item.slug);
+      if (!detail) return null;
+      const titleArtwork = item.mainWallpaper || item.image || detail.mainWallpaper || detail.image || "";
+      return {
+        ...detail,
+        ...item,
+        image: titleArtwork,
+        mainWallpaper: titleArtwork,
+        banner: titleArtwork
+      };
+    })
     .filter(Boolean);
   const jobs = [];
   details.forEach((item) => {

@@ -149,18 +149,15 @@ jobs:
 
       - name: Refresh Adult Mode catalog
         run: npm run adult:catalog
+        env:
+          UNDERHENTAI_CRAWL_CONCURRENCY: '2'
+          UNDERHENTAI_DETAIL_CONCURRENCY: '2'
+          UNDERHENTAI_WATCH_CONCURRENCY: '2'
+          UNDERHENTAI_REQUEST_INTERVAL_MS: '550'
         timeout-minutes: 45
 
       - name: Validate Adult Mode catalog
-        run: |
-          node - <<'NODE'
-          const fs = require('fs');
-          const catalog = JSON.parse(fs.readFileSync('scraper/underhentai_catalog.json', 'utf8'));
-          const details = JSON.parse(fs.readFileSync('scraper/underhentai_details.json', 'utf8'));
-          if (!Array.isArray(catalog.items) || !catalog.items.length) throw new Error('Adult catalog is empty.');
-          if (!Array.isArray(details.items) || !details.items.length) throw new Error('Adult details are empty.');
-          console.log(`Adult titles: ${catalog.items.length}; detailed titles: ${details.items.length}`);
-          NODE
+        run: npm run adult:verify
 
       # ── 7. Commit updated catalog ──────────────────────────────────────────
       - name: Commit updated catalog

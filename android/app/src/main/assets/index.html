@@ -12,16 +12,16 @@
     <meta property="og:description" content="Watch anime online in HD. Latest episodes, seasonal simulcasts, and full series — optimized for TV, desktop, and mobile.">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="icon" type="image/webp" href="logo-round-192.webp?v=471">
-    <link rel="shortcut icon" href="logo-round-192.webp?v=471">
-    <link rel="apple-touch-icon" href="logo-round-192.png?v=471">
-    <link rel="manifest" href="/manifest.webmanifest?v=471">
+    <link rel="icon" type="image/webp" href="logo-round-192.webp?v=472">
+    <link rel="shortcut icon" href="logo-round-192.webp?v=472">
+    <link rel="apple-touch-icon" href="logo-round-192.png?v=472">
+    <link rel="manifest" href="/manifest.webmanifest?v=472">
     <!-- Only graphql.anilist.co is hit directly by the browser (trailers/extras).
          Jikan + s4 poster images go through the same-origin /api proxy, so
          preconnecting them is wasted. crossorigin matches the CORS GraphQL fetch. -->
     <link rel="preconnect" href="https://graphql.anilist.co" crossorigin>
     <link rel="dns-prefetch" href="https://graphql.anilist.co">
-    <link rel="preload" as="fetch" href="/homepage-bootstrap.json?v=471" crossorigin>
+    <link rel="preload" as="fetch" href="/homepage-bootstrap.json?v=472" crossorigin>
     <link rel="preload" as="image" fetchpriority="high" href="/api/image?src=https%3A%2F%2Fs4.anilist.co%2Ffile%2Fanilistcdn%2Fmedia%2Fanime%2Fbanner%2F187869-WuaolpHqNqHk.jpg&amp;w=1280&amp;q=88">
     <style>
       :root{color-scheme:dark;--bg:#070914;--panel:#111522;--text:#f7f8ff;--muted:#aeb6c8;--accent:#8a55ff;--cyan:#00d2ff}
@@ -59,28 +59,28 @@
          sheet arrives — on Lighthouse's throttled network that async swap was the
          root cause of CLS ≈ 0.83. The sheet is ~28 KB Brotli and immutably
          cached, so blocking on it costs little FCP while dropping CLS to ~0. -->
-    <link id="fullStylesheet" rel="stylesheet" href="styles.css?v=471">
+    <link id="fullStylesheet" rel="stylesheet" href="styles.css?v=472">
     <script>(function(){try{var p=localStorage.getItem("animetv-resume-positions");if(p&&p.length>2)document.documentElement.setAttribute("data-has-history","");}catch(e){}})()</script>
     <!-- Defer all JS - browser discovers them early but executes after DOM parse -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <script defer src="js/constants.js?v=471"></script>
-    <script defer src="js/translations.js?v=471"></script>
-    <script defer src="js/utils.js?v=471"></script>
-    <script defer src="js/season-normalization.js?v=471"></script>
-    <script defer src="js/normalize.js?v=471"></script>
-    <script defer src="js/anilist-metadata.js?v=471"></script>
-    <script defer src="js/smart-source.js?v=471"></script>
-    <script defer src="js/image-resolver.js?v=471"></script>
-    <script defer src="js/adult-source-adapter.js?v=471"></script>
-    <script defer src="js/adult-mode.js?v=471"></script>
-    <script defer src="js/router.js?v=471"></script>
-    <script defer src="client.js?v=471"></script>
+    <script defer src="js/constants.js?v=472"></script>
+    <script defer src="js/translations.js?v=472"></script>
+    <script defer src="js/utils.js?v=472"></script>
+    <script defer src="js/season-normalization.js?v=472"></script>
+    <script defer src="js/normalize.js?v=472"></script>
+    <script defer src="js/anilist-metadata.js?v=472"></script>
+    <script defer src="js/smart-source.js?v=472"></script>
+    <script defer src="js/image-resolver.js?v=472"></script>
+    <script defer src="js/adult-source-adapter.js?v=472"></script>
+    <script defer src="js/adult-mode.js?v=472"></script>
+    <script defer src="js/router.js?v=472"></script>
+    <script defer src="client.js?v=472"></script>
   </head>
   <body>
     <script>(function(){var p=location.pathname.replace(/\/+$/,"")||"/";var h=(location.hash||"").replace(/^#/,"");var r=p==="/search"||p==="/browse"||/^\/(genre|year|season|studio)\//.test(p)?"library":p==="/schedule"?"schedule":p==="/favorites"?"favorites":p==="/settings"?"settings":p==="/sources"?"sources":p==="/profile"||p==="/login"?"profile":"home";var m={search:"library",browse:"library",library:"library",home:"home",schedule:"schedule",favorites:"favorites",settings:"settings",sources:"sources",profile:"profile"};if(p==="/"&&m[h])r=m[h];document.body.dataset.route=r;try{if(localStorage.getItem("animetv-sidebar-collapsed")!=="false")document.body.classList.add("sidebar-collapsed")}catch(e){document.body.classList.add("sidebar-collapsed")}})()</script>
     <div class="app-loader" id="appLoader" role="status" aria-live="polite">
       <div class="loader-mark" aria-hidden="true">
-        <img class="loader-logo" src="logo-mark-128.webp?v=471" alt="" width="128" height="128" decoding="async">
+        <img class="loader-logo" src="logo-mark-128.webp?v=472" alt="" width="128" height="128" decoding="async">
       </div>
       <strong>ZenkaiTV</strong>
       <small>Waking the anime lounge...</small>
@@ -90,7 +90,7 @@
       <header class="topbar">
         <a class="brand focusable" href="/" data-route="home" data-nav-label="Home" aria-label="ZenkaiTV — Home">
           <span class="brand-mark" aria-hidden="true">
-            <img class="brand-logo" src="logo-mark-128.webp?v=471" alt="" width="66" height="66" decoding="async">
+            <img class="brand-logo" src="logo-mark-128.webp?v=472" alt="" width="66" height="66" decoding="async">
             <span class="adult-mode-badge" id="adultModeBadge" hidden>+18</span>
           </span>
           <span class="brand-copy">
@@ -138,7 +138,7 @@
           <div class="today-carousel" aria-label="Today's anime carousel">
             <div class="carousel-stage focusable" id="carouselStage" tabindex="0" aria-label="Open selected carousel anime">
               <div class="carousel-backdrop" id="carouselBackdrop"></div>
-              <img class="carousel-backdrop-image" id="carouselBackdropImage" src="hero-backdrop-placeholder.webp?v=471" alt="" width="960" height="540" loading="eager" fetchpriority="high" decoding="async">
+              <img class="carousel-backdrop-image" id="carouselBackdropImage" src="hero-backdrop-placeholder.webp?v=472" alt="" width="960" height="540" loading="eager" fetchpriority="high" decoding="async">
               <div class="hero-motion" aria-hidden="true">
                 <span></span>
                 <span></span>
@@ -384,7 +384,7 @@
 
       <footer class="bottom-bar" aria-label="ZenkaiTV footer">
         <div class="footer-brand">
-          <img class="footer-wordmark" src="logo-wordmark-480.webp?v=471" alt="ZenkaiTV" width="240" height="74" loading="lazy" decoding="async">
+          <img class="footer-wordmark" src="logo-wordmark-480.webp?v=472" alt="ZenkaiTV" width="240" height="74" loading="lazy" decoding="async">
           <p class="footer-tagline">Your anime universe — organized, ad-free, always on.</p>
           <div class="footer-meta">
             <span class="footer-status">Catalogs refresh daily</span>
@@ -442,23 +442,9 @@
       </div>
     </div>
 
-    <!-- Global topbar authentication controls -->
-    <div class="topbar-auth" id="authControlsContainer">
-      <button class="topbar-auth-btn focusable" id="authLoginBtn" type="button" aria-label="Login" title="Login">
-        <img class="topbar-avatar-img" src="https://api.dicebear.com/7.x/adventurer/svg?seed=guest" alt="Guest Avatar" width="40" height="40" decoding="async">
-      </button>
-      <div class="user-profile-menu-container" id="userProfileMenuContainer" hidden>
-        <button class="topbar-auth-btn focusable user-avatar-btn" id="userAvatarBtn" type="button" aria-label="User profile menu" title="User profile menu">
-          <img class="topbar-avatar-img" id="userAvatarImg" src="https://api.dicebear.com/7.x/adventurer/svg?seed=guest" alt="User Avatar" width="40" height="40" decoding="async">
-        </button>
-        <div class="user-dropdown-menu" id="userDropdownMenu" hidden>
-          <button class="dropdown-item focusable" id="menuProfileBtn" type="button">Profile</button>
-          <button class="dropdown-item focusable" id="menuLogoutBtn" type="button">Logout</button>
-        </div>
-      </div>
-    </div>
+    <!-- ACCOUNT SYSTEM DISABLED - uncomment the blocks below to re-enable login/profile when database is ready -->
 
-    <!-- Global fullscreen toggle — fixed top-right on every screen. -->
+    <!-- Global fullscreen toggle - fixed top-right on every screen. -->
     <button class="fs-toggle focusable" id="fullscreenToggle" type="button" aria-label="Toggle fullscreen" data-tip="Fullscreen" title="Fullscreen">
       <svg class="fs-ico fs-ico-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M3 9V5a2 2 0 0 1 2-2h4M21 9V5a2 2 0 0 0-2-2h-4M3 15v4a2 2 0 0 0 2 2h4M21 15v4a2 2 0 0 1-2 2h-4"/>
@@ -470,15 +456,15 @@
 
     <!-- Scripts loaded via defer in <head> -->
 
-    <!-- Authentication Overlay Modal -->
+    <!-- ACCOUNT SYSTEM DISABLED – uncomment the block below to re-enable the auth modal when the database is ready
     <div class="auth-overlay" id="authOverlay" hidden>
       <div class="auth-card focusable" tabindex="-1" id="authCard">
-        <button class="auth-close-btn focusable" id="authCloseBtn" type="button" aria-label="Close modal">×</button>
+        <button class="auth-close-btn focusable" id="authCloseBtn" type="button" aria-label="Close modal">&times;</button>
         
-        <!-- Login View -->
+        Login View:
         <div class="auth-view" id="loginView">
           <h2>Welcome Back</h2>
-          <p>Login to ZenkaiTV to sync your progress & favorites</p>
+          <p>Login to ZenkaiTV to sync your progress &amp; favorites</p>
           <form class="auth-form" id="loginForm" novalidate>
             <div class="form-group">
               <label for="loginEmail">Email</label>
@@ -486,7 +472,7 @@
             </div>
             <div class="form-group">
               <label for="loginPassword">Password</label>
-              <input class="focusable" id="loginPassword" type="password" placeholder="••••••••" required>
+              <input class="focusable" id="loginPassword" type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" required>
             </div>
             <div class="auth-error-msg" id="loginErrorMsg" hidden></div>
             <button class="auth-submit-btn focusable" type="submit">
@@ -498,26 +484,20 @@
           <div class="auth-divider"><span>or continue with</span></div>
           
           <div class="social-login-buttons">
-            <button class="social-btn google-btn focusable" id="googleLoginBtn" type="button" aria-label="Continue with Google">
-              <svg class="social-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z"/></svg>
-              Google
-            </button>
-            <button class="social-btn facebook-btn focusable" id="facebookLoginBtn" type="button" aria-label="Continue with Facebook">
-              <svg class="social-icon" viewBox="0 0 24 24"><path fill="currentColor" d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c4.56-.93 8-4.96 8-9.75z"/></svg>
-              Facebook
-            </button>
+            <button class="social-btn google-btn focusable" id="googleLoginBtn" type="button" aria-label="Continue with Google">Google</button>
+            <button class="social-btn facebook-btn focusable" id="facebookLoginBtn" type="button" aria-label="Continue with Facebook">Facebook</button>
           </div>
           
           <div class="auth-switch">
             Don't have an account? <button class="switch-link focusable" id="goToSignupBtn" type="button">Sign Up</button>
             <br>
-            <button class="switch-link focusable" id="goToForgotBtn" type="button" style="margin-top:0.4rem;font-size:0.8rem;opacity:0.8;">Forgot password?</button>
+            <button class="switch-link focusable" id="goToForgotBtn" type="button">Forgot password?</button>
             <br>
-            <button class="switch-link focusable" id="authSkipBtn" type="button" style="margin-top:0.8rem;font-size:0.85rem;color:rgba(255,255,255,0.6);text-decoration:underline;">Continue as Guest</button>
+            <button class="switch-link focusable" id="authSkipBtn" type="button">Continue as Guest</button>
           </div>
         </div>
 
-        <!-- Signup View -->
+        Signup View:
         <div class="auth-view" id="signupView" hidden>
           <h2>Create Account</h2>
           <p>Join ZenkaiTV to sync your watch history</p>
@@ -528,7 +508,7 @@
             </div>
             <div class="form-group">
               <label for="signupPassword">Password</label>
-              <input class="focusable" id="signupPassword" type="password" placeholder="••••••••" required>
+              <input class="focusable" id="signupPassword" type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" required>
             </div>
             <div class="auth-error-msg" id="signupErrorMsg" hidden></div>
             <button class="auth-submit-btn focusable" type="submit">
@@ -542,7 +522,7 @@
           </div>
         </div>
 
-        <!-- Forgot Password View -->
+        Forgot Password View:
         <div class="auth-view" id="forgotView" hidden>
           <h2>Reset Password</h2>
           <p>We'll send a password recovery link to your email</p>
@@ -565,5 +545,6 @@
         </div>
       </div>
     </div>
+    -->
   </body>
 </html>

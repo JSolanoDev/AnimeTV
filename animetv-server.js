@@ -1228,7 +1228,9 @@ async function refreshUnderHentaiLiveCatalog() {
   underHentaiDetailCache.clear();
   luluStreamDirectCache.clear();
   underHentaiDetailsSnapshot = null;
-  const items = await loadLiveUnderHentaiCatalog(1);
+  // The durable full catalog is refreshed by the daily catalog workflow. This
+  // lightweight refresh keeps the newest source page available immediately.
+  const items = await loadLiveUnderHentaiCatalog(1, "", { force: true });
   return { ok: items.length > 0, count: items.length };
 }
 
@@ -8284,28 +8286,28 @@ function findTitleMatch(underHentaiItem, collection) {
 
 function prepareUnderHentaiSnapshotItem(item = {}) {
   const slug = String(item.slug || "").toLowerCase();
-  const image = decodeUnderHentaiImage(item.image || item.poster || item.cover || "");
-
-  const banner = decodeUnderHentaiImage(item.banner || item.image || "");
-
-  const displayImage = chooseUnderHentaiDisplayImage(image, banner);
+  const mainWallpaper = decodeUnderHentaiImage(item.mainWallpaper || item.image || item.poster || item.cover || "");
+  const legacyBanner = decodeUnderHentaiImage(item.banner || "");
+  const displayImage = chooseUnderHentaiDisplayImage(mainWallpaper, legacyBanner);
+  const titleArtwork = displayImage || legacyBanner;
 
   return {
     ...item,
-    image: displayImage,
-    banner,
-    poster: displayImage,
-    cover: displayImage,
-    thumbnail: displayImage,
-    coverImage: displayImage,
-    backdrop: banner || displayImage,
-    highQualityBackground: banner || displayImage,
+    image: titleArtwork,
+    mainWallpaper: titleArtwork,
+    banner: titleArtwork,
+    poster: titleArtwork,
+    cover: titleArtwork,
+    thumbnail: titleArtwork,
+    coverImage: titleArtwork,
+    backdrop: titleArtwork,
+    highQualityBackground: titleArtwork,
     images: {
-      poster: displayImage,
-      cover: displayImage,
-      thumbnail: displayImage,
-      banner,
-      backdrop: banner || displayImage
+      poster: titleArtwork,
+      cover: titleArtwork,
+      thumbnail: titleArtwork,
+      banner: titleArtwork,
+      backdrop: titleArtwork
     },
     episodes: (Array.isArray(item.episodes) ? item.episodes : []).map((episode) => {
       const epNum = Number(episode.number || episode.episode);
@@ -8335,7 +8337,7 @@ function prepareUnderHentaiSnapshotItem(item = {}) {
         ...episode,
         image: epImage,
         thumbnail: epThumbnail,
-        banner: epImage || epThumbnail || banner || displayImage,
+        banner: epImage || epThumbnail || titleArtwork,
         sourceOptions: mergedOptions,
         locked: !mergedOptions.length
       };
@@ -8371,11 +8373,11 @@ function parseUnderHentaiListing(html = "", page = 1) {
   return items.filter((item) => isSafeAdultMetadata(item) && !seen.has(item.slug) && seen.add(item.slug));
 }
 
-async function loadLiveUnderHentaiCatalog(page = 1, query = "") {
+async function loadLiveUnderHentaiCatalog(page = 1, query = "", { force = false } = {}) {
   const safePage = Math.max(1, Math.min(60, Number(page) || 1));
   const cacheKey = `${safePage}:${normalizeUnderHentaiSafetyText(query)}`;
   const cached = underHentaiLiveCatalogCache.get(cacheKey);
-  if (cached && Date.now() - cached.ts < UNDERHENTAI_CACHE_TTL_MS) return cached.items;
+  if (!force && cached && Date.now() - cached.ts < UNDERHENTAI_CACHE_TTL_MS) return cached.items;
 
   const listingUrl = new URL(safePage > 1 ? `/page/${safePage}/` : "/", UNDERHENTAI_BASE);
   if (query) listingUrl.searchParams.set("s", query);
@@ -8402,13 +8404,14 @@ async function loadLiveUnderHentaiCatalog(page = 1, query = "") {
 async function handleUnderHentaiCatalog(url, response) {
   const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
   const query = String(url.searchParams.get("q") || "").trim();
+  const refresh = url.searchParams.get("refresh") === "1";
 
   const snapshot = readUnderHentaiCatalog();
   let items = [];
 
   let liveItems = [];
   try {
-    liveItems = await loadLiveUnderHentaiCatalog(page, query);
+    liveItems = await loadLiveUnderHentaiCatalog(page, query, { force: refresh });
   } catch (error) {
     log("warn", "Live UnderHentai catalog refresh failed", { error: error.message });
   }
@@ -8421,21 +8424,21 @@ async function handleUnderHentaiCatalog(url, response) {
     : items;
 
   const processed = filtered.map(item => {
-    const image = decodeUnderHentaiImage(item.image || item.poster || item.cover || "");
-
-    const banner = decodeUnderHentaiImage(item.banner || item.image || "");
-
-    const displayImage = chooseUnderHentaiDisplayImage(image, banner);
+    const mainWallpaper = decodeUnderHentaiImage(item.mainWallpaper || item.image || item.poster || item.cover || "");
+    const legacyBanner = decodeUnderHentaiImage(item.banner || "");
+    const displayImage = chooseUnderHentaiDisplayImage(mainWallpaper, legacyBanner);
+    const titleArtwork = displayImage || legacyBanner;
     return {
       ...item,
-      image: displayImage,
-      banner,
-      poster: displayImage,
-      cover: displayImage,
-      thumbnail: displayImage,
-      coverImage: displayImage,
-      backdrop: banner || displayImage,
-      highQualityBackground: banner || displayImage
+      image: titleArtwork,
+      mainWallpaper: titleArtwork,
+      banner: titleArtwork,
+      poster: titleArtwork,
+      cover: titleArtwork,
+      thumbnail: titleArtwork,
+      coverImage: titleArtwork,
+      backdrop: titleArtwork,
+      highQualityBackground: titleArtwork
     };
   });
 
@@ -8444,6 +8447,8 @@ async function handleUnderHentaiCatalog(url, response) {
     source: "UnderHentai",
     adultOnly: true,
     generatedAt: snapshot.generatedAt,
+    liveUpdatedAt: liveItems.length ? new Date().toISOString() : null,
+    refreshed: refresh,
     count: filtered.length,
     totalFound: snapshot.totalFound || filtered.length,
     excludedForSafety: snapshot.excludedForSafety || 0,
@@ -8582,6 +8587,7 @@ function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
   });
 
   const descriptionBlock = html.match(/class\s*=\s*(?:"[^"]*\brow-desc\b[^"]*"|'[^']*\brow-desc\b[^']*')[^>]*>[\s\S]*?class\s*=\s*(?:"[^"]*\brow-label\b[^"]*"|'[^']*\brow-label\b[^']*')[^>]*>[\s\S]*?<\/div>([\s\S]*?)<\/div>\s*<hr/i)?.[1] || "";
+  const screenshots = [...new Set([...episodes.values()].flatMap((episode) => episode.screenshots || []))];
   const item = {
     slug,
     title,
@@ -8590,7 +8596,9 @@ function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
     aired,
     genres,
     image,
-    banner: [...episodes.values()].find((episode) => episode.image)?.image || image,
+    mainWallpaper: image,
+    banner: image,
+    screenshots,
     url: sourceUrl,
     episodeCount: episodes.size,
     description: stripHtml(descriptionBlock) || [brand ? `Studio: ${brand}` : "", aired ? `Released: ${aired}` : ""].filter(Boolean).join(". "),
@@ -9162,7 +9170,7 @@ async function handleUnderHentaiStream(url, response) {
             const upstream = await fetchWithRetry(watchUrl.toString(), { headers: UNDERHENTAI_HEADERS }, 2);
             if (upstream.ok) {
               const liveEmbeds = parseUnderHentaiEmbeds(await upstream.text());
-              if (liveEmbeds.length) embeds = liveEmbeds;
+              if (liveEmbeds.length) embeds = [...new Set([...liveEmbeds, ...embeds])];
             }
           } catch {
             // Keep the bundled provider list when a live refresh is unavailable.

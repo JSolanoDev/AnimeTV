@@ -16,7 +16,11 @@
   let statusTimer = null;
   let startupTimer = null;
   let recoveryTimer = null;
+  let hlsRecoveryTimer = null;
   let recoveryCount = 0;
+  let networkRecoveryCount = 0;
+  let mediaRecoveryCount = 0;
+  let lastProgressPosition = -1;
   let lastSeekToast = 0;
 
   const elements = {
@@ -100,6 +104,9 @@
     hideError();
     showLoading();
     recoveryCount = 0;
+    networkRecoveryCount = 0;
+    mediaRecoveryCount = 0;
+    lastProgressPosition = -1;
     armStartupWatchdog();
 
     const type = streamType(sourceUrl, params.get("type"));
@@ -168,6 +175,12 @@
       send("loadedmetadata", getStatus());
       reportResolution();
     });
+    art.on("video:durationchange", () => {
+      send("durationchange", getStatus());
+    });
+    art.on("video:progress", () => {
+      send("progress", getStatus());
+    });
     art.on("video:loadeddata", () => {
       hideLoading();
       send("loadeddata", getStatus());
@@ -209,6 +222,13 @@
       stopStatusLoop();
     });
     art.on("video:timeupdate", () => {
+      const position = video.currentTime || 0;
+      if (position > lastProgressPosition + 0.2 || position < lastProgressPosition) {
+        recoveryCount = 0;
+        networkRecoveryCount = 0;
+        mediaRecoveryCount = 0;
+        lastProgressPosition = position;
+      }
       send("time", getStatus());
     });
     art.on("video:volumechange", () => {
@@ -243,11 +263,13 @@
     }
     hls = new window.Hls({
       enableWorker: true,
-      lowLatencyMode: true,
+      // These catalog streams are on-demand episodes. Normal buffering is more
+      // reliable than low-latency live tuning when a segment arrives slowly.
+      lowLatencyMode: false,
       startFragPrefetch: true,
-      backBufferLength: 30,
-      maxBufferLength: 45,
-      maxMaxBufferLength: 90,
+      backBufferLength: 60,
+      maxBufferLength: 60,
+      maxMaxBufferLength: 120,
       maxBufferHole: 0.5,
       capLevelToPlayerSize: false,
       manifestLoadingTimeOut: 10000,
@@ -291,30 +313,56 @@
         } : null
       }));
       if (data.type === window.Hls.ErrorTypes.NETWORK_ERROR) {
-        recoveryCount += 1;
-        if (recoveryCount <= 4) {
-          hls.startLoad(video.currentTime || -1);
+        networkRecoveryCount += 1;
+        if (networkRecoveryCount <= 3) {
+          scheduleHlsReload(video, "network", networkRecoveryCount);
           return;
         }
         clearStartupWatchdog();
         showError("Network is too slow", "The stream kept timing out. Retry this source or choose another server.");
+        send("error", "hls-network-fatal");
         return;
       }
       if (data.type === window.Hls.ErrorTypes.MEDIA_ERROR) {
-        recoveryCount += 1;
-        if (recoveryCount > 3) {
+        mediaRecoveryCount += 1;
+        if (mediaRecoveryCount > 2) {
           clearStartupWatchdog();
           showError("Stream could not recover", "The video stream is not responding correctly. Try another source.");
           send("error", "hls-media-fatal");
           return;
         }
-        hls.recoverMediaError();
+        try {
+          hls.recoverMediaError();
+          const playAttempt = video.play?.();
+          if (playAttempt && typeof playAttempt.catch === "function") playAttempt.catch(() => {});
+        } catch (error) {
+          scheduleHlsReload(video, "media", mediaRecoveryCount);
+        }
         return;
       }
       clearStartupWatchdog();
       showError("HLS stream failed", "The HLS stream could not be loaded. Try another source.");
       send("error", "hls-fatal");
     });
+  }
+
+  function scheduleHlsReload(video, reason, attempt) {
+    if (hlsRecoveryTimer) return;
+    const activeHls = hls;
+    showLoading();
+    hlsRecoveryTimer = setTimeout(() => {
+      hlsRecoveryTimer = null;
+      if (!activeHls || activeHls !== hls || !video || elements.error.hidden === false) return;
+      try {
+        activeHls.stopLoad();
+        activeHls.startLoad(video.currentTime || -1);
+        const playAttempt = video.play?.();
+        if (playAttempt && typeof playAttempt.catch === "function") playAttempt.catch(() => {});
+        send("recover", { reason, count: attempt, ...getStatus() });
+      } catch (error) {
+        console.warn("[ZenkaiPlayer] HLS reload failed", error);
+      }
+    }, Math.min(250 * Math.max(1, attempt), 1000));
   }
 
   function streamType(url, hint) {
@@ -378,13 +426,26 @@
     if (!video) return {};
     return {
       position: video.currentTime || 0,
-      duration: video.duration || 0,
+      duration: playableDuration(video),
       buffer: bufferedEnd(video),
       paused: video.paused,
       muted: video.muted,
       volume: video.volume,
       rate: video.playbackRate
     };
+  }
+
+  function playableDuration(video) {
+    const duration = Number(video?.duration);
+    if (Number.isFinite(duration) && duration > 0) return duration;
+    try {
+      const end = video?.seekable?.length
+        ? Number(video.seekable.end(video.seekable.length - 1))
+        : 0;
+      return Number.isFinite(end) && end > 0 ? end : 0;
+    } catch (error) {
+      return 0;
+    }
   }
 
   function bufferedEnd(video) {
@@ -577,6 +638,8 @@
     clearStartupWatchdog();
     if (recoveryTimer) clearTimeout(recoveryTimer);
     recoveryTimer = null;
+    if (hlsRecoveryTimer) clearTimeout(hlsRecoveryTimer);
+    hlsRecoveryTimer = null;
     destroyHls();
     if (!art) return;
     try { art.destroy(false); } catch (error) {}

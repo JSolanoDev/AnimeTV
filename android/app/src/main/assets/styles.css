@@ -849,6 +849,12 @@ body.sidebar-collapsed .sidebar-toggle span {
 }
 
 main {
+  /* Sticky-footer pattern. .app-shell is a 100dvh flex column, so main must
+     GROW to absorb the leftover space - otherwise short routes (Favorites,
+     empty Search) leave the footer stranded mid-screen with dead space under
+     it. The earlier "flex: 0" was an overcorrection: the real cause of the old
+     below-the-fold footer was a 100vh floor on .content-band, which is now
+     min-height: 0, so growing main can no longer push the footer off-screen. */
   flex: 1 0 auto;
   padding: 1.2rem clamp(1.4rem, 3.2vw, 3.4rem) 1.2rem;
   position: relative;
@@ -1279,9 +1285,10 @@ body:not([data-route="home"]) .stremio-search {
 }
 
 .content-band {
-  min-height: 100vh;
+  /* No 100vh floor: it pushed the footer a full screen below short routes. */
+  min-height: 0;
   margin-top: 0;
-  padding: clamp(1rem, 2vw, 1.75rem) 0 4rem;
+  padding: clamp(1rem, 2vw, 1.75rem) 0 2.4rem;
   scroll-margin-top: 0;
   animation: rise-in 520ms ease both;
 }
@@ -4810,6 +4817,18 @@ body.adult-mode .vid-loader-text {
   cursor: pointer;
 }
 
+.vid-timeline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.vid-timeline .vid-seek {
+  min-width: 0;
+}
+
 .vid-control-row {
   display: flex;
   align-items: center;
@@ -4826,6 +4845,21 @@ body.adult-mode .vid-loader-text {
   font-size: 0.86rem;
   font-weight: 800;
   white-space: nowrap;
+}
+
+.vid-skip-button {
+  position: relative;
+  overflow: visible;
+  font-size: 1.05rem;
+}
+
+.vid-skip-button span {
+  position: absolute;
+  right: 0.2rem;
+  bottom: 0.16rem;
+  font-size: 0.54rem;
+  line-height: 1;
+  font-weight: 900;
 }
 
 .vid-panel {
@@ -6181,6 +6215,14 @@ body.player-cinema-open .close-button {
     padding-bottom: 0.15rem;
   }
 
+  .vid-timeline {
+    gap: 0.5rem;
+  }
+
+  .vid-timeline .vid-time {
+    font-size: 0.76rem;
+  }
+
   /* Stack label over control with flexbox so the row GROWS to fit its content.
      (As a 1-col grid it stayed pinned at min-height: 3.4rem, so the control
      overflowed and overlapped the next setting on phones.) */
@@ -6604,8 +6646,44 @@ body.player-cinema-open .close-button {
   object-fit: cover;
 }
 
+/* Placeholder shown until the mini thumbnail hydrates: a soft branded gradient
+   with a travelling sheen so the strip reads as "loading" instead of as flat
+   coloured blocks. */
 .carousel-dot span {
-  background: linear-gradient(135deg, var(--cyan), var(--rose));
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--cyan) 55%, #10142a), color-mix(in srgb, var(--rose) 55%, #10142a));
+}
+
+.carousel-dot span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  animation: skeleton-sheen 1.35s ease-in-out infinite;
+}
+
+/* Fade the real artwork in so it never pops in hard. */
+.carousel-dot img {
+  animation: carousel-dot-fade 320ms ease both;
+}
+
+@keyframes carousel-dot-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carousel-dot span::after {
+    animation: none;
+  }
+  .carousel-dot img {
+    animation: none;
+  }
 }
 
 .carousel-dot:is(:hover, :focus-visible, .is-tv-focused, .is-selected) {
@@ -7739,13 +7817,19 @@ body.adult-mode .watch-backdrop.is-poster-fit {
 
 .adult-provider-tabs {
   display: none;
+  position: fixed;
+  top: clamp(0.75rem, 1.7vh, 1.3rem);
+  right: calc(clamp(0.75rem, 1.7vw, 1.3rem) + 6.2rem);
+  z-index: 55;
   gap: 0.8rem;
-  margin: 1rem 0 1.2rem;
+  margin: 0;
   padding: 0.25rem;
   background: rgba(17, 21, 34, 0.45);
-  border-radius: 0.85rem;
+  border-radius: 0.5rem;
   border: 1px solid rgba(247, 248, 255, 0.05);
   width: fit-content;
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+  backdrop-filter: blur(14px) saturate(1.08);
 }
 
 body.adult-mode .adult-provider-tabs:not([hidden]) {
@@ -7763,7 +7847,7 @@ body.adult-mode .adult-provider-tabs:not([hidden]) {
   font-weight: 700;
   font-size: 0.92rem;
   padding: 0.5rem 1.25rem;
-  border-radius: 0.65rem;
+  border-radius: 0.4rem;
   cursor: pointer;
   transition: all 180ms ease;
 }

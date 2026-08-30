@@ -1633,7 +1633,7 @@ async function loadAdultCatalog(force = false) {
   }
   if (adultCatalogLoadingPromise && !force) return adultCatalogLoadingPromise;
   const adapter = AdultSourceRegistry.get();
-  const cacheKey = `adult-catalog:${adapter.name}:underhentai-only-v3`;
+  const cacheKey = `adult-catalog:${adapter.name}:underhentai-only-v4`;
   const cachedItems = readResponseCache(cacheKey, CATALOG_CACHE_TTL);
   const applyAdultItems = (items = [], labelPrefix = adapter.name) => {
     const adultItems = Array.isArray(items)
@@ -1655,7 +1655,7 @@ async function loadAdultCatalog(force = false) {
     const adultItems = applyAdultItems(cachedItems, `Cached ${adapter.name}`);
     if (!force) return adultItems;
   }
-  adultCatalogLoadingPromise = Promise.resolve(adapter.listLatest(1))
+  adultCatalogLoadingPromise = Promise.resolve(adapter.listLatest(1, { refresh: force }))
     .then((items) => {
       const adultItems = applyAdultItems(items);
       if (adultItems.length) writeResponseCache(cacheKey, adultItems);
@@ -2399,6 +2399,8 @@ function underHentaiBackdropCandidates(show = {}, season = null) {
     ...(Array.isArray(show?.screenshots) ? show.screenshots : [])
   ];
   return [
+    show.mainWallpaper,
+    season?.mainWallpaper,
     show.underHentaiBackdrop,
     season?.underHentaiBackdrop,
     show.adultBackground,
@@ -5265,6 +5267,10 @@ function renderSettings() {
           <span>Loaded catalog <small>Live source / title / episode totals</small></span>
           <span class="settings-stat" id="settingsCatalogStatus">${escapeHtml(state.catalogStatus || "Syncing anime metadata…")}</span>
         </div>
+        <div class="settings-line">
+          <span>Adult catalog <small>Sync current UnderHentai releases and title artwork</small></span>
+          <button class="secondary-action focusable" data-refresh-adult-catalog type="button">Refresh</button>
+        </div>
 
         <div class="settings-divider"></div>
         <div class="settings-group-label">Data</div>
@@ -5493,6 +5499,21 @@ function wireSettingsButtons() {
     if (!wasOn && !nowOn) {
       renderSettings();   // user declined the 18+ gate — keep the switch off
       refreshFocusables();
+    }
+  });
+
+  settingsGrid.querySelector("[data-refresh-adult-catalog]")?.addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      await loadAdultCatalog(true);
+      refreshCatalogStatus();
+      showToast("Adult catalog refreshed");
+    } catch {
+      showToast("Adult catalog refresh is temporarily unavailable");
+    } finally {
+      button.disabled = false;
+      if (state.route === "settings") renderSettings();
     }
   });
 
@@ -8147,6 +8168,18 @@ function formatPlayerTime(value = 0) {
     : `${minutes}:${String(rest).padStart(2, "0")}`;
 }
 
+function getPlayableDuration(player) {
+  const duration = Number(player?.duration);
+  if (Number.isFinite(duration) && duration > 0) return duration;
+  try {
+    const ranges = player?.seekable;
+    const end = ranges?.length ? Number(ranges.end(ranges.length - 1)) : 0;
+    return Number.isFinite(end) && end > 0 ? end : 0;
+  } catch {
+    return 0;
+  }
+}
+
 function renderVidstreamTopbar(label = "", filterHtml = "") {
   const nav = getEpisodeNavigationTargets();
   return `
@@ -8203,16 +8236,20 @@ function renderVidstreamControls() {
   return `
     <div class="vid-controls" aria-label="Video controls">
       <button class="vid-skip-intro focusable" type="button" data-player-skip-intro hidden>Skip Intro »</button>
-      <input class="vid-seek focusable" id="playerSeek" type="range" min="0" max="1000" value="0" aria-label="Seek">
+      <div class="vid-timeline">
+        <input class="vid-seek focusable" id="playerSeek" type="range" min="0" max="1000" value="0" aria-label="Seek">
+        <span class="vid-time" id="playerTime">0:00 / --:--</span>
+      </div>
       <div class="vid-control-row">
         <button class="vid-icon-button focusable" type="button" data-player-prev ${nav.previous ? "" : "disabled"} aria-label="Previous episode" title="Previous episode">⏮</button>
+        <button class="vid-icon-button vid-skip-button focusable" type="button" data-player-rewind aria-label="Rewind 10 seconds" title="Rewind 10 seconds">↶<span>10</span></button>
         <button class="vid-icon-button focusable" type="button" data-player-toggle aria-label="Play or pause">▶</button>
+        <button class="vid-icon-button vid-skip-button focusable" type="button" data-player-forward aria-label="Forward 10 seconds" title="Forward 10 seconds">↷<span>10</span></button>
         <button class="vid-icon-button focusable" type="button" data-player-next ${nav.next ? "" : "disabled"} aria-label="Next episode" title="Next episode">⏭</button>
         <div class="vid-volume-control">
           <button class="vid-icon-button focusable" type="button" data-player-volume aria-label="Mute or unmute">▸</button>
           <input class="vid-volume-slider focusable" id="playerVolume" type="range" min="0" max="100" value="50" aria-label="Volume">
         </div>
-        <span class="vid-time" id="playerTime">0:00 / 0:00</span>
         <span class="vid-spacer"></span>
         <button class="vid-tool-button focusable" type="button" data-player-fit aria-label="Video fit mode">${fit === "cover" ? "□" : fit === "fill" ? "▣" : "▭"}</button>
         <button class="vid-tool-button focusable" type="button" data-player-panel="sources" aria-label="Servers and quality" title="Servers & quality">⇄</button>
@@ -9308,7 +9345,7 @@ function playerFitScaleValue(fit = state.uiPreferences.playerFit || "contain") {
 
 function buildPlayerUrl(videoUrl = "", title = "", options = {}) {
   const playerUrl = new URL("/player/player.html", location.origin);
-  playerUrl.searchParams.set("v", "6");
+  playerUrl.searchParams.set("v", "7");
   const source = isLocalSourceProxyUrl(videoUrl)
     ? localSourceProxyPath(videoUrl)
     : resolveSourceEndpoint(videoUrl);
@@ -9490,6 +9527,10 @@ function createApkPlayerController(iframe, options = {}) {
       emit("pause");
     } else if (command === "time") {
       emit("timeupdate");
+    } else if (command === "durationchange") {
+      emit("durationchange");
+    } else if (command === "progress") {
+      emit("progress");
     } else if (command === "waiting" || command === "initializing") {
       emit("waiting");
     } else if (command === "canplay" || command === "playing") {
@@ -9616,24 +9657,56 @@ class VideoPlayer {
             }
           });
 
+          let networkRecoveries = 0;
+          let mediaRecoveries = 0;
+          const failPlayback = () => {
+            hls.destroy();
+            video._animeTvHls = null;
+            const errEvent = new Event("error");
+            video.dispatchEvent(errEvent);
+          };
+
           hls.on(Hls.Events?.ERROR || "hlsError", (event, data) => {
             if (data.fatal) {
               console.error(`[VideoPlayer] Fatal HLS error: ${data.type} - ${data.details}`, data);
               switch (data.type) {
                 case Hls.ErrorTypes.NETWORK_ERROR:
+                  networkRecoveries += 1;
+                  if (networkRecoveries > 3) {
+                    console.error("[VideoPlayer] Network recovery exhausted. Triggering fallback.");
+                    failPlayback();
+                    break;
+                  }
                   console.log("[VideoPlayer] Network error, attempting to recover...");
-                  hls.startLoad();
+                  setTimeout(() => {
+                    if (video._animeTvHls !== hls) return;
+                    try {
+                      hls.stopLoad();
+                      hls.startLoad(video.currentTime || -1);
+                      video.play()?.catch(() => {});
+                    } catch (error) {
+                      failPlayback();
+                    }
+                  }, networkRecoveries * 300);
                   break;
                 case Hls.ErrorTypes.MEDIA_ERROR:
+                  mediaRecoveries += 1;
+                  if (mediaRecoveries > 2) {
+                    console.error("[VideoPlayer] Media recovery exhausted. Triggering fallback.");
+                    failPlayback();
+                    break;
+                  }
                   console.log("[VideoPlayer] Media error, attempting to recover...");
-                  hls.recoverMediaError();
+                  try {
+                    hls.recoverMediaError();
+                    video.play()?.catch(() => {});
+                  } catch (error) {
+                    failPlayback();
+                  }
                   break;
                 default:
                   console.error("[VideoPlayer] Unrecoverable HLS error. Triggering fallback.");
-                  hls.destroy();
-                  video._animeTvHls = null;
-                  const errEvent = new Event("error");
-                  video.dispatchEvent(errEvent);
+                  failPlayback();
                   break;
               }
             }
@@ -9917,6 +9990,8 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
   const seek = frame.querySelector("#playerSeek");
   const time = frame.querySelector("#playerTime");
   const toggle = frame.querySelector("[data-player-toggle]");
+  const rewind = frame.querySelector("[data-player-rewind]");
+  const forward = frame.querySelector("[data-player-forward]");
   const volume = frame.querySelector("[data-player-volume]");
   const volumeSlider = frame.querySelector("#playerVolume");
   const loader = frame.querySelector(".vid-loader");
@@ -9939,12 +10014,19 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
   });
 
   const updateTime = () => {
-    const duration = video.duration || 0;
+    const duration = getPlayableDuration(video);
     const current = video.currentTime || 0;
-    if (time) time.textContent = `${formatPlayerTime(current)} / ${formatPlayerTime(duration)}`;
+    if (time) time.textContent = `${formatPlayerTime(current)} / ${duration ? formatPlayerTime(duration) : "--:--"}`;
     if (seek && duration && !seek.matches(":active")) {
       seek.value = String(Math.round((current / duration) * 1000));
     }
+  };
+
+  const seekBy = (delta) => {
+    const duration = getPlayableDuration(video) || Infinity;
+    video.currentTime = Math.max(0, Math.min(duration, (video.currentTime || 0) + delta));
+    updateTime();
+    showToast(delta < 0 ? "Rewind 10s" : "Forward 10s");
   };
 
   const updateToggle = () => {
@@ -9963,6 +10045,8 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
     if (video.paused) video.play().catch(() => showToast("Tap play again if the browser blocked autoplay."));
     else video.pause();
   });
+  rewind?.addEventListener("click", () => seekBy(-10));
+  forward?.addEventListener("click", () => seekBy(10));
   volume?.addEventListener("click", () => {
     video.muted = !video.muted;
     updateVolume();
@@ -9974,8 +10058,9 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
     updateVolume();
   });
   seek?.addEventListener("input", () => {
-    if (!video.duration) return;
-    video.currentTime = (Number(seek.value) / 1000) * video.duration;
+    const duration = getPlayableDuration(video);
+    if (!duration) return;
+    video.currentTime = (Number(seek.value) / 1000) * duration;
   });
   frame.querySelector("[data-player-exit]")?.addEventListener("click", exitPlayerToSources);
   frame.querySelector("[data-player-back]")?.addEventListener("click", () => showEpisodeListTab());
@@ -10009,11 +10094,9 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
     const rect = stage.getBoundingClientRect();
     const rel = (clientX - rect.left) / (rect.width || 1);
     if (rel < 0.35) {
-      video.currentTime = Math.max(0, (video.currentTime || 0) - 10);
-      showToast("Rewind 10s");
+      seekBy(-10);
     } else if (rel > 0.65) {
-      video.currentTime = Math.min(video.duration || Infinity, (video.currentTime || 0) + 10);
-      showToast("Forward 10s");
+      seekBy(10);
     } else {
       toggleNativeFullscreen(shell);
     }
@@ -10040,6 +10123,9 @@ function wireVidstreamControls(frame, video, episode, url, tracks = []) {
   }, { passive: false });
 
   video.addEventListener("loadedmetadata", updateTime);
+  video.addEventListener("durationchange", updateTime);
+  video.addEventListener("progress", updateTime);
+  video.addEventListener("canplay", updateTime);
   video.addEventListener("timeupdate", updateTime);
   video.addEventListener("timeupdate", updateSkipIntro);
   video.addEventListener("play", updateToggle);
@@ -12146,6 +12232,7 @@ function renderDirectVideoPlayer(frame, url, episode) {
         }
       })
     : frame.querySelector("#animePlayer");
+  if (iframe && player?.isApkPlayer) iframe._zenkaiPlayerController = player;
   // Apply the saved default volume (factory default is 10% so it's not jarring)
   if (player) {
     const savedVol = Number(state.uiPreferences.defaultVolume ?? 0.1);
@@ -13499,8 +13586,9 @@ document.addEventListener("keydown", (event) => {
 
   // Intercept player shortcuts
   const cinema = document.querySelector(".vidstream-player.is-cinema");
-  const player = document.querySelector("#animePlayer");
-  if (cinema && player && !player.isApkPlayer && !cinema.querySelector(".source-picker")) {
+  const player = document.querySelector("#animePlayer")
+    || document.querySelector("#animePlayerFrame")?._zenkaiPlayerController;
+  if (cinema && player && !cinema.querySelector(".source-picker")) {
     const ae = document.activeElement;
     const editingText = !!ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA") && ae.type !== "range" && !ae.readOnly;
     const isControlFocused = ae && (ae.classList.contains("focusable") || ae.closest(".vid-controls") || ae.closest(".vid-topbar") || ae.closest(".vid-panel"));
@@ -13521,7 +13609,7 @@ document.addEventListener("keydown", (event) => {
         handled = true;
       } else if (event.key === "ArrowRight" && !isControlFocused) {
         event.preventDefault();
-        player.currentTime = Math.min(player.duration || 0, player.currentTime + 10);
+        player.currentTime = Math.min(getPlayableDuration(player) || Infinity, player.currentTime + 10);
         showToast("Forward 10s");
         handled = true;
       } else if (event.key === "ArrowUp" && !isControlFocused) {

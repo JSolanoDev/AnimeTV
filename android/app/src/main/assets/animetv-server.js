@@ -187,7 +187,44 @@ const JKANIME_MISS_CACHE_TTL_MS = 1000 * 60 * 8;
 const ANILIST_MEDIA_CACHE_TTL_MS  = 1000 * 60 * 60 * 24;  // 24 h ΓÇö stable metadata
 const ANILIST_SEARCH_CACHE_TTL_MS = 1000 * 60 * 60 * 6;   // 6 h
 const anilistMediaCache  = new Map(); // anilistId ΓåÆ { data, ts }
-const anilistSearchCache = new Map(); // normalizedTitle ΓåÆ { data, ts }
+const anilistSearchCache = new Map();
+
+// Coalesce concurrent AniList lookups. Without this every caller for the same
+// key fired its own upstream request: the dev log showed ONE media id hitting
+// AniList 7 times in under 600ms, which tripped AniList's rate limit and came
+// back to the browser as 502s with missing metadata. Callers now share a
+// single in-flight promise per key; the existing caches handle repeat hits.
+const anilistInflight = new Map();
+
+// Coalescing alone was not enough: the 7 duplicate lookups for one id arrived
+// ~2ms apart and each failed FAST, so every one completed before the next
+// started and there was no overlap to merge. A short failure cooldown closes
+// that gap - the first failure is remembered, so the following requests fail
+// immediately from memory instead of hammering AniList, which is what tripped
+// its rate limit in the first place. Success clears the mark straight away.
+const anilistFailureCache = new Map();
+const ANILIST_FAILURE_TTL_MS = 30000;
+
+function anilistCoalesce(key, work) {
+  const existing = anilistInflight.get(key);
+  if (existing) return existing;
+  const failedAt = anilistFailureCache.get(key);
+  if (failedAt && Date.now() - failedAt < ANILIST_FAILURE_TTL_MS) {
+    return Promise.reject(new Error("AniList lookup cooling down after a recent failure"));
+  }
+  const pending = Promise.resolve().then(work)
+    .then((value) => { anilistFailureCache.delete(key); return value; })
+    .catch((error) => { anilistFailureCache.set(key, Date.now()); throw error; })
+    .finally(() => anilistInflight.delete(key));
+  anilistInflight.set(key, pending);
+  return pending;
+}
+
+// Keep the cooldown map from growing without bound on long-lived servers.
+setInterval(() => {
+  const cutoff = Date.now() - ANILIST_FAILURE_TTL_MS;
+  for (const [key, ts] of anilistFailureCache) if (ts < cutoff) anilistFailureCache.delete(key);
+}, ANILIST_FAILURE_TTL_MS).unref?.(); // normalizedTitle ΓåÆ { data, ts }
 const jikanEpisodeCache = new Map(); // malId -> { data, ts }
 const jikanFullCache = new Map(); // malId -> { data, ts }
 const jikanSearchCache = new Map(); // normalized title -> { data, ts }
@@ -1127,6 +1164,22 @@ function checkRateLimit(request, url) {
     rateLimitBuckets.set(key, bucket);
     return { allowed: bucket.count <= anilistLimit, limit: anilistLimit, retryAfterMs: Math.max(0, bucket.resetAt - now) };
   }
+  // /api/image is a POSTER PROXY, not an expensive API. One homepage paint
+  // legitimately asks for a poster + backdrop per card (84 cards initially),
+  // so sharing the 120/min API budget made the app rate-limit ITSELF within
+  // seconds: posters came back 429 and simply never rendered. Give images
+  // their own generous bucket - the responses are idempotent, cacheable GETs
+  // and the service worker keeps them, so volume here is normal, not abuse.
+  if (url.pathname === "/api/image") {
+    const imageLimit = Math.max(1200, RATE_LIMIT_API_MAX_REQUESTS * 10);
+    const key = `${getClientIp(request)}:image`;
+    const now = Date.now();
+    const bucket = rateLimitBuckets.get(key) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
+    if (now > bucket.resetAt) { bucket.count = 0; bucket.resetAt = now + RATE_LIMIT_WINDOW_MS; }
+    bucket.count += 1;
+    rateLimitBuckets.set(key, bucket);
+    return { allowed: bucket.count <= imageLimit, limit: imageLimit, retryAfterMs: Math.max(0, bucket.resetAt - now) };
+  }
   const limit = url.pathname.startsWith("/api/") ? RATE_LIMIT_API_MAX_REQUESTS : RATE_LIMIT_MAX_REQUESTS;
   const key = `${getClientIp(request)}:${url.pathname.startsWith("/api/") ? "api" : "web"}`;
   const now = Date.now();
@@ -1276,29 +1329,72 @@ async function refreshDailyApis({ force = false, reason = "scheduled" } = {}) {
   return dailyRefreshPromise;
 }
 
+// /api/catalog was the single slowest thing in the app: measured at 5,333ms
+// while nothing else exceeded 630ms. It had no cache, so EVERY request re-ran
+// one AniList call plus six Jikan pages, and Jikan rate-limits at ~3 req/sec so
+// those pages serialised with backoff. That also generated a good share of the
+// upstream 429s seen in the browser log.
+//
+// The payload is a trending/popular list that changes at most hourly, so it is
+// cached in memory. A single in-flight promise is shared, so a cold cache with
+// N simultaneous visitors still performs exactly one upstream pass, and a stale
+// entry is served if the upstream later fails rather than returning a 502.
+const CATALOG_RESPONSE_TTL_MS = Math.max(
+  60000,
+  Number(process.env.CATALOG_RESPONSE_TTL_MS || 10 * 60 * 1000)
+);
+let catalogResponseCache = null;   // { payload, ts }
+let catalogResponseInflight = null;
+
+async function buildCatalogPayload() {
+  const [anilist, jikanAiring, jikanSeason, jikanPopular] = await Promise.allSettled([
+    fetchAniListTrending(),
+    fetchJikanPages(JIKAN_TOP_ENDPOINT, "Jikan Airing", 2),
+    fetchJikanPages(JIKAN_SEASON_ENDPOINT, "Jikan Season", 2),
+    fetchJikanPages(JIKAN_POPULAR_ENDPOINT, "Jikan Popular", 2)
+  ]);
+
+  const items = [
+    ...(anilist.status === "fulfilled" ? anilist.value : []),
+    ...(jikanAiring.status === "fulfilled" ? jikanAiring.value : []),
+    ...(jikanSeason.status === "fulfilled" ? jikanSeason.value : []),
+    ...(jikanPopular.status === "fulfilled" ? jikanPopular.value : [])
+  ];
+
+  // Every upstream failing yields an empty list - do not cache that over a
+  // previously good catalog.
+  if (!items.length) throw new Error("All metadata upstreams returned nothing");
+
+  return {
+    ok: true,
+    source: "ZenkaiTV Metadata API",
+    count: items.length,
+    items: mergeShows(items).slice(0, 340)
+  };
+}
+
 async function handleCatalog(response) {
+  const now = Date.now();
+  if (catalogResponseCache && now - catalogResponseCache.ts < CATALOG_RESPONSE_TTL_MS) {
+    sendJson(response, { ...catalogResponseCache.payload, cached: true });
+    return;
+  }
+
   try {
-    const [anilist, jikanAiring, jikanSeason, jikanPopular] = await Promise.allSettled([
-      fetchAniListTrending(),
-      fetchJikanPages(JIKAN_TOP_ENDPOINT, "Jikan Airing", 2),
-      fetchJikanPages(JIKAN_SEASON_ENDPOINT, "Jikan Season", 2),
-      fetchJikanPages(JIKAN_POPULAR_ENDPOINT, "Jikan Popular", 2)
-    ]);
-
-    const items = [
-      ...(anilist.status === "fulfilled" ? anilist.value : []),
-      ...(jikanAiring.status === "fulfilled" ? jikanAiring.value : []),
-      ...(jikanSeason.status === "fulfilled" ? jikanSeason.value : []),
-      ...(jikanPopular.status === "fulfilled" ? jikanPopular.value : [])
-    ];
-
-    sendJson(response, {
-      ok: true,
-      source: "ZenkaiTV Metadata API",
-      count: items.length,
-      items: mergeShows(items).slice(0, 340)
-    });
+    if (!catalogResponseInflight) {
+      catalogResponseInflight = buildCatalogPayload()
+        .then((payload) => { catalogResponseCache = { payload, ts: Date.now() }; return payload; })
+        .finally(() => { catalogResponseInflight = null; });
+    }
+    const payload = await catalogResponseInflight;
+    sendJson(response, payload);
   } catch (error) {
+    log("warn", "Catalog build failed", { error: error.message });
+    if (catalogResponseCache) {
+      // Stale beats broken: keep the homepage populated through an outage.
+      sendJson(response, { ...catalogResponseCache.payload, cached: true, stale: true });
+      return;
+    }
     sendJson(response, { ok: false, error: "Metadata APIs unavailable" }, 502);
   }
 }
@@ -1387,11 +1483,18 @@ async function handleSourceProxy(request, url, response) {
       const value = upstream.headers.get(name);
       if (value) responseHeaders[name] = value;
     });
-    response.writeHead(upstream.status, responseHeaders);
     if (isPlaylist) {
-      response.end(rewriteM3u8Playlist(await upstream.text(), target, refererHost));
+      const playlist = rewriteM3u8Playlist(await upstream.text(), target, refererHost);
+      // Rewriting segment URIs makes the playlist larger than the upstream file.
+      // Passing through the old length truncates it before its final segment.
+      delete responseHeaders["content-length"];
+      delete responseHeaders["content-range"];
+      responseHeaders["Content-Length"] = String(Buffer.byteLength(playlist));
+      response.writeHead(upstream.status, responseHeaders);
+      response.end(playlist);
       return;
     }
+    response.writeHead(upstream.status, responseHeaders);
     if (!upstream.body) {
       response.end();
       return;
@@ -1407,7 +1510,8 @@ async function handleSourceProxy(request, url, response) {
 }
 
 function rewriteM3u8Playlist(text, baseUrl, refererHost = "") {
-  return String(text || "").split(/\r?\n/).map((line) => {
+  const source = String(text || "");
+  const lines = source.split(/\r?\n/).map((line) => {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) {
       return line.replace(/URI="([^"]+)"/g, (match, uri) => {
@@ -1418,7 +1522,16 @@ function rewriteM3u8Playlist(text, baseUrl, refererHost = "") {
     }
     if (/^data:|^blob:/i.test(trimmed)) return line;
     return sourceProxyPath(new URL(trimmed, baseUrl).toString(), refererHost);
-  }).join("\n");
+  });
+
+  // Some VOD providers omit ENDLIST even though they declare the playlist VOD.
+  // hls.js then reports duration as Infinity and disallows normal seeking.
+  if (/^#EXT-X-PLAYLIST-TYPE:VOD\s*$/mi.test(source)
+    && /^#EXTINF:/mi.test(source)
+    && !/^#EXT-X-ENDLIST\s*$/mi.test(source)) {
+    lines.push("#EXT-X-ENDLIST");
+  }
+  return lines.join("\n");
 }
 
 function sourceProxyPath(target, refererHost = "") {
@@ -7698,16 +7811,19 @@ async function handleAniListMedia(url, response) {
     return;
   }
   try {
-    const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ query: ANILIST_MEDIA_GQL, variables: { id } })
-    }, 14000);
-    if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
-    const payload = await upstream.json();
-    const media = payload?.data?.Media;
-    if (!media) throw new Error("No Media in response");
-    anilistMediaCache.set(cacheKey, { data: media, ts: Date.now() });
+    const media = await anilistCoalesce(`media:${cacheKey}`, async () => {
+      const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ query: ANILIST_MEDIA_GQL, variables: { id } })
+      }, 14000);
+      if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
+      const payload = await upstream.json();
+      const found = payload?.data?.Media;
+      if (!found) throw new Error("No Media in response");
+      anilistMediaCache.set(cacheKey, { data: found, ts: Date.now() });
+      return found;
+    });
     sendJson(response, { ok: true, media });
   } catch (err) {
     log("warn", "AniList media fetch failed", { id, error: err.message });
@@ -7728,16 +7844,19 @@ async function handleAniListSearch(url, response) {
     return;
   }
   try {
-    const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ query: ANILIST_SEARCH_GQL, variables: { search: q } })
-    }, 14000);
-    if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
-    const payload = await upstream.json();
-    const results = payload?.data?.Page?.media || [];
-    const best = results[0] || null;
-    if (best) anilistSearchCache.set(cacheKey, { data: best, ts: Date.now() });
+    const { best, results } = await anilistCoalesce(`search:${cacheKey}`, async () => {
+      const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ query: ANILIST_SEARCH_GQL, variables: { search: q } })
+      }, 14000);
+      if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
+      const payload = await upstream.json();
+      const list = payload?.data?.Page?.media || [];
+      const top = list[0] || null;
+      if (top) anilistSearchCache.set(cacheKey, { data: top, ts: Date.now() });
+      return { best: top, results: list };
+    });
     sendJson(response, { ok: true, media: best, results });
   } catch (err) {
     log("warn", "AniList search failed", { q, error: err.message });

@@ -4817,6 +4817,18 @@ body.adult-mode .vid-loader-text {
   cursor: pointer;
 }
 
+.vid-timeline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.vid-timeline .vid-seek {
+  min-width: 0;
+}
+
 .vid-control-row {
   display: flex;
   align-items: center;
@@ -4833,6 +4845,21 @@ body.adult-mode .vid-loader-text {
   font-size: 0.86rem;
   font-weight: 800;
   white-space: nowrap;
+}
+
+.vid-skip-button {
+  position: relative;
+  overflow: visible;
+  font-size: 1.05rem;
+}
+
+.vid-skip-button span {
+  position: absolute;
+  right: 0.2rem;
+  bottom: 0.16rem;
+  font-size: 0.54rem;
+  line-height: 1;
+  font-weight: 900;
 }
 
 .vid-panel {
@@ -6186,6 +6213,14 @@ body.player-cinema-open .close-button {
   .vid-control-row {
     overflow-x: auto;
     padding-bottom: 0.15rem;
+  }
+
+  .vid-timeline {
+    gap: 0.5rem;
+  }
+
+  .vid-timeline .vid-time {
+    font-size: 0.76rem;
   }
 
   /* Stack label over control with flexbox so the row GROWS to fit its content.
