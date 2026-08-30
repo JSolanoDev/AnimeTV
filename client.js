@@ -1607,15 +1607,18 @@ function isolateAdultSourceMetadata(show) {
     "anilistId", "malId", "tmdbId", "tmdbPoster", "tmdbBackdrop",
     "tmdbSeasonPoster", "tmdbEpisodeStills", "tmdbEpisodesByNum",
     "streamingEpisodes", "streamingEpisodesByNum", "jikanImage",
-    "jikanBackground", "franchise", "relations", "relatedShows",
-    "studios", "producers", "cast", "actors", "characters", "trailer"
+    "jikanBackground", "franchise", "relations", "relatedShows", "trailer"
   ].forEach((key) => delete show[key]);
   show.score = 0;
-  show.year = "";
-  show.duration = 0;
-  show.format = "";
-  show.genre = show.genres?.[0] || "Hentai";
-  show.genres = show.genres?.length ? show.genres : ["Hentai"];
+  show.year = show.year || String(show.aired || "").match(/\b(?:19|20)\d{2}\b/)?.[0] || "";
+  show.duration = Number(show.duration || 0);
+  show.format = show.format || "";
+  show.studios = Array.isArray(show.studios) && show.studios.length
+    ? show.studios
+    : (show.brand ? [show.brand] : []);
+  show.nativeTitle = show.nativeTitle || show.officialTitle || "";
+  show.genre = show.genre || show.genres?.[0] || "Hentai";
+  show.genres = show.genres?.length ? show.genres : [show.genre || "Hentai"];
   show._canonicalMetadataLoaded = true;
   show._extrasTried = true;
   show._tmdbResolved = true;
@@ -1630,7 +1633,7 @@ async function loadAdultCatalog(force = false) {
   }
   if (adultCatalogLoadingPromise && !force) return adultCatalogLoadingPromise;
   const adapter = AdultSourceRegistry.get();
-  const cacheKey = `adult-catalog:${adapter.name}:underhentai-only-v2`;
+  const cacheKey = `adult-catalog:${adapter.name}:underhentai-only-v3`;
   const cachedItems = readResponseCache(cacheKey, CATALOG_CACHE_TTL);
   const applyAdultItems = (items = [], labelPrefix = adapter.name) => {
     const adultItems = Array.isArray(items)
@@ -2316,6 +2319,17 @@ function getCardPosterCandidates(show = {}) {
     show.thumbnail,
     show.images?.thumbnail
   ];
+  if (isAdultCatalogShow(show)) {
+    candidates.push(
+      show.underHentaiBackdrop,
+      show.adultBackground,
+      show.images?.backdrop,
+      show.images?.banner,
+      show.backdrop,
+      show.banner,
+      show.highQualityBackground
+    );
+  }
   const expanded = [];
   candidates.forEach((value) => {
     const raw = String(value || "").trim();
@@ -3407,7 +3421,11 @@ function cardTemplate(show, index = 0) {
   const meta = cardMeta(show, isFavorite);
   const target = getCardTarget(show);
   const posterCandidates = getCardPosterCandidates(show);
-  const deliveredCandidates = posterCandidates.map((url) => imageDeliveryUrl(url, 400, 90));
+  const isAdultCard = isAdultCatalogShow(show);
+  const deliveredCandidates = [...new Set(posterCandidates.flatMap((url) => {
+    const delivered = imageDeliveryUrl(url, 400, 90);
+    return isAdultCard && delivered !== url ? [delivered, url] : [delivered];
+  }).filter(Boolean))];
   const posterUrl = deliveredCandidates[0] || "";
   // Per-device poster sizing: a small card needs ~200px on a phone but ~400px on
   // a retina desktop. srcset lets the browser pick, keeping cards crisp on every
@@ -3495,6 +3513,7 @@ function getCardTarget(show) {
 function cardMeta(show, isFavorite = false) {
   const pieces = [show.genre?.toUpperCase()].filter(Boolean);
   if (show.score) pieces.push(`${show.score}%`);
+  if (isAdultCatalogShow(show) && show.year) pieces.push(String(show.year));
   const epLabel = cardEpisodeLabel(show);
   if (epLabel !== "TV") pieces.push(epLabel);
   if (isFavorite) pieces.push("FAVORITE");
@@ -7044,6 +7063,13 @@ function applyWatchBackdrop(show, season) {
 }
 
 function compactMetadataLine(show = {}) {
+  if (isAdultCatalogShow(show)) {
+    return [
+      show.genre ? String(show.genre).toUpperCase() : "",
+      show.aired || detailStatusLabel(show.status),
+      show.source || ""
+    ].filter(Boolean).join(" | ");
+  }
   return [
     show.genre ? String(show.genre).toUpperCase() : "",
     show.status ? String(show.status).replace(/_/g, " ") : "",

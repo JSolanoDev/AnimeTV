@@ -18,6 +18,7 @@ const { SmartSource } = require("../js/smart-source.js");
 const SeasonNormalization = require("../js/season-normalization.js");
 const ImageResolver = require("../js/image-resolver.js");
 const AdultMode = require("../js/adult-mode.js");
+const { UnderHentaiAdultSourceAdapter } = require("../js/adult-source-adapter.js");
 
 let passed = 0;
 let failed = 0;
@@ -317,6 +318,31 @@ const falsePositives = ALL_ADULT_MARKERS.filter(
 );
 check("no adult marker matches inside a larger word", falsePositives.length === 0);
 if (falsePositives.length) console.log("        false positives: " + falsePositives.join(", "));
+
+console.log("");
+console.log("# UnderHentai artwork and metadata mapping");
+const adultAdapter = new UnderHentaiAdultSourceAdapter();
+const workingAdultImage = "https://static.underhentai.net/thumbs/11035/1/1.jpg";
+const mappedAdultTitle = adultAdapter._catalogItem({
+  slug: "source-metadata-test",
+  title: "Source Metadata Test",
+  officialTitle: "Source Metadata Test: Official",
+  brand: "Test Studio",
+  aired: "January 2, 2026 - Ongoing",
+  status: "Ongoing",
+  format: "OVA",
+  image: "https://static.underhentai.net/uploads/anime/source-metadata-test.jpg",
+  banner: workingAdultImage,
+  episodeCount: 3,
+  releaseCount: 5,
+  genres: ["Hentai", "Fantasy"]
+});
+check("broken UnderHentai upload falls back to working thumbnail", mappedAdultTitle.image === workingAdultImage);
+check("UnderHentai aired date supplies the catalog year", mappedAdultTitle.year === 2026);
+check("UnderHentai ongoing status maps to RELEASING", mappedAdultTitle.status === "RELEASING");
+check("UnderHentai brand is preserved as a studio", mappedAdultTitle.studios.includes("Test Studio"));
+check("UnderHentai official title is preserved as an alias", mappedAdultTitle.aliases.includes("Source Metadata Test: Official"));
+check("UnderHentai episode count is preserved", mappedAdultTitle.latestAiredEp === 3);
 
 
 console.log(`\n${passed} passed, ${failed} failed\n`);

@@ -8120,6 +8120,18 @@ function hasUnderHentaiDirectEmbed(sourceOption = {}) {
     });
 }
 
+function chooseUnderHentaiDisplayImage(image = "", banner = "") {
+  const primary = String(image || "").trim();
+  const fallback = String(banner || "").trim();
+  try {
+    const parsed = new URL(primary);
+    const unavailableUpload = parsed.hostname.toLowerCase() === "static.underhentai.net"
+      && parsed.pathname.toLowerCase().startsWith("/uploads/");
+    if (unavailableUpload && fallback) return fallback;
+  } catch { /* use the normal fallback below */ }
+  return primary || fallback;
+}
+
 function isBlockedPlaybackUrl(value = "") {
   try {
     return BLOCKED_PLAYBACK_HOSTS.has(new URL(value).hostname.toLowerCase());
@@ -8157,7 +8169,7 @@ function prepareUnderHentaiSnapshotItem(item = {}) {
 
   const banner = decodeUnderHentaiImage(item.banner || item.image || "");
 
-  const displayImage = image || banner;
+  const displayImage = chooseUnderHentaiDisplayImage(image, banner);
 
   return {
     ...item,
@@ -8294,7 +8306,7 @@ async function handleUnderHentaiCatalog(url, response) {
 
     const banner = decodeUnderHentaiImage(item.banner || item.image || "");
 
-    const displayImage = image || banner;
+    const displayImage = chooseUnderHentaiDisplayImage(image, banner);
     return {
       ...item,
       image: displayImage,

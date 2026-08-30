@@ -109,17 +109,52 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
     return payload;
   }
 
+  _isUnavailableUpload(value = "") {
+    try {
+      const parsed = new URL(String(value));
+      return parsed.hostname.toLowerCase() === "static.underhentai.net"
+        && parsed.pathname.toLowerCase().startsWith("/uploads/");
+    } catch {
+      return false;
+    }
+  }
+
+  _airedYear(aired = "") {
+    const match = String(aired).match(/\b(?:19|20)\d{2}\b/);
+    return match ? Number(match[0]) : "";
+  }
+
+  _normalizedStatus(status = "", aired = "") {
+    const normalized = String(status || "").trim().toUpperCase().replace(/\s+/g, "_");
+    if (["RELEASING", "FINISHED", "NOT_YET_RELEASED", "CANCELLED", "HIATUS"].includes(normalized)) return normalized;
+    const sourceText = `${status} ${aired}`;
+    if (/ongoing|currently airing|releasing/i.test(sourceText)) return "RELEASING";
+    if (/upcoming|not yet|tba/i.test(sourceText)) return "NOT_YET_RELEASED";
+    return aired ? "FINISHED" : "";
+  }
+
+  _description(item = {}) {
+    const description = String(item.description || "").trim();
+    if (description) return description;
+    const officialTitle = String(item.officialTitle || "").trim();
+    const brand = String(item.brand || "").trim();
+    return [
+      officialTitle ? `Official title: ${officialTitle}` : "",
+      brand ? `Studio: ${brand}` : ""
+    ].filter(Boolean).join(" · ") || "UnderHentai title.";
+  }
+
   _bestImage(item = {}) {
     const screenshots = Array.isArray(item.screenshots) ? item.screenshots : [];
-    return String(
-      item.image ||
-      item.poster ||
-      item.cover ||
-      item.thumbnail ||
-      item.banner ||
-      screenshots[0] ||
-      ""
-    ).trim();
+    const candidates = [
+      item.image,
+      item.poster,
+      item.cover,
+      item.thumbnail,
+      item.banner,
+      screenshots[0]
+    ].map((value) => String(value || "").trim()).filter(Boolean);
+    return candidates.find((value) => !this._isUnavailableUpload(value)) || candidates[0] || "";
   }
 
   _bestBanner(item = {}, fallback = "") {
@@ -142,12 +177,19 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
       : sourceIndex;
     const image = this._bestImage(item);
     const banner = this._bestBanner(item, image);
+    const aired = String(item.aired || "").trim();
+    const year = this._airedYear(aired);
+    const status = this._normalizedStatus(item.status, aired);
+    const officialTitle = String(item.officialTitle || "").trim();
+    const brand = String(item.brand || "").trim();
     return {
       id: `adult-underhentai-${item.slug}`,
       adultId: item.slug,
       slug: item.slug,
       title: item.title || item.slug,
-      nativeTitle: item.officialTitle || "",
+      nativeTitle: officialTitle,
+      officialTitle,
+      aliases: officialTitle ? [officialTitle] : [],
       thumbnail: image,
       image,
       poster: image,
@@ -168,12 +210,21 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
       },
       url: item.url || "",
       siteUrl: item.url || "",
-      description: item.brand ? `Studio: ${item.brand}` : "Adult title.",
+      description: this._description(item),
       genres: Array.isArray(item.genres) ? item.genres : [],
       genre: item.genres?.[0] || "Hentai",
       episode: episodeCount,
+      episodeCount,
       totalEpisodes: episodeCount,
-      status: item.aired || "",
+      latestAiredEp: episodeCount,
+      releaseCount: Math.max(0, Number(item.releaseCount || 0)),
+      aired,
+      year,
+      startYear: year,
+      status,
+      format: item.format || "",
+      brand,
+      studios: brand ? [brand] : [],
       source: item.source || this.name,
       isAdult: true,
       adult: true,
@@ -245,7 +296,7 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
     });
     return {
       ...this._catalogItem(item),
-      description: item.description || (item.brand ? `Studio: ${item.brand}` : "Adult title."),
+      description: this._description(item),
       officialTitle: item.officialTitle || "",
       brand: item.brand || "",
       episode: episodes.length,
