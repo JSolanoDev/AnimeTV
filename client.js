@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=504`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=506`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2762,16 +2762,15 @@ function underHentaiBackdropCandidates(show = {}, season = null) {
   ].map((value) => hqImage(String(value || "").trim()));
 }
 
-// Best wide cinematic backdrop: season-specific TMDB still/backdrop → season
-// banner/poster fallback → show-wide art. Known-broken URLs are skipped so a
-// 404'd image never wins.
+// Best wide cinematic backdrop: show-wide wallpaper first, then season-specific
+// art only when it is the best thing available. Known-broken URLs are skipped so
+// a 404'd image never wins.
 function getWatchBackdropArtwork(show = {}, season = null) {
   show = show || {};
   season = season || {};
   const adultArt = pickImage(underHentaiBackdropCandidates(show, season));
   if (adultArt) return adultArt;
   const candidates = [
-    ...seasonWideBackdropCandidates(show, season),
     show.images?.backdrop,
     show.images?.banner,
     show.tmdbBackdrop,
@@ -2783,6 +2782,7 @@ function getWatchBackdropArtwork(show = {}, season = null) {
     show.wideImage,
     show.landscapeImage,
     show.jikanBackground,
+    ...seasonWideBackdropCandidates(show, season),
     ...seasonPosterFallbackCandidates(show, season),
     show.coverImageLarge,
     show.images?.poster,
@@ -2881,7 +2881,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=504";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=506";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -7115,16 +7115,56 @@ function selectedSeasonLabel(selected = state.activeEpisode) {
   return title;
 }
 
-function currentEpisodeLabel(selected = state.activeEpisode) {
-  if (!selected) return getShowTitle(state.activeShow) || "Selected anime";
+function normalizeDisplayText(value = "") {
+  if (typeof normalizeTitle === "function") return normalizeTitle(value);
+  return String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function currentEpisodeNumberLabel(selected = state.activeEpisode) {
+  if (!selected) return "Selected episode";
   const episodeNumber = Number(selected.episode?.episode || selected.episode?.number || selected.episodeIndex + 1) || 1;
-  const seasonEp = `${selectedSeasonLabel(selected)} Episode ${episodeNumber}`;
-  // Lead with the anime's name so the player bar reads "Name — Season X Episode Y".
+  return `${selectedSeasonLabel(selected)} Episode ${episodeNumber}`;
+}
+
+function currentEpisodeKicker(selected = state.activeEpisode) {
+  const numberLabel = currentEpisodeNumberLabel(selected);
   const showName = getShowTitle(state.activeShow) || "";
-  if (showName && !seasonEp.toLowerCase().startsWith(showName.toLowerCase())) {
-    return `${showName} — ${seasonEp}`;
+  return showName ? `${showName} — ${numberLabel}` : numberLabel;
+}
+
+function currentEpisodeTitle(selected = state.activeEpisode) {
+  if (!selected) return getShowTitle(state.activeShow) || "Selected episode";
+  const episode = selected.episode || {};
+  const episodeNumber = Number(episode.episode || episode.number || selected.episodeIndex + 1) || 1;
+  const seasonNumber = Number(selected.season?.season || selected.season?.seasonNumber || episode.season || selected.seasonIndex + 1) || 1;
+  const meta = episodeMetadataForNumber(state.activeShow || {}, episodeNumber, seasonNumber);
+  const showKey = normalizeDisplayText(getShowTitle(state.activeShow) || "");
+  const numberKey = normalizeDisplayText(`Episode ${episodeNumber}`);
+  const seasonEpisodeKey = normalizeDisplayText(currentEpisodeNumberLabel(selected));
+  const candidates = [
+    meta?.title ? cleanEpisodeTitle(meta.title, episodeNumber) : "",
+    episode.title ? cleanEpisodeTitle(episode.title, episodeNumber) : "",
+    episode.name ? cleanEpisodeTitle(episode.name, episodeNumber) : ""
+  ];
+
+  for (const candidate of candidates) {
+    const text = String(candidate || "").trim();
+    const key = normalizeDisplayText(text);
+    if (!text || !key) continue;
+    if (key === showKey || key === numberKey || key === seasonEpisodeKey) continue;
+    if (/^(?:episode|ep|cap[ií]tulo|cap)\s*\d+$/i.test(text)) continue;
+    return text;
   }
-  return seasonEp;
+  return currentEpisodeNumberLabel(selected);
+}
+
+function currentEpisodeLabel(selected = state.activeEpisode) {
+  if (!selected) return getShowTitle(state.activeShow) || "Selected episode";
+  const numberLabel = currentEpisodeNumberLabel(selected);
+  const title = currentEpisodeTitle(selected);
+  return title && normalizeDisplayText(title) !== normalizeDisplayText(numberLabel)
+    ? `${numberLabel} · ${title}`
+    : numberLabel;
 }
 
 function baseSeasonTitle(title) {
@@ -7328,11 +7368,12 @@ function applyWatchBackdrop(show, season) {
   // cleanly. A poster/cover fallback is vertical, so cropping it with `cover`
   // looks bad — we show it `contain` over a blurred fill of itself instead.
   const wideSources = new Set([
-    ...seasonWideBackdropCandidates(show, season),
     show.images?.backdrop, show.images?.banner,
     show.tmdbBackdrop, show.highQualityBackground, show.banner, show.bannerImage,
-    season?.tmdbBackdrop, show.backdrop, show.heroImage, show.wideImage,
-    show.landscapeImage, show.jikanBackground, season?.highQualityBackground,
+    show.backdrop, show.heroImage, show.wideImage,
+    show.landscapeImage, show.jikanBackground,
+    ...seasonWideBackdropCandidates(show, season),
+    season?.tmdbBackdrop, season?.highQualityBackground,
     season?.banner, season?.backdrop
   ].map((value) => hqImage(String(value || "").trim()))
    .filter((url) => url && !verticalArt.has(url)));
@@ -7342,9 +7383,9 @@ function applyWatchBackdrop(show, season) {
   // TMDB resolves (an AniList banner is wide but NOT in here, so it's "low-res").
   const seasonNum = getBackdropSeasonNumber(season);
   const highResSources = new Set([
-    show.tmdbBackdrop, season?.tmdbBackdrop,
-    seasonNum && show.tmdbSeasonBackdropsBySeason ? show.tmdbSeasonBackdropsBySeason[seasonNum] : "",
-    show.highQualityBackground, season?.highQualityBackground
+    show.tmdbBackdrop, show.highQualityBackground,
+    season?.tmdbBackdrop, season?.highQualityBackground,
+    seasonNum && show.tmdbSeasonBackdropsBySeason ? show.tmdbSeasonBackdropsBySeason[seasonNum] : ""
   ].map((value) => hqImage(String(value || "").trim())).filter(Boolean));
   // Set the sharp backdrop image + classes (no crossfade — used for the first
   // paint and the fallback/poster cases).
@@ -9787,14 +9828,14 @@ function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null) 
     }
   }
   options.fit = state.uiPreferences.playerFit || "contain";
-  options.episode = currentEpisodeLabel();
+  options.episode = currentEpisodeKicker();
   options.hasNext = Boolean(getEpisodeNavigationTargets().next);
   options.poster = episodeThumb(
     episode || state.activeEpisode?.episode || {},
     state.activeEpisode?.season || {},
     state.activeShow || {}
   );
-  const playerTitle = state.activeShow?.title || state.activeShow?.romajiTitle || episode?.showTitle || "ZenkaiTV";
+  const playerTitle = currentEpisodeTitle() || state.activeShow?.title || state.activeShow?.romajiTitle || episode?.showTitle || "ZenkaiTV";
   const hash = streamTypeFromUrl(url) === "dash"
     ? "#dash"
     : streamTypeFromUrl(url) === "file"
@@ -12519,7 +12560,7 @@ async function playActiveShow(options = {}) {
   // play immediately; embed hosts are resolved by the player's in-app WebView
   // stream-sniffer. In a normal browser there's no bridge, so nothing changes.
   if (window.ZenkaiNative && typeof window.ZenkaiNative.play === "function") {
-    const title = getShowTitle(show) || "";
+    const title = currentEpisodeTitle() || getShowTitle(show) || "";
     // Build the watch-tracking context so the native player can resume from the
     // saved position and report progress back into localStorage.
     const ae = state.activeEpisode || {};
@@ -12529,7 +12570,7 @@ async function playActiveShow(options = {}) {
     const startMs = (getResumePosition(ae.episode) || 0) * 1000;
     _nativePlayContext = {
       show, season: seasonNum, episode: epNum, key: epKey,
-      episodeTitle: ae.episode?.title || "",
+      episodeTitle: currentEpisodeTitle(ae) || ae.episode?.title || "",
       thumb: episodeThumb(ae.episode || {}, ae.season || {}, show)
     };
     const tracked = typeof window.ZenkaiNative.playTracked === "function";
@@ -14728,7 +14769,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=504");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=506");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
