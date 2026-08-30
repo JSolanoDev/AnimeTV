@@ -299,7 +299,9 @@ function simpleHash(value) {
 
 function sortCarouselQuality(items) {
   return [...items].sort((a, b) => {
-    const bannerScore = Number(Boolean(b.banner)) - Number(Boolean(a.banner));
+    const hasBannerB = Boolean(b.banner || b.tmdbBackdrop || b.highQualityBackground || b.bannerImage || b.backdrop || b.heroImage || b.wideImage || b.landscapeImage);
+    const hasBannerA = Boolean(a.banner || a.tmdbBackdrop || a.highQualityBackground || a.bannerImage || a.backdrop || a.heroImage || a.wideImage || a.landscapeImage);
+    const bannerScore = Number(hasBannerB) - Number(hasBannerA);
     if (bannerScore) return bannerScore;
     const sourceScore = Number(String(b.source).includes("AniList")) - Number(String(a.source).includes("AniList"));
     if (sourceScore) return sourceScore;

@@ -22,6 +22,19 @@ const TARGETS = [
 
 let failed = 0;
 
+// Evaluate the worker's own ASSET_VERSION expression against its own CACHE_NAME,
+// so the check tests what ships rather than re-implementing the derivation.
+function deriveSwAssetVersion(swText) {
+  const cacheName = (swText.match(/CACHE_NAME\s*=\s*"([^"]+)"/) || [])[1];
+  const expr = (swText.match(/const ASSET_VERSION\s*=\s*([^;]+);/) || [])[1];
+  if (!cacheName || !expr) return null;
+  try {
+    return Function("CACHE_NAME", `"use strict"; return (${expr});`)(cacheName);
+  } catch {
+    return null;
+  }
+}
+
 for (const { html, sw, label } of TARGETS) {
   if (!existsSync(html)) { console.log(`  SKIP  ${label}: ${html} not found`); continue; }
 
@@ -53,6 +66,14 @@ for (const { html, sw, label } of TARGETS) {
   if (!swMatch) {
     failed++;
     console.log(`  FAIL  ${label}: could not read CACHE_NAME from ${sw}`);
+  } else if (deriveSwAssetVersion(swText) !== swMatch[1]) {
+    // The worker derives ASSET_VERSION from CACHE_NAME to build its precache
+    // URLs. That derivation once shipped with a mangled regex (/-v(d+)$/ instead
+    // of /-v(\d+)$/), silently yielding "" so every precache entry fell back to
+    // an unversioned path the page never requests. It failed quietly - worth one
+    // assertion rather than another silent regression.
+    failed++;
+    console.log(`  FAIL  ${label}: ${sw} cannot derive its asset version from CACHE_NAME (got "${deriveSwAssetVersion(swText)}", expected "${swMatch[1]}")`);
   } else if (unique.length === 1 && swMatch[1] !== unique[0]) {
     failed++;
     console.log(`  FAIL  ${label}: service worker is v${swMatch[1]} but assets are v${unique[0]}`);

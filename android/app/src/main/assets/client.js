@@ -239,15 +239,64 @@ const carouselBackdropImage = document.querySelector("#carouselBackdropImage");
 // returning visitors get real artwork at ~0.4 s instead. When the catalog agrees
 // the swap in renderCarousel is a no-op, so this costs nothing; when it
 // disagrees the real art simply replaces it.
+const HERO_MEMO_KEY = "ztv:hero-art";
+// Bump when the stored shape changes - every older entry is then dropped on read
+// instead of being fed to code that expects new fields.
+const HERO_MEMO_SCHEMA = 2;
+// Artwork gets replaced upstream; a memo older than this is more likely to be a
+// dead URL than a useful head start, so it expires rather than living forever.
+const HERO_MEMO_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function clearHeroMemo() {
+  try { localStorage.removeItem(HERO_MEMO_KEY); } catch (err) { /* storage unavailable */ }
+}
+
+// Every failure mode returns null and leaves the normal render path untouched:
+// storage disabled (Safari private mode throws on access), corrupt JSON, an old
+// schema, an expired or future-dated stamp, or a src we would not be willing to
+// load. Anything rejected is also deleted so it cannot be re-examined every load.
+function readHeroMemo() {
+  let raw = null;
+  try { raw = localStorage.getItem(HERO_MEMO_KEY); } catch (err) { return null; }
+  if (!raw) return null;
+  let memo = null;
+  try { memo = JSON.parse(raw); } catch (err) { clearHeroMemo(); return null; }
+  if (!memo || typeof memo !== "object") { clearHeroMemo(); return null; }
+  if (memo.schema !== HERO_MEMO_SCHEMA) { clearHeroMemo(); return null; }
+  const age = Date.now() - memo.ts;
+  // age < 0 means the clock moved backwards (or the stamp was tampered with).
+  if (!Number.isFinite(memo.ts) || age < 0 || age > HERO_MEMO_TTL_MS) { clearHeroMemo(); return null; }
+  // Same-origin proxy URLs only: a tampered value must not repoint the hero at
+  // an arbitrary host.
+  if (typeof memo.src !== "string" || !memo.src.startsWith("/api/image?")) { clearHeroMemo(); return null; }
+  if (memo.srcset != null && typeof memo.srcset !== "string") { clearHeroMemo(); return null; }
+  return memo;
+}
+
+function writeHeroMemo(entry) {
+  try {
+    localStorage.setItem(HERO_MEMO_KEY, JSON.stringify({
+      ...entry, schema: HERO_MEMO_SCHEMA, ts: Date.now()
+    }));
+  } catch (err) { /* quota exceeded or storage disabled: the memo is only an optimisation */ }
+}
+
 let heroMemoActive = false;
 (function restoreHeroBackdrop() {
   if (!carouselBackdropImage) return;
-  let memo = null;
-  try { memo = JSON.parse(localStorage.getItem("ztv:hero-art") || "null"); } catch (err) { memo = null; }
-  // Same-origin proxy URLs only: a tampered storage value must not be able to
-  // point the hero at an arbitrary host.
-  if (!memo || typeof memo.src !== "string" || !memo.src.startsWith("/api/image?")) return;
-  if (typeof memo.srcset === "string" && memo.srcset) {
+  const memo = readHeroMemo();
+  if (!memo) return;
+  // A remembered URL can go dead upstream. If it fails to decode, drop the memo
+  // and get out of the way so renderCarousel's normal path runs - a stale memo
+  // must never leave a broken image sitting on the hero.
+  carouselBackdropImage.addEventListener("error", () => {
+    if (!heroMemoActive) return;   // real art already replaced it; not our problem
+    heroMemoActive = false;
+    clearHeroMemo();
+    carouselBackdropImage.classList.remove("has-banner");
+    carouselBackdropImage.removeAttribute("srcset");
+  });
+  if (memo.srcset) {
     carouselBackdropImage.setAttribute("srcset", memo.srcset);
     carouselBackdropImage.setAttribute("sizes", "100vw");
   }
@@ -434,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=489`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=491`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2669,7 +2718,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=489";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=491";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -2764,11 +2813,7 @@ function renderCarousel() {
       }
       carouselBackdropImage.src = deliveredArt;
       // Remember it for the next visit (see restoreHeroBackdrop above).
-      try {
-        localStorage.setItem("ztv:hero-art", JSON.stringify({
-          src: deliveredArt, srcset: heroSrcSet, portrait: !hasLandscapeBanner
-        }));
-      } catch (err) { /* private mode or quota: the memo is only an optimisation */ }
+      writeHeroMemo({ src: deliveredArt, srcset: heroSrcSet, portrait: !hasLandscapeBanner });
     } else if (!art && !heroMemoActive) {
       // Resolving (or genuinely no art): show only the dark gradient behind a
       // transparent image, so we never load a second placeholder/banner picture.
@@ -14430,7 +14475,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=489");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=491");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

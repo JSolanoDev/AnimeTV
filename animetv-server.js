@@ -22,9 +22,12 @@ const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || "0.0.0.0";
 const HOSTED_RUNTIME = Boolean(process.env.VERCEL || process.env.RENDER || process.env.FLY_APP_NAME || process.env.RAILWAY_ENVIRONMENT);
 const ANILIST_ENDPOINT = "https://graphql.anilist.co";
-const JIKAN_TOP_ENDPOINT = "https://api.jikan.moe/v4/top/anime?filter=airing&limit=25";
-const JIKAN_SEASON_ENDPOINT = "https://api.jikan.moe/v4/seasons/now?limit=25";
-const JIKAN_POPULAR_ENDPOINT = "https://api.jikan.moe/v4/top/anime?filter=bypopularity&limit=25";
+// Overridable so the outage/recovery path can be exercised against a stub. Same
+// pattern as TIOANIME_API; defaults to the real service.
+const JIKAN_API = (process.env.JIKAN_API || "https://api.jikan.moe/v4").replace(/\/+$/, "");
+const JIKAN_TOP_ENDPOINT = `${JIKAN_API}/top/anime?filter=airing&limit=25`;
+const JIKAN_SEASON_ENDPOINT = `${JIKAN_API}/seasons/now?limit=25`;
+const JIKAN_POPULAR_ENDPOINT = `${JIKAN_API}/top/anime?filter=bypopularity&limit=25`;
 const ANIPUB_ENDPOINT = "https://www.anipub.xyz";
 const ANIPUB_DETAILS_ENDPOINT = "https://anipub.xyz";
 const ANIPUB_API_ENDPOINT = "https://api.anipub.xyz";
@@ -245,9 +248,67 @@ let jikanLastRequestAt = 0;
 const jikanFailureCache = new Map();
 const JIKAN_FAILURE_TTL_MS = 60000;
 
+// Outage telemetry. An upstream being down must stay diagnosable without printing
+// a line per failed request - these counters answer "is Jikan down, since when,
+// and with what error" from /api/health.
+const jikanHealth = {
+  consecutiveFailures: 0,
+  totalFailures: 0,
+  lastFailureAt: 0,
+  lastFailureReason: "",
+  lastSuccessAt: 0
+};
+
 function jikanCoolingDown(key) {
   const failedAt = jikanFailureCache.get(key);
   return Boolean(failedAt && Date.now() - failedAt < JIKAN_FAILURE_TTL_MS);
+}
+
+// A 404/400 is a real answer - Jikan does not have this title - and may be cached
+// like any other result. Everything else (429, 5xx, timeouts, socket errors) is
+// the service being temporarily unwell and must never be recorded as fact.
+function isPermanentJikanError(error) {
+  const status = Number(error?.status || 0);
+  return status === 404 || status === 400;
+}
+
+function noteJikanFailure(key, error) {
+  jikanFailureCache.set(key, Date.now());
+  jikanHealth.consecutiveFailures += 1;
+  jikanHealth.totalFailures += 1;
+  jikanHealth.lastFailureAt = Date.now();
+  jikanHealth.lastFailureReason = error?.message || String(error);
+  // First failure of an outage, then every 20th. A multi-hour outage stays
+  // visible in the log without burying everything else.
+  if (jikanHealth.consecutiveFailures === 1 || jikanHealth.consecutiveFailures % 20 === 0) {
+    console.warn(`[Jikan] upstream unavailable (${jikanHealth.consecutiveFailures} consecutive): ${jikanHealth.lastFailureReason}`);
+  }
+}
+
+function noteJikanSuccess(key) {
+  if (jikanHealth.consecutiveFailures) {
+    console.info(`[Jikan] upstream recovered after ${jikanHealth.consecutiveFailures} consecutive failures`);
+    jikanHealth.consecutiveFailures = 0;
+  }
+  jikanHealth.lastSuccessAt = Date.now();
+  jikanFailureCache.delete(key);
+}
+
+// Successful lookups are cacheable; an "upstream is unwell" answer must NOT be,
+// or the CDN would keep serving it after Jikan recovers and delay recovery by up
+// to its TTL. This is the one header that really matters for outage recovery.
+const JIKAN_OK_CACHE = { "Cache-Control": "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400" };
+const JIKAN_UNAVAILABLE_CACHE = { "Cache-Control": "no-store, max-age=0" };
+
+function sendJikanUnavailable(response, cachedData, fallback) {
+  const data = cachedData === undefined || cachedData === null ? fallback : cachedData;
+  return sendJson(response, {
+    data,
+    ok: false,
+    stale: cachedData !== undefined && cachedData !== null,
+    unavailable: true,
+    retryAfterMs: JIKAN_FAILURE_TTL_MS
+  }, 200, JIKAN_UNAVAILABLE_CACHE);
 }
 
 setInterval(() => {
@@ -1017,6 +1078,18 @@ function handleHealth(response) {
     uptimeSeconds: Math.round((Date.now() - serverStartedAt) / 1000),
     dailyRefresh: lastDailyRefreshResult || { status: "waiting" },
     providers: {
+      // Jikan degrades to 200 + unavailable:true so an outage does not spam the
+      // client with errors. That makes the outage invisible in HTTP status codes,
+      // so it has to be visible HERE instead.
+      jikan: {
+        up: jikanHealth.consecutiveFailures === 0,
+        consecutiveFailures: jikanHealth.consecutiveFailures,
+        totalFailures: jikanHealth.totalFailures,
+        lastFailureAt: jikanHealth.lastFailureAt ? new Date(jikanHealth.lastFailureAt).toISOString() : null,
+        lastFailureReason: jikanHealth.lastFailureReason || null,
+        lastSuccessAt: jikanHealth.lastSuccessAt ? new Date(jikanHealth.lastSuccessAt).toISOString() : null,
+        coolingDownKeys: jikanFailureCache.size
+      },
       anipub: anipubHealthState,
       anime1v: {
         baseUrl: ANIME1V_API,
@@ -9302,10 +9375,14 @@ async function handleUnderHentaiStream(url, response) {
 function sendJson(response, payload, status = 200, extraHeaders = {}) {
   response.writeHead(status, {
     ...SECURITY_HEADERS,
+    // Default to never caching an API response, but let a caller that knows
+    // better override it. This literal used to sit AFTER the extraHeaders spread,
+    // so every caller-supplied Cache-Control was silently discarded and their
+    // caching intent never reached the browser or the CDN.
+    "Cache-Control": "no-store, max-age=0",
     ...extraHeaders,
     "Content-Type": "application/json; charset=utf-8",
-    ...corsHeaders(),
-    "Cache-Control": "no-store, max-age=0"
+    ...corsHeaders()
   });
   response.end(JSON.stringify(payload));
 }
@@ -9335,8 +9412,14 @@ function fetchJikanJson(pathname) {
     const waitMs = Math.max(0, 350 - (Date.now() - jikanLastRequestAt));
     if (waitMs) await wait(waitMs);
     jikanLastRequestAt = Date.now();
-    const upstream = await fetchWithRetry(`https://api.jikan.moe/v4${pathname}`);
-    if (!upstream.ok) throw new Error(`Jikan HTTP ${upstream.status}`);
+    const upstream = await fetchWithRetry(`${JIKAN_API}${pathname}`);
+    if (!upstream.ok) {
+      // Carry the status so callers can tell "no such title" (404) from "the
+      // service is unwell" (429/5xx) instead of guessing from the message.
+      const error = new Error(`Jikan HTTP ${upstream.status}`);
+      error.status = upstream.status;
+      throw error;
+    }
     return upstream.json();
   };
   const request = jikanRequestQueue.then(run, run);
@@ -9354,17 +9437,21 @@ async function handleJikanFull(url, response) {
       return sendJson(response, { data: cached.data, cached: true });
     }
     if (jikanCoolingDown(fullKey)) {
-      return sendJson(response, { data: cached?.data || null, stale: Boolean(cached), unavailable: !cached });
+      return sendJikanUnavailable(response, cached?.data, null);
     }
     const payload = await fetchJikanJson(`/anime/${encodeURIComponent(malId)}/full`);
     const data = payload.data || null;
     if (data) jikanFullCache.set(String(malId), { data, ts: Date.now() });
-    jikanFailureCache.delete(fullKey);
-    sendJson(response, { data });
+    noteJikanSuccess(fullKey);
+    sendJson(response, { data, ok: true, notFound: !data }, 200, JIKAN_OK_CACHE);
   } catch (error) {
-    jikanFailureCache.set(fullKey, Date.now());
-    console.error("[Jikan] full metadata unavailable:", error.message);
-    sendJson(response, { data: cached?.data || null, stale: Boolean(cached), unavailable: !cached });
+    if (isPermanentJikanError(error)) {
+      jikanFullCache.set(String(malId), { data: null, ts: Date.now() });
+      noteJikanSuccess(fullKey);
+      return sendJson(response, { data: null, ok: true, notFound: true }, 200, JIKAN_OK_CACHE);
+    }
+    noteJikanFailure(fullKey, error);
+    sendJikanUnavailable(response, cached?.data, null);
   }
 }
 
@@ -9379,17 +9466,25 @@ async function handleJikanSearch(url, response) {
     }
     // Serve whatever we have rather than re-hitting an upstream we just saw fail.
     if (jikanCoolingDown(cacheKey)) {
-      return sendJson(response, { data: cached?.data || [], stale: Boolean(cached), unavailable: !cached });
+      return sendJikanUnavailable(response, cached?.data, []);
     }
     const payload = await fetchJikanJson(`/anime?q=${encodeURIComponent(query)}&limit=5&sfw=true`);
     const data = payload.data || [];
     jikanSearchCache.set(cacheKey, { data, ts: Date.now() });
-    jikanFailureCache.delete(cacheKey);
-    sendJson(response, { data });
+    noteJikanSuccess(cacheKey);
+    // ok:true with an empty array means "Jikan has no such title" - a real
+    // answer, distinct from unavailable:true which means "we could not ask".
+    sendJson(response, { data, ok: true, notFound: data.length === 0 }, 200, JIKAN_OK_CACHE);
   } catch (error) {
-    jikanFailureCache.set(cacheKey, Date.now());
-    console.error("[Jikan] search unavailable:", error.message);
-    sendJson(response, { data: cached?.data || [], stale: Boolean(cached), unavailable: !cached });
+    if (isPermanentJikanError(error)) {
+      // A definitive "not found" is a result, so cache it like one rather than
+      // burning a cooldown slot and re-asking every 60s.
+      jikanSearchCache.set(cacheKey, { data: [], ts: Date.now() });
+      noteJikanSuccess(cacheKey);
+      return sendJson(response, { data: [], ok: true, notFound: true }, 200, JIKAN_OK_CACHE);
+    }
+    noteJikanFailure(cacheKey, error);
+    sendJikanUnavailable(response, cached?.data, []);
   }
 }
 
@@ -9404,7 +9499,7 @@ async function handleJikanEpisodes(url, response) {
       return sendJson(response, { data: cached.data, cached: true });
     }
     if (jikanCoolingDown(episodesKey)) {
-      return sendJson(response, { data: cached?.data || [], stale: Boolean(cached), unavailable: !cached });
+      return sendJikanUnavailable(response, cached?.data, []);
     }
 
     const firstPayload = await fetchJikanJson(`/anime/${encodeURIComponent(malId)}/episodes?page=1`);
@@ -9424,12 +9519,16 @@ async function handleJikanEpisodes(url, response) {
       .map(normalizeJikanEpisode)
       .sort((a, b) => Number(a.episode || 0) - Number(b.episode || 0));
     jikanEpisodeCache.set(String(malId), { data: episodes, ts: Date.now() });
-    jikanFailureCache.delete(episodesKey);
-    sendJson(response, { data: episodes, pages: pageCount });
+    noteJikanSuccess(episodesKey);
+    sendJson(response, { data: episodes, pages: pageCount, ok: true, notFound: episodes.length === 0 }, 200, JIKAN_OK_CACHE);
   } catch (error) {
-    jikanFailureCache.set(episodesKey, Date.now());
-    console.error("[Jikan] episodes unavailable:", error.message);
-    sendJson(response, { data: cached?.data || [], stale: Boolean(cached), unavailable: !cached });
+    if (isPermanentJikanError(error)) {
+      jikanEpisodeCache.set(String(malId), { data: [], ts: Date.now() });
+      noteJikanSuccess(episodesKey);
+      return sendJson(response, { data: [], ok: true, notFound: true }, 200, JIKAN_OK_CACHE);
+    }
+    noteJikanFailure(episodesKey, error);
+    sendJikanUnavailable(response, cached?.data, []);
   }
 }
 
