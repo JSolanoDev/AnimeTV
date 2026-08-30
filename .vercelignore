@@ -1,7 +1,12 @@
 .vercel
 .env*
 android
-dist
+# NOTE: do NOT list the build output here. vercel.json sets
+# outputDirectory: dist, and Vercel applies .vercelignore when collecting that
+# directory - ignoring it made the deploy fail with
+#   ENOENT: no such file or directory, open '/vercel/path0/dist/offline.html'
+# dist/ and public/ are already in .gitignore, so they are never uploaded as
+# source regardless; the entry was redundant as well as harmful.
 docs
 logs
 *.log
