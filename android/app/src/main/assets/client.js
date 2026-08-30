@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=514`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=516`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2881,7 +2881,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=514";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=516";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -6356,6 +6356,12 @@ async function openShow(id, target = {}) {
   state.activeShow = show;
   state.activeEpisodeUrl = "";
   state.activeEpisode = null;
+  // Opening a show from a card/poster must land on the detail view, not start
+  // playing. applyOpenTarget below still pre-selects an episode (it falls back to
+  // show.episode, the latest one), which is wanted for highlighting - but that
+  // selection alone must never mount the player. Only a Play button or an episode
+  // click sets this.
+  state.playIntent = Boolean(target.playIntent);
   // Metadata now lives on the cinematic left column, so the right panel opens
   // straight to the episode list (matches the reference composition).
   state.activeDetailTab = target.tab === "seasons" ? "seasons" : "episodes";
@@ -8476,6 +8482,10 @@ function debugPromotion(message) {
 
 function promoteResolvedEpisodeSource(resolved) {
   if (!resolved) return false;
+  // Auto-mounting is only ever correct when the user asked to play. Opening a
+  // show pre-selects its latest episode, and promoting that would drop the
+  // viewer straight into cinema mode over the episode list they came to browse.
+  if (!state.playIntent) return false;
   const active = state.activeEpisode?.episode;
   if (!active) return false;
 
@@ -10750,6 +10760,9 @@ function selectEpisodeByPosition(seasonIndex, episodeIndex, shouldPlay = true) {
   const season = seasons[seasonIndex];
   const episode = season?.episodes?.[episodeIndex];
   if (!season || !episode) return;
+  // This is the episode-row click path. shouldPlay already carries the caller's
+  // intent, so mirror it: a row click may auto-mount, merely opening a show may not.
+  state.playIntent = Boolean(shouldPlay);
   state.activeSeasonIndex = seasonIndex;
   state.activeDetailTab = "episodes";
   state.activeEpisode = { season, episode, seasonIndex, episodeIndex };
@@ -11224,6 +11237,7 @@ async function selectEpisode(season, episode, seasonIndex, episodeIndex) {
   state.activeDetailTab = "episodes";
   state.activeEpisode = { season, episode, seasonIndex, episodeIndex };
   state.activeEpisodeUrl = getEpisodeUrl(episode);
+  state.playIntent = true;                 // explicit: the user picked this episode
   const frame = document.querySelector("#videoFrame");
   const show = state.activeShow;
   if (frame && show) {
@@ -12928,6 +12942,7 @@ function playEpisodeByPosition(seasonIndex, episodeIndex) {
   if (!season || !episode) return false;
   const wasCinema = document.body.classList.contains("player-cinema-open");
   stopActivePlayback();
+  state.playIntent = true;                 // explicit: the user picked this episode
   state.activeSeasonIndex = seasonIndex;
   state.activeDetailTab = "episodes";
   state.activeEpisode = { season, episode, seasonIndex, episodeIndex };
@@ -14881,7 +14896,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=514");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=516");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
