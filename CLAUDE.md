@@ -35,7 +35,8 @@ This is a **vanilla-JavaScript app**, deliberately. There is no build step for t
 scoped decision.** Blockers: everything shares global scope, inline HTML attributes call globals
 (e.g. `onerror="handleWatchPosterError(this)"`), the service worker hardcodes asset URLs, the
 Android WebView mirrors every file, and cache-busting is manual `?v=NNN`. A rewrite touches all of
-it at once and cannot be verified locally (see "Verification" below).
+it at once, and the local preview can only prove the app still boots — not that 14k lines of
+global-scope interdependency survived it (see "Verification" below).
 
 ## Non-negotiables
 
@@ -61,11 +62,24 @@ it at once and cannot be verified locally (see "Verification" below).
 
 ## Verification — important
 
-`npm run dev` (`animetv-local.js`, port 4180) **hangs during the initial catalog load**, so the
-local preview usually cannot be used to verify UI or playback. Consequences:
+`npm run dev` (`animetv-local.js`, port 4180) **works**. It boots in ~3 s and serves the whole
+app, so the local preview *is* usable for verifying UI, routing, and rendering. It used to hang on
+the initial catalog load; that is fixed. Ignore older notes claiming otherwise.
 
-- Static validation (`node --check`, grep, brace balance) is the reliable local gate.
-- Playback, scrapers, and login realistically get verified **on the deployed site** after a push.
+- **Static validation is necessary but NOT sufficient — use the browser.** `node --check` and grep
+  pass clean on real, shipped breakage. Two cases from this repo: a regex rewrite that turned \b
+  into literal backspace characters and silently disabled the adult classifier, and a `supabase`
+  global colliding with the CDN's own global, which killed every login button. Both passed
+  `npm run check`. Only running the app caught them.
+- `npm run check` / `npm test` are the floor, not the gate. Two guards were added after those
+  bugs: `scripts/check-global-collisions.mjs` (the `supabase` class of bug) and
+  `scripts/check-asset-versions.mjs` (mixed `?v=` or a stale `CACHE_NAME`).
+- **Bump `?v=NNN` before reloading the preview.** Otherwise you verify a cached copy and wrongly
+  conclude the change "didn't apply". This has caused false negatives repeatedly.
+- Harness caveat: programmatic `window.scrollTo` does not move the page here, so verify
+  scroll-related CSS by reading computed styles, not by scripted scrolling.
+- Real stream playback, scrapers, and OAuth login still realistically get verified **on the
+  deployed site** after a push.
 - Don't claim playback works without evidence; say what was and wasn't verified.
 - If port 4180 is stuck: find the orphaned `node animetv-local.js` and `Stop-Process -Id <PID> -Force`.
 
@@ -197,15 +211,16 @@ bundler, so translate the verification steps as follows. Run what exists; don't 
 | Production build | `npm run vercel-build` → `scripts/build-static.mjs` (copies repo root → `dist/` + `public/`, then minifies). |
 | Perf audit | `npm run perf:audit`. |
 | Security audit | `npm run security:audit`. |
-| UI / responsive / console checks | The local dev server **hangs on initial catalog load**, so these usually cannot be done locally — see "Verification" above. Verify on the deployed site after pushing, and state plainly what was and wasn't verified. |
+| UI / responsive / console checks | `npm run dev` (port 4180) + the browser tools — this works, so actually do it. Emulate desktop/tablet/mobile, read the console, inspect computed styles. Real playback and OAuth still need the deployed site. See "Verification" above. |
 
 ### Reconciling "Prefer TypeScript" with this codebase
 
 "Prefer TypeScript" applies to **new** standalone code (a new service, script, or project). It is
 **not** a mandate to convert this app — that is covered by "Do not rewrite working systems
 unnecessarily" and by the Stack section above. Converting ~14k lines of globally-scoped classic
-scripts to TS/ESM cannot be verified locally here and would risk a working production site. If a TS
-migration is ever wanted, it needs to be an explicit, scoped, separately-verified project.
+scripts to TS/ESM would risk a working production site, and booting the local preview is nowhere
+near enough to de-risk it. If a TS migration is ever wanted, it needs to be an explicit, scoped,
+separately-verified project.
 
 ### Note on the frontend-design skill
 

@@ -9,7 +9,7 @@
 //
 // Run: node scripts/check-asset-versions.mjs   (also part of `npm run check`)
 
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 
 const TARGETS = [
   { html: "index.html", sw: "service-worker.js", label: "root" },
@@ -59,6 +59,36 @@ for (const { html, sw, label } of TARGETS) {
   } else if (unique.length === 1) {
     console.log(`  PASS  ${label}: service worker matches at v${swMatch[1]}`);
   }
+}
+
+// JS files also hardcode local asset URLs (e.g. the hero placeholder that
+// renderCarousel falls back to). Those were never checked here, so one sat at
+// ?v=338 for ~150 versions: a cache MISS on every carousel reset, silently
+// re-fetching a file the shell had already cached. Cheap to check, invisible
+// otherwise.
+const SCANNED_JS = [
+  "client.js",
+  ...(existsSync("js") ? readdirSync("js").filter((f) => f.endsWith(".js")).map((f) => `js/${f}`) : [])
+];
+const ASSET_REF = /["'`]([\w./-]+\.(?:webp|png|jpe?g|svg|css|js|json))\?v=(\d+)/g;
+const rootVersionMatch = existsSync("index.html")
+  ? readFileSync("index.html", "utf8").match(/\?v=(\d+)/)
+  : null;
+
+if (rootVersionMatch) {
+  const rootVersion = rootVersionMatch[1];
+  let jsDrift = 0;
+  for (const file of SCANNED_JS) {
+    if (!existsSync(file)) continue;
+    for (const m of readFileSync(file, "utf8").matchAll(ASSET_REF)) {
+      if (m[2] !== rootVersion) {
+        jsDrift++;
+        failed++;
+        console.log(`  FAIL  js: ${file} references ${m[1]}?v=${m[2]} but index.html is on v${rootVersion}`);
+      }
+    }
+  }
+  if (!jsDrift) console.log(`  PASS  js: no stale ?v= asset refs across ${SCANNED_JS.length} script files`);
 }
 
 if (failed) {

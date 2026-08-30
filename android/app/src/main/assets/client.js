@@ -232,6 +232,29 @@ const episodeList = document.querySelector("#episodeList");
 const sections = document.querySelectorAll("[data-section]");
 const carouselBackdrop = document.querySelector("#carouselBackdrop");
 const carouselBackdropImage = document.querySelector("#carouselBackdropImage");
+// The hero backdrop covers ~93% of the above-the-fold pixel area, but its URL is
+// only known once the catalog resolves (~1.2 s in), so Speed Index is basically
+// "when does the hero paint". Repaint the previous hero straight from storage so
+// returning visitors get real artwork at ~0.4 s instead. When the catalog agrees
+// the swap in renderCarousel is a no-op, so this costs nothing; when it
+// disagrees the real art simply replaces it.
+let heroMemoActive = false;
+(function restoreHeroBackdrop() {
+  if (!carouselBackdropImage) return;
+  let memo = null;
+  try { memo = JSON.parse(localStorage.getItem("ztv:hero-art") || "null"); } catch (err) { memo = null; }
+  // Same-origin proxy URLs only: a tampered storage value must not be able to
+  // point the hero at an arbitrary host.
+  if (!memo || typeof memo.src !== "string" || !memo.src.startsWith("/api/image?")) return;
+  if (typeof memo.srcset === "string" && memo.srcset) {
+    carouselBackdropImage.setAttribute("srcset", memo.srcset);
+    carouselBackdropImage.setAttribute("sizes", "100vw");
+  }
+  carouselBackdropImage.src = memo.src;
+  carouselBackdropImage.classList.add("has-banner");
+  carouselBackdropImage.classList.toggle("is-portrait-art", Boolean(memo.portrait));
+  heroMemoActive = true;
+})();
 const carouselTitle = document.querySelector("#carouselTitle");
 const carouselText = document.querySelector("#carouselText");
 const carouselMeta = document.querySelector("#carouselMeta");
@@ -2529,7 +2552,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=338";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=487";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -2607,8 +2630,14 @@ function renderCarousel() {
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
   }
   if (carouselBackdropImage) {
-    carouselBackdropImage.classList.toggle("has-banner", Boolean(art));
-    carouselBackdropImage.classList.toggle("is-portrait-art", Boolean(art && !hasLandscapeBanner));
+    // Real art supersedes any restored hero.
+    if (art) heroMemoActive = false;
+    // Keep the restored hero styled as a banner until real art lands, otherwise
+    // it would be un-styled for the ~800 ms the catalog is still resolving.
+    carouselBackdropImage.classList.toggle("has-banner", Boolean(art) || heroMemoActive);
+    if (art) {
+      carouselBackdropImage.classList.toggle("is-portrait-art", !hasLandscapeBanner);
+    }
     if (art && carouselBackdropImage.getAttribute("src") !== deliveredArt) {
       if (heroSrcSet) {
         carouselBackdropImage.setAttribute("srcset", heroSrcSet);
@@ -2617,9 +2646,17 @@ function renderCarousel() {
         carouselBackdropImage.removeAttribute("srcset");
       }
       carouselBackdropImage.src = deliveredArt;
-    } else if (!art) {
+      // Remember it for the next visit (see restoreHeroBackdrop above).
+      try {
+        localStorage.setItem("ztv:hero-art", JSON.stringify({
+          src: deliveredArt, srcset: heroSrcSet, portrait: !hasLandscapeBanner
+        }));
+      } catch (err) { /* private mode or quota: the memo is only an optimisation */ }
+    } else if (!art && !heroMemoActive) {
       // Resolving (or genuinely no art): show only the dark gradient behind a
       // transparent image, so we never load a second placeholder/banner picture.
+      // A restored hero is deliberately left alone here — blanking it to
+      // transparent and fading back in a moment later is a visible flash.
       carouselBackdropImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
       carouselBackdropImage.removeAttribute("srcset");
     }
@@ -14200,7 +14237,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=338");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=487");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
