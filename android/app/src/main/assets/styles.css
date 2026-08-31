@@ -11660,3 +11660,18 @@ body.player-cinema-open .watch-overlay .close-button {
     background: rgba(19, 22, 37, 0.55);
   }
 }
+
+/* ── Close the page instead of trailing off ──────────────────────────────────
+   Measured on a 1280x800 desktop: 95px sat between the bottom of the last row
+   of cards and the end of the document - the rail's 16px, the band's 38px gap
+   to the next band (which there isn't one of) and main's 19px, stacked.
+   The band padding is spacing BETWEEN sections, so it is only removed from the
+   last one; every gap higher up the page is untouched. client.js tags that band
+   because the DOM-last one is normally a hidden route. */
+.content-band.is-last-band {
+  padding-bottom: 0.35rem;
+}
+
+main {
+  padding-bottom: 0.5rem;
+}

@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=560`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=561`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2893,7 +2893,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=560";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=561";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -6316,6 +6316,19 @@ function syncRouteVisibility() {
     section.classList.toggle("is-hidden", hidden);
     section.setAttribute("aria-hidden", hidden ? "true" : "false");
   });
+  // Tag whichever band ends up last so CSS can drop its bottom padding. That
+  // padding is the gap to the NEXT band, and on the last one it is just dead
+  // space closing the page - roughly 95px of nothing sat under the final row of
+  // cards once the rail's own padding and main's were added to it. A CSS
+  // :last-of-type cannot do this: the DOM-last band is usually a hidden route
+  // (#profile on home), so the last VISIBLE one has to be found here.
+  const bands = [...document.querySelectorAll("main > .content-band")];
+  let lastVisibleBand = null;
+  bands.forEach((band) => {
+    band.classList.remove("is-last-band");
+    if (!band.classList.contains("is-hidden")) lastVisibleBand = band;
+  });
+  lastVisibleBand?.classList.add("is-last-band");
   if (searchInputTop) searchInputTop.closest(".stremio-search").hidden = state.route !== "home";
   if (searchInputLibrary) searchInputLibrary.closest(".library-search").hidden = state.route !== "library";
   if (addonSections) addonSections.hidden = state.route !== "home" || !addonSections.innerHTML.trim();
@@ -15047,7 +15060,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=560");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=561");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
