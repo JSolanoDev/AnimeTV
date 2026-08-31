@@ -190,6 +190,14 @@
     }
     if (subtitleConfig) playerOptions.subtitle = subtitleConfig;
 
+    // How long the control bar lingers after the last interaction. ArtPlayer's
+    // default is 3000ms, which is what made the volume feel slow to go away -
+    // the panel itself is hover-driven and fades in 200ms, so the wait was
+    // always the bar it sits in. Measured: opacity held at 1 until ~2700ms.
+    // 1800ms is noticeably quicker while still leaving time to move between
+    // controls. Static, so it must be set before the instance is constructed.
+    window.Artplayer.CONTROL_HIDE_TIME = 1800;
+
     art = new window.Artplayer(playerOptions);
     wireArtEvents();
     wireVolumePanelLinger();
