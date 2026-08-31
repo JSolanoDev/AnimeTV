@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=522`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=529`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2888,7 +2888,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=522";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=529";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -8631,10 +8631,43 @@ function getEpisodeNavigationTargets() {
   const selected = state.activeEpisode;
   const seasons = getDetailSeasons(state.activeShow || {});
   if (!selected || !seasons.length) return { previous: null, next: null, total: 0 };
-  const seasonIndex = Number(selected.seasonIndex || 0);
-  const episodeIndex = Number(selected.episodeIndex || 0);
+  let seasonIndex = Number.isInteger(Number(selected.seasonIndex)) ? Number(selected.seasonIndex) : 0;
+  const selectedSeasonNumber = Number(
+    selected.season?.season
+      || selected.season?.seasonNumber
+      || selected.episode?.season
+      || seasonIndex + 1
+  );
+  const selectedPart = String(selected.season?.part || selected.episode?.part || "");
+  const indexedSeason = seasons[seasonIndex];
+  const indexedSeasonNumber = Number(indexedSeason?.season || indexedSeason?.seasonNumber || seasonIndex + 1);
+  const indexedPart = String(indexedSeason?.part || "");
+  if (!indexedSeason || indexedSeasonNumber !== selectedSeasonNumber || (selectedPart && indexedPart !== selectedPart)) {
+    const resolvedSeasonIndex = seasons.findIndex((candidate, index) => {
+      if (candidate === selected.season) return true;
+      const candidateNumber = Number(candidate?.season || candidate?.seasonNumber || index + 1);
+      const candidatePart = String(candidate?.part || "");
+      return candidateNumber === selectedSeasonNumber && (!selectedPart || candidatePart === selectedPart);
+    });
+    if (resolvedSeasonIndex >= 0) seasonIndex = resolvedSeasonIndex;
+  }
+
   const season = seasons[seasonIndex];
   const episodes = season?.episodes || [];
+  let episodeIndex = Number.isInteger(Number(selected.episodeIndex)) ? Number(selected.episodeIndex) : 0;
+  const selectedEpisodeNumber = Number(selected.episode?.episode || selected.episode?.number || episodeIndex + 1);
+  const indexedEpisode = episodes[episodeIndex];
+  const indexedEpisodeNumber = Number(indexedEpisode?.episode || indexedEpisode?.number || episodeIndex + 1);
+  if (!indexedEpisode || indexedEpisodeNumber !== selectedEpisodeNumber) {
+    const selectedEpisodeId = String(selected.episode?.id || selected.episode?.episodeId || "");
+    const resolvedEpisodeIndex = episodes.findIndex((candidate, index) => {
+      if (candidate === selected.episode) return true;
+      const candidateId = String(candidate?.id || candidate?.episodeId || "");
+      if (selectedEpisodeId && candidateId === selectedEpisodeId) return true;
+      return Number(candidate?.episode || candidate?.number || index + 1) === selectedEpisodeNumber;
+    });
+    if (resolvedEpisodeIndex >= 0) episodeIndex = resolvedEpisodeIndex;
+  }
   let previous = episodeIndex > 0 ? { seasonIndex, episodeIndex: episodeIndex - 1 } : null;
   let next = episodeIndex < episodes.length - 1 ? { seasonIndex, episodeIndex: episodeIndex + 1 } : null;
 
@@ -10038,6 +10071,13 @@ function createApkPlayerController(iframe, options = {}) {
     events.dispatchEvent(new Event(type));
   }
 
+  function syncNextEpisodeState() {
+    const available = typeof options.hasNext === "function"
+      ? Boolean(options.hasNext())
+      : Boolean(options.hasNext);
+    postApkPlayerCommand(iframe, "hasNext", available);
+  }
+
   function onMessage(event) {
     if (event.source !== iframe.contentWindow) return;
     let data = event.data;
@@ -10072,6 +10112,7 @@ function createApkPlayerController(iframe, options = {}) {
     }
     if (command === "ready" || command === "loadedmetadata") {
       emit("loadedmetadata");
+      syncNextEpisodeState();
       postApkPlayerCommand(iframe, "scale", playerFitScaleValue());
       postApkPlayerCommand(iframe, "quality", Number(state.uiPreferences.playerQuality || 0));
       postApkPlayerCommand(iframe, "audiolang", getLanguagePreferences().audio || "");
@@ -10112,6 +10153,7 @@ function createApkPlayerController(iframe, options = {}) {
   window.addEventListener("message", onMessage);
   controller.destroy = () => window.removeEventListener("message", onMessage);
   iframe.addEventListener("load", () => {
+    syncNextEpisodeState();
     postApkPlayerCommand(iframe, "scale", playerFitScaleValue());
     postApkPlayerCommand(iframe, "quality", Number(state.uiPreferences.playerQuality || 0));
     postApkPlayerCommand(iframe, "audiolang", getLanguagePreferences().audio || "");
@@ -12797,7 +12839,10 @@ function renderDirectVideoPlayer(frame, url, episode) {
   const player = useApkPlayer
     ? createApkPlayerController(iframe, {
         onBack: exitPlayerToSources,
-        onNext: () => playAdjacentEpisode("next"),
+        hasNext: () => Boolean(getEpisodeNavigationTargets().next),
+        onNext: () => {
+          if (!playAdjacentEpisode("next")) showToast("You've reached the last episode.");
+        },
         onResolution: (resolution) => {
           const status = document.querySelector("#subtitleStatus");
           if (status && resolution && state.uiPreferences.metadataDetail) {
@@ -14903,7 +14948,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=522");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=529");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

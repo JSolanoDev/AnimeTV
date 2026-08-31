@@ -25,6 +25,7 @@
   let seekRecoveryUntil = 0;
   let lastProgressPosition = -1;
   let lastSeekToast = 0;
+  let volumePanelTimer = null;
 
   const elements = {
     player: document.getElementById("player"),
@@ -155,7 +156,7 @@
         name: "rewind-10",
         position: "left",
         index: 12,
-        html: '<svg class="ztv-skip-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path class="ztv-skip-arrow" d="M7.3 10.2A10.8 10.8 0 1 1 5.2 17"></path><path class="ztv-skip-arrow" d="M7.2 4.8v5.6h5.6"></path><text class="ztv-skip-number" x="16" y="19.25" text-anchor="middle">10</text></svg>',
+        html: '<svg class="ztv-skip-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path class="ztv-skip-arrow" d="M9 14 4 9l5-5"></path><path class="ztv-skip-arrow" d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"></path></svg><span class="ztv-skip-value" aria-hidden="true">10s</span>',
         tooltip: "Rewind 10 seconds",
         click: (_component, event) => {
           event.stopPropagation();
@@ -166,7 +167,7 @@
         name: "forward-10",
         position: "left",
         index: 14,
-        html: '<svg class="ztv-skip-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path class="ztv-skip-arrow" d="M24.7 10.2A10.8 10.8 0 1 0 26.8 17"></path><path class="ztv-skip-arrow" d="M24.8 4.8v5.6h-5.6"></path><text class="ztv-skip-number" x="16" y="19.25" text-anchor="middle">10</text></svg>',
+        html: '<svg class="ztv-skip-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path class="ztv-skip-arrow" d="m15 14 5-5-5-5"></path><path class="ztv-skip-arrow" d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"></path></svg><span class="ztv-skip-value" aria-hidden="true">10s</span>',
         tooltip: "Forward 10 seconds",
         click: (_component, event) => {
           event.stopPropagation();
@@ -191,8 +192,33 @@
 
     art = new window.Artplayer(playerOptions);
     wireArtEvents();
+    wireVolumePanelLinger();
     syncNextEpisodeControl();
     startMascot();
+  }
+
+  function wireVolumePanelLinger() {
+    const control = elements.player.querySelector(".art-control-volume");
+    if (!control) return;
+
+    const keepOpen = () => {
+      if (volumePanelTimer) clearTimeout(volumePanelTimer);
+      volumePanelTimer = null;
+      control.classList.add("is-volume-open");
+    };
+    const closeLater = () => {
+      if (volumePanelTimer) clearTimeout(volumePanelTimer);
+      volumePanelTimer = window.setTimeout(() => {
+        control.classList.remove("is-volume-open");
+        volumePanelTimer = null;
+      }, 4200);
+    };
+
+    control.addEventListener("pointerenter", keepOpen);
+    control.addEventListener("pointerdown", keepOpen);
+    control.addEventListener("focusin", keepOpen);
+    control.addEventListener("pointerleave", closeLater);
+    control.addEventListener("focusout", closeLater);
   }
   // ── Top-bar mascot ──────────────────────────────────────────────────────
   // Rotates through the mascot poses in the unused middle of the title bar, so
@@ -209,22 +235,13 @@
   // the tab is hidden.
   const MASCOT_BASE = "/mascot/";
   const mascotFile = (pose) => MASCOT_BASE + "frieren-full-" + pose + ".gif";
-  // A short loop rather than a slideshow: she idles, waves, runs across the bar,
-  // reads at the far end, and runs back. `move` drives the travel, and the
-  // running poses are the only ones that move, so the sprite always faces the
-  // way she is going. If frieren-full-running.gif turns out to face left, swap
-  // its entry with the running-left one below.
+  // Three poses, cycled in place - no walking, so she stays put beside the logo.
+  // The other sprites (running/jumping/waiting/failed) are still in mascot/ and
+  // can be added back here; only these three are shown.
   const MASCOT_SCRIPT = [
-    { pose: "idle",          ms: 6000, move: null },
-    { pose: "waving",        ms: 4200, move: null },
-    { pose: "running-right", ms: 5200, move: "right" },
-    { pose: "review",        ms: 8000, move: null },
-    { pose: "waiting",       ms: 5000, move: null },
-    { pose: "jumping",       ms: 3600, move: null },
-    { pose: "running-left",  ms: 5200, move: "left" },
-    { pose: "failed",        ms: 4000, move: null },
-    { pose: "running",       ms: 4800, move: "right" },
-    { pose: "idle",          ms: 5000, move: "left" }
+    { pose: "review", ms: 9000 },   // standing, reading
+    { pose: "idle",   ms: 9000 },   // sitting, head down over the book
+    { pose: "waving", ms: 6000 }    // hand raised - blowing a kiss
   ];
 
   function startMascot() {
@@ -242,7 +259,6 @@
     let index = -1;
     let timer = 0;
     let resolvedAny = false;
-    let atRightEnd = false;
 
     // Preload a pose so the swap never flashes an empty box; null if absent.
     const resolvePose = (pose) => new Promise((done) => {
@@ -253,15 +269,6 @@
       probe.src = url;
     });
 
-    // How far she can travel: the slot's width less her own.
-    const travel = () => Math.max(0, host.clientWidth - img.offsetWidth);
-
-    const glideTo = (side, ms) => {
-      img.style.transitionDuration = "180ms, " + ms + "ms";
-      img.style.transform = "translateX(" + (side === "right" ? travel() : 0) + "px)";
-      atRightEnd = side === "right";
-    };
-
     const step = async () => {
       for (let tries = 0; tries < MASCOT_SCRIPT.length; tries++) {
         index = (index + 1) % MASCOT_SCRIPT.length;
@@ -271,16 +278,11 @@
         if (!url) { missing.add(beat.pose); continue; }
         resolvedAny = true;
 
-        // Skip a run that would go nowhere (already at that end).
-        const side = beat.move;
-        const willMove = side && !((side === "right") === atRightEnd);
-
-        // Cross-fade the pose, then start the walk once the new sprite is up.
+        // Cross-fade in place - the sprite never moves from its spot.
         img.style.opacity = "0";
         window.setTimeout(() => {
           img.src = url;
           img.style.opacity = "1";
-          if (willMove) glideTo(side, beat.ms - 300);
         }, 180);
 
         timer = window.setTimeout(step, beat.ms);
@@ -857,6 +859,8 @@
     cancelScheduledRecovery();
     if (hlsRecoveryTimer) clearTimeout(hlsRecoveryTimer);
     hlsRecoveryTimer = null;
+    if (volumePanelTimer) clearTimeout(volumePanelTimer);
+    volumePanelTimer = null;
     destroyHls();
     if (!art) return;
     try { art.destroy(false); } catch (error) {}

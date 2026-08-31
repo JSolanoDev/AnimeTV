@@ -117,7 +117,6 @@ button {
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  min-width: 124px;
   margin-left: auto;
   padding-left: 1rem;
   opacity: 0.9;
@@ -127,8 +126,14 @@ button {
 
 .ztv-brand-wordmark {
   display: block;
-  width: clamp(108px, 10vw, 142px);
-  height: auto;
+  /* Sized so the "ZenkaiTV" LETTERING matches the episode title's lettering.
+     Measured from the file: the text occupies only 59px of its 148px height
+     (ratio 0.399) because the bolt glyph is much taller, so matching the box to
+     the title line box rendered the words at 10px against 22px of title text.
+     Multiplying the title's own font-size clamp by 1/0.399 (~2.5) makes the two
+     read at the same size at every viewport. */
+  width: auto;
+  height: calc(clamp(1rem, 2.2vw, 1.35rem) * 2.5);
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.45));
 }
 
@@ -335,8 +340,11 @@ body.fit-fill .art-video {
 .art-control-forward-10,
 .art-control-next-episode {
   position: relative;
-  display: grid !important;
-  place-items: center;
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
   border-radius: 6px;
   color: rgba(255, 255, 255, 0.9);
   transition: color 160ms ease, background-color 160ms ease, transform 160ms ease;
@@ -352,8 +360,8 @@ body.fit-fill .art-video {
 
 .ztv-skip-icon {
   display: block;
-  width: 31px;
-  height: 31px;
+  width: 22px;
+  height: 22px;
   overflow: visible;
 }
 
@@ -364,14 +372,15 @@ body.fit-fill .art-video {
   stroke-linejoin: round;
 }
 
-.ztv-skip-number {
-  fill: currentColor;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  font-size: 8.5px;
+.ztv-skip-value {
+  display: block;
+  color: currentColor;
+  font-size: 8px;
   font-weight: 900;
+  line-height: 1;
   letter-spacing: 0;
   font-variant-numeric: tabular-nums;
-  dominant-baseline: middle;
+  text-align: center;
 }
 
 .art-control-rewind-10:focus-visible,
@@ -410,6 +419,22 @@ body.fit-fill .art-video {
   height: 118px !important;
   bottom: calc(100% + 21px) !important;
   padding: 0 4px !important;
+  transform: none !important;
+}
+
+.art-control-volume .art-volume-panel::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: 24px;
+}
+
+.art-control-volume.is-volume-open .art-volume-panel {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
   transform: none !important;
 }
 
@@ -543,17 +568,17 @@ body.fit-fill .art-video {
    never squeeze the title (which keeps its own ellipsis). player.js removes it if
    the file is missing. Hidden on narrow screens, where the bar has no spare room. */
 .ztv-mascot {
-  /* A bounded strip, NOT flex:1. The title block is flex:1 and would otherwise
-     have to share the free space with the mascot, truncating episode names
-     earlier than before. This way the title still takes everything left over. */
+  /* Sits still next to the wordmark. NOT flex:1 - the title block is flex:1 and
+     would otherwise have to share the free space, truncating episode names. */
   flex: 0 0 auto;
-  width: clamp(120px, 20%, 260px);
-  align-self: stretch;
-  min-width: 0;
+  margin-left: auto;             /* park it beside the brand, not mid-bar */
+  /* Fixed height so the sprite can never stretch the bar; width follows the
+     sprite, which is ~0.92 of its height. */
+  width: auto;
+  height: 64px;
+  align-self: center;
   display: none;                 /* enabled by the width query below */
-  /* Start at the left edge and bottom-align: translateX in player.js walks her
-     from here to the right end, so centring would fight the travel. */
-  place-items: end start;
+  place-items: end center;
   pointer-events: none;
   user-select: none;
   overflow: hidden;
@@ -562,17 +587,19 @@ body.fit-fill .art-video {
 .ztv-mascot-frame {
   display: block;
   width: auto;
+  /* Measured from the files: the character fills 198 of the 208px frame (ratio
+     0.952), i.e. almost no transparent padding. So the box height IS the
+     character height - no scaling needed, and scaling up only clipped her head
+     against the bar. Filling the bar's content height puts her at ~61px against
+     22px of title lettering, comfortably larger while the bar stays 92px. */
   height: 100%;
   max-height: 64px;
   object-fit: contain;
   filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.45));
   /* Poses cross-fade into each other rather than snapping; player.js preloads
-     the next one first, so this never fades to an empty box. The transform is
-     the walk across the bar - player.js sets its duration per step so the glide
-     lasts exactly as long as the running pose is on screen. */
+     the next one first, so this never fades to an empty box. */
   opacity: 1;
-  transition: opacity 180ms ease, transform 5s linear;
-  will-change: transform;
+  transition: opacity 180ms ease;
 }
 
 /* 720px, not 900: the player iframe is narrower than the page (the watch view
