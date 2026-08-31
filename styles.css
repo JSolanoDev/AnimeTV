@@ -11586,4 +11586,77 @@ body.player-cinema-open .watch-overlay .close-button {
   .watch-stage-body .watch-summary {
     font-size: 0.84rem;
   }
+
+  .watch-backdrop-title-art {
+    top: 7%;
+    right: 0;
+    width: 100%;
+    min-height: 42%;
+    padding: 1.1rem 1.25rem;
+    opacity: 0.68;
+  }
+
+  .watch-backdrop-title-art::before {
+    font-size: clamp(11rem, 56vw, 17rem);
+  }
+
+  .watch-backdrop-title-art strong {
+    max-width: 82%;
+    font-size: clamp(1.8rem, 9vw, 3.1rem);
+  }
+}
+
+/* Prev / episode-list / Next (and Save when the source is a direct file) sit
+   under the picture in Artplayer mode. The row already carries its own pill
+   styling; inside the shell it is a grid area, out here it just needs its own
+   breathing room. Same markup and the same wirePlayerChrome handlers as the
+   legacy player - nothing new, only rendered where it was previously skipped. */
+.video-frame > .player-episode-actions {
+  margin-block: 0.7rem 0;
+}
+
+/* One line under the 16:9 player, not a stack. The phone rule further up turns
+   this row into a single column, which was right when it sat beneath a
+   full-height legacy stage and had a whole screen to itself; under a 220px
+   player it turned three buttons into 154px of chrome. Scoped to the row that
+   sits outside the shell so the legacy layout keeps its stacked version. */
+@media (max-width: 760px) {
+  /* Dressed like the Seasons / Episodes tabs directly beneath it, not like the
+     legacy pill bar: separate rounded rects on the app's own tokens, with the
+     episode button carrying the accent the way the active tab does. */
+  .video-frame > .player-episode-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .video-frame > .player-episode-actions:has(.player-download-action) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .video-frame > .player-episode-actions .player-nav-action,
+  .video-frame > .player-episode-actions .player-download-action {
+    min-height: 2.85rem;
+    gap: 0.35rem;
+    padding-inline: 0.4rem;
+    border: 0.08rem solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--bg-raised);
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  .video-frame > .player-episode-actions .player-nav-action.is-list {
+    border-color: rgba(138, 92, 255, 0.52);
+    background: linear-gradient(135deg, rgba(138, 92, 255, 0.92), rgba(138, 92, 255, 0.68));
+    color: #fff;
+  }
+
+  .video-frame > .player-episode-actions .player-nav-action:disabled {
+    background: rgba(19, 22, 37, 0.55);
+  }
 }

@@ -303,33 +303,6 @@
     return Boolean(art?.template?.$player?.classList.contains("art-mobile"));
   }
 
-  function isFullscreenNow() {
-    return Boolean(
-      document.fullscreenElement
-      || document.webkitFullscreenElement
-      || (art && art.fullscreenWeb)
-    );
-  }
-
-  // Artplayer's `art.fullscreen = true` setter calls requestFullscreen() and
-  // drops the promise, so a refusal (no user gesture, iframe policy, iOS)
-  // surfaces as an uncaught "Permissions check failed". Request it directly and
-  // swallow the rejection - a browser that will not go fullscreen simply stays
-  // inline. Artplayer keeps its own state in step through fullscreenchange.
-  function enterFullscreen() {
-    const player = art?.template?.$player;
-    if (!player) return;
-    const request = player.requestFullscreen || player.webkitRequestFullscreen;
-    if (!request) {
-      try { art.fullscreen = true; } catch (error) { /* unsupported */ }
-      return;
-    }
-    try {
-      const entering = request.call(player);
-      if (entering && typeof entering.catch === "function") entering.catch(() => {});
-    } catch (error) { /* refused */ }
-  }
-
   // screen.orientation.lock() only works while something is actually fullscreen,
   // and iOS Safari has no implementation at all - it either rejects or is
   // missing. Artplayer's autoOrientation covers that case by rotating its own
@@ -378,14 +351,12 @@
       // *using* the controls - only taps on the picture itself count here.
       if (target && target.closest && target.closest(".art-bottom, .art-settings, .art-contextmenus, .art-layers, .ztv-sheet")) return;
 
-      // Phone, not yet fullscreen: this tap is "I want to watch this" - go
-      // fullscreen, which locks landscape. Runs off the real tap so the browser
-      // accepts it as a user gesture.
-      if (isPhonePlayer() && !isFullscreenNow()) {
-        enterFullscreen();
-        return;
-      }
-
+      // NOTE: a tap here used to go straight to fullscreen on a phone, to get
+      // landscape in one gesture. It made the inline player unusable - every tap
+      // meant to reveal the controls, pause, or scrub threw you into fullscreen
+      // instead, and there was no way to just *use* the player on the page.
+      // Landscape is still one press away on the fullscreen control, which locks
+      // the orientation through the fullscreenchange handler above.
       if (!wasVisible) return;
       // Deferred: Artplayer shows the controls from its own click handler, so
       // hiding synchronously here would just be undone.
