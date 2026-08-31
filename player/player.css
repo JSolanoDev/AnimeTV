@@ -542,3 +542,52 @@ body.fit-fill .art-video {
     padding: 0 0.3rem;
   }
 }
+
+/* ── Top-bar mascot ───────────────────────────────────────────────────────
+   Fills the dead space between the episode title and the ZenkaiTV wordmark.
+   Decorative only: it never takes pointer events, never affects the title's
+   width (the title block keeps flex:1 and its own ellipsis), and it is removed
+   from the DOM by player.js if the sprite files are missing.
+   Hidden on narrow screens, where the bar has no spare room to give. */
+.ztv-mascot {
+  position: relative;
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-width: 0;
+  display: none;                 /* enabled by the width query below */
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+.ztv-mascot-frame {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: auto;
+  height: 100%;
+  max-height: 62px;
+  object-fit: contain;
+  image-rendering: auto;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.45));
+  /* Slow drift across the empty space; the JS only swaps frames. */
+  animation: ztv-mascot-stroll 26s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes ztv-mascot-stroll {
+  0%   { transform: translateX(0) scaleX(1); }
+  46%  { transform: translateX(calc(100% + 46vw)) scaleX(1); }
+  50%  { transform: translateX(calc(100% + 46vw)) scaleX(-1); }
+  96%  { transform: translateX(0) scaleX(-1); }
+  100% { transform: translateX(0) scaleX(1); }
+}
+
+@media (min-width: 900px) {
+  .ztv-mascot { display: block; }
+}
+
+/* Motion-sensitive viewers get the mascot standing still rather than pacing. */
+@media (prefers-reduced-motion: reduce) {
+  .ztv-mascot-frame { animation: none; }
+}

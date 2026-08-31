@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=516`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=517`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -1784,8 +1784,10 @@ function catalogShows() {
   if (typeof AdultMode === "undefined") return state.shows;
   const filtered = AdultMode.filterCatalog(state.shows);
   if (!AdultMode.isEnabled()) return filtered;
+  // When adult mode is enabled, we want to show all adult content including UnderHentai
+  // The filter below was previously filtering for only UnderHentai shows, but now we should show all adult content
   return filtered
-    .filter((show) => show?.adultSource === "UnderHentai" || show?.source === "UnderHentai")
+    .filter((show) => show?.adultSource === "UnderHentai" || show?.source === "UnderHentai" || AdultMode.isAdultContent(show))
     .slice()
     .sort(compareAdultShows);
 }
@@ -2182,8 +2184,13 @@ function latestEpisodeReleases(limit = HOME_CARD_LIMIT) {
 }
 
 function adultSourceOrderedShows(limit = HOME_CARD_LIMIT) {
-  return visibleShows()
-    .filter(show => show.adultSource === "UnderHentai" || show.source === "UnderHentai")
+  if (typeof AdultMode === "undefined") return [];
+  const filtered = AdultMode.filterCatalog(visibleShows());
+  if (!AdultMode.isEnabled()) return [];
+  
+  // When adult mode is enabled, we want to show all adult content including UnderHentai
+  return filtered
+    .filter(show => show.adultSource === "UnderHentai" || show.source === "UnderHentai" || AdultMode.isAdultContent(show))
     .slice()
     .sort(compareAdultShows)
     .slice(0, limit);
@@ -2881,7 +2888,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=516";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=517";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -14896,7 +14903,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=516");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=517");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

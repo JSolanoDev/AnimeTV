@@ -197,6 +197,7 @@
     art = new window.Artplayer(playerOptions);
     wireArtEvents();
     wireMobileVolume();
+    startMascot();
   }
 
   // ArtPlayer computes volume from VERTICAL pointer position, so its slider
@@ -205,6 +206,65 @@
   // phones where the stock popup opens over the seek bar and there is no hover
   // to dismiss it. The existing volume button still handles mute, so there is
   // one mute affordance and one level affordance, not two of either.
+  // ── Top-bar mascot ──────────────────────────────────────────────────────
+  // Cycles a few chibi poses in the unused middle of the title bar. Deliberately
+  // cheap: ONE timer, no rAF loop, paused whenever the tab is hidden, and it
+  // removes itself entirely when the sprites are missing or the viewer asked for
+  // reduced motion - so the bar is exactly as it was if any of that is true.
+  const MASCOT_BASE = "/mascot/";
+  // Frame numbers match the order the sprites were supplied in. Hold times vary
+  // so it reads as a character doing things rather than a flicking sprite sheet.
+  const MASCOT_SEQUENCE = [
+    { frame: 2, ms: 2600 },   // idle
+    { frame: 3, ms: 2200 },   // book closed
+    { frame: 7, ms: 3000 },   // standing, reading
+    { frame: 8, ms: 1800 },   // page turn
+    { frame: 6, ms: 3400 },   // sitting, reading
+    { frame: 4, ms: 1400 },   // staff, moving
+    { frame: 5, ms: 1400 },   // staff, cast
+    { frame: 9, ms: 2400 },   // idle again
+    { frame: 1, ms: 1600 }    // mimic - the occasional joke
+  ];
+
+  function startMascot() {
+    const host = document.getElementById("ztvMascot");
+    const img = document.getElementById("ztvMascotFrame");
+    if (!host || !img) return;
+
+    const drop = () => { try { host.remove(); } catch (err) { /* already gone */ } };
+
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      // Keep a single static pose rather than removing it outright.
+      img.src = MASCOT_BASE + "frieren-2.png";
+      img.addEventListener("error", drop, { once: true });
+      return;
+    }
+
+    let index = 0;
+    let timer = 0;
+    const show = (i) => { img.src = MASCOT_BASE + "frieren-" + MASCOT_SEQUENCE[i].frame + ".png"; };
+
+    const step = () => {
+      index = (index + 1) % MASCOT_SEQUENCE.length;
+      show(index);
+      timer = window.setTimeout(step, MASCOT_SEQUENCE[index].ms);
+    };
+
+    // If the very first sprite cannot load, the folder is not there: remove the
+    // whole thing so no broken-image icon ever reaches the bar.
+    img.addEventListener("error", () => { window.clearTimeout(timer); drop(); }, { once: true });
+    img.addEventListener("load", () => { host.dataset.ready = "1"; }, { once: true });
+
+    show(0);
+    timer = window.setTimeout(step, MASCOT_SEQUENCE[0].ms);
+
+    // Do not burn a timer on a tab nobody is looking at.
+    document.addEventListener("visibilitychange", () => {
+      window.clearTimeout(timer);
+      if (!document.hidden) timer = window.setTimeout(step, 600);
+    });
+  }
+
   function wireMobileVolume() {
     if (!art) return;
     const input = document.querySelector(".ztv-volume-range");
