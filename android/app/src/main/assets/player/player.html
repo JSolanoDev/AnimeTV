@@ -7,10 +7,10 @@
   <title>ZenkaiTV Player</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="/player/player.css?v=553">
+  <link rel="stylesheet" href="/player/player.css?v=555">
   <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
-  <script defer src="/player/player.js?v=553"></script>
+  <script defer src="/player/player.js?v=555"></script>
 </head>
 <body>
   <main class="ztv-player-page">
@@ -33,7 +33,25 @@
         <img class="ztv-brand-wordmark" src="/logo-wordmark-480.webp" alt="ZenkaiTV">
         <img class="ztv-brand-mark" src="/logo-mark-transparent.png" alt="" aria-hidden="true">
       </div>
+      <button class="ztv-icon-button ztv-chrome-toggle" id="chromeToggle" type="button" aria-label="Hide the title bar" aria-expanded="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"></path></svg>
+      </button>
     </header>
+    <!-- Shown only while the bar is hidden, which is the default. Back has to be
+         here too: with the header gone this is the only way out of the player.
+         Lives outside the header so hiding the header cannot take it along. -->
+    <div class="ztv-floating-chrome" id="floatingChrome" hidden>
+      <button class="ztv-floating-button" id="floatingBack" type="button" aria-label="Go back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"></path></svg>
+      </button>
+      <p class="ztv-floating-label" id="floatingLabel">
+        <span class="ztv-floating-ep" id="floatingEpisode"></span>
+        <span class="ztv-floating-title" id="floatingTitle"></span>
+      </p>
+      <button class="ztv-floating-button" id="chromeRestore" type="button" aria-label="Show the title bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+      </button>
+    </div>
 
     <section class="ztv-player-shell" aria-label="Video player">
       <div id="player" class="ztv-artplayer"></div>

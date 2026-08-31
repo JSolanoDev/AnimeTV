@@ -11552,3 +11552,38 @@ body.player-cinema-open .watch-overlay .close-button {
     overflow: visible;
   }
 }
+
+/* ── Phone: give the watch header some restraint ─────────────────────────────
+   Measured on a 390px phone, the block above the video came to ~470px: a 27px
+   two-line title, the genre row, then a studio list that wrapped to FOUR rows
+   (142px on its own - the single biggest thing on the screen), the synopsis and
+   the action row. The video and the episodes were pushed most of a screen down,
+   which is what made everything feel oversized.
+
+   Nothing is removed, only bounded: the studio list keeps its first row (the
+   studios are repeated in the metadata below), the title steps down a size, and
+   the stack tightens slightly. Desktop and tablet are untouched. */
+@media (max-width: 760px) {
+  .watch-stage-body {
+    gap: 0.62rem;
+  }
+
+  /* Specificity has to match `.watch-overlay.cinematic .watch-title`, whose
+     phone floor is 1.7rem; a plain `.watch-stage-body .watch-title` loses to it
+     however late it appears in the file. */
+  .watch-overlay.cinematic .watch-stage-body .watch-title {
+    font-size: clamp(1.2rem, 5.4vw, 1.55rem);
+    line-height: 1.18;
+  }
+
+  .watch-stage-body .watch-castlist {
+    /* One row. overflow:hidden rather than a display:none on later children, so
+       a show with a single studio is unaffected. */
+    max-height: 1.95rem;
+    overflow: hidden;
+  }
+
+  .watch-stage-body .watch-summary {
+    font-size: 0.84rem;
+  }
+}

@@ -655,6 +655,142 @@ body.fit-fill .art-video {
   }
 }
 
+/* ── Collapsible title bar ───────────────────────────────────────────────
+   The black bar carries the back button, the episode title and the wordmark -
+   useful when you arrive, dead weight once you are watching. This hides it and
+   gives the picture the whole page (.ztv-player-page is a two-row grid, so the
+   player row simply takes the space). The choice is remembered per device. */
+.ztv-chrome-toggle {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  align-self: center;
+  opacity: 0.62;
+}
+
+.ztv-chrome-toggle:hover,
+.ztv-chrome-toggle:focus-visible {
+  opacity: 1;
+}
+
+.ztv-chrome-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+body.ztv-chrome-hidden .ztv-player-topbar {
+  display: none;
+}
+
+/* .ztv-player-page is `grid-template-rows: auto 1fr` - header, then player. With
+   the header gone the player lands in the `auto` row instead and collapsed to
+   zero height, because it has no intrinsic size of its own. One row, so it takes
+   the whole page - which is the point of hiding the bar. */
+body.ztv-chrome-hidden .ztv-player-page {
+  grid-template-rows: 1fr;
+}
+
+.ztv-floating-chrome {
+  position: absolute;
+  z-index: 6;
+  top: calc(6px + env(safe-area-inset-top));
+  left: calc(6px + env(safe-area-inset-left));
+  right: calc(6px + env(safe-area-inset-right));
+  display: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.ztv-floating-chrome[hidden] {
+  display: none;
+}
+
+body.ztv-chrome-hidden .ztv-floating-chrome:not([hidden]) {
+  display: flex;
+}
+
+.ztv-floating-button {
+  display: grid;
+  place-items: center;
+  /* 40px: still a comfortable tap target even though it reads as small. */
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--ztv-border);
+  border-radius: 10px;
+  background: rgba(4, 6, 16, 0.5);
+  backdrop-filter: blur(10px);
+  color: var(--ztv-text);
+  /* Restrained until wanted - these sit over the picture. */
+  opacity: 0.42;
+  cursor: pointer;
+  transition: opacity 160ms ease;
+}
+
+.ztv-floating-button:hover,
+.ztv-floating-button:focus-visible {
+  opacity: 1;
+  outline: none;
+}
+
+.ztv-floating-button:focus-visible {
+  box-shadow: 0 0 0 2px var(--ztv-cyan);
+}
+
+.ztv-floating-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* The one thing the hidden bar took away that is worth keeping: what is playing.
+   Deliberately faint and one line - it sits over the picture, so it says who and
+   which episode without becoming a second title bar. */
+.ztv-floating-label {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.3rem 0.6rem;
+  border-radius: 9px;
+  background: rgba(4, 6, 16, 0.4);
+  backdrop-filter: blur(10px);
+  font-size: 0.72rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+.ztv-floating-chrome:hover .ztv-floating-label {
+  opacity: 1;
+}
+
+.ztv-floating-ep {
+  flex: 0 0 auto;
+  color: var(--ztv-cyan);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.ztv-floating-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ztv-text);
+  font-weight: 700;
+}
+
+.ztv-floating-label:empty,
+.ztv-floating-ep:empty,
+.ztv-floating-title:empty {
+  display: none;
+}
+
 /* ── Phone options sheet ──────────────────────────────────────────────────
    Lives inside Artplayer's own container so it survives fullscreen, and above
    .art-settings (z-index 90) so nothing of the player's own UI overlaps it. */
