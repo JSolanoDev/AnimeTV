@@ -11,10 +11,6 @@
   const startAt = Number(params.get("start") || 0);
   const fit = String(params.get("fit") || params.get("scale") || "contain").toLowerCase();
   const forceSubtitles = params.get("forceSubtitles") === "1";
-  // Picking an episode from the list loads it ready-to-play rather than starting
-  // it, so the viewer presses play themselves. Auto-advance to the next episode
-  // and switching server mid-episode still start on their own.
-  const autoplay = params.get("autoplay") !== "0";
   let hasNextEpisode = params.get("hasNext") === "1";
   const isEmbeddedPlayer = window.parent && window.parent !== window;
   let art = null;
@@ -35,11 +31,6 @@
   // has no selectable quality" - never a fabricated ladder.
   let hlsLevels = [];
   let sheet = null;
-  let activeSubtitleUrl = "";
-  // Whether this stream has ever actually played. Only meaningful with
-  // autoplay=0, where "paused and not buffered" is the normal resting state
-  // rather than a stalled stream.
-  let hasStartedPlayback = false;
 
   const elements = {
     player: document.getElementById("player"),
@@ -147,7 +138,7 @@
       poster,
       theme: "#8b5cf6",
       volume: 0.8,
-      autoplay,
+      autoplay: true,
       preload: "auto",
       muted: false,
       pip: true,
@@ -228,7 +219,6 @@
       }
     });
     if (subtitleConfig) playerOptions.subtitle = subtitleConfig;
-    activeSubtitleUrl = subtitleConfig ? subtitleConfig.url : "";
 
     // How long the control bar lingers after the last interaction. ArtPlayer's
     // default is 3000ms, which is what made the volume feel slow to go away -
@@ -246,12 +236,81 @@
     startMascot();
   }
 
-  // Tapping the picture dismisses the whole control layer immediately, instead of
-  // waiting out CONTROL_HIDE_TIME. The volume rail lives inside that layer, so
-  // this is what makes it go away on demand.
+  // ── Watching on a phone ─────────────────────────────────────────────────
+  // Browsing stays portrait; watching goes landscape. Tapping the picture on a
+  // phone takes the video fullscreen, and going fullscreen locks the screen
+  // sideways, so the picture fills the display without the viewer having to
+  // rotate the device - and without the site itself ever being forced sideways.
+  //
+  // Once already fullscreen the tap goes back to its other job: dismissing the
+  // control layer at once instead of waiting out CONTROL_HIDE_TIME. The volume
+  // rail lives inside that layer, so this is what makes it go away on demand.
+  function isPhonePlayer() {
+    // Artplayer's own device detection, set once at construction - it survives
+    // rotation, where a width media query would not.
+    return Boolean(art?.template?.$player?.classList.contains("art-mobile"));
+  }
+
+  function isFullscreenNow() {
+    return Boolean(
+      document.fullscreenElement
+      || document.webkitFullscreenElement
+      || (art && art.fullscreenWeb)
+    );
+  }
+
+  // Artplayer's `art.fullscreen = true` setter calls requestFullscreen() and
+  // drops the promise, so a refusal (no user gesture, iframe policy, iOS)
+  // surfaces as an uncaught "Permissions check failed". Request it directly and
+  // swallow the rejection - a browser that will not go fullscreen simply stays
+  // inline. Artplayer keeps its own state in step through fullscreenchange.
+  function enterFullscreen() {
+    const player = art?.template?.$player;
+    if (!player) return;
+    const request = player.requestFullscreen || player.webkitRequestFullscreen;
+    if (!request) {
+      try { art.fullscreen = true; } catch (error) { /* unsupported */ }
+      return;
+    }
+    try {
+      const entering = request.call(player);
+      if (entering && typeof entering.catch === "function") entering.catch(() => {});
+    } catch (error) { /* refused */ }
+  }
+
+  // screen.orientation.lock() only works while something is actually fullscreen,
+  // and iOS Safari has no implementation at all - it either rejects or is
+  // missing. Artplayer's autoOrientation covers that case by rotating its own
+  // container instead, so a failure here is not worth reporting.
+  function lockLandscape() {
+    const orientation = window.screen && window.screen.orientation;
+    if (!orientation || typeof orientation.lock !== "function") return;
+    try {
+      const locking = orientation.lock("landscape");
+      if (locking && typeof locking.catch === "function") locking.catch(() => {});
+    } catch (error) { /* unsupported on this browser */ }
+  }
+
+  function unlockOrientation() {
+    const orientation = window.screen && window.screen.orientation;
+    if (!orientation || typeof orientation.unlock !== "function") return;
+    try { orientation.unlock(); } catch (error) { /* unsupported on this browser */ }
+  }
+
   function wireTapToHideControls() {
     const player = art?.template?.$player;
     if (!player) return;
+
+    // The document's own event, not Artplayer's: this fires however fullscreen
+    // was entered - our tap, the fullscreen button, or the system back gesture
+    // leaving it - so the lock and the release can never drift apart.
+    const onFullscreenChange = () => {
+      if (!isPhonePlayer()) return;
+      if (document.fullscreenElement || document.webkitFullscreenElement) lockLandscape();
+      else unlockOrientation();
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", onFullscreenChange);
 
     // Captured on pointerdown because Artplayer's own click handler runs first
     // and may have already re-shown the bar by the time the click listener fires.
@@ -264,8 +323,17 @@
     player.addEventListener("click", (event) => {
       const target = event.target;
       // A tap on the bar, the settings popover or the options sheet is the user
-      // *using* the controls - only taps on the picture itself dismiss them.
+      // *using* the controls - only taps on the picture itself count here.
       if (target && target.closest && target.closest(".art-bottom, .art-settings, .art-contextmenus, .art-layers, .ztv-sheet")) return;
+
+      // Phone, not yet fullscreen: this tap is "I want to watch this" - go
+      // fullscreen, which locks landscape. Runs off the real tap so the browser
+      // accepts it as a user gesture.
+      if (isPhonePlayer() && !isFullscreenNow()) {
+        enterFullscreen();
+        return;
+      }
+
       if (!wasVisible) return;
       // Deferred: Artplayer shows the controls from its own click handler, so
       // hiding synchronously here would just be undone.
@@ -305,9 +373,13 @@
   // setting and its current value, and a detail list of choices for one setting.
   //
   // Every entry is derived from what this stream and this browser actually
-  // support - renditions come from the parsed HLS manifest, subtitle tracks from
-  // the URL the parent passed in, PiP from feature detection. A capability that
-  // is absent produces no row rather than a dead one.
+  // support - renditions come from the parsed HLS manifest, PiP from feature
+  // detection. A capability that is absent produces no row rather than a dead one.
+  //
+  // No subtitle entry on purpose: nothing in the app ever populates the player's
+  // `tracks` parameter, so the menu could only ever have rendered "Off". The
+  // player still displays a subtitle when one is passed (adult sources force
+  // Spanish); there is just no picker for something with nothing to pick.
 
   const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
   const ASPECTS = [
@@ -366,54 +438,6 @@
     return Number.isFinite(manual) && manual >= 0 ? manual : -1;
   }
 
-  function languageName(code) {
-    const raw = String(code || "").trim();
-    if (!raw) return "";
-    try {
-      const names = new Intl.DisplayNames([navigator.language || "en"], { type: "language" });
-      return names.of(raw) || raw;
-    } catch (error) {
-      return raw;
-    }
-  }
-
-  function subtitleOptions() {
-    const list = [];
-    const seen = new Set();
-    const push = (url, label, language) => {
-      if (!url || seen.has(url)) return;
-      seen.add(url);
-      const name = String(label || "").trim() || languageName(language) || `Track ${list.length + 1}`;
-      list.push({ id: url, label: name });
-    };
-    if (subtitle) push(subtitle, "", params.get("subtitles"));
-    tracks.forEach((track) => push(track.url, track.label, track.language || track.lang));
-    if (!list.length) return [];
-    return [{ id: "", label: "Off" }].concat(list);
-  }
-
-  function applySubtitle(url) {
-    if (!art?.subtitle) return;
-    try {
-      if (!url) {
-        art.subtitle.show = false;
-        activeSubtitleUrl = "";
-        return;
-      }
-      const type = url.split("?")[0].toLowerCase().endsWith(".ass") ? "ass" : "vtt";
-      art.subtitle.switch(url, { name: "Subtitle", type, escape: false });
-      art.subtitle.show = true;
-      activeSubtitleUrl = url;
-    } catch (error) {
-      console.warn("[ZenkaiPlayer] Subtitle switch failed", error);
-    }
-  }
-
-  function currentSubtitleId() {
-    if (art?.subtitle && art.subtitle.show === false) return "";
-    return activeSubtitleUrl;
-  }
-
   async function togglePip() {
     const video = art?.video;
     if (!video || !pipSupported()) return;
@@ -440,17 +464,6 @@
     } else if (hlsLevels.length === 1 && Number(hlsLevels[0].height) > 0) {
       // One rendition: state it, don't build a selector with a single choice.
       menus.push({ id: "quality", label: "Quality", info: levelLabel(hlsLevels[0]) });
-    }
-
-    const subs = subtitleOptions();
-    if (subs.length > 1) {
-      menus.push({
-        id: "subtitle",
-        label: "Subtitles",
-        options: subs,
-        current: () => currentSubtitleId(),
-        apply: (id) => applySubtitle(id)
-      });
     }
 
     menus.push({
@@ -795,7 +808,6 @@
       send("canplaythrough", getStatus());
     });
     art.on("video:playing", () => {
-      hasStartedPlayback = true;
       clearStartupWatchdog();
       cancelScheduledRecovery();
       seekRecoveryUntil = 0;
@@ -844,13 +856,6 @@
       send("error", "playback-error");
     });
 
-    // Artplayer's own autoplay is unreliable across browsers, so playback is
-    // kicked off here too. Skip it when the mount asked for autoplay=0, or this
-    // starts the episode the viewer was meant to start themselves.
-    if (!autoplay) {
-      hideLoading();
-      return;
-    }
     const playAttempt = video?.play?.();
     if (playAttempt && typeof playAttempt.catch === "function") {
       playAttempt.catch(() => {
@@ -911,13 +916,6 @@
       // Only re-renders when the sheet is actually open.
       hls.on(window.Hls.Events.LEVEL_SWITCHED, refreshOptionsSheet);
       armStartupWatchdog();
-      if (!autoplay) {
-        // Manifest is parsed and the first segments are buffering, so the poster
-        // and the play button are all that is left to show. Starting playback
-        // here would defeat autoplay=0.
-        hideLoading();
-        return;
-      }
       const playAttempt = video.play();
       if (playAttempt && typeof playAttempt.catch === "function") playAttempt.catch(() => hideLoading());
     });
@@ -1201,14 +1199,6 @@
     startupTimer = setTimeout(() => {
       const video = art?.video;
       if (!video || elements.error.hidden === false) return;
-      // With autoplay=0 the video is paused on purpose and some browsers will
-      // not preload a paused stream at all, so readyState stays low and the
-      // watchdog would report a perfectly healthy episode as "taking too long".
-      // Nothing has been asked of the stream until the viewer presses play.
-      if (!autoplay && !hasStartedPlayback && video.paused) {
-        hideLoading();
-        return;
-      }
       if (video.readyState >= 3 || bufferedAhead(video) > 1 || !video.paused) {
         hideLoading();
         return;
@@ -1358,6 +1348,9 @@
     closeOptionsSheet({ silent: true });
     sheet = null;
     hlsLevels = [];
+    // Never leave the device pinned sideways because a source switch tore the
+    // player down while it was fullscreen.
+    unlockOrientation();
     destroyHls();
     if (!art) return;
     try { art.destroy(false); } catch (error) {}

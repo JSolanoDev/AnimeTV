@@ -861,7 +861,12 @@ main {
      below-the-fold footer was a 100vh floor on .content-band, which is now
      min-height: 0, so growing main can no longer push the footer off-screen. */
   flex: 1 0 auto;
-  padding: 1.2rem clamp(1.4rem, 3.2vw, 3.4rem) 1.2rem;
+  /* --page-gutter mirrors the side padding so full-bleed children can cancel it
+     exactly. Anything bleeding to the screen edge must use this rather than
+     repeating a literal, which is how the hero ended up 3.2px wider than the
+     viewport on phones and let the whole page slide sideways. */
+  --page-gutter: clamp(1.4rem, 3.2vw, 3.4rem);
+  padding: 1.2rem var(--page-gutter) 1.2rem;
   position: relative;
   z-index: 1;
 }
@@ -6077,12 +6082,13 @@ body.player-cinema-open .close-button {
   }
 
   main {
-    padding: 1.5rem 1rem 3rem;
+    --page-gutter: 1rem;
+    padding: 1.5rem var(--page-gutter) 3rem;
   }
 
   .hero {
     grid-template-columns: 1fr;
-    min-height: 31rem;
+    min-height: clamp(21rem, 52vh, 26rem);
   }
 
   .today-carousel {
@@ -7059,9 +7065,14 @@ body.reduce-motion .watch-overlay.is-closing .watch-panel {
     grid-template-columns: 1fr;
     /* Fixed height (matches the inline critical CSS exactly) so the
        is-loading -> loaded transition and slide changes never resize the hero
-       and shove the rails below it. height == min-height == 31rem keeps CLS ~0. */
-    height: 31rem;
-    min-height: 31rem;
+       and shove the rails below it. height == min-height keeps CLS ~0, so this
+       value and the one inlined in index.html must always be changed together.
+       Was a flat 31rem, which on a phone left no room for the first content row;
+       the clamp caps it at the old-ish 26rem on tall screens and shrinks it on
+       short ones, with a 21rem floor so the hero content can never be crushed.
+       vh (not dvh) on purpose - it does not move when the URL bar hides. */
+    height: clamp(21rem, 52vh, 26rem);
+    min-height: clamp(21rem, 52vh, 26rem);
   }
 
   .carousel-info {
@@ -7134,7 +7145,8 @@ body.reduce-motion .watch-overlay.is-closing .watch-panel {
   }
 
   main {
-    padding: 1rem 0.8rem 1.5rem;
+    --page-gutter: 0.8rem;
+    padding: 1rem var(--page-gutter) 1.5rem;
   }
 
   .bottom-bar,
@@ -7167,7 +7179,7 @@ body.reduce-motion .watch-overlay.is-closing .watch-panel {
   }
 
   .carousel-stage {
-    min-height: 31rem;
+    min-height: clamp(21rem, 52vh, 26rem);
     padding: 2rem 1.2rem 5.7rem;
   }
 }
@@ -10639,16 +10651,27 @@ body.is-tv .topbar-auth {
   }
 }
 
-/* Hero full-bleed on phones: bleed exactly to main's 1rem side padding (edge to
-   edge of the content column). Using negative margins instead of 100vw avoids a
+/* Hero full-bleed on phones: cancel exactly main's side padding (edge to edge of
+   the content column). Using negative margins instead of 100vw avoids a
    scrollbar-width horizontal overflow on viewports that render a classic
-   scrollbar (100vw includes the scrollbar gutter; the content box does not). */
+   scrollbar (100vw includes the scrollbar gutter; the content box does not).
+   The literal used to be -1rem while main's phone padding is 0.8rem, so the hero
+   stuck out 3.2px each side and the whole page could slide sideways. Reading the
+   gutter back from main keeps the two in step at every breakpoint. */
 @media (max-width: 760px) {
   .hero {
     width: auto;
     max-width: none;
-    margin-left: -1rem;
-    margin-right: -1rem;
+    margin-inline: calc(var(--page-gutter, 0.8rem) * -1);
+  }
+
+  /* Portrait phones: measured at 375x812, the hero's content filled 474 of its
+     496px, so the height above could not simply be trimmed - the synopsis had to
+     go with it. It is two lines of "The third season of ..." that the detail
+     page repeats in full, which makes it the cheapest 60px on the page. Title,
+     meta, Play and the thumbnail strip all stay. */
+  .carousel-info p:not(.eyebrow):not(.carousel-meta-line) {
+    display: none;
   }
 }
 
