@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=559`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=560`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2893,7 +2893,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=559";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=560";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -6443,7 +6443,10 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
         const frame = document.querySelector("#videoFrame");
         const background = getWatchBackdropArtwork(show, state.activeEpisode.season);
         frame?.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
-        if (frame) renderSourcePickerInSidePanel();
+        // Keep the episode list up rather than swapping it for the source picker -
+        // see selectEpisodeByPosition. Servers stay reachable from the Servers
+        // button under the player.
+        if (frame) renderEpisodeList(show);
       } else {
         resetVideoFrame();
       }
@@ -6519,7 +6522,10 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
         if (frame && !document.body.classList.contains("player-cinema-open")) {
           const background = getWatchBackdropArtwork(show, ep.season);
           frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
-          renderSourcePickerInSidePanel();
+          // Keep the episode list up rather than swapping it for the source picker -
+          // see selectEpisodeByPosition. Servers stay reachable from the Servers
+          // button under the player.
+          renderEpisodeList(show);
         }
       }
     }
@@ -8731,7 +8737,7 @@ function getEpisodeNavigationTargets() {
   };
 }
 
-function renderPlayerEpisodeActions(url = "") {
+function renderPlayerEpisodeActions(url = "", options = {}) {
   const nav = getEpisodeNavigationTargets();
   const downloadUrl = getActiveDownloadUrl(url);
   const canDownload = downloadUrl && !isEmbedUrl(downloadUrl) && /^https?:/i.test(String(downloadUrl));
@@ -8744,11 +8750,20 @@ function renderPlayerEpisodeActions(url = "") {
         <span aria-hidden="true">⏮</span>
         Prev
       </button>
-      <button class="player-nav-action focusable is-list" type="button" data-player-list>
-        <span aria-hidden="true">☰</span>
-        ${escapeHtml(epLabel)}
-        ${nav.total ? `<small>${nav.total}</small>` : ""}
-      </button>
+      ${options.sourcesToggle
+        // The episode list is permanently on screen in this layout, so "jump to
+        // the episode list" has nothing left to do. The same slot opens the
+        // source picker instead - the only manual server chooser there is once
+        // the legacy player chrome (which owned the other entry point) is gone.
+        ? `<button class="player-nav-action focusable is-list" type="button" data-player-sources>
+            <span aria-hidden="true">☰</span>
+            Servers
+          </button>`
+        : `<button class="player-nav-action focusable is-list" type="button" data-player-list>
+            <span aria-hidden="true">☰</span>
+            ${escapeHtml(epLabel)}
+            ${nav.total ? `<small>${nav.total}</small>` : ""}
+          </button>`}
       <button class="player-nav-action focusable" type="button" data-player-next ${nav.next ? "" : "disabled"}>
         Next
         <span aria-hidden="true">⏭</span>
@@ -10875,9 +10890,15 @@ function selectEpisodeByPosition(seasonIndex, episodeIndex, shouldPlay = true) {
       const background = getWatchBackdropArtwork(show, season);
       frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
       schedulePlaybackSourceOptions(show, episode, season?.season || seasonIndex + 1 || 1);
-      // Show sources in the right-side episode panel (not full-screen cinema mode)
-      renderSourcePickerInSidePanel();
-      return; // renderSourcePickerInSidePanel sets episodeList content
+      // Keep the episode list on screen. Picking an episode used to replace it
+      // with the source picker, so the list you were browsing vanished the
+      // moment you used it - and when the "best servers" filter matched nothing
+      // you were left staring at "No sources match this filter" where your
+      // episodes had been. Servers are still one press away, on the Servers
+      // button under the player.
+      renderEpisodeList(show);
+      refreshFocusables();
+      return;
     }
   }
   renderEpisodeList(state.activeShow);
@@ -10953,6 +10974,16 @@ function wirePlayerChrome(frame) {
 
   frame.querySelectorAll("[data-player-list]").forEach((button) => {
     button.addEventListener("click", () => showEpisodeListTab());
+  });
+
+  // Toggles the side panel between the episode list and the server picker. Both
+  // renderers already exist; this is the entry point that went missing when the
+  // picker stopped taking the panel over on its own.
+  frame.querySelectorAll("[data-player-sources]").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (episodeList?.querySelector(".side-source-picker")) showEpisodeListTab();
+      else renderSourcePickerInSidePanel();
+    });
   });
 }
 
@@ -11334,7 +11365,10 @@ async function selectEpisode(season, episode, seasonIndex, episodeIndex) {
     const background = getWatchBackdropArtwork(show, season);
     frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
     schedulePlaybackSourceOptions(show, episode, season?.season || seasonIndex + 1 || 1);
-    renderSourcePickerInSidePanel();
+    // Keep the episode list up rather than swapping it for the source picker -
+    // see selectEpisodeByPosition. Servers stay reachable from the Servers
+    // button under the player.
+    renderEpisodeList(show);
     return;
   }
   renderEpisodeList(state.activeShow);
@@ -12871,7 +12905,7 @@ function renderDirectVideoPlayer(frame, url, episode) {
       </div>
       ${useApkPlayer ? "" : renderPlayerEpisodeActions(url)}
     </div>
-    ${useApkPlayer ? renderPlayerEpisodeActions(url) : ""}
+    ${useApkPlayer ? renderPlayerEpisodeActions(url, { sourcesToggle: true }) : ""}
   `;
   const shell = frame.querySelector(".vidstream-player");
   setPlayerCinema(shell, true, { silent: true });
@@ -14048,7 +14082,10 @@ fakePlay.addEventListener("click", () => {
     const background = getWatchBackdropArtwork(show, ep.season);
     frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
     schedulePlaybackSourceOptions(show, ep.episode, ep.season?.season || ep.seasonIndex + 1 || 1);
-    renderSourcePickerInSidePanel();
+    // Keep the episode list up rather than swapping it for the source picker -
+    // see selectEpisodeByPosition. Servers stay reachable from the Servers
+    // button under the player.
+    renderEpisodeList(show);
   } else if (show) {
     // No episode selected — select the first one
     const seasons = getDetailSeasons(show);
@@ -15010,7 +15047,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=559");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=560");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
