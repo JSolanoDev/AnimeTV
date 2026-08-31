@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=573`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=574`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2893,7 +2893,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=573";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=574";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -7913,20 +7913,28 @@ function scrollPlayerIntoView(attempt = 0) {
   // it re-runs on every source-resolution re-render and drags the panel back.
   state.suppressEpisodeRowScroll = true;
   const done = () => { state.suppressEpisodeRowScroll = false; };
+  // Keep re-checking for the whole settling window rather than stopping the
+  // moment the player looks visible. Instrumented render order on production:
+  // renderDirectVideoPlayer -> setPlayerCinema -> renderEpisodeList. At the
+  // first check the player genuinely IS in view - the list has not re-rendered
+  // yet - so an early return there cancelled every retry, and the list then
+  // grew (9 rows to 12) and pushed the player 562px above the fold with nothing
+  // left to notice. Being visible skips the scroll, it does not end the watch.
   const again = () => {
-    if (attempt < 4) setTimeout(() => scrollPlayerIntoView(attempt + 1), 260);
-    else done();
+    if (attempt < 5) setTimeout(() => scrollPlayerIntoView(attempt + 1), 260);
+    else done();   // done() on the last attempt only, or the flag latches on
   };
   const panelRect = panel.getBoundingClientRect();
   const frameRect = frame.getBoundingClientRect();
-  if (!frameRect.height) { again(); return; }
-  // Already showing most of it? Leave the scroll position alone. This is also
-  // what stops the retries, and what makes the whole thing a no-op on desktop,
-  // where the player sits beside the list and is always in view.
-  const visibleTop = Math.max(frameRect.top, panelRect.top);
-  const visibleBottom = Math.min(frameRect.bottom, panelRect.bottom);
-  if (visibleBottom - visibleTop > frameRect.height * 0.6) return;
-  setPanelScrollTop(panel, panel.scrollTop + (frameRect.top - panelRect.top) - 8);
+  if (frameRect.height) {
+    const visibleTop = Math.max(frameRect.top, panelRect.top);
+    const visibleBottom = Math.min(frameRect.bottom, panelRect.bottom);
+    // Not showing enough of it? Bring it back. On desktop the player sits beside
+    // the list and is always in view, so this never fires there.
+    if (visibleBottom - visibleTop <= frameRect.height * 0.6) {
+      setPanelScrollTop(panel, panel.scrollTop + (frameRect.top - panelRect.top) - 8);
+    }
+  }
   again();
 }
 
@@ -15138,7 +15146,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=573");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=574");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
