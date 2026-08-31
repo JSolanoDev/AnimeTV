@@ -8334,6 +8334,7 @@ function readUnderHentaiCatalog() {
     return {
       ...payload,
       excludedForSafety: Number(payload.excludedForSafety || 0) + (storedItems.length - items.length),
+      incompleteMetadataCount: Number(payload.incompleteMetadataCount || 0),
       items
     };
   } catch {
@@ -8580,6 +8581,7 @@ async function handleUnderHentaiCatalog(url, response) {
     count: filtered.length,
     totalFound: snapshot.totalFound || filtered.length,
     excludedForSafety: snapshot.excludedForSafety || 0,
+    incompleteMetadataCount: snapshot.incompleteMetadataCount || 0,
     items: processed
   }, 200, { "Cache-Control": "public, max-age=900, stale-while-revalidate=21600" });
 }

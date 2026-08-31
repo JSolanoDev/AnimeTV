@@ -90,7 +90,7 @@ function normalizeSafetyText(value = "") {
     .trim();
 }
 
-function isSafeAdultMetadata(item = {}) {
+function adultSafetyMarker(item = {}) {
   const searchable = normalizeSafetyText([
     item.title,
     item.officialTitle,
@@ -98,8 +98,15 @@ function isSafeAdultMetadata(item = {}) {
     ...(Array.isArray(item.genres) ? item.genres : [])
   ].filter(Boolean).join(" "));
   const padded = ` ${searchable} `;
-  if (UNSAFE_MINOR_MARKERS.some((marker) => padded.includes(` ${normalizeSafetyText(marker)} `))) return false;
-  return !UNSAFE_MINOR_PATTERNS.some((pattern) => pattern.test(searchable));
+  const marker = UNSAFE_MINOR_MARKERS.find((candidate) =>
+    padded.includes(` ${normalizeSafetyText(candidate)} `)
+  );
+  if (marker) return marker;
+  return UNSAFE_MINOR_PATTERNS.some((pattern) => pattern.test(searchable)) ? "jk" : "";
+}
+
+function isSafeAdultMetadata(item = {}) {
+  return !adultSafetyMarker(item);
 }
 
 function currentMetaRow(html = "", label = "") {
@@ -238,7 +245,9 @@ async function loadSitemapListings() {
 function extractMetadata(html, item) {
   const genreBlock = html.match(/<p>\s*Genres\s*<\/p>([\s\S]*?)<\/div>/i)?.[1] || "";
   const currentGenreBlock = html.match(/class\s*=\s*(?:"[^"]*\brow-tags\b[^"]*"|'[^']*\brow-tags\b[^']*')[^>]*>[\s\S]*?<ul\b[^>]*class\s*=\s*(?:"[^"]*\btags-list\b[^"]*"|'[^']*\btags-list\b[^']*')[^>]*>([\s\S]*?)<\/ul>/i)?.[1] || "";
-  const genreSource = genreBlock || currentGenreBlock;
+  // Prefer the title-scoped markup used by the current site. The legacy block is
+  // only a fallback for older saved pages and must not override current tags.
+  const genreSource = currentGenreBlock || genreBlock;
   const genres = [...genreSource.matchAll(/<a\b[^>]*href\s*=\s*(?:"[^"]*\/genre\/[^"]*"|'[^']*\/genre\/[^']*')[^>]*>([\s\S]*?)<\/a>/gi)]
     .map((match) => stripHtml(match[1]))
     .filter((value, index, values) => value && values.indexOf(value) === index);
@@ -275,10 +284,11 @@ function extractMetadata(html, item) {
     mainWallpaper: cover,
     banner: cover,
     screenshots,
-    episodeCount: new Set(episodeNumbers).size || Math.max(1, episodeNumbers.length),
+    episodeCount: new Set(episodeNumbers).size || (streamCount > 0 ? 1 : 0),
     releaseCount: streamCount
   };
   metadata.safetyExcluded = !isSafeAdultMetadata(metadata);
+  metadata.metadataCheckedAt = new Date().toISOString();
   return metadata;
 }
 
@@ -310,7 +320,8 @@ async function main() {
   } catch {
     // An unavailable source must not erase a previously verified catalog.
   }
-  const existingBySlug = new Map((existing.items || []).map((item) => [item.slug, item]));
+  const previousItems = [...(existing.items || []), ...(existing.pendingItems || [])];
+  const existingBySlug = new Map(previousItems.map((item) => [item.slug, item]));
   const firstHtml = await fetchText(`${BASE_URL}/`);
   const pageNumbers = [...firstHtml.matchAll(/page\/(\d+)\//gi)].map((match) => Number(match[1]));
   const lastPage = Math.max(1, ...pageNumbers);
@@ -326,6 +337,12 @@ async function main() {
   console.log(`Found ${listed.length} title pages across ${lastPage} listing pages and ${sitemapItems.length} sitemap entries.`);
 
   const generatedAt = Date.parse(existing.generatedAt || "");
+  const hasStructuredExclusions = Array.isArray(existing.exclusions);
+  const existingExclusions = new Map(
+    (hasStructuredExclusions ? existing.exclusions : [])
+      .filter((entry) => entry?.slug)
+      .map((entry) => [entry.slug, entry])
+  );
   const inferredLegacyExclusions = !Array.isArray(existing.excludedSlugs)
     && Number(existing.totalFound) === Number(existing.items?.length || 0) + Number(existing.excludedForSafety || 0)
     && Number.isFinite(generatedAt)
@@ -359,11 +376,16 @@ async function main() {
   const recheckStart = excludedCandidates.length
     ? (Math.floor(Date.now() / (24 * 60 * 60 * 1000)) * Math.max(1, EXCLUDED_RECHECK_LIMIT)) % excludedCandidates.length
     : 0;
-  const excludedRechecks = new Set(
-    Array.from({ length: Math.min(EXCLUDED_RECHECK_LIMIT, excludedCandidates.length) }, (_, offset) =>
-      excludedCandidates[(recheckStart + offset) % excludedCandidates.length]?.slug
-    ).filter(Boolean)
-  );
+  // Older snapshots collapsed safety decisions and failed metadata lookups into
+  // one bucket. Audit that legacy bucket once so a transient scraper miss cannot
+  // hide a title forever. Structured snapshots return to a rotating daily batch.
+  const excludedRechecks = new Set((!hasStructuredExclusions
+    ? excludedCandidates
+    : Array.from({ length: Math.min(EXCLUDED_RECHECK_LIMIT, excludedCandidates.length) }, (_, offset) =>
+        excludedCandidates[(recheckStart + offset) % excludedCandidates.length]
+      ))
+    .map((item) => item?.slug)
+    .filter(Boolean));
   const metadataTargets = mergedListings.filter((item) =>
     item.sourceOrder < RECENT_DETAIL_LIMIT
       || (!existingBySlug.has(item.slug) && !knownExcluded.has(item.slug))
@@ -373,18 +395,56 @@ async function main() {
   console.log(`Refreshing ${metadataTargets.length} new, recent, or previously excluded title pages.`);
   const enriched = await mapConcurrent(metadataTargets, async (item) => extractMetadata(await fetchText(item.url), item));
   const freshBySlug = new Map(enriched.filter(Boolean).map((item) => [item.slug, item]));
-  const safeItems = mergedListings
-    .map((item) => freshBySlug.get(item.slug) || item)
-    .filter((item) => item && isSafeAdultMetadata(item) && item.episodeCount > 0)
-    .map((item) => ({ ...item, safetyExcluded: false }));
+  const resolvedItems = mergedListings.map((item) => freshBySlug.get(item.slug) || item);
+  const safeItems = [];
+  const safetyExcluded = [];
+  const incompleteMetadata = [];
+  resolvedItems.forEach((item) => {
+    if (!item?.slug) return;
+    const wasRefreshed = freshBySlug.has(item.slug);
+    const previousReason = existingExclusions.get(item.slug)?.reason || "";
+    const hasVerifiedMetadata = Boolean(
+      item.metadataCheckedAt
+      || Number(item.episodeCount) > 0
+      || item.officialTitle
+      || item.brand
+      || item.aired
+      || item.description
+      || item.genres?.length
+    );
+    const safetyBlocked = item.safetyExcluded === true
+      || (hasVerifiedMetadata && !isSafeAdultMetadata(item))
+      || (!wasRefreshed && previousReason === "safety");
+    if (safetyBlocked) {
+      safetyExcluded.push(item);
+    } else if (hasVerifiedMetadata && Number(item.episodeCount) > 0) {
+      safeItems.push({ ...item, safetyExcluded: false });
+    } else {
+      incompleteMetadata.push(item);
+    }
+  });
   const safeSlugs = new Set(safeItems.map((item) => item.slug));
+  const safetyBySlug = new Map(safetyExcluded.map((item) => [item.slug, item]));
+  const safetySlugs = new Set(safetyBySlug.keys());
+  const exclusions = listed
+    .filter((item) => !safeSlugs.has(item.slug))
+    .map((item) => ({
+      slug: item.slug,
+      reason: safetySlugs.has(item.slug) ? "safety" : "metadata-unavailable",
+      ...(safetySlugs.has(item.slug)
+        ? { marker: adultSafetyMarker(safetyBySlug.get(item.slug)) || existingExclusions.get(item.slug)?.marker || "review-required" }
+        : {})
+    }));
   const payload = {
     source: "UnderHentai",
     generatedAt: new Date().toISOString(),
     totalFound: listed.length,
     listingPageCount: lastPage,
     sitemapCount: sitemapItems.length,
-    excludedForSafety: listed.length - safeItems.length,
+    eligibleTitleCount: safeItems.length,
+    excludedForSafety: safetyExcluded.length,
+    incompleteMetadataCount: incompleteMetadata.length,
+    exclusions,
     excludedSlugs: listed.filter((item) => !safeSlugs.has(item.slug)).map((item) => item.slug),
     items: safeItems
   };
@@ -393,7 +453,10 @@ async function main() {
     await mkdir(dirname(output), { recursive: true });
     await writeFile(output, serialized, "utf8");
   }));
-  console.log(`Saved ${safeItems.length} adult-only titles to the web and Android catalogs.`);
+  console.log(
+    `Saved ${safeItems.length} verified-adult titles; `
+    + `${safetyExcluded.length} safety exclusions; ${incompleteMetadata.length} metadata retries pending.`
+  );
 }
 
 main().catch((error) => {
