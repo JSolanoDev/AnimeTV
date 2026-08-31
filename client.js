@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=568`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=569`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2893,7 +2893,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=568";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=569";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -10943,9 +10943,9 @@ function selectEpisodeByPosition(seasonIndex, episodeIndex, shouldPlay = true) {
       // button under the player.
       renderEpisodeList(show);
       refreshFocusables();
-      // ...and take the viewer to it. On a phone the player is above the list
-      // they just picked from, so without this the episode starts off-screen.
-      requestAnimationFrame(scrollPlayerIntoView);
+      // Scrolling to the player happens where the player actually mounts, not
+      // here: at this point the source has not resolved yet and #videoFrame is
+      // still empty, so scrolling to it lands on nothing.
       return;
     }
   }
@@ -12957,6 +12957,14 @@ function renderDirectVideoPlayer(frame, url, episode) {
   `;
   const shell = frame.querySelector(".vidstream-player");
   setPlayerCinema(shell, true, { silent: true });
+  // Now that there is something to look at, take the viewer to it. On a phone
+  // the player sits above the episode list, so an episode picked from a list you
+  // had scrolled down through would otherwise start off-screen above you. This
+  // has to happen at the mount, not at the click: when the row is clicked the
+  // source has not resolved yet and #videoFrame is still empty, so scrolling
+  // then lands on nothing. A no-op when the player is already in view, which is
+  // always the case on desktop, where it sits beside the list.
+  requestAnimationFrame(scrollPlayerIntoView);
   const iframe = frame.querySelector("#animePlayerFrame");
   const player = useApkPlayer
     ? createApkPlayerController(iframe, {
@@ -15095,7 +15103,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=568");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=569");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

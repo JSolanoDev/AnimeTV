@@ -440,20 +440,25 @@
   // Both the volume rail and the settings popover behave the same way: stay open
   // while the pointer is on the button or the panel, close shortly after it
   // leaves either.
-  function wirePanelLinger({ parts, open, close }) {
+  // openOnHover distinguishes the two: the volume rail is a hover affordance and
+  // should appear when the pointer reaches it, while the settings popover only
+  // ever opens from a deliberate click. Hovering settings must not open it - it
+  // may only hold open something the click already opened.
+  function wirePanelLinger({ parts, open, close, openOnHover = true }) {
     const nodes = parts.filter(Boolean);
     if (!nodes.length) return;
     let timer = 0;
     let inside = 0;
-    const keepOpen = () => { window.clearTimeout(timer); timer = 0; open(); };
+    const cancelClose = () => { window.clearTimeout(timer); timer = 0; };
+    const enter = () => { cancelClose(); if (openOnHover) open(); };
     const closeLater = () => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => { timer = 0; if (!inside) close(); }, PANEL_LINGER_MS);
     };
     nodes.forEach((node) => {
-      node.addEventListener("pointerenter", () => { inside += 1; keepOpen(); });
-      node.addEventListener("pointerdown", keepOpen);
-      node.addEventListener("focusin", () => { inside += 1; keepOpen(); });
+      node.addEventListener("pointerenter", () => { inside += 1; enter(); });
+      node.addEventListener("pointerdown", cancelClose);
+      node.addEventListener("focusin", () => { inside += 1; enter(); });
       node.addEventListener("pointerleave", () => { inside = Math.max(0, inside - 1); closeLater(); });
       node.addEventListener("focusout", () => { inside = Math.max(0, inside - 1); closeLater(); });
     });
@@ -469,15 +474,19 @@
       });
     }
 
-    // The settings popover is a sibling of its button, so the pointer leaves the
-    // button on the way to the panel - both have to count as "inside" or it
-    // would shut in transit.
+    // Settings opens on click only - Artplayer's own handler does that. All this
+    // adds is the closing half: it holds open while the pointer is on the button
+    // or the panel, and closes shortly after it leaves both.
+    // The popover is a sibling of its button rather than a child, so the pointer
+    // leaves the button on the way to the panel; both have to count as "inside"
+    // or it would shut in transit.
     const settingButton = elements.player.querySelector(".art-control-setting");
     const settingPanel = elements.player.querySelector(".art-settings");
     if (settingButton && settingPanel && art?.setting) {
       wirePanelLinger({
         parts: [settingButton, settingPanel],
-        open: () => { try { art.setting.show = true; } catch (error) {} },
+        openOnHover: false,
+        open: () => {},
         close: () => { try { art.setting.show = false; } catch (error) {} }
       });
     }
