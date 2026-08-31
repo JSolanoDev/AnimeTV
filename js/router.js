@@ -67,7 +67,15 @@
   }
 
   function parsePath(pathname) {
-    const clean = (pathname || "/").replace(/\/+$/, "") || "/";
+    // "/index.html" is the home page, not a route. The installed PWA used to
+    // launch there (manifest start_url was "./index.html"), and since no route
+    // matches that path it fell through to not-found - opening the installed app
+    // showed "Page Not Found". The manifest now starts at "/", but shortcuts
+    // already on people's machines keep the old URL until the browser refreshes
+    // the manifest, so this normalises it either way. Direct /index.html links
+    // and bookmarks get the same treatment.
+    const withoutIndex = (pathname || "/").replace(/\/index\.html?$/i, "/");
+    const clean = withoutIndex.replace(/\/+$/, "") || "/";
     if (MAIN_ROUTES.has(clean)) return { ...MAIN_ROUTES.get(clean), path: clean, params: {} };
 
     let m = clean.match(/^\/anime\/([^/]+)$/);
