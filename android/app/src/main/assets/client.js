@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=569`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=570`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2893,7 +2893,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=569";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=570";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -7892,18 +7892,26 @@ function scrollEpisodeListIntoView() {
 // is off-screen above you.
 // A no-op on desktop, where the player is beside the list and already in view -
 // the check below only fires when the player is genuinely off the top.
-function scrollPlayerIntoView() {
+function scrollPlayerIntoView(attempt = 0) {
   const panel = document.querySelector(".watch-panel");
   const frame = document.querySelector("#videoFrame");
   if (!panel || !frame) return;
+  // Sources keep resolving after the player mounts, and each pass re-renders the
+  // episode list - measured on production, it grew from 9 rows to 12, which
+  // pushed the player from 161px above the fold to 562px above it. A single
+  // scroll lands where the player USED to be, so re-check until it settles.
+  const again = () => { if (attempt < 4) setTimeout(() => scrollPlayerIntoView(attempt + 1), 260); };
   const panelRect = panel.getBoundingClientRect();
   const frameRect = frame.getBoundingClientRect();
-  if (!frameRect.height) return;
-  // Already showing most of it? Leave the scroll position alone.
+  if (!frameRect.height) { again(); return; }
+  // Already showing most of it? Leave the scroll position alone. This is also
+  // what stops the retries, and what makes the whole thing a no-op on desktop,
+  // where the player sits beside the list and is always in view.
   const visibleTop = Math.max(frameRect.top, panelRect.top);
   const visibleBottom = Math.min(frameRect.bottom, panelRect.bottom);
   if (visibleBottom - visibleTop > frameRect.height * 0.6) return;
   panel.scrollTo({ top: Math.max(0, panel.scrollTop + (frameRect.top - panelRect.top) - 8), behavior: "smooth" });
+  again();
 }
 
 function renderEpisodeList(show) {
@@ -15103,7 +15111,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=569");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=570");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
