@@ -7981,10 +7981,24 @@ function anilistSearchVariants(raw) {
     variants.push(text);
   };
   add(raw.replace(/-/g, ""));                       // Tenkou-saki -> Tenkousaki
-  add(raw.replace(/[^\p{L}\p{N}]+/gu, " "));        // drop commas, colons, hyphens
-  const words = raw.replace(/[^\p{L}\p{N}]+/gu, " ").trim().split(" ").filter(Boolean);
+  const plain = raw.replace(/[^\p{L}\p{N}]+/gu, " ");
+  add(plain);                                       // drop commas, colons, hyphens
+
+  // The catalogue is Spanish-language, so season markers arrive localised:
+  // "Scissor Seven Temporada 5" misses, "Scissor Seven Season 5" is #182445.
+  const localised = plain
+    .replace(/\btemporada\b/giu, "Season")
+    .replace(/\bparte\b/giu, "Part");
+  add(localised);
+
+  // Format words the catalogue adds and AniList does not carry in the title:
+  // "Tsurune Movie: Hajimari no Issha" misses even with the colon gone, while
+  // "Tsurune Hajimari no Issha" is #125261.
+  add(localised.replace(/\b(movie|film|pelicula|película|ova|ona|special)\b/giu, " "));
+
+  const words = plain.trim().split(" ").filter(Boolean);
   if (words.length > 6) add(words.slice(0, 6).join(" "));  // very long titles
-  return variants.slice(0, 4);
+  return variants.slice(0, 6);
 }
 
 async function handleAniListSearch(url, response) {
