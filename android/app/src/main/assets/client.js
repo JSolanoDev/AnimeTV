@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=570`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=571`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2893,7 +2893,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=570";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=571";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -7872,6 +7872,15 @@ function resetEpisodePanelScroll() {
 // Self-correcting across layouts: on desktop the list sits beside the player and
 // is already near the top of the scroller, so the check below turns this into a
 // no-op. It only moves when the rows genuinely start below the halfway mark.
+// scrollTo({ behavior: "smooth" }) is silently ignored on this panel - measured
+// on production: a smooth call left scrollTop at 922, while "auto" and a direct
+// assignment both moved it to the requested 352. The scroll has to actually
+// happen, so it is assigned outright rather than requested politely.
+function setPanelScrollTop(panel, top) {
+  if (!panel) return;
+  panel.scrollTop = Math.max(0, Math.round(top));
+}
+
 function scrollEpisodeListIntoView() {
   if (!state.pendingEpisodeListScroll) return;
   const panel = document.querySelector(".watch-panel");
@@ -7883,7 +7892,7 @@ function scrollEpisodeListIntoView() {
   const rowsRect = rows.getBoundingClientRect();
   if (rowsRect.top - panelRect.top < panelRect.height * 0.4) return;
   const sideRect = side.getBoundingClientRect();
-  panel.scrollTo({ top: panel.scrollTop + (sideRect.top - panelRect.top), behavior: "smooth" });
+  setPanelScrollTop(panel, panel.scrollTop + (sideRect.top - panelRect.top));
 }
 
 // The mirror image of the above: picking an episode should take you TO it
@@ -7910,7 +7919,7 @@ function scrollPlayerIntoView(attempt = 0) {
   const visibleTop = Math.max(frameRect.top, panelRect.top);
   const visibleBottom = Math.min(frameRect.bottom, panelRect.bottom);
   if (visibleBottom - visibleTop > frameRect.height * 0.6) return;
-  panel.scrollTo({ top: Math.max(0, panel.scrollTop + (frameRect.top - panelRect.top) - 8), behavior: "smooth" });
+  setPanelScrollTop(panel, panel.scrollTop + (frameRect.top - panelRect.top) - 8);
   again();
 }
 
@@ -15111,7 +15120,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=570");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=571");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
