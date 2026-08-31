@@ -432,28 +432,55 @@
     });
   }
 
+  // Long enough to move the pointer from the button onto the panel, short enough
+  // that the panel is gone the moment you are done with it. The volume rail used
+  // to sit for 4.2s, which read as the panel being stuck.
+  const PANEL_LINGER_MS = 1000;
+
+  // Both the volume rail and the settings popover behave the same way: stay open
+  // while the pointer is on the button or the panel, close shortly after it
+  // leaves either.
+  function wirePanelLinger({ parts, open, close }) {
+    const nodes = parts.filter(Boolean);
+    if (!nodes.length) return;
+    let timer = 0;
+    let inside = 0;
+    const keepOpen = () => { window.clearTimeout(timer); timer = 0; open(); };
+    const closeLater = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => { timer = 0; if (!inside) close(); }, PANEL_LINGER_MS);
+    };
+    nodes.forEach((node) => {
+      node.addEventListener("pointerenter", () => { inside += 1; keepOpen(); });
+      node.addEventListener("pointerdown", keepOpen);
+      node.addEventListener("focusin", () => { inside += 1; keepOpen(); });
+      node.addEventListener("pointerleave", () => { inside = Math.max(0, inside - 1); closeLater(); });
+      node.addEventListener("focusout", () => { inside = Math.max(0, inside - 1); closeLater(); });
+    });
+  }
+
   function wireVolumePanelLinger() {
     const control = elements.player.querySelector(".art-control-volume");
-    if (!control) return;
+    if (control) {
+      wirePanelLinger({
+        parts: [control],
+        open: () => control.classList.add("is-volume-open"),
+        close: () => control.classList.remove("is-volume-open")
+      });
+    }
 
-    const keepOpen = () => {
-      if (volumePanelTimer) clearTimeout(volumePanelTimer);
-      volumePanelTimer = null;
-      control.classList.add("is-volume-open");
-    };
-    const closeLater = () => {
-      if (volumePanelTimer) clearTimeout(volumePanelTimer);
-      volumePanelTimer = window.setTimeout(() => {
-        control.classList.remove("is-volume-open");
-        volumePanelTimer = null;
-      }, 4200);
-    };
-
-    control.addEventListener("pointerenter", keepOpen);
-    control.addEventListener("pointerdown", keepOpen);
-    control.addEventListener("focusin", keepOpen);
-    control.addEventListener("pointerleave", closeLater);
-    control.addEventListener("focusout", closeLater);
+    // The settings popover is a sibling of its button, so the pointer leaves the
+    // button on the way to the panel - both have to count as "inside" or it
+    // would shut in transit.
+    const settingButton = elements.player.querySelector(".art-control-setting");
+    const settingPanel = elements.player.querySelector(".art-settings");
+    if (settingButton && settingPanel && art?.setting) {
+      wirePanelLinger({
+        parts: [settingButton, settingPanel],
+        open: () => { try { art.setting.show = true; } catch (error) {} },
+        close: () => { try { art.setting.show = false; } catch (error) {} }
+      });
+    }
   }
 
   // ── Phone options sheet ─────────────────────────────────────────────────
@@ -1429,8 +1456,6 @@
     cancelScheduledRecovery();
     if (hlsRecoveryTimer) clearTimeout(hlsRecoveryTimer);
     hlsRecoveryTimer = null;
-    if (volumePanelTimer) clearTimeout(volumePanelTimer);
-    volumePanelTimer = null;
     // The sheet lives inside Artplayer's own container, so art.destroy() takes
     // the DOM with it. Drop our handle and the stream-specific menu data too, or
     // a retry would rebuild the menu from the previous stream's renditions.

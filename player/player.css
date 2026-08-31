@@ -1046,3 +1046,13 @@ body.ztv-chrome-hidden .ztv-corner-toggle svg {
 @media (prefers-reduced-motion: reduce) {
   .ztv-mascot { display: none !important; }
 }
+
+/* The settings popover opened across the timeline: its bottom edge sat at 774px
+   with the progress bar spanning 758-764, so the panel covered the scrubber you
+   might be aiming for. The volume rail already clears it (bottom: 100% + 21px);
+   this lifts the settings panel to the same side of the bar.
+   !important because Artplayer sets `bottom: 38px` from its own runtime stylesheet,
+   which is injected after this file. */
+.art-settings {
+  bottom: calc(4.4rem + env(safe-area-inset-bottom)) !important;
+}
