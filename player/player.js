@@ -11,7 +11,8 @@
   const startAt = Number(params.get("start") || 0);
   const fit = String(params.get("fit") || params.get("scale") || "contain").toLowerCase();
   const forceSubtitles = params.get("forceSubtitles") === "1";
-  const hasNextEpisode = params.get("hasNext") === "1";
+  let hasNextEpisode = params.get("hasNext") === "1";
+  const isEmbeddedPlayer = window.parent && window.parent !== window;
   let art = null;
   let hls = null;
   let statusTimer = null;
@@ -153,8 +154,8 @@
       {
         name: "rewind-10",
         position: "left",
-        index: 5,
-        html: '<svg class="ztv-skip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5H6.5"></path><path d="m9 2.5-3 2.5 3 2.5"></path><path d="M6.25 9a7.5 7.5 0 1 0 3.25-3.25"></path></svg><span class="ztv-skip-value" aria-hidden="true">10</span>',
+        index: 12,
+        html: '<svg class="ztv-skip-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path class="ztv-skip-arrow" d="M7.3 10.2A10.8 10.8 0 1 1 5.2 17"></path><path class="ztv-skip-arrow" d="M7.2 4.8v5.6h5.6"></path><text class="ztv-skip-number" x="16" y="19.25" text-anchor="middle">10</text></svg>',
         tooltip: "Rewind 10 seconds",
         click: (_component, event) => {
           event.stopPropagation();
@@ -164,8 +165,8 @@
       {
         name: "forward-10",
         position: "left",
-        index: 15,
-        html: '<svg class="ztv-skip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5h5.5"></path><path d="m15 2.5 3 2.5-3 2.5"></path><path d="M17.75 9a7.5 7.5 0 1 1-3.25-3.25"></path></svg><span class="ztv-skip-value" aria-hidden="true">10</span>',
+        index: 14,
+        html: '<svg class="ztv-skip-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path class="ztv-skip-arrow" d="M24.7 10.2A10.8 10.8 0 1 0 26.8 17"></path><path class="ztv-skip-arrow" d="M24.8 4.8v5.6h-5.6"></path><text class="ztv-skip-number" x="16" y="19.25" text-anchor="middle">10</text></svg>',
         tooltip: "Forward 10 seconds",
         click: (_component, event) => {
           event.stopPropagation();
@@ -173,11 +174,11 @@
         }
       }
     ];
-    if (hasNextEpisode) {
+    if (hasNextEpisode || isEmbeddedPlayer) {
       playerOptions.controls.push({
         name: "next-episode",
         position: "left",
-        index: 30,
+        index: 16,
         html: '<svg class="ztv-next-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 4 10 8-10 8z"></path><path d="M19 5v14"></path></svg>',
         tooltip: "Next episode",
         click: (_component, event) => {
@@ -186,75 +187,115 @@
         }
       });
     }
-    playerOptions.controls.push({
-      name: "volume-mobile",
-      position: "right",
-      index: 12,
-      html: '<input class="ztv-volume-range" type="range" min="0" max="100" step="1" value="100" aria-label="Volume">'
-    });
     if (subtitleConfig) playerOptions.subtitle = subtitleConfig;
 
     art = new window.Artplayer(playerOptions);
     wireArtEvents();
-    wireMobileVolume();
+    syncNextEpisodeControl();
     startMascot();
   }
-
-  // ArtPlayer computes volume from VERTICAL pointer position, so its slider
-  // cannot be turned horizontal with CSS - a rotated one would read backwards.
-  // This is a real range input bound to the same underlying volume, used on
-  // phones where the stock popup opens over the seek bar and there is no hover
-  // to dismiss it. The existing volume button still handles mute, so there is
-  // one mute affordance and one level affordance, not two of either.
   // ── Top-bar mascot ──────────────────────────────────────────────────────
-  // One animated GIF in the unused middle of the title bar. The GIF carries the
-  // motion, so there is nothing to drive here - this only makes sure a missing
-  // file leaves no broken-image icon behind.
+  // Rotates through the mascot poses in the unused middle of the title bar, so
+  // the bar looks different over time instead of showing one fixed image.
+  //
+  // Each pose may be an animated GIF or a still PNG: the loader tries .gif first
+  // and falls back to .png for the same number, so whichever the files are, it
+  // works with no code change. Poses that are missing entirely are dropped from
+  // the rotation rather than showing a gap, and if NONE resolve the whole slot
+  // removes itself so the bar is exactly as it was.
+  //
+  // Deliberately cheap: one setTimeout chain (no rAF loop), the next image is
+  // preloaded so the swap never flashes a blank box, and the timer stops while
+  // the tab is hidden.
+  const MASCOT_BASE = "/mascot/";
+  const mascotFile = (pose) => MASCOT_BASE + "frieren-full-" + pose + ".gif";
+  // A short loop rather than a slideshow: she idles, waves, runs across the bar,
+  // reads at the far end, and runs back. `move` drives the travel, and the
+  // running poses are the only ones that move, so the sprite always faces the
+  // way she is going. If frieren-full-running.gif turns out to face left, swap
+  // its entry with the running-left one below.
+  const MASCOT_SCRIPT = [
+    { pose: "idle",          ms: 6000, move: null },
+    { pose: "waving",        ms: 4200, move: null },
+    { pose: "running-right", ms: 5200, move: "right" },
+    { pose: "review",        ms: 8000, move: null },
+    { pose: "waiting",       ms: 5000, move: null },
+    { pose: "jumping",       ms: 3600, move: null },
+    { pose: "running-left",  ms: 5200, move: "left" },
+    { pose: "failed",        ms: 4000, move: null },
+    { pose: "running",       ms: 4800, move: "right" },
+    { pose: "idle",          ms: 5000, move: "left" }
+  ];
+
   function startMascot() {
     const host = document.getElementById("ztvMascot");
     const img = document.getElementById("ztvMascotFrame");
     if (!host || !img) return;
+
     const drop = () => { try { host.remove(); } catch (err) { /* already gone */ } };
-    if (img.complete && img.naturalWidth === 0) { drop(); return; }
-    img.addEventListener("error", drop, { once: true });
-  }
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      drop();
+      return;
+    }
 
-  function wireMobileVolume() {
-    if (!art) return;
-    const input = document.querySelector(".ztv-volume-range");
-    if (!input) return;
-    let lastNonZero = art.volume > 0 ? art.volume : 1;
+    const missing = new Set();
+    let index = -1;
+    let timer = 0;
+    let resolvedAny = false;
+    let atRightEnd = false;
 
-    const sync = () => {
-      const level = art.muted ? 0 : Math.round((art.volume || 0) * 100);
-      if (input.value !== String(level)) input.value = String(level);
-      input.setAttribute("aria-valuetext", level + "%");
+    // Preload a pose so the swap never flashes an empty box; null if absent.
+    const resolvePose = (pose) => new Promise((done) => {
+      const url = mascotFile(pose);
+      const probe = new Image();
+      probe.onload = () => done(url);
+      probe.onerror = () => done(null);
+      probe.src = url;
+    });
+
+    // How far she can travel: the slot's width less her own.
+    const travel = () => Math.max(0, host.clientWidth - img.offsetWidth);
+
+    const glideTo = (side, ms) => {
+      img.style.transitionDuration = "180ms, " + ms + "ms";
+      img.style.transform = "translateX(" + (side === "right" ? travel() : 0) + "px)";
+      atRightEnd = side === "right";
     };
 
-    input.addEventListener("input", () => {
-      const level = Number(input.value) / 100;
-      if (level <= 0) {
-        art.muted = true;              // dragging to zero reads as mute
-      } else {
-        lastNonZero = level;
-        if (art.muted) art.muted = false;
-        art.volume = level;
+    const step = async () => {
+      for (let tries = 0; tries < MASCOT_SCRIPT.length; tries++) {
+        index = (index + 1) % MASCOT_SCRIPT.length;
+        const beat = MASCOT_SCRIPT[index];
+        if (missing.has(beat.pose)) continue;
+        const url = await resolvePose(beat.pose);
+        if (!url) { missing.add(beat.pose); continue; }
+        resolvedAny = true;
+
+        // Skip a run that would go nowhere (already at that end).
+        const side = beat.move;
+        const willMove = side && !((side === "right") === atRightEnd);
+
+        // Cross-fade the pose, then start the walk once the new sprite is up.
+        img.style.opacity = "0";
+        window.setTimeout(() => {
+          img.src = url;
+          img.style.opacity = "1";
+          if (willMove) glideTo(side, beat.ms - 300);
+        }, 180);
+
+        timer = window.setTimeout(step, beat.ms);
+        return;
       }
-    });
+      // Nothing resolved on a full pass: the sprites are not installed.
+      if (!resolvedAny) drop();
+    };
 
-    // The player treats taps as play/pause and drags as seeks; keep both away
-    // from the slider so touch dragging adjusts volume only.
-    ["click", "pointerdown", "touchstart", "dblclick"].forEach((type) => {
-      input.addEventListener(type, (event) => event.stopPropagation());
-    });
+    step();
 
-    art.on("video:volumechange", () => {
-      // Unmuting after a drag-to-zero would otherwise restore silence.
-      if (!art.muted && !art.volume && lastNonZero > 0) art.volume = lastNonZero;
-      sync();
+    document.addEventListener("visibilitychange", () => {
+      window.clearTimeout(timer);
+      if (!document.hidden && resolvedAny) timer = window.setTimeout(step, 800);
     });
-    art.on("ready", sync);
-    sync();
   }
 
   function wireArtEvents() {
@@ -266,6 +307,7 @@
 
     art.on("ready", () => {
       makeCustomControlsAccessible();
+      syncNextEpisodeControl();
       send("ready", getStatus());
       send("loadedmetadata", getStatus());
       armStartupWatchdog();
@@ -598,10 +640,16 @@
     } catch (error) {
       return;
     }
-    if (!data?.vcmd || !art?.video) return;
-    const video = art.video;
+    if (!data?.vcmd) return;
     const command = data.vcmd;
     const value = data.val;
+    if (command === "hasNext") {
+      hasNextEpisode = Boolean(value);
+      syncNextEpisodeControl();
+      return;
+    }
+    if (!art?.video) return;
+    const video = art.video;
     if (command === "play") video.play?.();
     if (command === "pause") video.pause?.();
     if (command === "seek") {
@@ -782,6 +830,14 @@
         control.click();
       });
     });
+  }
+
+  function syncNextEpisodeControl() {
+    const control = elements.player.querySelector(".art-control-next-episode");
+    if (!control) return;
+    control.classList.toggle("is-disabled", !hasNextEpisode);
+    control.setAttribute("aria-disabled", hasNextEpisode ? "false" : "true");
+    control.setAttribute("aria-label", hasNextEpisode ? "Next episode" : "No next episode");
   }
 
   function requestNextEpisode() {

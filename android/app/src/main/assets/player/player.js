@@ -207,16 +207,107 @@
   // to dismiss it. The existing volume button still handles mute, so there is
   // one mute affordance and one level affordance, not two of either.
   // ── Top-bar mascot ──────────────────────────────────────────────────────
-  // One animated GIF in the unused middle of the title bar. The GIF carries the
-  // motion, so there is nothing to drive here - this only makes sure a missing
-  // file leaves no broken-image icon behind.
+  // Rotates through the mascot poses in the unused middle of the title bar, so
+  // the bar looks different over time instead of showing one fixed image.
+  //
+  // Each pose may be an animated GIF or a still PNG: the loader tries .gif first
+  // and falls back to .png for the same number, so whichever the files are, it
+  // works with no code change. Poses that are missing entirely are dropped from
+  // the rotation rather than showing a gap, and if NONE resolve the whole slot
+  // removes itself so the bar is exactly as it was.
+  //
+  // Deliberately cheap: one setTimeout chain (no rAF loop), the next image is
+  // preloaded so the swap never flashes a blank box, and the timer stops while
+  // the tab is hidden.
+  const MASCOT_BASE = "/mascot/";
+  const mascotFile = (pose) => MASCOT_BASE + "frieren-full-" + pose + ".gif";
+  // A short loop rather than a slideshow: she idles, waves, runs across the bar,
+  // reads at the far end, and runs back. `move` drives the travel, and the
+  // running poses are the only ones that move, so the sprite always faces the
+  // way she is going. If frieren-full-running.gif turns out to face left, swap
+  // its entry with the running-left one below.
+  const MASCOT_SCRIPT = [
+    { pose: "idle",          ms: 6000, move: null },
+    { pose: "waving",        ms: 4200, move: null },
+    { pose: "running-right", ms: 5200, move: "right" },
+    { pose: "review",        ms: 8000, move: null },
+    { pose: "waiting",       ms: 5000, move: null },
+    { pose: "jumping",       ms: 3600, move: null },
+    { pose: "running-left",  ms: 5200, move: "left" },
+    { pose: "failed",        ms: 4000, move: null },
+    { pose: "running",       ms: 4800, move: "right" },
+    { pose: "idle",          ms: 5000, move: "left" }
+  ];
+
   function startMascot() {
     const host = document.getElementById("ztvMascot");
     const img = document.getElementById("ztvMascotFrame");
     if (!host || !img) return;
+
     const drop = () => { try { host.remove(); } catch (err) { /* already gone */ } };
-    if (img.complete && img.naturalWidth === 0) { drop(); return; }
-    img.addEventListener("error", drop, { once: true });
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      drop();
+      return;
+    }
+
+    const missing = new Set();
+    let index = -1;
+    let timer = 0;
+    let resolvedAny = false;
+    let atRightEnd = false;
+
+    // Preload a pose so the swap never flashes an empty box; null if absent.
+    const resolvePose = (pose) => new Promise((done) => {
+      const url = mascotFile(pose);
+      const probe = new Image();
+      probe.onload = () => done(url);
+      probe.onerror = () => done(null);
+      probe.src = url;
+    });
+
+    // How far she can travel: the slot's width less her own.
+    const travel = () => Math.max(0, host.clientWidth - img.offsetWidth);
+
+    const glideTo = (side, ms) => {
+      img.style.transitionDuration = "180ms, " + ms + "ms";
+      img.style.transform = "translateX(" + (side === "right" ? travel() : 0) + "px)";
+      atRightEnd = side === "right";
+    };
+
+    const step = async () => {
+      for (let tries = 0; tries < MASCOT_SCRIPT.length; tries++) {
+        index = (index + 1) % MASCOT_SCRIPT.length;
+        const beat = MASCOT_SCRIPT[index];
+        if (missing.has(beat.pose)) continue;
+        const url = await resolvePose(beat.pose);
+        if (!url) { missing.add(beat.pose); continue; }
+        resolvedAny = true;
+
+        // Skip a run that would go nowhere (already at that end).
+        const side = beat.move;
+        const willMove = side && !((side === "right") === atRightEnd);
+
+        // Cross-fade the pose, then start the walk once the new sprite is up.
+        img.style.opacity = "0";
+        window.setTimeout(() => {
+          img.src = url;
+          img.style.opacity = "1";
+          if (willMove) glideTo(side, beat.ms - 300);
+        }, 180);
+
+        timer = window.setTimeout(step, beat.ms);
+        return;
+      }
+      // Nothing resolved on a full pass: the sprites are not installed.
+      if (!resolvedAny) drop();
+    };
+
+    step();
+
+    document.addEventListener("visibilitychange", () => {
+      window.clearTimeout(timer);
+      if (!document.hidden && resolvedAny) timer = window.setTimeout(step, 800);
+    });
   }
 
   function wireMobileVolume() {

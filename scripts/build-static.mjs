@@ -114,6 +114,10 @@ async function minifyDir(dir) {
     copyFileSync(join(sourceDir, "client.js"), join(outDir, "client.js"));
     copyDir(join(sourceDir, "js"), join(outDir, "js"));
     copyDir(join(sourceDir, "player"), join(outDir, "player"));
+    // Player top-bar mascot sprites. Only js/ and player/ were copied, so these
+    // existed locally but 404'd in production - the whole slot would have removed
+    // itself on the deployed site while looking fine on the dev server.
+    copyDir(join(sourceDir, "mascot"), join(outDir, "mascot"));
 
     console.log(`Minifying ${outDir}...`);
     const { jsSaved, cssSaved } = await minifyDir(outDir);

@@ -551,11 +551,17 @@ body.fit-fill .art-video {
    never squeeze the title (which keeps its own ellipsis). player.js removes it if
    the file is missing. Hidden on narrow screens, where the bar has no spare room. */
 .ztv-mascot {
-  flex: 1 1 auto;
+  /* A bounded strip, NOT flex:1. The title block is flex:1 and would otherwise
+     have to share the free space with the mascot, truncating episode names
+     earlier than before. This way the title still takes everything left over. */
+  flex: 0 0 auto;
+  width: clamp(120px, 20%, 260px);
   align-self: stretch;
   min-width: 0;
   display: none;                 /* enabled by the width query below */
-  place-items: center;
+  /* Start at the left edge and bottom-align: translateX in player.js walks her
+     from here to the right end, so centring would fight the travel. */
+  place-items: end start;
   pointer-events: none;
   user-select: none;
   overflow: hidden;
@@ -568,9 +574,19 @@ body.fit-fill .art-video {
   max-height: 64px;
   object-fit: contain;
   filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.45));
+  /* Poses cross-fade into each other rather than snapping; player.js preloads
+     the next one first, so this never fades to an empty box. The transform is
+     the walk across the bar - player.js sets its duration per step so the glide
+     lasts exactly as long as the running pose is on screen. */
+  opacity: 1;
+  transition: opacity 180ms ease, transform 5s linear;
+  will-change: transform;
 }
 
-@media (min-width: 900px) {
+/* 720px, not 900: the player iframe is narrower than the page (the watch view
+   keeps a side panel), so it measures ~870px on a normal desktop. A 900px gate
+   hid the mascot on every desktop. Phones are far below this. */
+@media (min-width: 720px) {
   .ztv-mascot { display: grid; }
 }
 

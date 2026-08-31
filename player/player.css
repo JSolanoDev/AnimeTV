@@ -337,25 +337,41 @@ body.fit-fill .art-video {
   position: relative;
   display: grid !important;
   place-items: center;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  transition: color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.art-control-rewind-10:hover,
+.art-control-forward-10:hover,
+.art-control-next-episode:not(.is-disabled):hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.11);
+  transform: translateY(-1px);
 }
 
 .ztv-skip-icon {
   display: block;
-  width: 29px;
-  height: 29px;
+  width: 31px;
+  height: 31px;
+  overflow: visible;
 }
 
-.ztv-skip-value {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -32%);
-  color: currentColor;
-  font-size: 10px;
+.ztv-skip-arrow {
+  stroke: currentColor;
+  stroke-width: 2.15;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ztv-skip-number {
+  fill: currentColor;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 8.5px;
   font-weight: 900;
-  line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   font-variant-numeric: tabular-nums;
+  dominant-baseline: middle;
 }
 
 .art-control-rewind-10:focus-visible,
@@ -369,6 +385,11 @@ body.fit-fill .art-video {
   display: block;
   width: 22px;
   height: 22px;
+}
+
+.art-control-next-episode.is-disabled {
+  opacity: 0.38;
+  cursor: default;
 }
 
 /* Let the controls sit over the picture without covering it with an opaque bar. */
@@ -387,17 +408,20 @@ body.fit-fill .art-video {
 .art-control-volume .art-volume-panel {
   width: 44px !important;
   height: 118px !important;
-  padding: 0 4px 8px !important;
+  bottom: calc(100% + 21px) !important;
+  padding: 0 4px !important;
+  transform: none !important;
 }
 
 .art-control-volume .art-volume-inner {
   width: 36px !important;
-  height: 110px !important;
-  background: rgba(4, 6, 16, 0.2) !important;
+  height: 112px !important;
+  margin: 0 auto !important;
+  background: rgba(4, 6, 16, 0.58) !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  border-radius: 5px !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
-  backdrop-filter: blur(8px) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38) !important;
+  backdrop-filter: blur(12px) !important;
 }
 
 .art-control-volume .art-volume-val {
@@ -405,25 +429,31 @@ body.fit-fill .art-video {
 }
 
 .art-control-volume .art-volume-slider {
+  width: 100% !important;
   height: 88px !important;
+  margin: auto !important;
 }
 
 .art-control-volume .art-volume-handle {
   width: 3px !important;
   height: 88px !important;
+  margin: 0 auto !important;
   border-radius: 3px !important;
   background: rgba(255, 255, 255, 0.34) !important;
 }
 
 .art-control-volume .art-volume-loaded {
+  left: 0 !important;
   width: 3px !important;
   background: rgba(255, 255, 255, 0.88) !important;
 }
 
 .art-control-volume .art-volume-indicator {
+  left: 50% !important;
   width: 14px !important;
   height: 14px !important;
-  margin-left: -5.5px !important;
+  margin-left: 0 !important;
+  transform: translateX(-50%) !important;
   background: #fff !important;
   border: 2px solid rgba(255, 255, 255, 0.72) !important;
   box-shadow: 0 2px 9px rgba(0, 0, 0, 0.48) !important;
@@ -478,51 +508,12 @@ body.fit-fill .art-video {
 }
 
 
-/* ── Mobile volume ────────────────────────────────────────────────────────
-   The stock panel is a 44x118 vertical popup that opens upward over the seek
-   bar, and on a touch screen there is no hover to dismiss it. Phones get a
-   horizontal <input type="range"> instead; desktop keeps ArtPlayer's control. */
-.art-control-volume-mobile {
-  /* !important on both sides: ArtPlayer injects its own .art-control { display:
-     flex } stylesheet at runtime, after this file, so an equal-specificity rule
-     would lose on cascade order and the phone control would show on desktop. */
-  display: none !important;
-  align-items: center;
-  padding: 0 0.35rem;
-}
-
-.ztv-volume-range {
-  width: 5.5rem;
-  height: 44px;               /* full-height touch target, thin visible track */
-  margin: 0;
-  background: transparent;
-  accent-color: #8a5cff;
-  cursor: pointer;
-}
-
-.ztv-volume-range:focus-visible {
-  outline: 2px solid rgba(0, 210, 255, 0.65);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
 @media (max-width: 760px) {
-  .art-control-volume-mobile { display: flex !important; }
-
-  /* The bottom bar does not fit a phone. Measured at 375px BEFORE this pass the
-     groups already summed to ~517px against a 375px viewport, so the right-hand
-     controls were clipped (the row does not scroll). Keep the priority set -
-     play/pause, -10, +10, next episode, time, volume, fullscreen - and drop the
-     rest, which stay available on wider screens.
-     The horizontal range replaces BOTH the stock volume button and its popup:
-     dragging to zero mutes and dragging up unmutes, so nothing is lost and only
-     one volume affordance is visible. */
-  .art-control-volume,
+  /* Keep the compact transport row focused on playback. The stock volume
+     control remains visible and its rail now opens entirely above the timeline. */
   .art-control-pip,
   .art-control-fullscreenWeb,
   .art-control-setting { display: none !important; }
-
-  .ztv-volume-range { width: 3.5rem; }
 
   /* ArtPlayer narrows its controls to 38px at phone widths. With the secondary
      controls removed above there is room to bring the remaining touch targets
@@ -531,6 +522,7 @@ body.fit-fill .art-video {
   .art-control-forward-10,
   .art-control-playAndPause,
   .art-control-next-episode,
+  .art-control-volume,
   .art-control-fullscreen {
     /* !important: ArtPlayer sets the control width in its own runtime stylesheet. */
     min-width: 44px !important;
@@ -551,11 +543,17 @@ body.fit-fill .art-video {
    never squeeze the title (which keeps its own ellipsis). player.js removes it if
    the file is missing. Hidden on narrow screens, where the bar has no spare room. */
 .ztv-mascot {
-  flex: 1 1 auto;
+  /* A bounded strip, NOT flex:1. The title block is flex:1 and would otherwise
+     have to share the free space with the mascot, truncating episode names
+     earlier than before. This way the title still takes everything left over. */
+  flex: 0 0 auto;
+  width: clamp(120px, 20%, 260px);
   align-self: stretch;
   min-width: 0;
   display: none;                 /* enabled by the width query below */
-  place-items: center;
+  /* Start at the left edge and bottom-align: translateX in player.js walks her
+     from here to the right end, so centring would fight the travel. */
+  place-items: end start;
   pointer-events: none;
   user-select: none;
   overflow: hidden;
@@ -568,9 +566,19 @@ body.fit-fill .art-video {
   max-height: 64px;
   object-fit: contain;
   filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.45));
+  /* Poses cross-fade into each other rather than snapping; player.js preloads
+     the next one first, so this never fades to an empty box. The transform is
+     the walk across the bar - player.js sets its duration per step so the glide
+     lasts exactly as long as the running pose is on screen. */
+  opacity: 1;
+  transition: opacity 180ms ease, transform 5s linear;
+  will-change: transform;
 }
 
-@media (min-width: 900px) {
+/* 720px, not 900: the player iframe is narrower than the page (the watch view
+   keeps a side panel), so it measures ~870px on a normal desktop. A 900px gate
+   hid the mascot on every desktop. Phones are far below this. */
+@media (min-width: 720px) {
   .ztv-mascot { display: grid; }
 }
 
