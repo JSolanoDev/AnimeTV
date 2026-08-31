@@ -25,7 +25,7 @@
   let seekRecoveryUntil = 0;
   let lastProgressPosition = -1;
   let lastSeekToast = 0;
-  let volumePanelTimer = null;
+  let artworkFrameCaptured = false;
   // Streams report their renditions once, in HLS MANIFEST_PARSED. The phone
   // options sheet is built from this list, so an empty array means "this stream
   // has no selectable quality" - never a fabricated ladder.
@@ -969,6 +969,7 @@
         mediaRecoveryCount = 0;
         lastProgressPosition = position;
       }
+      captureArtworkFrame(video);
       send("time", getStatus());
     });
     art.on("video:volumechange", () => {
@@ -1377,6 +1378,38 @@
   function cancelScheduledRecovery() {
     if (recoveryTimer) clearTimeout(recoveryTimer);
     recoveryTimer = null;
+  }
+
+  function captureArtworkFrame(video) {
+    if (artworkFrameCaptured || !isEmbeddedPlayer || !video || Number(video.currentTime || 0) < 8) return;
+    if (!video.videoWidth || !video.videoHeight) return;
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 480;
+      canvas.height = 270;
+      const context = canvas.getContext("2d");
+      if (!context) return;
+      const sourceRatio = video.videoWidth / video.videoHeight;
+      const targetRatio = canvas.width / canvas.height;
+      let sx = 0;
+      let sy = 0;
+      let sw = video.videoWidth;
+      let sh = video.videoHeight;
+      if (sourceRatio > targetRatio) {
+        sw = video.videoHeight * targetRatio;
+        sx = (video.videoWidth - sw) / 2;
+      } else if (sourceRatio < targetRatio) {
+        sh = video.videoWidth / targetRatio;
+        sy = (video.videoHeight - sh) / 2;
+      }
+      context.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+      if (!dataUrl.startsWith("data:image/jpeg;base64,") || dataUrl.length > 220000) return;
+      artworkFrameCaptured = true;
+      send("artworkFrame", { dataUrl, width: canvas.width, height: canvas.height });
+    } catch {
+      // A cross-origin stream may play normally while intentionally blocking canvas reads.
+    }
   }
 
   function send(command, value) {

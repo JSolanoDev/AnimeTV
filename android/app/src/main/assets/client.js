@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=575`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=576`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2691,6 +2691,7 @@ function getCardPosterCandidates(show = {}) {
   });
   expanded.forEach((url) => { if (url) verticalArt.add(url); });
   return [...new Set(expanded)].filter((url) => {
+    if (isArtworkLowQuality(url, "poster")) return false;
     try { return typeof ImageResolver === "undefined" || !ImageResolver.isImageFailed(url); }
     catch { return true; }
   });
@@ -2780,7 +2781,8 @@ function underHentaiBackdropCandidates(show = {}, season = null) {
 function getWatchBackdropArtwork(show = {}, season = null) {
   show = show || {};
   season = season || {};
-  const adultArt = pickImage(underHentaiBackdropCandidates(show, season));
+  const adultArt = pickImage(underHentaiBackdropCandidates(show, season)
+    .filter((url) => !isArtworkLowQuality(url, "backdrop")));
   if (adultArt) return adultArt;
   const candidates = [
     show.images?.backdrop,
@@ -2805,7 +2807,7 @@ function getWatchBackdropArtwork(show = {}, season = null) {
     show.coverImage,
     show.image
   ].map((value) => hqImage(String(value || "").trim()));
-  return pickImage(candidates);
+  return pickImage(candidates.filter((url) => !isArtworkLowQuality(url, "backdrop")));
 }
 
 // Pick the first usable image, skipping known-broken URLs when the resolver is
@@ -2893,7 +2895,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=575";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=576";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -3080,6 +3082,185 @@ function simpleCarouselText(show) {
   return cleanDescription(clean, 150);
 }
 
+const rejectedArtworkByRole = {
+  poster: new Set(),
+  episode: new Set(),
+  backdrop: new Set()
+};
+const backdropQualityCache = new Map();
+
+function artworkQualityKey(value = "") {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    const parsed = new URL(raw, location.href);
+    parsed.searchParams.delete("w");
+    parsed.searchParams.delete("q");
+    return parsed.toString();
+  } catch {
+    return raw;
+  }
+}
+
+function markArtworkLowQuality(value, role) {
+  const key = artworkQualityKey(value);
+  if (key && rejectedArtworkByRole[role]) rejectedArtworkByRole[role].add(key);
+}
+
+function isArtworkLowQuality(value, role) {
+  const key = artworkQualityKey(value);
+  return Boolean(key && rejectedArtworkByRole[role]?.has(key));
+}
+
+function artworkRoleForImage(img) {
+  if (img.classList.contains("thumb-poster")) return "poster";
+  if (img.classList.contains("ep-thumb-img")) return "episode";
+  return "";
+}
+
+function artworkDimensionsAreUseful(img, role) {
+  const width = Number(img.naturalWidth || 0);
+  const height = Number(img.naturalHeight || 0);
+  if (!width || !height) return false;
+  const ratio = width / height;
+  if (role === "poster") return width >= 180 && height >= 250 && ratio >= 0.48 && ratio <= 0.9;
+  if (role === "episode") return width >= 240 && height >= 120 && ratio >= 1.22 && ratio <= 2.5;
+  if (role === "backdrop") return width >= 960 && height >= 480 && ratio >= 1.35 && ratio <= 2.6;
+  return true;
+}
+
+function backdropPixelsLookUseful(img) {
+  if (!artworkDimensionsAreUseful(img, "backdrop")) return false;
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = 32;
+    canvas.height = 18;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) return true;
+    context.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    const luminance = [];
+    for (let index = 0; index < pixels.length; index += 4) {
+      luminance.push((pixels[index] * 0.2126) + (pixels[index + 1] * 0.7152) + (pixels[index + 2] * 0.0722));
+    }
+    const mean = luminance.reduce((sum, value) => sum + value, 0) / luminance.length;
+    const variance = luminance.reduce((sum, value) => sum + ((value - mean) ** 2), 0) / luminance.length;
+    const contrast = Math.sqrt(variance);
+    return mean >= 30 && mean <= 242 && contrast >= 18 && !(mean < 50 && contrast < 30);
+  } catch {
+    // Cross-origin canvases can be unreadable even when the image itself is fine.
+    return true;
+  }
+}
+
+function advanceArtworkCandidate(img) {
+  let candidates = [];
+  try { candidates = JSON.parse(decodeURIComponent(img.dataset.imageFallbacks || "")); } catch { /* no fallback list */ }
+  let index = Number(img.dataset.imageFallbackIndex || 0) + 1;
+  while (index < candidates.length) {
+    const next = String(candidates[index] || "").trim();
+    index += 1;
+    if (!next) continue;
+    const role = artworkRoleForImage(img);
+    if (role && isArtworkLowQuality(next, role)) continue;
+    try {
+      if (typeof ImageResolver !== "undefined" && ImageResolver.isImageFailed(next)) continue;
+    } catch { /* resolver optional */ }
+    img.dataset.imageFallbackIndex = String(index - 1);
+    img.removeAttribute("srcset");
+    img.removeAttribute("sizes");
+    img.style.display = "";
+    img.style.opacity = "";
+    img.src = next;
+    return true;
+  }
+  return false;
+}
+
+function markCurrentArtworkCandidateLowQuality(img, role) {
+  markArtworkLowQuality(img.currentSrc || img.src, role);
+  try {
+    const candidates = JSON.parse(decodeURIComponent(img.dataset.imageFallbacks || ""));
+    const index = Math.max(0, Number(img.dataset.imageFallbackIndex || 0));
+    markArtworkLowQuality(candidates[index], role);
+  } catch { /* no fallback list */ }
+}
+
+function artworkTitleForImage(img) {
+  const owner = img.closest("[data-artwork-title]");
+  const explicitTitle = owner?.dataset.artworkTitle;
+  if (explicitTitle) return String(explicitTitle).trim();
+  const card = img.closest(".show-card, .ep-row, .schedule-item, [aria-label]");
+  const visibleTitle = card?.querySelector(".show-title, .ep-row-title, .schedule-title")?.textContent;
+  if (visibleTitle) return String(visibleTitle).replace(/^\s*\d+\.\s*/, "").trim();
+  const label = card?.getAttribute("aria-label") || "";
+  return String(label.replace(/^Open\s+/i, "") || "ZenkaiTV").trim();
+}
+
+function applyArtworkPlaceholder(img) {
+  const title = artworkTitleForImage(img);
+  if (img.classList.contains("watch-poster")) {
+    img.style.display = "none";
+    const wrap = img.closest(".watch-ready-poster-wrap");
+    if (wrap && !wrap.querySelector(".watch-poster-placeholder")) {
+      const placeholder = document.createElement("div");
+      placeholder.className = "watch-poster-placeholder";
+      const mark = document.createElement("span");
+      mark.className = "watch-poster-placeholder-mark";
+      mark.textContent = "Z";
+      const copy = document.createElement("span");
+      copy.className = "watch-poster-placeholder-copy";
+      copy.textContent = title;
+      placeholder.append(mark, copy);
+      wrap.appendChild(placeholder);
+    }
+    return;
+  }
+  if (img.classList.contains("ep-thumb-img")) {
+    img.style.display = "none";
+    const thumb = img.parentElement;
+    if (!thumb) return;
+    thumb.classList.remove("has-image");
+    thumb.classList.add("is-placeholder");
+    if (!thumb.querySelector(".ep-thumb-empty")) {
+      const empty = document.createElement("span");
+      empty.className = "ep-thumb-empty";
+      const kicker = document.createElement("span");
+      kicker.className = "ep-thumb-empty-kicker";
+      kicker.textContent = thumb.dataset.artworkKicker || "Episode";
+      const copy = document.createElement("span");
+      copy.className = "ep-thumb-empty-copy";
+      copy.textContent = title;
+      empty.append(kicker, copy);
+      thumb.prepend(empty);
+    }
+    return;
+  }
+  if (img.classList.contains("season-card-img")) {
+    img.style.display = "none";
+    return;
+  }
+  if (img.classList.contains("thumb-poster") || img.classList.contains("thumb-backdrop") || img.classList.contains("schedule-thumb-img") || img.closest(".carousel-dot")) {
+    img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+    img.removeAttribute("srcset");
+    img.style.opacity = "0";
+    const card = img.closest(".thumb-art") || img.closest(".schedule-thumb") || img.closest(".carousel-dot");
+    if (card && !card.querySelector(".poster-placeholder")) {
+      const placeholder = document.createElement("div");
+      placeholder.className = "poster-placeholder";
+      placeholder.setAttribute("aria-hidden", "true");
+      const mark = document.createElement("span");
+      mark.className = "poster-placeholder-mark";
+      mark.textContent = "Z";
+      const copy = document.createElement("span");
+      copy.className = "poster-placeholder-copy";
+      copy.textContent = title;
+      placeholder.append(mark, copy);
+      card.appendChild(placeholder);
+    }
+  }
+}
+
 // Never show a broken-image icon. When a poster/backdrop/watch image fails to
 // load (404, hotlink-blocked, stale URL), hide it so the card's colour gradient
 // shows through, and drop a clean placeholder into the watch overlay. Uses the
@@ -3098,67 +3279,27 @@ document.addEventListener("error", (event) => {
                         
   if (hasCandidates) {
     try { ImageResolver.markImageFailed(img.currentSrc || img.src); } catch { /* resolver optional */ }
-    let candidates = [];
-    try { candidates = JSON.parse(decodeURIComponent(img.dataset.imageFallbacks || "")); } catch { /* no fallback list */ }
-    let index = Number(img.dataset.imageFallbackIndex || 0) + 1;
-    while (index < candidates.length) {
-      const next = String(candidates[index] || "").trim();
-      index += 1;
-      if (!next) continue;
-      try {
-        if (typeof ImageResolver !== "undefined" && ImageResolver.isImageFailed(next)) continue;
-      } catch { /* resolver optional */ }
-      img.dataset.imageFallbackIndex = String(index - 1);
-      // Drop srcset/sizes so the browser actually honours the fallback src
-      // (otherwise it keeps resolving the failed host from the responsive set).
-      img.removeAttribute("srcset");
-      img.removeAttribute("sizes");
-      img.src = next;
-      return;
-    }
+    if (advanceArtworkCandidate(img)) return;
   }
   
   if (img.dataset.imgFallback) return;
   img.dataset.imgFallback = "1";
   
-  if (img.classList.contains("watch-poster")) {
-    img.style.display = "none";
-    const wrap = img.closest(".watch-ready-poster-wrap");
-    if (wrap && !wrap.querySelector(".watch-poster-placeholder")) {
-      const ph = document.createElement("div");
-      ph.className = "watch-poster-placeholder";
-      ph.innerHTML = '<div class="play-symbol" aria-hidden="true"></div>';
-      wrap.appendChild(ph);
-    }
-  } else if (img.classList.contains("ep-thumb-img")) {
-    img.style.display = "none";
-    if (img.parentElement) {
-      img.parentElement.classList.remove("has-image");
-      img.parentElement.classList.add("is-placeholder");
-    }
-  } else if (img.classList.contains("season-card-img")) {
-    img.style.display = "none";
-  } else if (img.classList.contains("thumb-poster") || img.classList.contains("thumb-backdrop") || img.classList.contains("schedule-thumb-img") || img.closest(".carousel-dot")) {
-    // Set a transparent 1x1 gif to clear the broken image icon, then fade out
-    // so the card's brand gradient (.thumb-art background) shows through.
-    img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-    img.removeAttribute("srcset");
-    img.style.opacity = "0";
-    // Add the branded animated placeholder to the card
-    const card = img.closest(".thumb-art") || img.closest(".schedule-thumb") || img.closest(".carousel-dot");
-    if (card && !card.querySelector(".poster-placeholder")) {
-      const ph = document.createElement("div");
-      ph.className = "poster-placeholder";
-      ph.setAttribute("aria-hidden", "true");
-      ph.innerHTML = '<span class="poster-placeholder-mark">Z</span>';
-      card.appendChild(ph);
-    }
-  }
+  applyArtworkPlaceholder(img);
 }, true);
 
 function markArtworkReady(img) {
   if (!(img instanceof HTMLImageElement) || img.dataset.imgFallback) return;
   if (!img.naturalWidth) return;
+  const role = artworkRoleForImage(img);
+  if (role && !artworkDimensionsAreUseful(img, role)) {
+    markCurrentArtworkCandidateLowQuality(img, role);
+    if (!advanceArtworkCandidate(img)) {
+      img.dataset.imgFallback = "1";
+      applyArtworkPlaceholder(img);
+    }
+    return;
+  }
   img.classList.add("img-ready");
   img.closest(".thumb-art, .ep-thumb")?.classList.add("img-ready");
 }
@@ -3786,7 +3927,8 @@ function getStableShowHue(show = {}) {
 function cardTemplate(show, index = 0) {
   const isFavorite = isFavoriteShow(show);
   const colors = Array.isArray(show.colors) && show.colors.length >= 2 ? show.colors : ["#00d2ff", "#251d47"];
-  const title = escapeHtml(getShowTitle(show));
+  const rawTitle = getShowTitle(show);
+  const title = escapeHtml(rawTitle);
   const showHue = getStableShowHue(show);
   const artStyle = `--thumb-a: ${colors[0]}; --thumb-b: ${colors[1]}; --episode-hue: ${showHue}`;
   const meta = cardMeta(show, isFavorite);
@@ -3827,11 +3969,12 @@ function cardTemplate(show, index = 0) {
     : `
         <span class="poster-placeholder" aria-hidden="true">
           <span class="poster-placeholder-mark">Z</span>
+          <span class="poster-placeholder-copy">${title}</span>
         </span>
       `;
   return `
     <a class="show-card focusable" href="${escapeHtml(animePathForShow(show))}" style="--card-index: ${index}" data-open-show="${escapeHtml(show.id)}" data-open-season="${target.seasonNumber}" data-open-episode="${target.episodeNumber}" aria-label="Open ${title}">
-      <span class="thumb-art" style="${artStyle}">
+      <span class="thumb-art" style="${artStyle}" data-artwork-title="${title}">
         ${image}
         <span class="episode-pill">${cardEpisodeLabel(show)}</span>
       </span>
@@ -5257,9 +5400,28 @@ function getKnownSourceServer(key) {
 
 function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options = {}) {
   const lookupKey = playbackLookupKey(show, episode, seasonNumber);
-  if (!lookupKey || (episode.sourceOptionsChecked === lookupKey && episode.animeAv1SourcesChecked)) return Promise.resolve(episode);
-  if (sourceOptionsBackgroundLookups.has(lookupKey)) return sourceOptionsBackgroundLookups.get(lookupKey);
-  if (pendingSourceLookups.has(lookupKey)) return pendingSourceLookups.get(lookupKey);
+  const withAutoReplay = (lookupPromise) => {
+    if (!options.autoReplay) return lookupPromise;
+    return Promise.resolve(lookupPromise).then((resolvedEpisode) => {
+      const activeEpisode = state.activeEpisode?.episode;
+      const sameEpisode = activeEpisode === episode
+        || Boolean(activeEpisode?.id && episode?.id && activeEpisode.id === episode.id);
+      if (state.playIntent && state.activeShow === show && sameEpisode) {
+        Promise.resolve(playActiveShow({ allowSourceLookup: false })).catch(() => {});
+      }
+      return resolvedEpisode;
+    });
+  };
+  if (!lookupKey) return Promise.resolve(episode);
+  if (episode.sourceOptionsChecked === lookupKey && episode.animeAv1SourcesChecked) {
+    return withAutoReplay(Promise.resolve(episode));
+  }
+  if (sourceOptionsBackgroundLookups.has(lookupKey)) {
+    return withAutoReplay(sourceOptionsBackgroundLookups.get(lookupKey));
+  }
+  if (pendingSourceLookups.has(lookupKey)) {
+    return withAutoReplay(pendingSourceLookups.get(lookupKey));
+  }
 
   episode.sourceOptionsPending = true;
   const promise = attachPlaybackSourceOptions(show, episode, seasonNumber)
@@ -5272,7 +5434,6 @@ function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options 
       pendingSourceLookups.delete(lookupKey);
       const selected = state.activeEpisode;
       if (selected?.episode === episode && state.activeShow === show) {
-        if (options.autoReplay) playActiveShow({ allowSourceLookup: false });
         // Refresh source picker if it's currently open (user pressed ✕ and sees picker)
         const frame = document.querySelector("#videoFrame");
         if (frame?.querySelector(".source-picker")) {
@@ -5289,7 +5450,7 @@ function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options 
     });
 
   pendingSourceLookups.set(lookupKey, promise);
-  return promise;
+  return withAutoReplay(promise);
 }
 
 function stripSeasonFromTitle(title = "") {
@@ -6468,6 +6629,9 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
         const frame = document.querySelector("#videoFrame");
         const background = getWatchBackdropArtwork(show, state.activeEpisode.season);
         frame?.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
+        const selected = state.activeEpisode;
+        const seasonNumber = selected.season?.season || selected.seasonIndex + 1 || 1;
+        schedulePlaybackSourceOptions(show, selected.episode, seasonNumber, { autoReplay: true });
         // Keep the episode list up rather than swapping it for the source picker -
         // see selectEpisodeByPosition. Servers stay reachable from the Servers
         // button under the player.
@@ -6541,7 +6705,7 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
     // episode click). Opening a show from a card/poster lands on the detail view.
     if (state.activeEpisode) {
       const ep = state.activeEpisode;
-      schedulePlaybackSourceOptions(show, ep.episode, ep.season?.season || ep.seasonIndex + 1 || 1);
+      schedulePlaybackSourceOptions(show, ep.episode, ep.season?.season || ep.seasonIndex + 1 || 1, { autoReplay: Boolean(target.playIntent) });
       if (target.playIntent) {
         const frame = document.querySelector("#videoFrame");
         if (frame && !document.body.classList.contains("player-cinema-open")) {
@@ -7151,11 +7315,11 @@ function resetVideoFrame() {
 
   frame.innerHTML = `
     <div class="watch-ready-state" id="watchArt">
-      <div class="watch-ready-poster-wrap">
+      <div class="watch-ready-poster-wrap" data-artwork-title="${escapeHtml(getShowTitle(show))}">
         ${
           watchPosterUrl
             ? `<img referrerpolicy="no-referrer" class="watch-poster" src="${escapeHtml(watchPosterUrl)}" alt="${escapeHtml(getShowTitle(show))}" loading="eager" fetchpriority="high" decoding="async"${watchFallbackData} onerror="handleWatchPosterError(this)">`
-            : `<div class="watch-poster-placeholder"><div class="play-symbol" aria-hidden="true"></div></div>`
+            : `<div class="watch-poster-placeholder" aria-hidden="true"><span class="watch-poster-placeholder-mark">Z</span><span class="watch-poster-placeholder-copy">${escapeHtml(getShowTitle(show))}</span></div>`
         }
       </div>
       <div class="watch-ready-cta">
@@ -7422,6 +7586,8 @@ function applyWatchBackdrop(show, season) {
   const backdrop = document.querySelector("#watchBackdrop");
   if (!backdrop) return;
   const blur = document.querySelector("#watchBackdropBlur");
+  const titleArt = document.querySelector("#watchBackdropTitleArt");
+  const titleArtText = document.querySelector("#watchBackdropTitleText");
   const key = watchBackdropKey(show, season);
   const showKey = String(show?.id || show?.anilistId || show?.title || "show");
   // Wide art (TMDB backdrop, AniList banner, hero/landscape) covers the frame
@@ -7471,10 +7637,14 @@ function applyWatchBackdrop(show, season) {
       delete backdrop.dataset.backdropPendingUrl;
     }
     delete backdrop.dataset.backdropHeldUrl;
+    const capturedFrame = url ? "" : getBestCapturedEpisodeFrame(show, season);
     if (blur) {
-      blur.style.backgroundImage = url ? `url("${imageDeliveryUrl(url, 640, 70)}")` : "";
-      blur.classList.toggle("is-visible", Boolean(url));
+      const blurUrl = url ? imageDeliveryUrl(url, 640, 70) : capturedFrame;
+      blur.style.backgroundImage = blurUrl ? `url("${blurUrl}")` : "";
+      blur.classList.toggle("is-visible", Boolean(blurUrl));
     }
+    if (titleArtText) titleArtText.textContent = getShowTitle(show) || show.title || "ZenkaiTV";
+    if (titleArt) titleArt.hidden = Boolean(url);
     // Always cinematic; .has-art only switches image-backdrop vs gradient fallback.
     overlay?.classList.add("cinematic");
     overlay?.classList.toggle("has-backdrop-art", Boolean(url));
@@ -7647,21 +7817,52 @@ function applyWatchBackdrop(show, season) {
     const nextIsWide = wideSources.has(art);
     if (currentIsWide && !nextIsWide) art = currentUrl;
   }
-  paint(art);
-  if (art) {
-    // Verify the winning art really loads; if it 404s, blacklist it and fall
-    // back to the next candidate so the backdrop is never broken.
-    const probe = new Image();
-    probe.referrerPolicy = "no-referrer";
-    probe.onerror = () => {
-      try { ImageResolver.markImageFailed(art); } catch { /* resolver optional */ }
-      if (state.activeShow?.id === show.id) {
-        backdrop.dataset.backdropUrl = "";
-        paint(getWatchBackdropArtwork(show, season));
-      }
-    };
-    probe.src = art;
+  if (!art) {
+    paint("");
+    return;
   }
+
+  const deliveredArt = imageDeliveryUrl(art, watchBackdropDeliveryWidth(), 92);
+  const qualityKey = artworkQualityKey(deliveredArt || art);
+  const cachedQuality = backdropQualityCache.get(qualityKey);
+  if (cachedQuality === true) {
+    paint(art);
+    return;
+  }
+  if (cachedQuality === false) {
+    markArtworkLowQuality(art, "backdrop");
+    paint(getWatchBackdropArtwork(show, season));
+    return;
+  }
+
+  // A successful HTTP response is not enough for a full-screen background.
+  // Hold the designed title artwork while the candidate is decoded, then only
+  // reveal it when its dimensions, aspect and visual contrast are suitable.
+  paint("");
+  const probe = new Image();
+  probe.referrerPolicy = "no-referrer";
+  probe.crossOrigin = "anonymous";
+  probe.onload = () => {
+    const useful = backdropPixelsLookUseful(probe);
+    backdropQualityCache.set(qualityKey, useful);
+    if (state.activeShow?.id !== show.id) return;
+    if (useful) {
+      paint(art);
+      return;
+    }
+    markArtworkLowQuality(art, "backdrop");
+    backdrop.dataset.backdropUrl = "";
+    applyWatchBackdrop(show, season);
+  };
+  probe.onerror = () => {
+    backdropQualityCache.set(qualityKey, false);
+    try { ImageResolver.markImageFailed(art); } catch { /* resolver optional */ }
+    if (state.activeShow?.id === show.id) {
+      backdrop.dataset.backdropUrl = "";
+      applyWatchBackdrop(show, season);
+    }
+  };
+  probe.src = deliveredArt || art;
 }
 
 function compactMetadataLine(show = {}) {
@@ -7707,6 +7908,103 @@ function episodeAirDateLabel(episode = {}) {
 // Episode thumbnail: TMDB still → existing per-episode still. Repeated or
 // show-level artwork is rejected so one anime banner never fills every row.
 // Returns "" so callers render a distinct episode placeholder.
+const CAPTURED_EPISODE_FRAMES_KEY = "zenkaitv-captured-episode-frames-v1";
+let capturedEpisodeFramesCache = null;
+
+function capturedEpisodeFrames() {
+  if (capturedEpisodeFramesCache) return capturedEpisodeFramesCache;
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CAPTURED_EPISODE_FRAMES_KEY) || "{}");
+    capturedEpisodeFramesCache = parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    capturedEpisodeFramesCache = {};
+  }
+  return capturedEpisodeFramesCache;
+}
+
+function capturedEpisodeFrameKey(show = {}, seasonNumber = 1, episodeNumber = 1) {
+  return buildWatchKey(show, Number(seasonNumber) || 1, Number(episodeNumber) || 1);
+}
+
+function getCapturedEpisodeFrame(show = {}, seasonNumber = 1, episodeNumber = 1) {
+  const key = capturedEpisodeFrameKey(show, seasonNumber, episodeNumber);
+  const record = key ? capturedEpisodeFrames()[key] : null;
+  return String(record?.dataUrl || "");
+}
+
+function getBestCapturedEpisodeFrame(show = {}, season = null) {
+  const seasonNumber = Number(season?.season || state.activeSeasonIndex + 1 || 1);
+  const active = state.activeEpisode?.episode;
+  if (state.activeShow?.id === show.id && active) {
+    const direct = getCapturedEpisodeFrame(show, seasonNumber, active.episode || active.number || 1);
+    if (direct) return direct;
+  }
+  const prefix = `${getAnimeTrackId(show)}:s${seasonNumber}:e`;
+  const newest = Object.entries(capturedEpisodeFrames())
+    .filter(([key, value]) => key.startsWith(prefix) && value?.dataUrl)
+    .sort((a, b) => Number(b[1]?.capturedAt || 0) - Number(a[1]?.capturedAt || 0))[0];
+  return String(newest?.[1]?.dataUrl || "");
+}
+
+function saveCapturedEpisodeFrame(show = {}, seasonNumber = 1, episode = {}, dataUrl = "") {
+  const value = String(dataUrl || "");
+  const episodeNumber = Number(episode?.episode || episode?.number || 1);
+  if (!show?.id || !value.startsWith("data:image/jpeg;base64,") || value.length > 220000) return false;
+  const key = capturedEpisodeFrameKey(show, seasonNumber, episodeNumber);
+  if (!key) return false;
+  const records = capturedEpisodeFrames();
+  records[key] = { dataUrl: value, capturedAt: Date.now() };
+  const ordered = Object.entries(records)
+    .sort((a, b) => Number(b[1]?.capturedAt || 0) - Number(a[1]?.capturedAt || 0));
+  ordered.slice(18).forEach(([oldKey]) => delete records[oldKey]);
+  episode._capturedFrame = value;
+  try {
+    localStorage.setItem(CAPTURED_EPISODE_FRAMES_KEY, JSON.stringify(records));
+    return true;
+  } catch {
+    ordered.slice(6).forEach(([oldKey]) => delete records[oldKey]);
+    try {
+      localStorage.setItem(CAPTURED_EPISODE_FRAMES_KEY, JSON.stringify(records));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+
+function captureNativeEpisodeFrame(video, episode = {}) {
+  if (!video || video.dataset.artworkFrameCaptured || Number(video.currentTime || 0) < 8) return;
+  if (!video.videoWidth || !video.videoHeight) return;
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = 480;
+    canvas.height = 270;
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    const sourceRatio = video.videoWidth / video.videoHeight;
+    const targetRatio = canvas.width / canvas.height;
+    let sx = 0;
+    let sy = 0;
+    let sw = video.videoWidth;
+    let sh = video.videoHeight;
+    if (sourceRatio > targetRatio) {
+      sw = video.videoHeight * targetRatio;
+      sx = (video.videoWidth - sw) / 2;
+    } else if (sourceRatio < targetRatio) {
+      sh = video.videoWidth / targetRatio;
+      sy = (video.videoHeight - sh) / 2;
+    }
+    context.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+    const seasonNumber = Number(state.activeEpisode?.season?.season || state.activeSeasonIndex + 1 || 1);
+    if (saveCapturedEpisodeFrame(state.activeShow || {}, seasonNumber, episode, dataUrl)) {
+      video.dataset.artworkFrameCaptured = "1";
+    }
+  } catch {
+    // Some third-party streams intentionally block canvas reads.
+  }
+}
+
 function comparableImageUrl(value = "") {
   const url = hqImage(String(value || "").trim());
   if (!url) return "";
@@ -7784,6 +8082,8 @@ function repeatedTmdbStillSet(episodes = [], show = {}, seasonNumber = 0) {
 
 function episodeThumb(episode = {}, season = {}, show = {}, repeatedImages = new Set(), repeatedTmdb = new Set()) {
   const seasonNum = Number(season?.season) || 0;
+  const episodeNum = Number(episode?.episode || episode?.number || 1);
+  const capturedFrame = episode._capturedFrame || getCapturedEpisodeFrame(show, seasonNum || 1, episodeNum);
   let ownImage = hqImage(episode.image || episode.thumbnail || episode.still || episode.snapshot || "");
   const isAdultShow = show.adultSource || (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show));
   if (!isAdultShow && isAdultImageUrl(ownImage)) ownImage = "";
@@ -7819,9 +8119,9 @@ function episodeThumb(episode = {}, season = {}, show = {}, repeatedImages = new
       { episodeStill: tmdbStill }
     );
     if (!isAdultShow && isAdultImageUrl(resolved)) return "";
-    return resolved;
+    return resolved || capturedFrame;
   }
-  return ownImage;
+  return ownImage || capturedFrame;
 }
 
 // Linear list of seasons for the dropdown + Prev/Next, spanning the franchise
@@ -7934,9 +8234,13 @@ function scrollPlayerIntoView(attempt = 0, lastSet = null) {
     // the list and is always in view, so this never fires there.
     if (visibleBottom - visibleTop <= frameRect.height * 0.6) {
       setPanelScrollTop(panel, panel.scrollTop + (frameRect.top - panelRect.top) - 8);
+      settled = panel.scrollTop;   // read back: the browser clamps the target
     }
   }
-  again();
+  // ~8s of watching, which covers the resolve-and-re-render window without
+  // hanging around afterwards.
+  if (attempt < 30) setTimeout(() => scrollPlayerIntoView(attempt + 1, settled), 260);
+  else stop();
 }
 
 function renderEpisodeList(show) {
@@ -8120,6 +8424,7 @@ function renderEpisodeList(show) {
             tmdbStill = ImageResolver.getNearestEpisodeStill(show, { episode: num }, activeSeasonNum);
           }
           const epOwnImage = episode.image || episode.thumbnail || episode.still || episode.snapshot || epMeta?.thumbnail || "";
+          const capturedFrame = episode._capturedFrame || getCapturedEpisodeFrame(show, activeSeasonNum || 1, num);
           const epBackdrop = show.images?.backdrop || show.images?.banner || show.tmdbBackdrop || show.banner || show.bannerImage || "";
           const isAdultShow = show.adultSource || (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show));
 
@@ -8138,10 +8443,11 @@ function renderEpisodeList(show) {
           const epFallbacks = [
             thumb,
             cleanFallback(tmdbStill),
+            capturedFrame,
             cleanFallback(epOwnImage),
             cleanFallback(epBackdrop)
           ].map(u => String(u || "").trim())
-           .filter(u => u && (isAdultShow || !isAdultImageUrl(u)));
+           .filter(u => u && !isArtworkLowQuality(u, "episode") && (isAdultShow || !isAdultImageUrl(u)));
           const epImgSrc = epFallbacks[0] || "";
 
           // Detect if this thumbnail is a fallback (backdrop/banner or repeated image)
@@ -8186,9 +8492,9 @@ function renderEpisodeList(show) {
           <button class="ep-row focusable ${locked ? "is-locked" : ""} ${selected ? "is-selected" : ""} ${watchCls}"
                   data-season-index="${state.activeSeasonIndex}" data-episode-index="${episodeIndex}"
                   data-ep-search="${escapeHtml(search)}">
-            <span class="ep-thumb ${finalEpImgSrc ? "has-image" : "is-placeholder"}${isFallback ? " is-fallback" : ""}" style="--episode-hue:${fallbackHue}">
+            <span class="ep-thumb ${finalEpImgSrc ? "has-image" : "is-placeholder"}${isFallback ? " is-fallback" : ""}" style="--episode-hue:${fallbackHue}" data-artwork-title="${escapeHtml(title)}" data-artwork-kicker="Episode ${escapeHtml(String(num))}">
               ${finalEpImgSrc ? `<span class="art-sheen" aria-hidden="true"></span><img referrerpolicy="no-referrer" class="ep-thumb-img" src="${escapeHtml(finalEpImgSrc)}" alt="" width="360" height="203" loading="${eagerThumb ? "eager" : "lazy"}" fetchpriority="${priorityThumb ? "high" : "auto"}" decoding="async"${epFallbackData}>` : ""}
-              ${finalEpImgSrc ? "" : `<span class="ep-thumb-empty" aria-hidden="true"></span>`}
+              ${finalEpImgSrc ? "" : `<span class="ep-thumb-empty" aria-hidden="true"><span class="ep-thumb-empty-kicker">Episode ${escapeHtml(String(num))}</span><span class="ep-thumb-empty-copy">${escapeHtml(title)}</span></span>`}
               <span class="ep-thumb-num">${escapeHtml(String(num))}</span>
               <span class="ep-thumb-play" aria-hidden="true">▶</span>
               ${progressBar}
@@ -10280,6 +10586,10 @@ function createApkPlayerController(iframe, options = {}) {
     } else if (command === "qualities") {
       controller.qualities = Array.isArray(value) ? value : [];
       options.onQualities?.(controller.qualities);
+    } else if (command === "artworkFrame") {
+      controller.artworkFrame = value;
+      options.onArtworkFrame?.(value);
+      emit("artworkframe");
     } else if (command === "langavail") {
       controller.audioLanguages = String(value || "").split(",").filter(Boolean);
     }
@@ -10974,7 +11284,7 @@ function selectEpisodeByPosition(seasonIndex, episodeIndex, shouldPlay = true) {
       document.body.classList.remove("player-cinema-open");
       const background = getWatchBackdropArtwork(show, season);
       frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
-      schedulePlaybackSourceOptions(show, episode, season?.season || seasonIndex + 1 || 1);
+      schedulePlaybackSourceOptions(show, episode, season?.season || seasonIndex + 1 || 1, { autoReplay: true });
       // Keep the episode list on screen. Picking an episode used to replace it
       // with the source picker, so the list you were browsing vanished the
       // moment you used it - and when the "best servers" filter matched nothing
@@ -11452,7 +11762,7 @@ async function selectEpisode(season, episode, seasonIndex, episodeIndex) {
     document.body.classList.remove("player-cinema-open");
     const background = getWatchBackdropArtwork(show, season);
     frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
-    schedulePlaybackSourceOptions(show, episode, season?.season || seasonIndex + 1 || 1);
+    schedulePlaybackSourceOptions(show, episode, season?.season || seasonIndex + 1 || 1, { autoReplay: true });
     // Keep the episode list up rather than swapping it for the source picker -
     // see selectEpisodeByPosition. Servers stay reachable from the Servers
     // button under the player.
@@ -13022,6 +13332,10 @@ function renderDirectVideoPlayer(frame, url, episode) {
           if (status && resolution && state.uiPreferences.metadataDetail) {
             status.textContent = `${streamType ? streamType.toUpperCase() : "Direct"} stream · ${resolution}`;
           }
+        },
+        onArtworkFrame: (frameData) => {
+          const seasonNumber = Number(state.activeEpisode?.season?.season || state.activeSeasonIndex + 1 || 1);
+          saveCapturedEpisodeFrame(state.activeShow || {}, seasonNumber, episode, frameData?.dataUrl || "");
         }
       })
     : frame.querySelector("#animePlayer");
@@ -13106,7 +13420,10 @@ function renderDirectVideoPlayer(frame, url, episode) {
   }
   // Progress is saved ~every 10s while playing (self-throttled), and forced on
   // pause / exit / completion so the resume point is never lost.
-  player?.addEventListener("timeupdate", () => saveWatchProgress(player, episode));
+  player?.addEventListener("timeupdate", () => {
+    saveWatchProgress(player, episode);
+    if (!useApkPlayer) captureNativeEpisodeFrame(player, episode);
+  });
   player?.addEventListener("pause", () => saveWatchProgress(player, episode, { force: true }));
   if (player) _activeProgressPlayer = { player, episode };
   player?.addEventListener("ended", () => {
@@ -14181,7 +14498,7 @@ fakePlay.addEventListener("click", () => {
     stopActivePlayback();
     const background = getWatchBackdropArtwork(show, ep.season);
     frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
-    schedulePlaybackSourceOptions(show, ep.episode, ep.season?.season || ep.seasonIndex + 1 || 1);
+    schedulePlaybackSourceOptions(show, ep.episode, ep.season?.season || ep.seasonIndex + 1 || 1, { autoReplay: true });
     // Keep the episode list up rather than swapping it for the source picker -
     // see selectEpisodeByPosition. Servers stay reachable from the Servers
     // button under the player.
@@ -15147,7 +15464,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=575");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=576");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

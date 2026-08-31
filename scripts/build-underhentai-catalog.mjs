@@ -5,6 +5,7 @@ const BASE_URL = "https://www.underhentai.net";
 const SITEMAP_INDEX_URL = `${BASE_URL}/sitemap.xml`;
 const DEFAULT_TITLE_ARTWORK = "https://static.underhentai.net/themes/undernet-bs5/assets/images/no_image_p.jpg";
 const OUTPUT = resolve("scraper", "underhentai_catalog.json");
+const DETAILS_FALLBACK = resolve("scraper", "underhentai_details.json");
 const ANDROID_OUTPUT = resolve("android", "app", "src", "main", "assets", "scraper", "underhentai_catalog.json");
 const CONCURRENCY = Math.max(1, Math.min(8, Number(process.env.UNDERHENTAI_CRAWL_CONCURRENCY || 2)));
 const REQUEST_INTERVAL_MS = Math.max(250, Number(process.env.UNDERHENTAI_REQUEST_INTERVAL_MS || 550));
@@ -90,23 +91,29 @@ function normalizeSafetyText(value = "") {
     .trim();
 }
 
-function adultSafetyMarker(item = {}) {
-  const searchable = normalizeSafetyText([
-    item.title,
-    item.officialTitle,
-    item.description,
-    ...(Array.isArray(item.genres) ? item.genres : [])
-  ].filter(Boolean).join(" "));
-  const padded = ` ${searchable} `;
-  const marker = UNSAFE_MINOR_MARKERS.find((candidate) =>
-    padded.includes(` ${normalizeSafetyText(candidate)} `)
-  );
-  if (marker) return marker;
-  return UNSAFE_MINOR_PATTERNS.some((pattern) => pattern.test(searchable)) ? "jk" : "";
-}
-
 function isSafeAdultMetadata(item = {}) {
   return !adultSafetyMarker(item);
+}
+
+function adultSafetyMarker(item = {}) {
+  const title = normalizeSafetyText(item.title || "");
+  const description = normalizeSafetyText(item.description || "");
+  const genres = (item.genres || []).map((genre) => normalizeSafetyText(genre));
+  const tags = (item.tags || []).map((tag) => normalizeSafetyText(tag));
+  const allText = [title, description, ...genres, ...tags].join(" ");
+  if (!allText) return "";
+  const matches = [];
+  for (const marker of UNSAFE_MINOR_MARKERS) {
+    if (new RegExp(`\\b${marker}\\b`, "i").test(allText)) {
+      matches.push(marker);
+    }
+  }
+  for (const pattern of UNSAFE_MINOR_PATTERNS) {
+    if (pattern.test(allText)) {
+      matches.push("jk");
+    }
+  }
+  return matches.length ? matches[0] : "";
 }
 
 function currentMetaRow(html = "", label = "") {
@@ -119,47 +126,6 @@ function currentMetaRow(html = "", label = "") {
   return stripHtml(html.match(pattern)?.[3] || "");
 }
 
-async function fetchText(url, attempts = 3) {
-  let lastError;
-  let retryAfterMs = 0;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    await waitForRequestSlot();
-    const controller = new AbortController();
-    let timer;
-    try {
-      const request = fetch(url, {
-        headers: {
-          "User-Agent": USER_AGENT,
-          Accept: "text/html,application/xhtml+xml",
-          Connection: "close"
-        },
-        signal: controller.signal
-      }).then(async (response) => ({
-        response,
-        body: response.ok ? await response.text() : ""
-      }));
-      const timeout = new Promise((_, reject) => {
-        timer = setTimeout(() => {
-          controller.abort();
-          reject(new Error(`Timed out fetching ${url}`));
-        }, 18000);
-      });
-      const { response, body } = await Promise.race([request, timeout]);
-      if (response.ok) return body;
-      lastError = new Error(`${response.status} ${response.statusText}`);
-      const retryAfter = Number(response.headers.get("retry-after"));
-      retryAfterMs = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter * 1000, 30000) : 0;
-    } catch (error) {
-      lastError = error;
-    } finally {
-      if (timer) clearTimeout(timer);
-    }
-    const backoff = Math.max(retryAfterMs, 1200 * (attempt + 1));
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, backoff));
-  }
-  throw lastError || new Error(`Could not fetch ${url}`);
-}
-
 let nextRequestAt = 0;
 async function waitForRequestSlot() {
   const scheduledAt = Math.max(Date.now(), nextRequestAt);
@@ -168,10 +134,59 @@ async function waitForRequestSlot() {
   if (delay > 0) await new Promise((resolvePromise) => setTimeout(resolvePromise, delay));
 }
 
+async function fetchText(url, attempts = 3) {
+  let lastError;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    await waitForRequestSlot();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 18000);
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent": USER_AGENT,
+          Accept: "text/html,application/xhtml+xml",
+          Connection: "close"
+        },
+        redirect: "follow",
+        signal: controller.signal
+      });
+      if (response.ok) return await response.text();
+      lastError = new Error(`${response.status} ${response.statusText}`);
+      const retryAfter = Number(response.headers.get("retry-after"));
+      if (Number.isFinite(retryAfter) && retryAfter > 0) {
+        await new Promise((resolvePromise) => setTimeout(resolvePromise, Math.min(retryAfter * 1000, 30000)));
+      }
+    } catch (error) {
+      lastError = error;
+    } finally {
+      clearTimeout(timer);
+    }
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 1200 * (attempt + 1)));
+  }
+  throw lastError || new Error(`Could not fetch ${url}`);
+}
+
+async function mapConcurrent(items, worker) {
+  const result = new Array(items.length);
+  let next = 0;
+  const runners = Array.from({ length: Math.min(CONCURRENCY, Math.max(1, items.length)) }, async () => {
+    while (next < items.length) {
+      const index = next++;
+      try {
+        result[index] = await worker(items[index], index);
+      } catch (error) {
+        console.warn(`Skipping ${items[index]?.url || `item ${index}`}: ${error.message}`);
+        result[index] = null;
+      }
+    }
+  });
+  await Promise.all(runners);
+  return result;
+}
+
 function parseListing(html, page) {
   const items = [];
-  const articlePattern = /<article\b[^>]*>([\s\S]*?)<\/article>/gi;
-  for (const match of html.matchAll(articlePattern)) {
+  for (const match of String(html).matchAll(/<article\b[^>]*>([\s\S]*?)<\/article>/gi)) {
     const block = match[1];
     const heading = block.match(/<h[23]\b[^>]*>([\s\S]*?)<\/h[23]>/i);
     const linkTag = block.match(/<a\b[^>]*href\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)[^>]*>[\s\S]*?<h[23]\b/i)?.[0]
@@ -183,12 +198,12 @@ function parseListing(html, page) {
       .map((imageMatch) => attr(imageMatch[0], "src") || attr(imageMatch[0], "data-src"))
       .find(isTitleArtworkUrl) || "";
     if (!title || !href) continue;
-    const url = new URL(href, BASE_URL).toString();
-    const parsedUrl = new URL(url);
-    if (!["underhentai.net", "www.underhentai.net"].includes(parsedUrl.hostname.toLowerCase())) continue;
-    const slug = parsedUrl.pathname.split("/").filter(Boolean).pop() || "";
-    if (!slug) continue;
-    items.push({ slug, title, url, image, page });
+    try {
+      const url = new URL(href, BASE_URL);
+      if (!["underhentai.net", "www.underhentai.net"].includes(url.hostname.toLowerCase())) continue;
+      const slug = url.pathname.split("/").filter(Boolean).pop() || "";
+      if (slug) items.push({ slug, title, url: url.toString(), image, page });
+    } catch { /* malformed listing link */ }
   }
   return items;
 }
@@ -199,43 +214,28 @@ function sitemapLocations(xml = "") {
     .filter(Boolean);
 }
 
-function titleFromSlug(slug = "") {
-  return String(slug).replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
-}
-
 async function loadSitemapListings() {
   try {
-    const indexXml = await fetchText(SITEMAP_INDEX_URL);
-    const postSitemaps = sitemapLocations(indexXml)
-      .filter((url) => /\/post-sitemap\d*\.xml(?:\?|$)/i.test(url));
-    if (!postSitemaps.length) return [];
-
+    const sitemapHtml = await fetchText(SITEMAP_INDEX_URL);
+    const postSitemaps = sitemapLocations(sitemapHtml).filter((url) => /\/post-sitemap\d*\.xml(?:\?|$)/i.test(url));
     const documents = await Promise.allSettled(postSitemaps.map((url) => fetchText(url)));
+    const listings = [];
     const seen = new Set();
-    const items = [];
-    documents.forEach((result) => {
-      if (result.status !== "fulfilled") return;
-      sitemapLocations(result.value).forEach((value) => {
+    for (const result of documents) {
+      if (result.status !== "fulfilled") continue;
+      for (const value of sitemapLocations(result.value)) {
         try {
           const url = new URL(value, BASE_URL);
-          if (!["underhentai.net", "www.underhentai.net"].includes(url.hostname.toLowerCase())) return;
           const parts = url.pathname.split("/").filter(Boolean);
-          if (parts.length !== 1) return;
+          if (!["underhentai.net", "www.underhentai.net"].includes(url.hostname.toLowerCase()) || parts.length !== 1) continue;
           const slug = parts[0].toLowerCase();
-          if (!slug || seen.has(slug)) return;
+          if (!slug || seen.has(slug)) continue;
           seen.add(slug);
-          items.push({
-            slug,
-            title: titleFromSlug(slug),
-            url: new URL(`/${slug}/`, BASE_URL).toString(),
-            image: "",
-            page: 0,
-            discoveredFrom: "sitemap"
-          });
-        } catch { /* Ignore malformed sitemap entries. */ }
-      });
-    });
-    return items;
+          listings.push({ slug, title: slug.replace(/[-_]+/g, " "), url: url.toString(), image: "", page: 0, discoveredFrom: "sitemap" });
+        } catch { /* malformed sitemap entry */ }
+      }
+    }
+    return listings;
   } catch (error) {
     console.warn(`Sitemap discovery unavailable: ${error.message}`);
     return [];
@@ -245,17 +245,12 @@ async function loadSitemapListings() {
 function extractMetadata(html, item) {
   const genreBlock = html.match(/<p>\s*Genres\s*<\/p>([\s\S]*?)<\/div>/i)?.[1] || "";
   const currentGenreBlock = html.match(/class\s*=\s*(?:"[^"]*\brow-tags\b[^"]*"|'[^']*\brow-tags\b[^']*')[^>]*>[\s\S]*?<ul\b[^>]*class\s*=\s*(?:"[^"]*\btags-list\b[^"]*"|'[^']*\btags-list\b[^']*')[^>]*>([\s\S]*?)<\/ul>/i)?.[1] || "";
-  // Prefer the title-scoped markup used by the current site. The legacy block is
-  // only a fallback for older saved pages and must not override current tags.
   const genreSource = currentGenreBlock || genreBlock;
   const genres = [...genreSource.matchAll(/<a\b[^>]*href\s*=\s*(?:"[^"]*\/genre\/[^"]*"|'[^']*\/genre\/[^']*')[^>]*>([\s\S]*?)<\/a>/gi)]
     .map((match) => stripHtml(match[1]))
     .filter((value, index, values) => value && values.indexOf(value) === index);
-  const titleMatch = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
-  const officialBlock = html.match(/<p>\s*Official Title\s*<\/p>([\s\S]*?)<\/div>/i)?.[1] || "";
+  const title = stripHtml(html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1] || item.title);
   const currentOfficial = html.match(/class\s*=\s*(?:"[^"]*\bsection-header\b[^"]*"|'[^']*\bsection-header\b[^']*')[^>]*>[\s\S]*?<h1\b[^>]*>[\s\S]*?<\/h1>\s*<p\b[^>]*>([\s\S]*?)<\/p>/i)?.[1] || "";
-  const brandBlock = html.match(/<p>\s*Brand\s*<\/p>([\s\S]*?)<\/div>/i)?.[1] || "";
-  const airedBlock = html.match(/<p>\s*Aired\s*<\/p>([\s\S]*?)<\/div>/i)?.[1] || "";
   const descriptionBlock = html.match(/class\s*=\s*(?:"[^"]*\brow-desc\b[^"]*"|'[^']*\brow-desc\b[^']*')[^>]*>[\s\S]*?class\s*=\s*(?:"[^"]*\brow-label\b[^"]*"|'[^']*\brow-label\b[^']*')[^>]*>[\s\S]*?<\/div>([\s\S]*?)<\/div>\s*<hr/i)?.[1] || "";
   const originalCover = [...html.matchAll(/<a\b[^>]*class\s*=\s*(?:"[^"]*\bglightbox\b[^"]*"|'[^']*\bglightbox\b[^']*')[^>]*>/gi)]
     .map((match) => attr(match[0], "href"))
@@ -263,7 +258,7 @@ function extractMetadata(html, item) {
   const inlineCover = [...html.matchAll(/<img\b[^>]*>/gi)]
     .map((match) => attr(match[0], "src") || attr(match[0], "data-src"))
     .find(isTitleArtworkUrl) || "";
-  const cover = normalizeImageUrl(originalCover || inlineCover || item.image);
+  const cover = normalizeImageUrl(originalCover || inlineCover || item.image || DEFAULT_TITLE_ARTWORK);
   const screenshots = [
     ...[...html.matchAll(/\bdata-src\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi)].map((match) => match[1] || match[2] || match[3] || ""),
     ...[...html.matchAll(/https:\/\/static\.underhentai\.net\/thumbs\/[^"'\s<>]+/gi)].map((match) => match[0])
@@ -274,54 +269,35 @@ function extractMetadata(html, item) {
   const streamCount = [...html.matchAll(/<a\b[^>]*(?:class\s*=\s*(?:"[^"]*\bep2-stream\b[^"]*"|'[^']*\bep2-stream\b[^']*')|href\s*=\s*(?:"[^"]*\/watch\/\?[^"]*"|'[^']*\/watch\/\?[^']*'))[^>]*>/gi)].length;
   const metadata = {
     ...item,
-    title: stripHtml(titleMatch?.[1] || item.title),
-    officialTitle: stripHtml(officialBlock || currentOfficial),
-    brand: stripHtml(brandBlock) || currentMetaRow(html, "Brand"),
-    aired: stripHtml(airedBlock) || currentMetaRow(html, "Aired"),
+    title,
+    officialTitle: stripHtml(currentOfficial),
     description: stripHtml(descriptionBlock),
+    aired: currentMetaRow(html, "Aired"),
+    brand: currentMetaRow(html, "Brand"),
     genres,
     image: cover,
     mainWallpaper: cover,
     banner: cover,
     screenshots,
     episodeCount: new Set(episodeNumbers).size || (streamCount > 0 ? 1 : 0),
-    releaseCount: streamCount
+    releaseCount: streamCount,
+    metadataCheckedAt: new Date().toISOString()
   };
   metadata.safetyExcluded = !isSafeAdultMetadata(metadata);
-  metadata.metadataCheckedAt = new Date().toISOString();
   return metadata;
-}
-
-async function mapConcurrent(items, worker) {
-  const result = new Array(items.length);
-  let next = 0;
-  let completed = 0;
-  const runners = Array.from({ length: CONCURRENCY }, async () => {
-    while (next < items.length) {
-      const index = next++;
-      try {
-        result[index] = await worker(items[index], index);
-      } catch (error) {
-        console.warn(`Skipping metadata for ${items[index].url}: ${error.message}`);
-        result[index] = null;
-      }
-      completed += 1;
-      if (completed % 25 === 0 || completed === items.length) console.log(`Metadata ${completed}/${items.length}`);
-    }
-  });
-  await Promise.all(runners);
-  return result;
 }
 
 async function main() {
   let existing = { items: [] };
-  try {
-    existing = JSON.parse(await readFile(OUTPUT, "utf8"));
-  } catch {
-    // An unavailable source must not erase a previously verified catalog.
-  }
-  const previousItems = [...(existing.items || []), ...(existing.pendingItems || [])];
-  const existingBySlug = new Map(previousItems.map((item) => [item.slug, item]));
+  let detailsFallback = { items: [] };
+  try { existing = JSON.parse(await readFile(OUTPUT, "utf8")); } catch { /* first build */ }
+  try { detailsFallback = JSON.parse(await readFile(DETAILS_FALLBACK, "utf8")); } catch { /* optional */ }
+  const existingItems = Array.isArray(existing.items) && existing.items.length
+    ? existing.items
+    : (Array.isArray(detailsFallback.items) ? detailsFallback.items : []);
+  const recoveredFromDetails = !existing.items?.length && existingItems.length > 0;
+  const existingBySlug = new Map(existingItems.filter((item) => item?.slug).map((item) => [item.slug, item]));
+
   const firstHtml = await fetchText(`${BASE_URL}/`);
   const pageNumbers = [...firstHtml.matchAll(/page\/(\d+)\//gi)].map((match) => Number(match[1]));
   const lastPage = Math.max(1, ...pageNumbers);
@@ -335,26 +311,16 @@ async function main() {
     .filter((item) => item.slug && !seen.has(item.slug) && seen.add(item.slug))
     .map((item, sourceOrder) => ({ ...item, sourceOrder }));
   console.log(`Found ${listed.length} title pages across ${lastPage} listing pages and ${sitemapItems.length} sitemap entries.`);
+  if (!listed.length) {
+    throw new Error("Catalog discovery returned zero titles; preserving the last verified snapshot.");
+  }
 
-  const generatedAt = Date.parse(existing.generatedAt || "");
-  const hasStructuredExclusions = Array.isArray(existing.exclusions);
-  const existingExclusions = new Map(
-    (hasStructuredExclusions ? existing.exclusions : [])
-      .filter((entry) => entry?.slug)
-      .map((entry) => [entry.slug, entry])
-  );
-  const inferredLegacyExclusions = !Array.isArray(existing.excludedSlugs)
-    && Number(existing.totalFound) === Number(existing.items?.length || 0) + Number(existing.excludedForSafety || 0)
-    && Number.isFinite(generatedAt)
-    && Date.now() - generatedAt < 24 * 60 * 60 * 1000;
-  const knownExcluded = new Set(
-    Array.isArray(existing.excludedSlugs)
-      ? existing.excludedSlugs
-      : inferredLegacyExclusions
-        ? listed.filter((item) => !existingBySlug.has(item.slug)).map((item) => item.slug)
-        : []
-  );
-
+  const explicitExcluded = new Set(Array.isArray(existing.excludedSlugs) ? existing.excludedSlugs : []);
+  const knownExcluded = explicitExcluded.size
+    ? explicitExcluded
+    : recoveredFromDetails
+      ? new Set(listed.filter((item) => !existingBySlug.has(item.slug)).map((item) => item.slug))
+      : new Set();
   const mergedListings = listed.map((listedItem) => {
     const previous = existingBySlug.get(listedItem.slug) || {};
     const listingArtwork = isTitleArtworkUrl(listedItem.image) ? normalizeImageUrl(listedItem.image) : "";
@@ -369,29 +335,21 @@ async function main() {
       banner: titleArtwork
     };
   });
-  // Excluded pages used to be skipped forever. Revalidate a rotating slice on
-  // every daily run so corrected source metadata or parser improvements can
-  // restore genuinely adult titles. A one-time full audit can set the limit high.
+
   const excludedCandidates = mergedListings.filter((item) => knownExcluded.has(item.slug));
   const recheckStart = excludedCandidates.length
-    ? (Math.floor(Date.now() / (24 * 60 * 60 * 1000)) * Math.max(1, EXCLUDED_RECHECK_LIMIT)) % excludedCandidates.length
+    ? (Math.floor(Date.now() / 86400000) * Math.max(1, EXCLUDED_RECHECK_LIMIT)) % excludedCandidates.length
     : 0;
-  // Older snapshots collapsed safety decisions and failed metadata lookups into
-  // one bucket. Audit that legacy bucket once so a transient scraper miss cannot
-  // hide a title forever. Structured snapshots return to a rotating daily batch.
-  const excludedRechecks = new Set((!hasStructuredExclusions
-    ? excludedCandidates
-    : Array.from({ length: Math.min(EXCLUDED_RECHECK_LIMIT, excludedCandidates.length) }, (_, offset) =>
-        excludedCandidates[(recheckStart + offset) % excludedCandidates.length]
-      ))
-    .map((item) => item?.slug)
-    .filter(Boolean));
-  const metadataTargets = mergedListings.filter((item) =>
+  const excludedRechecks = new Set(Array.from(
+    { length: Math.min(EXCLUDED_RECHECK_LIMIT, excludedCandidates.length) },
+    (_, offset) => excludedCandidates[(recheckStart + offset) % excludedCandidates.length]?.slug
+  ).filter(Boolean));
+  const metadataTargets = mergedListings.filter((item) => (
     item.sourceOrder < RECENT_DETAIL_LIMIT
-      || (!existingBySlug.has(item.slug) && !knownExcluded.has(item.slug))
-      || (existingBySlug.has(item.slug) && !Number(item.episodeCount))
-      || excludedRechecks.has(item.slug)
-  );
+    || (!existingBySlug.has(item.slug) && !knownExcluded.has(item.slug))
+    || (existingBySlug.has(item.slug) && !Number(item.episodeCount))
+    || excludedRechecks.has(item.slug)
+  ));
   console.log(`Refreshing ${metadataTargets.length} new, recent, or previously excluded title pages.`);
   const enriched = await mapConcurrent(metadataTargets, async (item) => extractMetadata(await fetchText(item.url), item));
   const freshBySlug = new Map(enriched.filter(Boolean).map((item) => [item.slug, item]));
@@ -399,42 +357,44 @@ async function main() {
   const safeItems = [];
   const safetyExcluded = [];
   const incompleteMetadata = [];
-  resolvedItems.forEach((item) => {
-    if (!item?.slug) return;
-    const wasRefreshed = freshBySlug.has(item.slug);
-    const previousReason = existingExclusions.get(item.slug)?.reason || "";
-    const hasVerifiedMetadata = Boolean(
-      item.metadataCheckedAt
-      || Number(item.episodeCount) > 0
-      || item.officialTitle
-      || item.brand
-      || item.aired
-      || item.description
-      || item.genres?.length
-    );
-    const safetyBlocked = item.safetyExcluded === true
-      || (hasVerifiedMetadata && !isSafeAdultMetadata(item))
-      || (!wasRefreshed && previousReason === "safety");
-    if (safetyBlocked) {
-      safetyExcluded.push(item);
-    } else if (hasVerifiedMetadata && Number(item.episodeCount) > 0) {
-      safeItems.push({ ...item, safetyExcluded: false });
-    } else {
-      incompleteMetadata.push(item);
-    }
-  });
+  for (const item of resolvedItems) {
+    if (!item?.slug) continue;
+    const refreshed = freshBySlug.has(item.slug);
+    const verified = Boolean(item.metadataCheckedAt || Number(item.episodeCount) > 0 || item.officialTitle || item.brand || item.aired || item.description || item.genres?.length);
+    const blocked = item.safetyExcluded === true
+      || (verified && !isSafeAdultMetadata(item))
+      || (!refreshed && knownExcluded.has(item.slug));
+    if (blocked) safetyExcluded.push(item);
+    else if (verified && Number(item.episodeCount) > 0) safeItems.push({ ...item, safetyExcluded: false });
+    else incompleteMetadata.push(item);
+  }
+  if (!safeItems.length && existingItems.length) {
+    throw new Error("Refresh produced zero verified titles; preserving the last verified snapshot.");
+  }
+
   const safeSlugs = new Set(safeItems.map((item) => item.slug));
   const safetyBySlug = new Map(safetyExcluded.map((item) => [item.slug, item]));
-  const safetySlugs = new Set(safetyBySlug.keys());
-  const exclusions = listed
-    .filter((item) => !safeSlugs.has(item.slug))
-    .map((item) => ({
-      slug: item.slug,
-      reason: safetySlugs.has(item.slug) ? "safety" : "metadata-unavailable",
-      ...(safetySlugs.has(item.slug)
-        ? { marker: adultSafetyMarker(safetyBySlug.get(item.slug)) || existingExclusions.get(item.slug)?.marker || "review-required" }
-        : {})
-    }));
+  const exclusions = listed.filter((item) => !safeSlugs.has(item.slug)).map((item) => ({
+    slug: item.slug,
+    reason: safetyBySlug.has(item.slug) || knownExcluded.has(item.slug) ? "safety" : "metadata-unavailable",
+    ...((safetyBySlug.has(item.slug) || knownExcluded.has(item.slug))
+      ? { marker: adultSafetyMarker(safetyBySlug.get(item.slug) || {}) || "review-required" }
+      : {})
+  }));
+  const catalogItems = safeItems.map((item) => {
+    const { episodes, ...catalogItem } = item;
+    return {
+      ...catalogItem,
+      episodeCount: Math.max(Number(catalogItem.episodeCount || 0), Array.isArray(episodes) ? episodes.length : 0),
+      releaseCount: Math.max(
+        Number(catalogItem.releaseCount || 0),
+        Array.isArray(episodes)
+          ? episodes.reduce((sum, episode) => sum + Number(episode?.sourceOptions?.length || 0), 0)
+          : 0
+      )
+    };
+  });
+
   const payload = {
     source: "UnderHentai",
     generatedAt: new Date().toISOString(),
@@ -445,8 +405,8 @@ async function main() {
     excludedForSafety: safetyExcluded.length,
     incompleteMetadataCount: incompleteMetadata.length,
     exclusions,
-    excludedSlugs: listed.filter((item) => !safeSlugs.has(item.slug)).map((item) => item.slug),
-    items: safeItems
+    excludedSlugs: exclusions.map((item) => item.slug),
+    items: catalogItems
   };
   const serialized = `${JSON.stringify(payload, null, 2)}\n`;
   await Promise.all([OUTPUT, ANDROID_OUTPUT].map(async (output) => {
