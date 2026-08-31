@@ -68,9 +68,10 @@ button {
    on individually. */
 .ztv-player-topbar {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  /* Anchored to the picture, not the player box - see syncPictureInsets(). */
+  top: var(--ztv-letter, 0px);
+  left: var(--ztv-pillar, 0px);
+  right: var(--ztv-pillar, 0px);
   z-index: 5;
   display: flex;
   align-items: center;
@@ -710,7 +711,7 @@ body.fit-fill .art-video {
 .ztv-corner-button {
   position: absolute;
   z-index: 7;
-  top: calc(12px + env(safe-area-inset-top));
+  top: calc(12px + var(--ztv-letter, 0px) + env(safe-area-inset-top));
   display: grid;
   place-items: center;
   /* 44px - a full touch target even though it reads small. */
@@ -728,11 +729,11 @@ body.fit-fill .art-video {
 }
 
 .ztv-corner-back {
-  left: calc(12px + env(safe-area-inset-left));
+  left: calc(12px + var(--ztv-pillar, 0px) + env(safe-area-inset-left));
 }
 
 .ztv-corner-toggle {
-  right: calc(12px + env(safe-area-inset-right));
+  right: calc(12px + var(--ztv-pillar, 0px) + env(safe-area-inset-right));
 }
 
 .ztv-corner-button:hover,
@@ -762,9 +763,9 @@ body.ztv-chrome-hidden .ztv-corner-toggle svg {
 .ztv-floating-label {
   position: absolute;
   z-index: 7;
-  top: calc(12px + env(safe-area-inset-top));
-  left: calc(64px + env(safe-area-inset-left));
-  right: calc(64px + env(safe-area-inset-right));
+  top: calc(12px + var(--ztv-letter, 0px) + env(safe-area-inset-top));
+  left: calc(64px + var(--ztv-pillar, 0px) + env(safe-area-inset-left));
+  right: calc(64px + var(--ztv-pillar, 0px) + env(safe-area-inset-right));
   display: flex;
   align-items: center;
   gap: 0.4rem;

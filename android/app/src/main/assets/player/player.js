@@ -142,6 +142,49 @@
     chromeToggle.addEventListener("click", () => apply(!isHidden, true));
   }
 
+  // ── Line the chrome up with the picture, not the player box ──────────────
+  // object-fit: contain means the video rarely fills its container: whenever the
+  // stream's ratio differs from the player's there are black bars down the sides
+  // (or top and bottom). The chrome was anchored to the container, so on a wide
+  // window the title and the wordmark sat out on that black instead of on the
+  // image - measured 156px of it either side at 1200x500.
+  //
+  // The contained rect cannot be expressed in CSS, so it is computed here and
+  // published as two custom properties the stylesheet anchors to.
+  function syncPictureInsets() {
+    const root = document.documentElement;
+    const video = art?.video;
+    const box = video?.getBoundingClientRect();
+    // cover/fill leave no bars, so there is nothing to inset by.
+    const contained = !document.body.classList.contains("fit-cover")
+      && !document.body.classList.contains("fit-fill");
+    if (!video || !box?.width || !box?.height || !video.videoWidth || !video.videoHeight || !contained) {
+      root.style.setProperty("--ztv-pillar", "0px");
+      root.style.setProperty("--ztv-letter", "0px");
+      return;
+    }
+    const scale = Math.min(box.width / video.videoWidth, box.height / video.videoHeight);
+    const pillar = Math.max(0, Math.round((box.width - video.videoWidth * scale) / 2));
+    const letter = Math.max(0, Math.round((box.height - video.videoHeight * scale) / 2));
+    root.style.setProperty("--ztv-pillar", `${pillar}px`);
+    root.style.setProperty("--ztv-letter", `${letter}px`);
+  }
+
+  function watchPictureInsets() {
+    const player = art?.template?.$player;
+    if (!player) return;
+    syncPictureInsets();
+    // The bars move whenever the box changes shape - resize, rotate, fullscreen,
+    // or the stream switching to a rendition with a different ratio.
+    if (typeof ResizeObserver === "function") {
+      new ResizeObserver(syncPictureInsets).observe(player);
+    } else {
+      window.addEventListener("resize", syncPictureInsets);
+    }
+    art.on("video:loadedmetadata", syncPictureInsets);
+    art.on("video:resize", syncPictureInsets);
+  }
+
   function firstParam(...keys) {
     for (const key of keys) {
       const value = params.get(key);
@@ -284,6 +327,7 @@
     wireArtEvents();
     wireVolumePanelLinger();
     wireTapToHideControls();
+    watchPictureInsets();
     syncNextEpisodeControl();
     startMascot();
   }
