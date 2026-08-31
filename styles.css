@@ -9011,6 +9011,17 @@ body.is-tv .ep-season-menu { background: rgba(18, 19, 32, 1); }
 .ep-badge-watched { background: rgba(46, 204, 130, 0.92); color: #04130c; }
 .ep-badge-continue { background: var(--accent, #8a5cff); color: #fff; }
 
+/* The badge is absolutely positioned over the row's top-right corner, so a long
+   episode title ran straight underneath it - "Like a Villainess, Like a
+   Villainess" overlapped the CONTINUE chip by 73px. Reserve the chip's width on
+   the title so the 2-line clamp wraps before reaching it.
+   Measured: chip 4.47rem wide + 0.55rem right offset, less the row's 0.45rem
+   padding, so 5.1rem clears it with a small gap. Scoped with :has() so rows
+   without a badge keep the full title width. */
+.ep-row:has(.ep-badge) .ep-row-title {
+  padding-right: 5.1rem;
+}
+
 /* Thin progress bar pinned to the bottom of the episode thumbnail. */
 .ep-progress {
   position: absolute;
