@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=574`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=575`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2893,7 +2893,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=574";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=575";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -7901,29 +7901,30 @@ function scrollEpisodeListIntoView() {
 // is off-screen above you.
 // A no-op on desktop, where the player is beside the list and already in view -
 // the check below only fires when the player is genuinely off the top.
-function scrollPlayerIntoView(attempt = 0) {
+// Holds the player in view while the page settles after an episode is picked.
+//
+// This needs a WATCH, not a scroll. Sources keep resolving for many seconds
+// after the player mounts and every pass re-renders the episode list, which
+// moves the player each time - measured on production, the list grew from 9 rows
+// to 12 and the player ended 619px above the fold. A one-shot scroll (or a
+// second's worth of retries) always finished long before the layout stopped
+// moving, which is why this took several attempts to get right.
+//
+// `lastSet` is how it knows to get out of the way: it records where it left the
+// panel, and if the panel has moved since by anything other than its own hand,
+// the viewer scrolled and the watch ends immediately.
+function scrollPlayerIntoView(attempt = 0, lastSet = null) {
   const panel = document.querySelector(".watch-panel");
   const frame = document.querySelector("#videoFrame");
   if (!panel || !frame) return;
-  // Sources keep resolving after the player mounts, and each pass re-renders the
-  // episode list - measured on production, it grew from 9 rows to 12, which
-  // pushed the player from 161px above the fold to 562px above it. A single
-  // scroll lands where the player USED to be, so re-check until it settles.
   // Hold off the selected-row scroll in renderEpisodeList for the duration, or
-  // it re-runs on every source-resolution re-render and drags the panel back.
+  // it re-runs on every re-render and drags the panel back onto the row.
   state.suppressEpisodeRowScroll = true;
-  const done = () => { state.suppressEpisodeRowScroll = false; };
-  // Keep re-checking for the whole settling window rather than stopping the
-  // moment the player looks visible. Instrumented render order on production:
-  // renderDirectVideoPlayer -> setPlayerCinema -> renderEpisodeList. At the
-  // first check the player genuinely IS in view - the list has not re-rendered
-  // yet - so an early return there cancelled every retry, and the list then
-  // grew (9 rows to 12) and pushed the player 562px above the fold with nothing
-  // left to notice. Being visible skips the scroll, it does not end the watch.
-  const again = () => {
-    if (attempt < 5) setTimeout(() => scrollPlayerIntoView(attempt + 1), 260);
-    else done();   // done() on the last attempt only, or the flag latches on
-  };
+  const stop = () => { state.suppressEpisodeRowScroll = false; };
+
+  if (lastSet !== null && Math.abs(panel.scrollTop - lastSet) > 4) { stop(); return; }
+
+  let settled = panel.scrollTop;
   const panelRect = panel.getBoundingClientRect();
   const frameRect = frame.getBoundingClientRect();
   if (frameRect.height) {
@@ -15146,7 +15147,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=574");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=575");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
