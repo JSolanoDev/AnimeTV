@@ -138,6 +138,11 @@ const state = {
   route: "home",
   filter: "all",
   search: "",
+  // Whether the next player mount should start playing by itself. Picking an
+  // episode from the list sets this false so the episode loads ready-to-play
+  // and waits for the viewer; auto-advance, switching server and the explicit
+  // play control set it back to true so they do not gain an extra click.
+  autoplayOnMount: true,
   activeShow: null,
   activeEpisodeUrl: "",
   activeEpisode: null,
@@ -483,7 +488,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=540`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=542`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2888,7 +2893,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=540";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=542";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -9941,6 +9946,7 @@ function buildPlayerUrl(videoUrl = "", title = "", options = {}) {
   if (options.audio) playerUrl.searchParams.set("audio", options.audio);
   if (options.subtitles) playerUrl.searchParams.set("subtitles", options.subtitles);
   if (options.forceSubtitles) playerUrl.searchParams.set("forceSubtitles", "1");
+  if (options.autoplay === false) playerUrl.searchParams.set("autoplay", "0");
   if (options.hasNext) playerUrl.searchParams.set("hasNext", "1");
   if (Array.isArray(options.tracks) && options.tracks.length) {
     playerUrl.searchParams.set("tracks", encodeURIComponent(JSON.stringify(options.tracks.slice(0, 8))));
@@ -9961,7 +9967,7 @@ function openPlayer(videoUrl, title = "", options = {}) {
 
 window.openPlayer = openPlayer;
 
-function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null) {
+function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null, autoplay = true) {
   const options = {};
   const typeHint = streamTypeQueryValue(streamTypeFromUrl(url));
   if (typeHint) options.type = typeHint;
@@ -9974,6 +9980,11 @@ function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null) 
   options.audio = preferences.audio || "";
   options.subtitles = isAdultSource ? "spanish" : (preferences.subtitles || "");
   options.forceSubtitles = isAdultSource;
+  // Picking an episode out of the list loads it ready to play and stops there -
+  // the viewer presses play. Everything that is already a playback action
+  // (auto-advance, switching server mid-episode, the explicit play control)
+  // passes true so it does not turn into an extra click.
+  options.autoplay = autoplay !== false;
   const externalTracks = [
     ...normalizeSubtitleTracks(episode || {}),
     ...normalizeSubtitleTracks(selectedSource || {})
@@ -10812,6 +10823,9 @@ function selectEpisodeByPosition(seasonIndex, episodeIndex, shouldPlay = true) {
   // This is the episode-row click path. shouldPlay already carries the caller's
   // intent, so mirror it: a row click may auto-mount, merely opening a show may not.
   state.playIntent = Boolean(shouldPlay);
+  // ...but mounting is not the same as starting. A row click loads the episode
+  // and leaves it on its poster with a play button, so the viewer starts it.
+  state.autoplayOnMount = false;
   state.activeSeasonIndex = seasonIndex;
   state.activeDetailTab = "episodes";
   state.activeEpisode = { season, episode, seasonIndex, episodeIndex };
@@ -11287,6 +11301,7 @@ async function selectEpisode(season, episode, seasonIndex, episodeIndex) {
   state.activeEpisode = { season, episode, seasonIndex, episodeIndex };
   state.activeEpisodeUrl = getEpisodeUrl(episode);
   state.playIntent = true;                 // explicit: the user picked this episode
+  state.autoplayOnMount = false;           // ...but they still press play themselves
   const frame = document.querySelector("#videoFrame");
   const show = state.activeShow;
   if (frame && show) {
@@ -12806,13 +12821,19 @@ function renderDirectVideoPlayer(frame, url, episode) {
   const useApkPlayer = state.uiPreferences.playerEngine !== "native";
   const fit = state.uiPreferences.playerFit || "contain";
   const useNativeControls = !useApkPlayer && state.uiPreferences.playerInterface === "native";
+  // One-shot: whoever asked for this mount decided whether it starts by itself,
+  // and the flag returns to true immediately. That way only the episode-row path
+  // has to opt out, while switching server, failing over, retrying, casting and
+  // advancing to the next episode all keep starting playback on their own
+  // without each having to remember to re-arm it.
+  const autoplayThisMount = state.autoplayOnMount !== false;
 
   frame.innerHTML = `
     <div class="video-player-shell vidstream-player fit-${escapeHtml(fit)} ${useApkPlayer ? "is-artplayer-frame" : useNativeControls ? "is-iframe" : ""}" data-stream-type="${escapeHtml(streamType || "direct")}">
       <div class="vid-player-stage">
         ${useApkPlayer
-          ? `<iframe id="animePlayerFrame" class="apk-video-frame" src="${escapeHtml(buildApkPlayerUrl(url, true, episode))}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer" title="ZenkaiTV video player"></iframe>`
-          : `<video id="animePlayer" ${useNativeControls ? "controls" : ""} autoplay playsinline x-webkit-airplay="allow" crossorigin="anonymous">
+          ? `<iframe id="animePlayerFrame" class="apk-video-frame" src="${escapeHtml(buildApkPlayerUrl(url, true, episode, autoplayThisMount))}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer" title="ZenkaiTV video player"></iframe>`
+          : `<video id="animePlayer" ${useNativeControls ? "controls" : ""} ${autoplayThisMount ? "autoplay" : ""} playsinline x-webkit-airplay="allow" crossorigin="anonymous">
               ${spanishTrack ? `<track kind="subtitles" srclang="es" label="Español" src="${escapeHtml(spanishTrack.url)}" default>` : ""}
             </video>`}
         ${useApkPlayer ? "" : `
@@ -12833,6 +12854,8 @@ function renderDirectVideoPlayer(frame, url, episode) {
       ${useApkPlayer ? "" : renderPlayerEpisodeActions(url)}
     </div>
   `;
+  // Consumed - the next mount starts by itself again unless something opts out.
+  state.autoplayOnMount = true;
   const shell = frame.querySelector(".vidstream-player");
   setPlayerCinema(shell, true, { silent: true });
   const iframe = frame.querySelector("#animePlayerFrame");
@@ -12995,6 +13018,7 @@ function playEpisodeByPosition(seasonIndex, episodeIndex) {
   const wasCinema = document.body.classList.contains("player-cinema-open");
   stopActivePlayback();
   state.playIntent = true;                 // explicit: the user picked this episode
+  state.autoplayOnMount = true;            // this IS the play action, so start
   state.activeSeasonIndex = seasonIndex;
   state.activeDetailTab = "episodes";
   state.activeEpisode = { season, episode, seasonIndex, episodeIndex };
@@ -14948,7 +14972,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=540");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=542");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

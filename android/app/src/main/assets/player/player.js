@@ -11,6 +11,10 @@
   const startAt = Number(params.get("start") || 0);
   const fit = String(params.get("fit") || params.get("scale") || "contain").toLowerCase();
   const forceSubtitles = params.get("forceSubtitles") === "1";
+  // Picking an episode from the list loads it ready-to-play rather than starting
+  // it, so the viewer presses play themselves. Auto-advance to the next episode
+  // and switching server mid-episode still start on their own.
+  const autoplay = params.get("autoplay") !== "0";
   let hasNextEpisode = params.get("hasNext") === "1";
   const isEmbeddedPlayer = window.parent && window.parent !== window;
   let art = null;
@@ -32,6 +36,10 @@
   let hlsLevels = [];
   let sheet = null;
   let activeSubtitleUrl = "";
+  // Whether this stream has ever actually played. Only meaningful with
+  // autoplay=0, where "paused and not buffered" is the normal resting state
+  // rather than a stalled stream.
+  let hasStartedPlayback = false;
 
   const elements = {
     player: document.getElementById("player"),
@@ -139,7 +147,7 @@
       poster,
       theme: "#8b5cf6",
       volume: 0.8,
-      autoplay: true,
+      autoplay,
       preload: "auto",
       muted: false,
       pip: true,
@@ -787,6 +795,7 @@
       send("canplaythrough", getStatus());
     });
     art.on("video:playing", () => {
+      hasStartedPlayback = true;
       clearStartupWatchdog();
       cancelScheduledRecovery();
       seekRecoveryUntil = 0;
@@ -835,6 +844,13 @@
       send("error", "playback-error");
     });
 
+    // Artplayer's own autoplay is unreliable across browsers, so playback is
+    // kicked off here too. Skip it when the mount asked for autoplay=0, or this
+    // starts the episode the viewer was meant to start themselves.
+    if (!autoplay) {
+      hideLoading();
+      return;
+    }
     const playAttempt = video?.play?.();
     if (playAttempt && typeof playAttempt.catch === "function") {
       playAttempt.catch(() => {
@@ -895,6 +911,13 @@
       // Only re-renders when the sheet is actually open.
       hls.on(window.Hls.Events.LEVEL_SWITCHED, refreshOptionsSheet);
       armStartupWatchdog();
+      if (!autoplay) {
+        // Manifest is parsed and the first segments are buffering, so the poster
+        // and the play button are all that is left to show. Starting playback
+        // here would defeat autoplay=0.
+        hideLoading();
+        return;
+      }
       const playAttempt = video.play();
       if (playAttempt && typeof playAttempt.catch === "function") playAttempt.catch(() => hideLoading());
     });
@@ -1178,6 +1201,14 @@
     startupTimer = setTimeout(() => {
       const video = art?.video;
       if (!video || elements.error.hidden === false) return;
+      // With autoplay=0 the video is paused on purpose and some browsers will
+      // not preload a paused stream at all, so readyState stays low and the
+      // watchdog would report a perfectly healthy episode as "taking too long".
+      // Nothing has been asked of the stream until the viewer presses play.
+      if (!autoplay && !hasStartedPlayback && video.paused) {
+        hideLoading();
+        return;
+      }
       if (video.readyState >= 3 || bufferedAhead(video) > 1 || !video.paused) {
         hideLoading();
         return;
