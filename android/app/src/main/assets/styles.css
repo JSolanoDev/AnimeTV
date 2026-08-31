@@ -11520,6 +11520,21 @@ body.player-cinema-open .watch-overlay .close-button {
    landscape. That is where a full-screen box belongs. Real fullscreen still wins
    here because :fullscreen rules and the UA stylesheet outrank these. */
 @media (max-width: 760px) {
+  /* `.watch-side .video-frame` is collapsed to 0x0 on purpose - the player it
+     holds is normally position:fixed, so its container is told to take no space.
+     An in-flow player needs a real box back, or it inherits that zero width. */
+  .watch-overlay .watch-side .video-frame {
+    position: relative;
+    /* Edge to edge: cancel .watch-side's 11.2px gutter so the picture uses the
+       whole phone width, the way a streaming app's player does. auto width +
+       negative margins rather than 100vw, which would include the scrollbar
+       gutter and reintroduce a sideways scroll. */
+    width: auto;
+    margin-inline: -11.2px;
+    height: auto;
+    padding: 0;
+  }
+
   .vidstream-player.is-cinema {
     position: relative;
     top: auto;
