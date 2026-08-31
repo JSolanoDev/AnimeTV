@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=571`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=572`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2893,7 +2893,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=571";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=572";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -7909,7 +7909,14 @@ function scrollPlayerIntoView(attempt = 0) {
   // episode list - measured on production, it grew from 9 rows to 12, which
   // pushed the player from 161px above the fold to 562px above it. A single
   // scroll lands where the player USED to be, so re-check until it settles.
-  const again = () => { if (attempt < 4) setTimeout(() => scrollPlayerIntoView(attempt + 1), 260); };
+  // Hold off the selected-row scroll in renderEpisodeList for the duration, or
+  // it re-runs on every source-resolution re-render and drags the panel back.
+  state.suppressEpisodeRowScroll = true;
+  const done = () => { state.suppressEpisodeRowScroll = false; };
+  const again = () => {
+    if (attempt < 4) setTimeout(() => scrollPlayerIntoView(attempt + 1), 260);
+    else done();
+  };
   const panelRect = panel.getBoundingClientRect();
   const frameRect = frame.getBoundingClientRect();
   if (!frameRect.height) { again(); return; }
@@ -8507,7 +8514,14 @@ function renderEpisodeList(show) {
     // Deep links and slow catalogs reach openShow before the rows exist, so the
     // pending scroll is retried here until there is something to scroll to.
     scrollEpisodeListIntoView();
-    const selectedRow = episodeList.querySelector(".ep-row.is-selected");
+    // While we are bringing the player into view, this must stand down. Sources
+    // keep resolving after an episode starts and each pass re-renders the list,
+    // so this ran repeatedly AFTER the player scroll and dragged the panel back
+    // onto the selected row every time - which is why the panel kept landing on
+    // exactly the same offset no matter what the player scroll asked for.
+    const selectedRow = state.suppressEpisodeRowScroll
+      ? null
+      : episodeList.querySelector(".ep-row.is-selected");
     if (selectedRow) {
       const sidePanel = episodeList.closest(".watch-side") || episodeList.parentElement;
       if (sidePanel) {
@@ -15120,7 +15134,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=571");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=572");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
