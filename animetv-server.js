@@ -1459,7 +1459,9 @@ async function buildCatalogPayload() {
     fetchJikanPages(JIKAN_POPULAR_ENDPOINT, "Jikan Popular", 2)
   ]);
 
+  const scrapedAnimeAv1 = readScrapedRegularCatalogItems();
   const items = [
+    ...scrapedAnimeAv1,
     ...(anilist.status === "fulfilled" ? anilist.value : []),
     ...(jikanAiring.status === "fulfilled" ? jikanAiring.value : []),
     ...(jikanSeason.status === "fulfilled" ? jikanSeason.value : []),
@@ -1470,11 +1472,12 @@ async function buildCatalogPayload() {
   // previously good catalog.
   if (!items.length) throw new Error("All metadata upstreams returned nothing");
 
+  const merged = mergeShows(items);
   return {
     ok: true,
-    source: "ZenkaiTV Metadata API",
-    count: items.length,
-    items: mergeShows(items).slice(0, 340)
+    source: scrapedAnimeAv1.length ? "AnimeAV1 + ZenkaiTV Metadata API" : "ZenkaiTV Metadata API",
+    count: merged.length,
+    items: merged
   };
 }
 
@@ -2028,13 +2031,33 @@ function readTioAnimeSlugsFromScrapedMetadata() {
 // Reads anime_metadata.json. If that file is missing, empty, or corrupt,
 // falls back to anime_metadata.previous.json so the source never goes blank.
 //
+function readScrapedRegularCatalogItems() {
+  const paths = [
+    path.join(root, "scraper", "anime_metadata.json"),
+    path.join(root, "scraper", "anime_metadata.previous.json")
+  ];
+  for (const filePath of paths) {
+    try {
+      const payload = JSON.parse(fs.readFileSync(filePath, "utf8"));
+      const items = (Array.isArray(payload.items) ? payload.items : []).filter((item) =>
+        String(item.source || "").toLowerCase().includes("animeav1")
+        || String(item.siteUrl || "").includes("animeav1.com/media/")
+      );
+      if (items.length) return items;
+    } catch {
+      // Try the previous daily snapshot.
+    }
+  }
+  return [];
+}
+
 function handleScrapedCatalog(reqUrl, response) {
   const primaryPath  = path.join(root, "scraper", "anime_metadata.json");
   const fallbackPath = path.join(root, "scraper", "anime_metadata.previous.json");
 
   // Optional pagination: ?page=N&limit=M
   const page  = Math.max(1, Number(reqUrl.searchParams.get("page")  || 1));
-  const limit = Math.max(1, Math.min(500, Number(reqUrl.searchParams.get("limit") || 200)));
+  const limit = Math.max(1, Math.min(5000, Number(reqUrl.searchParams.get("limit") || 5000)));
 
   function serveFile(filePath, fallbackUsed) {
     fs.readFile(filePath, "utf8", (err, raw) => {

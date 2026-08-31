@@ -41,8 +41,8 @@ const LOCAL_FINDER_SOURCE = {
   name: "Local Finder",
   enabled: true,
   type: "playback-addon",
-  endpoint: "/api/scraped-catalog?limit=500&page=1",
-  pageSize: 500,
+  endpoint: "/api/scraped-catalog?limit=5000&page=1",
+  pageSize: 5000,
   paginated: true,
   hidden: true,
   playbackOnly: true,
@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=548`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=551`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -1893,6 +1893,11 @@ function syncAdultModeChrome() {
   document.body.classList.toggle("adult-mode", on);
   const badge = document.querySelector("#adultModeBadge");
   if (badge) badge.hidden = !on;
+  const headerToggle = document.querySelector("#adultModeToggleHeader");
+  if (headerToggle) {
+    headerToggle.classList.toggle("is-active", on);
+    headerToggle.setAttribute("aria-pressed", on ? "true" : "false");
+  }
   // The Weekly Schedule isn't shown in 18+ mode — bounce off it if we're there.
   if (on && state.route === "schedule") setRoute("home");
 }
@@ -2888,7 +2893,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=548";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=551";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -10850,7 +10855,11 @@ function selectEpisodeByPosition(seasonIndex, episodeIndex, shouldPlay = true) {
   if (state.activeShow) {
     const seasonNumber = season?.season || seasonIndex + 1 || 1;
     const episodeNumber = episode?.episode || episodeIndex + 1 || 1;
-    appRouter()?.navigate?.(episodePathForShow(state.activeShow, seasonNumber, episodeNumber, season.part || ""), { silent: true });
+    // replace, not navigate: the show already owns one history entry. Pushing
+    // one per episode meant Back had to walk through every episode the viewer
+    // had clicked before it would leave the show. The URL still updates, so
+    // deep links and refresh are unaffected.
+    appRouter()?.replace?.(episodePathForShow(state.activeShow, seasonNumber, episodeNumber, season.part || ""), { silent: true });
     state.currentRouteInfo = appRouter()?.parsePath?.(location.pathname) || state.currentRouteInfo;
     updateRouteMeta(state.currentRouteInfo || {}, state.activeShow, { seasonNumber, episodeNumber });
   }
@@ -13035,7 +13044,11 @@ function playEpisodeByPosition(seasonIndex, episodeIndex) {
   }
   const seasonNumber = season?.season || seasonIndex + 1 || 1;
   const episodeNumber = episode?.episode || episodeIndex + 1 || 1;
-  appRouter()?.navigate?.(episodePathForShow(state.activeShow, seasonNumber, episodeNumber, season.part || ""), { silent: true });
+  // replace, not navigate: the show already owns one history entry. Pushing
+  // one per episode meant Back had to walk through every episode the viewer
+  // had clicked before it would leave the show. The URL still updates, so
+  // deep links and refresh are unaffected.
+  appRouter()?.replace?.(episodePathForShow(state.activeShow, seasonNumber, episodeNumber, season.part || ""), { silent: true });
   state.currentRouteInfo = appRouter()?.parsePath?.(location.pathname) || state.currentRouteInfo;
   updateRouteMeta(state.currentRouteInfo || {}, state.activeShow, { seasonNumber, episodeNumber });
   renderEpisodeList(state.activeShow);
@@ -14018,7 +14031,11 @@ fakePlay.addEventListener("click", () => {
   if (frame && show && ep) {
     const seasonNumber = ep.season?.season || ep.seasonIndex + 1 || 1;
     const episodeNumber = ep.episode?.episode || ep.episodeIndex + 1 || 1;
-    appRouter()?.navigate?.(episodePathForShow(show, seasonNumber, episodeNumber, ep.season?.part || ""), { silent: true });
+    // replace, not navigate: the show already owns one history entry. Pushing
+    // one per episode meant Back had to walk through every episode the viewer
+    // had clicked before it would leave the show. The URL still updates, so
+    // deep links and refresh are unaffected.
+    appRouter()?.replace?.(episodePathForShow(show, seasonNumber, episodeNumber, ep.season?.part || ""), { silent: true });
     state.currentRouteInfo = appRouter()?.parsePath?.(location.pathname) || state.currentRouteInfo;
     updateRouteMeta(state.currentRouteInfo || {}, show, { seasonNumber, episodeNumber });
     // If already in cinema mode, just play
@@ -14642,6 +14659,20 @@ function wireAuthEvents() {
   
   const fOAuth = document.getElementById("facebookLoginBtn");
   if (fOAuth) fOAuth.onclick = () => handleSocialLogin("facebook");
+
+  // Add event listener for the header adult mode toggle button
+  const headerToggle = document.querySelector("#adultModeToggleHeader");
+  if (headerToggle) {
+    headerToggle.addEventListener("click", async () => {
+      if (typeof AdultMode === "undefined") return;
+
+      // Toggle the adult mode state
+      await AdultMode.toggle();
+
+      // Update UI to reflect new state
+      syncAdultModeChrome();
+    });
+  }
 }
 
 async function ensureSupabaseForAuth() {
@@ -14978,7 +15009,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=548");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=551");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

@@ -70,7 +70,7 @@ Go to **Actions → "Scrape anime catalog" → Run workflow**
 | `scrapeEpisodes` | `true` | Fetch episode URLs |
 | `top` | `20` | Top N shows to enrich with episodes |
 | `maxEpisodes` | `5` | Max recent episodes per show |
-| `catalogPages` | `3` | Catalog pages per site (more = more anime) |
+| `catalogPages` | `0` | AnimeAV1 catalog pages (`0` discovers and loads every page) |
 | `jikanEnrich` | `false` | Add Jikan/MAL metadata (optional) |
 
 ---
@@ -127,8 +127,8 @@ python anime_scraper.py --episodes
 # Only TioAnime and AnimeFLV:
 python anime_scraper.py --episodes --sites tioanime,animeflv
 
-# More catalog pages (more anime titles):
-python anime_scraper.py --episodes --catalog-pages 6
+# Complete AnimeAV1 catalog (automatically discovers the last page):
+python anime_scraper.py --episodes --sites animeav1 --catalog-pages 0
 
 # More shows, deeper episode history:
 python anime_scraper.py --episodes --top 40 --max-eps 12

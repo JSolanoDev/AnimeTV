@@ -40,6 +40,8 @@ import sys
 import time
 import unicodedata
 from datetime import datetime, timezone
+from difflib import SequenceMatcher
+from html import unescape
 from itertools import cycle
 from pathlib import Path
 from typing import Optional
@@ -77,6 +79,7 @@ MAX_RETRIES     = 2
 CATALOG_DELAY   = 1.0   # seconds between catalog page requests
 EPISODE_DELAY   = 0.8   # seconds between episode page requests
 SEARCH_DELAY    = 0.8
+ANIMEAV1_MAX_CATALOG_PAGES = 200
 TIOANIME_SLUG_CATALOG_PAGES = 120
 _TIOANIME_SLUG_INDEX: Optional[dict] = None
 
@@ -182,7 +185,19 @@ def _safe_text(r: requests.Response, label: str = "") -> Optional[str]:
     Warns when the body looks like raw binary (likely un-decoded brotli / zstd).
     """
     try:
-        text = r.text
+        # AnimeAV1 serves UTF-8 markup without a charset in the Content-Type
+        # header. Requests consequently assumes ISO-8859-1 even though the
+        # page's meta tag correctly declares UTF-8.
+        declared = str(r.encoding or "").lower().replace("_", "-")
+        has_utf8_meta = bool(re.search(
+            br'<meta[^>]+charset\s*=\s*["\']?utf-8\b',
+            r.content[:4096],
+            re.IGNORECASE,
+        ))
+        if has_utf8_meta and declared in {"iso-8859-1", "latin-1", "latin1"}:
+            text = r.content.decode("utf-8")
+        else:
+            text = r.text
         # Heuristic: if more than 5 % of the first 512 chars are non-printable
         # (outside ASCII printable range), the content was not decoded.
         sample = text[:512]
@@ -283,7 +298,7 @@ def _ajax_get_json(url: str, params=None, referer: str = "", label: str = ""):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def clean(v) -> str:
-    return re.sub(r"\s+", " ", str(v or "")).strip()
+    return re.sub(r"\s+", " ", unescape(str(v or ""))).strip()
 
 
 def normalize_lookup_title(value: str) -> str:
@@ -321,7 +336,9 @@ def abs_url(href: str, base: str) -> str:
 
 
 def slug_id(source: str, slug: str) -> str:
-    s = re.sub(r"[^a-z0-9]+", "-", slug.lower()).strip("-")[:80]
+    # AnimeAV1 has several long sequel slugs that share the same first 80
+    # characters. Keep the complete source slug so separate titles never merge.
+    s = re.sub(r"[^a-z0-9]+", "-", slug.lower()).strip("-")[:160]
     return f"{source.lower()}-{s}"
 
 
@@ -586,10 +603,54 @@ _KNOWN_GENRES = [
 ]
 
 
+def _catalog_title_candidate(value: str) -> str:
+    candidate = clean(re.sub(r"<[^>]+>", " ", str(value or "")))
+    candidate = re.sub(r"^(?:ver\s+|p[oó]ster\s+de\s+|portada\s+de\s+)", "", candidate,
+                       flags=re.IGNORECASE)
+    candidate = re.sub(r"\s+(?:backdrop|poster|cover)$", "", candidate,
+                       flags=re.IGNORECASE)
+    if candidate.lower() in {
+        "anime", "ver anime", "episodio", "episodios", "tv anime", "pelicula",
+    }:
+        return ""
+    return candidate
+
+
+def _animeav1_media_title(ctx: str, slug: str) -> str:
+    """Choose the title nearest a /media/ link instead of a section heading."""
+    candidates = []
+    patterns = [
+        r'<span[^>]+class=["\'][^"\']*sr-only[^"\']*["\'][^>]*>([^<]{2,160})</span>',
+        r'<h[1-4][^>]*>(?:\s*<a[^>]*>)?\s*([^<\n]{2,160}?)(?:\s*</a>)?\s*</h[1-4]>',
+        r'<img[^>]+alt=["\']([^"\']{2,180})["\']',
+        r'\btitle=["\']([^"\']{2,160})["\']',
+    ]
+    for pattern in patterns:
+        candidates.extend(
+            _catalog_title_candidate(match.group(1))
+            for match in re.finditer(pattern, ctx, re.IGNORECASE)
+        )
+
+    candidates = [candidate for candidate in candidates if 2 <= len(candidate) <= 160]
+    if not candidates:
+        return ""
+
+    slug_title = normalize_lookup_title(slug.replace("-", " "))
+
+    def score(candidate: str) -> tuple[float, int]:
+        normalized = normalize_lookup_title(candidate)
+        similarity = SequenceMatcher(None, normalized, slug_title).ratio()
+        shared = len(set(normalized.split()) & set(slug_title.split()))
+        return similarity, shared
+
+    best = max(candidates, key=score)
+    return best if score(best)[0] >= 0.45 else ""
+
+
 def _parse_catalog_html(html: str, base_url: str, source: str) -> list:
     """
     Extract anime cards from HTML.
-    Uses position-based context extraction around /anime/slug links.
+    Uses position-based context extraction around title-page links.
     Handles TioAnime, AnimeFLV, AnimeAV1, and similar Bootstrap-grid layouts.
 
     The link regex accepts both relative paths (/anime/slug) and absolute
@@ -599,7 +660,7 @@ def _parse_catalog_html(html: str, base_url: str, source: str) -> list:
     """
     link_re = re.compile(
         r'href=["\'](?:https?://[^/"\']{0,120})?'
-        r'(/(?:anime|ver-anime|animes)/([a-z0-9][a-z0-9\-_%]{1,150}))["\']',
+        r'(/(?:anime|ver-anime|animes|media)/([a-z0-9][a-z0-9\-_%]{1,150}))["\']',
         re.IGNORECASE,
     )
 
@@ -610,8 +671,11 @@ def _parse_catalog_html(html: str, base_url: str, source: str) -> list:
         path, slug = m.group(1), m.group(2)
         slug = slug.split("%")[0]  # strip URL-encoded chars
 
-        # Skip episode-like slugs (slug-N)
-        if re.search(r'-\d+$', slug) or re.match(r'^\d+$', slug):
+        # Legacy sites put episode numbers in the slug. AnimeAV1's current
+        # /media/<slug> title route is unambiguous and may legitimately end in a
+        # season number, so those titles must not be discarded.
+        is_animeav1_media = path.lower().startswith("/media/")
+        if not is_animeav1_media and (re.search(r'-\d+$', slug) or re.match(r'^\d+$', slug)):
             continue
         if slug in seen or len(slug) < 2:
             continue
@@ -620,12 +684,14 @@ def _parse_catalog_html(html: str, base_url: str, source: str) -> list:
         cs = max(0, m.start() - 600)
         ce = min(len(html), m.end() + 1200)
         ctx = html[cs:ce]
+        link_pos_in_ctx = m.start() - cs
 
         # ── Find poster image ──
         poster = ""
+        poster_context = ctx[link_pos_in_ctx:] if is_animeav1_media else ctx
         for img_m in re.finditer(
             r'<img[^>]+src=["\']([^"\']{8,}(?:jpg|png|webp|jpeg)[^"\']{0,120})["\']',
-            ctx, re.IGNORECASE
+            poster_context, re.IGNORECASE
         ):
             src = img_m.group(1)
             if any(skip in src.lower() for skip in _SKIP_IMG):
@@ -636,7 +702,7 @@ def _parse_catalog_html(html: str, base_url: str, source: str) -> list:
         if not poster:
             for img_m in re.finditer(
                 r'<img[^>]+data-src=["\']([^"\']{8,}(?:jpg|png|webp|jpeg)[^"\']{0,120})["\']',
-                ctx, re.IGNORECASE
+                poster_context, re.IGNORECASE
             ):
                 src = img_m.group(1)
                 if any(skip in src.lower() for skip in _SKIP_IMG):
@@ -645,21 +711,21 @@ def _parse_catalog_html(html: str, base_url: str, source: str) -> list:
                 break
 
         # ── Find title ──
-        title = ""
-        link_pos_in_ctx = m.start() - cs
+        title = _animeav1_media_title(ctx, slug) if is_animeav1_media else ""
         ctx_after = ctx[link_pos_in_ctx:]
-        for pat in [
-            r'<h[1-4][^>]*>\s*(?:<a[^>]*>)?\s*([^<\n]{2,100}?)\s*(?:</a>)?\s*</h[1-4]>',
-            r'class="[^"]*(?:title|titulo|nombre|name)[^"]*"[^>]*>\s*(?:<a[^>]*>)?\s*([^<\n]{2,100}?)\s*',
-            r'<p[^>]*>\s*([A-Z][^<\n]{1,90})\s*</p>',
-            r'title=["\']([^"\']{2,100})["\']',
-        ]:
-            tm = re.search(pat, ctx_after, re.IGNORECASE)
-            if tm and tm.start() < 350:
-                cand = clean(tm.group(1))
-                if 2 <= len(cand) <= 120 and not cand.startswith(("<", "http", "{")):
-                    title = cand
-                    break
+        if not title:
+            for pat in [
+                r'<h[1-4][^>]*>\s*(?:<a[^>]*>)?\s*([^<\n]{2,100}?)\s*(?:</a>)?\s*</h[1-4]>',
+                r'class="[^"]*(?:title|titulo|nombre|name)[^"]*"[^>]*>\s*(?:<a[^>]*>)?\s*([^<\n]{2,100}?)\s*',
+                r'<p[^>]*>\s*([A-Z][^<\n]{1,90})\s*</p>',
+                r'title=["\']([^"\']{2,100})["\']',
+            ]:
+                tm = re.search(pat, ctx_after, re.IGNORECASE)
+                if tm and tm.start() < 350:
+                    cand = clean(tm.group(1))
+                    if 2 <= len(cand) <= 120 and not cand.startswith(("<", "http", "{")):
+                        title = cand
+                        break
 
         if not title:
             for pat in [
@@ -1326,7 +1392,7 @@ def _animeav1_normalize_search_item(item: dict) -> Optional[dict]:
         slug=slug,
         title=title,
         poster=poster,
-        site_url=f"{ANIMEAV1_BASE}/anime/{slug}",
+        site_url=f"{ANIMEAV1_BASE}/media/{slug}",
         type_str=type_str,
         base_url=ANIMEAV1_BASE,
     )
@@ -1349,22 +1415,42 @@ def _animeav1_discover_catalog_url(homepage_html: str) -> Optional[str]:
     return None
 
 
+def _animeav1_catalog_page_count(html: str) -> int:
+    pages = {
+        int(value) for value in re.findall(
+            r'(?:/catalogo)?\?page=(\d+)', html or "", re.IGNORECASE
+        ) if int(value) > 0
+    }
+    return min(ANIMEAV1_MAX_CATALOG_PAGES, max(pages or {1}))
+
+
 def _animeav1_paginate_catalog(catalog_base_url: str, catalog_pages: int,
                                 add_fn) -> bool:
     """
-    Fetch catalog_pages pages starting from catalog_base_url.
-    Appends ?p=N or &p=N for pages > 1 (AnimeAV1/TioAnime convention).
+    Fetch AnimeAV1's complete catalog, or an explicit page limit when non-zero.
+    The current site uses ?page=N and publishes the final page in its pager.
     Returns True if at least one page yielded anime cards.
     """
     found_any = False
     sep = "&" if "?" in catalog_base_url else "?"
-    for page in range(1, catalog_pages + 1):
-        url = catalog_base_url if page == 1 else f"{catalog_base_url}{sep}p={page}"
-        html = get_html(url, delay=CATALOG_DELAY, label="AnimeAV1",
-                        referer=ANIMEAV1_BASE)
+    first_html = None
+    page_limit = max(1, catalog_pages)
+    for page in range(1, ANIMEAV1_MAX_CATALOG_PAGES + 1):
+        if page > page_limit:
+            break
+        url = catalog_base_url if page == 1 else f"{catalog_base_url}{sep}page={page}"
+        html = first_html
+        first_html = None
+        if html is None:
+            html = get_html(url, delay=CATALOG_DELAY, label="AnimeAV1",
+                            referer=ANIMEAV1_BASE)
         if not html:
             log.warning("[AnimeAV1] Page %d fetch failed: %s", page, url)
             break
+        if page == 1:
+            discovered_pages = _animeav1_catalog_page_count(html)
+            page_limit = discovered_pages if catalog_pages <= 0 else min(catalog_pages, discovered_pages)
+            log.info("[AnimeAV1] catalog pagination: %d page(s)", page_limit)
         items = _parse_catalog_html(html, ANIMEAV1_BASE, "AnimeAV1")
         if not items:
             log.debug("[AnimeAV1] Page %d parsed 0 items — stopping pagination", page)
@@ -1377,7 +1463,7 @@ def _animeav1_paginate_catalog(catalog_base_url: str, catalog_pages: int,
     return found_any
 
 
-def fetch_catalog_animeav1(catalog_pages: int = 3) -> list:
+def fetch_catalog_animeav1(catalog_pages: int = 0) -> list:
     """
     Fetch anime catalog from AnimeAV1.
 
@@ -1466,14 +1552,14 @@ def fetch_catalog_animeav1(catalog_pages: int = 3) -> list:
 
 
 def _av1_ep_nums_from_detail(slug: str) -> list:
-    html = get_html(f"{ANIMEAV1_BASE}/anime/{slug}", delay=CATALOG_DELAY, label="AnimeAV1")
+    html = get_html(f"{ANIMEAV1_BASE}/media/{slug}", delay=CATALOG_DELAY, label="AnimeAV1")
     if not html:
         return []
     ep_nums = episode_nums_from_html(html)
     if not ep_nums:
         found = {
             int(m) for m in re.findall(
-                rf'href=["\'][^"\']*ver/{re.escape(slug)}-(\d+)["\']', html
+                rf'href=["\'][^"\']*media/{re.escape(slug)}/(\d+)["\']', html
             ) if int(m) > 0
         }
         ep_nums = sorted(found)
@@ -1503,7 +1589,7 @@ def fetch_episodes_animeav1(show: dict, max_eps: int) -> list:
              show["title"][:40], slug[:28], len(to_fetch))
 
     for n in to_fetch:
-        url = f"{ANIMEAV1_BASE}/ver/{slug}-{n}"
+        url = f"{ANIMEAV1_BASE}/media/{slug}/{n}"
         html = get_html(url, delay=EPISODE_DELAY, label="AnimeAV1")
         if html is None:
             log.warning("[AnimeAV1] Failed episode page: %s", url)
@@ -2064,7 +2150,7 @@ Examples:
     )
     parser.add_argument(
         "--catalog-pages", type=int, default=3, metavar="N",
-        help="Catalog HTML pages to fetch per site (default 3)",
+        help="Catalog HTML pages to fetch per site; 0 fetches every AnimeAV1 page (default 3)",
     )
     parser.add_argument(
         "--jikan-enrich", action="store_true", default=False,

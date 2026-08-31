@@ -11085,66 +11085,16 @@ body.adult-mode .poster-placeholder-mark {
 }
 
 
-/* ── Gentle vertical settling (home feed only) ─────────────────────────────
-   Goal: the page eases onto a major row when you naturally stop, while you can
-   still stop almost anywhere. Explicitly NOT a slideshow.
-
-   Container : the VIEWPORT, via the root element. body keeps its normal
-               overflow - no wrapper is turned into a scroll container, so there
-               is no nested scroller and momentum scrolling is untouched.
-   Strictness: proximity only. `mandatory` is never used anywhere here.
-   Targets   : just the two main home rails. The hero is skipped (the top of the
-               page is already a natural resting point) and .addon-sections is
-               skipped (many bands would mean a snap point every screen).
-   Scope     : body[data-route=home] only, and stood down whenever an overlay
-               owns the screen. Detail pages, search, episode lists, settings,
-               sources, profile, schedule and favourites are all .is-hidden on
-               home and never receive scroll-snap-align at all.
-   Offset    : html already carries scroll-padding-top: 8rem, which positions
-               snap points clear of fixed chrome. Not duplicated per target.
-   :has() keeps this CSS-only; where unsupported nothing snaps, which is fine. */
-
-@media (min-width: 761px) and (prefers-reduced-motion: no-preference) {
-  html:has(> body[data-route="home"]:not(.watch-detail-open):not(.player-cinema-open):not(.has-embedded-player)) {
-    scroll-snap-type: y proximity;
-  }
-
-  /* Tablet and up: the Latest Episodes rail is the one row worth settling on. */
-  body[data-route="home"] #latest:not(.is-hidden) {
-    scroll-snap-align: start;
-    scroll-snap-stop: normal;   /* never `always` - a flick may cross it */
-  }
+/* Home keeps native vertical wheel and touch momentum. Horizontal content rails
+   retain their own x-axis snapping, but sections never pull the page vertically. */
+html:has(> body[data-route="home"]) {
+  scroll-snap-type: none;
 }
 
-/* Desktop only: add Continue Watching as a second, still-sparse snap point. */
-@media (min-width: 1025px) and (prefers-reduced-motion: no-preference) {
-  body[data-route="home"] #continueWatching:not(.is-hidden) {
-    scroll-snap-align: start;
-    scroll-snap-stop: normal;
-  }
-}
-
-/* Phones: no vertical snapping at all - it fights native touch momentum. The
-   horizontal carousels keep their own snapping, which is what feels good there. */
-@media (max-width: 760px) {
-  html, html:has(> body[data-route="home"]) {
-    scroll-snap-type: none;
-  }
-  body[data-route="home"] #latest,
-  body[data-route="home"] #continueWatching {
-    scroll-snap-align: none;
-  }
-}
-
-/* Reduced motion: nothing settles, nothing animates. */
-@media (prefers-reduced-motion: reduce) {
-  html, html:has(> body[data-route="home"]) {
-    scroll-snap-type: none !important;
-  }
-  body[data-route="home"] #latest,
-  body[data-route="home"] #continueWatching {
-    scroll-snap-align: none !important;
-  }
+body[data-route="home"] #latest,
+body[data-route="home"] #continueWatching,
+body[data-route="home"] #continueWatchingAdult {
+  scroll-snap-align: none;
 }
 
 /* Settings lives in the app canvas instead of inside a second, scrollable app. */
@@ -11552,3 +11502,38 @@ body.player-cinema-open .watch-overlay .close-button {
   }
 }
 
+
+/* ── Phone: the player is a 16:9 banner, not a full-screen portrait box ──────
+   Cinema mode is `position: fixed; width: 100vw; height: 100dvh`. On a desktop
+   that is the Netflix-style edge-to-edge player it was written for; on a phone
+   it is a 375x812 PORTRAIT box, so a 16:9 picture sat in the middle with ~300px
+   of black above and below and the episode list was pushed off-screen entirely.
+
+   So on phones the shell goes back in flow at its natural shape. The stage and
+   the iframe already pin themselves to `inset: 0` with !important, so they fill
+   whatever box they are given - the aspect-ratio here is the only thing that
+   decides it, and the video inside keeps its own ratio (object-fit is unchanged),
+   so nothing is cropped or stretched.
+
+   Full-viewport playback is not lost: it moved to actual fullscreen, which is a
+   tap on the picture or the fullscreen control, and which also turns the phone
+   landscape. That is where a full-screen box belongs. Real fullscreen still wins
+   here because :fullscreen rules and the UA stylesheet outrank these. */
+@media (max-width: 760px) {
+  .vidstream-player.is-cinema {
+    position: relative;
+    top: auto;
+    left: auto;
+    z-index: 1;
+    width: 100%;
+    height: auto;
+    /* Wider than tall, full phone width, no horizontal overflow. */
+    aspect-ratio: 16 / 9;
+  }
+
+  /* The fixed shell needed the page frozen underneath it. In flow it does not,
+     and freezing it would strand the episode list below the player. */
+  body.player-cinema-open {
+    overflow: visible;
+  }
+}

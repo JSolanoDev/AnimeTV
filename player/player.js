@@ -43,7 +43,11 @@
     errorMessage: document.getElementById("errorMessage"),
     title: document.getElementById("playerTitle"),
     episode: document.getElementById("episodeLabel"),
-    backdrop: document.getElementById("playerBackdrop")
+    backdrop: document.getElementById("playerBackdrop"),
+    chromeToggle: document.getElementById("chromeToggle"),
+    chromeRestore: document.getElementById("chromeRestore"),
+    floatingChrome: document.getElementById("floatingChrome"),
+    floatingBack: document.getElementById("floatingBack")
   };
 
   document.title = `${title}${episode ? ` - ${episode}` : ""} - ZenkaiTV`;
@@ -57,6 +61,7 @@
 
   elements.back.addEventListener("click", goBack);
   elements.home.addEventListener("click", () => { window.location.href = "/"; });
+  wireChromeToggle();
   elements.retry.addEventListener("click", () => {
     hideError();
     initPlayer();
@@ -89,6 +94,52 @@
     showError("Player failed to load", "ArtPlayer or hls.js could not be loaded. Check your connection and retry.");
     send("error", "library-load-failed");
   });
+
+  // ── Collapsible title bar ───────────────────────────────────────────────
+  // The bar is worth having when you arrive and in the way once you are
+  // watching, so it collapses on demand and the choice is remembered. Storage
+  // is wrapped because private windows and blocked site data make it throw.
+  const CHROME_HIDDEN_KEY = "ztv:player-chrome-hidden";
+
+  // "Season 3 Episode 10" -> "S3 · E10". The parent sends the long form for the
+  // title bar; the floating strip has room for neither it nor a second line.
+  function shortEpisodeLabel() {
+    const seasonEpisode = episode.match(/season\s*(\d+)[^\d]*episode\s*(\d+)/i);
+    if (seasonEpisode) return `S${seasonEpisode[1]} · E${seasonEpisode[2]}`;
+    const episodeOnly = episode.match(/episode\s*(\d+)/i);
+    return episodeOnly ? `E${episodeOnly[1]}` : "";
+  }
+
+  function wireChromeToggle() {
+    const { chromeToggle, chromeRestore, floatingChrome, floatingBack } = elements;
+    if (!chromeToggle || !chromeRestore || !floatingChrome) return;
+
+    const episodeSlot = document.getElementById("floatingEpisode");
+    const titleSlot = document.getElementById("floatingTitle");
+    if (episodeSlot) episodeSlot.textContent = shortEpisodeLabel();
+    if (titleSlot) titleSlot.textContent = title === "ZenkaiTV Video" ? "" : title;
+
+    const apply = (hidden, persist) => {
+      document.body.classList.toggle("ztv-chrome-hidden", hidden);
+      chromeToggle.setAttribute("aria-expanded", hidden ? "false" : "true");
+      floatingChrome.hidden = !hidden;
+      if (!persist) return;
+      try { localStorage.setItem(CHROME_HIDDEN_KEY, hidden ? "1" : "0"); }
+      catch (error) { /* storage unavailable - the toggle still works this session */ }
+    };
+
+    // Hidden by default: the bar is chrome, and the floating strip already
+    // carries the two things it was needed for - going back, and what is
+    // playing. Only an explicit "show" is remembered.
+    let hidden = true;
+    try { hidden = localStorage.getItem(CHROME_HIDDEN_KEY) !== "0"; }
+    catch (error) { hidden = true; }
+    apply(hidden, false);
+
+    chromeToggle.addEventListener("click", () => apply(true, true));
+    chromeRestore.addEventListener("click", () => apply(false, true));
+    if (floatingBack) floatingBack.addEventListener("click", goBack);
+  }
 
   function firstParam(...keys) {
     for (const key of keys) {

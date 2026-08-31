@@ -23,9 +23,9 @@ on:
         required: false
         default: '5'
       catalogPages:
-        description: 'Catalog pages per site (more pages = more anime)'
+        description: 'AnimeAV1 catalog pages (0 = every available page)'
         required: false
-        default: '3'
+        default: '0'
       jikanEnrich:
         description: 'Enrich metadata via Jikan/MAL (synopsis, score, etc.)'
         required: false
@@ -85,7 +85,7 @@ jobs:
           SCRAPE_EPS="true"
           TOP="20"
           MAX_EPS="5"
-          CATALOG_PAGES="3"
+          CATALOG_PAGES="0"
           JIKAN_ENRICH="false"
 
           # Override with workflow_dispatch inputs when present
@@ -167,6 +167,7 @@ jobs:
           file_pattern: >-
             scraper/anime_metadata.json
             scraper/anime_metadata.previous.json
+            scraper/anime_metadata.csv
             scraper/underhentai_catalog.json
             scraper/underhentai_details.json
             android/app/src/main/assets/scraper/underhentai_catalog.json
@@ -183,6 +184,7 @@ jobs:
           path: |
             scraper/anime_metadata.json
             scraper/anime_metadata.previous.json
+            scraper/anime_metadata.csv
             scraper/underhentai_catalog.json
             scraper/underhentai_details.json
           retention-days: 7
