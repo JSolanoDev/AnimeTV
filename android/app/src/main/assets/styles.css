@@ -11698,3 +11698,19 @@ main {
     z-index: 2;
   }
 }
+
+/* ── A way out of the show, on a phone ───────────────────────────────────────
+   Two rules hide the overlay's Back button while player-cinema-open is set,
+   because cinema used to mean a full-viewport player that owned the screen and
+   had its own back inside the iframe.
+   On a phone the player is now a 16:9 banner in an ordinary scrolling page, but
+   the class is still applied - so from the moment an episode started there was
+   no way to leave the show at all. Measured: display:none, rect 0x0, and
+   elementFromPoint over it returned .watch-stage.
+   The second of those rules is !important, so this has to be too. */
+@media (max-width: 760px) {
+  body.player-cinema-open .close-button,
+  body.player-cinema-open .watch-overlay .close-button {
+    display: grid !important;
+  }
+}

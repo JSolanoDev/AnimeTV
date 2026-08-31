@@ -129,17 +129,39 @@
       catch (error) { /* storage unavailable - the toggle still works this session */ }
     };
 
-    // Hidden by default: the bar is chrome, and back plus the compact label
-    // already carry the two things it was needed for. Only an explicit "show"
-    // is remembered.
-    let hidden = true;
-    try { hidden = localStorage.getItem(CHROME_HIDDEN_KEY) !== "0"; }
-    catch (error) { hidden = true; }
-    apply(hidden, false);
+    // Desktop opens with the full bar - there is room for the title, the mascot
+    // and the wordmark, so that is the better first impression. Only an explicit
+    // collapse is remembered.
+    let stored = false;
+    try { stored = localStorage.getItem(CHROME_HIDDEN_KEY) === "1"; }
+    catch (error) { stored = false; }
+
+    // A phone gets the compact strip instead: there is no room for the full bar,
+    // and the controls lock sits in the top-right corner, so the toggle would
+    // land on top of it. The control goes away there and the bar stays
+    // collapsed - back and the compact label already cover what it was for. The
+    // stored preference is left untouched, so a desktop-sized window still opens
+    // the bar if that is what was chosen there.
+    const phone = window.matchMedia ? window.matchMedia("(max-width: 760px)") : null;
+    const applyForWidth = () => {
+      const onPhone = Boolean(phone?.matches);
+      chromeToggle.hidden = onPhone;
+      apply(onPhone ? true : stored, false);
+    };
+    applyForWidth();
+    if (phone?.addEventListener) phone.addEventListener("change", applyForWidth);
+    else if (phone?.addListener) phone.addListener(applyForWidth);
+    // The media-query change event does not always arrive when the viewport is
+    // resized programmatically, and rotating a phone to landscape crosses this
+    // breakpoint. resize is cheap here and covers both.
+    window.addEventListener("resize", applyForWidth);
 
     // One button, both directions - it never moves, so the same press point
     // opens and closes the bar.
-    chromeToggle.addEventListener("click", () => apply(!isHidden, true));
+    chromeToggle.addEventListener("click", () => {
+      stored = !isHidden;
+      apply(stored, true);
+    });
   }
 
   // ── Line the chrome up with the picture, not the player box ──────────────

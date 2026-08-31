@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=564`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=567`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2893,7 +2893,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=564";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=567";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -7886,6 +7886,26 @@ function scrollEpisodeListIntoView() {
   panel.scrollTo({ top: panel.scrollTop + (sideRect.top - panelRect.top), behavior: "smooth" });
 }
 
+// The mirror image of the above: picking an episode should take you TO it
+// playing. On a phone the player sits above the list, so after choosing an
+// episode from a list you have scrolled down through, the thing you just started
+// is off-screen above you.
+// A no-op on desktop, where the player is beside the list and already in view -
+// the check below only fires when the player is genuinely off the top.
+function scrollPlayerIntoView() {
+  const panel = document.querySelector(".watch-panel");
+  const frame = document.querySelector("#videoFrame");
+  if (!panel || !frame) return;
+  const panelRect = panel.getBoundingClientRect();
+  const frameRect = frame.getBoundingClientRect();
+  if (!frameRect.height) return;
+  // Already showing most of it? Leave the scroll position alone.
+  const visibleTop = Math.max(frameRect.top, panelRect.top);
+  const visibleBottom = Math.min(frameRect.bottom, panelRect.bottom);
+  if (visibleBottom - visibleTop > frameRect.height * 0.6) return;
+  panel.scrollTo({ top: Math.max(0, panel.scrollTop + (frameRect.top - panelRect.top) - 8), behavior: "smooth" });
+}
+
 function renderEpisodeList(show) {
   if (!episodeList || !show) return;
   hideAdultGalleryPanel();
@@ -10923,6 +10943,9 @@ function selectEpisodeByPosition(seasonIndex, episodeIndex, shouldPlay = true) {
       // button under the player.
       renderEpisodeList(show);
       refreshFocusables();
+      // ...and take the viewer to it. On a phone the player is above the list
+      // they just picked from, so without this the episode starts off-screen.
+      requestAnimationFrame(scrollPlayerIntoView);
       return;
     }
   }
@@ -15072,7 +15095,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=564");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=567");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

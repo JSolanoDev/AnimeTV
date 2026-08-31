@@ -728,6 +728,11 @@ body.fit-fill .art-video {
   transition: opacity 160ms ease, background 160ms ease;
 }
 
+/* [hidden] on a button still lays out as a grid box without this. */
+.ztv-corner-button[hidden] {
+  display: none;
+}
+
 .ztv-corner-back {
   left: calc(12px + var(--ztv-pillar, 0px) + env(safe-area-inset-left));
 }
