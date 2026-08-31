@@ -11675,3 +11675,26 @@ body.player-cinema-open .watch-overlay .close-button {
 main {
   padding-bottom: 0.5rem;
 }
+
+/* ── The player must be clickable ────────────────────────────────────────────
+   .video-frame::before / ::after are decorative gradients laid over the whole
+   frame. ::after sits at z-index 1 with inset 0, which was harmless while the
+   playing shell was position:fixed at z-index 10050 - far above it. Making the
+   phone player an in-flow 16:9 box dropped the shell to z-index 1, tying with
+   ::after, and a tie is broken by paint order: the pseudo-element won and ate
+   every tap. elementFromPoint over the picture, the control bar and the corner
+   buttons all returned #videoFrame instead of the iframe, so nothing in the
+   player could be pressed at all on a phone.
+
+   Two fixes, because either alone would leave this fragile: decoration should
+   never take pointer events, and the shell should not be tied with it. */
+.video-frame::before,
+.video-frame::after {
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .vidstream-player.is-cinema {
+    z-index: 2;
+  }
+}

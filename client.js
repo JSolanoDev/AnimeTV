@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=562`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=564`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2893,7 +2893,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=562";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=564";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -4230,6 +4230,18 @@ function titleMatchScore(show, candidate) {
         }
       } else if (matchAnimeTitle(mainTitle, candidateTitle)) {
         score = 60;
+      }
+      // Romanisations disagree about punctuation far more often than about
+      // letters: the AnimeAV1 catalogue writes "Tenkou-saki no Seiso Karen...",
+      // AniList writes "Tenkousaki no Seiso Karen...". normalizeMatchTitle turns
+      // punctuation into a SPACE, so those become "tenkou saki ..." vs
+      // "tenkousaki ..." - not equal, neither containing the other, and the
+      // match was thrown away. Comparing the space-free forms makes them the one
+      // title they actually are.
+      if (score < 100) {
+        const mainCompact = main.replace(/\s+/g, "");
+        const aniCompact = ani.replace(/\s+/g, "");
+        if (mainCompact && mainCompact === aniCompact) score = 100;
       }
       best = Math.max(best, score);
     });
@@ -15060,7 +15072,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=562");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=564");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

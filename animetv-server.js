@@ -7964,6 +7964,29 @@ async function handleAniListMedia(url, response) {
   }
 }
 
+// AniList's search is unforgiving about punctuation, and scraped catalogues
+// romanise inconsistently. The AnimeAV1 catalogue writes "Tenkou-saki no Seiso
+// Karen na Bishoujo ga, ..." and AniList has it as "Tenkousaki ..." - the raw
+// string returns NOTHING while the same title minus the hyphen matches id
+// 169583. Every one of the 1000 entries in that catalogue arrives with no
+// AniList id, no banner and no episodes, so this lookup is the only way any of
+// them get artwork; a miss on the exact string is retried against a few looser
+// spellings before giving up.
+function anilistSearchVariants(raw) {
+  const variants = [raw];
+  const add = (value) => {
+    const text = String(value || "").replace(/\s+/g, " ").trim();
+    if (text.length < 3) return;
+    if (variants.some((existing) => existing.toLowerCase() === text.toLowerCase())) return;
+    variants.push(text);
+  };
+  add(raw.replace(/-/g, ""));                       // Tenkou-saki -> Tenkousaki
+  add(raw.replace(/[^\p{L}\p{N}]+/gu, " "));        // drop commas, colons, hyphens
+  const words = raw.replace(/[^\p{L}\p{N}]+/gu, " ").trim().split(" ").filter(Boolean);
+  if (words.length > 6) add(words.slice(0, 6).join(" "));  // very long titles
+  return variants.slice(0, 4);
+}
+
 async function handleAniListSearch(url, response) {
   const q = (url.searchParams.get("q") || "").trim();
   if (!q) {
@@ -7978,14 +8001,20 @@ async function handleAniListSearch(url, response) {
   }
   try {
     const { best, results } = await anilistCoalesce(`search:${cacheKey}`, async () => {
-      const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ query: ANILIST_SEARCH_GQL, variables: { search: q } })
-      }, 14000);
-      if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
-      const payload = await upstream.json();
-      const list = payload?.data?.Page?.media || [];
+      let list = [];
+      // Only the first spelling costs a request in the common case: the loop
+      // stops as soon as something comes back.
+      for (const search of anilistSearchVariants(q)) {
+        const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ query: ANILIST_SEARCH_GQL, variables: { search } })
+        }, 14000);
+        if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
+        const payload = await upstream.json();
+        list = payload?.data?.Page?.media || [];
+        if (list.length) break;
+      }
       const top = list[0] || null;
       if (top) anilistSearchCache.set(cacheKey, { data: top, ts: Date.now() });
       return { best: top, results: list };
