@@ -45,9 +45,7 @@
     episode: document.getElementById("episodeLabel"),
     backdrop: document.getElementById("playerBackdrop"),
     chromeToggle: document.getElementById("chromeToggle"),
-    chromeRestore: document.getElementById("chromeRestore"),
-    floatingChrome: document.getElementById("floatingChrome"),
-    floatingBack: document.getElementById("floatingBack")
+    floatingLabel: document.getElementById("floatingLabel")
   };
 
   document.title = `${title}${episode ? ` - ${episode}` : ""} - ZenkaiTV`;
@@ -111,34 +109,37 @@
   }
 
   function wireChromeToggle() {
-    const { chromeToggle, chromeRestore, floatingChrome, floatingBack } = elements;
-    if (!chromeToggle || !chromeRestore || !floatingChrome) return;
+    const { chromeToggle, floatingLabel } = elements;
+    if (!chromeToggle) return;
 
     const episodeSlot = document.getElementById("floatingEpisode");
     const titleSlot = document.getElementById("floatingTitle");
     if (episodeSlot) episodeSlot.textContent = shortEpisodeLabel();
     if (titleSlot) titleSlot.textContent = title === "ZenkaiTV Video" ? "" : title;
 
+    let isHidden = true;
     const apply = (hidden, persist) => {
+      isHidden = hidden;
       document.body.classList.toggle("ztv-chrome-hidden", hidden);
       chromeToggle.setAttribute("aria-expanded", hidden ? "false" : "true");
-      floatingChrome.hidden = !hidden;
+      chromeToggle.setAttribute("aria-label", hidden ? "Show the title bar" : "Hide the title bar");
+      if (floatingLabel) floatingLabel.hidden = !hidden;
       if (!persist) return;
       try { localStorage.setItem(CHROME_HIDDEN_KEY, hidden ? "1" : "0"); }
       catch (error) { /* storage unavailable - the toggle still works this session */ }
     };
 
-    // Hidden by default: the bar is chrome, and the floating strip already
-    // carries the two things it was needed for - going back, and what is
-    // playing. Only an explicit "show" is remembered.
+    // Hidden by default: the bar is chrome, and back plus the compact label
+    // already carry the two things it was needed for. Only an explicit "show"
+    // is remembered.
     let hidden = true;
     try { hidden = localStorage.getItem(CHROME_HIDDEN_KEY) !== "0"; }
     catch (error) { hidden = true; }
     apply(hidden, false);
 
-    chromeToggle.addEventListener("click", () => apply(true, true));
-    chromeRestore.addEventListener("click", () => apply(false, true));
-    if (floatingBack) floatingBack.addEventListener("click", goBack);
+    // One button, both directions - it never moves, so the same press point
+    // opens and closes the bar.
+    chromeToggle.addEventListener("click", () => apply(!isHidden, true));
   }
 
   function firstParam(...keys) {

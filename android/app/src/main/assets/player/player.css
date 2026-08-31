@@ -36,7 +36,9 @@ button {
   position: fixed;
   inset: 0;
   display: grid;
-  grid-template-rows: auto 1fr;
+  /* One row. The title bar is an overlay now, so it never takes height from the
+     video - showing or hiding it cannot resize the picture. */
+  grid-template-rows: 1fr;
   min-width: 0;
   min-height: 0;
   background:
@@ -55,15 +57,53 @@ button {
   pointer-events: none;
 }
 
+/* Overlaid on the picture, not stacked above it. It used to be a solid black
+   row in the page grid, which meant the video was shrunk by the height of the
+   bar and the bar itself read as a foreign strip bolted to the top. Absolute +
+   a gradient that fades to nothing downward matches what the player already does
+   at the bottom (.art-bottom uses the same ramp, mirrored), and the video keeps
+   the full page either way.
+   pointer-events are off for the bar so its transparent lower half never eats a
+   click meant for the picture; the things you can actually press turn them back
+   on individually. */
 .ztv-player-topbar {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 5;
   display: flex;
   align-items: center;
   gap: 1rem;
   min-height: 76px;
-  padding: calc(14px + env(safe-area-inset-top)) calc(18px + env(safe-area-inset-right)) 14px calc(18px + env(safe-area-inset-left));
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.18));
+  /* Left/right padding clears the two corner buttons, which are not in here. */
+  padding:
+    calc(14px + env(safe-area-inset-top))
+    calc(66px + env(safe-area-inset-right))
+    34px
+    calc(66px + env(safe-area-inset-left));
+  background: linear-gradient(
+    180deg,
+    rgba(2, 3, 10, 0.86) 0%,
+    rgba(2, 3, 10, 0.45) 52%,
+    rgba(2, 3, 10, 0) 100%
+  );
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 180ms ease;
+}
+
+.ztv-player-topbar a,
+.ztv-player-topbar button,
+.ztv-player-topbar input {
+  pointer-events: auto;
+}
+
+/* Collapsed: the gradient and the big title go, the corner buttons stay put. */
+body.ztv-chrome-hidden .ztv-player-topbar {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
 }
 
 .ztv-icon-button,
@@ -502,7 +542,12 @@ body.fit-fill .art-video {
   .ztv-player-topbar {
     min-height: 64px;
     gap: 0.7rem;
-    padding: calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 10px calc(12px + env(safe-area-inset-left));
+    /* Still clears the two corner buttons, which keep their 12px inset here. */
+    padding:
+      calc(10px + env(safe-area-inset-top))
+      calc(62px + env(safe-area-inset-right))
+      26px
+      calc(62px + env(safe-area-inset-left));
   }
 
   .ztv-icon-button {
@@ -655,118 +700,93 @@ body.fit-fill .art-video {
   }
 }
 
-/* ── Collapsible title bar ───────────────────────────────────────────────
-   The black bar carries the back button, the episode title and the wordmark -
-   useful when you arrive, dead weight once you are watching. This hides it and
-   gives the picture the whole page (.ztv-player-page is a two-row grid, so the
-   player row simply takes the space). The choice is remembered per device. */
-.ztv-chrome-toggle {
-  flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
-  align-self: center;
-  opacity: 0.62;
-}
-
-.ztv-chrome-toggle:hover,
-.ztv-chrome-toggle:focus-visible {
-  opacity: 1;
-}
-
-.ztv-chrome-toggle svg {
-  width: 18px;
-  height: 18px;
-}
-
-body.ztv-chrome-hidden .ztv-player-topbar {
-  display: none;
-}
-
-/* .ztv-player-page is `grid-template-rows: auto 1fr` - header, then player. With
-   the header gone the player lands in the `auto` row instead and collapsed to
-   zero height, because it has no intrinsic size of its own. One row, so it takes
-   the whole page - which is the point of hiding the bar. */
-body.ztv-chrome-hidden .ztv-player-page {
-  grid-template-rows: 1fr;
-}
-
-.ztv-floating-chrome {
+/* ── Persistent corner chrome ────────────────────────────────────────────
+   Back and the bar toggle. Both are absolutely placed against the page corners
+   and are NOT children of the title bar, which is what keeps them in exactly
+   the same spot whether the bar is open or collapsed - the toggle never slides
+   out from under the finger that just pressed it, and back never disappears
+   with the bar. Same visual language as the sheet and the lock: a small blurred
+   slab that stays quiet over the picture until you go for it. */
+.ztv-corner-button {
   position: absolute;
-  z-index: 6;
-  top: calc(6px + env(safe-area-inset-top));
-  left: calc(6px + env(safe-area-inset-left));
-  right: calc(6px + env(safe-area-inset-right));
-  display: none;
-  align-items: center;
-  gap: 6px;
-}
-
-.ztv-floating-chrome[hidden] {
-  display: none;
-}
-
-body.ztv-chrome-hidden .ztv-floating-chrome:not([hidden]) {
-  display: flex;
-}
-
-.ztv-floating-button {
+  z-index: 7;
+  top: calc(12px + env(safe-area-inset-top));
   display: grid;
   place-items: center;
-  /* 40px: still a comfortable tap target even though it reads as small. */
-  width: 40px;
-  height: 40px;
+  /* 44px - a full touch target even though it reads small. */
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 1px solid var(--ztv-border);
-  border-radius: 10px;
-  background: rgba(4, 6, 16, 0.5);
+  border-radius: 12px;
+  background: rgba(4, 6, 16, 0.46);
   backdrop-filter: blur(10px);
   color: var(--ztv-text);
-  /* Restrained until wanted - these sit over the picture. */
-  opacity: 0.42;
+  opacity: 0.55;
   cursor: pointer;
-  transition: opacity 160ms ease;
+  transition: opacity 160ms ease, background 160ms ease;
 }
 
-.ztv-floating-button:hover,
-.ztv-floating-button:focus-visible {
+.ztv-corner-back {
+  left: calc(12px + env(safe-area-inset-left));
+}
+
+.ztv-corner-toggle {
+  right: calc(12px + env(safe-area-inset-right));
+}
+
+.ztv-corner-button:hover,
+.ztv-corner-button:focus-visible {
   opacity: 1;
+  background: rgba(139, 92, 246, 0.34);
   outline: none;
 }
 
-.ztv-floating-button:focus-visible {
+.ztv-corner-button:focus-visible {
   box-shadow: 0 0 0 2px var(--ztv-cyan);
 }
 
-.ztv-floating-button svg {
-  width: 18px;
-  height: 18px;
+.ztv-corner-button svg {
+  width: 20px;
+  height: 20px;
 }
 
-/* The one thing the hidden bar took away that is worth keeping: what is playing.
-   Deliberately faint and one line - it sits over the picture, so it says who and
-   which episode without becoming a second title bar. */
+/* One icon, flipped - so the control reads as the same button in both states
+   rather than two different ones swapping places. */
+body.ztv-chrome-hidden .ztv-corner-toggle svg {
+  transform: rotate(180deg);
+}
+
+/* The compact title while the bar is collapsed. Sits on the back button's line,
+   between the two corners, so it never covers the picture below them. */
 .ztv-floating-label {
-  flex: 0 1 auto;
-  min-width: 0;
+  position: absolute;
+  z-index: 7;
+  top: calc(12px + env(safe-area-inset-top));
+  left: calc(64px + env(safe-area-inset-left));
+  right: calc(64px + env(safe-area-inset-right));
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.4rem;
+  height: 44px;
   margin: 0;
-  padding: 0.3rem 0.6rem;
-  border-radius: 9px;
-  background: rgba(4, 6, 16, 0.4);
+  padding: 0 0.7rem;
+  border-radius: 12px;
+  /* Deliberately lighter than the buttons: it is information, not a control. */
+  background: rgba(4, 6, 16, 0.32);
   backdrop-filter: blur(10px);
-  font-size: 0.72rem;
-  line-height: 1.25;
+  font-size: 0.78rem;
   white-space: nowrap;
   overflow: hidden;
-  opacity: 0.55;
+  width: fit-content;
+  max-width: none;
+  opacity: 0.62;
   pointer-events: none;
   transition: opacity 160ms ease;
 }
 
-.ztv-floating-chrome:hover .ztv-floating-label {
-  opacity: 1;
+.ztv-floating-label[hidden] {
+  display: none;
 }
 
 .ztv-floating-ep {
@@ -783,12 +803,6 @@ body.ztv-chrome-hidden .ztv-floating-chrome:not([hidden]) {
   text-overflow: ellipsis;
   color: var(--ztv-text);
   font-weight: 700;
-}
-
-.ztv-floating-label:empty,
-.ztv-floating-ep:empty,
-.ztv-floating-title:empty {
-  display: none;
 }
 
 /* ── Phone options sheet ──────────────────────────────────────────────────
