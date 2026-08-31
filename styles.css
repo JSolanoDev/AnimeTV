@@ -51,6 +51,11 @@ html {
   scroll-padding-top: 8rem;
   scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
   scrollbar-width: thin;
+  /* Chrome's default tap highlight is rgba(51, 181, 229, 0.4) - a 40% blue wash
+     over whatever was tapped, which flashed across a whole carousel card. The
+     app draws its own press, hover, :focus-visible and .is-tv-focused states, so
+     the UA overlay only ever fought them. Inherited, so it covers every control. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {

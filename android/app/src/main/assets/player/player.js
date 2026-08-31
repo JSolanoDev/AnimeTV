@@ -26,6 +26,12 @@
   let lastProgressPosition = -1;
   let lastSeekToast = 0;
   let volumePanelTimer = null;
+  // Streams report their renditions once, in HLS MANIFEST_PARSED. The phone
+  // options sheet is built from this list, so an empty array means "this stream
+  // has no selectable quality" - never a fabricated ladder.
+  let hlsLevels = [];
+  let sheet = null;
+  let activeSubtitleUrl = "";
 
   const elements = {
     player: document.getElementById("player"),
@@ -59,6 +65,15 @@
 
   window.addEventListener("message", onParentCommand);
   window.addEventListener("keydown", onKeydown, true);
+  // The "..." control is CSS-hidden above 760px, where the desktop gear takes
+  // over. Rotating a phone or widening a window while the sheet is open would
+  // otherwise leave it stranded with no way back to it.
+  if (window.matchMedia) {
+    const phone = window.matchMedia("(max-width: 760px)");
+    const onWidthChange = (event) => { if (!event.matches) closeOptionsSheet(); };
+    if (phone.addEventListener) phone.addEventListener("change", onWidthChange);
+    else if (phone.addListener) phone.addListener(onWidthChange);
+  }
   window.addEventListener("beforeunload", () => {
     window.removeEventListener("keydown", onKeydown, true);
     destroyPlayer();
@@ -188,7 +203,24 @@
         }
       });
     }
+    // Phone-only overflow. The bar keeps transport + volume + fullscreen; every
+    // secondary control that the <=760px rules hide lives behind this one button
+    // instead of being crammed back onto the row. CSS (not a matchMedia check at
+    // construction time) decides when it shows, so rotating a phone or resizing
+    // a window switches between the sheet and the desktop gear with no re-init.
+    playerOptions.controls.push({
+      name: "ztv-more",
+      position: "right",
+      index: 35,
+      html: '<svg class="ztv-more-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>',
+      tooltip: "More options",
+      click: (_component, event) => {
+        event.stopPropagation();
+        toggleOptionsSheet();
+      }
+    });
     if (subtitleConfig) playerOptions.subtitle = subtitleConfig;
+    activeSubtitleUrl = subtitleConfig ? subtitleConfig.url : "";
 
     // How long the control bar lingers after the last interaction. ArtPlayer's
     // default is 3000ms, which is what made the volume feel slow to go away -
@@ -201,8 +233,38 @@
     art = new window.Artplayer(playerOptions);
     wireArtEvents();
     wireVolumePanelLinger();
+    wireTapToHideControls();
     syncNextEpisodeControl();
     startMascot();
+  }
+
+  // Tapping the picture dismisses the whole control layer immediately, instead of
+  // waiting out CONTROL_HIDE_TIME. The volume rail lives inside that layer, so
+  // this is what makes it go away on demand.
+  function wireTapToHideControls() {
+    const player = art?.template?.$player;
+    if (!player) return;
+
+    // Captured on pointerdown because Artplayer's own click handler runs first
+    // and may have already re-shown the bar by the time the click listener fires.
+    // Without this, a tap meant to REVEAL the controls would hide them again.
+    let wasVisible = false;
+    player.addEventListener("pointerdown", () => {
+      wasVisible = Boolean(art && art.controls && art.controls.show);
+    }, true);
+
+    player.addEventListener("click", (event) => {
+      const target = event.target;
+      // A tap on the bar, the settings popover or the options sheet is the user
+      // *using* the controls - only taps on the picture itself dismiss them.
+      if (target && target.closest && target.closest(".art-bottom, .art-settings, .art-contextmenus, .art-layers, .ztv-sheet")) return;
+      if (!wasVisible) return;
+      // Deferred: Artplayer shows the controls from its own click handler, so
+      // hiding synchronously here would just be undone.
+      window.setTimeout(() => {
+        try { art.controls.show = false; } catch (error) { /* player torn down */ }
+      }, 0);
+    });
   }
 
   function wireVolumePanelLinger() {
@@ -227,6 +289,372 @@
     control.addEventListener("focusin", keepOpen);
     control.addEventListener("pointerleave", closeLater);
     control.addEventListener("focusout", closeLater);
+  }
+
+  // ── Phone options sheet ─────────────────────────────────────────────────
+  // A bottom sheet behind the "..." control, holding the secondary controls that
+  // the <=760px rules take off the bar. Two levels: a root list showing each
+  // setting and its current value, and a detail list of choices for one setting.
+  //
+  // Every entry is derived from what this stream and this browser actually
+  // support - renditions come from the parsed HLS manifest, subtitle tracks from
+  // the URL the parent passed in, PiP from feature detection. A capability that
+  // is absent produces no row rather than a dead one.
+
+  const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+  const ASPECTS = [
+    { id: "default", label: "Default" },
+    { id: "4:3", label: "4:3" },
+    { id: "16:9", label: "16:9" }
+  ];
+
+  function pipSupported() {
+    const video = art?.video;
+    return Boolean(
+      video &&
+      document.pictureInPictureEnabled &&
+      !video.disablePictureInPicture &&
+      typeof video.requestPictureInPicture === "function"
+    );
+  }
+
+  // Artplayer's "web fullscreen" only earns a row where real fullscreen is
+  // unavailable (notably iOS Safari, which cannot fullscreen a container and
+  // falls back to the native video shell). Everywhere else it would just be a
+  // second button that does what the fullscreen button already does.
+  function webFullscreenIsDistinct() {
+    return !(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  }
+
+  function levelLabel(level) {
+    if (level && Number(level.height) > 0) return `${level.height}p`;
+    if (level && Number(level.bitrate) > 0) return `${Math.round(level.bitrate / 1000)} kbps`;
+    return "Unknown";
+  }
+
+  function qualityOptions() {
+    if (hlsLevels.length < 2) return [];
+    const ordered = hlsLevels
+      .slice()
+      .sort((a, b) => (Number(b.height) || 0) - (Number(a.height) || 0));
+    return [{ id: -1, label: "Auto", detail: autoQualityDetail() }].concat(
+      ordered.map((level) => ({ id: level.index, label: levelLabel(level) }))
+    );
+  }
+
+  function autoQualityDetail() {
+    if (!hls || !hls.autoLevelEnabled) return "";
+    const active = hlsLevels.find((level) => level.index === hls.currentLevel);
+    return active ? levelLabel(active) : "";
+  }
+
+  function currentQualityId() {
+    if (!hls) return -1;
+    // manualLevel is the rendition the user pinned and updates synchronously.
+    // currentLevel is whatever is playing right now and lags a switch by a
+    // segment or two - reading it made the row still say "1080p" immediately
+    // after picking 720p. -1 means nothing is pinned, i.e. Auto.
+    const manual = Number(hls.manualLevel);
+    return Number.isFinite(manual) && manual >= 0 ? manual : -1;
+  }
+
+  function languageName(code) {
+    const raw = String(code || "").trim();
+    if (!raw) return "";
+    try {
+      const names = new Intl.DisplayNames([navigator.language || "en"], { type: "language" });
+      return names.of(raw) || raw;
+    } catch (error) {
+      return raw;
+    }
+  }
+
+  function subtitleOptions() {
+    const list = [];
+    const seen = new Set();
+    const push = (url, label, language) => {
+      if (!url || seen.has(url)) return;
+      seen.add(url);
+      const name = String(label || "").trim() || languageName(language) || `Track ${list.length + 1}`;
+      list.push({ id: url, label: name });
+    };
+    if (subtitle) push(subtitle, "", params.get("subtitles"));
+    tracks.forEach((track) => push(track.url, track.label, track.language || track.lang));
+    if (!list.length) return [];
+    return [{ id: "", label: "Off" }].concat(list);
+  }
+
+  function applySubtitle(url) {
+    if (!art?.subtitle) return;
+    try {
+      if (!url) {
+        art.subtitle.show = false;
+        activeSubtitleUrl = "";
+        return;
+      }
+      const type = url.split("?")[0].toLowerCase().endsWith(".ass") ? "ass" : "vtt";
+      art.subtitle.switch(url, { name: "Subtitle", type, escape: false });
+      art.subtitle.show = true;
+      activeSubtitleUrl = url;
+    } catch (error) {
+      console.warn("[ZenkaiPlayer] Subtitle switch failed", error);
+    }
+  }
+
+  function currentSubtitleId() {
+    if (art?.subtitle && art.subtitle.show === false) return "";
+    return activeSubtitleUrl;
+  }
+
+  async function togglePip() {
+    const video = art?.video;
+    if (!video || !pipSupported()) return;
+    try {
+      if (document.pictureInPictureElement) await document.exitPictureInPicture();
+      else await video.requestPictureInPicture();
+    } catch (error) {
+      // Denied by policy or interrupted by a source switch. Nothing is broken,
+      // and a console error here would fire on every unsupported browser.
+    }
+  }
+
+  function sheetMenus() {
+    const menus = [];
+
+    if (hlsLevels.length > 1) {
+      menus.push({
+        id: "quality",
+        label: "Quality",
+        options: qualityOptions(),
+        current: () => currentQualityId(),
+        apply: (id) => { if (hls) hls.currentLevel = Number(id); }
+      });
+    } else if (hlsLevels.length === 1 && Number(hlsLevels[0].height) > 0) {
+      // One rendition: state it, don't build a selector with a single choice.
+      menus.push({ id: "quality", label: "Quality", info: levelLabel(hlsLevels[0]) });
+    }
+
+    const subs = subtitleOptions();
+    if (subs.length > 1) {
+      menus.push({
+        id: "subtitle",
+        label: "Subtitles",
+        options: subs,
+        current: () => currentSubtitleId(),
+        apply: (id) => applySubtitle(id)
+      });
+    }
+
+    menus.push({
+      id: "speed",
+      label: "Playback speed",
+      options: SPEEDS.map((rate) => ({ id: String(rate), label: rate === 1 ? "Normal (1x)" : `${rate}x` })),
+      current: () => String(art?.playbackRate ?? 1),
+      apply: (id) => { if (art) art.playbackRate = Number(id); }
+    });
+
+    menus.push({
+      id: "aspect",
+      label: "Aspect ratio",
+      options: ASPECTS,
+      current: () => String(art?.aspectRatio || "default"),
+      apply: (id) => { if (art) art.aspectRatio = id; }
+    });
+
+    if (pipSupported()) {
+      menus.push({
+        id: "pip",
+        label: "Picture-in-picture",
+        action: () => { togglePip(); closeOptionsSheet(); }
+      });
+    }
+
+    if (webFullscreenIsDistinct()) {
+      menus.push({
+        id: "fullscreen-web",
+        label: "Fill screen",
+        info: () => (art?.fullscreenWeb ? "On" : "Off"),
+        action: () => {
+          if (art) art.fullscreenWeb = !art.fullscreenWeb;
+          renderSheetRoot();
+        }
+      });
+    }
+
+    return menus;
+  }
+
+  function ensureOptionsSheet() {
+    if (sheet && sheet.root.isConnected) return sheet;
+    const host = art?.template?.$player;
+    if (!host) return null;
+
+    const root = document.createElement("div");
+    root.className = "ztv-sheet";
+    root.hidden = true;
+    root.innerHTML = [
+      '<div class="ztv-sheet-scrim" data-sheet-close></div>',
+      '<div class="ztv-sheet-panel" role="dialog" aria-modal="true" aria-label="Player options" tabindex="-1">',
+      '  <div class="ztv-sheet-grip" aria-hidden="true"></div>',
+      '  <div class="ztv-sheet-head">',
+      '    <button class="ztv-sheet-back" type="button" hidden aria-label="Back to options">',
+      '      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"></path></svg>',
+      '    </button>',
+      '    <h2 class="ztv-sheet-title"></h2>',
+      '    <button class="ztv-sheet-close" type="button" aria-label="Close options">',
+      '      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"></path></svg>',
+      '    </button>',
+      '  </div>',
+      '  <div class="ztv-sheet-body"></div>',
+      '</div>'
+    ].join("");
+
+    // Contained: a tap inside the sheet must never reach the tap-to-hide handler
+    // or Artplayer's play/pause toggle on the picture behind it.
+    root.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (event.target.closest("[data-sheet-close]")) closeOptionsSheet();
+    });
+
+    sheet = {
+      root,
+      panel: root.querySelector(".ztv-sheet-panel"),
+      back: root.querySelector(".ztv-sheet-back"),
+      title: root.querySelector(".ztv-sheet-title"),
+      body: root.querySelector(".ztv-sheet-body"),
+      view: "root"
+    };
+    sheet.back.addEventListener("click", renderSheetRoot);
+    root.querySelector(".ztv-sheet-close").addEventListener("click", () => closeOptionsSheet());
+    host.appendChild(root);
+    return sheet;
+  }
+
+  function sheetRow({ label, value, chevron, checked, onClick, disabled }) {
+    const row = document.createElement(onClick ? "button" : "div");
+    row.className = "ztv-sheet-row" + (checked ? " is-checked" : "") + (disabled ? " is-static" : "");
+    if (onClick) {
+      row.type = "button";
+      row.addEventListener("click", onClick);
+      if (checked !== undefined) row.setAttribute("aria-checked", String(Boolean(checked)));
+    }
+    const text = document.createElement("span");
+    text.className = "ztv-sheet-row-label";
+    text.textContent = label;
+    row.appendChild(text);
+    if (value) {
+      const meta = document.createElement("span");
+      meta.className = "ztv-sheet-row-value";
+      meta.textContent = value;
+      row.appendChild(meta);
+    }
+    if (checked) {
+      const tick = document.createElement("span");
+      tick.className = "ztv-sheet-tick";
+      tick.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4 10-10"></path></svg>';
+      row.appendChild(tick);
+    } else if (chevron) {
+      const arrow = document.createElement("span");
+      arrow.className = "ztv-sheet-chevron";
+      arrow.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 6 6 6-6 6"></path></svg>';
+      row.appendChild(arrow);
+    }
+    return row;
+  }
+
+  function renderSheetRoot() {
+    if (!sheet) return;
+    sheet.view = "root";
+    sheet.back.hidden = true;
+    sheet.title.textContent = "Options";
+    sheet.body.replaceChildren();
+    sheet.body.setAttribute("role", "list");
+
+    sheetMenus().forEach((menu) => {
+      if (menu.options) {
+        const current = menu.options.find((option) => String(option.id) === String(menu.current()));
+        sheet.body.appendChild(sheetRow({
+          label: menu.label,
+          value: current ? current.label : "",
+          chevron: true,
+          onClick: () => renderSheetDetail(menu.id)
+        }));
+        return;
+      }
+      if (menu.action) {
+        const info = typeof menu.info === "function" ? menu.info() : menu.info;
+        sheet.body.appendChild(sheetRow({ label: menu.label, value: info || "", onClick: menu.action }));
+        return;
+      }
+      sheet.body.appendChild(sheetRow({ label: menu.label, value: menu.info, disabled: true }));
+    });
+  }
+
+  function renderSheetDetail(menuId) {
+    if (!sheet) return;
+    const menu = sheetMenus().find((entry) => entry.id === menuId);
+    if (!menu || !menu.options) { renderSheetRoot(); return; }
+    sheet.view = menuId;
+    sheet.back.hidden = false;
+    sheet.title.textContent = menu.label;
+    sheet.body.replaceChildren();
+
+    const selected = String(menu.current());
+    menu.options.forEach((option) => {
+      const isCurrent = String(option.id) === selected;
+      sheet.body.appendChild(sheetRow({
+        label: option.detail ? `${option.label} (${option.detail})` : option.label,
+        checked: isCurrent,
+        onClick: () => {
+          menu.apply(option.id);
+          renderSheetRoot();
+        }
+      }));
+    });
+    sheet.body.querySelector(".ztv-sheet-row")?.focus();
+  }
+
+  function openOptionsSheet() {
+    const instance = ensureOptionsSheet();
+    if (!instance) return;
+    renderSheetRoot();
+    instance.root.hidden = false;
+    moreControl()?.setAttribute("aria-expanded", "true");
+    // The bar would otherwise sit on top of the sheet's first rows; the sheet is
+    // the control surface while it is open. Playback is untouched.
+    try { art.controls.show = false; } catch (error) {}
+    instance.panel.focus();
+  }
+
+  function moreControl() {
+    return art?.template?.$player?.querySelector(".art-control-ztv-more") || null;
+  }
+
+  function closeOptionsSheet(options = {}) {
+    if (!sheet || sheet.root.hidden) return;
+    sheet.root.hidden = true;
+    moreControl()?.setAttribute("aria-expanded", "false");
+    if (options.silent) return;
+    try { art.controls.show = true; } catch (error) {}
+    // The bar has to be back on screen before the trigger can take focus.
+    moreControl()?.focus();
+  }
+
+  function toggleOptionsSheet() {
+    if (sheet && !sheet.root.hidden) closeOptionsSheet();
+    else openOptionsSheet();
+  }
+
+  function optionsSheetOpen() {
+    return Boolean(sheet && !sheet.root.hidden);
+  }
+
+  // Renditions arrive after the sheet may already be on screen (MANIFEST_PARSED
+  // fires late on a slow manifest), so re-render rather than showing a stale list.
+  function refreshOptionsSheet() {
+    if (!optionsSheetOpen()) return;
+    if (sheet.view === "root") renderSheetRoot();
+    else renderSheetDetail(sheet.view);
   }
   // ── Top-bar mascot ──────────────────────────────────────────────────────
   // Rotates through the mascot poses in the unused middle of the title bar, so
@@ -459,8 +887,13 @@
         width: level.width,
         bitrate: level.bitrate
       }));
+      hlsLevels = levels;
+      refreshOptionsSheet();
       send("qualities", levels);
       reportResolution();
+      // Keeps the "Auto (1080p)" hint honest while ABR moves between renditions.
+      // Only re-renders when the sheet is actually open.
+      hls.on(window.Hls.Events.LEVEL_SWITCHED, refreshOptionsSheet);
       armStartupWatchdog();
       const playAttempt = video.play();
       if (playAttempt && typeof playAttempt.catch === "function") playAttempt.catch(() => hideLoading());
@@ -679,7 +1112,18 @@
   }
 
   function onKeydown(event) {
-    if (event.defaultPrevented || !art?.video || isEditableTarget(event.target)) return;
+    if (event.defaultPrevented || isEditableTarget(event.target)) return;
+    // Escape backs out one level at a time: a choice list returns to the root
+    // list, the root list closes the sheet. Only then does Escape fall through
+    // to whatever the page would normally do with it.
+    if (event.key === "Escape" && optionsSheetOpen()) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (sheet.view === "root") closeOptionsSheet();
+      else renderSheetRoot();
+      return;
+    }
+    if (!art?.video) return;
     if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
     event.preventDefault();
     event.stopPropagation();
@@ -827,12 +1271,20 @@
   }
 
   function makeCustomControlsAccessible() {
-    ["rewind-10", "forward-10", "next-episode"].forEach((name) => {
+    // Artplayer renders controls as <div>, so each custom one needs the button
+    // role, a tab stop and Enter/Space by hand. "ztv-more" belongs here too, or
+    // it is unreachable by keyboard and closeOptionsSheet cannot return focus.
+    ["rewind-10", "forward-10", "next-episode", "ztv-more"].forEach((name) => {
       const control = elements.player.querySelector(`.art-control-${name}`);
       if (!control || control.dataset.keyboardReady === "1") return;
       control.dataset.keyboardReady = "1";
       control.setAttribute("role", "button");
       control.setAttribute("tabindex", "0");
+      if (name === "ztv-more") {
+        control.setAttribute("aria-haspopup", "dialog");
+        control.setAttribute("aria-expanded", "false");
+        control.setAttribute("aria-label", "More options");
+      }
       control.addEventListener("keydown", (event) => {
         if (event.key !== "Enter" && event.key !== " ") return;
         event.preventDefault();
@@ -869,6 +1321,12 @@
     hlsRecoveryTimer = null;
     if (volumePanelTimer) clearTimeout(volumePanelTimer);
     volumePanelTimer = null;
+    // The sheet lives inside Artplayer's own container, so art.destroy() takes
+    // the DOM with it. Drop our handle and the stream-specific menu data too, or
+    // a retry would rebuild the menu from the previous stream's renditions.
+    closeOptionsSheet({ silent: true });
+    sheet = null;
+    hlsLevels = [];
     destroyHls();
     if (!art) return;
     try { art.destroy(false); } catch (error) {}

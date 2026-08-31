@@ -20,6 +20,9 @@ body {
   height: 100%;
   margin: 0;
   overflow: hidden;
+  /* Same reason as the app shell: the UA tap highlight put a blue wash over the
+     video surface and every control on touch. The player draws its own states. */
+  -webkit-tap-highlight-color: transparent;
   background: #000;
   color: var(--ztv-text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -385,7 +388,8 @@ body.fit-fill .art-video {
 
 .art-control-rewind-10:focus-visible,
 .art-control-forward-10:focus-visible,
-.art-control-next-episode:focus-visible {
+.art-control-next-episode:focus-visible,
+.art-control-ztv-more:focus-visible {
   outline: 2px solid var(--ztv-cyan);
   outline-offset: -4px;
 }
@@ -533,9 +537,24 @@ body.fit-fill .art-video {
 }
 
 
+/* The overflow control is the phone counterpart of the desktop gear, so only one
+   of the two is ever on the bar. Hidden by default and switched on by the phone
+   blocks below, so desktop keeps its native settings/PiP/web-fullscreen controls
+   untouched no matter which phone rule matches. */
+.art-control-ztv-more { display: none !important; }
+
+.ztv-more-icon {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
 @media (max-width: 760px) {
+  .art-control-ztv-more { display: flex !important; }
+
   /* Keep the compact transport row focused on playback. The stock volume
-     control remains visible and its rail now opens entirely above the timeline. */
+     control remains visible and its rail now opens entirely above the timeline.
+     These three are not dropped - they move into the "..." sheet below. */
   .art-control-pip,
   .art-control-fullscreenWeb,
   .art-control-setting { display: none !important; }
@@ -548,16 +567,273 @@ body.fit-fill .art-video {
   .art-control-playAndPause,
   .art-control-next-episode,
   .art-control-volume,
+  .art-control-ztv-more,
   .art-control-fullscreen {
     /* !important: ArtPlayer sets the control width in its own runtime stylesheet. */
     min-width: 44px !important;
   }
 
-  /* Reclaim width from the timestamp so the row fits without shrinking targets. */
+  /* Reclaim width from the timestamp so the row fits without shrinking targets.
+     !important for the same reason as the widths above: Artplayer's runtime
+     <style> is injected after this file, so an equal-specificity rule loses and
+     the timestamp silently stayed at its default 12px/5px. */
   .art-control-time {
-    font-size: 0.72rem;
-    padding: 0 0.3rem;
+    font-size: 0.72rem !important;
+    padding: 0 0.3rem !important;
   }
+}
+
+/* Narrow phones (375px) cannot hold seven 44px targets plus the timestamp. Two
+   steps back rather than one: 40px targets, and a genuinely smaller timestamp.
+   Measured at 375px - 8 controls totalled 361px against 355px of usable row, so
+   the row overflowed; tightening the timestamp alone recovers it and the touch
+   targets stay at 40px. */
+@media (max-width: 430px) {
+  .art-control-rewind-10,
+  .art-control-forward-10,
+  .art-control-playAndPause,
+  .art-control-next-episode,
+  .art-control-volume,
+  .art-control-ztv-more,
+  .art-control-fullscreen {
+    min-width: 40px !important;
+  }
+
+  .art-control-time {
+    font-size: 0.64rem !important;
+    padding: 0 0.1rem !important;
+    min-width: 0 !important;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Artplayer parks the controls lock against the left edge, vertically centred,
+   where it sits on top of the picture and next to nothing else. Top-right keeps
+   it clear of the transport row, the subtitles and the seek gestures, and it is
+   where a fullscreen overlay button is normally looked for. Artplayer still owns
+   when it appears (touch + fullscreen); this only moves it. */
+.art-layer-lock {
+  top: calc(12px + env(safe-area-inset-top)) !important;
+  right: calc(12px + env(safe-area-inset-right)) !important;
+  left: auto !important;
+  bottom: auto !important;
+  margin: 0 !important;
+  transform: none !important;
+  /* 44px: the lock is a touch-only control, so it gets a full touch target.
+     No display rule here on purpose - Artplayer toggles this layer's display to
+     show and hide it, and overriding that would either pin it on screen or stop
+     it appearing at all. */
+  width: 44px !important;
+  height: 44px !important;
+  background: rgba(4, 6, 16, 0.62) !important;
+  border: 1px solid var(--ztv-border);
+  backdrop-filter: blur(10px);
+}
+
+/* A phone turned sideways is 812x375 - past the 760px gate, so it was getting
+   the desktop gear and its small dropdown on a 375px-tall screen. Width alone
+   cannot tell a landscape phone from a small desktop window, and (pointer:
+   coarse) does not survive desktop emulation, so this keys off .art-mobile -
+   Artplayer's own device detection, set once at construction. A short desktop
+   window never carries that class, so desktop is untouched. Tablets are well
+   above 500px tall in either orientation and keep the desktop controls. */
+@media (max-height: 500px) {
+  .art-mobile .art-control-ztv-more { display: flex !important; }
+
+  .art-mobile .art-control-pip,
+  .art-mobile .art-control-fullscreenWeb,
+  .art-mobile .art-control-setting { display: none !important; }
+
+  .art-mobile .art-control-rewind-10,
+  .art-mobile .art-control-forward-10,
+  .art-mobile .art-control-playAndPause,
+  .art-mobile .art-control-next-episode,
+  .art-mobile .art-control-volume,
+  .art-mobile .art-control-ztv-more,
+  .art-mobile .art-control-fullscreen {
+    min-width: 44px !important;
+  }
+}
+
+/* ── Phone options sheet ──────────────────────────────────────────────────
+   Lives inside Artplayer's own container so it survives fullscreen, and above
+   .art-settings (z-index 90) so nothing of the player's own UI overlaps it. */
+.ztv-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.ztv-sheet[hidden] { display: none; }
+
+.ztv-sheet-scrim {
+  position: absolute;
+  inset: 0;
+  /* Dim rather than hide: the picture stays visible behind the sheet, which is
+     what makes a quality or speed change readable while it happens. */
+  background: rgba(2, 3, 10, 0.42);
+}
+
+.ztv-sheet-panel {
+  position: relative;
+  width: 100%;
+  /* Never the whole video, and never taller than the player itself. */
+  max-height: min(62%, 24rem);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: rgba(9, 11, 20, 0.96);
+  border-top: 1px solid var(--ztv-border);
+  border-radius: 14px 14px 0 0;
+  box-shadow: 0 -18px 44px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(18px);
+}
+
+.ztv-sheet-panel:focus { outline: none; }
+
+.ztv-sheet-grip {
+  width: 36px;
+  height: 4px;
+  margin: 8px auto 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.ztv-sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem calc(0.5rem + env(safe-area-inset-right)) 0.35rem calc(0.5rem + env(safe-area-inset-left));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ztv-sheet-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding-inline: 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ztv-sheet-back,
+.ztv-sheet-close {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ztv-text);
+  cursor: pointer;
+}
+
+.ztv-sheet-back[hidden] { display: none; }
+
+.ztv-sheet-back svg,
+.ztv-sheet-close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.ztv-sheet-back:hover,
+.ztv-sheet-close:hover { background: rgba(255, 255, 255, 0.08); }
+
+.ztv-sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 0.3rem calc(0.35rem + env(safe-area-inset-right)) 0.6rem calc(0.35rem + env(safe-area-inset-left));
+}
+
+.ztv-sheet-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  /* 48px: comfortably above the 44px touch-target minimum, and the reason the
+     body scrolls instead of the rows compressing. */
+  min-height: 48px;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ztv-text);
+  font-size: 0.92rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ztv-sheet-row.is-static {
+  cursor: default;
+  color: var(--ztv-muted);
+}
+
+.ztv-sheet-row:not(.is-static):hover,
+.ztv-sheet-row:not(.is-static):focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+.ztv-sheet-row:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--ztv-cyan);
+}
+
+.ztv-sheet-row.is-checked { color: var(--ztv-cyan); }
+
+.ztv-sheet-row-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ztv-sheet-row-value {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ztv-muted);
+  font-size: 0.85rem;
+}
+
+.ztv-sheet-tick,
+.ztv-sheet-chevron {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+}
+
+.ztv-sheet-chevron { color: var(--ztv-muted); }
+
+.ztv-sheet-tick svg,
+.ztv-sheet-chevron svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Landscape phone: the player is only ~283px tall, where 62% is barely two rows.
+   Give the sheet a larger share of a short player - the picture stays visible
+   above it, and the body scrolls either way. Must come after the base rule
+   above, which has the same specificity. */
+@media (max-height: 500px) {
+  .ztv-sheet-panel { max-height: min(78%, 16rem); }
 }
 
 /* ── Top-bar mascot ───────────────────────────────────────────────────────
