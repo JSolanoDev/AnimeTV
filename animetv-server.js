@@ -9689,22 +9689,31 @@ async function handleTmdbSearch(url, response) {
   const query = String(url.searchParams.get("q") || "").trim();
   if (!query) return sendJson(response, { ok: false, configured: true, error: "Missing query" }, 400);
   const year = String(url.searchParams.get("year") || "").trim();
-  const cacheKey = `${normalizeTitle(query)}|${year}`;
+  // Include the media type: the tv and movie indexes answer the same query
+  // differently, and sharing one key would serve a film result for a series.
+  const cacheKey = `${normalizeTitle(query)}|${year}|${String(url.searchParams.get("type") || "tv").toLowerCase()}`;
   try {
     const cached = tmdbSearchCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < TMDB_CACHE_TTL_MS) {
       return sendJson(response, { ok: true, configured: true, cached: true, results: cached.data });
     }
+    const wantMovie = String(url.searchParams.get("type") || "").toLowerCase() === "movie";
+    const route = wantMovie ? "/search/movie" : "/search/tv";
+    const yearKey = wantMovie ? "primary_release_year" : "first_air_date_year";
     const params = { query, include_adult: "false", language: "en-US" };
-    if (year) params.first_air_date_year = year;
-    let payload = await tmdbFetch("/search/tv", params);
+    if (year) params[yearKey] = year;
+    let payload = await tmdbFetch(route, params);
     let results = Array.isArray(payload.results) ? payload.results : [];
     if (year && !results.length) {
       const fallbackParams = { query, include_adult: "false", language: "en-US" };
-      payload = await tmdbFetch("/search/tv", fallbackParams);
+      payload = await tmdbFetch(route, fallbackParams);
       results = Array.isArray(payload.results) ? payload.results : [];
     }
-    const sliced = results.slice(0, 10);
+    // A movie result carries title/original_title/release_date. Alias them to the
+    // TV field names so callers never have to branch on the media type.
+    const sliced = results.slice(0, 10).map((r) => (wantMovie
+      ? { ...r, name: r.name || r.title, original_name: r.original_name || r.original_title, first_air_date: r.first_air_date || r.release_date, media_type: "movie" }
+      : r));
     tmdbSearchCache.set(cacheKey, { data: sliced, ts: Date.now() });
     sendJson(response, { ok: true, configured: true, results: sliced });
   } catch (error) {
