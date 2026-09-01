@@ -11858,3 +11858,28 @@ main {
     display: grid !important;
   }
 }
+
+/* ── Phone: pin the player, do not chase it ──────────────────────────────────
+   Two requests wanted the same thing: opening a show should land on the episode
+   list, and picking an episode should put you where it is playing. Both were
+   attempted as scrolls, and both kept losing a race - sources resolve for ~20s
+   after an episode starts and every pass re-renders the episode list, moving the
+   player each time. Any scroll, one-shot or retried, either fired before the
+   layout settled or was undone by the next re-render.
+
+   Sticky removes the race instead of trying to win it: the player holds the top
+   of the scrolling panel while the episodes scroll underneath, so it is in view
+   the whole time by construction and there is nothing to chase. This is also
+   how the streaming apps this page is modelled on behave.
+
+   .watch-panel is the scroller; nothing between it and here may clip, which is
+   why the cinema rules already force overflow:visible on .watch-side. */
+@media (max-width: 760px) {
+  .watch-overlay .watch-side .video-frame {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    /* Opaque, or the episode rows show through as they slide under it. */
+    background: #000 !important;
+  }
+}

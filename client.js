@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=576`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=578`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2895,7 +2895,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=576";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=578";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -6603,12 +6603,6 @@ async function openShow(id, target = {}) {
     applyOpenTarget(show, target);
     renderEpisodeList(show);
     resetEpisodePanelScroll();
-    // Stacked (phone) layout puts the episode list a screen and a half below the
-    // fold, so opening a show landed on the synopsis instead of the episodes.
-    // One-shot: renderEpisodeList runs many times a second while the catalog
-    // enriches, and scrolling on each pass would fight the user.
-    state.pendingEpisodeListScroll = true;
-    scrollEpisodeListIntoView();
     refreshFocusables();
     hydrateOpenShowDetails(show, target, openToken);
   });
@@ -8165,84 +8159,6 @@ function resetEpisodePanelScroll() {
   if (rows) rows.scrollTop = 0;
 }
 
-// Bring the episode list into view after a show is opened. Consumes
-// state.pendingEpisodeListScroll, so it runs once per open no matter how many
-// times renderEpisodeList fires while the catalog fills in.
-//
-// Self-correcting across layouts: on desktop the list sits beside the player and
-// is already near the top of the scroller, so the check below turns this into a
-// no-op. It only moves when the rows genuinely start below the halfway mark.
-// scrollTo({ behavior: "smooth" }) is silently ignored on this panel - measured
-// on production: a smooth call left scrollTop at 922, while "auto" and a direct
-// assignment both moved it to the requested 352. The scroll has to actually
-// happen, so it is assigned outright rather than requested politely.
-function setPanelScrollTop(panel, top) {
-  if (!panel) return;
-  panel.scrollTop = Math.max(0, Math.round(top));
-}
-
-function scrollEpisodeListIntoView() {
-  if (!state.pendingEpisodeListScroll) return;
-  const panel = document.querySelector(".watch-panel");
-  const side = episodeList?.closest(".watch-side");
-  const rows = episodeList?.querySelector("#epRows");
-  if (!panel || !side || !rows || !rows.children.length) return;   // not built yet - try again next render
-  state.pendingEpisodeListScroll = false;
-  const panelRect = panel.getBoundingClientRect();
-  const rowsRect = rows.getBoundingClientRect();
-  if (rowsRect.top - panelRect.top < panelRect.height * 0.4) return;
-  const sideRect = side.getBoundingClientRect();
-  setPanelScrollTop(panel, panel.scrollTop + (sideRect.top - panelRect.top));
-}
-
-// The mirror image of the above: picking an episode should take you TO it
-// playing. On a phone the player sits above the list, so after choosing an
-// episode from a list you have scrolled down through, the thing you just started
-// is off-screen above you.
-// A no-op on desktop, where the player is beside the list and already in view -
-// the check below only fires when the player is genuinely off the top.
-// Holds the player in view while the page settles after an episode is picked.
-//
-// This needs a WATCH, not a scroll. Sources keep resolving for many seconds
-// after the player mounts and every pass re-renders the episode list, which
-// moves the player each time - measured on production, the list grew from 9 rows
-// to 12 and the player ended 619px above the fold. A one-shot scroll (or a
-// second's worth of retries) always finished long before the layout stopped
-// moving, which is why this took several attempts to get right.
-//
-// `lastSet` is how it knows to get out of the way: it records where it left the
-// panel, and if the panel has moved since by anything other than its own hand,
-// the viewer scrolled and the watch ends immediately.
-function scrollPlayerIntoView(attempt = 0, lastSet = null) {
-  const panel = document.querySelector(".watch-panel");
-  const frame = document.querySelector("#videoFrame");
-  if (!panel || !frame) return;
-  // Hold off the selected-row scroll in renderEpisodeList for the duration, or
-  // it re-runs on every re-render and drags the panel back onto the row.
-  state.suppressEpisodeRowScroll = true;
-  const stop = () => { state.suppressEpisodeRowScroll = false; };
-
-  if (lastSet !== null && Math.abs(panel.scrollTop - lastSet) > 4) { stop(); return; }
-
-  let settled = panel.scrollTop;
-  const panelRect = panel.getBoundingClientRect();
-  const frameRect = frame.getBoundingClientRect();
-  if (frameRect.height) {
-    const visibleTop = Math.max(frameRect.top, panelRect.top);
-    const visibleBottom = Math.min(frameRect.bottom, panelRect.bottom);
-    // Not showing enough of it? Bring it back. On desktop the player sits beside
-    // the list and is always in view, so this never fires there.
-    if (visibleBottom - visibleTop <= frameRect.height * 0.6) {
-      setPanelScrollTop(panel, panel.scrollTop + (frameRect.top - panelRect.top) - 8);
-      settled = panel.scrollTop;   // read back: the browser clamps the target
-    }
-  }
-  // ~8s of watching, which covers the resolve-and-re-render window without
-  // hanging around afterwards.
-  if (attempt < 30) setTimeout(() => scrollPlayerIntoView(attempt + 1, settled), 260);
-  else stop();
-}
-
 function renderEpisodeList(show) {
   if (!episodeList || !show) return;
   hideAdultGalleryPanel();
@@ -8826,17 +8742,7 @@ function renderEpisodeList(show) {
   // (i.e. when the episode is off-screen). Block: "nearest" avoids jarring
   // jumps when the item is already visible.
   requestAnimationFrame(() => {
-    // Deep links and slow catalogs reach openShow before the rows exist, so the
-    // pending scroll is retried here until there is something to scroll to.
-    scrollEpisodeListIntoView();
-    // While we are bringing the player into view, this must stand down. Sources
-    // keep resolving after an episode starts and each pass re-renders the list,
-    // so this ran repeatedly AFTER the player scroll and dragged the panel back
-    // onto the selected row every time - which is why the panel kept landing on
-    // exactly the same offset no matter what the player scroll asked for.
-    const selectedRow = state.suppressEpisodeRowScroll
-      ? null
-      : episodeList.querySelector(".ep-row.is-selected");
+    const selectedRow = episodeList.querySelector(".ep-row.is-selected");
     if (selectedRow) {
       const sidePanel = episodeList.closest(".watch-side") || episodeList.parentElement;
       if (sidePanel) {
@@ -13307,18 +13213,6 @@ function renderDirectVideoPlayer(frame, url, episode) {
   `;
   const shell = frame.querySelector(".vidstream-player");
   setPlayerCinema(shell, true, { silent: true });
-  // Now that there is something to look at, take the viewer to it. On a phone
-  // the player sits above the episode list, so an episode picked from a list you
-  // had scrolled down through would otherwise start off-screen above you. This
-  // has to happen at the mount, not at the click: when the row is clicked the
-  // source has not resolved yet and #videoFrame is still empty, so scrolling
-  // then lands on nothing. A no-op when the player is already in view, which is
-  // always the case on desktop, where it sits beside the list.
-  // Wrapped, NOT passed directly: requestAnimationFrame hands the callback a
-  // timestamp, which would land in `attempt` as ~12345 and make every retry
-  // guard (attempt < 4) false. The one attempt that did run fired before the
-  // iframe had laid out, so it measured a zero-height box and gave up.
-  requestAnimationFrame(() => scrollPlayerIntoView());
   const iframe = frame.querySelector("#animePlayerFrame");
   const player = useApkPlayer
     ? createApkPlayerController(iframe, {
@@ -15464,7 +15358,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=576");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=578");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
