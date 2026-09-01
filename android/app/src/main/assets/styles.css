@@ -1781,6 +1781,23 @@ body:not([data-route="home"]) .section-heading h2 {
   transition: transform 320ms ease, filter 320ms ease;
 }
 
+.thumb-art.has-contained-poster::before {
+  content: "";
+  position: absolute;
+  inset: -1rem;
+  z-index: 0;
+  background-image: linear-gradient(rgba(7, 9, 19, 0.48), rgba(7, 9, 19, 0.72)), var(--contained-poster);
+  background-position: center;
+  background-size: cover;
+  filter: blur(0.75rem) saturate(0.85);
+  transform: scale(1.08);
+}
+
+.thumb-poster.is-contained-poster {
+  object-fit: contain;
+  padding: 0.35rem;
+}
+
 .thumb-poster + .episode-pill {
   z-index: 3;
 }
@@ -7897,12 +7914,12 @@ body.reduce-motion .watch-backdrop-blur { transform: scale(1.08); }
 }
 .watch-backdrop-title-art {
   position: absolute;
-  top: 12%;
+  top: 18%;
   right: clamp(22rem, 27vw, 34rem);
   z-index: 1;
   display: flex;
-  width: min(42vw, 46rem);
-  min-height: 52%;
+  width: min(30vw, 28rem);
+  min-height: 42%;
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
@@ -7912,6 +7929,7 @@ body.reduce-motion .watch-backdrop-blur { transform: scale(1.08); }
   pointer-events: none;
 }
 .watch-backdrop-title-art[hidden] { display: none; }
+.watch-summary:empty { display: none; }
 .watch-backdrop-title-art::before {
   content: "Z";
   position: absolute;
@@ -7935,11 +7953,16 @@ body.reduce-motion .watch-backdrop-blur { transform: scale(1.08); }
 }
 .watch-backdrop-title-art strong {
   max-width: 100%;
-  font-size: clamp(2rem, 4.5vw, 5.5rem);
+  display: -webkit-box;
+  max-height: 8rem;
+  overflow: hidden;
+  font-size: clamp(1.45rem, 2.25vw, 2.8rem);
   font-weight: 950;
-  line-height: 0.94;
+  line-height: 1.02;
   overflow-wrap: anywhere;
   text-wrap: balance;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
   text-shadow: 0 0.3rem 2.2rem rgba(0, 0, 0, 0.72);
 }
 .watch-backdrop-title-rule {

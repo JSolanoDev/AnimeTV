@@ -7991,14 +7991,29 @@ function anilistSearchVariants(raw) {
     .replace(/\bparte\b/giu, "Part");
   add(localised);
 
+  // Romanisation sources do not agree on whether particles are joined. For
+  // example AnimeAV1 uses "dewa" while AniList indexes the same title as
+  // "de wa". AniList returns no result for the former full title.
+  add(localised.replace(/\b(dewa|niwa|nowa|towa)\b/giu, (word) => `${word.slice(0, -2)} ${word.slice(-2)}`));
+
   // Format words the catalogue adds and AniList does not carry in the title:
   // "Tsurune Movie: Hajimari no Issha" misses even with the colon gone, while
   // "Tsurune Hajimari no Issha" is #125261.
   add(localised.replace(/\b(movie|film|pelicula|película|ova|ona|special)\b/giu, " "));
 
+  const sections = String(raw).split(/\s*[:|]\s*/).map((part) => part.trim()).filter(Boolean);
+  sections.forEach(add);
+
   const words = plain.trim().split(" ").filter(Boolean);
-  if (words.length > 6) add(words.slice(0, 6).join(" "));  // very long titles
-  return variants.slice(0, 6);
+  // Long catalogue titles frequently carry a subtitle AniList does not search
+  // well. Try progressively smaller, still-distinct prefixes. Three words is
+  // enough to find the correct entry while the client performs a full-title
+  // confidence check before accepting it.
+  if (words.length > 6) add(words.slice(0, 6).join(" "));
+  if (words.length > 5) add(words.slice(0, 5).join(" "));
+  if (words.length > 4) add(words.slice(0, 4).join(" "));
+  if (words.length > 3) add(words.slice(0, 3).join(" "));
+  return variants.slice(0, 12);
 }
 
 async function handleAniListSearch(url, response) {
@@ -8277,7 +8292,7 @@ function pickGenre(genres = []) {
 }
 
 function cleanDescription(value) {
-  if (!value) return "No synopsis is available yet. You can still favorite it and connect your own playback link.";
+  if (!value) return "";
   return String(value)
     .replace(/<br\s*\/?>/gi, " ")
     .replace(/<\/?[^>]+(>|$)/g, "")

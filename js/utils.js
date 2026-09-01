@@ -205,7 +205,7 @@ function pickGenre(genres = []) {
 }
 
 function cleanDescription(value, maxLength = 320) {
-  if (!value) return "No synopsis is available yet. You can still favorite it and connect your own playback link.";
+  if (!value) return "";
   // Strip HTML safely (incl. entities), collapse whitespace.
   const text = String(value)
     .replace(/<br\s*\/?>/gi, " ")

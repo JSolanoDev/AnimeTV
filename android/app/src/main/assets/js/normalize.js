@@ -4,8 +4,12 @@
 function normalizeExternalShow(item, source, index) {
   const title = item.title || item.name || item.animeTitle;
   if (!title) return null;
-  const genres = item.genres || (item.genre ? [item.genre] : []);
-  const genre = pickGenre(genres.length ? genres : ["anime"]);
+  const rawGenres = item.genres || (item.genre ? [item.genre] : []);
+  const genres = (Array.isArray(rawGenres) ? rawGenres : [rawGenres])
+    .map((value) => typeof value === "string" ? value : value?.name)
+    .map((value) => String(value || "").trim())
+    .filter((value) => value && !/^(?:anime|animation)$/i.test(value));
+  const genre = genres.length ? pickGenre(genres) : "";
   const seasons = normalizeSeasons(item);
   const episodes = seasons.flatMap((season) => season.episodes);
   const videoUrl = pickPlayableUrl(item) || getEpisodeUrl(episodes[0]) || "";
@@ -36,7 +40,7 @@ function normalizeExternalShow(item, source, index) {
     image: item.image || item.poster || item.cover || item.thumbnail || "",
     banner: item.banner || item.backdrop || "",
     siteUrl: item.siteUrl || item.url || "",
-    description: cleanDescription(item.description || item.synopsis || "Local source title."),
+    description: cleanDescription(item.description || item.synopsis || ""),
     anime1vUrl: item.anime1vUrl || item.animeUrl || item.url || item.link || "",
     provider: item.provider || source.provider || "",
     episodeEndpoint: item.episodeEndpoint || source.episodeEndpoint || "",

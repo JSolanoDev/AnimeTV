@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=579`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=581`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2234,8 +2234,8 @@ function makeAv1OnlyShow(item) {
     nextAiringEpisodeNumber: (Number(item.episode) || 0) + 1,
     status: "RELEASING",
     source: "AnimeAV1",
-    genre: "anime",
-    genres: ["anime"],
+    genre: "",
+    genres: [],
     colors: ["#8a5cff", "#211942"],
     description: "",
     animeAv1Slug: item.slug,
@@ -2895,7 +2895,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=579";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=581";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -3129,6 +3129,14 @@ function artworkDimensionsAreUseful(img, role) {
   return true;
 }
 
+function artworkCanUseContainedPoster(img) {
+  const width = Number(img.naturalWidth || 0);
+  const height = Number(img.naturalHeight || 0);
+  if (width < 240 || height < 120) return false;
+  const ratio = width / height;
+  return ratio >= 0.9 && ratio <= 2.4;
+}
+
 function backdropPixelsLookUseful(img) {
   if (!artworkDimensionsAreUseful(img, "backdrop")) return false;
   try {
@@ -3293,6 +3301,18 @@ function markArtworkReady(img) {
   if (!img.naturalWidth) return;
   const role = artworkRoleForImage(img);
   if (role && !artworkDimensionsAreUseful(img, role)) {
+    if (role === "poster" && artworkCanUseContainedPoster(img)) {
+      const art = img.closest(".thumb-art");
+      const source = img.currentSrc || img.src;
+      img.classList.add("is-contained-poster");
+      if (art && source) {
+        art.classList.add("has-contained-poster");
+        art.style.setProperty("--contained-poster", `url("${source.replace(/"/g, "%22")}")`);
+      }
+      img.classList.add("img-ready");
+      art?.classList.add("img-ready");
+      return;
+    }
     markCurrentArtworkCandidateLowQuality(img, role);
     if (!advanceArtworkCandidate(img)) {
       img.dataset.imgFallback = "1";
@@ -3517,14 +3537,20 @@ async function hydrateCanonicalAnimeMetadata(show) {
       : `/api/anilist/search?q=${encodeURIComponent(show.romajiTitle || show.title || "")}`;
     const response = await fetchDeduped(endpoint);
     const payload = response.ok ? await response.json() : null;
-    media = payload?.media || null;
+    const candidates = [payload?.media, ...(Array.isArray(payload?.results) ? payload.results : [])]
+      .filter(Boolean)
+      .map((entry) => ({
+        entry,
+        score: titleMatchScore({
+          title: entry.title?.english || entry.title?.romaji || entry.title?.native || "",
+          romajiTitle: entry.title?.romaji || "",
+          nativeTitle: entry.title?.native || ""
+        }, show)
+      }))
+      .sort((a, b) => b.score - a.score);
+    media = candidates[0]?.score >= 65 ? candidates[0].entry : null;
     if (media && !show.anilistId) {
-      const candidate = {
-        title: media.title?.english || media.title?.romaji || media.title?.native || "",
-        romajiTitle: media.title?.romaji || "",
-        nativeTitle: media.title?.native || ""
-      };
-      if (titleMatchScore(candidate, show) < 65) media = null;
+      show.anilistMatchScore = candidates[0].score;
     }
   } catch { /* Jikan remains available below. */ }
 
@@ -4043,7 +4069,8 @@ function renderCards(container, list) {
   const signature = list
     .map((show) => {
       const posterKey = getCardPosterCandidates(show)[0] || "";
-      return `${show.id}:${cardEpisodeLabel(show)}:${isFavoriteShow(show) ? 1 : 0}:${posterKey}`;
+      const favorite = isFavoriteShow(show);
+      return `${show.id}:${getShowTitle(show)}:${cardEpisodeLabel(show)}:${favorite ? 1 : 0}:${cardMeta(show, favorite)}:${posterKey}`;
     })
     .join("|");
   const previousSignature = container.dataset.cardsSig || "";
@@ -7266,13 +7293,53 @@ function refreshActiveWatchBackdrop() {
   frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
 }
 
+function watchPosterDeliveryCandidates(show = {}, season = null) {
+  const poster = getWatchPosterArtwork(show, season);
+  const candidates = [
+    poster,
+    show.images?.poster,
+    show.images?.cover,
+    show.tmdbSeasonPoster,
+    show.tmdbPoster,
+    show.coverImageLarge,
+    show.image,
+    "logo-round.png"
+  ].map((url) => hqImage(String(url || "").trim())).filter(Boolean);
+  return [...new Set(candidates)].map((url) => imageDeliveryUrl(url, 480, 88));
+}
+
+function refreshActiveWatchPoster(show = state.activeShow, season = null) {
+  if (!show || document.body.classList.contains("player-cinema-open")) return;
+  const wrap = document.querySelector("#videoFrame .watch-ready-poster-wrap");
+  if (!wrap) return;
+  const delivered = watchPosterDeliveryCandidates(show, season);
+  if (!delivered.length) return;
+  let image = wrap.querySelector(".watch-poster");
+  if (!image) {
+    wrap.replaceChildren();
+    image = document.createElement("img");
+    image.className = "watch-poster";
+    image.referrerPolicy = "no-referrer";
+    image.loading = "eager";
+    image.fetchPriority = "high";
+    image.decoding = "async";
+    image.onerror = () => handleWatchPosterError(image);
+    wrap.appendChild(image);
+  }
+  if (image.getAttribute("src") === delivered[0]) return;
+  image.alt = getShowTitle(show);
+  delete image.dataset.imgFallback;
+  image.dataset.imageFallbacks = encodeURIComponent(JSON.stringify(delivered));
+  image.dataset.imageFallbackIndex = "0";
+  image.src = delivered[0];
+}
+
 function resetVideoFrame() {
   stopActivePlayback();
   const show = state.activeShow;
   const seasons = show ? getDetailSeasons(show) : [];
   const activeSeason = seasons[state.activeSeasonIndex] || seasons[0] || null;
   const background = getWatchBackdropArtwork(show, activeSeason);
-  const poster = getWatchPosterArtwork(show, activeSeason);
   const frame = document.querySelector("#videoFrame");
   frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
 
@@ -7290,18 +7357,7 @@ function resetVideoFrame() {
       ? `Source: ${escapeHtml(show.source)}`
       : "";
 
-  const watchPosterCandidates = [
-    poster,
-    show?.images?.poster,
-    show?.images?.cover,
-    show?.tmdbSeasonPoster,
-    show?.tmdbPoster,
-    show?.coverImageLarge,
-    show?.image,
-    "logo-round.png"
-  ].map(u => hqImage(String(u || "").trim())).filter(Boolean);
-  const uniqueCandidates = [...new Set(watchPosterCandidates)];
-  const deliveredCandidates = uniqueCandidates.map(url => imageDeliveryUrl(url, 480, 88));
+  const deliveredCandidates = watchPosterDeliveryCandidates(show, activeSeason);
   const watchPosterUrl = deliveredCandidates[0] || "";
   const watchFallbackData = deliveredCandidates.length
     ? ` data-image-fallbacks="${escapeHtml(encodeURIComponent(JSON.stringify(deliveredCandidates)))}" data-image-fallback-index="0"`
@@ -7570,6 +7626,7 @@ function syncWatchHeading(show = state.activeShow, season = null) {
   }
   renderDetailMeta(show);
   applyWatchBackdrop(show, activeSeason);
+  refreshActiveWatchPoster(show, activeSeason);
 }
 
 // Paint the cinematic pre-player background: a sharp wide backdrop layer plus a
@@ -7661,9 +7718,10 @@ function applyWatchBackdrop(show, season) {
     }, 4000);
   };
 
+  const isPosterFallback = (url) => Boolean(url && verticalArt.has(url) && !wideSources.has(url));
   const paint = (url) => {
     const isAdultShow = Boolean(show.adultSource || show.isAdult || (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)));
-    const posterFit = false;
+    const posterFit = !isAdultShow && isPosterFallback(url);
     const artIsHighRes = Boolean(url) && highResSources.has(url);
     const optimized = url ? imageDeliveryUrl(url, watchBackdropDeliveryWidth(), 92) : "";
     const sameTarget = backdrop.dataset.backdropKey === key;
@@ -7818,6 +7876,7 @@ function applyWatchBackdrop(show, season) {
 
   const deliveredArt = imageDeliveryUrl(art, watchBackdropDeliveryWidth(), 92);
   const qualityKey = artworkQualityKey(deliveredArt || art);
+  const posterFallback = isPosterFallback(art);
   const cachedQuality = backdropQualityCache.get(qualityKey);
   if (cachedQuality === true) {
     paint(art);
@@ -7837,7 +7896,9 @@ function applyWatchBackdrop(show, season) {
   probe.referrerPolicy = "no-referrer";
   probe.crossOrigin = "anonymous";
   probe.onload = () => {
-    const useful = backdropPixelsLookUseful(probe);
+    const useful = posterFallback
+      ? artworkDimensionsAreUseful(probe, "poster")
+      : backdropPixelsLookUseful(probe);
     backdropQualityCache.set(qualityKey, useful);
     if (state.activeShow?.id !== show.id) return;
     if (useful) {
@@ -15358,7 +15419,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=579");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=581");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

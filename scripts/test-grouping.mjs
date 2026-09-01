@@ -168,6 +168,7 @@ const sourceWords = desc.split(/\s+/);
 check("Every word kept is a complete word (no mid-word cut)", truncWords.every((w) => sourceWords.includes(w)));
 check("No leftover HTML tags", !/[<>]/.test(cleanDescription("<p>Hello <b>world</b></p>")));
 check("Short description returned whole (no ellipsis)", cleanDescription("Short text") === "Short text");
+check("Missing description stays blank", cleanDescription("") === "");
 
 console.log("\n# SmartSource link detection");
 const det = (input) => SmartSource.analyzeInput(input).type;
