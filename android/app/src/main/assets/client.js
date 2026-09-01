@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=586`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=587`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2926,7 +2926,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=586";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=587";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -14181,10 +14181,13 @@ function preloadOpenShow(id) {
   const preloadArtwork = () => {
     const knownBackdrop = getWatchBackdropArtwork(show);
     if (!knownBackdrop) return;
-    const image = new Image();
-    image.referrerPolicy = "no-referrer";
-    image.decoding = "async";
-    image.src = knownBackdrop;
+    // Warm the EXACT url the watch page will paint. This used to fetch the raw
+    // source url while paint() renders imageDeliveryUrl(art, watchBackdropDeliveryWidth(), 92)
+    // - a different url - so hovering a card downloaded an image the page then
+    // never asked for, and opening it still paid full download latency.
+    // preloadArtworkImage() dedupes on the delivered url, so repeated hovers and
+    // the post-enrichment second call are free.
+    preloadArtworkImage(knownBackdrop, watchBackdropDeliveryWidth(), 92);
   };
   if (!show._artworkPreloaded) { show._artworkPreloaded = true; preloadArtwork(); }
   if (!show._metadataPreloadStarted && (show.anilistId || show.malId || show.title)) {
@@ -15569,7 +15572,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=586");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=587");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
