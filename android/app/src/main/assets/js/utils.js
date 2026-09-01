@@ -225,11 +225,18 @@ function cleanDescription(value, maxLength = 320) {
   return `${safe}…`;
 }
 
+// One numeric asset id is published by the CDN in three shapes:
+//   /thumbnails/<id>.jpg   300x200   small landscape (what the "latest" feed sends)
+//   /covers/<id>.jpg       260x368   portrait poster - exists for every id (977/977 checked)
+//   /backdrops/<id>.jpg   1900x400   wide strip - MISSING for ~39% of ids (403 on 377/977)
+// Converting between them is pure string substitution. Thumbnails are accepted as
+// a source too: without that the latest-episodes rail kept a 300x200 landscape
+// thumbnail as its portrait poster.
 function animeAv1ArtworkVariant(value, role = "poster") {
   const url = String(value || "").trim();
-  if (!/^https?:\/\/cdn\.animeav1\.com\/(?:covers|backdrops)\//i.test(url)) return "";
+  if (!/^https?:\/\/cdn\.animeav1\.com\/(?:covers|backdrops|thumbnails)\//i.test(url)) return "";
   const folder = role === "backdrop" ? "backdrops" : "covers";
-  return url.replace(/\/(?:covers|backdrops)\//i, `/${folder}/`);
+  return url.replace(/\/(?:covers|backdrops|thumbnails)\//i, `/${folder}/`);
 }
 
 function formatCount(value, label) {

@@ -41,7 +41,13 @@ function normalizeExternalShow(item, source, index) {
     year: item.year || item.seasonYear || item.releaseYear || "",
     source: source.name || "Local Source",
     image: sourcePoster,
-    banner: item.banner || item.backdrop || sourceBackdrop || "",
+    // Genuine banner art from the source only. The derived AnimeAV1 strip is
+    // deliberately NOT here: /api/catalog sends banner:"" for scraped titles, so the
+    // derived value always won, and a 1900x400 strip (39% of which 403) then
+    // outranked the TMDB backdrop everywhere show.banner is read. It stays
+    // available to the backdrop chain under its own name, ranked below real art.
+    banner: item.banner || item.backdrop || "",
+    animeAv1Backdrop: sourceBackdrop || "",
     siteUrl: item.siteUrl || item.url || "",
     description: cleanDescription(item.description || item.synopsis || ""),
     anime1vUrl: item.anime1vUrl || item.animeUrl || item.url || item.link || "",
@@ -438,7 +444,7 @@ function normalizeJikanShow(entry, source) {
   };
 }
 
-function mergeShows(items) {
+function mergeShows(items, limit = 1200) {
   const byKey = new Map();
   items.forEach((show) => {
     const key = getShowKey(show);
@@ -461,8 +467,10 @@ function mergeShows(items) {
     });
   });
   // Keep enough room for the regular catalog plus isolated mode-specific
-  // catalogs. Individual surfaces apply their own rendering limits.
-  return [...byKey.values()].slice(0, 1200);
+  // catalogs. Individual surfaces apply their own rendering limits. Re-merging an
+  // already-loaded catalogue passes Infinity: the live catalogue is already over
+  // 1200 titles, so the default cap would silently drop the tail.
+  return [...byKey.values()].slice(0, limit);
 }
 
 function mergeEpisodes(current = [], incoming = []) {

@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=584`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=585`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2740,6 +2740,7 @@ function seasonPosterFallbackCandidates(show = {}, season = null) {
 
 function animeAv1BackdropCandidates(show = {}, season = null) {
   return [
+    show.animeAv1Backdrop,
     show.images?.poster,
     show.images?.cover,
     show.image,
@@ -2808,19 +2809,25 @@ function getWatchBackdropArtwork(show = {}, season = null) {
     .filter((url) => !isArtworkLowQuality(url, "backdrop")));
   if (adultArt) return adultArt;
   const candidates = [
-    ...animeAv1BackdropCandidates(show, season),
+    show.images?.backdrop,
+    show.images?.banner,
+    show.tmdbBackdrop,
     show.highQualityBackground,
     show.banner,
     show.bannerImage,
     show.backdrop,
-    show.images?.banner,
-    show.images?.backdrop,
-    show.tmdbBackdrop,
     show.heroImage,
     show.wideImage,
     show.landscapeImage,
     show.jikanBackground,
     ...seasonWideBackdropCandidates(show, season),
+    // AnimeAV1's own strip ranks last among the WIDE options. It is 1900x400
+    // (ratio 4.75 - artworkDimensionsAreUseful() calls that a banner, not a
+    // backdrop) and 377 of 977 derived URLs 403. Ranked first, as it was, a show
+    // committed to the strip and never upgraded once TMDB resolved. It is still far
+    // better than dropping to a portrait poster, so it stays above those - and it is
+    // the only wide art the ~1000 scraped-only titles have at all.
+    ...animeAv1BackdropCandidates(show, season),
     ...seasonPosterFallbackCandidates(show, season),
     show.coverImageLarge,
     show.images?.poster,
@@ -2919,7 +2926,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=584";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=585";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -7711,8 +7718,11 @@ function applyWatchBackdrop(show, season) {
   // art is good enough to show sharp, or whether to hold on the blurred fill until
   // TMDB resolves (an AniList banner is wide but NOT in here, so it's "low-res").
   const seasonNum = getBackdropSeasonNumber(season);
+  // Genuinely high-resolution final art only. Adding the AnimeAV1 strip here
+  // disabled the blur-hold for ~80% of the catalogue: the strip counted as
+  // "final", so the page committed to it instead of waiting the moment it takes
+  // the TMDB backdrop to land.
   const highResSources = new Set([
-    ...sourceBackdrops,
     show.tmdbBackdrop, show.highQualityBackground,
     season?.tmdbBackdrop, season?.highQualityBackground,
     seasonNum && show.tmdbSeasonBackdropsBySeason ? show.tmdbSeasonBackdropsBySeason[seasonNum] : ""
@@ -12053,6 +12063,31 @@ function resumeVisibleMetadataWarm() {
   scheduleVisibleMetadataWarm(shows.length ? shows : state.shows, pending.limit || HOME_INITIAL_CARD_LIMIT);
 }
 
+// A show can enter the catalogue twice. Before AniList resolves, getShowKey falls
+// back to title:year:format, so the AnimeAV1 row (romaji title, slug, episodes) and
+// the AniList row (English title, no slug) key differently and both survive
+// mergeShows. Enrichment then stamps the AniList id onto the scraped row and the
+// two finally agree - long after the merge ran. Measured on production: 30 such
+// pairs in a 1227-title catalogue ("Mushoku Tensei III" / "Mushoku Tensei: Jobless
+// Reincarnation Season 3", "Grand Blue Season 3" / "Grand Blue Dreaming Season 3",
+// "Youjo Senki II" / "Saga of Tanya the Evil Season 2", ...).
+//
+// Re-merging collapses them, and keeps the best of both: mergeShows prefers the
+// first row for image/banner/description (the scraped art) while the AniList row
+// supplies title/metadata - so getShowTitle() can finally honour the english vs
+// romaji preference, which a romaji-only scraped row could not.
+function dedupeCatalogShows() {
+  // Never while a show is open: mergeShows returns NEW objects, and state.activeShow
+  // would be left pointing at one no longer in the catalogue.
+  if (state.activeShow) return false;
+  const shows = state.shows || [];
+  if (shows.length < 2) return false;
+  const merged = mergeShows(shows, Infinity);
+  if (merged.length >= shows.length) return false;
+  state.shows = merged;
+  return true;
+}
+
 function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_LIMIT) {
   // Never warm the catalogue while a show is open. The warm fires ~80 requests
   // across two workers and a browser only opens about six connections per host,
@@ -12139,7 +12174,11 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
   // 2 concurrent workers — enough to keep the pipeline busy without
   // hammering external APIs (jikan 429s, anilist 502s seen in production).
   Promise.allSettled([worker(), worker()]).then(() => {
-    if (changed && generation === visibleMetadataWarmGeneration) render();
+    if (generation !== visibleMetadataWarmGeneration) return;
+    // This batch may have stamped AniList ids onto scraped rows, which is what
+    // reveals a duplicate pair. Collapse once per batch - never from render().
+    const collapsed = dedupeCatalogShows();
+    if (changed || collapsed) render();
   }).catch(() => {});
 }
 
@@ -15517,7 +15556,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=584");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=585");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
