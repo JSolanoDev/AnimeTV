@@ -4,6 +4,9 @@
 function normalizeExternalShow(item, source, index) {
   const title = item.title || item.name || item.animeTitle;
   if (!title) return null;
+  const sourceImage = item.image || item.poster || item.cover || item.thumbnail || "";
+  const sourcePoster = animeAv1ArtworkVariant(sourceImage, "poster") || sourceImage;
+  const sourceBackdrop = animeAv1ArtworkVariant(sourceImage, "backdrop");
   const rawGenres = item.genres || (item.genre ? [item.genre] : []);
   const genres = (Array.isArray(rawGenres) ? rawGenres : [rawGenres])
     .map((value) => typeof value === "string" ? value : value?.name)
@@ -37,8 +40,8 @@ function normalizeExternalShow(item, source, index) {
     duration: item.duration || item.durationMinutes || item.episodeDuration || "",
     year: item.year || item.seasonYear || item.releaseYear || "",
     source: source.name || "Local Source",
-    image: item.image || item.poster || item.cover || item.thumbnail || "",
-    banner: item.banner || item.backdrop || "",
+    image: sourcePoster,
+    banner: item.banner || item.backdrop || sourceBackdrop || "",
     siteUrl: item.siteUrl || item.url || "",
     description: cleanDescription(item.description || item.synopsis || ""),
     anime1vUrl: item.anime1vUrl || item.animeUrl || item.url || item.link || "",

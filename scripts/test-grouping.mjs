@@ -12,6 +12,7 @@ const {
   canFollowSeasonLink,
   getShowKey,
   cleanDescription,
+  animeAv1ArtworkVariant,
   normalizeTitle
 } = require("../js/utils.js");
 const { SmartSource } = require("../js/smart-source.js");
@@ -169,6 +170,17 @@ check("Every word kept is a complete word (no mid-word cut)", truncWords.every((
 check("No leftover HTML tags", !/[<>]/.test(cleanDescription("<p>Hello <b>world</b></p>")));
 check("Short description returned whole (no ellipsis)", cleanDescription("Short text") === "Short text");
 check("Missing description stays blank", cleanDescription("") === "");
+
+console.log("\n# AnimeAV1 artwork variants");
+check(
+  "AnimeAV1 backdrop stored as a poster resolves to its cover",
+  animeAv1ArtworkVariant("https://cdn.animeav1.com/backdrops/197.jpg", "poster") === "https://cdn.animeav1.com/covers/197.jpg"
+);
+check(
+  "AnimeAV1 cover supplies the matching source backdrop",
+  animeAv1ArtworkVariant("https://cdn.animeav1.com/covers/3560.jpg", "backdrop") === "https://cdn.animeav1.com/backdrops/3560.jpg"
+);
+check("Unrelated artwork URLs are not rewritten", animeAv1ArtworkVariant("https://image.tmdb.org/poster.jpg", "poster") === "");
 
 console.log("\n# SmartSource link detection");
 const det = (input) => SmartSource.analyzeInput(input).type;

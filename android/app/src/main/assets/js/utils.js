@@ -225,6 +225,13 @@ function cleanDescription(value, maxLength = 320) {
   return `${safe}…`;
 }
 
+function animeAv1ArtworkVariant(value, role = "poster") {
+  const url = String(value || "").trim();
+  if (!/^https?:\/\/cdn\.animeav1\.com\/(?:covers|backdrops)\//i.test(url)) return "";
+  const folder = role === "backdrop" ? "backdrops" : "covers";
+  return url.replace(/\/(?:covers|backdrops)\//i, `/${folder}/`);
+}
+
 function formatCount(value, label) {
   const count = Number(value) || 0;
   return `${count.toLocaleString()} ${label}${count === 1 ? "" : "s"}`;
@@ -420,6 +427,7 @@ if (typeof module !== "undefined" && module.exports) {
     extractSeasonNumber,
     getShowKey,
     cleanDescription,
+    animeAv1ArtworkVariant,
     mediaStartYear,
     mediaFormat,
     canFollowSeasonLink,

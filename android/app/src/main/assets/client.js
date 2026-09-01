@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=582`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=584`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2224,11 +2224,13 @@ function buildCatalogKeyIndex() {
 }
 
 function makeAv1OnlyShow(item) {
+  const sourceImage = item.image || "";
   return {
     id: `animeav1-${item.slug}`,
     title: item.title,
     romajiTitle: item.title,
-    image: item.image || "",
+    image: animeAv1ArtworkVariant(sourceImage, "poster") || sourceImage,
+    banner: animeAv1ArtworkVariant(sourceImage, "backdrop") || "",
     episode: item.episode,
     latestAiredEp: item.episode,
     nextAiringEpisodeNumber: (Number(item.episode) || 0) + 1,
@@ -2632,7 +2634,7 @@ function getCarouselArtwork(show = {}) {
 function getWatchPosterArtwork(show = {}, season = null) {
   show = show || {};
   season = season || {};
-  const candidates = [
+  const rawCandidates = [
     show.images?.poster,
     show.images?.cover,
     show.images?.thumbnail,
@@ -2649,7 +2651,12 @@ function getWatchPosterArtwork(show = {}, season = null) {
     show.images?.backdrop,
     show.banner,
     show.backdrop
-  ].map((value) => hqImage(String(value || "").trim()));
+  ];
+  const candidates = rawCandidates.flatMap((value) => {
+    const raw = String(value || "").trim();
+    const sourcePoster = animeAv1ArtworkVariant(raw, "poster");
+    return [sourcePoster, raw].map((url) => hqImage(url)).filter(Boolean);
+  });
   candidates.forEach((url) => { if (url) verticalArt.add(url); });
   return pickImage(candidates);
 }
@@ -2685,9 +2692,12 @@ function getCardPosterCandidates(show = {}) {
     const raw = String(value || "").trim();
     if (!raw) return;
     if (/(^|\/)logo-(?:round|mark|wordmark|transparent)/i.test(raw)) return;
-    const upgraded = hqImage(raw);
-    if (upgraded) expanded.push(upgraded);
-    if (raw !== upgraded) expanded.push(raw);
+    const sourcePoster = animeAv1ArtworkVariant(raw, "poster");
+    [sourcePoster, raw].filter(Boolean).forEach((candidate) => {
+      const upgraded = hqImage(candidate);
+      if (upgraded) expanded.push(upgraded);
+      if (candidate !== upgraded) expanded.push(candidate);
+    });
   });
   expanded.forEach((url) => { if (url) verticalArt.add(url); });
   return [...new Set(expanded)].filter((url) => {
@@ -2726,6 +2736,19 @@ function seasonPosterFallbackCandidates(show = {}, season = null) {
     season?.poster,
     season?.image
   ].map((value) => hqImage(String(value || "").trim()));
+}
+
+function animeAv1BackdropCandidates(show = {}, season = null) {
+  return [
+    show.images?.poster,
+    show.images?.cover,
+    show.image,
+    show.poster,
+    show.cover,
+    show.thumbnail,
+    season?.image,
+    season?.poster
+  ].map((value) => animeAv1ArtworkVariant(value, "backdrop")).filter(Boolean);
 }
 
 function watchBackdropKey(show = {}, season = null) {
@@ -2785,13 +2808,14 @@ function getWatchBackdropArtwork(show = {}, season = null) {
     .filter((url) => !isArtworkLowQuality(url, "backdrop")));
   if (adultArt) return adultArt;
   const candidates = [
-    show.images?.backdrop,
-    show.images?.banner,
-    show.tmdbBackdrop,
+    ...animeAv1BackdropCandidates(show, season),
     show.highQualityBackground,
     show.banner,
     show.bannerImage,
     show.backdrop,
+    show.images?.banner,
+    show.images?.backdrop,
+    show.tmdbBackdrop,
     show.heroImage,
     show.wideImage,
     show.landscapeImage,
@@ -2895,7 +2919,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=582";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=584";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -3125,6 +3149,7 @@ function artworkDimensionsAreUseful(img, role) {
   const ratio = width / height;
   if (role === "poster") return width >= 180 && height >= 250 && ratio >= 0.48 && ratio <= 0.9;
   if (role === "episode") return width >= 240 && height >= 120 && ratio >= 1.22 && ratio <= 2.5;
+  if (role === "banner") return width >= 1200 && height >= 320 && ratio >= 2.4 && ratio <= 5.2;
   if (role === "backdrop") return width >= 960 && height >= 480 && ratio >= 1.35 && ratio <= 2.6;
   return true;
 }
@@ -7179,9 +7204,10 @@ function closeShow() {
     // Returning to Home — resume the hero cover→trailer cycle.
     if (state.route === "home") renderCarousel();
     // The show is closed, so the connections openShow handed to it are free
-    // again. Shows the pause interrupted resume from where they were left: the
-    // worker only skips a show once _metadataPreloadComplete is set.
-    scheduleVisibleMetadataWarm();
+    // again. Replays whatever was requested while it was open, and shows the
+    // pause interrupted resume from where they were left - the worker only skips
+    // a show once _metadataPreloadComplete is set, so nothing is stranded.
+    resumeVisibleMetadataWarm();
   }, 200);
 }
 
@@ -7657,10 +7683,11 @@ function applyWatchBackdrop(show, season) {
   const titleArtText = document.querySelector("#watchBackdropTitleText");
   const key = watchBackdropKey(show, season);
   const showKey = String(show?.id || show?.anilistId || show?.title || "show");
-  // Wide art (TMDB backdrop, AniList banner, hero/landscape) covers the frame
-  // cleanly. A poster/cover fallback is vertical, so cropping it with `cover`
-  // looks bad — we show it `contain` over a blurred fill of itself instead.
+  const sourceBackdrops = animeAv1BackdropCandidates(show, season);
+  // Restore the original banner-first treatment while retaining TMDB as a
+  // fallback when the source and AniList artwork are unavailable.
   const wideSources = new Set([
+    ...sourceBackdrops,
     show.images?.backdrop, show.images?.banner,
     show.tmdbBackdrop, show.highQualityBackground, show.banner, show.bannerImage,
     show.backdrop, show.heroImage, show.wideImage,
@@ -7670,12 +7697,22 @@ function applyWatchBackdrop(show, season) {
     season?.banner, season?.backdrop
   ].map((value) => hqImage(String(value || "").trim()))
    .filter((url) => url && !verticalArt.has(url)));
+  const bannerSources = new Set([
+    ...sourceBackdrops,
+    show.highQualityBackground,
+    show.banner,
+    show.bannerImage,
+    show.images?.banner,
+    season?.highQualityBackground,
+    season?.banner
+  ].map((value) => hqImage(String(value || "").trim())).filter(Boolean));
   // The genuinely high-resolution "final" art — the TMDB backdrop (show or season)
   // and any explicitly-high-quality background. Used to decide whether the current
   // art is good enough to show sharp, or whether to hold on the blurred fill until
   // TMDB resolves (an AniList banner is wide but NOT in here, so it's "low-res").
   const seasonNum = getBackdropSeasonNumber(season);
   const highResSources = new Set([
+    ...sourceBackdrops,
     show.tmdbBackdrop, show.highQualityBackground,
     season?.tmdbBackdrop, season?.highQualityBackground,
     seasonNum && show.tmdbSeasonBackdropsBySeason ? show.tmdbSeasonBackdropsBySeason[seasonNum] : ""
@@ -7736,8 +7773,7 @@ function applyWatchBackdrop(show, season) {
 
   const isPosterFallback = (url) => Boolean(url && verticalArt.has(url) && !wideSources.has(url));
   const paint = (url) => {
-    const isAdultShow = Boolean(show.adultSource || show.isAdult || (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)));
-    const posterFit = !isAdultShow && isPosterFallback(url);
+    const posterFit = false;
     const artIsHighRes = Boolean(url) && highResSources.has(url);
     const optimized = url ? imageDeliveryUrl(url, watchBackdropDeliveryWidth(), 92) : "";
     const sameTarget = backdrop.dataset.backdropKey === key;
@@ -7893,6 +7929,7 @@ function applyWatchBackdrop(show, season) {
   const deliveredArt = imageDeliveryUrl(art, watchBackdropDeliveryWidth(), 92);
   const qualityKey = artworkQualityKey(deliveredArt || art);
   const posterFallback = isPosterFallback(art);
+  const bannerFallback = bannerSources.has(art);
   const cachedQuality = backdropQualityCache.get(qualityKey);
   if (cachedQuality === true) {
     paint(art);
@@ -7914,7 +7951,9 @@ function applyWatchBackdrop(show, season) {
   probe.onload = () => {
     const useful = posterFallback
       ? artworkDimensionsAreUseful(probe, "poster")
-      : backdropPixelsLookUseful(probe);
+      : bannerFallback
+        ? artworkDimensionsAreUseful(probe, "banner")
+        : backdropPixelsLookUseful(probe);
     backdropQualityCache.set(qualityKey, useful);
     if (state.activeShow?.id !== show.id) return;
     if (useful) {
@@ -11999,7 +12038,43 @@ function pauseVisibleMetadataWarm() {
   visibleMetadataWarmGeneration += 1;
 }
 
+// Warms requested while a show was open, replayed once it closes. Stored as
+// IDs rather than show objects on purpose: the catalogue is still loading
+// during a deep-link open, and mergeShows() replaces the objects wholesale -
+// replaying stale ones would warm orphans that no card is bound to.
+let _deferredMetadataWarm = null;
+
+function resumeVisibleMetadataWarm() {
+  const pending = _deferredMetadataWarm;
+  _deferredMetadataWarm = null;
+  if (!pending) return scheduleVisibleMetadataWarm();
+  const byId = new Map((state.shows || []).map((show) => [String(show.id || getShowKey(show)), show]));
+  const shows = [...pending.ids].map((id) => byId.get(id)).filter(Boolean);
+  scheduleVisibleMetadataWarm(shows.length ? shows : state.shows, pending.limit || HOME_INITIAL_CARD_LIMIT);
+}
+
 function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_LIMIT) {
+  // Never warm the catalogue while a show is open. The warm fires ~80 requests
+  // across two workers and a browser only opens about six connections per host,
+  // so the show being looked at queued behind the catalogue at the CONNECTION
+  // level - not in any application queue. Symptom: a detail page still reading
+  // "Local source title." with no metadata and no episode list, while the network
+  // log is full of 200s for other titles.
+  //
+  // openShow's generation bump alone is not enough: it stops workers already
+  // running, but a warm is started from nine places and several are deferred by
+  // seconds (load + 4s + idle). A direct load of /anime/<slug> opens the show
+  // BEFORE any warm exists, so the bump had nothing to stop and the burst landed
+  // on top of it anyway - which is exactly how this was reported. Hold the
+  // request here instead, and replay it from closeShow.
+  if (state.activeShow) {
+    if (!_deferredMetadataWarm) _deferredMetadataWarm = { ids: new Set(), limit: 0 };
+    (Array.isArray(shows) ? shows : []).forEach((show) => {
+      if (show) _deferredMetadataWarm.ids.add(String(show.id || getShowKey(show)));
+    });
+    _deferredMetadataWarm.limit = Math.max(_deferredMetadataWarm.limit, limit || 0);
+    return;
+  }
   const generation = ++visibleMetadataWarmGeneration;
   const providedShows = Array.isArray(shows) ? shows : [];
   const latestShows = buildLatestEpisodesList(Math.min(HOME_CARD_LIMIT, limit));
@@ -15442,7 +15517,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=582");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=584");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
