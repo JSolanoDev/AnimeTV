@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=589`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=590`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2939,7 +2939,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=589";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=590";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -4006,16 +4006,23 @@ function cardTemplate(show, index = 0) {
   const meta = cardMeta(show, isFavorite);
   const target = getCardTarget(show);
   const posterCandidates = getCardPosterCandidates(show);
-  const isAdultCard = isAdultCatalogShow(show);
   const deliveredCandidates = [...new Set(posterCandidates.flatMap((url) => {
     const delivered = imageDeliveryUrl(url, 400, 90);
-    return isAdultCard && delivered !== url ? [delivered, url] : [delivered];
+    const raw = String(url || "").trim();
+    const isAnimeAv1Cover = /^https:\/\/cdn\.animeav1\.com\/covers\//i.test(raw);
+    if (delivered === raw) return [raw];
+    // AnimeAV1 covers are already tiny, card-sized JPEGs. Loading them directly
+    // is faster and avoids making every phone poster depend on a serverless image
+    // resize. Other hosts keep the optimized proxy first, but always retain the
+    // original URL so a transient proxy failure can recover instead of showing Z.
+    return isAnimeAv1Cover ? [raw, delivered] : [delivered, raw];
   }).filter(Boolean))];
   const posterUrl = deliveredCandidates[0] || "";
   // Per-device poster sizing: a small card needs ~200px on a phone but ~400px on
   // a retina desktop. srcset lets the browser pick, keeping cards crisp on every
   // screen while mobile downloads far fewer bytes.
-  const posterSrcSet = posterCandidates.length
+  const directAnimeAv1Cover = /^https:\/\/cdn\.animeav1\.com\/covers\//i.test(String(posterCandidates[0] || ""));
+  const posterSrcSet = posterCandidates.length && !directAnimeAv1Cover
     ? imageDeliverySrcSet(posterCandidates[0], [200, 280, 360, 400, 480], 90)
     : "";
   const srcsetAttr = posterSrcSet
@@ -15623,7 +15630,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=589");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=590");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
