@@ -11875,7 +11875,11 @@ main {
    .watch-panel is the scroller; nothing between it and here may clip, which is
    why the cinema rules already force overflow:visible on .watch-side. */
 @media (max-width: 760px) {
-  .watch-overlay .watch-side .video-frame {
+  /* Only once a player is actually mounted. Before an episode is picked this same
+     container is the tall poster "ready" panel - roughly a full screen of it - and
+     pinning that buried the episode list you are meant to be choosing from.
+     body.player-cinema-open is set by setPlayerCinema when the player mounts. */
+  body.player-cinema-open .watch-overlay .watch-side .video-frame {
     position: sticky;
     top: 0;
     z-index: 3;
