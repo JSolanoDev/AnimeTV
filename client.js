@@ -465,13 +465,14 @@ function resetCatalogModeControls() {
   document.querySelectorAll(".search-box .search-clear").forEach((button) => { button.hidden = true; });
   if (typeof _carouselStableIds !== "undefined") _carouselStableIds = [];
   if (typeof _carouselPaintedId !== "undefined") _carouselPaintedId = null;
+  if (typeof _carouselPaintedShow !== "undefined") _carouselPaintedShow = null;
 }
 
 function replaceRegularCatalog(items = []) {
   const adultItems = state.shows.filter((item) =>
     typeof AdultMode !== "undefined" && AdultMode.isAdultContent(item)
   );
-  state.shows = [...items, ...adultItems];
+  state.shows = mergeShows([...items, ...adultItems], Infinity);
   return state.shows;
 }
 
@@ -483,7 +484,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=590`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=592`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2430,6 +2431,16 @@ function imageDeliveryUrl(url, width = 360, quality = 70) {
   }
 }
 
+// One canonical backdrop file is shared by the home carousel, detail preview,
+// sharp detail layer, quality probe, and preloaders. Keeping the URL byte-for-byte
+// identical lets the browser coalesce every consumer into one network request.
+const CINEMATIC_BACKDROP_WIDTH = 1920;
+const CINEMATIC_BACKDROP_QUALITY = 92;
+
+function cinematicBackdropUrl(url) {
+  return imageDeliveryUrl(url, CINEMATIC_BACKDROP_WIDTH, CINEMATIC_BACKDROP_QUALITY);
+}
+
 // Builds a responsive srcset string so each device downloads an image sized for
 // its own viewport/DPR instead of one giant width for everyone. This keeps full
 // per-device sharpness while cutting bytes (and LCP) on smaller screens — the
@@ -2450,17 +2461,6 @@ function imageDeliverySrcSet(url, widths, quality = 80) {
 
 const artworkImagePreloads = new Map();
 const relatedSeasonWarmFlights = new Map();
-
-function watchBackdropDeliveryWidth() {
-  const viewportWidth = Math.max(
-    Number(window.innerWidth || 0),
-    Number(document.documentElement?.clientWidth || 0),
-    Number(window.screen?.width || 0)
-  );
-  const density = Math.min(2, Math.max(1, Number(window.devicePixelRatio || 1)));
-  const wanted = Math.ceil((viewportWidth * density) / 320) * 320;
-  return Math.max(1280, Math.min(2560, wanted || 1920));
-}
 
 function preloadArtworkImage(url, width, quality, priority = false) {
   const raw = String(url || "").trim();
@@ -2491,6 +2491,10 @@ function preloadArtworkImage(url, width, quality, priority = false) {
   return request;
 }
 
+function preloadCinematicBackdrop(url, priority = false) {
+  return preloadArtworkImage(url, CINEMATIC_BACKDROP_WIDTH, CINEMATIC_BACKDROP_QUALITY, priority);
+}
+
 async function warmSeasonArtwork(show, seasonIndex = 0, options = {}) {
   if (!show) return show;
   let seasons = getDetailSeasons(show);
@@ -2510,7 +2514,7 @@ async function warmSeasonArtwork(show, seasonIndex = 0, options = {}) {
   const jobs = [];
   const backdrop = getWatchBackdropArtwork(show, season);
   const poster = getWatchPosterArtwork(show, season);
-  if (backdrop) jobs.push(preloadArtworkImage(backdrop, watchBackdropDeliveryWidth(), 92, priority));
+  if (backdrop) jobs.push(preloadCinematicBackdrop(backdrop, priority));
   if (poster) jobs.push(preloadArtworkImage(poster, 640, 90, false));
 
   const episodes = (season?.episodes || []).slice(0, visibleCount);
@@ -2563,7 +2567,7 @@ function warmRelatedSeasonShow(target, priority = false) {
   const request = (async () => {
     const initialSeason = getDetailSeasons(target)[0] || null;
     const initialBackdrop = getWatchBackdropArtwork(target, initialSeason);
-    if (initialBackdrop) await preloadArtworkImage(initialBackdrop, watchBackdropDeliveryWidth(), 92, priority);
+    if (initialBackdrop) await preloadCinematicBackdrop(initialBackdrop, priority);
     await hydrateCanonicalAnimeMetadata(target);
     await Promise.allSettled([
       fetchAniListShowExtras(target),
@@ -2618,15 +2622,18 @@ function getCarouselArtwork(show = {}) {
     // sharper than the AniList banner, which keeps the hero looking professional.
     show.tmdbBackdrop,
     show.highQualityBackground,
+    show.images?.backdrop,
+    show.images?.banner,
     show.banner,
     show.backdrop,
     show.heroImage,
     show.wideImage,
     show.landscapeImage
   ];
-  return hqImage(candidates
+  return pickImage(candidates
     .map((value) => String(value || "").trim())
-    .find((value) => value && value !== poster) || "");
+    .map((value) => hqImage(value))
+    .filter((value) => value && value !== poster && !isArtworkLowQuality(value, "backdrop")));
 }
 
 // Best vertical poster/card art: TMDB season poster → TMDB show poster →
@@ -2811,6 +2818,11 @@ function underHentaiBackdropCandidates(show = {}, season = null) {
 function getWatchBackdropArtwork(show = {}, season = null) {
   show = show || {};
   season = season || {};
+  // If this title was opened from the carousel, keep the exact artwork the user
+  // just saw. It is already warm in cache and avoids a visually different detail
+  // background while metadata enrichment finishes.
+  const paintedCarouselArt = hqImage(String(show._paintedCarouselArtwork || "").trim());
+  if (paintedCarouselArt) return paintedCarouselArt;
   const carouselArt = getCarouselArtwork(show);
   if (carouselArt && !isArtworkLowQuality(carouselArt, "backdrop")) return carouselArt;
   const adultArt = pickImage(underHentaiBackdropCandidates(show, season)
@@ -2883,6 +2895,7 @@ function animeBackdropFallback(show = {}) {
 // appear to "blink" on load and during updates.
 let _carouselStableIds = [];
 let _carouselPaintedId = null;
+let _carouselPaintedShow = null;
 
 function buildStableCarouselItems(pool) {
   const MAX = 8;
@@ -2935,11 +2948,12 @@ function renderCarousel() {
   const items = buildStableCarouselItems(pool);
   if (!items.length) {
     _carouselPaintedId = null;
+    _carouselPaintedShow = null;
     carouselStage.classList.add("is-loading");
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=590";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=592";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -2970,7 +2984,11 @@ function renderCarousel() {
   // (no image), then load the one high-res file. A show with no TMDB match
   // (_tmdbResolved flips true on every resolve outcome) falls back to its banner as
   // the single image. Bounded: resolve once per show, current item only.
-  const hiResArt = hqImage(String(show.tmdbBackdrop || show.highQualityBackground || "").trim());
+  const hiResArt = pickImage([
+    show.tmdbBackdrop,
+    show.highQualityBackground
+  ].map((value) => hqImage(String(value || "").trim()))
+    .filter((value) => value && !isArtworkLowQuality(value, "backdrop")));
   // Resolve the backdrop AT MOST ONCE per show (_carouselResolveTried). Without
   // this guard, a show whose TMDB resolution THROWS (network error) never sets
   // _tmdbResolved, so `resolving` stays true and the .then below re-renders the
@@ -2986,16 +3004,12 @@ function renderCarousel() {
       }
     }).catch(() => {});
   }
-  // The full-bleed hero shows the backdrop with object-fit: cover; 1600 keeps it
-  // crisp on a large/full-screen hero while staying lighter than 1920.
-  const HERO_WIDTHS = [640, 960, 1280, 1600];
-  const HERO_QUALITY = 90;
   // Warm the next few slides' TMDB backdrops in the background, and PRELOAD the
   // immediate next slide's hero image, so auto-advance shows it instantly instead
   // of fetching on change. Deduped/cheap: the resolver no-ops on resolved shows.
   const preloadHeroImage = (s) => {
     const a = s && hqImage(String(s.tmdbBackdrop || s.highQualityBackground || "").trim());
-    if (a) { const im = new Image(); im.referrerPolicy = "no-referrer"; im.decoding = "async"; im.src = imageDeliveryUrl(a, 1600, HERO_QUALITY); }
+    if (a) preloadCinematicBackdrop(a, false);
   };
   if (typeof enrichTmdbImages === "function" && items.length > 1) {
     for (let off = 1; off <= 3; off++) {
@@ -3007,11 +3021,11 @@ function renderCarousel() {
   }
   const hasLandscapeBanner = Boolean(hiResArt || show.banner || show.backdrop || show.heroImage || show.wideImage || show.landscapeImage);
   const art = hiResArt || (resolving ? "" : carouselArtworkOrPoster(show));
-  const deliveredArt = art ? imageDeliveryUrl(art, 1600, HERO_QUALITY) : "";
-  const heroSrcSet = art ? imageDeliverySrcSet(art, HERO_WIDTHS, HERO_QUALITY) : "";
+  const deliveredArt = art ? cinematicBackdropUrl(art) : "";
+  show._paintedCarouselArtwork = art || "";
   carouselBackdrop.classList.toggle("has-banner", Boolean(art));
   carouselBackdrop.classList.toggle("is-portrait-blur", Boolean(art && !hasLandscapeBanner));
-  if (art && !hasLandscapeBanner) {
+  if (art) {
     carouselBackdrop.style.backgroundImage = `url("${deliveredArt}")`;
   } else {
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
@@ -3026,15 +3040,32 @@ function renderCarousel() {
       carouselBackdropImage.classList.toggle("is-portrait-art", !hasLandscapeBanner);
     }
     if (art && carouselBackdropImage.getAttribute("src") !== deliveredArt) {
-      if (heroSrcSet) {
-        carouselBackdropImage.setAttribute("srcset", heroSrcSet);
-        carouselBackdropImage.setAttribute("sizes", "100vw");
-      } else {
-        carouselBackdropImage.removeAttribute("srcset");
-      }
+      carouselStage.classList.add("is-backdrop-loading");
+      carouselBackdropImage.removeAttribute("srcset");
+      carouselBackdropImage.removeAttribute("sizes");
+      const revealBackdrop = () => {
+        if (carouselBackdropImage.getAttribute("src") !== deliveredArt) return;
+        const reveal = () => carouselStage.classList.remove("is-backdrop-loading");
+        if (typeof carouselBackdropImage.decode === "function") {
+          carouselBackdropImage.decode().then(reveal).catch(reveal);
+        } else {
+          reveal();
+        }
+      };
+      carouselBackdropImage.onload = revealBackdrop;
+      carouselBackdropImage.onerror = () => {
+        if (carouselBackdropImage.getAttribute("src") !== deliveredArt) return;
+        markArtworkLowQuality(art, "backdrop");
+        try { ImageResolver.markImageFailed(art); } catch { /* resolver optional */ }
+        show._paintedCarouselArtwork = "";
+        _carouselPaintedId = null;
+        renderCarousel();
+      };
       carouselBackdropImage.src = deliveredArt;
       // Remember it for the next visit (see restoreHeroBackdrop above).
-      writeHeroMemo({ src: deliveredArt, srcset: heroSrcSet, portrait: !hasLandscapeBanner });
+      writeHeroMemo({ src: deliveredArt, srcset: "", portrait: !hasLandscapeBanner });
+    } else if (art && carouselBackdropImage.complete) {
+      carouselStage.classList.remove("is-backdrop-loading");
     } else if (!art && !heroMemoActive) {
       // Resolving (or genuinely no art): show only the dark gradient behind a
       // transparent image, so we never load a second placeholder/banner picture.
@@ -3042,21 +3073,16 @@ function renderCarousel() {
       // transparent and fading back in a moment later is a visible flash.
       carouselBackdropImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
       carouselBackdropImage.removeAttribute("srcset");
+      carouselStage.classList.remove("is-backdrop-loading");
     }
   }
   if (art) {
     let lcp = document.getElementById("lcpPreload");
     if (!lcp) { lcp = document.createElement("link"); lcp.id = "lcpPreload"; lcp.rel = "preload"; lcp.as = "image"; lcp.fetchPriority = "high"; document.head.appendChild(lcp); }
-    // Preload the SAME responsive candidates so the preloader fetches the exact
-    // file the <img> will use (no double download on mobile).
-    if (heroSrcSet) {
-      lcp.setAttribute("imagesrcset", heroSrcSet);
-      lcp.setAttribute("imagesizes", "100vw");
-      lcp.removeAttribute("href");
-    } else {
-      lcp.href = deliveredArt;
-      lcp.setAttribute("imagesizes", "100vw");
-    }
+    // Preload the exact same canonical file used by both visual layers.
+    lcp.removeAttribute("imagesrcset");
+    lcp.removeAttribute("imagesizes");
+    lcp.href = deliveredArt;
   }
   carouselTitle.textContent = getShowTitle(show);
   carouselText.textContent = simpleCarouselText(show);
@@ -3066,6 +3092,10 @@ function renderCarousel() {
   carouselOpen.dataset.openSeason = String(target.seasonNumber || "");
   carouselOpen.dataset.openEpisode = String(target.episodeNumber || "");
   carouselStage.dataset.openShow = String(show.id || "");
+  // Commit the clickable title only after its text, artwork and episode target
+  // have all been painted. This exact object remains the click target even if an
+  // auto-advance render starts between pointerdown and click.
+  _carouselPaintedShow = show;
 }
 
 function renderCarouselIndicators(items) {
@@ -6607,7 +6637,10 @@ async function openShow(id, target = {}) {
     state.lastOpenedShowId = wantedId;
     state.catalogScrollY = window.scrollY || window.pageYOffset || 0;
   }
-  let show = state.shows.find((entry) => String(entry.id) === wantedId || getShowKey(entry) === wantedId);
+  const paintedShow = target.showRef;
+  let show = paintedShow && (String(paintedShow.id) === wantedId || getShowKey(paintedShow) === wantedId)
+    ? paintedShow
+    : state.shows.find((entry) => String(entry.id) === wantedId || getShowKey(entry) === wantedId);
   if (!show) {
     const addonShow = state.addonSections.flatMap((section) => section.items || []).find((entry) => String(entry.id) === wantedId || getShowKey(entry) === wantedId);
     if (addonShow) {
@@ -6670,10 +6703,7 @@ async function openShow(id, target = {}) {
     const _preloadPoster = getWatchPosterArtwork(show, _preloadSeason);
     const _preloadBg = getWatchBackdropArtwork(show, _preloadSeason);
     if (_preloadPoster) preloadArtworkImage(_preloadPoster, 640, 90, true);
-    if (_preloadBg && _preloadBg !== _preloadPoster) {
-      preloadArtworkImage(_preloadBg, 640, 70, true);
-      preloadArtworkImage(_preloadBg, watchBackdropDeliveryWidth(), 92, true);
-    }
+    if (_preloadBg && _preloadBg !== _preloadPoster) preloadCinematicBackdrop(_preloadBg, true);
     scheduleSeasonArtworkWarm(show, 0);
   } catch { /* non-fatal */ }
 
@@ -7781,7 +7811,7 @@ function applyWatchBackdrop(show, season) {
     delete backdrop.dataset.backdropHeldUrl;
     const capturedFrame = url ? "" : getBestCapturedEpisodeFrame(show, season);
     if (blur) {
-      const blurUrl = url ? imageDeliveryUrl(url, 640, 70) : capturedFrame;
+      const blurUrl = url ? cinematicBackdropUrl(url) : capturedFrame;
       blur.style.backgroundImage = blurUrl ? `url("${blurUrl}")` : "";
       blur.classList.toggle("is-visible", Boolean(blurUrl));
     }
@@ -7792,12 +7822,12 @@ function applyWatchBackdrop(show, season) {
     overlay?.classList.toggle("has-backdrop-art", Boolean(url));
   };
 
-  // On the first frame after a card click, show a small version of the exact
-  // carousel backdrop. The sharp image replaces it after decode, so the detail
-  // view never flashes an empty background while still avoiding a blurry final.
+  // On the first frame after a card click, the blurred and sharp layers point to
+  // the exact same canonical file. CSS supplies the temporary blur while decode
+  // finishes, so there is one request and no low-resolution image swap.
   const showBackdropPreview = (url) => {
     if (!url) return;
-    const preview = imageDeliveryUrl(url, 640, 70);
+    const preview = cinematicBackdropUrl(url);
     const canKeepCurrentSeasonArt = backdrop.dataset.backdropShowKey === showKey
       && backdrop.classList.contains("has-art")
       && Boolean(backdrop.dataset.backdropUrl);
@@ -7843,7 +7873,7 @@ function applyWatchBackdrop(show, season) {
   const paint = (url) => {
     const posterFit = false;
     const artIsHighRes = Boolean(url) && highResSources.has(url);
-    const optimized = url ? imageDeliveryUrl(url, watchBackdropDeliveryWidth(), 92) : "";
+    const optimized = url ? cinematicBackdropUrl(url) : "";
     const sameTarget = backdrop.dataset.backdropKey === key;
     const reduceMotion = document.body.classList.contains("reduce-motion");
     const detailVisible = Boolean(overlay && !overlay.hidden);
@@ -7878,7 +7908,7 @@ function applyWatchBackdrop(show, season) {
         backdrop.dataset.backdropPendingKey = key;
         backdrop.dataset.backdropPendingUrl = url;
         if (blur) {
-          blur.style.backgroundImage = `url("${imageDeliveryUrl(url, 640, 70)}")`;
+          blur.style.backgroundImage = `url("${cinematicBackdropUrl(url)}")`;
           blur.classList.add("is-visible");
         }
         scheduleHighResFallback();
@@ -7896,7 +7926,7 @@ function applyWatchBackdrop(show, season) {
       backdrop.dataset.backdropKey = key;
       backdrop.dataset.backdropUrl = "";        // no committed sharp art yet
       backdrop.dataset.backdropHeldUrl = url;
-      if (blur) { blur.style.backgroundImage = `url("${imageDeliveryUrl(url, 640, 70)}")`; blur.classList.add("is-visible"); }
+      if (blur) { blur.style.backgroundImage = `url("${cinematicBackdropUrl(url)}")`; blur.classList.add("is-visible"); }
       overlay?.classList.add("cinematic");
       overlay?.classList.add("has-backdrop-art");
       scheduleHighResFallback();
@@ -7967,7 +7997,7 @@ function applyWatchBackdrop(show, season) {
       }
       // Match the incoming image on the blurred fill first so the dip shows the
       // NEW art (blurred), not the old one.
-      if (blur) blur.style.backgroundImage = `url("${imageDeliveryUrl(url, 640, 70)}")`;
+      if (blur) blur.style.backgroundImage = `url("${cinematicBackdropUrl(url)}")`;
       backdrop.style.transition = "opacity 220ms ease";
       backdrop.style.opacity = "0";
       backdrop.addEventListener("transitionend", commitSwap, { once: true });
@@ -8004,8 +8034,10 @@ function applyWatchBackdrop(show, season) {
     return;
   }
 
-  const deliveredArt = imageDeliveryUrl(art, watchBackdropDeliveryWidth(), 92);
+  const deliveredArt = cinematicBackdropUrl(art);
   const qualityKey = artworkQualityKey(deliveredArt || art);
+  const paintedCarouselArt = hqImage(String(show._paintedCarouselArtwork || "").trim());
+  const matchesPaintedCarousel = Boolean(paintedCarouselArt && art === paintedCarouselArt);
   const posterFallback = isPosterFallback(art);
   const bannerFallback = bannerSources.has(art);
   const cachedQuality = backdropQualityCache.get(qualityKey);
@@ -8027,7 +8059,12 @@ function applyWatchBackdrop(show, season) {
   probe.referrerPolicy = "no-referrer";
   probe.crossOrigin = "anonymous";
   probe.onload = () => {
-    const useful = adultShow && adultBackdropSources.has(art)
+    // A carousel image has already loaded successfully at this exact URL. Trust
+    // that result; the pixel-contrast heuristic can reject intentionally dark
+    // artwork and previously caused the detail page to switch to another frame.
+    const useful = matchesPaintedCarousel
+      ? true
+      : adultShow && adultBackdropSources.has(art)
       ? artworkDimensionsAreUseful(probe, "adult-backdrop")
       : posterFallback
         ? artworkDimensionsAreUseful(probe, "poster")
@@ -14238,14 +14275,9 @@ function preloadOpenShow(id) {
   const preloadArtwork = () => {
     const knownBackdrop = getCarouselArtwork(show) || getWatchBackdropArtwork(show);
     if (!knownBackdrop) return;
-    // Warm the EXACT url the watch page will paint. This used to fetch the raw
-    // source url while paint() renders imageDeliveryUrl(art, watchBackdropDeliveryWidth(), 92)
-    // - a different url - so hovering a card downloaded an image the page then
-    // never asked for, and opening it still paid full download latency.
-    // preloadArtworkImage() dedupes on the delivered url, so repeated hovers and
-    // the post-enrichment second call are free.
-    preloadArtworkImage(knownBackdrop, 640, 70, true);
-    preloadArtworkImage(knownBackdrop, watchBackdropDeliveryWidth(), 92, true);
+    // Warm the exact canonical file both backdrop layers will reuse. Repeated
+    // hovers, touch-down, and the post-enrichment pass all dedupe on this URL.
+    preloadCinematicBackdrop(knownBackdrop, true);
   };
   if (!show._artworkPreloaded) { show._artworkPreloaded = true; preloadArtwork(); }
   if (!show._metadataPreloadStarted && (show.anilistId || show.malId || show.title)) {
@@ -14289,6 +14321,9 @@ function wireOpenButtons() {
     preloadOpenShow(id);
   };
   document.addEventListener("pointerover", onHover, { passive: true });
+  // Phones do not hover. Start the same canonical preload on touch/pen press so
+  // the detail shell can reveal its blurred background immediately on open.
+  document.addEventListener("pointerdown", onHover, { passive: true });
   document.addEventListener("focusin", onHover);
   document.addEventListener("click", (e) => {
     const button = buttonFrom(e);
@@ -14306,16 +14341,15 @@ function wireOpenButtons() {
 }
 
 function openCarouselShow() {
-  const openShowId = String(carouselOpen.dataset.openShow || carouselStage.dataset.openShow || "");
-  const current = catalogShows().find((show) => String(show.id) === openShowId)
-    || state.shows.find((show) => String(show.id) === openShowId);
+  const current = _carouselPaintedShow;
   if (!current) return;
   const target = getCardTarget(current);
   openShow(current.id, {
     seasonNumber: carouselOpen.dataset.openSeason || target.seasonNumber,
     episodeNumber: carouselOpen.dataset.openEpisode || target.episodeNumber,
     // Carousel "Play" is an explicit play action — allow the source picker to open.
-    playIntent: true
+    playIntent: true,
+    showRef: current
   });
 }
 
@@ -14547,6 +14581,7 @@ document.querySelector("#libraryResetFilters")?.addEventListener("click", () => 
 });
 
 document.querySelector("[data-open-first]")?.addEventListener("click", () => openShow(visibleShows()[0]?.id));
+carouselStage.addEventListener("pointerdown", () => window.clearInterval(carouselTimer), { passive: true });
 carouselOpen.addEventListener("click", (event) => {
   event.stopPropagation();
   openCarouselShow();
@@ -15630,7 +15665,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=590");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=592");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

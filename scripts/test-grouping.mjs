@@ -6,6 +6,8 @@
 // different AniList IDs.
 
 import { createRequire } from "node:module";
+import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
 const require = createRequire(import.meta.url);
 const {
   canGroupAsSeason,
@@ -20,6 +22,7 @@ const SeasonNormalization = require("../js/season-normalization.js");
 const ImageResolver = require("../js/image-resolver.js");
 const AdultMode = require("../js/adult-mode.js");
 const { UnderHentaiAdultSourceAdapter } = require("../js/adult-source-adapter.js");
+const { mergeShows: mergeServerShows } = require("../animetv-server.js");
 
 let passed = 0;
 let failed = 0;
@@ -117,6 +120,62 @@ const noIdA = getShowKey({ title: "Doraemon", year: 1973, format: "TV" });
 const noIdB = getShowKey({ title: "Doraemon", year: 2005, format: "TV" });
 check("Same title + different year/format -> distinct keys", noIdA !== noIdB);
 check("Key prefers AniList id", getShowKey({ anilistId: 8687, malId: 8687 }) === "anilist-8687");
+
+console.log("\n# Catalog identity merge");
+const mergedIdentityRows = mergeServerShows([
+  {
+    id: "anilist-101921",
+    anilistId: 101921,
+    malId: 37999,
+    title: "Kaguya-sama: Love is War?",
+    romajiTitle: "Kaguya-sama wa Kokurasetai",
+    banner: "https://img.example/anilist-banner.jpg",
+    source: "AniList",
+    episode: 12
+  },
+  {
+    id: "jikan-37999",
+    malId: 37999,
+    title: "Kaguya-sama: Love is War",
+    source: "Jikan Airing",
+    episode: 12
+  },
+  {
+    id: "jikan-37999",
+    malId: 37999,
+    title: "Kaguya-sama: Love is War",
+    source: "Jikan Popular",
+    episode: 12
+  }
+]);
+check("One AniList/MAL identity is emitted exactly once", mergedIdentityRows.length === 1);
+check("AniList title and backdrop win over Jikan metadata", mergedIdentityRows[0]?.title === "Kaguya-sama: Love is War?" && /anilist-banner/.test(mergedIdentityRows[0]?.banner || ""));
+check("Merged source labels do not repeat", !/(AniList).*\1/i.test(mergedIdentityRows[0]?.source || ""));
+
+const sameTitleDifferentWorks = mergeServerShows([
+  { id: "anilist-1", anilistId: 1, title: "Example Anime", year: 2001, source: "AniList" },
+  { id: "anilist-2", anilistId: 2, title: "Example Anime", year: 2026, source: "AniList" }
+]);
+check("Different AniList identities are never collapsed by title", sameTitleDifferentWorks.length === 2);
+
+console.log("\n# Canonical cinematic artwork delivery");
+const clientSource = readFileSync(new URL("../client.js", import.meta.url), "utf8");
+const normalizeSource = readFileSync(new URL("../js/normalize.js", import.meta.url), "utf8");
+const normalizeContext = { getShowKey };
+runInNewContext(`${normalizeSource}\nthis.__testMergeShows = mergeShows;`, normalizeContext);
+const mergedClientIdentity = normalizeContext.__testMergeShows([
+  { id: "same-card-id", anilistId: 9253, title: "Steins;Gate", banner: "carousel.jpg", _paintedCarouselArtwork: "carousel.jpg", source: "AniList" },
+  { id: "same-card-id", title: "Steins;Gate", banner: "fallback.jpg", source: "Local cache" }
+]);
+check("Carousel uses the canonical cinematic URL", /const deliveredArt = art \? cinematicBackdropUrl\(art\)/.test(clientSource));
+check("Detail sharp layer uses the canonical cinematic URL", /const optimized = url \? cinematicBackdropUrl\(url\)/.test(clientSource));
+check("Detail blur layer reuses the canonical cinematic URL", /const blurUrl = url \? cinematicBackdropUrl\(url\)/.test(clientSource));
+check("No separate 640px backdrop preview remains", !/imageDeliveryUrl\(url, 640, 70\)/.test(clientSource));
+check("Detail trusts artwork already painted by the carousel", /const useful = matchesPaintedCarousel\s*\? true/.test(clientSource));
+check("Carousel click uses the exact painted show snapshot", /const current = _carouselPaintedShow;/.test(clientSource) && /showRef: current/.test(clientSource));
+check("Detail open honors a supplied painted show snapshot", /const paintedShow = target\.showRef;/.test(clientSource));
+check("Client collapses duplicate DOM/card identities", mergedClientIdentity.length === 1 && mergedClientIdentity[0]._paintedCarouselArtwork === "carousel.jpg");
+check("Catalog merges are uncapped by default", /function mergeShows\(items, limit = Infinity\)/.test(normalizeSource));
 
 console.log("\n# Episode totals never combine across different AniList IDs");
 // Simulate per-entry episode counts and ensure we only sum within one id.

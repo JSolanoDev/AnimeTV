@@ -6431,7 +6431,7 @@ body.player-cinema-open .close-button {
   opacity: 1;
   filter: none;
   transform: none;
-  transition: opacity 220ms ease;
+  transition: opacity 360ms ease, filter 520ms ease, transform 520ms ease;
 }
 
 .carousel-backdrop-image {
@@ -6446,6 +6446,14 @@ body.player-cinema-open .close-button {
   object-fit: cover;
   object-position: center 30%;
 }
+
+/* Both layers use the same 1920px file. The CSS-only blur is visible while that
+   one resource decodes, then the sharp layer settles in without an image swap. */
+.carousel-stage.is-backdrop-loading .carousel-backdrop {
+  filter: blur(24px) saturate(1.12) brightness(0.72);
+  transform: scale(1.07);
+}
+.carousel-stage.is-backdrop-loading .carousel-backdrop-image { opacity: 0; }
 
 .carousel-backdrop.has-banner {
   background-position: center center;
@@ -7879,7 +7887,7 @@ body.reduce-motion .ss-modal-detect { animation: none; }
   filter: blur(42px) saturate(1.25) brightness(0.62);
   transform: scale(1.12);
   opacity: 0;
-  transition: opacity 600ms ease;
+  transition: opacity 420ms ease;
   pointer-events: none;
 }
 .watch-overlay:not([hidden]) .watch-backdrop-blur.is-visible { opacity: 1; }
@@ -7900,7 +7908,7 @@ body.reduce-motion .watch-backdrop-blur { transform: scale(1.08); }
     radial-gradient(120% 90% at 0% 100%, rgba(34, 40, 90, 0.5), transparent 55%);
   opacity: 0;
   transform: scale(1.04);
-  transition: opacity 500ms ease;
+  transition: opacity 420ms ease, transform 700ms ease;
   pointer-events: none;
 }
 .watch-overlay:not([hidden]) .watch-backdrop { opacity: 1; }
@@ -7989,6 +7997,7 @@ body.adult-mode .watch-backdrop-title-rule {
   background-image: none;
   animation: none;
 }
+.watch-overlay:not([hidden]) .watch-backdrop.is-blur-hold { opacity: 0; }
 @keyframes watch-backdrop-zoom {
   from { transform: scale(1.02); }
   to   { transform: scale(1.12); }

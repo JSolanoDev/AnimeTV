@@ -450,33 +450,104 @@ function normalizeJikanShow(entry, source) {
   };
 }
 
-function mergeShows(items, limit = 1200) {
-  const byKey = new Map();
-  items.forEach((show) => {
-    const key = getShowKey(show);
-    const current = byKey.get(key);
-    byKey.set(key, {
-      ...current,
-      ...show,
-      image: current?.image || show.image,
-      banner: current?.banner || show.banner,
-      images: {
-        ...(current?.images || {}),
-        ...(show.images || {})
-      },
-      description: current?.description || show.description,
-      videoUrl: show.videoUrl || current?.videoUrl || "",
-      episodes: mergeEpisodes(current?.episodes, show.episodes),
-      seasons: mergeSeasons(current?.seasons, show.seasons),
-      siteUrl: show.siteUrl || current?.siteUrl || "",
-      source: current ? `${current.source} + ${show.source}` : show.source
-    });
+function catalogMetadataRank(show = {}) {
+  const source = String(show.source || "").toLowerCase();
+  if (source.includes("anilist")) return 3;
+  if (source.includes("jikan")) return 2;
+  if (source.includes("animeav1")) return 1;
+  return 0;
+}
+
+function mergeCatalogSourceLabels(...values) {
+  const labels = [];
+  const seen = new Set();
+  values.forEach((value) => String(value || "").split("+").forEach((part) => {
+    const label = part.trim();
+    const key = label.toLowerCase();
+    if (!label || seen.has(key)) return;
+    seen.add(key);
+    labels.push(label);
+  }));
+  return labels.join(" + ");
+}
+
+function clientCatalogIdentitiesAreCompatible(left, right) {
+  if (!left || !right) return true;
+  if (left.anilistId && right.anilistId && String(left.anilistId) !== String(right.anilistId)) return false;
+  if (left.malId && right.malId && String(left.malId) !== String(right.malId)) return false;
+  return true;
+}
+
+function clientCatalogIdentityKeys(show = {}) {
+  return [...new Set([
+    show.id ? `id:${show.id}` : "",
+    show.anilistId ? `anilist:${show.anilistId}` : "",
+    show.malId ? `mal:${show.malId}` : "",
+    `show:${getShowKey(show)}`
+  ].filter(Boolean))];
+}
+
+function mergeClientCatalogShow(current, show) {
+  if (!current) return { ...show, source: mergeCatalogSourceLabels(show?.source) };
+  if (!show) return current;
+  const preferred = catalogMetadataRank(show) > catalogMetadataRank(current) ? show : current;
+  return {
+    ...current,
+    ...show,
+    id: current.id || show.id,
+    anilistId: current.anilistId || show.anilistId,
+    malId: current.malId || show.malId,
+    title: preferred?.title || current.title || show.title,
+    romajiTitle: preferred?.romajiTitle || current.romajiTitle || show.romajiTitle || "",
+    nativeTitle: preferred?.nativeTitle || current.nativeTitle || show.nativeTitle || "",
+    aliases: preferred?.aliases?.length ? preferred.aliases : (current.aliases || show.aliases || []),
+    status: preferred?.status || current.status || show.status || "",
+    format: preferred?.format || current.format || show.format || "",
+    duration: preferred?.duration || current.duration || show.duration || "",
+    year: preferred?.year || current.year || show.year || "",
+    score: preferred?.score || current.score || show.score || null,
+    genre: preferred?.genre || current.genre || show.genre || "anime",
+    genres: preferred?.genres?.length ? preferred.genres : (current.genres || show.genres || []),
+    image: current.image || show.image,
+    banner: preferred?.banner || current.banner || show.banner,
+    images: {
+      ...(current.images || {}),
+      ...(show.images || {})
+    },
+    description: preferred?.description || current.description || show.description,
+    videoUrl: show.videoUrl || current.videoUrl || "",
+    episodes: mergeEpisodes(current.episodes, show.episodes),
+    seasons: mergeSeasons(current.seasons, show.seasons),
+    siteUrl: show.siteUrl || current.siteUrl || "",
+    source: mergeCatalogSourceLabels(current.source, show.source)
+  };
+}
+
+function mergeShows(items, limit = Infinity) {
+  const byIdentity = new Map();
+  const records = new Set();
+  items.filter(Boolean).forEach((show) => {
+    const keys = clientCatalogIdentityKeys(show);
+    const matches = new Set(keys
+      .map((key) => ({ key, candidate: byIdentity.get(key) }))
+      .filter(({ key, candidate }) => candidate && (key.startsWith("id:") || clientCatalogIdentitiesAreCompatible(candidate, show)))
+      .map(({ candidate }) => candidate));
+    let merged = null;
+    matches.forEach((match) => { merged = mergeClientCatalogShow(merged, match); });
+    merged = mergeClientCatalogShow(merged, show);
+
+    matches.forEach((match) => records.delete(match));
+    records.add(merged);
+    if (matches.size) {
+      byIdentity.forEach((value, alias) => {
+        if (matches.has(value)) byIdentity.set(alias, merged);
+      });
+    }
+    clientCatalogIdentityKeys(merged).forEach((key) => byIdentity.set(key, merged));
   });
-  // Keep enough room for the regular catalog plus isolated mode-specific
-  // catalogs. Individual surfaces apply their own rendering limits. Re-merging an
-  // already-loaded catalogue passes Infinity: the live catalogue is already over
-  // 1200 titles, so the default cap would silently drop the tail.
-  return [...byKey.values()].slice(0, limit);
+  // Surfaces paginate/virtualize independently; truncating here silently removed
+  // the catalog tail when regular and adult sources were resident together.
+  return [...records].slice(0, limit);
 }
 
 function mergeEpisodes(current = [], incoming = []) {

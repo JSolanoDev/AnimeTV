@@ -1365,6 +1365,7 @@ if (require.main === module) {
 module.exports = handleRequest;
 module.exports.handleRequest = handleRequest;
 module.exports.startLocalServer = startLocalServer;
+module.exports.mergeShows = mergeShows;
 
 async function handleDailyRefresh(url, response) {
   const force = url.searchParams.get("force") === "1";
@@ -8250,6 +8251,73 @@ function normalizeJikanShow(entry, source) {
   };
 }
 
+function catalogMetadataRank(show = {}) {
+  const source = String(show.source || "").toLowerCase();
+  if (source.includes("anilist")) return 3;
+  if (source.includes("jikan")) return 2;
+  if (source.includes("animeav1")) return 1;
+  return 0;
+}
+
+function mergeSourceLabels(...values) {
+  const labels = [];
+  const seen = new Set();
+  values.forEach((value) => String(value || "").split("+").forEach((part) => {
+    const label = part.trim();
+    const key = label.toLowerCase();
+    if (!label || seen.has(key)) return;
+    seen.add(key);
+    labels.push(label);
+  }));
+  return labels.join(" + ");
+}
+
+function mergeCatalogShow(current, show) {
+  if (!current) return { ...show, source: mergeSourceLabels(show?.source) };
+  if (!show) return current;
+  const preferred = catalogMetadataRank(show) > catalogMetadataRank(current) ? show : current;
+  const epA = Number(current.latestAiredEp || current.episode);
+  const epB = Number(show.latestAiredEp || show.episode);
+  const mergedEpisode = epA && epB ? Math.min(epA, epB) : (epA || epB || current.episode || show.episode);
+  const animeAv1Page = [current, show].find((entry) =>
+    String(entry?.source || "").toLowerCase().includes("animeav1") && entry?.siteUrl
+  );
+
+  return {
+    ...current,
+    ...show,
+    id: current.id || show.id,
+    anilistId: current.anilistId || show.anilistId,
+    malId: current.malId || show.malId,
+    title: preferred.title || current.title || show.title,
+    romajiTitle: preferred.romajiTitle || current.romajiTitle || show.romajiTitle || "",
+    nativeTitle: preferred.nativeTitle || current.nativeTitle || show.nativeTitle || "",
+    aliases: preferred.aliases || current.aliases || show.aliases || [],
+    status: preferred.status || current.status || show.status || "",
+    format: preferred.format || current.format || show.format || "",
+    duration: preferred.duration || current.duration || show.duration || "",
+    year: preferred.year || current.year || show.year || "",
+    score: preferred.score || current.score || show.score || null,
+    genre: preferred.genre || current.genre || show.genre || "anime",
+    genres: preferred.genres?.length ? preferred.genres : (current.genres || show.genres || []),
+    day: preferred.day || current.day || show.day || "TBA",
+    time: preferred.time || current.time || show.time || "TBA",
+    episode: mergedEpisode,
+    image: current.image || show.image,
+    banner: preferred.banner || current.banner || show.banner || "",
+    description: preferred.description || current.description || show.description || "",
+    siteUrl: animeAv1Page?.siteUrl || show.siteUrl || current.siteUrl || "",
+    source: mergeSourceLabels(current.source, show.source)
+  };
+}
+
+function catalogIdentitiesAreCompatible(left, right) {
+  if (!left || !right) return true;
+  if (left.anilistId && right.anilistId && String(left.anilistId) !== String(right.anilistId)) return false;
+  if (left.malId && right.malId && String(left.malId) !== String(right.malId)) return false;
+  return true;
+}
+
 function mergeShows(items) {
   const byKey = new Map();
   const idMap = new Map(); // malId -> anilistId or vice versa
@@ -8272,27 +8340,21 @@ function mergeShows(items) {
     if (malKey && idMap.has(malKey)) key = idMap.get(malKey);
     else if (aniKey && idMap.has(aniKey)) key = aniKey; // prefer anilist as master key
 
-    const current = byKey.get(key) || byKey.get(malKey) || byKey.get(aniKey) || byKey.get(titleKey);
+    const matches = new Set([key, malKey, aniKey, titleKey]
+      .map((candidate) => byKey.get(candidate))
+      .filter((candidate) => candidate && catalogIdentitiesAreCompatible(candidate, show)));
+    let merged = null;
+    matches.forEach((match) => { merged = mergeCatalogShow(merged, match); });
+    merged = mergeCatalogShow(merged, show);
 
-    // When merging episode counts, take the lower value so that a source with the
-    // actual latest-aired episode (e.g. AniList) isn't overwritten by a source that
-    // only knows the planned total (e.g. Jikan).
-    const epA = Number(current?.latestAiredEp || current?.episode);
-    const epB = Number(show.latestAiredEp || show.episode);
-    const mergedEpisode = epA && epB ? Math.min(epA, epB) : (epA || epB || current?.episode || show.episode);
-
-    const merged = {
-      ...current,
-      ...show,
-      id: current?.id || show.id,
-      anilistId: current?.anilistId || show.anilistId,
-      malId: current?.malId || show.malId,
-      episode: mergedEpisode,
-      image: current?.image || show.image,
-      banner: current?.banner || show.banner,
-      description: (current?.description?.length || 0) > (show.description?.length || 0) ? current.description : show.description,
-      source: current ? `${current.source} + ${show.source}` : show.source
-    };
+    // Replace every alias that pointed at an older object. Previously those stale
+    // objects remained in Map.values(), so the same AniList identity was returned
+    // twice after a Jikan row enriched it.
+    if (matches.size) {
+      byKey.forEach((value, alias) => {
+        if (matches.has(value)) byKey.set(alias, merged);
+      });
+    }
 
     byKey.set(key, merged);
     if (malKey) byKey.set(malKey, merged);
@@ -8300,7 +8362,18 @@ function mergeShows(items) {
     if (titleKey) byKey.set(titleKey, merged);
   });
 
-  return [...new Set(byKey.values())];
+  const unique = new Map();
+  [...new Set(byKey.values())].forEach((show) => {
+    const identity = show.anilistId
+      ? `anilist-${show.anilistId}`
+      : show.malId
+        ? `mal-${show.malId}`
+        : show.id
+          ? `id-${show.id}`
+          : `title-${normalizeTitle(show.title)}-${show.year || ""}-${show.format || ""}`;
+    unique.set(identity, mergeCatalogShow(unique.get(identity), show));
+  });
+  return [...unique.values()];
 }
 
 function normalizeTitle(value) {
