@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=581`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=582`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2895,7 +2895,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=581";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=582";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -6597,6 +6597,18 @@ async function openShow(id, target = {}) {
   state.activeOpenToken = openToken;
   updateRouteMeta(state.currentRouteInfo || {}, show, target);
 
+  // ── Stop warming the rest of the catalogue while a show is open ──────────
+  // The warm fires ~80 requests across two workers, and a browser only opens
+  // about six connections per host - so the show you just opened queued behind
+  // all of it at the connection level, not in any app queue. Observed on
+  // production: a detail page still showing "Local source title." with no
+  // metadata and no episode list 40s after opening, while the network log was
+  // full of 200s for other titles. Yielding the connections to the show being
+  // looked at is the whole fix. Warming resumes on close; partially-warmed shows
+  // are only skipped once _metadataPreloadComplete is set, so nothing is
+  // stranded half-done.
+  pauseVisibleMetadataWarm();
+
   // ── Kick off image prefetches NOW so poster/backdrop are in the browser cache
   //    by the time the overlay DOM is ready (avoids the blank-poster delay).
   try {
@@ -7166,6 +7178,10 @@ function closeShow() {
     if (savedY > 0) window.scrollTo({ top: savedY, behavior: "auto" });
     // Returning to Home — resume the hero cover→trailer cycle.
     if (state.route === "home") renderCarousel();
+    // The show is closed, so the connections openShow handed to it are free
+    // again. Shows the pause interrupted resume from where they were left: the
+    // worker only skips a show once _metadataPreloadComplete is set.
+    scheduleVisibleMetadataWarm();
   }, 200);
 }
 
@@ -11976,6 +11992,13 @@ function fetchDeduped(url, init) {
 
 let visibleMetadataWarmGeneration = 0;
 
+// Both workers re-check the generation on every iteration, so bumping it lands
+// them after the show they are on rather than mid-cascade. Used to hand the
+// browser's connections to a show the moment it is opened - see openShow.
+function pauseVisibleMetadataWarm() {
+  visibleMetadataWarmGeneration += 1;
+}
+
 function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_LIMIT) {
   const generation = ++visibleMetadataWarmGeneration;
   const providedShows = Array.isArray(shows) ? shows : [];
@@ -15419,7 +15442,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=581");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=582");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
