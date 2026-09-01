@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=585`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=586`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2926,7 +2926,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=585";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=586";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -7778,7 +7778,10 @@ function applyWatchBackdrop(show, season) {
         show._backdropForceSharp = true;
         applyWatchBackdrop(show, season);
       }
-    }, 4000);
+      // 1200ms, was 4000: the hold now only engages when there is no wide art at
+      // all, so this is a backstop for a stalled TMDB resolve rather than something
+      // most shows wait out.
+    }, 1200);
   };
 
   const isPosterFallback = (url) => Boolean(url && verticalArt.has(url) && !wideSources.has(url));
@@ -7798,7 +7801,17 @@ function applyWatchBackdrop(show, season) {
     // art falls through to its AniList sharp; scheduleHighResFallback covers the
     // rare case where resolution threw and never set the flag.
     const tmdbPending = !show._tmdbResolved && !show._backdropForceSharp;
-    const blurHold = Boolean(url) && !posterFit && !artIsHighRes && tmdbPending;
+    // ...but only when the alternative is genuinely poor. If wide art is already in
+    // hand (AniList banner, AnimeAV1 strip), paint it NOW and crossfade to TMDB when
+    // it lands - the swap is a 280ms dip-and-fade, not a pop, so holding a blurred
+    // fill to avoid it is a bad trade. Measured before this: the hold ran its full
+    // 4s on every show and the sharp background landed 6.2-10.9s after open.
+    //
+    // This became universal when AnimeAV1 strips were (correctly) dropped from
+    // highResSources: ~80% of the catalogue has no TMDB art at open time, so
+    // artIsHighRes went false for all of it and every show started holding.
+    const haveWideArt = Boolean(url) && wideSources.has(url);
+    const blurHold = Boolean(url) && !posterFit && !artIsHighRes && tmdbPending && !haveWideArt;
 
     if (blurHold) {
       const keepCurrentArt = detailVisible
@@ -15556,7 +15569,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=585");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=586");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
