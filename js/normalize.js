@@ -48,6 +48,12 @@ function normalizeExternalShow(item, source, index) {
     // available to the backdrop chain under its own name, ranked below real art.
     banner: item.banner || item.backdrop || "",
     animeAv1Backdrop: sourceBackdrop || "",
+    // Pre-resolved by scripts/build-artwork-map.mjs and shipped in /api/catalog.
+    // getWatchBackdropArtwork() and getCarouselArtwork() both lead with this, so a
+    // present value means the show opens on a real 1080p+ backdrop with no AniList
+    // or TMDB round-trip at all.
+    tmdbBackdrop: item.tmdbBackdrop || "",
+    tmdbId: item.tmdbId || null,
     siteUrl: item.siteUrl || item.url || "",
     description: cleanDescription(item.description || item.synopsis || ""),
     anime1vUrl: item.anime1vUrl || item.animeUrl || item.url || item.link || "",

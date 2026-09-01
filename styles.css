@@ -11211,6 +11211,20 @@ body.adult-mode .poster-placeholder {
     linear-gradient(155deg, #211019, #0b0609 72%);
 }
 
+body.adult-mode .thumb-art.has-contained-poster::before {
+  background-image:
+    linear-gradient(rgba(12, 5, 9, 0.42), rgba(12, 5, 9, 0.7)),
+    var(--contained-poster);
+  background-position: center;
+  background-size: cover;
+  filter: blur(0.85rem) saturate(0.9);
+  transform: scale(1.12);
+}
+
+body.adult-mode .thumb-poster.is-contained-poster {
+  object-position: center;
+}
+
 body.adult-mode .poster-placeholder-mark {
   color: rgba(255, 226, 234, 0.16);
   text-shadow: 0 0 1.5rem rgba(225, 29, 72, 0.24);

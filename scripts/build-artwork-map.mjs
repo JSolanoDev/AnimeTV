@@ -100,12 +100,33 @@ function titleScore(candidates, tmdbNames) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function getJson(url, tries = 4) {
+// AniList allows about 90 requests a minute and answers 429 well before that when
+// several land at once. Running at concurrency 3 with no gate produced 554
+// anilist-failed out of 600 - the retries could not out-wait a limit they were
+// still saturating. Serialise every AniList call behind one global gate with a
+// minimum spacing; TMDB is unthrottled and still runs concurrently.
+const ANILIST_MIN_INTERVAL_MS = Number(argOf("--anilist-interval", "800"));
+let _aniGate = Promise.resolve();
+let _aniLast = 0;
+function anilistSlot() {
+  const take = async () => {
+    const wait = _aniLast + ANILIST_MIN_INTERVAL_MS - Date.now();
+    if (wait > 0) await sleep(wait);
+    _aniLast = Date.now();
+  };
+  _aniGate = _aniGate.then(take, take);
+  return _aniGate;
+}
+
+async function getJson(url, tries = 4, rateLimited = false) {
   for (let attempt = 1; attempt <= tries; attempt++) {
     try {
       const res = await fetch(url, { headers: { "User-Agent": "ZenkaiTV-artwork-map" } });
       if (res.status === 429 || res.status >= 500) {
-        await sleep(1200 * attempt);
+        // A rate-limited endpoint needs to wait out its window, not retry into it.
+        const backoff = rateLimited ? 5000 * attempt : 1200 * attempt;
+        await sleep(backoff);
+        if (rateLimited) { _aniLast = Date.now(); }
         continue;
       }
       if (!res.ok) return null;
@@ -120,7 +141,8 @@ async function getJson(url, tries = 4) {
 async function resolveOne(item) {
   const title = item.title || "";
   // 1. AniList - the server already runs a search-variant ladder for scraped titles.
-  const ani = await getJson(`${BASE}/api/anilist/search?q=${encodeURIComponent(title)}`);
+  await anilistSlot();
+  const ani = await getJson(`${BASE}/api/anilist/search?q=${encodeURIComponent(title)}`, 5, true);
   const media = ani && ani.ok ? ani.media : null;
   const aniTitles = media ? [media.title?.romaji, media.title?.english, media.title?.native, ...(media.synonyms || [])] : [title];
   const year = media?.seasonYear || media?.startDate?.year || item.year || null;

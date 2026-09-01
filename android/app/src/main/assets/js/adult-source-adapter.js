@@ -161,12 +161,12 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
   _bestBanner(item = {}, fallback = "") {
     const screenshots = Array.isArray(item.screenshots) ? item.screenshots : [];
     return String(
-      item.mainWallpaper ||
-      item.banner ||
-      item.backdrop ||
-      item.background ||
-      item.highQualityBackground ||
       screenshots[0] ||
+      item.highQualityBackground ||
+      item.background ||
+      item.backdrop ||
+      item.banner ||
+      item.mainWallpaper ||
       fallback ||
       ""
     ).trim();
@@ -197,13 +197,14 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
       poster: image,
       cover: image,
       coverImage: image,
-      mainWallpaper: banner || image,
+      mainWallpaper: image,
       banner,
       backdrop: banner,
       highQualityBackground: banner || image,
       adultBackground: banner || image,
       underHentaiImage: image,
       underHentaiBackdrop: banner || image,
+      screenshots: Array.isArray(item.screenshots) ? item.screenshots : [],
       images: {
         poster: image,
         cover: image,
@@ -289,7 +290,7 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
         image: this._bestImage(episode) || image,
         thumbnail: this._bestImage(episode) || image,
         banner: this._bestBanner(episode, banner || image),
-        adultBackground: this._bestImage(episode) || image || banner,
+        adultBackground: this._bestBanner(episode, banner || image),
         underHentaiImage: this._bestImage(episode) || image,
         underHentaiBackdrop: this._bestBanner(episode, banner || image),
         server: this.name,
@@ -312,9 +313,10 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
         image,
         banner,
         highQualityBackground: banner || image,
-        adultBackground: image || banner,
+        adultBackground: banner || image,
         underHentaiImage: image,
         underHentaiBackdrop: banner || image,
+        screenshots: Array.isArray(item.screenshots) ? item.screenshots : [],
         playable: true,
         episodes
       }],

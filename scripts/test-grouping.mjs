@@ -354,7 +354,8 @@ const mappedAdultTitle = adultAdapter._catalogItem({
   genres: ["Hentai", "Fantasy"]
 });
 check("UnderHentai title wallpaper wins over an episode screenshot", mappedAdultTitle.image === workingAdultWallpaper);
-check("UnderHentai title wallpaper is used as the backdrop", mappedAdultTitle.backdrop === workingAdultWallpaper);
+check("UnderHentai screenshot supplies the carousel and detail backdrop", mappedAdultTitle.backdrop === episodeScreenshot);
+check("UnderHentai screenshot list is preserved", mappedAdultTitle.screenshots.includes(episodeScreenshot));
 check("UnderHentai aired date supplies the catalog year", mappedAdultTitle.year === 2026);
 check("UnderHentai ongoing status maps to RELEASING", mappedAdultTitle.status === "RELEASING");
 check("UnderHentai brand is preserved as a studio", mappedAdultTitle.studios.includes("Test Studio"));

@@ -2031,6 +2031,21 @@ function readTioAnimeSlugsFromScrapedMetadata() {
 // Reads anime_metadata.json. If that file is missing, empty, or corrupt,
 // falls back to anime_metadata.previous.json so the source never goes blank.
 //
+// Pre-resolved AniList ids + TMDB backdrops, built offline by
+// scripts/build-artwork-map.mjs. Read once per process (the file is static and
+// the catalogue payload is itself cached behind CATALOG_RESPONSE_TTL_MS).
+let _artworkMapCache;
+function readArtworkMap() {
+  if (_artworkMapCache !== undefined) return _artworkMapCache;
+  try {
+    const raw = JSON.parse(fs.readFileSync(path.join(root, "scraper", "artwork-map.json"), "utf8"));
+    _artworkMapCache = raw && raw.entries ? raw.entries : null;
+  } catch {
+    _artworkMapCache = null; // not built yet - the client chain still resolves at runtime
+  }
+  return _artworkMapCache;
+}
+
 function readScrapedRegularCatalogItems() {
   const paths = [
     path.join(root, "scraper", "anime_metadata.json"),
@@ -2043,7 +2058,25 @@ function readScrapedRegularCatalogItems() {
         String(item.source || "").toLowerCase().includes("animeav1")
         || String(item.siteUrl || "").includes("animeav1.com/media/")
       );
-      if (items.length) return items;
+      if (!items.length) continue;
+      // Ship the pre-resolved artwork with the row. Without this the client has to
+      // run AniList-search -> anilistId -> TMDB-search -> backdrop per show, on
+      // demand, which is why only ~4 of 1177 rows ever had a TMDB backdrop and the
+      // rest fell back to a 1900x400 strip.
+      const artwork = readArtworkMap();
+      if (!artwork) return items;
+      return items.map((item) => {
+        const hit = artwork[item.id];
+        if (!hit || hit.status !== "ok") return item;
+        return {
+          ...item,
+          anilistId: item.anilistId || hit.anilistId || null,
+          malId: item.malId || hit.malId || null,
+          tmdbId: hit.tmdbId || null,
+          tmdbBackdrop: hit.tmdbBackdrop || "",
+          banner: item.banner || hit.anilistBanner || ""
+        };
+      });
     } catch {
       // Try the previous daily snapshot.
     }
@@ -8462,6 +8495,16 @@ function chooseUnderHentaiDisplayImage(image = "", banner = "") {
   return primary || fallback;
 }
 
+function getUnderHentaiArtwork(item = {}, titleArtwork = "") {
+  const screenshots = (Array.isArray(item.screenshots) ? item.screenshots : [])
+    .map((value) => decodeUnderHentaiImage(value))
+    .filter(Boolean);
+  const backgroundArtwork = screenshots[0]
+    || decodeUnderHentaiImage(item.highQualityBackground || item.background || item.backdrop || item.banner || "")
+    || titleArtwork;
+  return { screenshots, backgroundArtwork };
+}
+
 function isBlockedPlaybackUrl(value = "") {
   try {
     return BLOCKED_PLAYBACK_HOSTS.has(new URL(value).hostname.toLowerCase());
@@ -8499,24 +8542,28 @@ function prepareUnderHentaiSnapshotItem(item = {}) {
   const legacyBanner = decodeUnderHentaiImage(item.banner || "");
   const displayImage = chooseUnderHentaiDisplayImage(mainWallpaper, legacyBanner);
   const titleArtwork = displayImage || legacyBanner;
+  const { screenshots, backgroundArtwork } = getUnderHentaiArtwork(item, titleArtwork);
 
   return {
     ...item,
     image: titleArtwork,
     mainWallpaper: titleArtwork,
-    banner: titleArtwork,
+    banner: backgroundArtwork,
     poster: titleArtwork,
     cover: titleArtwork,
     thumbnail: titleArtwork,
     coverImage: titleArtwork,
-    backdrop: titleArtwork,
-    highQualityBackground: titleArtwork,
+    backdrop: backgroundArtwork,
+    highQualityBackground: backgroundArtwork,
+    adultBackground: backgroundArtwork,
+    underHentaiBackdrop: backgroundArtwork,
+    screenshots,
     images: {
       poster: titleArtwork,
       cover: titleArtwork,
       thumbnail: titleArtwork,
-      banner: titleArtwork,
-      backdrop: titleArtwork
+      banner: backgroundArtwork,
+      backdrop: backgroundArtwork
     },
     episodes: (Array.isArray(item.episodes) ? item.episodes : []).map((episode) => {
       const epNum = Number(episode.number || episode.episode);
@@ -8638,17 +8685,28 @@ async function handleUnderHentaiCatalog(url, response) {
     const legacyBanner = decodeUnderHentaiImage(item.banner || "");
     const displayImage = chooseUnderHentaiDisplayImage(mainWallpaper, legacyBanner);
     const titleArtwork = displayImage || legacyBanner;
+    const { screenshots, backgroundArtwork } = getUnderHentaiArtwork(item, titleArtwork);
     return {
       ...item,
       image: titleArtwork,
       mainWallpaper: titleArtwork,
-      banner: titleArtwork,
+      banner: backgroundArtwork,
       poster: titleArtwork,
       cover: titleArtwork,
       thumbnail: titleArtwork,
       coverImage: titleArtwork,
-      backdrop: titleArtwork,
-      highQualityBackground: titleArtwork
+      backdrop: backgroundArtwork,
+      highQualityBackground: backgroundArtwork,
+      adultBackground: backgroundArtwork,
+      underHentaiBackdrop: backgroundArtwork,
+      screenshots,
+      images: {
+        poster: titleArtwork,
+        cover: titleArtwork,
+        thumbnail: titleArtwork,
+        banner: backgroundArtwork,
+        backdrop: backgroundArtwork
+      }
     };
   });
 

@@ -483,7 +483,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=588`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=589`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2771,11 +2771,16 @@ function underHentaiBackdropCandidates(show = {}, season = null) {
   if (!isAdultCatalogShow(show)) return [];
   const screenshots = [
     ...(Array.isArray(season?.screenshots) ? season.screenshots : []),
-    ...(Array.isArray(show?.screenshots) ? show.screenshots : [])
+    ...(Array.isArray(show?.screenshots) ? show.screenshots : []),
+    ...(Array.isArray(season?.episodes) ? season.episodes.flatMap((episode) => [
+      ...(Array.isArray(episode?.screenshots) ? episode.screenshots : []),
+      episode?.banner,
+      episode?.backdrop,
+      episode?.adultBackground
+    ]) : [])
   ];
   return [
-    show.mainWallpaper,
-    season?.mainWallpaper,
+    ...screenshots,
     show.underHentaiBackdrop,
     season?.underHentaiBackdrop,
     show.adultBackground,
@@ -2786,7 +2791,8 @@ function underHentaiBackdropCandidates(show = {}, season = null) {
     show.banner,
     season?.backdrop,
     season?.banner,
-    ...screenshots,
+    show.mainWallpaper,
+    season?.mainWallpaper,
     show.underHentaiImage,
     season?.underHentaiImage,
     show.images?.poster,
@@ -2805,14 +2811,21 @@ function underHentaiBackdropCandidates(show = {}, season = null) {
 function getWatchBackdropArtwork(show = {}, season = null) {
   show = show || {};
   season = season || {};
+  const carouselArt = getCarouselArtwork(show);
+  if (carouselArt && !isArtworkLowQuality(carouselArt, "backdrop")) return carouselArt;
   const adultArt = pickImage(underHentaiBackdropCandidates(show, season)
     .filter((url) => !isArtworkLowQuality(url, "backdrop")));
   if (adultArt) return adultArt;
   const candidates = [
-    show.images?.backdrop,
-    show.images?.banner,
+    // Same order the carousel uses (getCarouselArtwork): the TMDB backdrop first,
+    // because it is a true 16:9 frame at 1920x1080 or better, where every banner
+    // source - AniList and AnimeAV1 alike - is a 1900x400 strip. Leading with
+    // images.banner is what made the watch background look worse than the hero for
+    // the same show.
     show.tmdbBackdrop,
+    show.images?.backdrop,
     show.highQualityBackground,
+    show.images?.banner,
     show.banner,
     show.bannerImage,
     show.backdrop,
@@ -2926,7 +2939,7 @@ function renderCarousel() {
     carouselBackdrop.classList.remove("has-banner");
     carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
     if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=588";
+      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=589";
       carouselBackdropImage.removeAttribute("srcset");
       carouselBackdropImage.classList.remove("has-banner");
     }
@@ -3158,6 +3171,7 @@ function artworkDimensionsAreUseful(img, role) {
   if (role === "episode") return width >= 240 && height >= 120 && ratio >= 1.22 && ratio <= 2.5;
   if (role === "banner") return width >= 1200 && height >= 320 && ratio >= 2.4 && ratio <= 5.2;
   if (role === "backdrop") return width >= 960 && height >= 480 && ratio >= 1.35 && ratio <= 2.6;
+  if (role === "adult-backdrop") return width >= 560 && height >= 300 && ratio >= 1.25 && ratio <= 2.6;
   return true;
 }
 
@@ -6650,6 +6664,7 @@ async function openShow(id, target = {}) {
     const _preloadBg = getWatchBackdropArtwork(show, _preloadSeason);
     if (_preloadPoster) preloadArtworkImage(_preloadPoster, 640, 90, true);
     if (_preloadBg && _preloadBg !== _preloadPoster) {
+      preloadArtworkImage(_preloadBg, 640, 70, true);
       preloadArtworkImage(_preloadBg, watchBackdropDeliveryWidth(), 92, true);
     }
     scheduleSeasonArtworkWarm(show, 0);
@@ -7690,6 +7705,12 @@ function applyWatchBackdrop(show, season) {
   const titleArtText = document.querySelector("#watchBackdropTitleText");
   const key = watchBackdropKey(show, season);
   const showKey = String(show?.id || show?.anilistId || show?.title || "show");
+  const adultShow = isAdultCatalogShow(show);
+  const carouselBackdrop = getCarouselArtwork(show);
+  const adultBackdropSources = new Set([
+    carouselBackdrop,
+    ...underHentaiBackdropCandidates(show, season)
+  ].map((value) => hqImage(String(value || "").trim())).filter(Boolean));
   const sourceBackdrops = animeAv1BackdropCandidates(show, season);
   // Restore the original banner-first treatment while retaining TMDB as a
   // fallback when the source and AniList artwork are unavailable.
@@ -7764,6 +7785,33 @@ function applyWatchBackdrop(show, season) {
     overlay?.classList.toggle("has-backdrop-art", Boolean(url));
   };
 
+  // On the first frame after a card click, show a small version of the exact
+  // carousel backdrop. The sharp image replaces it after decode, so the detail
+  // view never flashes an empty background while still avoiding a blurry final.
+  const showBackdropPreview = (url) => {
+    if (!url) return;
+    const preview = imageDeliveryUrl(url, 640, 70);
+    const canKeepCurrentSeasonArt = backdrop.dataset.backdropShowKey === showKey
+      && backdrop.classList.contains("has-art")
+      && Boolean(backdrop.dataset.backdropUrl);
+    if (blur) {
+      blur.style.backgroundImage = preview ? `url("${preview}")` : "";
+      blur.classList.toggle("is-visible", Boolean(preview));
+    }
+    if (canKeepCurrentSeasonArt) return;
+    backdrop.style.backgroundImage = "none";
+    backdrop.style.transition = "";
+    backdrop.style.opacity = "";
+    backdrop.classList.remove("has-art", "has-fallback-art", "is-poster-fit");
+    backdrop.classList.add("is-blur-hold");
+    backdrop.dataset.backdropKey = key;
+    backdrop.dataset.backdropUrl = "";
+    backdrop.dataset.backdropShowKey = showKey;
+    backdrop.dataset.backdropHeldUrl = url;
+    if (titleArt) titleArt.hidden = true;
+    overlay?.classList.add("cinematic", "has-backdrop-art");
+  };
+
   // Safety net for the blurred-hold below: if TMDB resolution never flips
   // _tmdbResolved (e.g. the search request threw), don't sit on the blur forever —
   // after a few seconds force the best-available sharp art for this show/season.
@@ -7800,7 +7848,7 @@ function applyWatchBackdrop(show, season) {
     // resolve outcome (match / no-match / reject), so a show that truly has no TMDB
     // art falls through to its AniList sharp; scheduleHighResFallback covers the
     // rare case where resolution threw and never set the flag.
-    const tmdbPending = !show._tmdbResolved && !show._backdropForceSharp;
+    const tmdbPending = !adultShow && !show._tmdbResolved && !show._backdropForceSharp;
     // ...but only when the alternative is genuinely poor. If wide art is already in
     // hand (AniList banner, AnimeAV1 strip), paint it NOW and crossfade to TMDB when
     // it lands - the swap is a 280ms dip-and-fade, not a pop, so holding a blurred
@@ -7967,16 +8015,18 @@ function applyWatchBackdrop(show, season) {
   // A successful HTTP response is not enough for a full-screen background.
   // Hold the designed title artwork while the candidate is decoded, then only
   // reveal it when its dimensions, aspect and visual contrast are suitable.
-  paint("");
+  showBackdropPreview(art);
   const probe = new Image();
   probe.referrerPolicy = "no-referrer";
   probe.crossOrigin = "anonymous";
   probe.onload = () => {
-    const useful = posterFallback
-      ? artworkDimensionsAreUseful(probe, "poster")
-      : bannerFallback
-        ? artworkDimensionsAreUseful(probe, "banner")
-        : backdropPixelsLookUseful(probe);
+    const useful = adultShow && adultBackdropSources.has(art)
+      ? artworkDimensionsAreUseful(probe, "adult-backdrop")
+      : posterFallback
+        ? artworkDimensionsAreUseful(probe, "poster")
+        : bannerFallback
+          ? artworkDimensionsAreUseful(probe, "banner")
+          : backdropPixelsLookUseful(probe);
     backdropQualityCache.set(qualityKey, useful);
     if (state.activeShow?.id !== show.id) return;
     if (useful) {
@@ -14179,7 +14229,7 @@ function preloadOpenShow(id) {
   const show = state.shows.find((entry) => String(entry.id) === String(id));
   if (!show) return;
   const preloadArtwork = () => {
-    const knownBackdrop = getWatchBackdropArtwork(show);
+    const knownBackdrop = getCarouselArtwork(show) || getWatchBackdropArtwork(show);
     if (!knownBackdrop) return;
     // Warm the EXACT url the watch page will paint. This used to fetch the raw
     // source url while paint() renders imageDeliveryUrl(art, watchBackdropDeliveryWidth(), 92)
@@ -14187,7 +14237,8 @@ function preloadOpenShow(id) {
     // never asked for, and opening it still paid full download latency.
     // preloadArtworkImage() dedupes on the delivered url, so repeated hovers and
     // the post-enrichment second call are free.
-    preloadArtworkImage(knownBackdrop, watchBackdropDeliveryWidth(), 92);
+    preloadArtworkImage(knownBackdrop, 640, 70, true);
+    preloadArtworkImage(knownBackdrop, watchBackdropDeliveryWidth(), 92, true);
   };
   if (!show._artworkPreloaded) { show._artworkPreloaded = true; preloadArtwork(); }
   if (!show._metadataPreloadStarted && (show.anilistId || show.malId || show.title)) {
@@ -15572,7 +15623,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=588");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=589");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
