@@ -242,7 +242,7 @@ const carouselBackdropImage = document.querySelector("#carouselBackdropImage");
 const HERO_MEMO_KEY = "ztv:hero-art";
 // Bump when the stored shape changes - every older entry is then dropped on read
 // instead of being fed to code that expects new fields.
-const HERO_MEMO_SCHEMA = 2;
+const HERO_MEMO_SCHEMA = 3;
 // Artwork gets replaced upstream; a memo older than this is more likely to be a
 // dead URL than a useful head start, so it expires rather than living forever.
 const HERO_MEMO_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -282,6 +282,7 @@ function writeHeroMemo(entry) {
 }
 
 let heroMemoActive = false;
+let _carouselMemoId = "";
 (function restoreHeroBackdrop() {
   if (!carouselBackdropImage) return;
   const memo = readHeroMemo();
@@ -304,6 +305,15 @@ let heroMemoActive = false;
   carouselBackdropImage.classList.add("has-banner");
   carouselBackdropImage.classList.toggle("is-portrait-art", Boolean(memo.portrait));
   heroMemoActive = true;
+  // Which show this picture belongs to. Without it the restored image sat next to
+  // whatever title the first render produced - one anime's art over another
+  // anime's name - and the lineup had no way to re-select the same show, so the
+  // hero visibly changed anime a few seconds after load.
+  _carouselMemoId = memo.id ? String(memo.id) : "";
+  if (memo.title) {
+    const titleEl = document.querySelector("#carouselTitle");
+    if (titleEl) titleEl.textContent = memo.title;
+  }
 })();
 const carouselTitle = document.querySelector("#carouselTitle");
 const carouselText = document.querySelector("#carouselText");
@@ -468,10 +478,15 @@ function resetCatalogModeControls() {
   if (typeof _carouselPaintedShow !== "undefined") _carouselPaintedShow = null;
 }
 
-function replaceRegularCatalog(items = []) {
+// `tier` says how complete this catalogue is. The bootstrap payload is ~54 titles
+// and the full one ~1100, and the carousel pool is "recently aired that has
+// artwork" - in a 54-title catalogue that bar is met by titles from 1995, so the
+// bootstrap hero is both wrong and guaranteed to be replaced seconds later.
+function replaceRegularCatalog(items = [], tier = "full") {
   const adultItems = state.shows.filter((item) =>
     typeof AdultMode !== "undefined" && AdultMode.isAdultContent(item)
   );
+  state.catalogTier = tier;
   state.shows = mergeShows([...items, ...adultItems], Infinity);
   return state.shows;
 }
@@ -484,7 +499,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=592`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=594`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -570,7 +585,7 @@ async function loadAnimeSources() {
   if (!hasInitialCatalog) {
     const bootstrapCatalog = await fetchHomepageBootstrapCatalog().catch(() => []);
     if (bootstrapCatalog.length) {
-      replaceRegularCatalog(bootstrapCatalog);
+      replaceRegularCatalog(bootstrapCatalog, "bootstrap");
       state.isLoadingCatalog = false;
       state.carouselIndex = 0;
       setSourceStatus(catalogStatusLabel("ZenkaiTV bootstrap", bootstrapCatalog));
@@ -2902,22 +2917,30 @@ function buildStableCarouselItems(pool) {
   const byId = new Map(pool.map((s) => [String(s.id), s]));
   const prev = _carouselStableIds.map((id) => byId.get(id)).filter(Boolean);
 
-  // Keep the existing line-up while most of it is still valid.
-  if (prev.length >= Math.min(MAX, pool.length) && prev.length >= 3) {
-    const items = prev.slice(0, MAX);
-    _carouselStableIds = items.map((s) => String(s.id));
-    return items;
-  }
+  // Whatever is ALREADY on screen keeps slide 1, and the show the memo restored
+  // is next in line. Both are looked up in the whole catalogue, not just `pool`:
+  // a later render legitimately drops a title out of the "recently aired + has
+  // artwork" window, and demoting the visible hero is precisely the reshuffle
+  // this function exists to prevent.
+  const findAnywhere = (id) => id
+    ? (byId.get(id) || (state.shows || []).find((s) => String(s.id) === id) || null)
+    : null;
+  const pinned = [findAnywhere(_carouselPaintedId ? String(_carouselPaintedId) : ""),
+                  findAnywhere(_carouselMemoId)].filter(Boolean);
 
-  // (Re)build: keep still-valid previous items first (so the current slide never
-  // jumps), then prefer shows whose trailer has resolved, then the rest of pool.
+  // Top up instead of rebuilding. The old code rebuilt from scratch whenever the
+  // previous lineup was not ENTIRELY present in the new pool, which happens on
+  // every catalogue upgrade (bootstrap -> full -> enrichment) because the pool
+  // grows. Measured before this: the hero showed three different anime in the
+  // first 15s (241ms, 7.2s, 14.2s). Topping up means a bigger pool adds slides,
+  // it never renames slide 1.
   const withTrailer = pool.filter((s) => {
     const tr = s.anilistId ? _readTrailerCache(String(s.anilistId)) : null;
     return tr && tr.id;
   });
   const ordered = [];
   const seen = new Set();
-  for (const s of [...prev, ...withTrailer, ...pool]) {
+  for (const s of [...pinned, ...prev, ...withTrailer, ...pool]) {
     const id = String(s.id);
     if (seen.has(id)) continue;
     seen.add(id);
@@ -2950,16 +2973,24 @@ function renderCarousel() {
     _carouselPaintedId = null;
     _carouselPaintedShow = null;
     carouselStage.classList.add("is-loading");
-    carouselBackdrop.classList.remove("has-banner");
-    carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
-    if (carouselBackdropImage) {
-      carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=592";
-      carouselBackdropImage.removeAttribute("srcset");
-      carouselBackdropImage.classList.remove("has-banner");
+    // A restored hero is real artwork for a real show, and it is already on
+    // screen. Replacing it with the placeholder for the ~150ms before the
+    // catalogue arrives is what made every load read as "it shows one anime,
+    // then something else": memo art -> placeholder + "Loading anime..." ->
+    // the actual hero. Measured: placeholder at 405ms, real art at 560ms.
+    // Only paint the placeholder when there is genuinely nothing to show.
+    if (!heroMemoActive) {
+      carouselBackdrop.classList.remove("has-banner");
+      carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
+      if (carouselBackdropImage) {
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=594";
+        carouselBackdropImage.removeAttribute("srcset");
+        carouselBackdropImage.classList.remove("has-banner");
+      }
+      carouselTitle.textContent = "Loading ZenkaiTV...";
+      carouselText.textContent = "Getting the catalog ready.";
+      carouselMeta.textContent = "Please wait";
     }
-    carouselTitle.textContent = "Loading ZenkaiTV...";
-    carouselText.textContent = "Getting the catalog ready.";
-    carouselMeta.textContent = "Please wait";
     carouselOpen.removeAttribute("data-open-show");
     carouselOpen.disabled = true;
     if (carouselIndicators) carouselIndicators.innerHTML = "";
@@ -2975,6 +3006,12 @@ function renderCarousel() {
   // / trailer repaint when the displayed anime hasn't actually changed. Repainting
   // identical content on every background render is what made the hero "blink".
   renderCarouselIndicators(items);
+  // Hold the restored hero while the catalogue is still the bootstrap payload.
+  // Painting a bootstrap pick over a correct remembered one, only to replace it
+  // again when the full catalogue lands, is the "it loads another anime first"
+  // behaviour. With no memo (first ever visit) this does not apply and the
+  // bootstrap hero paints as before - there is nothing better to show.
+  if (heroMemoActive && state.catalogTier === "bootstrap") return;
   if (String(show.id || "") === _carouselPaintedId) return;
   _carouselPaintedId = String(show.id || "");
 
@@ -3063,7 +3100,13 @@ function renderCarousel() {
       };
       carouselBackdropImage.src = deliveredArt;
       // Remember it for the next visit (see restoreHeroBackdrop above).
-      writeHeroMemo({ src: deliveredArt, srcset: "", portrait: !hasLandscapeBanner });
+      writeHeroMemo({
+        id: String(show.id || ""),
+        title: getShowTitle(show) || show.title || "",
+        src: deliveredArt,
+        srcset: "",
+        portrait: !hasLandscapeBanner
+      });
     } else if (art && carouselBackdropImage.complete) {
       carouselStage.classList.remove("is-backdrop-loading");
     } else if (!art && !heroMemoActive) {
@@ -15665,7 +15708,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=592");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=594");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
