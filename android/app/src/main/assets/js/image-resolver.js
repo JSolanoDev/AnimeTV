@@ -703,6 +703,12 @@ const ImageResolver = (function () {
         return anime;
       }
 
+      // TMDB keeps films in a separate index, and /search/tv simply returns nothing
+      // for them. Without this a franchise "Movies" entry never matched, fell back
+      // to an AniList banner and rendered a 1900x534 strip where every other season
+      // showed a 1920x1080 backdrop.
+      const mediaType = /movie|film/i.test(String(anime.format || anime.type || "")) ? "&type=movie" : "";
+
       // Search with the strongest titles first.
       const rawTitles = [
         typeof anime.title === "string" ? anime.title : "",
@@ -745,11 +751,21 @@ const ImageResolver = (function () {
         let payload;
         try {
           let resp = await fetchWithTimeout(
-            `/api/tmdb/search?q=${encodeURIComponent(title)}${year ? `&year=${encodeURIComponent(year)}` : ""}`,
+            `/api/tmdb/search?q=${encodeURIComponent(title)}${mediaType}${year ? `&year=${encodeURIComponent(year)}` : ""}`,
             { cache: "no-store" }, 12000
           );
           payload = resp.ok ? await resp.json() : null;
           if ((!payload || !payload.results || !payload.results.length) && year) {
+            resp = await fetchWithTimeout(
+              `/api/tmdb/search?q=${encodeURIComponent(title)}${mediaType}`,
+              { cache: "no-store" }, 12000
+            );
+            payload = resp.ok ? await resp.json() : null;
+          }
+          // A film that found nothing in the TV index is worth one more look in the
+          // movie index, and vice versa - AniList and TMDB disagree about whether
+          // some entries are films or short series.
+          if ((!payload || !payload.results || !payload.results.length) && mediaType) {
             resp = await fetchWithTimeout(
               `/api/tmdb/search?q=${encodeURIComponent(title)}`,
               { cache: "no-store" }, 12000
