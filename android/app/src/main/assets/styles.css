@@ -7984,11 +7984,32 @@ body.adult-mode .watch-backdrop-title-kicker { color: #fb7185; }
 body.adult-mode .watch-backdrop-title-rule {
   background: linear-gradient(90deg, #e11d48, #fb7185);
 }
+/* Portrait key art, composed like a streaming-service title card rather than
+   cropped. background-size: cover on a 460x690 poster fills a 16:9 frame by
+   throwing away most of the image, so instead: contain the sharp art at full
+   height, seat it right of the metadata column, and let the blurred darkened
+   copy behind it (.watch-backdrop-blur) carry the rest of the frame. */
 .watch-backdrop.is-poster-fit {
-  background-size: min(42vw, 34rem) auto;
-  background-position: center;
+  background-size: auto min(94%, 40rem);
+  background-position: 80% 10%;
   background-repeat: no-repeat;
   animation: none;
+}
+/* On phones the title and metadata sit ON TOP of the hero, so a sharp portrait
+   behind them makes both unreadable - and the same poster already appears as its
+   own card immediately below. Keep just the blurred fill there. !important
+   because setBackdropArt writes background-image as an inline style. */
+@media (max-width: 760px) {
+  .watch-overlay:not([hidden]) .watch-backdrop.is-poster-fit {
+    background-image: none !important;
+  }
+}
+/* A deeper fill under composed portrait art: it has to read as a background,
+   not as a second copy of the poster. The blur layer precedes .watch-backdrop
+   in the DOM, so it is selected with :has(~ ...). */
+.watch-overlay:not([hidden]) .watch-backdrop-blur.is-visible:has(~ .watch-backdrop.is-poster-fit) {
+  filter: blur(2.4rem) saturate(1.15) brightness(0.42);
+  transform: scale(1.18);
 }
 /* Holding for the high-res (TMDB) backdrop: keep the sharp layer transparent so
    only the blurred fill behind it shows, until the good art fades in. */

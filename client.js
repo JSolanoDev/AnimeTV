@@ -508,7 +508,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=596`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=600`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -1841,6 +1841,144 @@ function isolateAdultSourceMetadata(show) {
   return show;
 }
 
+const ADULT_CINEMATIC_CACHE_TTL = 30 * 24 * 60 * 60 * 1000;
+const adultCinematicFlights = new Map();
+
+function adultCinematicTitles(show = {}) {
+  return [...new Set([
+    show.title,
+    show.officialTitle,
+    show.romajiTitle,
+    show.nativeTitle,
+    show.englishTitle
+  ].map((value) => String(value || "").trim()).filter(Boolean))].slice(0, 2);
+}
+
+function adultCinematicCacheKey(show = {}) {
+  const title = normalizeMatchTitle(adultCinematicTitles(show)[0] || show.id || "adult-title");
+  return `adult-cinematic-art:v1:${title}:${show.year || ""}`;
+}
+
+function adultArtworkCandidate(show, candidate, year = 0) {
+  const score = titleMatchScore(show, candidate);
+  if (score < 100) return 0;
+  const showYear = Number(show.year || 0);
+  const candidateYear = Number(year || 0);
+  if (showYear && candidateYear && Math.abs(showYear - candidateYear) > 4) return 0;
+  return score;
+}
+
+function applyAdultCinematicArtwork(show, artwork = {}) {
+  const url = String(artwork.url || "").trim();
+  if (!url) return false;
+  show.adultCinematicBackdrop = url;
+  show.adultCinematicSource = String(artwork.source || "metadata");
+  // A title opened from the carousel normally keeps that exact image. Upgrade
+  // that remembered image too, otherwise the old 640x360 frame would remain
+  // pinned after the high-quality match finishes loading.
+  if (show._paintedCarouselArtwork) show._paintedCarouselArtwork = url;
+  return true;
+}
+
+async function findAdultCinematicArtwork(show, title) {
+  const year = String(show.year || "").trim();
+  const suffix = `${year ? `&year=${encodeURIComponent(year)}` : ""}&adult=1`;
+  const requests = [
+    fetchWithTimeout(`/api/anilist/search?q=${encodeURIComponent(title)}&adult=1`, { cache: "no-store" }, 10000),
+    fetchWithTimeout(`/api/tmdb/search?q=${encodeURIComponent(title)}${suffix}`, { cache: "no-store" }, 10000),
+    fetchWithTimeout(`/api/tmdb/search?q=${encodeURIComponent(title)}${suffix}&type=movie`, { cache: "no-store" }, 10000)
+  ];
+  const settled = await Promise.allSettled(requests);
+  const payloads = await Promise.all(settled.map(async (entry) => {
+    if (entry.status !== "fulfilled" || !entry.value.ok) return null;
+    try { return await entry.value.json(); } catch { return null; }
+  }));
+
+  const choices = [];
+  const aniPayload = payloads[0];
+  const aniMedia = Array.isArray(aniPayload?.results) && aniPayload.results.length
+    ? aniPayload.results
+    : (aniPayload?.media ? [aniPayload.media] : []);
+  aniMedia.forEach((media) => {
+    const url = String(media?.bannerImage || "").trim();
+    if (!url || media?.isAdult === false) return;
+    const candidate = {
+      title: media.title?.english || media.title?.romaji || media.title?.userPreferred,
+      romajiTitle: media.title?.romaji,
+      nativeTitle: media.title?.native,
+      aliases: media.synonyms || []
+    };
+    const score = adultArtworkCandidate(show, candidate, media.seasonYear);
+    if (score) choices.push({ url, source: "AniList", score, preference: 1 });
+  });
+
+  payloads.slice(1).forEach((payload) => {
+    (Array.isArray(payload?.results) ? payload.results : []).forEach((media) => {
+      const path = String(media?.backdrop_path || "").trim();
+      if (!path) return;
+      const candidate = {
+        title: media.name || media.title,
+        nativeTitle: media.original_name || media.original_title
+      };
+      const candidateYear = String(media.first_air_date || media.release_date || "").slice(0, 4);
+      const score = adultArtworkCandidate(show, candidate, candidateYear);
+      if (score) choices.push({
+        url: /^https?:/i.test(path) ? path : `https://image.tmdb.org/t/p/original${path}`,
+        source: "TMDB",
+        score,
+        preference: 2
+      });
+    });
+  });
+
+  return choices.sort((a, b) => b.score - a.score || b.preference - a.preference)[0] || null;
+}
+
+async function hydrateAdultCinematicArtwork(show) {
+  if (!isAdultCatalogShow(show)) return show;
+  const titles = adultCinematicTitles(show);
+  const queryKey = titles.map(normalizeMatchTitle).join("|");
+  if (!queryKey || (show._adultCinematicResolved && show._adultCinematicQueryKey === queryKey)) return show;
+  const flightKey = `${show.id || show.adultId || queryKey}:${queryKey}`;
+  if (adultCinematicFlights.has(flightKey)) return adultCinematicFlights.get(flightKey);
+
+  const request = (async () => {
+    const cached = readResponseCache(adultCinematicCacheKey(show), ADULT_CINEMATIC_CACHE_TTL);
+    if (cached?.url && await preloadCinematicBackdrop(cached.url, false)) {
+      applyAdultCinematicArtwork(show, cached);
+      show._adultCinematicResolved = true;
+      show._adultCinematicQueryKey = queryKey;
+      return show;
+    }
+
+    let artwork = null;
+    for (const title of titles) {
+      artwork = await findAdultCinematicArtwork(show, title).catch(() => null);
+      if (artwork) break;
+    }
+    if (artwork && await preloadCinematicBackdrop(artwork.url, false)) {
+      applyAdultCinematicArtwork(show, artwork);
+      writeResponseCache(adultCinematicCacheKey(show), artwork);
+    }
+    show._adultCinematicResolved = true;
+    show._adultCinematicQueryKey = queryKey;
+    return show;
+  })().finally(() => adultCinematicFlights.delete(flightKey));
+  adultCinematicFlights.set(flightKey, request);
+  return request;
+}
+
+function warmAdultCinematicBackdrops(items = []) {
+  const targets = items.slice(0, 6);
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < targets.length) await hydrateAdultCinematicArtwork(targets[cursor++]);
+  };
+  Promise.allSettled([worker(), worker()]).then(() => {
+    if (typeof AdultMode !== "undefined" && AdultMode.isEnabled() && state.route === "home") renderCarousel();
+  });
+}
+
 async function loadAdultCatalog(force = false) {
   if (typeof AdultSourceRegistry === "undefined" || !AdultSourceRegistry.isConfigured()) {
     state.isLoadingCatalog = false;
@@ -1864,6 +2002,7 @@ async function loadAdultCatalog(force = false) {
       state.carouselIndex = 0;
       setSourceStatus(catalogStatusLabel(`${labelPrefix} adult catalog`, adultItems));
       render();
+      window.setTimeout(() => warmAdultCinematicBackdrops(adultItems), 120);
     }
     return adultItems;
   };
@@ -1903,6 +2042,9 @@ async function hydrateAdultShowDetails(show) {
   const sourceOrder = show.sourceOrder;
   Object.assign(show, details, { id: stableId, sourceOrder, adultDetailsLoaded: true });
   isolateAdultSourceMetadata(show);
+  hydrateAdultCinematicArtwork(show).then(() => {
+    if (state.activeShow?.id === stableId) syncWatchHeading(show);
+  }).catch(() => {});
   await Promise.all((show.episodes || []).map((episode) =>
     attachPlaybackSourceOptions(show, episode, Number(episode.season || 1) || 1)
   ));
@@ -2645,6 +2787,7 @@ function getCarouselArtwork(show = {}) {
     // Prefer the high-resolution TMDB backdrop when it has resolved — it's much
     // sharper than the AniList banner, which keeps the hero looking professional.
     show.tmdbBackdrop,
+    show.adultCinematicBackdrop,
     show.highQualityBackground,
     show.images?.backdrop,
     show.images?.banner,
@@ -2811,6 +2954,7 @@ function underHentaiBackdropCandidates(show = {}, season = null) {
     ]) : [])
   ];
   return [
+    show.adultCinematicBackdrop,
     ...screenshots,
     show.underHentaiBackdrop,
     season?.underHentaiBackdrop,
@@ -3007,7 +3151,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=596";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=600";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -3279,7 +3423,7 @@ function artworkDimensionsAreUseful(img, role) {
   if (role === "episode") return width >= 240 && height >= 120 && ratio >= 1.22 && ratio <= 2.5;
   if (role === "banner") return width >= 1200 && height >= 320 && ratio >= 2.4 && ratio <= 5.2;
   if (role === "backdrop") return width >= 960 && height >= 480 && ratio >= 1.35 && ratio <= 2.6;
-  if (role === "adult-backdrop") return width >= 560 && height >= 300 && ratio >= 1.25 && ratio <= 2.6;
+  if (role === "adult-backdrop") return width >= 560 && height >= 300 && ratio >= 1.25 && ratio <= 3.2;
   return true;
 }
 
@@ -7832,7 +7976,7 @@ function applyWatchBackdrop(show, season) {
   const wideSources = new Set([
     ...sourceBackdrops,
     show.images?.backdrop, show.images?.banner,
-    show.tmdbBackdrop, show.highQualityBackground, show.banner, show.bannerImage,
+    show.tmdbBackdrop, show.adultCinematicBackdrop, show.highQualityBackground, show.banner, show.bannerImage,
     show.backdrop, show.heroImage, show.wideImage,
     show.landscapeImage, show.jikanBackground,
     ...seasonWideBackdropCandidates(show, season),
@@ -7859,7 +8003,7 @@ function applyWatchBackdrop(show, season) {
   // "final", so the page committed to it instead of waiting the moment it takes
   // the TMDB backdrop to land.
   const highResSources = new Set([
-    show.tmdbBackdrop, show.highQualityBackground,
+    show.tmdbBackdrop, show.adultCinematicBackdrop, show.highQualityBackground,
     season?.tmdbBackdrop, season?.highQualityBackground,
     seasonNum && show.tmdbSeasonBackdropsBySeason ? show.tmdbSeasonBackdropsBySeason[seasonNum] : ""
   ].map((value) => hqImage(String(value || "").trim())).filter(Boolean));
@@ -7947,9 +8091,18 @@ function applyWatchBackdrop(show, season) {
     }, 1200);
   };
 
-  const isPosterFallback = (url) => Boolean(url && verticalArt.has(url) && !wideSources.has(url));
+  // Anything we fall back to that is NOT one of this show's wide sources is
+  // portrait key art. Also requiring verticalArt.has(url) made this false on a
+  // directly-opened watch page - verticalArt is populated as a side effect of
+  // building CARD candidates - so portrait art was probed with the "backdrop"
+  // role, which demands ratio 1.35-2.6. A 0.67 poster failed that, was marked
+  // low quality, every remaining candidate was discarded the same way, and the
+  // page sat on the blurred fill with background-image: none. Measured on
+  // "Tefuda ga Oome no Victoria 2": no sharp art at all, 12s after open.
+  const isPosterFallback = (url) => Boolean(url) && !wideSources.has(url);
   const paint = (url) => {
-    const posterFit = false;
+    // Portrait key art is composed, not cropped - see .is-poster-fit.
+    const posterFit = isPosterFallback(url);
     const artIsHighRes = Boolean(url) && highResSources.has(url);
     const optimized = url ? cinematicBackdropUrl(url) : "";
     const sameTarget = backdrop.dataset.backdropKey === key;
@@ -14358,6 +14511,13 @@ function preloadOpenShow(id) {
     preloadCinematicBackdrop(knownBackdrop, true);
   };
   if (!show._artworkPreloaded) { show._artworkPreloaded = true; preloadArtwork(); }
+  if (isAdultCatalogShow(show)) {
+    if (!show._metadataPreloadStarted) {
+      show._metadataPreloadStarted = true;
+      hydrateAdultCinematicArtwork(show).then(preloadArtwork).catch(() => {});
+    }
+    return;
+  }
   if (!show._metadataPreloadStarted && (show.anilistId || show.malId || show.title)) {
     show._metadataPreloadStarted = true;
     Promise.resolve(hydrateCanonicalAnimeMetadata(show))
@@ -15743,7 +15903,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=596");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=600");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
