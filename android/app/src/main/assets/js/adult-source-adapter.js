@@ -517,6 +517,50 @@ class CompositeAdultSourceAdapter extends AdultSourceAdapter {
     };
   }
 
+  _mergeDetailPlayback(primary = {}, ocean = null) {
+    if (!ocean) return primary;
+    const oceanByEpisode = new Map((ocean.episodes || []).map((episode) => [
+      Number(episode.number || episode.episode || 1),
+      episode
+    ]));
+    const episodes = (primary.episodes || []).map((episode) => {
+      const episodeNumber = Number(episode.number || episode.episode || 1);
+      const fallback = oceanByEpisode.get(episodeNumber);
+      if (!fallback) return episode;
+      const seenSources = new Set();
+      const sourceOptions = [
+        ...(episode.sourceOptions || []),
+        ...(fallback.sourceOptions || [])
+      ].filter((source) => {
+        const key = source.id || source.videoUrl || source.externalUrl || source.streamResolver?.endpoint;
+        if (!key || seenSources.has(key)) return false;
+        seenSources.add(key);
+        return true;
+      });
+      const screenshots = [...new Set([
+        ...(episode.screenshots || []),
+        ...(fallback.screenshots || []),
+        fallback.banner
+      ].filter(Boolean))];
+      return { ...episode, sourceOptions, screenshots, locked: !sourceOptions.length };
+    });
+    const byEpisode = new Map(episodes.map((episode) => [Number(episode.number || episode.episode || 1), episode]));
+    return {
+      ...primary,
+      episodes,
+      screenshots: [...new Set([
+        ...(primary.screenshots || []),
+        ...episodes.flatMap((episode) => episode.screenshots || [])
+      ].filter(Boolean))],
+      seasons: (primary.seasons || []).map((season) => ({
+        ...season,
+        episodes: (season.episodes || []).map((episode) => (
+          byEpisode.get(Number(episode.number || episode.episode || 1)) || episode
+        ))
+      }))
+    };
+  }
+
   _mergeCatalogs(primaryItems = [], oceanItems = []) {
     this._oceanCatalog = oceanItems;
     const claimedOceanIds = new Set();
@@ -561,7 +605,11 @@ class CompositeAdultSourceAdapter extends AdultSourceAdapter {
     if (!this._oceanCatalog.length && this.hentaiOcean) {
       this._oceanCatalog = await this.hentaiOcean.listLatest(1).catch(() => []);
     }
-    return this._enrich(details, this._findExactOceanMatch(details));
+    const oceanMatch = this._findExactOceanMatch(details);
+    const enriched = this._enrich(details, oceanMatch);
+    if (!oceanMatch || !this.hentaiOcean) return enriched;
+    const oceanDetails = await this.hentaiOcean.getDetails(oceanMatch.id).catch(() => null);
+    return this._mergeDetailPlayback(enriched, oceanDetails);
   }
 
   async resolveStream(id, episode) {

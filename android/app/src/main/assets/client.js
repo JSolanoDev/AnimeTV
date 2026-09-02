@@ -87,12 +87,15 @@ const KNOWN_SOURCE_SERVERS = [
     desc: "Selected adult release and provider",
     match: (s) =>
       (s.id || "").includes("underhentai") ||
+      (s.id || "").includes("hentaiocean") ||
       (s.label || "").toLowerCase().includes("underhentai") ||
+      (s.label || "").toLowerCase().includes("hentai ocean") ||
       (s.label || "").toLowerCase().includes("veohentai") ||
       (s.label || "").toLowerCase().includes("hentaiplayer") ||
       (s.label || "").toLowerCase().includes("hentaila") ||
       (s.provider || "").toLowerCase().includes("veohentai") ||
       (s.provider || "").toLowerCase().includes("hentaiplayer") ||
+      (s.provider || "").toLowerCase().includes("hentai ocean") ||
       (s.streamResolver?.endpoint || "").toLowerCase().includes("/api/adult/underhentai/stream") ||
       (s.label || "").toLowerCase().includes("zoplayer") ||
       (s.label || "").toLowerCase().includes("krakenfiles") ||
@@ -530,7 +533,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=620`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=621`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3250,7 +3253,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=620";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=621";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -14296,15 +14299,52 @@ async function translateSubtitleLine(text, from = "en") {
 
 
 
+async function resolveNextAdultEpisodeSource(episode, failedSourceId = "") {
+  if (failedSourceId) {
+    episode._failedSourceIds = episode._failedSourceIds || new Set();
+    episode._failedSourceIds.add(failedSourceId);
+  }
+  const nextSource = getEpisodePlaybackSources(episode).find((source) => (
+    !episode._failedSourceIds?.has(source.id)
+    && (
+      (source.type === "resolver" && source.streamResolver?.endpoint)
+      || (source.type === "iframe" && source.externalUrl)
+      || (source.type === "direct" && source.videoUrl && !isBlockedPlaybackUrl(source.videoUrl))
+    )
+  ));
+  if (!nextSource) return "";
+  episode.selectedSourceId = nextSource.id;
+  if (nextSource.type === "resolver") {
+    episode.streamResolver = nextSource.streamResolver;
+    return resolveEpisodeStream(episode);
+  }
+  if (nextSource.type === "iframe") {
+    episode.streamResolver = null;
+    episode.externalUrl = nextSource.externalUrl;
+    episode.externalType = nextSource.externalType || "iframe";
+    episode.locked = false;
+    return "";
+  }
+  episode.streamResolver = null;
+  episode.videoUrl = nextSource.videoUrl;
+  episode.locked = false;
+  state.activeEpisodeUrl = nextSource.videoUrl;
+  return nextSource.videoUrl;
+}
+
 async function resolveEpisodeStream(episode) {
   const endpoint = withAnime1vApiKey(episode?.streamResolver?.endpoint || "");
   if (!endpoint) return "";
   const resolverType = episode?.streamResolver?.type || "";
   const selectedBeforeResolve = getSelectedEpisodeSource(episode);
-  const resolverSourceId = selectedBeforeResolve?.type === "resolver" ? selectedBeforeResolve.id : "";
+  const resolverSourceId = selectedBeforeResolve?.type === "resolver" ? selectedBeforeResolve.id : (episode.selectedSourceId || "");
   try {
     const response = await fetch(endpoint, { cache: "no-store" });
-    if (!response.ok) return "";
+    if (!response.ok) {
+      return resolverType === "underhentai"
+        ? resolveNextAdultEpisodeSource(episode, resolverSourceId)
+        : "";
+    }
     const payload = await response.json();
     const candidateUrl = pickPlayableUrl(payload);
     let url = isBlockedPlaybackUrl(candidateUrl) ? "" : candidateUrl;
@@ -14337,7 +14377,11 @@ async function resolveEpisodeStream(episode) {
       episode.locked = false;
       return "";
     }
-    if (!url) return "";
+    if (!url) {
+      return resolverType === "underhentai"
+        ? resolveNextAdultEpisodeSource(episode, resolverSourceId)
+        : "";
+    }
     if (resolverType === "underhentai") {
       const payloadSourceIds = new Set(resolvedPayloadSources.map((source) => source?.id).filter(Boolean));
       const failedSourceIds = episode._failedSourceIds || new Set();
@@ -14349,7 +14393,7 @@ async function resolveEpisodeStream(episode) {
         && source.videoUrl
         && !failedSourceIds.has(source.id)
       ));
-      if (!resolvedDirectSource) return "";
+      if (!resolvedDirectSource) return resolveNextAdultEpisodeSource(episode, resolverSourceId);
       episode.selectedSourceId = resolvedDirectSource.id;
       episode.videoUrl = "";
       url = resolvedDirectSource.videoUrl;
@@ -14360,7 +14404,9 @@ async function resolveEpisodeStream(episode) {
     state.activeEpisodeUrl = url;
     return url;
   } catch (error) {
-    return "";
+    return resolverType === "underhentai"
+      ? resolveNextAdultEpisodeSource(episode, resolverSourceId)
+      : "";
   }
 }
 
@@ -16097,7 +16143,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=620");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=621");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

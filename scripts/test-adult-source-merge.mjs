@@ -46,4 +46,22 @@ assert.equal(merged[0].adultCinematicBackdrop, exactOceanMatch.banner, "the 16:9
 assert.equal(merged[1].adultSource, "Hentai Ocean", "unmatched titles should remain playable secondary-source entries");
 assert.deepEqual(merged.map((item) => item.sourceOrder), [0, 1], "the merged catalog should have stable progressive-render order");
 
+const underResolver = { id: "under-release", type: "resolver", streamResolver: { endpoint: "/under" } };
+const oceanFallback = { id: "ocean-fallback", type: "iframe", externalUrl: "https://hentaiocean.com/embed/sample-1" };
+const mergedDetails = composite._mergeDetailPlayback({
+  screenshots: ["https://static.underhentai.net/thumbs/sample.jpg"],
+  episodes: [{ number: 1, sourceOptions: [underResolver], screenshots: ["https://static.underhentai.net/thumbs/sample.jpg"] }],
+  seasons: [{ season: 1, episodes: [{ number: 1, sourceOptions: [underResolver] }] }]
+}, {
+  episodes: [{ number: 1, sourceOptions: [oceanFallback], screenshots: ["https://hentaiocean.com/storyboard/sample-1.webp"] }]
+});
+
+assert.deepEqual(
+  mergedDetails.episodes[0].sourceOptions.map((source) => source.id),
+  ["under-release", "ocean-fallback"],
+  "an exact secondary title should be available after the UnderHentai release fails"
+);
+assert.equal(mergedDetails.episodes[0].screenshots.length, 2, "episode galleries should merge exact secondary storyboards");
+assert.equal(mergedDetails.seasons[0].episodes[0], mergedDetails.episodes[0], "season rows should use the merged playable episode");
+
 console.log("Adult source merge tests passed.");

@@ -23,6 +23,7 @@
     "adult:catalog": "node scripts/build-underhentai-catalog.mjs && node scripts/build-underhentai-details.mjs",
     "adult:details": "node scripts/build-underhentai-details.mjs",
     "adult:verify": "node scripts/verify-underhentai-playability.mjs",
+    "adult:audit-live": "node scripts/audit-underhentai-live.mjs",
     "android:build": "cd android && .\\gradlew.bat assembleDebug",
     "android:install": "adb install -r android/app/build/outputs/apk/debug/app-debug.apk",
     "lint": "eslint client.js animetv-local.js animetv-server.js \"js/*.js\" \"player/*.js\" \"scripts/*.mjs\" \"api/**/*.js\"",

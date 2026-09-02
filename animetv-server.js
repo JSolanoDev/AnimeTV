@@ -8898,6 +8898,7 @@ function parseHentaiOceanRss(xml = "") {
       image: thumbnail,
       thumbnail,
       banner: `${HENTAIOCEAN_BASE}/thumbnail/${encodeURIComponent(episodeSlug)}.webp`,
+      storyboard: `${HENTAIOCEAN_BASE}/storyboard/${encodeURIComponent(episodeSlug)}.webp`,
       pubDate,
       publishedMs,
       url: link || `${HENTAIOCEAN_BASE}/watch/${encodeURIComponent(episodeSlug)}`,
@@ -9035,30 +9036,38 @@ async function handleHentaiOceanDetails(url, response) {
     const coverName = String(metadata.info?.coverimg || "").trim();
     const image = coverName ? `${HENTAIOCEAN_BASE}/assets/cover/${encodeURIComponent(coverName)}` : catalogItem.image;
     const banner = newestEpisode.banner || catalogItem.banner;
-    const episodes = catalogItem.episodes.map((episode) => ({
-      ...episode,
-      episode: episode.number,
-      season: 1,
-      image: episode.image || image,
-      thumbnail: episode.image || image,
-      banner: episode.banner || banner,
-      backdrop: episode.banner || banner,
-      adultBackground: episode.banner || banner,
-      externalUrl: episode.embedUrl,
-      externalType: "iframe",
-      server: "Hentai Ocean",
-      locked: false,
-      sourceOptions: [{
-        id: `hentaiocean-${episode.slug}`,
-        label: "Hentai Ocean",
-        provider: "Hentai Ocean",
-        type: "iframe",
+    const episodes = catalogItem.episodes.map((episode) => {
+      const episodeBanner = episode.banner || banner;
+      const screenshots = [...new Set([
+        episode.storyboard || `${HENTAIOCEAN_BASE}/storyboard/${encodeURIComponent(episode.slug)}.webp`,
+        episodeBanner
+      ].filter(Boolean))];
+      return {
+        ...episode,
+        episode: episode.number,
+        season: 1,
+        image: episode.image || image,
+        thumbnail: episode.image || image,
+        banner: episodeBanner,
+        backdrop: episodeBanner,
+        adultBackground: episodeBanner,
+        screenshots,
         externalUrl: episode.embedUrl,
         externalType: "iframe",
-        siteUrl: episode.url,
-        sourceRank: 0
-      }]
-    }));
+        server: "Hentai Ocean",
+        locked: false,
+        sourceOptions: [{
+          id: `hentaiocean-${episode.slug}`,
+          label: "Hentai Ocean",
+          provider: "Hentai Ocean",
+          type: "iframe",
+          externalUrl: episode.embedUrl,
+          externalType: "iframe",
+          siteUrl: episode.url,
+          sourceRank: 0
+        }]
+      };
+    });
     const released = String(metadata.info?.releasedate || "");
     const item = publicHentaiOceanItem({
       ...catalogItem,
@@ -9440,13 +9449,48 @@ function parseUnderHentaiEmbeds(html = "") {
   return urls;
 }
 
-function resolveZoPlayer(embedUrl = "") {
+async function verifyAdultMediaUrl(mediaUrl = "", refererHost = "", attempts = 2) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const parsed = new URL(mediaUrl);
+      if (parsed.protocol !== "https:" || isBlockedPlaybackUrl(parsed.toString())) return false;
+      const headers = {
+        "User-Agent": UNDERHENTAI_HEADERS["User-Agent"],
+        Accept: "*/*"
+      };
+      if (refererHost) {
+        headers.Referer = `https://${refererHost}/`;
+        headers.Origin = `https://${refererHost}`;
+      }
+      const isHls = /\.m3u8(?:$|[?#])/i.test(parsed.toString());
+      if (!isHls) headers.Range = "bytes=0-1023";
+      const upstream = await fetchWithTimeout(parsed.toString(), { headers }, 5000);
+      if (!upstream.ok) throw new Error(`Adult media returned HTTP ${upstream.status}`);
+      if (!isHls) {
+        const contentType = String(upstream.headers.get("content-type") || "").toLowerCase();
+        if (upstream.body) await upstream.body.cancel().catch(() => {});
+        if (/video|octet-stream/.test(contentType) || upstream.status === 206) return true;
+        throw new Error(`Unexpected adult media type: ${contentType || "unknown"}`);
+      }
+      const playlist = await upstream.text();
+      if (/^#EXTM3U\b/m.test(playlist) && /#EXT-X-|#EXTINF:/m.test(playlist)) return true;
+    } catch {
+      // A CDN edge may briefly fail while its signed URL propagates.
+    }
+    if (attempt + 1 < attempts) await wait(180 * (attempt + 1));
+  }
+  return false;
+}
+
+async function resolveZoPlayer(embedUrl = "") {
   try {
     const parsed = new URL(embedUrl);
     if (!["gupload.xyz", "www.gupload.xyz"].includes(parsed.hostname.toLowerCase())) return "";
     const mediaId = parsed.pathname.match(/^\/(?:data\/)?e\/([a-z0-9_-]+)(?:\/|$)/i)?.[1] || "";
     if (!mediaId) return "";
-    return sourceProxyPath(`https://gupload.xyz/data/e/hls/${mediaId}/720p.m3u8`, "gupload.xyz");
+    const mediaUrl = `https://gupload.xyz/data/e/hls/${mediaId}/720p.m3u8`;
+    if (!await verifyAdultMediaUrl(mediaUrl, "gupload.xyz", 1)) return "";
+    return sourceProxyPath(mediaUrl, "gupload.xyz");
   } catch {
     return "";
   }
@@ -9546,6 +9590,7 @@ async function resolveLuluStream(embedUrl = "") {
         if (!mediaMatch) continue;
         const mediaUrl = new URL(decodeHtmlEntities(mediaMatch[1]).replace(/\\\//g, "/"));
         if (mediaUrl.protocol !== "https:" || isBlockedPlaybackUrl(mediaUrl.toString())) continue;
+        if (!await verifyAdultMediaUrl(mediaUrl.toString(), providerHost)) continue;
         const url = sourceProxyPath(mediaUrl.toString(), providerHost);
         luluStreamDirectCache.set(cacheKey, { url, ts: Date.now() });
         return url;
@@ -9776,8 +9821,10 @@ async function resolveKrakenFiles(embedUrl) {
       try {
         const parsed = new URL(sourceUrl);
         if (parsed.protocol === "https:" && /(?:^|\.)krakencloud\.net$/i.test(parsed.hostname)) {
-          log("info", "KrakenFiles direct source found in embed page", { host: parsed.hostname });
-          return parsed.toString();
+          if (await verifyAdultMediaUrl(parsed.toString(), "krakenfiles.com", 1)) {
+            log("info", "KrakenFiles direct source found in embed page", { host: parsed.hostname });
+            return parsed.toString();
+          }
         }
       } catch { /* continue with the legacy resolver */ }
     }
@@ -9820,8 +9867,12 @@ async function resolveKrakenFiles(embedUrl) {
     }
     const data = await ajaxRes.json();
     if (data.url) {
-      log("info", "KrakenFiles resolution successful", { id });
-      return data.url;
+      if (await verifyAdultMediaUrl(data.url, "krakenfiles.com", 1)) {
+        log("info", "KrakenFiles resolution successful", { id });
+        return data.url;
+      }
+      log("warn", "KrakenFiles direct media check failed", { id });
+      return null;
     } else {
       log("warn", "KrakenFiles AJAX returned no URL", { data });
       return null;
@@ -9911,7 +9962,15 @@ async function handleUnderHentaiStream(url, response) {
       return;
     }
 
-    const resolvedSourceOptions = await Promise.all(embeds.map(async (embed, index) => {
+    const indexedEmbeds = embeds.map((embed, index) => ({ embed, index }));
+    const providerTiers = [
+      indexedEmbeds.filter(({ embed }) => /^https?:\/\/(?:www\.)?(?:luluvdo|lulustream)\.com\//i.test(embed)),
+      indexedEmbeds.filter(({ embed }) => /hentaiplayer/i.test(embed)),
+      indexedEmbeds.filter(({ embed }) => /krakenfiles/i.test(embed)),
+      indexedEmbeds.filter(({ embed }) => /^https?:\/\/(?:www\.)?gupload\.xyz\//i.test(embed))
+    ].filter((tier) => tier.length);
+
+    const resolveProvider = async ({ embed, index }) => {
       const isKraken = /krakenfiles/i.test(embed);
       const isHentaiPlayer = /hentaiplayer/i.test(embed);
       const isZoPlayer = /^https?:\/\/(?:www\.)?gupload\.xyz\//i.test(embed);
@@ -9924,8 +9983,9 @@ async function handleUnderHentaiStream(url, response) {
         const resolved = await resolveHentaiPlayer(embed);
         directUrl = typeof resolved === "string" ? resolved : (resolved?.url || "");
         subtitleTracks = Array.isArray(resolved?.subtitles) ? resolved.subtitles : [];
+        if (directUrl && !await verifyAdultMediaUrl(directUrl, "hentaiplayer.com", 1)) directUrl = "";
       } else if (isZoPlayer) {
-        directUrl = resolveZoPlayer(embed);
+        directUrl = await resolveZoPlayer(embed);
       } else if (isLuluStream) {
         directUrl = await resolveLuluStream(embed);
       }
@@ -9945,9 +10005,24 @@ async function handleUnderHentaiStream(url, response) {
         audio: sourceAudio,
         hasSpanishSubtitles: /spanish|español|es\b|spa/i.test(String(sourceSubtitles)) || subtitleTracks.some((track) => /spanish|español|es\b|spa/i.test(`${track.language || ""} ${track.label || ""}`))
       };
-    }));
+    };
 
-    const sourceOptions = resolvedSourceOptions.filter((sourceOption) => sourceOption.type === "direct" && sourceOption.videoUrl);
+    // Provider embeds are ordered by real playback health, not by whichever
+    // link UnderHentai happened to print first. Stop after the first working
+    // tier so a dead legacy host cannot delay or replace a verified HLS stream.
+    let resolvedSourceOptions = [];
+    for (const tier of providerTiers) {
+      const resolvedTier = await Promise.all(tier.map(resolveProvider));
+      const seenMedia = new Set();
+      resolvedSourceOptions = resolvedTier.filter((sourceOption) => {
+        if (sourceOption.type !== "direct" || !sourceOption.videoUrl || seenMedia.has(sourceOption.videoUrl)) return false;
+        seenMedia.add(sourceOption.videoUrl);
+        return true;
+      });
+      if (resolvedSourceOptions.length) break;
+    }
+
+    const sourceOptions = resolvedSourceOptions;
     if (!sourceOptions.length) {
       sendJson(response, {
         ok: false,
