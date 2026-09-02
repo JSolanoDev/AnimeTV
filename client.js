@@ -530,7 +530,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=619`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=620`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3250,7 +3250,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=619";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=620";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -3921,6 +3921,9 @@ function applyCanonicalAnimeMetadata(show, payload = {}) {
 
 async function hydrateCanonicalAnimeMetadata(show) {
   if (!show || show._canonicalMetadataLoaded) return show;
+  // Waiting out the backoff from a previous empty result - see the tail of this
+  // function.
+  if (show._canonicalMetadataNextTry && Date.now() < show._canonicalMetadataNextTry) return show;
   const cacheKey = show.anilistId
     ? `anilist-${show.anilistId}`
     : `title-${normalizeTitle(show.romajiTitle || show.title)}`;
@@ -3990,8 +3993,23 @@ async function hydrateCanonicalAnimeMetadata(show) {
 
   const data = { media, jikan };
   applyCanonicalAnimeMetadata(show, data);
-  if (media || jikan) writeAnimeMetadataCache(cacheKey, data);
-  show._canonicalMetadataLoaded = true;
+  if (media || jikan) {
+    writeAnimeMetadataCache(cacheKey, data);
+    show._canonicalMetadataLoaded = true;
+    show._canonicalMetadataFails = 0;
+  } else {
+    // NOTHING came back - AniList cooling down after its own rate limit, the
+    // MyAnimeList outage behind Jikan, or a timeout. Marking the show loaded here
+    // pinned it empty for the rest of the session and it never asked again, which
+    // is why a title with a perfectly good anilistId rendered as just "Movie" with
+    // no year, score, genres or synopsis.
+    //
+    // Bounded the same way warmVisibleShowMetadata bounds its retries: back off,
+    // then give up, so a title that genuinely has no match stops asking forever.
+    show._canonicalMetadataFails = (show._canonicalMetadataFails || 0) + 1;
+    if (show._canonicalMetadataFails >= 3) show._canonicalMetadataLoaded = true;
+    else show._canonicalMetadataNextTry = Date.now() + 15000 * show._canonicalMetadataFails;
+  }
   state.shows = state.shows.map((entry) => entry.id === show.id ? show : entry);
   // Enrich with TMDB episode stills / season posters / backdrops in the
   // background; refresh the open detail view once the artwork lands.
@@ -16079,7 +16097,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=619");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=620");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
