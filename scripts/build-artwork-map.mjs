@@ -88,6 +88,12 @@ function titleScore(candidates, tmdbNames) {
       const na = baseTitle(a), nb = baseTitle(b);
       if (!na || !nb) continue;
       if (na === nb) { best = Math.max(best, 100); continue; }
+      // Romanisation sources disagree about where the spaces go, and word-overlap
+      // scoring punishes that hard: "Mizu Zokusei no Mahoutsukai" vs AniList's
+      // "Mizu Zokusei no Mahou Tsukai" is the SAME show but scored below the gate
+      // and was discarded. Compare the space-stripped forms too - the same trick
+      // titleMatchScore() uses in client.js.
+      if (na.replace(/ /g, "") === nb.replace(/ /g, "")) { best = Math.max(best, 100); continue; }
       if (na.startsWith(nb) || nb.startsWith(na)) { best = Math.max(best, 88); continue; }
       const aw = new Set(na.split(" ")), bw = new Set(nb.split(" "));
       const inter = [...aw].filter((w) => bw.has(w)).length;
@@ -186,19 +192,43 @@ function anilistVariants(raw) {
   const title = String(raw || "").trim();
   const out = [title];
   if (/-/.test(title)) out.push(title.replace(/-/g, ""));
-  out.push(title.replace(/[^\p{L}\p{N}]+/gu, " ").replace(/\s+/g, " ").trim());
-  const noFormat = title.replace(/\b(movie|film|pelicula|ova|ona|special|especial)\b/gi, "").replace(/\s+/g, " ").trim();
-  if (noFormat && noFormat !== title) out.push(noFormat);
-  const words = title.split(/\s+/);
-  if (words.length > 6) out.push(words.slice(0, 6).join(" "));
-  return [...new Set(out.filter(Boolean))].slice(0, 5);
+  // Accents: the catalogue writes "Otome Kaijuu Caraméliser", AniList indexes
+  // "KAIJU GIRL CARAMELISE".
+  const unaccented = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (unaccented !== title) out.push(unaccented);
+  const plain = unaccented.replace(/[^\p{L}\p{N}]+/gu, " ").replace(/\s+/g, " ").trim();
+  out.push(plain);
+  // Localised season markers - the catalogue is Spanish-language.
+  out.push(plain.replace(/\btemporada\b/gi, "Season").replace(/\bparte\b/gi, "Part"));
+  // Romanisation disagrees about joined particles ("dewa" vs "de wa").
+  out.push(plain.replace(/\b(dewa|niwa|nowa|towa)\b/gi, (w) => `${w.slice(0, -2)} ${w.slice(-2)}`));
+  const noFormat = plain.replace(/\b(movie|film|pelicula|ova|ona|special|especial)\b/gi, "").replace(/\s+/g, " ").trim();
+  if (noFormat && noFormat !== plain) out.push(noFormat);
+  // A subtitle after a colon is often the part AniList does not index.
+  String(title).split(/\s*[:|]\s*/).map((s) => s.trim()).filter((s) => s.length > 3).forEach((s) => out.push(s));
+  // Progressively shorter prefixes. Only safe because every hit is validated.
+  const words = plain.split(" ").filter(Boolean);
+  for (const n of [6, 5, 4, 3]) if (words.length > n) out.push(words.slice(0, n).join(" "));
+  return [...new Set(out.filter((s) => s && s.length > 2))].slice(0, 10);
+}
+
+// Does the entry AniList returned actually look like what we asked for?
+function anilistLooksRight(media, scrapedTitle) {
+  const names = [media.title?.romaji, media.title?.english, media.title?.native, ...(media.synonyms || [])];
+  return titleScore(names, [scrapedTitle]) >= 62;
 }
 
 async function anilistSearch(title) {
+  let loose = null;
   for (const variant of anilistVariants(title)) {
     const media = await anilistDirect(variant);
-    if (media) return media;
+    if (!media) continue;
+    // The full title matching itself is always trustworthy; a shortened variant
+    // has to earn it.
+    if (variant === title || anilistLooksRight(media, title)) return media;
+    if (!loose) loose = { media, variant };
   }
+  if (loose) console.log(`  discarded loose AniList hit for "${title.slice(0, 40)}": ${loose.media.title?.romaji || ""}`.slice(0, 140));
   return null;
 }
 

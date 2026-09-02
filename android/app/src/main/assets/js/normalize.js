@@ -53,6 +53,9 @@ function normalizeExternalShow(item, source, index) {
     // present value means the show opens on a real 1080p+ backdrop with no AniList
     // or TMDB round-trip at all.
     tmdbBackdrop: item.tmdbBackdrop || "",
+    // The title poster for every show that resolved - see getWatchPosterArtwork
+    // and getCardPosterCandidates, both of which rank it above the scraped cover.
+    tmdbPoster: item.tmdbPoster || "",
     tmdbId: item.tmdbId || null,
     siteUrl: item.siteUrl || item.url || "",
     description: cleanDescription(item.description || item.synopsis || ""),

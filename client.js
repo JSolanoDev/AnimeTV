@@ -509,7 +509,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=602`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=603`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2819,11 +2819,15 @@ function getWatchPosterArtwork(show = {}, season = null) {
   show = show || {};
   season = season || {};
   const rawCandidates = [
+    // TMDB key art first, season-specific before show-wide. It is 2000x3000 where
+    // the scraped cover is 225x350 and the AniList one 460x690, so leading with
+    // images.poster - which for a scraped row is whatever the source supplied -
+    // meant the sharpest art available sat unused behind it.
+    show.tmdbSeasonPoster,
+    show.tmdbPoster,
     show.images?.poster,
     show.images?.cover,
     show.images?.thumbnail,
-    show.tmdbSeasonPoster,
-    show.tmdbPoster,
     show.coverImageLarge,
     show.image,
     show.poster,
@@ -3161,7 +3165,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=602";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=603";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -15913,7 +15917,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=602");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=603");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

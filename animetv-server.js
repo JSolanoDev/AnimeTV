@@ -91,6 +91,8 @@ const TIOANIME_HEADERS = {
   Referer: TIOANIME_BASE
 };
 const UNDERHENTAI_BASE = "https://www.underhentai.net";
+const HENTAIOCEAN_BASE = "https://hentaiocean.com";
+const HANIME_BASE = "https://hanime.tv";
 const UNDERHENTAI_CATALOG_FILE = path.join(root, "scraper", "underhentai_catalog.json");
 const UNDERHENTAI_DETAILS_FILE = path.join(root, "scraper", "underhentai_details.json");
 const VEOHENTAI_CATALOG_FILE = path.join(root, "scraper", "veohentai_catalog.json");
@@ -98,6 +100,8 @@ const VEOHENTAI_DETAILS_FILE = path.join(root, "scraper", "veohentai_details.jso
 const HENTAILA_CATALOG_FILE = path.join(root, "scraper", "hentaila_catalog.json");
 const HENTAILA_DETAILS_FILE = path.join(root, "scraper", "hentaila_details.json");
 const UNDERHENTAI_CACHE_TTL_MS = 1000 * 60 * 30;
+const HENTAIOCEAN_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
+const HANIME_ARTWORK_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 const UNDERHENTAI_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
   Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -131,6 +135,10 @@ const UNDERHENTAI_MINOR_MARKERS = [
 const UNDERHENTAI_MINOR_PATTERNS = [/\bjk\b/i];
 const underHentaiDetailCache = new Map();
 const underHentaiLiveCatalogCache = new Map();
+const hentaiOceanDetailCache = new Map();
+const hanimeArtworkCache = new Map();
+let hentaiOceanCatalogCache = null;
+let hentaiOceanCatalogCacheAt = 0;
 const hentaiPlayerDirectCache = new Map();
 const luluStreamDirectCache = new Map();
 let underHentaiDetailsSnapshot = null;
@@ -375,6 +383,10 @@ const IMAGE_PROXY_ALLOWED_HOSTS = new Set([
   "img.hentaihaven.xxx",
   "coverlanyvd.org",
   "hentaiplayer.com"
+  ,"hentaiocean.com"
+  ,"www.hentaiocean.com"
+  ,"hanime-cdn.com"
+  ,"www.hanime-cdn.com"
 ]);
 const IMAGE_PROXY_MAX_BYTES = 5 * 1024 * 1024;
 const IMAGE_PROXY_MAX_WIDTH = 2560;
@@ -671,6 +683,21 @@ function handleRequest(request, response) {
 
   if (url.pathname === "/api/adult/underhentai/stream") {
     handleUnderHentaiStream(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/adult/hentaiocean/catalog") {
+    handleHentaiOceanCatalog(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/adult/hentaiocean/details") {
+    handleHentaiOceanDetails(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/adult/hanime/artwork") {
+    handleHanimeArtwork(url, response);
     return;
   }
 
@@ -2075,6 +2102,10 @@ function readScrapedRegularCatalogItems() {
           malId: item.malId || hit.malId || null,
           tmdbId: hit.tmdbId || null,
           tmdbBackdrop: hit.tmdbBackdrop || "",
+          // 2000x3000 key art. Shipped for the same reason as the backdrop: the
+          // alternative is an AnimeAV1 cover at 225x350 or an AniList one at 460x690,
+          // both of which are visibly soft on a card grid at 2x density.
+          tmdbPoster: hit.tmdbPoster || "",
           banner: item.banner || hit.anilistBanner || ""
         };
       });
@@ -8797,6 +8828,328 @@ async function handleUnderHentaiCatalog(url, response) {
     incompleteMetadataCount: snapshot.incompleteMetadataCount || 0,
     items: processed
   }, 200, { "Cache-Control": "public, max-age=900, stale-while-revalidate=21600" });
+}
+
+function readXmlValue(block = "", tag = "") {
+  const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const value = String(block).match(new RegExp(`<${escaped}\\b[^>]*>([\\s\\S]*?)<\\/${escaped}>`, "i"))?.[1] || "";
+  return decodeHtmlEntities(value.replace(/^\s*<!\[CDATA\[|\]\]>\s*$/g, "").trim());
+}
+
+function hentaiOceanSeriesParts(slug = "", title = "") {
+  const slugMatch = String(slug).match(/^(.*)-(\d+)$/);
+  const titleMatch = String(title).trim().match(/^(.*\S)\s+(\d+)$/);
+  if (slugMatch && titleMatch && Number(slugMatch[2]) === Number(titleMatch[2])) {
+    return {
+      slug: slugMatch[1],
+      title: titleMatch[1].trim(),
+      episode: Math.max(1, Number(slugMatch[2]) || 1)
+    };
+  }
+  return { slug: String(slug), title: String(title).trim(), episode: 1 };
+}
+
+function parseHentaiOceanRss(xml = "") {
+  const groups = new Map();
+  for (const match of String(xml).matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)) {
+    const block = match[1];
+    const episodeSlug = readXmlValue(block, "guid");
+    const episodeTitle = readXmlValue(block, "title");
+    const link = readXmlValue(block, "link");
+    if (!/^[a-z0-9][a-z0-9-]*$/i.test(episodeSlug) || !episodeTitle) continue;
+    const parts = hentaiOceanSeriesParts(episodeSlug, episodeTitle);
+    const thumbnail = decodeHtmlEntities(
+      block.match(/<media:thumbnail\b[^>]*\burl\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/i)?.slice(1).find(Boolean) || ""
+    );
+    const pubDate = readXmlValue(block, "pubDate");
+    const publishedMs = Date.parse(pubDate) || 0;
+    const episode = {
+      slug: episodeSlug,
+      number: parts.episode,
+      title: `Episode ${parts.episode}`,
+      sourceTitle: episodeTitle,
+      image: thumbnail,
+      thumbnail,
+      banner: `${HENTAIOCEAN_BASE}/thumbnail/${encodeURIComponent(episodeSlug)}.webp`,
+      pubDate,
+      publishedMs,
+      url: link || `${HENTAIOCEAN_BASE}/watch/${encodeURIComponent(episodeSlug)}`,
+      embedUrl: `${HENTAIOCEAN_BASE}/embed/${encodeURIComponent(episodeSlug)}?la=1`
+    };
+    if (!groups.has(parts.slug)) groups.set(parts.slug, { slug: parts.slug, title: parts.title, episodes: [] });
+    groups.get(parts.slug).episodes.push(episode);
+  }
+
+  return [...groups.values()].map((group) => {
+    group.episodes.sort((a, b) => a.number - b.number || a.publishedMs - b.publishedMs);
+    const latest = group.episodes.reduce((best, episode) => episode.publishedMs >= best.publishedMs ? episode : best, group.episodes[0]);
+    const item = {
+      slug: group.slug,
+      title: group.title,
+      image: latest.image,
+      mainWallpaper: latest.image,
+      banner: latest.banner,
+      backdrop: latest.banner,
+      highQualityBackground: latest.banner,
+      description: "",
+      url: `${HENTAIOCEAN_BASE}/watch/${encodeURIComponent(latest.slug)}`,
+      pubDate: latest.pubDate,
+      publishedMs: latest.publishedMs,
+      aired: latest.pubDate,
+      episodeCount: group.episodes.length,
+      genres: ["Hentai"],
+      source: "Hentai Ocean",
+      adultSource: "Hentai Ocean",
+      episodes: group.episodes
+    };
+    return isSafeAdultMetadata(item) ? item : null;
+  }).filter(Boolean).sort((a, b) => b.publishedMs - a.publishedMs);
+}
+
+async function getHentaiOceanCatalog({ force = false } = {}) {
+  if (!force && hentaiOceanCatalogCache && Date.now() - hentaiOceanCatalogCacheAt < HENTAIOCEAN_CACHE_TTL_MS) {
+    return hentaiOceanCatalogCache;
+  }
+  const upstream = await fetchWithRetry(`${HENTAIOCEAN_BASE}/rss.xml`, {
+    headers: {
+      "User-Agent": UNDERHENTAI_HEADERS["User-Agent"],
+      Accept: "application/rss+xml,application/xml,text/xml;q=0.9,*/*;q=0.8"
+    }
+  }, 2);
+  if (!upstream.ok) throw new Error(`Hentai Ocean RSS returned HTTP ${upstream.status}`);
+  const items = parseHentaiOceanRss(await upstream.text());
+  if (!items.length) throw new Error("Hentai Ocean RSS did not contain any usable titles");
+  hentaiOceanCatalogCache = items;
+  hentaiOceanCatalogCacheAt = Date.now();
+  return items;
+}
+
+function publicHentaiOceanItem(item = {}, sourceOrder = 0) {
+  const image = String(item.image || "").trim();
+  const banner = String(item.banner || "").trim();
+  return {
+    ...item,
+    sourceOrder,
+    poster: image,
+    cover: image,
+    thumbnail: image,
+    coverImage: image,
+    mainWallpaper: image,
+    backdrop: banner,
+    highQualityBackground: banner,
+    adultBackground: banner,
+    hentaiOceanImage: image,
+    hentaiOceanBackdrop: banner,
+    images: { poster: image, cover: image, thumbnail: image, banner, backdrop: banner },
+    isAdult: true,
+    adult: true,
+    adultSource: "Hentai Ocean",
+    source: "Hentai Ocean"
+  };
+}
+
+async function handleHentaiOceanCatalog(url, response) {
+  const query = normalizeUnderHentaiSafetyText(url.searchParams.get("q") || "");
+  const refresh = url.searchParams.get("refresh") === "1";
+  try {
+    const catalog = await getHentaiOceanCatalog({ force: refresh });
+    const filtered = query
+      ? catalog.filter((item) => normalizeUnderHentaiSafetyText(`${item.title} ${(item.genres || []).join(" ")}`).includes(query))
+      : catalog;
+    sendJson(response, {
+      ok: true,
+      source: "Hentai Ocean",
+      adultOnly: true,
+      refreshed: refresh,
+      count: filtered.length,
+      episodeCount: filtered.reduce((sum, item) => sum + Number(item.episodeCount || 0), 0),
+      items: filtered.map(publicHentaiOceanItem)
+    }, 200, { "Cache-Control": "public, max-age=1800, stale-while-revalidate=21600" });
+  } catch (error) {
+    sendJson(response, { ok: false, error: error.message || "Hentai Ocean catalog is unavailable." }, 502);
+  }
+}
+
+async function getHentaiOceanEpisodeMetadata(episodeSlug = "") {
+  const cached = hentaiOceanDetailCache.get(episodeSlug);
+  if (cached && Date.now() - cached.ts < HENTAIOCEAN_CACHE_TTL_MS) return cached.data;
+  const endpoint = new URL("/api", HENTAIOCEAN_BASE);
+  endpoint.searchParams.set("action", "hentai");
+  endpoint.searchParams.set("slug", episodeSlug);
+  const upstream = await fetchWithRetry(endpoint.toString(), {
+    headers: { "User-Agent": UNDERHENTAI_HEADERS["User-Agent"], Accept: "application/json" }
+  }, 2);
+  if (!upstream.ok) throw new Error(`Hentai Ocean metadata returned HTTP ${upstream.status}`);
+  const payload = await upstream.json();
+  const info = Array.isArray(payload?.info) ? payload.info[0] : payload?.info;
+  const data = {
+    info: info || {},
+    genres: (Array.isArray(payload?.genres) ? payload.genres : []).map((entry) => String(entry?.genre || entry || "").trim()).filter(Boolean)
+  };
+  hentaiOceanDetailCache.set(episodeSlug, { data, ts: Date.now() });
+  return data;
+}
+
+async function handleHentaiOceanDetails(url, response) {
+  const slug = String(url.searchParams.get("slug") || "").trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
+    sendJson(response, { ok: false, error: "Missing or invalid Hentai Ocean title id." }, 400);
+    return;
+  }
+  try {
+    const catalog = await getHentaiOceanCatalog();
+    const catalogItem = catalog.find((item) => item.slug === slug);
+    if (!catalogItem) {
+      sendJson(response, { ok: false, error: "Hentai Ocean title was not found." }, 404);
+      return;
+    }
+    const newestEpisode = [...catalogItem.episodes].sort((a, b) => b.publishedMs - a.publishedMs)[0];
+    const metadata = await getHentaiOceanEpisodeMetadata(newestEpisode.slug).catch(() => ({ info: {}, genres: [] }));
+    const coverName = String(metadata.info?.coverimg || "").trim();
+    const image = coverName ? `${HENTAIOCEAN_BASE}/assets/cover/${encodeURIComponent(coverName)}` : catalogItem.image;
+    const banner = newestEpisode.banner || catalogItem.banner;
+    const episodes = catalogItem.episodes.map((episode) => ({
+      ...episode,
+      episode: episode.number,
+      season: 1,
+      image: episode.image || image,
+      thumbnail: episode.image || image,
+      banner: episode.banner || banner,
+      backdrop: episode.banner || banner,
+      adultBackground: episode.banner || banner,
+      externalUrl: episode.embedUrl,
+      externalType: "iframe",
+      server: "Hentai Ocean",
+      locked: false,
+      sourceOptions: [{
+        id: `hentaiocean-${episode.slug}`,
+        label: "Hentai Ocean",
+        provider: "Hentai Ocean",
+        type: "iframe",
+        externalUrl: episode.embedUrl,
+        externalType: "iframe",
+        siteUrl: episode.url,
+        sourceRank: 0
+      }]
+    }));
+    const released = String(metadata.info?.releasedate || "");
+    const item = publicHentaiOceanItem({
+      ...catalogItem,
+      image,
+      mainWallpaper: image,
+      banner,
+      backdrop: banner,
+      highQualityBackground: banner,
+      description: cleanDescription(metadata.info?.description || ""),
+      genres: metadata.genres.length ? metadata.genres : catalogItem.genres,
+      aired: released || catalogItem.aired,
+      year: released.slice(0, 4),
+      episodeCount: episodes.length,
+      totalEpisodes: episodes.length,
+      episodes,
+      seasons: [{
+        season: 1,
+        title: "Season 1",
+        sourceTitle: catalogItem.title,
+        image,
+        banner,
+        highQualityBackground: banner,
+        adultBackground: banner,
+        playable: true,
+        episodes
+      }]
+    });
+    sendJson(response, { ok: true, source: "Hentai Ocean", adultOnly: true, item });
+  } catch (error) {
+    sendJson(response, { ok: false, error: error.message || "Hentai Ocean title metadata is unavailable." }, 502);
+  }
+}
+
+function normalizeAdultSourceTitle(value = "") {
+  return normalizeUnderHentaiSafetyText(value)
+    .replace(/\b(?:the )?animation\b/g, " ")
+    .replace(/\b(?:ova|ona)\b/g, " ")
+    .replace(/\bepisode\s*\d+\b/g, " ")
+    .replace(/\s+\d+$/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseHanimeArtwork(html = "", expectedTitle = "") {
+  const jsonLdText = [...String(html).matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)]
+    .map((match) => match[1].trim())
+    .find(Boolean) || "";
+  let jsonLd = {};
+  try { jsonLd = JSON.parse(decodeHtmlEntities(jsonLdText)); } catch { /* optional metadata */ }
+  const canonicalTitle = String(jsonLd?.name || "").trim();
+  const expected = normalizeAdultSourceTitle(expectedTitle);
+  const actual = normalizeAdultSourceTitle(canonicalTitle);
+  if (!expected || !actual || expected !== actual) return null;
+  const cover = decodeHtmlEntities(
+    String(html).match(/<meta\b[^>]*(?:property|name)=["']og:image["'][^>]*content=["']([^"']+)/i)?.[1] || ""
+  );
+  const encodedPoster = String(html).match(/poster_url(?:&quot;|\")?\s*(?::|&colon;)\s*(?:&quot;|\")([^"<&]+)/i)?.[1]
+    || String(html).match(/poster_url\\?"\s*:\s*\\?"([^"\\]+)/i)?.[1]
+    || "";
+  const poster = decodeHtmlEntities(encodedPoster.replace(/\\\//g, "/"));
+  if (!cover && !poster) return null;
+  return {
+    title: canonicalTitle.replace(/\s+\d+$/, "").trim(),
+    description: cleanDescription(jsonLd?.description || ""),
+    cover,
+    backdrop: poster,
+    source: "Hanime"
+  };
+}
+
+async function findHanimeArtwork(title = "", sourceSlug = "") {
+  const cacheKey = `${normalizeAdultSourceTitle(title)}:${String(sourceSlug).toLowerCase()}`;
+  const cached = hanimeArtworkCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < HANIME_ARTWORK_CACHE_TTL_MS) return cached.data;
+  const titleSlug = String(title).toLowerCase().normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const cleanSourceSlug = String(sourceSlug).toLowerCase()
+    .replace(/^adult-(?:underhentai|hentaiocean)-/, "")
+    .replace(/^-+|-+$/g, "");
+  const candidates = [...new Set([
+    cleanSourceSlug,
+    cleanSourceSlug && !/-\d+$/.test(cleanSourceSlug) ? `${cleanSourceSlug}-1` : "",
+    titleSlug,
+    titleSlug && !/-\d+$/.test(titleSlug) ? `${titleSlug}-1` : ""
+  ].filter((value) => /^[a-z0-9][a-z0-9-]*$/.test(value)))].slice(0, 4);
+  let artwork = null;
+  for (const slug of candidates) {
+    try {
+      const upstream = await fetchWithRetry(`${HANIME_BASE}/videos/hentai/${encodeURIComponent(slug)}`, {
+        headers: {
+          "User-Agent": UNDERHENTAI_HEADERS["User-Agent"],
+          Accept: "text/html,application/xhtml+xml"
+        }
+      }, 1);
+      if (!upstream.ok) continue;
+      artwork = parseHanimeArtwork(await upstream.text(), title);
+      if (artwork) break;
+    } catch { /* try the next exact slug candidate */ }
+  }
+  hanimeArtworkCache.set(cacheKey, { data: artwork, ts: Date.now() });
+  return artwork;
+}
+
+async function handleHanimeArtwork(url, response) {
+  const title = String(url.searchParams.get("title") || "").trim().slice(0, 180);
+  const slug = String(url.searchParams.get("slug") || "").trim().slice(0, 220);
+  if (!title || !normalizeAdultSourceTitle(title)) {
+    sendJson(response, { ok: false, error: "Missing adult title." }, 400);
+    return;
+  }
+  try {
+    const artwork = await findHanimeArtwork(title, slug);
+    sendJson(response, { ok: true, source: "Hanime", adultOnly: true, artwork });
+  } catch (error) {
+    sendJson(response, { ok: false, error: error.message || "Hanime artwork is unavailable." }, 502);
+  }
 }
 
 function readVeoHentaiDetails() {
