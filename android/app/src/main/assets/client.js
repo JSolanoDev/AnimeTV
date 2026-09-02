@@ -530,7 +530,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=605`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=606`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3229,7 +3229,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=605";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=606";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -8367,6 +8367,14 @@ function applyWatchBackdrop(show, season) {
   const probe = new Image();
   probe.referrerPolicy = "no-referrer";
   probe.crossOrigin = "anonymous";
+  // The TMDB backdrop shipped with the catalogue is THE chosen background for
+  // every title, and it is official key art - so judge it on dimensions alone.
+  // backdropPixelsLookUseful() vetoes intentionally dark frames (measured: ~8% of
+  // them, Mushoku Tensei III among them), and the next candidate after a veto is
+  // a portrait poster in the composed layout - which reads as the background
+  // suddenly not covering.
+  const isChosenTmdbBackdrop = Boolean(art)
+    && art === hqImage(String(show.tmdbBackdrop || "").trim());
   probe.onload = () => {
     // A carousel image has already loaded successfully at this exact URL. Trust
     // that result; the pixel-contrast heuristic can reject intentionally dark
@@ -8379,7 +8387,9 @@ function applyWatchBackdrop(show, season) {
         ? artworkDimensionsAreUseful(probe, "poster")
         : bannerFallback
           ? artworkDimensionsAreUseful(probe, "banner")
-          : backdropPixelsLookUseful(probe);
+          : isChosenTmdbBackdrop
+            ? artworkDimensionsAreUseful(probe, "backdrop")
+            : backdropPixelsLookUseful(probe);
     backdropQualityCache.set(qualityKey, useful);
     if (state.activeShow?.id !== show.id) return;
     if (useful) {
@@ -15981,7 +15991,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=605");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=606");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
