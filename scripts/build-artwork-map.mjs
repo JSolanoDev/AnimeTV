@@ -138,12 +138,73 @@ async function getJson(url, tries = 4, rateLimited = false) {
   return null;
 }
 
+const ANILIST_URL = "https://graphql.anilist.co";
+const ANILIST_QUERY = `query ($search: String) {
+  Media(search: $search, type: ANIME) {
+    id idMal seasonYear format
+    title { romaji english native }
+    synonyms bannerImage
+    coverImage { extraLarge large }
+  }
+}`;
+
+async function anilistDirect(search) {
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    await anilistSlot();
+    let res;
+    try {
+      res = await fetch(ANILIST_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ query: ANILIST_QUERY, variables: { search } })
+      });
+    } catch {
+      await sleep(1500 * attempt);
+      continue;
+    }
+    if (res.status === 429) {
+      // Honour the window AniList asks for rather than retrying into it, and
+      // push the shared gate out so the other workers wait too.
+      const retryAfter = Number(res.headers.get("retry-after") || 0);
+      const waitMs = (retryAfter > 0 ? retryAfter : 60) * 1000;
+      console.log(`  anilist 429 - pausing ${Math.round(waitMs / 1000)}s`);
+      _aniLast = Date.now() + waitMs;
+      await sleep(waitMs);
+      continue;
+    }
+    if (!res.ok) return null;
+    const body = await res.json().catch(() => null);
+    return body?.data?.Media || null;
+  }
+  return null;
+}
+
+// Scraped titles use romanisation the AniList index does not always share
+// ("Tenkou-saki" vs "Tenkousaki"), so walk progressively looser forms. This
+// mirrors the ladder the server runs in handleAniListSearch.
+function anilistVariants(raw) {
+  const title = String(raw || "").trim();
+  const out = [title];
+  if (/-/.test(title)) out.push(title.replace(/-/g, ""));
+  out.push(title.replace(/[^\p{L}\p{N}]+/gu, " ").replace(/\s+/g, " ").trim());
+  const noFormat = title.replace(/\b(movie|film|pelicula|ova|ona|special|especial)\b/gi, "").replace(/\s+/g, " ").trim();
+  if (noFormat && noFormat !== title) out.push(noFormat);
+  const words = title.split(/\s+/);
+  if (words.length > 6) out.push(words.slice(0, 6).join(" "));
+  return [...new Set(out.filter(Boolean))].slice(0, 5);
+}
+
+async function anilistSearch(title) {
+  for (const variant of anilistVariants(title)) {
+    const media = await anilistDirect(variant);
+    if (media) return media;
+  }
+  return null;
+}
+
 async function resolveOne(item) {
   const title = item.title || "";
-  // 1. AniList - the server already runs a search-variant ladder for scraped titles.
-  await anilistSlot();
-  const ani = await getJson(`${BASE}/api/anilist/search?q=${encodeURIComponent(title)}`, 5, true);
-  const media = ani && ani.ok ? ani.media : null;
+  const media = await anilistSearch(title);
   const aniTitles = media ? [media.title?.romaji, media.title?.english, media.title?.native, ...(media.synonyms || [])] : [title];
   const year = media?.seasonYear || media?.startDate?.year || item.year || null;
   const wantSeason = seasonNumberOf(media?.title?.romaji || title);
