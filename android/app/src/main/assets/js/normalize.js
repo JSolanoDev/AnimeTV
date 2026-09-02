@@ -57,6 +57,13 @@ function normalizeExternalShow(item, source, index) {
     // and getCardPosterCandidates, both of which rank it above the scraped cover.
     tmdbPoster: item.tmdbPoster || "",
     tmdbId: item.tmdbId || null,
+    // Shipped by /api/catalog from the build-time metadata map. countryOfOrigin
+    // drives the CN/KR/TW English-title rule in getShowTitle(); studios feeds the
+    // "Studio: ..." row on the detail page. Both were previously dropped here and
+    // only appeared after a per-title AniList round-trip.
+    countryOfOrigin: item.countryOfOrigin || "",
+    englishTitle: item.englishTitle || "",
+    studios: Array.isArray(item.studios) ? item.studios : [],
     // Artwork that came from the catalogue is curated: build-artwork-map.mjs picks
     // TMDB's primary backdrop and poster for the matched show. A later runtime
     // resolve must not replace it - see applyResolvedMatch in js/image-resolver.js.

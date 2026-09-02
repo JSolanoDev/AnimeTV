@@ -60,7 +60,16 @@ function getShowTitle(show) {
     }
     return "";
   };
-  const english = asString(show.title) || (show.title && typeof show.title === "object" ? asString(show.title.english) : "");
+  // Chinese/Korean/Taiwanese productions first: for those the row's OWN title is
+  // already the transliteration ("Shiguang Dailiren III"), so the English name has
+  // to come from englishTitle - shipped with the catalogue - or the rule below has
+  // nothing better to pick and falls straight back to the transliteration, which is
+  // exactly what it was doing.
+  const country = String(show.countryOfOrigin || "").toUpperCase();
+  const transliterated = country === "CN" || country === "KR" || country === "TW";
+  const english = (transliterated ? asString(show.englishTitle) : "")
+    || asString(show.title)
+    || (show.title && typeof show.title === "object" ? asString(show.title.english) : "");
   const romaji = asString(show.romajiTitle)
     || (show.title && typeof show.title === "object" ? asString(show.title.romaji) : "");
   const pref = (state?.uiPreferences?.titleLanguage) || "english";
@@ -70,8 +79,6 @@ function getShowTitle(show) {
   // 3" - which is unreadable for most viewers and is not what the preference is
   // asking for. Those use the English title whenever there is one; Japanese
   // titles are untouched.
-  const country = String(show.countryOfOrigin || "").toUpperCase();
-  const transliterated = country === "CN" || country === "KR" || country === "TW";
   if (pref === "romaji" && !transliterated) return romaji || english || "Untitled Anime";
   return english || romaji || "Untitled Anime";
 }

@@ -2117,6 +2117,12 @@ function readScrapedRegularCatalogItems() {
       return items.map((item) => {
         const hit = artwork[item.id];
         if (!hit || hit.status !== "ok") return item;
+        // Metadata resolved once by scripts/add-artwork-metadata.mjs. Measured on
+        // 2026-09-02, ZERO of 1079 catalogue rows were fully populated - year on 15
+        // rows, duration and format on none - because artwork had been moved to
+        // build time but metadata was left on the per-title runtime chain, which
+        // only runs for a show once it is enriched. Same fix, same place.
+        const meta = hit.meta || null;
         return {
           ...item,
           anilistId: item.anilistId || hit.anilistId || null,
@@ -2127,7 +2133,38 @@ function readScrapedRegularCatalogItems() {
           // alternative is an AnimeAV1 cover at 225x350 or an AniList one at 460x690,
           // both of which are visibly soft on a card grid at 2x density.
           tmdbPoster: hit.tmdbPoster || "",
-          banner: item.banner || hit.anilistBanner || ""
+          banner: item.banner || hit.anilistBanner || "",
+          // The row's own value always wins; this only fills gaps. normalize.js
+          // already reads every one of these off the catalogue item, so nothing
+          // client-side has to change for them to render.
+          //
+          // Deliberately NOT mapped: AniList's episode COUNT. `episodes` is the
+          // episode ARRAY on all 1000 scraped rows and normalizeSeasons() reads it,
+          // so writing a number there would wipe every episode list in the app.
+          ...(meta ? {
+            year: item.year || meta.year || "",
+            score: item.score || meta.score || null,
+            duration: item.duration || meta.duration || "",
+            format: item.format || item.type || meta.format || "",
+            status: item.status || meta.airingStatus || "",
+            description: item.description || item.synopsis || meta.description || "",
+            studios: meta.studio ? [meta.studio] : (item.studios || []),
+            // getShowTitle() prefers the English title for CN/KR/TW productions,
+            // because AniList's romaji for those is a transliteration of Chinese
+            // ("Shiguang Dailiren III"), not a readable name. That check reads
+            // countryOfOrigin, which until now only arrived with runtime AniList
+            // enrichment - so the rule did not apply on first paint.
+            countryOfOrigin: item.countryOfOrigin || meta.country || "",
+            // AniList's real English name, used ONLY for the transliterated
+            // countries above. The scraped title for a donghua is itself the
+            // transliteration, so without this there was no English name anywhere
+            // in the row and the CN/KR/TW rule had nothing to prefer.
+            englishTitle: item.englishTitle || meta.englishTitle || "",
+            // AniList gives 4-7 canonical English genres. The scraper gives at most
+            // one, in Spanish ("Aventura"), on 63 of 1000 rows, and the genre
+            // filters are built against the English names.
+            genres: (meta.genres && meta.genres.length) ? meta.genres : (item.genres || [])
+          } : {})
         };
       });
     } catch {

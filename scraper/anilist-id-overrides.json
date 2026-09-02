@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "Scraped slug -> AniList media id, for titles AniList's SEARCH cannot reach even",
+    "though the entry exists. build-artwork-map.mjs consults this before searching.",
+    "",
+    "This is not about the title scorer - the scorer never runs, because the search",
+    "returns zero candidates. AniList tokenises on the spelling it stores, so a",
+    "different word split ('Yoroi Shin Den' vs AniList's 'Yoroi-Shinden') or a",
+    "different cour word ('Part 2' vs AniList's 'Cour 2') yields nothing at all.",
+    "",
+    "Consequence when a row has no anilistId: no metadata, no TMDB artwork, and - the",
+    "reason this file exists - no franchise grouping, because grouping walks AniList",
+    "relations. Yoroi Shin Den Samurai Troopers showed Part 2 as a separate, unrelated",
+    "entry with Part 1 nowhere in the season picker.",
+    "",
+    "Add an entry only when you have confirmed the id on anilist.co. A wrong id is",
+    "worse than none: it attaches another show's synopsis, score and artwork."
+  ],
+  "overrides": {
+    "animeav1-yoroi-shin-den-samurai-troopers": 194318,
+    "animeav1-yoroi-shin-den-samurai-troopers-part-2": 209800
+  }
+}

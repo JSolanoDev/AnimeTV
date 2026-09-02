@@ -24,6 +24,20 @@ import path from "node:path";
 const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 const SRC = path.join(root, "scraper", "anime_metadata.json");
 const OUT = path.join(root, "scraper", "artwork-map.json");
+const OVERRIDES_FILE = path.join(root, "scraper", "anilist-id-overrides.json");
+
+// Slug -> AniList id for titles AniList's SEARCH cannot reach. The scorer never
+// gets a chance on these: the search returns zero candidates because AniList
+// tokenises on its own spelling ("Yoroi-Shinden" vs the scraped "Yoroi Shin Den",
+// "Cour 2" vs "Part 2"). Without an id the row gets no metadata, no TMDB art and
+// no franchise grouping - which is how Yoroi Shin Den ended up showing Part 2 as a
+// standalone entry with Part 1 missing from the season picker.
+let ANILIST_OVERRIDES = {};
+try {
+  ANILIST_OVERRIDES = JSON.parse(fs.readFileSync(OVERRIDES_FILE, "utf8")).overrides || {};
+} catch {
+  ANILIST_OVERRIDES = {}; // optional file
+}
 
 const args = process.argv.slice(2);
 const argOf = (name, fallback) => {
@@ -218,6 +232,47 @@ function anilistLooksRight(media, scrapedTitle) {
   return titleScore(names, [scrapedTitle]) >= 62;
 }
 
+const ANILIST_BY_ID_QUERY = `query ($id: Int) {
+  Media(id: $id, type: ANIME) {
+    id idMal seasonYear format
+    title { romaji english native }
+    synonyms bannerImage
+    coverImage { extraLarge large }
+  }
+}`;
+
+// Used only for overrides, where the id is already known and trusted, so there is
+// nothing to score - fetch it straight.
+async function anilistById(id) {
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    await anilistSlot();
+    let res;
+    try {
+      res = await fetch(ANILIST_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ query: ANILIST_BY_ID_QUERY, variables: { id } })
+      });
+    } catch {
+      await sleep(1500 * attempt);
+      continue;
+    }
+    if (res.status === 429) {
+      const retryAfter = Number(res.headers.get("retry-after") || 0);
+      const waitMs = (retryAfter > 0 ? retryAfter : 60) * 1000;
+      console.log(`  anilist 429 - pausing ${Math.round(waitMs / 1000)}s`);
+      _aniLast = Date.now() + waitMs;
+      await sleep(waitMs);
+      continue;
+    }
+    if (!res.ok) return null;
+    const json = await res.json().catch(() => null);
+    if (!json || json.errors) return null;
+    return json.data?.Media || null;
+  }
+  return null;
+}
+
 async function anilistSearch(title) {
   let loose = null;
   for (const variant of anilistVariants(title)) {
@@ -234,7 +289,9 @@ async function anilistSearch(title) {
 
 async function resolveOne(item) {
   const title = item.title || "";
-  const media = await anilistSearch(title);
+  const overrideId = ANILIST_OVERRIDES[item.id];
+  if (overrideId) console.log(`  override: ${item.id} -> AniList ${overrideId}`);
+  const media = overrideId ? await anilistById(overrideId) : await anilistSearch(title);
   const aniTitles = media ? [media.title?.romaji, media.title?.english, media.title?.native, ...(media.synonyms || [])] : [title];
   const year = media?.seasonYear || media?.startDate?.year || item.year || null;
   const wantSeason = seasonNumberOf(media?.title?.romaji || title);
