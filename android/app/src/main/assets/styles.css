@@ -8008,8 +8008,12 @@ body.adult-mode .watch-backdrop-title-rule {
    not as a second copy of the poster. The blur layer precedes .watch-backdrop
    in the DOM, so it is selected with :has(~ ...). */
 .watch-overlay:not([hidden]) .watch-backdrop-blur.is-visible:has(~ .watch-backdrop.is-poster-fit) {
-  filter: blur(2.4rem) saturate(1.15) brightness(0.42);
-  transform: scale(1.18);
+  /* brightness was 0.42, below the 0.62 this layer uses elsewhere. Under the
+     metadata scrim that read as a black panel rather than a background, which is
+     what "the background is not covering" looked like: the fill was there and
+     full-bleed, just too dark to see. 0.58 keeps the title legible over it. */
+  filter: blur(2.1rem) saturate(1.2) brightness(0.58);
+  transform: scale(1.16);
 }
 /* Holding for the high-res (TMDB) backdrop: keep the sharp layer transparent so
    only the blurred fill behind it shows, until the good art fades in. */

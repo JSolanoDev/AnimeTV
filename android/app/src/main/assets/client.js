@@ -498,6 +498,27 @@ function replaceRegularCatalog(items = [], tier = "full") {
   );
   state.catalogTier = tier;
   state.shows = mergeShows([...items, ...adultItems], Infinity);
+  // mergeShows returns NEW objects. Leaving state.activeShow pointing at the old
+  // one splits an open show in two: enrichment lands on whichever copy it was
+  // handed, so the watch page and the card grid disagree - one has the TMDB
+  // backdrop, the other still has the scraped cover - and a later render can swap
+  // the good art back out. Measured on "Kaguya-sama: Love is War -Ultra Romantic-":
+  // activeShow had tmdbBackdrop, its catalogue twin did not.
+  // Deep links hit this every time, because the catalogue is replaced two or three
+  // times (bootstrap -> cached -> full) while the show is already open.
+  const open = state.activeShow;
+  if (open) {
+    const twin = state.shows.find((s) => String(s.id) === String(open.id));
+    if (twin && twin !== open) {
+      // Keep the fresh catalogue values, carry over anything only the open copy
+      // has resolved (tmdbBackdrop, episodes, franchise, ...).
+      Object.keys(open).forEach((k) => {
+        const v = twin[k];
+        if (v === undefined || v === null || v === "") twin[k] = open[k];
+      });
+      state.activeShow = twin;
+    }
+  }
   return state.shows;
 }
 
@@ -509,7 +530,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=603`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=605`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -1857,7 +1878,7 @@ function adultCinematicTitles(show = {}) {
 
 function adultCinematicCacheKey(show = {}) {
   const title = normalizeMatchTitle(adultCinematicTitles(show)[0] || show.id || "adult-title");
-  return `adult-cinematic-art:v1:${title}:${show.year || ""}`;
+  return `adult-cinematic-art:v2:${title}:${show.year || ""}`;
 }
 
 function adultArtworkCandidate(show, candidate, year = 0) {
@@ -1882,6 +1903,15 @@ function applyAdultCinematicArtwork(show, artwork = {}) {
   if (!url) return false;
   show.adultCinematicBackdrop = url;
   show.adultCinematicSource = String(artwork.source || "metadata");
+  const cover = String(artwork.cover || "").trim();
+  if (cover && !getCardPosterCandidates(show).length) {
+    show.image = cover;
+    show.poster = cover;
+    show.cover = cover;
+    show.thumbnail = cover;
+    show.images = { ...(show.images || {}), poster: cover, cover, thumbnail: cover };
+  }
+  if (artwork.canonicalTitle && !show.officialTitle) show.officialTitle = artwork.canonicalTitle;
   // A title opened from the carousel normally keeps that exact image. Upgrade
   // that remembered image too, otherwise the old 640x360 frame would remain
   // pinned after the high-quality match finishes loading.
@@ -1892,6 +1922,27 @@ function applyAdultCinematicArtwork(show, artwork = {}) {
 async function findAdultCinematicArtwork(show, title) {
   const year = String(show.year || "").trim();
   const suffix = `${year ? `&year=${encodeURIComponent(year)}` : ""}&adult=1`;
+  const hanimeEndpoint = new URL("/api/adult/hanime/artwork", location.origin);
+  hanimeEndpoint.searchParams.set("title", title);
+  hanimeEndpoint.searchParams.set("slug", show.slug || show.adultId || "");
+  try {
+    const hanimeResponse = await fetchWithTimeout(hanimeEndpoint.pathname + hanimeEndpoint.search, { cache: "no-store" }, 10000);
+    const hanimePayload = hanimeResponse.ok ? await hanimeResponse.json() : null;
+    const hanimeArtwork = hanimePayload?.artwork;
+    const score = hanimeArtwork?.title
+      ? adultArtworkCandidate(show, { title: hanimeArtwork.title }, show.year)
+      : 0;
+    if (score && hanimeArtwork?.backdrop) {
+      return {
+        url: hanimeArtwork.backdrop,
+        cover: hanimeArtwork.cover || "",
+        canonicalTitle: hanimeArtwork.title,
+        source: "Hanime",
+        score,
+        preference: 3
+      };
+    }
+  } catch { /* continue with TMDB and AniList */ }
   const tmdbRequests = [
     fetchWithTimeout(`/api/tmdb/search?q=${encodeURIComponent(title)}${suffix}`, { cache: "no-store" }, 10000),
     fetchWithTimeout(`/api/tmdb/search?q=${encodeURIComponent(title)}${suffix}&type=movie`, { cache: "no-store" }, 10000)
@@ -1953,6 +2004,15 @@ async function hydrateAdultCinematicArtwork(show) {
   if (adultCinematicFlights.has(flightKey)) return adultCinematicFlights.get(flightKey);
 
   const request = (async () => {
+    const sourceBackdrop = String(show.hentaiOceanBackdrop || "").trim();
+    if (sourceBackdrop && await preloadCinematicBackdrop(sourceBackdrop, false)) {
+      const artwork = { url: sourceBackdrop, source: "Hentai Ocean" };
+      applyAdultCinematicArtwork(show, artwork);
+      writeResponseCache(adultCinematicCacheKey(show), artwork);
+      show._adultCinematicResolved = true;
+      show._adultCinematicQueryKey = queryKey;
+      return show;
+    }
     const cached = readResponseCache(adultCinematicCacheKey(show), ADULT_CINEMATIC_CACHE_TTL);
     if (cached?.url && await preloadCinematicBackdrop(cached.url, false)) {
       applyAdultCinematicArtwork(show, cached);
@@ -1997,7 +2057,7 @@ async function loadAdultCatalog(force = false) {
   }
   if (adultCatalogLoadingPromise && !force) return adultCatalogLoadingPromise;
   const adapter = AdultSourceRegistry.get();
-  const cacheKey = `adult-catalog:${adapter.name}:underhentai-only-v7`;
+  const cacheKey = `adult-catalog:${adapter.name}:multi-source-v8`;
   const cachedItems = readResponseCache(cacheKey, CATALOG_CACHE_TTL);
   const applyAdultItems = (items = [], labelPrefix = adapter.name) => {
     const adultItems = Array.isArray(items)
@@ -2585,7 +2645,11 @@ function imageDeliveryUrl(url, width = 360, quality = 70) {
       host === "www.hentaila.tv" ||
       host === "img.hentaihaven.xxx" ||
       host === "coverlanyvd.org" ||
-      host === "hentaiplayer.com";
+      host === "hentaiplayer.com" ||
+      host === "hentaiocean.com" ||
+      host === "www.hentaiocean.com" ||
+      host === "hanime-cdn.com" ||
+      host === "www.hanime-cdn.com";
     if (!allowed) return raw;
     // TMDB "/original/" files can be several MB. When we're only rendering a
     // small image (thumbnails, carousel dots, cards) the proxy still had to pull
@@ -3165,7 +3229,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=603";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=605";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -15917,7 +15981,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=603");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=605");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
