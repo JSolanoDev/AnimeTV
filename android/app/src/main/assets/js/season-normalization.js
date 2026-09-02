@@ -234,6 +234,9 @@ const SeasonNormalization = (function() {
     if (item.type === TYPE_MOVIE && !item.seasonNumber) {
       return { groupId: 'movies', groupTitle: 'Movies', groupType: TYPE_MOVIE };
     }
+    // A "Final Season" with no number in its title is, by definition, after every
+    // numbered one. Large rather than Infinity so it survives arithmetic and JSON.
+    const FINAL_SEASON_SORT = 9000;
     if (item.type === TYPE_RECAP) {
       return { groupId: 'recaps', groupTitle: 'Recaps / Summaries', groupType: TYPE_RECAP };
     }
@@ -247,14 +250,18 @@ const SeasonNormalization = (function() {
     let baseTitle = "";
 
     if (item.isFinalChapters) {
-      sNum = sNum || 4; // Default Final Season to 4 if unknown
+      // Sorts after every numbered season. It used to default to 4, which is only
+      // right for Attack on Titan - the franchise this grouping was written
+      // against. My Hero Academia's Final Season is the 8th, so a default of 4 put
+      // it between Season 4 and Season 5 in the picker.
+      sNum = sNum || FINAL_SEASON_SORT;
       baseTitle = "Final Season: Final Chapters";
       if (pNum) baseTitle += ` Part ${pNum}`;
       return { groupId: `final-chapters-${pNum || 1}`, groupTitle: baseTitle, seasonNumber: sNum, partNumber: pNum || 3, groupType: TYPE_MAIN };
     }
 
     if (item.isFinalSeason) {
-      sNum = sNum || 4;
+      sNum = sNum || FINAL_SEASON_SORT;
       baseTitle = "Final Season";
       if (pNum) {
         return { groupId: `final-season-part-${pNum}`, groupTitle: `Final Season Part ${pNum}`, seasonNumber: sNum, partNumber: pNum, groupType: TYPE_MAIN };

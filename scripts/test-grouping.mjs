@@ -432,5 +432,28 @@ check("UnderHentai official title is preserved as an alias", mappedAdultTitle.al
 check("UnderHentai episode count is preserved", mappedAdultTitle.latestAiredEp === 3);
 
 
+console.log("");
+console.log("# SeasonNormalization sorts an unnumbered Final Season last");
+// An unnumbered "Final Season" used to default to season 4, which is only correct
+// for Attack on Titan - the franchise this grouping was written against. My Hero
+// Academia has seven numbered seasons, so that default dropped its Final Season
+// between Season 4 and Season 5 in the picker.
+const mha = SeasonNormalization.normalizeFranchise([
+  { title: "Boku no Hero Academia", format: "TV", seasonYear: 2016, episodes: 13 },
+  { title: "Boku no Hero Academia 2nd Season", format: "TV", seasonYear: 2017, episodes: 25 },
+  { title: "Boku no Hero Academia 3rd Season", format: "TV", seasonYear: 2018, episodes: 25 },
+  { title: "Boku no Hero Academia 4th Season", format: "TV", seasonYear: 2019, episodes: 25 },
+  { title: "Boku no Hero Academia 5th Season", format: "TV", seasonYear: 2021, episodes: 25 },
+  { title: "Boku no Hero Academia 6th Season", format: "TV", seasonYear: 2022, episodes: 25 },
+  { title: "Boku no Hero Academia 7th Season", format: "TV", seasonYear: 2024, episodes: 21 },
+  { title: "Boku no Hero Academia: Final Season", format: "TV", seasonYear: 2025, episodes: 11 }
+]).groups.map((g) => g.title);
+check("MHA keeps a Final Season label", mha.some((t) => /Final Season/i.test(t)));
+check("MHA Final Season sorts after every numbered season",
+  mha.findIndex((t) => /Final Season/i.test(t)) > mha.lastIndexOf("Season 7"));
+check("MHA does not renumber Final Season as Season 4",
+  mha.filter((t) => t === "Season 4").length === 1);
+
+
 console.log(`\n${passed} passed, ${failed} failed\n`);
 process.exit(failed === 0 ? 0 : 1);
