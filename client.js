@@ -530,7 +530,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=618`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=619`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3250,7 +3250,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=618";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=619";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -11966,6 +11966,10 @@ function recordWatchProgress({ show, season, episode, positionSec, durationSec, 
     episodeKey: key,
     animeId: getAnimeTrackId(show),
     showId: show.id || null,
+    // Stable identity as well as the row id. showId is a CATALOGUE ROW id and
+    // those are not permanent - see findShowForWatchEntry.
+    anilistId: show.anilistId || null,
+    malId: show.malId || null,
     title: getShowTitle(show) || show.title || prev.title || "",
     season: seasonNumber,
     episode: episodeNumber,
@@ -12055,7 +12059,9 @@ function isEntryAdult(entry) {
 function renderContinueCardHtml(e) {
   let img = e.thumb || e.poster || "";
   if (!img) {
-    const show = state.shows.find((s) => String(s.id) === String(e.showId || e.animeId));
+    // Same staleness as the click target: match on the row id first, then the
+    // stable ids, or the card renders with no artwork at all.
+    const show = findShowForWatchEntry(e);
     if (show) {
       img = show.image || show.poster || show.banner || "";
     }
@@ -12166,12 +12172,52 @@ function renderContinueWatching() {
   }
 }
 
+// A saved entry keeps the catalogue ROW id it was recorded under, and those are
+// not permanent: the same anime arrives as a scraped row and as an AniList row,
+// dedupeCatalogShows() merges the pair and one of the two ids stops existing, and
+// franchise entries are minted at runtime with ids of their own. When the saved id
+// is the one that went away, openShow() found nothing and the card did nothing at
+// all when clicked - which is what "continue watching sometimes does not work"
+// looks like. Fall back to the stable ids, then to the title.
+function findShowForWatchEntry(entry) {
+  const shows = state.shows || [];
+  if (!entry || !shows.length) return null;
+  const rowId = String(entry.showId || entry.animeId || "");
+  if (rowId) {
+    const byRow = shows.find((s) => String(s.id) === rowId);
+    if (byRow) return byRow;
+  }
+  if (entry.anilistId) {
+    const byAni = shows.find((s) => s.anilistId && String(s.anilistId) === String(entry.anilistId));
+    if (byAni) return byAni;
+  }
+  if (entry.malId) {
+    const byMal = shows.find((s) => s.malId && String(s.malId) === String(entry.malId));
+    if (byMal) return byMal;
+  }
+  // animeId is whatever getAnimeTrackId produced, which for many rows IS the
+  // AniList id, so it is worth trying against the stable fields too.
+  if (rowId) {
+    const byTrack = shows.find((s) => String(s.anilistId || "") === rowId || String(s.malId || "") === rowId);
+    if (byTrack) return byTrack;
+  }
+  const wanted = normalizeTitle(entry.title || "");
+  if (wanted) {
+    const byTitle = shows.find((s) => normalizeTitle(getShowTitle(s) || s.title || "") === wanted);
+    if (byTitle) return byTitle;
+  }
+  return null;
+}
+
 function resumeFromContinue(showId, key) {
   const m = /:s(\d+):e(\d+)$/.exec(key || "");
   const seasonNumber = m ? Number(m[1]) : 1;
   const episodeNumber = m ? Number(m[2]) : 1;
-  if (!showId) return;
-  openShow(showId, { seasonNumber, episodeNumber, playIntent: true });
+  const entry = key ? getWatchMap()[key] : null;
+  const show = findShowForWatchEntry(entry || { showId });
+  const targetId = show?.id || showId;
+  if (!targetId) return;
+  openShow(targetId, { seasonNumber, episodeNumber, playIntent: true });
 }
 
 function clearContinueWatchingList(isAdult = false) {
@@ -16033,7 +16079,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=618");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=619");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
