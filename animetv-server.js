@@ -382,14 +382,18 @@ const IMAGE_PROXY_ALLOWED_HOSTS = new Set([
   "www.hentaila.tv",
   "img.hentaihaven.xxx",
   "coverlanyvd.org",
-  "hentaiplayer.com"
-  ,"hentaiocean.com"
-  ,"www.hentaiocean.com"
-  ,"hanime-cdn.com"
-  ,"www.hanime-cdn.com"
+  "hentaiplayer.com",
+  "hentaiocean.com",
+  "www.hentaiocean.com",
+  "hanime-cdn.com",
+  "www.hanime-cdn.com"
 ]);
 const IMAGE_PROXY_MAX_BYTES = 5 * 1024 * 1024;
-const IMAGE_PROXY_MAX_WIDTH = 2560;
+// 3840 so a 4K display gets the real thing. The clamp was 2560, which meant a
+// 3840x2160 TMDB backdrop was resized DOWN and then stretched back up by the
+// browser on a 4K screen. sharp still runs withoutEnlargement, so a smaller
+// source is passed through at its own size rather than upscaled.
+const IMAGE_PROXY_MAX_WIDTH = 3840;
 const IMAGE_PROXY_DEFAULT_WIDTH = 360;
 const IMAGE_PROXY_WEBP_QUALITY = 70;
 const STRICT_TRANSPORT_SECURITY = "max-age=31536000; includeSubDomains; preload";
@@ -1364,6 +1368,19 @@ async function refreshUnderHentaiLiveCatalog() {
   return { ok: items.length > 0, count: items.length };
 }
 
+async function refreshHentaiOceanCatalog() {
+  hentaiOceanCatalogCache = null;
+  hentaiOceanCatalogCacheAt = 0;
+  hentaiOceanDetailCache.clear();
+  hanimeArtworkCache.clear();
+  const items = await getHentaiOceanCatalog({ force: true });
+  return {
+    ok: items.length > 0,
+    count: items.length,
+    episodeCount: items.reduce((sum, item) => sum + Number(item.episodeCount || 0), 0)
+  };
+}
+
 function startLocalServer() {
   const server = http.createServer(handleRequest);
   server.listen(port, host, () => {
@@ -1433,7 +1450,8 @@ async function refreshDailyApis({ force = false, reason = "scheduled" } = {}) {
     const results = await Promise.allSettled([
       fetchAnimeAv1LatestEpisodes(),
       getAnimeAv1SlugCatalog({ force: true, pages: ANIMEAV1_CATALOG_PAGES }),
-      refreshUnderHentaiLiveCatalog()
+      refreshUnderHentaiLiveCatalog(),
+      refreshHentaiOceanCatalog()
     ]);
     const payload = {
       status: results.every((result) => result.status === "fulfilled") ? "ok" : "degraded",
@@ -1450,7 +1468,10 @@ async function refreshDailyApis({ force = false, reason = "scheduled" } = {}) {
       },
       underhentai: results[2].status === "fulfilled"
         ? results[2].value
-        : { ok: false, error: results[2].reason?.message || "UnderHentai catalog refresh failed" }
+        : { ok: false, error: results[2].reason?.message || "UnderHentai catalog refresh failed" },
+      hentaiocean: results[3].status === "fulfilled"
+        ? results[3].value
+        : { ok: false, error: results[3].reason?.message || "Hentai Ocean catalog refresh failed" }
     };
     lastDailyRefreshAt = Date.now();
     lastDailyRefreshResult = payload;
@@ -9088,7 +9109,7 @@ function parseHanimeArtwork(html = "", expectedTitle = "") {
   const cover = decodeHtmlEntities(
     String(html).match(/<meta\b[^>]*(?:property|name)=["']og:image["'][^>]*content=["']([^"']+)/i)?.[1] || ""
   );
-  const encodedPoster = String(html).match(/poster_url(?:&quot;|\")?\s*(?::|&colon;)\s*(?:&quot;|\")([^"<&]+)/i)?.[1]
+  const encodedPoster = String(html).match(/poster_url(?:&quot;|\")?\s*(?::|&colon;)\s*(?:\[0,)?(?:&quot;|\")([^"<&]+)/i)?.[1]
     || String(html).match(/poster_url\\?"\s*:\s*\\?"([^"\\]+)/i)?.[1]
     || "";
   const poster = decodeHtmlEntities(encodedPoster.replace(/\\\//g, "/"));

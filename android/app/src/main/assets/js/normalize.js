@@ -57,6 +57,10 @@ function normalizeExternalShow(item, source, index) {
     // and getCardPosterCandidates, both of which rank it above the scraped cover.
     tmdbPoster: item.tmdbPoster || "",
     tmdbId: item.tmdbId || null,
+    // Artwork that came from the catalogue is curated: build-artwork-map.mjs picks
+    // TMDB's primary backdrop and poster for the matched show. A later runtime
+    // resolve must not replace it - see applyResolvedMatch in js/image-resolver.js.
+    _artworkPinned: Boolean(item.tmdbBackdrop || item.tmdbPoster),
     siteUrl: item.siteUrl || item.url || "",
     description: cleanDescription(item.description || item.synopsis || ""),
     anime1vUrl: item.anime1vUrl || item.animeUrl || item.url || item.link || "",

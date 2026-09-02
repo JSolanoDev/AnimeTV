@@ -372,8 +372,14 @@ const ImageResolver = (function () {
     if (!anime || !data) return;
     anime.tmdbId = data.tmdbId ?? anime.tmdbId ?? null;
     anime.tmdbMatchConfidence = data.confidence ?? anime.tmdbMatchConfidence ?? 0;
-    anime.tmdbPoster = data.showPoster || anime.tmdbPoster || null;
-    anime.tmdbBackdrop = data.showBackdrop || anime.tmdbBackdrop || null;
+    // A runtime resolve can land on a different TMDB file than the catalogue's
+    // curated one, and often a much smaller one: One Piece ships the 3840x2160
+    // primary backdrop from the artwork map, but resolving at runtime produced a
+    // 1280x720 "original" and overwrote it - which is what "not 4k" looked like.
+    // TMDB "original" only means "as uploaded", so it is not a resolution promise.
+    const pinned = Boolean(anime._artworkPinned);
+    anime.tmdbPoster = (pinned && anime.tmdbPoster) || data.showPoster || anime.tmdbPoster || null;
+    anime.tmdbBackdrop = (pinned && anime.tmdbBackdrop) || data.showBackdrop || anime.tmdbBackdrop || null;
     anime.tmdbSeasonPoster = data.seasonPoster || anime.tmdbSeasonPoster || null;
     anime.tmdbEpisodeStills = data.episodeStills || anime.tmdbEpisodeStills || {};
     anime.tmdbEpisodesByNum = data.episodesByNum || anime.tmdbEpisodesByNum || {};

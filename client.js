@@ -530,7 +530,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=606`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=608`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2674,7 +2674,28 @@ function imageDeliveryUrl(url, width = 360, quality = 70) {
 // One canonical backdrop file is shared by the home carousel, detail preview,
 // sharp detail layer, quality probe, and preloaders. Keeping the URL byte-for-byte
 // identical lets the browser coalesce every consumer into one network request.
-const CINEMATIC_BACKDROP_WIDTH = 1920;
+// Sized to the display, computed ONCE so every consumer (carousel, detail
+// preview, sharp layer, quality probe, preloader) still shares one byte-for-byte
+// identical URL and the browser coalesces them into a single request - which is
+// the whole point of this constant.
+//
+// It was a flat 1920: correct for a 1080p laptop, but a 4K screen then upscaled
+// that 2x and the backdrop looked soft. Rounded to 320px steps so there are only
+// a handful of distinct URLs across all devices, keeping the proxy cache warm.
+const CINEMATIC_BACKDROP_WIDTH = (() => {
+  try {
+    const viewport = Math.max(
+      Number(window.innerWidth || 0),
+      Number(document.documentElement?.clientWidth || 0),
+      Number(window.screen?.width || 0)
+    );
+    const density = Math.min(2, Math.max(1, Number(window.devicePixelRatio || 1)));
+    const wanted = Math.ceil((viewport * density) / 320) * 320;
+    return Math.max(1280, Math.min(3840, wanted || 1920));
+  } catch {
+    return 1920;
+  }
+})();
 const CINEMATIC_BACKDROP_QUALITY = 92;
 
 function cinematicBackdropUrl(url) {
@@ -3229,7 +3250,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=606";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=608";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -15991,7 +16012,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=606");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=608");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
