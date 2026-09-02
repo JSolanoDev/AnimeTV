@@ -533,7 +533,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=626`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=627`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3253,7 +3253,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=626";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=627";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -13595,7 +13595,19 @@ function getSeasonEpisodeLimit(show = {}, season = {}) {
     if (Number.isFinite(latestAired) && latestAired > 0) return latestAired;
     if (Number.isFinite(nextAiring) && nextAiring > 1) return nextAiring - 1;
     if (Number.isFinite(displayedEpisode) && displayedEpisode > 0) return displayedEpisode;
-    return 0;
+    // The show is airing but NOTHING here says how many episodes have aired.
+    // This used to return 0, and clampSeasonEpisodes() reads 0 as "keep episodes
+    // numbered <= 0" - i.e. throw the whole list away. "Unknown" is not "none":
+    // returning null means do not clamp, and the episodes we actually have get
+    // shown.
+    //
+    // This was latent until v626 started shipping AniList status with the
+    // catalogue. Before that these rows had status:"" so isAiring was false and
+    // the limit came out null; afterwards 67 currently-airing shows - One Piece,
+    // Bleach, Frieren S2, the ones people actually open - computed a limit of 0
+    // and rendered an empty episode list. Verified on production by flipping
+    // status back to "" on One Piece: null before, 0 after.
+    return null;
   }
 
   if (Number.isFinite(plannedTotal) && plannedTotal > 0) return plannedTotal;
@@ -16143,7 +16155,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=626");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=627");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

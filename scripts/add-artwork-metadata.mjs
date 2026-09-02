@@ -128,7 +128,12 @@ const keys = Object.keys(entries);
 const idToKeys = new Map();
 for (const key of keys) {
   const e = entries[key];
-  if (!e || e.status !== "ok" || !e.anilistId) continue;
+  // Gate on the AniList id, NOT on entry.status. status describes whether the TMDB
+  // ARTWORK match succeeded, which is a different question from whether the AniList
+  // identity is known: "rejected" and "no-tmdb-candidates" entries carry a perfectly
+  // good anilistId and only failed to find a backdrop. Gating on status skipped 73
+  // such rows, leaving them with no year/score/genres for no reason.
+  if (!e || !e.anilistId) continue;
   if (e.meta && !FORCE) continue;
   const id = Number(e.anilistId);
   if (!Number.isFinite(id)) continue;
