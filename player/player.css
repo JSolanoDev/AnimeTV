@@ -72,7 +72,11 @@ button {
   top: var(--ztv-letter, 0px);
   left: var(--ztv-pillar, 0px);
   right: var(--ztv-pillar, 0px);
-  z-index: 5;
+  /* The chrome now lives INSIDE .art-video-player (so fullscreen renders it), so
+     it competes with Artplayer's own stacking: mask ~10, layers ~20, control bar
+     60. At the old z-index 5 it sat under the mask and the centre play layer.
+     61 puts it just above the control bar it now hides and shows with. */
+  z-index: 61;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -105,6 +109,23 @@ body.ztv-chrome-hidden .ztv-player-topbar {
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
+}
+
+/* Auto-hide, driven by Artplayer's own control timing (see
+   followControlVisibility). The chrome fades with the progress bar when the
+   pointer goes idle and returns on the next move, in fullscreen as well as
+   inline - the chrome now lives inside $player so fullscreen renders it. */
+body.ztv-controls-hidden .ztv-player-topbar,
+body.ztv-controls-hidden .ztv-corner-button,
+body.ztv-controls-hidden .ztv-floating-label {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.ztv-corner-button,
+.ztv-floating-label {
+  transition: opacity 180ms ease, visibility 180ms ease;
 }
 
 .ztv-icon-button,
@@ -710,7 +731,7 @@ body.fit-fill .art-video {
    slab that stays quiet over the picture until you go for it. */
 .ztv-corner-button {
   position: absolute;
-  z-index: 7;
+  z-index: 62;
   top: calc(12px + var(--ztv-letter, 0px) + env(safe-area-inset-top));
   display: grid;
   place-items: center;
@@ -767,7 +788,7 @@ body.ztv-chrome-hidden .ztv-corner-toggle svg {
    between the two corners, so it never covers the picture below them. */
 .ztv-floating-label {
   position: absolute;
-  z-index: 7;
+  z-index: 62;
   top: calc(12px + var(--ztv-letter, 0px) + env(safe-area-inset-top));
   left: calc(64px + var(--ztv-pillar, 0px) + env(safe-area-inset-left));
   right: calc(64px + var(--ztv-pillar, 0px) + env(safe-area-inset-right));

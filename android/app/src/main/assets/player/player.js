@@ -348,6 +348,8 @@
     art = new window.Artplayer(playerOptions);
     wireArtEvents();
     wireVolumePanelLinger();
+    attachChromeToPlayer();
+    followControlVisibility();
     wireTapToHideControls();
     watchPictureInsets();
     syncNextEpisodeControl();
@@ -386,6 +388,33 @@
     const orientation = window.screen && window.screen.orientation;
     if (!orientation || typeof orientation.unlock !== "function") return;
     try { orientation.unlock(); } catch (error) { /* unsupported on this browser */ }
+  }
+
+  // The topbar and the two corner buttons are siblings of the player in the page.
+  // Artplayer requests fullscreen on its own $player element, and a fullscreen
+  // element renders only its own subtree - so in fullscreen the whole chrome
+  // disappeared. Moving it inside $player keeps it on screen there. The picture
+  // inset vars it anchors to are set on documentElement, so nothing about the
+  // positioning changes.
+  function attachChromeToPlayer() {
+    const player = art?.template?.$player;
+    if (!player) return;
+    ["#playerTopbar", "#backButton", "#chromeToggle", "#floatingLabel"].forEach((selector) => {
+      const node = document.querySelector(selector);
+      if (node && node.parentElement !== player) player.appendChild(node);
+    });
+  }
+
+  // Follow the control bar exactly, so the chrome fades with the progress bar on
+  // pointer idle and comes back on the next move. Artplayer owns that timing;
+  // mirroring its event means the two can never drift apart.
+  function followControlVisibility() {
+    if (!art) return;
+    const apply = (visible) => {
+      document.body.classList.toggle("ztv-controls-hidden", !visible);
+    };
+    apply(Boolean(art.controls && art.controls.show));
+    art.on("control", apply);
   }
 
   function wireTapToHideControls() {
