@@ -478,6 +478,15 @@ function resetCatalogModeControls() {
   if (typeof _carouselPaintedShow !== "undefined") _carouselPaintedShow = null;
 }
 
+// A catalogue upgrade must not yank the hero back to slide 1. Once a hero has been
+// painted the viewer may have advanced, or clicked a thumbnail - resetting the index
+// under them made the carousel jump to a different anime a second or two after they
+// picked one. Only a carousel that has never painted starts from the beginning.
+function resetCarouselIndexForFreshCatalog() {
+  if (_carouselPaintedId) return;
+  state.carouselIndex = 0;
+}
+
 // `tier` says how complete this catalogue is. The bootstrap payload is ~54 titles
 // and the full one ~1100, and the carousel pool is "recently aired that has
 // artwork" - in a 54-title catalogue that bar is met by titles from 1995, so the
@@ -499,7 +508,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=595`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=596`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -527,7 +536,7 @@ function applyServerCatalog(serverCatalog = [], label = "ZenkaiTV API") {
   if (!serverCatalog.length) return false;
   replaceRegularCatalog(mergeShows(serverCatalog));
   state.isLoadingCatalog = false;
-  state.carouselIndex = 0;
+  resetCarouselIndexForFreshCatalog();
   state.apiStatus.metadata = "Online";
   state.apiStatus.direct = "Standby";
   writeResponseCache("main-catalog", regularCatalogSnapshot());
@@ -575,7 +584,7 @@ async function loadAnimeSources() {
   if (cachedCatalog?.length) {
     replaceRegularCatalog(cachedCatalog);
     state.isLoadingCatalog = false;
-    state.carouselIndex = 0;
+    resetCarouselIndexForFreshCatalog();
     setSourceStatus(catalogStatusLabel("Cached ZenkaiTV catalog", cachedCatalog));
     render();
     hasInitialCatalog = true;
@@ -587,7 +596,7 @@ async function loadAnimeSources() {
     if (bootstrapCatalog.length) {
       replaceRegularCatalog(bootstrapCatalog, "bootstrap");
       state.isLoadingCatalog = false;
-      state.carouselIndex = 0;
+      resetCarouselIndexForFreshCatalog();
       setSourceStatus(catalogStatusLabel("ZenkaiTV bootstrap", bootstrapCatalog));
       render();
       hasInitialCatalog = true;
@@ -615,7 +624,7 @@ async function loadAnimeSources() {
   if (!state.shows.length && cachedDirect?.length) {
     replaceRegularCatalog(cachedDirect);
     state.isLoadingCatalog = false;
-    state.carouselIndex = 0;
+    resetCarouselIndexForFreshCatalog();
     setSourceStatus(catalogStatusLabel("Cached AniList + Jikan", cachedDirect));
     render();
     hasInitialCatalog = true;
@@ -683,7 +692,7 @@ async function loadDirectCatalogFallback() {
   if (merged.length) {
     replaceRegularCatalog(merged);
     state.isLoadingCatalog = false;
-    state.carouselIndex = 0;
+    resetCarouselIndexForFreshCatalog();
     state.apiStatus.direct = "Online";
     writeResponseCache("direct-catalog", merged);
     writeResponseCache("main-catalog", merged);
@@ -2915,37 +2924,52 @@ let _carouselPaintedShow = null;
 function buildStableCarouselItems(pool) {
   const MAX = 8;
   const byId = new Map(pool.map((s) => [String(s.id), s]));
-  const prev = _carouselStableIds.map((id) => byId.get(id)).filter(Boolean);
-
-  // Whatever is ALREADY on screen keeps slide 1, and the show the memo restored
-  // is next in line. Both are looked up in the whole catalogue, not just `pool`:
-  // a later render legitimately drops a title out of the "recently aired + has
-  // artwork" window, and demoting the visible hero is precisely the reshuffle
-  // this function exists to prevent.
+  // Resolve against the whole catalogue, not just `pool`: a later render
+  // legitimately drops a title out of the "recently aired + has artwork" window,
+  // and losing it from the lineup is the reshuffle this function prevents.
   const findAnywhere = (id) => id
     ? (byId.get(id) || (state.shows || []).find((s) => String(s.id) === id) || null)
     : null;
-  const pinned = [findAnywhere(_carouselPaintedId ? String(_carouselPaintedId) : ""),
-                  findAnywhere(_carouselMemoId)].filter(Boolean);
+  const existing = _carouselStableIds.map(findAnywhere).filter(Boolean);
 
-  // Top up instead of rebuilding. The old code rebuilt from scratch whenever the
-  // previous lineup was not ENTIRELY present in the new pool, which happens on
-  // every catalogue upgrade (bootstrap -> full -> enrichment) because the pool
-  // grows. Measured before this: the hero showed three different anime in the
-  // first 15s (241ms, 7.2s, 14.2s). Topping up means a bigger pool adds slides,
-  // it never renames slide 1.
-  const withTrailer = pool.filter((s) => {
-    const tr = s.anilistId ? _readTrailerCache(String(s.anilistId)) : null;
-    return tr && tr.id;
-  });
-  const ordered = [];
-  const seen = new Set();
-  for (const s of [...pinned, ...prev, ...withTrailer, ...pool]) {
-    const id = String(s.id);
-    if (seen.has(id)) continue;
-    seen.add(id);
-    ordered.push(s);
-    if (ordered.length >= MAX) break;
+  // ONCE A LINEUP EXISTS, ITS ORDER IS FIXED. Only ever append to it.
+  //
+  // Re-sorting on later renders moved the slide out from under the user: every
+  // repaint updates _carouselPaintedId, so seating that show at index 0 while
+  // state.carouselIndex still pointed at its old position made the hero jump to a
+  // different anime the moment you clicked a thumbnail. Order is decided once, at
+  // first build, and after that a growing pool can only add slides on the end.
+  let ordered;
+  if (existing.length >= 3) {
+    ordered = existing.slice(0, MAX);
+    const seen = new Set(ordered.map((s) => String(s.id)));
+    for (const s of pool) {
+      if (ordered.length >= MAX) break;
+      const id = String(s.id);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      ordered.push(s);
+    }
+  } else {
+    // First build: lead with whatever is already on screen or remembered, so the
+    // restored hero stays put once the real catalogue lands, then shows whose
+    // trailer has resolved, then the rest of the pool.
+    const pinned = [findAnywhere(_carouselPaintedId ? String(_carouselPaintedId) : ""),
+                    findAnywhere(_carouselMemoId)].filter(Boolean);
+    const withTrailer = pool.filter((s) => {
+      const tr = s.anilistId ? _readTrailerCache(String(s.anilistId)) : null;
+      return tr && tr.id;
+    });
+    ordered = [];
+    const seen = new Set();
+    for (const s of [...pinned, ...existing, ...withTrailer, ...pool]) {
+      if (!s) continue;
+      const id = String(s.id);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      ordered.push(s);
+      if (ordered.length >= MAX) break;
+    }
   }
   _carouselStableIds = ordered.map((s) => String(s.id));
   return ordered;
@@ -2983,7 +3007,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=595";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=596";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -15719,7 +15743,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=595");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=596");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
