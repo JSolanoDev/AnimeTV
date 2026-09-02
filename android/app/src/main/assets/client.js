@@ -476,6 +476,7 @@ function resetCatalogModeControls() {
   if (typeof _carouselStableIds !== "undefined") _carouselStableIds = [];
   if (typeof _carouselPaintedId !== "undefined") _carouselPaintedId = null;
   if (typeof _carouselPaintedShow !== "undefined") _carouselPaintedShow = null;
+  if (typeof _carouselMemoId !== "undefined") _carouselMemoId = "";
 }
 
 // A catalogue upgrade must not yank the hero back to slide 1. Once a hero has been
@@ -508,7 +509,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=600`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=602`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -1860,7 +1861,15 @@ function adultCinematicCacheKey(show = {}) {
 }
 
 function adultArtworkCandidate(show, candidate, year = 0) {
-  const score = titleMatchScore(show, candidate);
+  const normalizeAdultArtworkTitle = (value) => normalizeMatchTitle(value)
+    .replace(/\b(?:the\s+)?animation\b/g, " ")
+    .replace(/\b(?:ova|ona)\b$/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const showTitles = adultCinematicTitles(show).map(normalizeAdultArtworkTitle).filter(Boolean);
+  const candidateTitles = animeTitleCandidates(candidate).map(normalizeAdultArtworkTitle).filter(Boolean);
+  const exactSourceTitle = showTitles.some((showTitle) => candidateTitles.includes(showTitle));
+  const score = exactSourceTitle ? 112 : titleMatchScore(show, candidate);
   if (score < 100) return 0;
   const showYear = Number(show.year || 0);
   const candidateYear = Number(year || 0);
@@ -1883,36 +1892,17 @@ function applyAdultCinematicArtwork(show, artwork = {}) {
 async function findAdultCinematicArtwork(show, title) {
   const year = String(show.year || "").trim();
   const suffix = `${year ? `&year=${encodeURIComponent(year)}` : ""}&adult=1`;
-  const requests = [
-    fetchWithTimeout(`/api/anilist/search?q=${encodeURIComponent(title)}&adult=1`, { cache: "no-store" }, 10000),
+  const tmdbRequests = [
     fetchWithTimeout(`/api/tmdb/search?q=${encodeURIComponent(title)}${suffix}`, { cache: "no-store" }, 10000),
     fetchWithTimeout(`/api/tmdb/search?q=${encodeURIComponent(title)}${suffix}&type=movie`, { cache: "no-store" }, 10000)
   ];
-  const settled = await Promise.allSettled(requests);
-  const payloads = await Promise.all(settled.map(async (entry) => {
+  const readSettledPayloads = async (requests) => Promise.all((await Promise.allSettled(requests)).map(async (entry) => {
     if (entry.status !== "fulfilled" || !entry.value.ok) return null;
     try { return await entry.value.json(); } catch { return null; }
   }));
 
   const choices = [];
-  const aniPayload = payloads[0];
-  const aniMedia = Array.isArray(aniPayload?.results) && aniPayload.results.length
-    ? aniPayload.results
-    : (aniPayload?.media ? [aniPayload.media] : []);
-  aniMedia.forEach((media) => {
-    const url = String(media?.bannerImage || "").trim();
-    if (!url || media?.isAdult === false) return;
-    const candidate = {
-      title: media.title?.english || media.title?.romaji || media.title?.userPreferred,
-      romajiTitle: media.title?.romaji,
-      nativeTitle: media.title?.native,
-      aliases: media.synonyms || []
-    };
-    const score = adultArtworkCandidate(show, candidate, media.seasonYear);
-    if (score) choices.push({ url, source: "AniList", score, preference: 1 });
-  });
-
-  payloads.slice(1).forEach((payload) => {
+  (await readSettledPayloads(tmdbRequests)).forEach((payload) => {
     (Array.isArray(payload?.results) ? payload.results : []).forEach((media) => {
       const path = String(media?.backdrop_path || "").trim();
       if (!path) return;
@@ -1929,6 +1919,26 @@ async function findAdultCinematicArtwork(show, title) {
         preference: 2
       });
     });
+  });
+  if (choices.length) return choices.sort((a, b) => b.score - a.score || b.preference - a.preference)[0];
+
+  const [aniPayload] = await readSettledPayloads([
+    fetchWithTimeout(`/api/anilist/search?q=${encodeURIComponent(title)}&adult=1`, { cache: "no-store" }, 10000)
+  ]);
+  const aniMedia = Array.isArray(aniPayload?.results) && aniPayload.results.length
+    ? aniPayload.results
+    : (aniPayload?.media ? [aniPayload.media] : []);
+  aniMedia.forEach((media) => {
+    const url = String(media?.bannerImage || "").trim();
+    if (!url || media?.isAdult === false) return;
+    const candidate = {
+      title: media.title?.english || media.title?.romaji || media.title?.userPreferred,
+      romajiTitle: media.title?.romaji,
+      nativeTitle: media.title?.native,
+      aliases: media.synonyms || []
+    };
+    const score = adultArtworkCandidate(show, candidate, media.seasonYear);
+    if (score) choices.push({ url, source: "AniList", score, preference: 1 });
   });
 
   return choices.sort((a, b) => b.score - a.score || b.preference - a.preference)[0] || null;
@@ -3151,7 +3161,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=600";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=602";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -15903,7 +15913,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=600");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=602");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

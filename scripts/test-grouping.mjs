@@ -160,6 +160,7 @@ check("Different AniList identities are never collapsed by title", sameTitleDiff
 
 console.log("\n# Canonical cinematic artwork delivery");
 const clientSource = readFileSync(new URL("../client.js", import.meta.url), "utf8");
+const serverSource = readFileSync(new URL("../animetv-server.js", import.meta.url), "utf8");
 const normalizeSource = readFileSync(new URL("../js/normalize.js", import.meta.url), "utf8");
 const normalizeContext = { getShowKey };
 runInNewContext(`${normalizeSource}\nthis.__testMergeShows = mergeShows;`, normalizeContext);
@@ -176,6 +177,15 @@ check("Carousel click uses the exact painted show snapshot", /const current = _c
 check("Detail open honors a supplied painted show snapshot", /const paintedShow = target\.showRef;/.test(clientSource));
 check("Client collapses duplicate DOM/card identities", mergedClientIdentity.length === 1 && mergedClientIdentity[0]._paintedCarouselArtwork === "carousel.jpg");
 check("Catalog merges are uncapped by default", /function mergeShows\(items, limit = Infinity\)/.test(normalizeSource));
+
+console.log("\n# Adult cinematic artwork resolution");
+check("Adult AniList lookup is explicitly isolated", /api\/anilist\/search\?q=.*&adult=1/.test(clientSource));
+check("Adult TMDB lookup requests original backdrops", /image\.tmdb\.org\/t\/p\/original/.test(clientSource));
+check("Adult cinematic art outranks UnderHentai screenshots", /return \[\s*show\.adultCinematicBackdrop,\s*\.\.\.screenshots/.test(clientSource));
+check("Adult hover preload avoids regular anime enrichment", /if \(isAdultCatalogShow\(show\)\)[\s\S]{0,320}hydrateAdultCinematicArtwork\(show\)[\s\S]{0,120}return;/.test(clientSource));
+check("AniList proxy accepts an adult-only query variable", /media\(search:\$search,type:ANIME,sort:SEARCH_MATCH,isAdult:\$isAdult\)/.test(serverSource));
+check("TMDB adult and safe searches use separate cache entries", /\$\{includeAdult \? "adult" : "safe"\}/.test(serverSource));
+check("Changing catalog modes clears the remembered carousel title", /resetCatalogModeControls\(\)[\s\S]{0,900}_carouselMemoId[^\n]+""/.test(clientSource));
 
 console.log("\n# Episode totals never combine across different AniList IDs");
 // Simulate per-entry episode counts and ensure we only sum within one id.

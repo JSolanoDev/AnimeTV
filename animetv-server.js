@@ -7892,10 +7892,10 @@ query($id:Int){
 }`;
 
 const ANILIST_SEARCH_GQL = `
-query($search:String){
+query($search:String,$isAdult:Boolean){
   Page(page:1,perPage:5){
-    media(search:$search,type:ANIME,sort:SEARCH_MATCH,isAdult:false){
-      id idMal
+    media(search:$search,type:ANIME,sort:SEARCH_MATCH,isAdult:$isAdult){
+      id idMal isAdult
       title{ romaji english native userPreferred }
       synonyms format status season seasonYear episodes duration
       startDate{ year month day }
@@ -7933,7 +7933,7 @@ async function fetchAniListBestMatchForTitle(q) {
   const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ query: ANILIST_SEARCH_GQL, variables: { search: query } })
+    body: JSON.stringify({ query: ANILIST_SEARCH_GQL, variables: { search: query, isAdult: false } })
   }, 9000);
   if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
   const payload = await upstream.json();
@@ -8056,7 +8056,8 @@ async function handleAniListSearch(url, response) {
     sendJson(response, { ok: false, error: "Missing q parameter" }, 400);
     return;
   }
-  const cacheKey = q.toLowerCase().replace(/\s+/g, " ");
+  const isAdult = url.searchParams.get("adult") === "1";
+  const cacheKey = `${isAdult ? "adult" : "safe"}:${q.toLowerCase().replace(/\s+/g, " ")}`;
   const cached = anilistSearchCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < ANILIST_SEARCH_CACHE_TTL_MS) {
     sendJson(response, { ok: true, media: cached.data, cached: true });
@@ -8071,7 +8072,7 @@ async function handleAniListSearch(url, response) {
         const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
           method: "POST",
           headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ query: ANILIST_SEARCH_GQL, variables: { search } })
+          body: JSON.stringify({ query: ANILIST_SEARCH_GQL, variables: { search, isAdult } })
         }, 14000);
         if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
         const payload = await upstream.json();
@@ -9776,10 +9777,13 @@ function tmdbFetch(pathname, params = {}) {
     let route = "";
     const tvMatch = pathname.match(/^\/tv\/(\d+)$/);
     const seasonMatch = pathname.match(/^\/tv\/(\d+)\/season\/(\d+)$/);
-    if (pathname === "/search/tv") {
+    if (pathname === "/search/tv" || pathname === "/search/movie") {
       route = "search";
       proxyParams.set("q", String(params.query || ""));
-      if (params.first_air_date_year) proxyParams.set("year", String(params.first_air_date_year));
+      if (pathname === "/search/movie") proxyParams.set("type", "movie");
+      const searchYear = params.first_air_date_year || params.primary_release_year;
+      if (searchYear) proxyParams.set("year", String(searchYear));
+      if (String(params.include_adult || "").toLowerCase() === "true") proxyParams.set("adult", "1");
     } else if (seasonMatch) {
       route = "season";
       proxyParams.set("id", seasonMatch[1]);
@@ -9820,9 +9824,10 @@ async function handleTmdbSearch(url, response) {
   const query = String(url.searchParams.get("q") || "").trim();
   if (!query) return sendJson(response, { ok: false, configured: true, error: "Missing query" }, 400);
   const year = String(url.searchParams.get("year") || "").trim();
+  const includeAdult = url.searchParams.get("adult") === "1";
   // Include the media type: the tv and movie indexes answer the same query
   // differently, and sharing one key would serve a film result for a series.
-  const cacheKey = `${normalizeTitle(query)}|${year}|${String(url.searchParams.get("type") || "tv").toLowerCase()}`;
+  const cacheKey = `${normalizeTitle(query)}|${year}|${String(url.searchParams.get("type") || "tv").toLowerCase()}|${includeAdult ? "adult" : "safe"}`;
   try {
     const cached = tmdbSearchCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < TMDB_CACHE_TTL_MS) {
@@ -9831,12 +9836,12 @@ async function handleTmdbSearch(url, response) {
     const wantMovie = String(url.searchParams.get("type") || "").toLowerCase() === "movie";
     const route = wantMovie ? "/search/movie" : "/search/tv";
     const yearKey = wantMovie ? "primary_release_year" : "first_air_date_year";
-    const params = { query, include_adult: "false", language: "en-US" };
+    const params = { query, include_adult: includeAdult ? "true" : "false", language: "en-US" };
     if (year) params[yearKey] = year;
     let payload = await tmdbFetch(route, params);
     let results = Array.isArray(payload.results) ? payload.results : [];
     if (year && !results.length) {
-      const fallbackParams = { query, include_adult: "false", language: "en-US" };
+      const fallbackParams = { query, include_adult: includeAdult ? "true" : "false", language: "en-US" };
       payload = await tmdbFetch(route, fallbackParams);
       results = Array.isArray(payload.results) ? payload.results : [];
     }
