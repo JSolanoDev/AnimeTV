@@ -9449,7 +9449,7 @@ function parseUnderHentaiEmbeds(html = "") {
   return urls;
 }
 
-async function verifyAdultMediaUrl(mediaUrl = "", refererHost = "", attempts = 2) {
+async function verifyAdultMediaUrl(mediaUrl = "", refererHost = "", attempts = 2, refererUrl = "") {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
       const parsed = new URL(mediaUrl);
@@ -9459,7 +9459,7 @@ async function verifyAdultMediaUrl(mediaUrl = "", refererHost = "", attempts = 2
         Accept: "*/*"
       };
       if (refererHost) {
-        headers.Referer = `https://${refererHost}/`;
+        headers.Referer = refererUrl || `https://${refererHost}/`;
         headers.Origin = `https://${refererHost}`;
       }
       const isHls = /\.m3u8(?:$|[?#])/i.test(parsed.toString());
@@ -9590,7 +9590,7 @@ async function resolveLuluStream(embedUrl = "") {
         if (!mediaMatch) continue;
         const mediaUrl = new URL(decodeHtmlEntities(mediaMatch[1]).replace(/\\\//g, "/"));
         if (mediaUrl.protocol !== "https:" || isBlockedPlaybackUrl(mediaUrl.toString())) continue;
-        if (!await verifyAdultMediaUrl(mediaUrl.toString(), providerHost)) continue;
+        if (!await verifyAdultMediaUrl(mediaUrl.toString(), providerHost, 2, providerPage.toString())) continue;
         const url = sourceProxyPath(mediaUrl.toString(), providerHost);
         luluStreamDirectCache.set(cacheKey, { url, ts: Date.now() });
         return url;
