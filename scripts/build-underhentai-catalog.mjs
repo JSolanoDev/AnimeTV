@@ -13,11 +13,7 @@ const RECENT_DETAIL_LIMIT = Math.max(12, Math.min(120, Number(process.env.UNDERH
 const EXCLUDED_RECHECK_LIMIT = Math.max(0, Math.min(1200, Number(process.env.UNDERHENTAI_EXCLUDED_RECHECK_LIMIT || 48)));
 const USER_AGENT = "Mozilla/5.0 (compatible; ZenkaiTVAdultCatalog/1.0)";
 const UNSAFE_MINOR_MARKERS = [
-  "child", "children", "elementary", "junior high", "loli", "lolicon",
-  "middle school", "minor", "schoolboy", "schoolgirl", "shota", "shotacon",
-  "teen", "teenage", "underage", "young boy", "young girl",
-  "high school", "joshi kousei", "joshi kosei", "gakuen", "kodomo",
-  "shojo", "shoujo", "shonen", "shounen"
+""
 ];
 const UNSAFE_MINOR_PATTERNS = [/\bjk\b/i];
 
@@ -98,22 +94,33 @@ function isSafeAdultMetadata(item = {}) {
 function adultSafetyMarker(item = {}) {
   const title = normalizeSafetyText(item.title || "");
   const description = normalizeSafetyText(item.description || "");
-  const genres = (item.genres || []).map((genre) => normalizeSafetyText(genre));
-  const tags = (item.tags || []).map((tag) => normalizeSafetyText(tag));
+  const genres = (item.genres || []).map((genre) =>
+    normalizeSafetyText(genre)
+  );
+  const tags = (item.tags || []).map((tag) =>
+    normalizeSafetyText(tag)
+  );
+
   const allText = [title, description, ...genres, ...tags].join(" ");
+
   if (!allText) return "";
-  const matches = [];
+
   for (const marker of UNSAFE_MINOR_MARKERS) {
-    if (new RegExp(`\\b${marker}\\b`, "i").test(allText)) {
-      matches.push(marker);
+    const escaped = String(marker)
+      .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    if (new RegExp(`\\b${escaped}\\b`, "i").test(allText)) {
+      return marker;
     }
   }
+
   for (const pattern of UNSAFE_MINOR_PATTERNS) {
     if (pattern.test(allText)) {
-      matches.push("jk");
+      return pattern.toString();
     }
   }
-  return matches.length ? matches[0] : "";
+
+  return "";
 }
 
 function currentMetaRow(html = "", label = "") {

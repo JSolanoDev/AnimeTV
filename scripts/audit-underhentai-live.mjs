@@ -19,6 +19,7 @@ async function checkRelease(title, episode, source, releaseIndex) {
   endpoint.searchParams.set("slug", title.slug);
   endpoint.searchParams.set("episode", String(episode.number || episode.episode));
   endpoint.searchParams.set("release", String(source.releaseIndex ?? releaseIndex));
+  if (source.watchUrl) endpoint.searchParams.set("watch", source.watchUrl);
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
       const response = await fetch(endpoint, { signal: AbortSignal.timeout(timeoutMs), cache: "no-store" });

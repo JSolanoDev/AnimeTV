@@ -42,6 +42,7 @@ assert.equal(merged.length, 2, "exact title matches must not create duplicate ca
 assert.equal(merged[0].adultSource, "UnderHentai", "UnderHentai remains the playback owner for exact matches");
 assert.equal(merged[0].title, "Sample", "the official source title should clean the display title");
 assert.equal(merged[0].image, exactOceanMatch.image, "the official portrait cover should enrich the primary item");
+assert.equal(merged[0].adultPortraitCover, exactOceanMatch.image, "the highest-quality exact portrait should lead every card image chain");
 assert.equal(merged[0].adultCinematicBackdrop, exactOceanMatch.banner, "the 16:9 source thumbnail should become the cinematic backdrop");
 assert.equal(merged[1].adultSource, "Hentai Ocean", "unmatched titles should remain playable secondary-source entries");
 assert.deepEqual(merged.map((item) => item.sourceOrder), [0, 1], "the merged catalog should have stable progressive-render order");
@@ -63,5 +64,36 @@ assert.deepEqual(
 );
 assert.equal(mergedDetails.episodes[0].screenshots.length, 2, "episode galleries should merge exact secondary storyboards");
 assert.equal(mergedDetails.seasons[0].episodes[0], mergedDetails.episodes[0], "season rows should use the merged playable episode");
+
+const duplicateEpisodeAdapter = new UnderHentaiAdultSourceAdapter();
+duplicateEpisodeAdapter._request = async () => ({
+  item: {
+    slug: "sample-variants",
+    title: "Sample Variants",
+    image: "https://static.underhentai.net/assets/sample.jpg",
+    episodes: [
+      {
+        number: 1,
+        screenshots: ["https://static.underhentai.net/thumbs/sample/sub.jpg"],
+        sourceOptions: [{ releaseIndex: 0, label: "Subbed", watchUrl: "https://www.underhentai.net/watch/?id=1&ep=0" }]
+      },
+      {
+        number: 1,
+        screenshots: ["https://static.underhentai.net/thumbs/sample/raw.jpg"],
+        sourceOptions: [{ releaseIndex: 0, label: "Raw", watchUrl: "https://www.underhentai.net/watch/?id=1&ep=1" }]
+      }
+    ]
+  }
+});
+const consolidated = await duplicateEpisodeAdapter.getDetails("sample-variants");
+assert.equal(consolidated.episodes.length, 1, "duplicate variant rows should become one episode");
+assert.equal(consolidated.episodes[0].sourceOptions.length, 2, "all variant playback routes should remain available");
+assert.equal(consolidated.episodes[0].screenshots.length, 2, "variant galleries should be combined");
+assert.match(consolidated.episodes[0].sourceOptions[0].streamResolver.endpoint, /watch=/, "each resolver should identify its exact watch page");
+assert.notEqual(
+  consolidated.episodes[0].sourceOptions[0].streamResolver.endpoint,
+  consolidated.episodes[0].sourceOptions[1].streamResolver.endpoint,
+  "variant resolver URLs must not collide"
+);
 
 console.log("Adult source merge tests passed.");

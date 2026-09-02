@@ -93,12 +93,24 @@ const TIOANIME_HEADERS = {
 const UNDERHENTAI_BASE = "https://www.underhentai.net";
 const HENTAIOCEAN_BASE = "https://hentaiocean.com";
 const HANIME_BASE = "https://hanime.tv";
-const UNDERHENTAI_CATALOG_FILE = path.join(root, "scraper", "underhentai_catalog.json");
-const UNDERHENTAI_DETAILS_FILE = path.join(root, "scraper", "underhentai_details.json");
-const VEOHENTAI_CATALOG_FILE = path.join(root, "scraper", "veohentai_catalog.json");
-const VEOHENTAI_DETAILS_FILE = path.join(root, "scraper", "veohentai_details.json");
-const HENTAILA_CATALOG_FILE = path.join(root, "scraper", "hentaila_catalog.json");
-const HENTAILA_DETAILS_FILE = path.join(root, "scraper", "hentaila_details.json");
+function resolveScraperFile(filename) {
+  const candidates = [
+    path.join(root, "scraper", filename),
+    path.join(__dirname, "scraper", filename),
+    path.join(__dirname, "..", "scraper", filename),
+    path.join(process.cwd(), "scraper", filename)
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return path.join(root, "scraper", filename);
+}
+const UNDERHENTAI_CATALOG_FILE = resolveScraperFile("underhentai_catalog.json");
+const UNDERHENTAI_DETAILS_FILE = resolveScraperFile("underhentai_details.json");
+const VEOHENTAI_CATALOG_FILE = resolveScraperFile("veohentai_catalog.json");
+const VEOHENTAI_DETAILS_FILE = resolveScraperFile("veohentai_details.json");
+const HENTAILA_CATALOG_FILE = resolveScraperFile("hentaila_catalog.json");
+const HENTAILA_DETAILS_FILE = resolveScraperFile("hentaila_details.json");
 const UNDERHENTAI_CACHE_TTL_MS = 1000 * 60 * 30;
 const HENTAIOCEAN_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
 const HANIME_ARTWORK_CACHE_TTL_MS = 1000 * 60 * 60 * 24;

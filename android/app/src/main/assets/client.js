@@ -1881,7 +1881,7 @@ function adultCinematicTitles(show = {}) {
 
 function adultCinematicCacheKey(show = {}) {
   const title = normalizeMatchTitle(adultCinematicTitles(show)[0] || show.id || "adult-title");
-  return `adult-cinematic-art:v2:${title}:${show.year || ""}`;
+  return `adult-cinematic-art:v3:${title}:${show.year || ""}`;
 }
 
 function adultArtworkCandidate(show, candidate, year = 0) {
@@ -1907,10 +1907,13 @@ function applyAdultCinematicArtwork(show, artwork = {}) {
   show.adultCinematicBackdrop = url;
   show.adultCinematicSource = String(artwork.source || "metadata");
   const cover = String(artwork.cover || "").trim();
-  if (cover && !getCardPosterCandidates(show).length) {
+  if (cover) {
+    show.adultPortraitCover = cover;
     show.image = cover;
     show.poster = cover;
     show.cover = cover;
+    show.coverImage = cover;
+    show.coverImageLarge = cover;
     show.thumbnail = cover;
     show.images = { ...(show.images || {}), poster: cover, cover, thumbnail: cover };
   }
@@ -1968,6 +1971,9 @@ async function findAdultCinematicArtwork(show, title) {
       const score = adultArtworkCandidate(show, candidate, candidateYear);
       if (score) choices.push({
         url: /^https?:/i.test(path) ? path : `https://image.tmdb.org/t/p/original${path}`,
+        cover: media.poster_path
+          ? (/^https?:/i.test(media.poster_path) ? media.poster_path : `https://image.tmdb.org/t/p/original${media.poster_path}`)
+          : "",
         source: "TMDB",
         score,
         preference: 2
@@ -1992,7 +1998,13 @@ async function findAdultCinematicArtwork(show, title) {
       aliases: media.synonyms || []
     };
     const score = adultArtworkCandidate(show, candidate, media.seasonYear);
-    if (score) choices.push({ url, source: "AniList", score, preference: 1 });
+    if (score) choices.push({
+      url,
+      cover: media.coverImage?.extraLarge || media.coverImage?.large || "",
+      source: "AniList",
+      score,
+      preference: 1
+    });
   });
 
   return choices.sort((a, b) => b.score - a.score || b.preference - a.preference)[0] || null;
@@ -2052,16 +2064,50 @@ function warmAdultCinematicBackdrops(items = []) {
   });
 }
 
+const ADULT_CATALOG_CACHE_NAME = "zenkaitv-adult-catalog-v1";
+
+async function readDurableAdultCatalog(cacheKey) {
+  if (typeof caches === "undefined") return null;
+  try {
+    const cache = await caches.open(ADULT_CATALOG_CACHE_NAME);
+    const response = await cache.match(`/__zenkaitv-cache/${encodeURIComponent(cacheKey)}.json`);
+    if (!response) return null;
+    const cached = await response.json();
+    if (!cached?.timestamp || Date.now() - cached.timestamp > CATALOG_CACHE_TTL || !Array.isArray(cached.data)) {
+      await cache.delete(`/__zenkaitv-cache/${encodeURIComponent(cacheKey)}.json`);
+      return null;
+    }
+    return cached.data;
+  } catch {
+    return null;
+  }
+}
+
+async function writeDurableAdultCatalog(cacheKey, items) {
+  if (typeof caches === "undefined") return false;
+  try {
+    const cache = await caches.open(ADULT_CATALOG_CACHE_NAME);
+    await cache.put(
+      `/__zenkaitv-cache/${encodeURIComponent(cacheKey)}.json`,
+      new Response(JSON.stringify({ timestamp: Date.now(), data: items }), {
+        headers: { "Content-Type": "application/json" }
+      })
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function loadAdultCatalog(force = false) {
   if (typeof AdultSourceRegistry === "undefined" || !AdultSourceRegistry.isConfigured()) {
     state.isLoadingCatalog = false;
     render();
     return [];
   }
-  if (adultCatalogLoadingPromise && !force) return adultCatalogLoadingPromise;
+  if (adultCatalogLoadingPromise) return adultCatalogLoadingPromise;
   const adapter = AdultSourceRegistry.get();
   const cacheKey = `adult-catalog:${adapter.name}:multi-source-v8`;
-  const cachedItems = readResponseCache(cacheKey, CATALOG_CACHE_TTL);
   const applyAdultItems = (items = [], labelPrefix = adapter.name) => {
     const adultItems = Array.isArray(items)
       ? items.filter((item) => item?.isAdult === true).map(isolateAdultSourceMetadata)
@@ -2079,29 +2125,41 @@ async function loadAdultCatalog(force = false) {
     }
     return adultItems;
   };
-  if (cachedItems?.length) {
-    const adultItems = applyAdultItems(cachedItems, `Cached ${adapter.name}`);
-    if (!force) return adultItems;
-  }
-  adultCatalogLoadingPromise = Promise.resolve(adapter.listLatest(1, { refresh: force }))
-    .then((items) => {
+
+  adultCatalogLoadingPromise = (async () => {
+    let cachedItems = readResponseCache(cacheKey, CATALOG_CACHE_TTL);
+    if (!cachedItems?.length) cachedItems = await readDurableAdultCatalog(cacheKey);
+    if (cachedItems?.length) applyAdultItems(cachedItems, `Cached ${adapter.name}`);
+
+    try {
+      const items = await adapter.listLatest(1, { refresh: force });
       const adultItems = applyAdultItems(items);
-      if (adultItems.length) writeResponseCache(cacheKey, adultItems);
+      if (adultItems.length) {
+        const storedDurably = await writeDurableAdultCatalog(cacheKey, adultItems);
+        if (!storedDurably) writeResponseCache(cacheKey, adultItems);
+        else {
+          try { localStorage.removeItem(`${RESPONSE_CACHE_PREFIX}${cacheKey}`); } catch { /* ignore */ }
+        }
+      }
       return adultItems;
-    })
-    .catch((error) => {
+    } catch (error) {
       console.warn("Adult catalog could not load:", error);
-      const adultItems = cachedItems?.length ? applyAdultItems(cachedItems, `Cached ${adapter.name}`) : [];
+      const visibleAdultItems = state.shows.filter((item) =>
+        typeof AdultMode !== "undefined" && AdultMode.isAdultContent(item)
+      );
+      const adultItems = visibleAdultItems.length
+        ? visibleAdultItems
+        : (cachedItems?.length ? applyAdultItems(cachedItems, `Cached ${adapter.name}`) : []);
       if (typeof AdultMode !== "undefined" && AdultMode.isEnabled()) {
         state.isLoadingCatalog = false;
         if (!adultItems.length) setSourceStatus("Adult catalog is temporarily unavailable");
         render();
       }
       return adultItems;
-    })
-    .finally(() => {
-      adultCatalogLoadingPromise = null;
-    });
+    }
+  })().finally(() => {
+    adultCatalogLoadingPromise = null;
+  });
   return adultCatalogLoadingPromise;
 }
 
@@ -2907,6 +2965,7 @@ function getWatchPosterArtwork(show = {}, season = null) {
   show = show || {};
   season = season || {};
   const rawCandidates = [
+    show.adultPortraitCover,
     // TMDB key art first, season-specific before show-wide. It is 2000x3000 where
     // the scraped cover is 225x350 and the AniList one 460x690, so leading with
     // images.poster - which for a scraped row is whatever the source supplied -
@@ -2939,6 +2998,7 @@ function getWatchPosterArtwork(show = {}, season = null) {
 
 function getCardPosterCandidates(show = {}) {
   const candidates = [
+    show.adultPortraitCover,
     show.tmdbSeasonPoster,
     show.tmdbPoster,
     show.coverImageLarge,
@@ -12676,6 +12736,7 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
       try {
         if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) {
           await hydrateAdultShowDetails(show);
+          await hydrateAdultCinematicArtwork(show);
           show.adultDetailsLoaded = true;
           show._metadataPreloadComplete = true;
         } else {

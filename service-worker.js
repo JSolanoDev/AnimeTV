@@ -1,4 +1,5 @@
 const CACHE_NAME = "zenkaitv-v628";
+const ADULT_CATALOG_CACHE = "zenkaitv-adult-catalog-v1";
 // Remote artwork lives in its OWN cache that survives version bumps. It used
 // to share CACHE_NAME, so every deploy wiped every poster and the app
 // re-downloaded all artwork from scratch.
@@ -60,7 +61,7 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((keys) =>
       // Generation cleanup first, so the retry below refills the CURRENT cache
       // and never resurrects an old one. IMAGE_CACHE is unversioned and kept.
-      Promise.all(keys.filter((key) => key !== CACHE_NAME && key !== IMAGE_CACHE).map((key) => caches.delete(key)))
+      Promise.all(keys.filter((key) => ![CACHE_NAME, IMAGE_CACHE, ADULT_CATALOG_CACHE].includes(key)).map((key) => caches.delete(key)))
     ).then(cacheMissingShellAssets)
   );
   // Claimed synchronously: clients are taken over immediately whether or not the

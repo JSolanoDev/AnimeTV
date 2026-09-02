@@ -198,6 +198,7 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
       cover: image,
       coverImage: image,
       mainWallpaper: image,
+      adultPortraitCover: image,
       banner,
       backdrop: banner,
       highQualityBackground: banner || image,
@@ -257,18 +258,18 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
     if (!item) return null;
     const image = this._bestImage(item);
     const banner = this._bestBanner(item, image);
-    const episodes = (item.episodes || []).map((episode) => {
+    const rawEpisodes = (item.episodes || []).map((episode, episodeIndex) => {
       const episodeNumber = Number(episode.episode || episode.number || 1) || 1;
       const sourceOptions = (episode.sourceOptions || []).map((source, index) => {
         const resolver = source.streamResolver || source.resolver || {};
         return {
           ...source,
-          id: source.id || `${slug}-e${episodeNumber}-source-${index}`,
+          id: source.id || `${slug}-e${episodeNumber}-entry-${episodeIndex}-source-${index}`,
           label: source.label || source.provider || source.server || `Adult Source ${index + 1}`,
           type: "resolver",
           streamResolver: {
             type: resolver.type || "underhentai",
-            endpoint: resolver.endpoint || `/api/adult/underhentai/stream?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(episodeNumber)}&release=${encodeURIComponent(source.releaseIndex ?? index)}`
+            endpoint: resolver.endpoint || `/api/adult/underhentai/stream?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(episodeNumber)}&release=${encodeURIComponent(source.releaseIndex ?? index)}${source.watchUrl ? `&watch=${encodeURIComponent(source.watchUrl)}` : ""}`
           }
         };
       }).sort((a, b) => {
@@ -298,6 +299,27 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
         sourceOptions
       };
     });
+    const episodesByNumber = new Map();
+    rawEpisodes.forEach((episode) => {
+      const existing = episodesByNumber.get(episode.number);
+      if (!existing) {
+        episodesByNumber.set(episode.number, episode);
+        return;
+      }
+      const seenSources = new Set();
+      existing.sourceOptions = [...existing.sourceOptions, ...episode.sourceOptions].filter((source) => {
+        const key = source.id || source.streamResolver?.endpoint;
+        if (!key || seenSources.has(key)) return false;
+        seenSources.add(key);
+        return true;
+      });
+      existing.screenshots = [...new Set([
+        ...(existing.screenshots || []),
+        ...(episode.screenshots || [])
+      ].filter(Boolean))];
+      existing.locked = !existing.sourceOptions.length;
+    });
+    const episodes = [...episodesByNumber.values()].sort((a, b) => a.number - b.number);
     return {
       ...this._catalogItem(item),
       description: this._description(item),
@@ -364,6 +386,7 @@ class HentaiOceanAdultSourceAdapter extends AdultSourceAdapter {
       cover: image,
       coverImage: image,
       mainWallpaper: image,
+      adultPortraitCover: image,
       banner,
       backdrop: banner,
       highQualityBackground: banner,
@@ -498,6 +521,7 @@ class CompositeAdultSourceAdapter extends AdultSourceAdapter {
       coverImage: image || primary.coverImage,
       thumbnail: image || primary.thumbnail,
       mainWallpaper: image || primary.mainWallpaper,
+      adultPortraitCover: image || primary.adultPortraitCover || primary.image,
       banner: banner || primary.banner,
       backdrop: banner || primary.backdrop,
       highQualityBackground: banner || primary.highQualityBackground,
