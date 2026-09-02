@@ -64,7 +64,15 @@ function getShowTitle(show) {
   const romaji = asString(show.romajiTitle)
     || (show.title && typeof show.title === "object" ? asString(show.title.romaji) : "");
   const pref = (state?.uiPreferences?.titleLanguage) || "english";
-  if (pref === "romaji") return romaji || english || "Untitled Anime";
+  // The romaji preference means "the Japanese title, in latin script". For a
+  // Chinese or Korean production AniList's romaji field is a transliteration of
+  // the original instead - "Shiguang Dailiren III" rather than "Link Click Season
+  // 3" - which is unreadable for most viewers and is not what the preference is
+  // asking for. Those use the English title whenever there is one; Japanese
+  // titles are untouched.
+  const country = String(show.countryOfOrigin || "").toUpperCase();
+  const transliterated = country === "CN" || country === "KR" || country === "TW";
+  if (pref === "romaji" && !transliterated) return romaji || english || "Untitled Anime";
   return english || romaji || "Untitled Anime";
 }
 

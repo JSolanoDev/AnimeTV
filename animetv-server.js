@@ -7918,7 +7918,7 @@ query($id:Int){
   Media(id:$id,type:ANIME){
     id idMal
     title{ romaji english native userPreferred }
-    synonyms format status season seasonYear episodes duration
+    synonyms format status season seasonYear episodes duration countryOfOrigin
     startDate{ year month day }
     endDate{ year month day }
     nextAiringEpisode{ airingAt episode }
@@ -7949,7 +7949,7 @@ query($search:String,$isAdult:Boolean){
     media(search:$search,type:ANIME,sort:SEARCH_MATCH,isAdult:$isAdult){
       id idMal isAdult
       title{ romaji english native userPreferred }
-      synonyms format status season seasonYear episodes duration
+      synonyms format status season seasonYear episodes duration countryOfOrigin
       startDate{ year month day }
       nextAiringEpisode{ airingAt episode }
       relations{
