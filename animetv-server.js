@@ -688,6 +688,22 @@ function handleRequest(request, response) {
     return;
   }
 
+  if (url.pathname === "/api/adult/debug") {
+    let veoReqErr1 = null, veoReqErr2 = null;
+    try { require("./scraper/veohentai_catalog.json"); } catch (e) { veoReqErr1 = e.message; }
+    try { require("../scraper/veohentai_catalog.json"); } catch (e) { veoReqErr2 = e.message; }
+    const p1 = path.join(root, "scraper", "veohentai_catalog.json");
+    const p2 = path.join(__dirname, "scraper", "veohentai_catalog.json");
+    const p3 = path.join(__dirname, "..", "scraper", "veohentai_catalog.json");
+    const p4 = path.join(process.cwd(), "scraper", "veohentai_catalog.json");
+    sendJson(response, {
+      veoReqErr1, veoReqErr2,
+      paths: { root, __dirname, cwd: process.cwd() },
+      exists: { p1, p1Exists: fs.existsSync(p1), p2Exists: fs.existsSync(p2), p3Exists: fs.existsSync(p3), p4Exists: fs.existsSync(p4) }
+    });
+    return;
+  }
+
   if (url.pathname === "/api/adult/underhentai/details") {
     handleUnderHentaiDetails(url, response);
     return;
