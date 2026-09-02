@@ -533,7 +533,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=627`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=628`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3253,7 +3253,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=627";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=628";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -13620,7 +13620,18 @@ function clampSeasonEpisodes(episodes = [], show = {}, season = {}) {
   if (!Array.isArray(episodes) || !episodes.length) return [];
   const limit = getSeasonEpisodeLimit(show, season);
   if (limit === null || limit === undefined) return episodes;
-  if (!Number.isFinite(limit) || limit <= 0) return [];
+  if (!Number.isFinite(limit) || limit <= 0) {
+    // A limit of 0 means the METADATA believes nothing has aired. That must never
+    // delete episodes the SOURCE actually has - data beats metadata. AniList still
+    // lists Link Click Season 3, Bleach: Thousand-Year Blood War - The Conflict and
+    // The Elusive Samurai Season 2 as NOT_YET_RELEASED while AnimeAV1 is already
+    // serving 12, 5 and 5 episodes of them, so the whole list was thrown away and
+    // those pages rendered no episodes at all.
+    //
+    // Unreleased shows that genuinely have nothing keep returning [] - the guard
+    // only fires when real, unlocked episodes exist.
+    return episodes.some((episode) => !episode.locked) ? episodes : [];
+  }
   return episodes.filter((episode) => Number(episode.episode || episode.number || 0) <= limit);
 }
 
@@ -16155,7 +16166,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=627");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=628");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
