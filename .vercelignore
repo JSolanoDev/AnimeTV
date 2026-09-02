@@ -19,8 +19,11 @@ components
 lib
 node_modules
 
-# Retired adult-source experiments. Production Adult Mode uses UnderHentai only.
+# Retired adult-source experiments. Production Adult Mode uses the supported
+# UnderHentai + Hentai Ocean composite adapter.
 push.bat
+ids.txt
+*v.slice*
 scraper/adult_scraper.js
 scraper/hentaila_*.json
 scraper/veohentai_*.json
