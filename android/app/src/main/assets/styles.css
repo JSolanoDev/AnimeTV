@@ -7990,13 +7990,30 @@ body.adult-mode .watch-backdrop-title-rule {
    height, seat it right of the metadata column, and let the blurred darkened
    copy behind it (.watch-backdrop-blur) carry the rest of the frame. */
 .watch-backdrop.is-poster-fit {
-  background-size: auto min(94%, 40rem);
-  /* Seat the art just LEFT of the episode panel, with a real gutter. A flat 80%
-     put it underneath: the panel is clamp(21rem, 27vw, 30rem) wide, which starts
-     between 63% (at 900px) and 75% (at 1920px) of the viewport, so no single
-     percentage clears it at every width. Anchoring the image's right edge to the
-     panel's own width expression does, exactly, at any width. */
-  background-position: right calc(clamp(21rem, 27vw, 30rem) + 5rem) top 10%;
+  /* Fill the frame, like every show that has a real backdrop.
+
+     This used to CONTAIN the poster at full height and seat it left of the episode
+     panel, on the reasoning that cover "throws away most of the image". Measured
+     against the actual result, that reasoning was wrong: these posters are dark, so
+     the blurred fill behind them lands near black (brightness .58 on an already
+     dark cover), and the sharp poster reads as a small rectangle pasted onto an
+     empty page rather than a backdrop - which is what "weird" looked like. Only 114
+     of 1000 rows have no wide art, so this path is also the one that looks least
+     like the other 886.
+
+     A/B on the same show at 1600x900: contained gave a floating rectangle with wide
+     empty margins; cover gave a full-bleed frame consistent with the rest of the
+     site. Portrait art cropped to 16:9 does lose composition - but the poster is
+     already shown intact as its own card in the panel below, so nothing is lost
+     that the page does not still present properly.
+
+     Anchored at 38% rather than centre: portrait key art clusters its characters a
+     little above the middle, and the lower third is usually logo or credits.
+     Compared on two shows: at 15% the crop landed on a villain's mouth, at 38% it
+     lands on the protagonists' faces and leaves the darker lower band under the
+     title. */
+  background-size: cover;
+  background-position: 50% 38%;
   background-repeat: no-repeat;
   animation: none;
 }

@@ -63,6 +63,8 @@ function normalizeExternalShow(item, source, index) {
     // only appeared after a per-title AniList round-trip.
     countryOfOrigin: item.countryOfOrigin || "",
     englishTitle: item.englishTitle || "",
+    // Placeholder-episode count only - see makePlaceholderEpisodes in client.js.
+    anilistEpisodeCount: item.anilistEpisodeCount || null,
     studios: Array.isArray(item.studios) ? item.studios : [],
     // Artwork that came from the catalogue is curated: build-artwork-map.mjs picks
     // TMDB's primary backdrop and poster for the matched show. A later runtime

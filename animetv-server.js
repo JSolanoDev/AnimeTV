@@ -2181,7 +2181,23 @@ function readScrapedRegularCatalogItems() {
             year: item.year || meta.year || "",
             score: item.score || meta.score || null,
             duration: item.duration || meta.duration || "",
-            format: item.format || item.type || meta.format || "",
+            // A film is a film. The scraped `type` is AnimeAV1's own loose category
+            // and it labelled the 109-minute film The Ribbon Hero "ONA", which is why
+            // the page offered it as a series. Only the MOVIE verdict is taken from
+            // AniList - the other 93 disagreements are granularity (TV vs ONA vs
+            // TV_SHORT) where the site's own label reads better.
+            format: String(meta.format || "").toUpperCase() === "MOVIE"
+              ? "MOVIE"
+              : (item.format || item.type || meta.format || ""),
+            // AniList's declared episode count, under a name of its own.
+            //
+            // Deliberately NOT `totalEpisodes` and NOT `episodes`: getSeasonEpisodeLimit
+            // reads totalEpisodes and clampSeasonEpisodes would then DELETE any real
+            // episode numbered above it, and the source numbers episodes absolutely
+            // where AniList counts per season. That is the v627/v628 failure again -
+            // metadata must never remove content the source actually has. This value
+            // is consulted on the placeholder path only.
+            anilistEpisodeCount: meta.episodes || null,
             status: item.status || meta.airingStatus || "",
             description: item.description || item.synopsis || meta.description || "",
             studios: meta.studio ? [meta.studio] : (item.studios || []),

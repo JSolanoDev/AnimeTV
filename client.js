@@ -533,7 +533,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=628`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=629`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3313,7 +3313,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=628";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=629";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -13591,7 +13591,13 @@ function getDetailSeasons(show) {
 function makePlaceholderEpisodes(show, seasonNumber) {
   const knownCount = getSeasonEpisodeLimit(show);
   if (knownCount === 0) return [];
-  const count = Number.isFinite(knownCount) && knownCount > 0 ? knownCount : 12;
+  // When nothing is known this used to invent a flat 12 episodes, so a show with
+  // no episode data at all was offered as a 12-part series: The Ribbon Hero is a
+  // single 109-minute film, Pluto has 8 episodes and Kimi ni Todoke 3rd Season 5.
+  // AniList's own count now ships with the catalogue, so use it before guessing.
+  const declared = Number(show.anilistEpisodeCount);
+  const guess = Number.isFinite(declared) && declared > 0 ? declared : 12;
+  const count = Number.isFinite(knownCount) && knownCount > 0 ? knownCount : guess;
   // Cap high enough for long-running shounen (Naruto 220, Bleach 366,
   // One Piece 1100+) so their episode lists are never truncated.
   // These are aired episodes — playable on click (servers resolve then), so we
@@ -16227,7 +16233,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=628");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=629");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
