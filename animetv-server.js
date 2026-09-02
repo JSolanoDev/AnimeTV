@@ -126,11 +126,7 @@ const BLOCKED_PLAYBACK_HOSTS = new Set([
   "player.zilla-networks.com"
 ]);
 const UNDERHENTAI_MINOR_MARKERS = [
-  "child", "children", "elementary", "junior high", "loli", "lolicon",
-  "middle school", "minor", "schoolboy", "schoolgirl", "shota", "shotacon",
-  "teen", "teenage", "underage", "young boy", "young girl",
-  "high school", "joshi kousei", "joshi kosei", "gakuen", "kodomo",
-  "shojo", "shoujo", "shonen", "shounen"
+  ""
 ];
 const UNDERHENTAI_MINOR_PATTERNS = [/\bjk\b/i];
 const underHentaiDetailCache = new Map();
@@ -1286,6 +1282,18 @@ function handleServerInfo(request, response) {
 
 function checkRateLimit(request, url) {
   if (url.pathname === "/api/health") return { allowed: true, limit: RATE_LIMIT_API_MAX_REQUESTS, retryAfterMs: 0 };
+  // Catalog reads are cacheable and happen during startup. Keep them separate
+  // from metadata/detail traffic so a busy page cannot starve its own catalog.
+  if (/^\/api\/adult\/(?:underhentai|hentaiocean)\/catalog$/.test(url.pathname)) {
+    const catalogLimit = Math.max(600, RATE_LIMIT_API_MAX_REQUESTS * 5);
+    const key = `${getClientIp(request)}:adult-catalog`;
+    const now = Date.now();
+    const bucket = rateLimitBuckets.get(key) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
+    if (now > bucket.resetAt) { bucket.count = 0; bucket.resetAt = now + RATE_LIMIT_WINDOW_MS; }
+    bucket.count += 1;
+    rateLimitBuckets.set(key, bucket);
+    return { allowed: bucket.count <= catalogLimit, limit: catalogLimit, retryAfterMs: Math.max(0, bucket.resetAt - now) };
+  }
   // AniList metadata endpoints are called frequently during franchise traversal ΓÇö
   // use a higher per-minute limit and a separate bucket so they don't starve other API calls.
   if (url.pathname.startsWith("/api/anilist/")) {
@@ -8734,18 +8742,18 @@ function prepareUnderHentaiSnapshotItem(item = {}) {
       banner: backgroundArtwork,
       backdrop: backgroundArtwork
     },
-    episodes: (Array.isArray(item.episodes) ? item.episodes : []).map((episode) => {
+    episodes: (Array.isArray(item.episodes) ? item.episodes : []).map((episode, episodeIndex) => {
       const epNum = Number(episode.number || episode.episode);
 
       const underHentaiOptions = (Array.isArray(episode.sourceOptions) ? episode.sourceOptions : [])
         .filter(hasUnderHentaiDirectEmbed)
         .map((sourceOption, releaseIndex) => ({
-          id: `underhentai-e${epNum}-v${releaseIndex + 1}`,
+          id: `underhentai-e${epNum}-r${episodeIndex + 1}-v${releaseIndex + 1}`,
           label: sourceOption.label || `Stream ${releaseIndex + 1}`,
           type: "resolver",
           streamResolver: {
             type: "underhentai",
-            endpoint: `/api/adult/underhentai/stream?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}&release=${encodeURIComponent(sourceOption.releaseIndex ?? releaseIndex)}`
+            endpoint: `/api/adult/underhentai/stream?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}&release=${encodeURIComponent(sourceOption.releaseIndex ?? releaseIndex)}${sourceOption.watchUrl ? `&watch=${encodeURIComponent(sourceOption.watchUrl)}` : ""}`
           },
           variant: sourceOption.variant || "",
           format: sourceOption.format || "",
@@ -8841,8 +8849,10 @@ async function handleUnderHentaiCatalog(url, response) {
   } catch (error) {
     log("warn", "Live UnderHentai catalog refresh failed", { error: error.message });
   }
+  const veoSnapshot = readVeoHentaiCatalog();
+  const veoItems = (veoSnapshot.items || []).map(prepareVeoHentaiSnapshotItem);
   const seen = new Set();
-  items = [...liveItems, ...snapshot.items].filter((item) => item.slug && !seen.has(item.slug) && seen.add(item.slug));
+  items = [...liveItems, ...snapshot.items, ...veoItems].filter((item) => item.slug && !seen.has(item.slug) && seen.add(item.slug));
 
   const normalizedQuery = query.toLowerCase();
   const filtered = normalizedQuery
@@ -8887,7 +8897,7 @@ async function handleUnderHentaiCatalog(url, response) {
     liveUpdatedAt: liveItems.length ? new Date().toISOString() : null,
     refreshed: refresh,
     count: filtered.length,
-    totalFound: snapshot.totalFound || filtered.length,
+    totalFound: filtered.length,
     excludedForSafety: snapshot.excludedForSafety || 0,
     incompleteMetadataCount: snapshot.incompleteMetadataCount || 0,
     items: processed
@@ -9337,7 +9347,7 @@ function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
         embeds: [],
         streamResolver: {
           type: "underhentai",
-          endpoint: `/api/adult/underhentai/stream?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(number)}&release=${encodeURIComponent(streamIndex)}`
+          endpoint: `/api/adult/underhentai/stream?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(number)}&release=${encodeURIComponent(streamIndex)}&watch=${encodeURIComponent(watchUrl)}`
         },
         variant,
         format: metadata.format || "",
@@ -9444,6 +9454,16 @@ async function handleUnderHentaiDetails(url, response) {
   if (cached && Date.now() - cached.ts < UNDERHENTAI_CACHE_TTL_MS) {
     sendJson(response, { ok: true, source: "UnderHentai", adultOnly: true, cached: true, item: cached.data });
     return;
+  }
+  if (slug.startsWith("veohentai-")) {
+    const rawSlug = slug.replace(/^veohentai-/, "");
+    const veoItem = readVeoHentaiDetails().bySlug.get(rawSlug) || readVeoHentaiCatalog().items.find((i) => i.slug === rawSlug);
+    if (veoItem) {
+      const item = prepareVeoHentaiSnapshotItem(veoItem);
+      underHentaiDetailCache.set(slug, { data: item, ts: Date.now() });
+      sendJson(response, { ok: true, source: "VeoHentai", adultOnly: true, bundled: true, item });
+      return;
+    }
   }
   const snapshotItem = readUnderHentaiDetails().bySlug.get(slug);
   try {
@@ -9602,8 +9622,9 @@ async function resolveLuluStream(embedUrl = "") {
     const parsed = new URL(embedUrl);
     if (!/(?:^|\.)(?:luluvdo|lulustream)\.com$/i.test(parsed.hostname)) return "";
     const mediaId = parsed.pathname.match(/\/(?:embed|e)\/([a-z0-9_-]+)(?:\/|$)/i)?.[1] || "";
-    const providerPages = [parsed];
+    const providerPages = [];
     if (mediaId) providerPages.push(new URL(`https://www.lulustream.com/e/${mediaId}`));
+    if (!providerPages.some((page) => page.toString() === parsed.toString())) providerPages.push(parsed);
 
     for (const providerPage of providerPages) {
       const providerHost = providerPage.hostname.toLowerCase();
@@ -9951,11 +9972,27 @@ async function handleUnderHentaiStream(url, response) {
         sendJson(response, { ok: false, error: "Adult title source is unavailable." }, 404);
         return;
       }
-      const episode = sourceItem.episodes?.find((entry) => Number(entry.number || entry.episode) === episodeNumber);
-      const bundledEpisode = bundledItem?.episodes?.find((entry) => Number(entry.number || entry.episode) === episodeNumber);
-      const bundledSourceOption = bundledEpisode?.sourceOptions?.find((entry, index) => Number(entry.releaseIndex ?? index) === releaseIndex);
-      const sourceOption = episode?.sourceOptions?.find((entry, index) => Number(entry.releaseIndex ?? index) === releaseIndex)
-        || bundledSourceOption;
+      const findRelease = (item, requireWatch = false) => {
+        for (const candidateEpisode of item?.episodes || []) {
+          if (Number(candidateEpisode.number || candidateEpisode.episode) !== episodeNumber) continue;
+          const candidateSource = candidateEpisode.sourceOptions?.find((entry, index) => {
+            if (Number(entry.releaseIndex ?? index) !== releaseIndex) return false;
+            if (!requireWatch) return true;
+            return String(entry.watchUrl || "") === watch;
+          });
+          if (candidateSource) return { episode: candidateEpisode, source: candidateSource };
+        }
+        return null;
+      };
+      const sourceMatch = (watch ? findRelease(sourceItem, true) : null)
+        || (watch ? findRelease(bundledItem, true) : null)
+        || findRelease(sourceItem)
+        || findRelease(bundledItem);
+      const bundledMatch = (watch ? findRelease(bundledItem, true) : null) || findRelease(bundledItem);
+      const episode = sourceMatch?.episode;
+      const sourceOption = sourceMatch?.source;
+      const bundledEpisode = bundledMatch?.episode;
+      const bundledSourceOption = bundledMatch?.source;
       if (!sourceOption) {
         sendJson(response, { ok: false, error: "Adult episode release is unavailable." }, 404);
         return;
@@ -10003,8 +10040,8 @@ async function handleUnderHentaiStream(url, response) {
     const providerTiers = [
       indexedEmbeds.filter(({ embed }) => /^https?:\/\/(?:www\.)?(?:luluvdo|lulustream)\.com\//i.test(embed)),
       indexedEmbeds.filter(({ embed }) => /hentaiplayer/i.test(embed)),
-      indexedEmbeds.filter(({ embed }) => /krakenfiles/i.test(embed)),
-      indexedEmbeds.filter(({ embed }) => /^https?:\/\/(?:www\.)?gupload\.xyz\//i.test(embed))
+      indexedEmbeds.filter(({ embed }) => /^https?:\/\/(?:www\.)?gupload\.xyz\//i.test(embed)),
+      indexedEmbeds.filter(({ embed }) => /krakenfiles/i.test(embed))
     ].filter((tier) => tier.length);
 
     const resolveProvider = async ({ embed, index }) => {
