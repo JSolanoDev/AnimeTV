@@ -8631,7 +8631,12 @@ function isSafeAdultMetadata(item = {}) {
 
 function readUnderHentaiCatalog() {
   try {
-    const payload = JSON.parse(fs.readFileSync(UNDERHENTAI_CATALOG_FILE, "utf8"));
+    let payload;
+    try {
+      payload = require("./scraper/underhentai_catalog.json");
+    } catch {
+      payload = JSON.parse(fs.readFileSync(UNDERHENTAI_CATALOG_FILE, "utf8"));
+    }
     const storedItems = Array.isArray(payload.items) ? payload.items : [];
     const items = storedItems.filter(isSafeAdultMetadata);
     return {
@@ -8648,7 +8653,12 @@ function readUnderHentaiCatalog() {
 function readUnderHentaiDetails() {
   if (underHentaiDetailsSnapshot) return underHentaiDetailsSnapshot;
   try {
-    const payload = JSON.parse(fs.readFileSync(UNDERHENTAI_DETAILS_FILE, "utf8"));
+    let payload;
+    try {
+      payload = require("./scraper/underhentai_details.json");
+    } catch {
+      payload = JSON.parse(fs.readFileSync(UNDERHENTAI_DETAILS_FILE, "utf8"));
+    }
     const items = Array.isArray(payload.items) ? payload.items.filter(isSafeAdultMetadata) : [];
     underHentaiDetailsSnapshot = {
       ...payload,
@@ -9250,7 +9260,12 @@ async function handleHanimeArtwork(url, response) {
 function readVeoHentaiDetails() {
   if (veoHentaiDetailsSnapshot) return veoHentaiDetailsSnapshot;
   try {
-    const payload = JSON.parse(fs.readFileSync(VEOHENTAI_DETAILS_FILE, "utf8"));
+    let payload;
+    try {
+      payload = require("./scraper/veohentai_details.json");
+    } catch {
+      payload = JSON.parse(fs.readFileSync(VEOHENTAI_DETAILS_FILE, "utf8"));
+    }
     const items = Array.isArray(payload.items) ? payload.items.filter(isSafeAdultMetadata) : [];
     veoHentaiDetailsSnapshot = {
       ...payload,
@@ -9265,7 +9280,12 @@ function readVeoHentaiDetails() {
 
 function readVeoHentaiCatalog() {
   try {
-    const payload = JSON.parse(fs.readFileSync(VEOHENTAI_CATALOG_FILE, "utf8"));
+    let payload;
+    try {
+      payload = require("./scraper/veohentai_catalog.json");
+    } catch {
+      payload = JSON.parse(fs.readFileSync(VEOHENTAI_CATALOG_FILE, "utf8"));
+    }
     const items = Array.isArray(payload.items) ? payload.items.filter(isSafeAdultMetadata) : [];
     return { ...payload, items };
   } catch {
