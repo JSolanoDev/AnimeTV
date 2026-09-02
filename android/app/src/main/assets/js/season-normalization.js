@@ -26,8 +26,24 @@ const SeasonNormalization = (function() {
     // SPECIAL anime are often the only release for a title).
     const isStandalone = entries.length === 1;
 
+    // AniList marks virtually every Chinese donghua and Korean aeni as ONA, so in a
+    // franchise where nothing is TV or MOVIE, ONA IS the main format. Demoting it
+    // filed the real first season under "OVAs / Specials": Link Click is eight ONA
+    // entries, and its Season 1 (Shiguang Dailiren, 11 eps) landed there while the
+    // picker showed Season 2, Season 3 and Season 5 with no Season 1 at all.
+    const onaNative = !entries.some((entry) => {
+      const f = String(entry.format || "").toUpperCase();
+      return f === "TV" || f === "TV_SHORT" || f === "MOVIE";
+    });
+    // Shortest title in the franchise, used only in the ONA-native path below to
+    // tell "the show itself" from "a spin-off of the show".
+    const baseTitle = entries
+      .map((entry) => String(entry.title?.romaji || entry.title?.english || entry.title || ""))
+      .filter(Boolean)
+      .sort((a, b) => a.length - b.length)[0] || "";
+
     // 1. Initial pass: parse each entry to get its identity
-    const items = entries.map((entry) => parseEntryIdentity(entry, isStandalone)).sort((a, b) => {
+    const items = entries.map((entry) => parseEntryIdentity(entry, isStandalone, { onaNative, baseTitle })).sort((a, b) => {
       // Sort by air date / year primarily
       const dateA = a.yearStart || 9999;
       const dateB = b.yearStart || 9999;
@@ -121,7 +137,8 @@ const SeasonNormalization = (function() {
    * as the show's main content regardless of AniList format (ONA/OVA/SPECIAL
    * formats are common for shows that only ever get a single release).
    */
-  function parseEntryIdentity(entry, isStandalone = false) {
+  function parseEntryIdentity(entry, isStandalone = false, context = {}) {
+    const { onaNative = false, baseTitle = "" } = context;
     const title = entry.title || entry.romajiTitle || entry.userPreferred || "";
     const format = String(entry.format || "").toUpperCase();
 
@@ -137,6 +154,18 @@ const SeasonNormalization = (function() {
     if (!isStandalone) {
       if (format === 'MOVIE') type = TYPE_MOVIE;
       else if (parsed.isRecap || /\b(recap|summary|digest)\b/i.test(title)) type = TYPE_RECAP;
+      else if (onaNative && format === 'ONA' && !parsed.isSpecial) {
+        // ONA is this franchise's main format, so the format says nothing. Decide
+        // from the title instead: the base title, alone or with a season marker, is
+        // the show; anything carrying a further subtitle is a spin-off.
+        // "Shiguang Dailiren" / "... II" -> seasons. "... : Xiao Juchang 2" -> a
+        // shorts spin-off, which was being read as Season 2 off its trailing digit.
+        if (isSpinOffOfBase(title, baseTitle)) {
+          type = TYPE_SPECIAL;
+          parsed.seasonNumber = null;
+          parsed.partNumber = null;
+        }
+      }
       else if (format === 'SPECIAL' || format === 'OVA' || format === 'ONA' || parsed.isSpecial) {
         // If it has a season/part number, it might be main content (e.g. AoT Final Chapters)
         if (!parsed.seasonNumber && !parsed.partNumber && !parsed.isFinalSeason) {
@@ -157,6 +186,21 @@ const SeasonNormalization = (function() {
       yearStart,
       episodeCount
     };
+  }
+
+  // Everything the title carries beyond the franchise's base name. An empty
+  // remainder, or one that is purely a season marker, means this IS the show;
+  // anything else is a spin-off. Only consulted for ONA-native franchises, so
+  // arc-named seasons of TV shows ("Bleach: Sennen Kessen-hen") never reach it.
+  function isSpinOffOfBase(title, baseTitle) {
+    const norm = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+    const t = norm(title);
+    const b = norm(baseTitle);
+    if (!b || t === b) return false;
+    if (!t.startsWith(b + " ")) return false;   // unrelated title - leave it alone
+    const rest = t.slice(b.length).trim();
+    const SEASON_MARKER = /^(?:i{1,3}|iv|vi{0,3}|ix|x|\d{1,2}|season\s*\d+|\d+(?:st|nd|rd|th)\s*season|part\s*\d+|cour\s*\d+)$/;
+    return !SEASON_MARKER.test(rest);
   }
 
   function parseTitle(title) {

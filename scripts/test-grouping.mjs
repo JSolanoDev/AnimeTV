@@ -455,5 +455,41 @@ check("MHA does not renumber Final Season as Season 4",
   mha.filter((t) => t === "Season 4").length === 1);
 
 
+
+console.log("");
+console.log("# SeasonNormalization handles ONA-native franchises (donghua)");
+// AniList marks virtually every Chinese donghua as ONA. Treating ONA as "an extra"
+// filed Link Click's real Season 1 under OVAs / Specials, and its shorts spin-off
+// "Xiao Juchang 2" was read as Season 2 off the trailing digit.
+const linkClick = SeasonNormalization.normalizeFranchise([
+  { title: "Shiguang Dailiren", format: "ONA", seasonYear: 2021, episodes: 11 },
+  { title: "Shiguang Dailiren II", format: "ONA", seasonYear: 2023, episodes: 12 },
+  { title: "Shiguang Dailiren III", format: "ONA", seasonYear: 2026, episodes: 0 },
+  { title: "Shiguang Dailiren: Yingdu Pian", format: "ONA", seasonYear: 2024, episodes: 6 },
+  { title: "Shiguang Dailiren: Xiao Juchang 2", format: "ONA", seasonYear: 2026, episodes: 8 },
+  { title: "Shiguang Dailiren Special", format: "ONA", seasonYear: 2021, episodes: 1 },
+  { title: "Shiguang Dailiren: Xiao Juchang", format: "ONA", seasonYear: 2021, episodes: 18 }
+]).groups;
+const linkClickTitles = linkClick.map((g) => g.title);
+check("Link Click has a Season 1", linkClickTitles.includes("Season 1"));
+check("Link Click Season 1 holds the base entry",
+  (linkClick.find((g) => g.title === "Season 1")?.items || []).some((e) => e.title === "Shiguang Dailiren"));
+check("Link Click has Seasons 1-3", ["Season 1", "Season 2", "Season 3"].every((t) => linkClickTitles.includes(t)));
+check("Link Click invents no Season 4+", !linkClickTitles.some((t) => /Season [4-9]/.test(t)));
+check("Link Click keeps the shorts spin-off out of Season 2",
+  !(linkClick.find((g) => g.title === "Season 2")?.items || []).some((e) => /Xiao Juchang/.test(e.title)));
+
+// A Japanese TV franchise with an ONA side story must be completely unaffected:
+// its arc-subtitled seasons stay main, and the ONA stays an extra.
+const bleach = SeasonNormalization.normalizeFranchise([
+  { title: "Bleach", format: "TV", seasonYear: 2004, episodes: 366 },
+  { title: "Bleach: Sennen Kessen-hen", format: "TV", seasonYear: 2022, episodes: 13 },
+  { title: "Bleach: Memories in the Rain", format: "ONA", seasonYear: 2004, episodes: 1 }
+]).groups;
+check("TV franchise keeps its arc-subtitled season as main",
+  (bleach.find((g) => g.title === "Season 2")?.items || []).some((e) => /Sennen Kessen/.test(e.title)));
+check("TV franchise still files an ONA side story as an extra",
+  (bleach.find((g) => g.type === "special")?.items || []).some((e) => /Memories in the Rain/.test(e.title)));
+
 console.log(`\n${passed} passed, ${failed} failed\n`);
 process.exit(failed === 0 ? 0 : 1);
