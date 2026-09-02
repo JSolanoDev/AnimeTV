@@ -100,6 +100,8 @@ async function fetchBatch(ids) {
 function toMeta(m) {
   const year = m.seasonYear || m.startDate?.year || null;
   return {
+    // Kept so the Jikan fallback below has a route when AniList is unavailable.
+    malId: m.idMal || null,
     year: year || null,
     score: typeof m.averageScore === "number" ? m.averageScore : null,
     genres: Array.isArray(m.genres) ? m.genres : [],
@@ -117,6 +119,65 @@ function toMeta(m) {
     englishTitle: m.title?.english || "",
     romajiTitle: m.title?.romaji || ""
   };
+}
+
+// ── Jikan fallback ─────────────────────────────────────────────────────────
+// On 2026-09-02 AniList answered 403 "The AniList API has been temporarily
+// disabled due to severe stability issues" for hours, and the backfill had no
+// second route. Jikan (MyAnimeList) exposes the same fields; its SEARCH was also
+// down (504, "Jikan failed to connect to MyAnimeList") but /anime/{id} kept
+// serving from cache, so a known malId is enough.
+//
+// Field shapes differ and two of them matter:
+//   score  - Jikan is 0-10, AniList (and this app, which renders "${score}%")
+//            is 0-100. Storing 8.7 where 87 belongs would render "8.7%".
+//   status - the client reads the ANILIST vocabulary, and getSeasonEpisodeLimit()
+//            keys off RELEASING / NOT_YET_RELEASED to decide how many episodes
+//            have aired. v627/v628 exist because a wrong value there empties the
+//            episode list, so map it exactly and leave it blank when unknown.
+const JIKAN_STATUS = {
+  "finished airing": "FINISHED",
+  "currently airing": "RELEASING",
+  "not yet aired": "NOT_YET_RELEASED"
+};
+
+async function jikanMeta(malId) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    let res;
+    try {
+      res = await fetch(`https://api.jikan.moe/v4/anime/${malId}`, { headers: { Accept: "application/json" } });
+    } catch {
+      await sleep(1200 * attempt);
+      continue;
+    }
+    if (res.status === 429) { await sleep(2500 * attempt); continue; }
+    if (res.status >= 500) { await sleep(1500 * attempt); continue; }
+    if (!res.ok) return null;
+    const a = (await res.json().catch(() => null))?.data;
+    if (!a) return null;
+    // "24 min per ep" / "1 hr 48 min" -> minutes.
+    const d = String(a.duration || "");
+    const hr = Number((d.match(/(\d+)\s*hr/) || [])[1] || 0);
+    const mn = Number((d.match(/(\d+)\s*min/) || [])[1] || 0);
+    const duration = hr * 60 + mn;
+    return {
+      malId,
+      year: a.year || (a.aired?.from ? Number(String(a.aired.from).slice(0, 4)) : null) || null,
+      score: typeof a.score === "number" ? Math.round(a.score * 10) : null,
+      genres: (a.genres || []).map((g) => g.name).filter(Boolean),
+      description: a.synopsis || "",
+      duration: duration || null,
+      episodes: typeof a.episodes === "number" ? a.episodes : null,
+      format: String(a.type || "").toUpperCase(),
+      airingStatus: JIKAN_STATUS[String(a.status || "").toLowerCase()] || "",
+      country: "",   // Jikan does not expose countryOfOrigin
+      studio: (a.studios || [])[0]?.name || "",
+      englishTitle: a.title_english || "",
+      romajiTitle: a.title || "",
+      _via: "jikan"
+    };
+  }
+  return null;
 }
 
 const raw = JSON.parse(fs.readFileSync(MAP, "utf8"));
@@ -175,6 +236,23 @@ for (let i = 0; i < batches.length; i++) {
     for (const key of idToKeys.get(id) || []) entries[key].meta = null;
   }
   console.log(`batch ${String(i + 1).padStart(2)}/${batches.length}: ${media.length}/${batch.length} ids -> ${resolved} entries so far`);
+}
+
+// Anything AniList could not deliver, but for which a malId is known, gets one
+// more chance through Jikan. Jikan allows 3 req/s; 400ms stays inside that.
+const leftover = Object.keys(entries).filter((k) => {
+  const e = entries[k];
+  return e && !e.meta && (e.malId || e.meta?.malId);
+});
+if (leftover.length) {
+  console.log(`\n${leftover.length} entries still without metadata but with a malId - trying Jikan`);
+  let viaJikan = 0;
+  for (const key of leftover) {
+    await sleep(400);
+    const meta = await jikanMeta(entries[key].malId);
+    if (meta) { entries[key].meta = meta; viaJikan++; }
+  }
+  console.log(`  resolved ${viaJikan}/${leftover.length} through Jikan`);
 }
 
 raw.entries = entries;

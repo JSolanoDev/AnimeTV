@@ -332,7 +332,7 @@ async function resolveOne(item) {
     }
     if (candidates.some((c) => titleScore(aniTitles, [c.name, c.original_name]) >= 95)) break;
   }
-  if (!candidates.length) return { status: "no-tmdb-candidates", anilistId: media?.id || null };
+  if (!candidates.length) return { status: "no-tmdb-candidates", anilistId: media?.id || null, malId: media?.idMal || null };
 
   const scored = candidates
     .map((c) => {
@@ -349,7 +349,7 @@ async function resolveOne(item) {
   const best = scored[0];
   // Deliberately strict: a wrong backdrop is worse than the strip we already show.
   if (!best || best.score < 78 || !best.c.backdrop_path) {
-    return { status: "rejected", anilistId: media?.id || null, bestScore: best?.score ?? 0, bestName: best?.c?.name || "" };
+    return { status: "rejected", anilistId: media?.id || null, malId: media?.idMal || null, bestScore: best?.score ?? 0, bestName: best?.c?.name || "" };
   }
 
   // 3. Prefer the season-specific backdrop when the title is a later season.
