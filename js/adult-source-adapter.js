@@ -330,6 +330,248 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
   }
 }
 
+class HentaiOceanAdultSourceAdapter extends AdultSourceAdapter {
+  constructor(config = {}) {
+    super({ name: "Hentai Ocean", baseUrl: "/api/adult/hentaiocean", ...config });
+  }
+
+  async _request(path, params = {}) {
+    const endpoint = new URL(`${this.baseUrl}${path}`, window.location.href);
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") endpoint.searchParams.set(key, value);
+    });
+    const response = await fetch(endpoint, { cache: "no-store" });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload.ok === false) throw new Error(payload.error || `${this.name} request failed`);
+    return payload;
+  }
+
+  _catalogItem(item = {}, sourceIndex = 0) {
+    const slug = String(item.slug || "").trim();
+    const image = String(item.image || item.poster || item.cover || item.thumbnail || "").trim();
+    const banner = String(item.highQualityBackground || item.backdrop || item.banner || "").trim();
+    const episodeCount = Math.max(0, Number(item.episodeCount || 0));
+    const year = String(item.year || item.aired || "").match(/\b(?:19|20)\d{2}\b/)?.[0] || "";
+    return {
+      ...item,
+      id: `adult-hentaiocean-${slug}`,
+      adultId: `hentaiocean:${slug}`,
+      slug,
+      title: item.title || slug.replace(/-/g, " "),
+      thumbnail: image,
+      image,
+      poster: image,
+      cover: image,
+      coverImage: image,
+      mainWallpaper: image,
+      banner,
+      backdrop: banner,
+      highQualityBackground: banner,
+      adultBackground: banner,
+      adultCinematicBackdrop: banner,
+      hentaiOceanImage: image,
+      hentaiOceanBackdrop: banner,
+      images: { poster: image, cover: image, thumbnail: image, banner, backdrop: banner },
+      description: String(item.description || "").trim(),
+      genres: Array.isArray(item.genres) && item.genres.length ? item.genres : ["Hentai"],
+      genre: item.genres?.[0] || "Hentai",
+      episode: episodeCount,
+      episodeCount,
+      totalEpisodes: episodeCount,
+      latestAiredEp: episodeCount,
+      year,
+      startYear: year,
+      source: this.name,
+      adultSource: this.name,
+      sourceOrder: Number.isFinite(Number(item.sourceOrder)) ? Number(item.sourceOrder) : sourceIndex,
+      isAdult: true,
+      adult: true,
+      adultDetailsLoaded: false,
+      seasons: [],
+      episodes: []
+    };
+  }
+
+  async search(query, page = 1) {
+    const payload = await this._request("/catalog", { q: query, page });
+    return (payload.items || []).map((item, index) => this._catalogItem(item, index));
+  }
+
+  async listLatest(page = 1, options = {}) {
+    const payload = await this._request("/catalog", { page, refresh: options.refresh ? 1 : "" });
+    return (payload.items || []).map((item, index) => this._catalogItem(item, index));
+  }
+
+  async getDetails(id) {
+    const slug = String(id || "").replace(/^hentaiocean:/, "").replace(/^adult-hentaiocean-/, "");
+    const payload = await this._request("/details", { slug });
+    const item = payload.item || null;
+    if (!item) return null;
+    const mapped = this._catalogItem(item);
+    const episodes = (item.episodes || []).map((episode) => ({
+      ...episode,
+      id: `${slug}-s1-e${Number(episode.number || episode.episode || 1) || 1}`,
+      season: 1,
+      number: Number(episode.number || episode.episode || 1) || 1,
+      episode: Number(episode.number || episode.episode || 1) || 1,
+      server: this.name,
+      locked: false,
+      sourceOptions: Array.isArray(episode.sourceOptions) ? episode.sourceOptions : []
+    }));
+    return {
+      ...mapped,
+      description: item.description || mapped.description,
+      episode: episodes.length,
+      episodeCount: episodes.length,
+      totalEpisodes: episodes.length,
+      episodes,
+      seasons: [{
+        season: 1,
+        title: "Season 1",
+        sourceTitle: mapped.title,
+        image: mapped.image,
+        banner: mapped.banner,
+        highQualityBackground: mapped.banner,
+        adultBackground: mapped.banner,
+        playable: true,
+        episodes
+      }],
+      adultDetailsLoaded: true
+    };
+  }
+}
+
+class CompositeAdultSourceAdapter extends AdultSourceAdapter {
+  constructor(adapters = []) {
+    const usable = adapters.filter((adapter) => adapter instanceof AdultSourceAdapter);
+    super({ name: usable.map((adapter) => adapter.name).join(" + ") || "adult-sources" });
+    this.adapters = usable;
+    this.primary = usable[0] || new NullAdultSourceAdapter();
+    this.hentaiOcean = usable.find((adapter) => adapter instanceof HentaiOceanAdultSourceAdapter) || null;
+    this._oceanCatalog = [];
+  }
+
+  _titleKey(value = "") {
+    return String(value || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\([^)]*\)/g, " ")
+      .replace(/\b(?:the\s+)?animation\b/g, " ")
+      .replace(/\b(?:ova|ona)\b/g, " ")
+      .replace(/\bepisode\s*\d+\b/g, " ")
+      .replace(/\s+\d+$/g, " ")
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  _keys(item = {}) {
+    return [...new Set([
+      item.title,
+      item.officialTitle,
+      item.nativeTitle,
+      item.romajiTitle,
+      ...(Array.isArray(item.aliases) ? item.aliases : [])
+    ].map((value) => this._titleKey(value)).filter(Boolean))];
+  }
+
+  _findExactOceanMatch(item = {}) {
+    const keys = this._keys(item);
+    return this._oceanCatalog.find((candidate) => this._keys(candidate).some((key) => keys.includes(key))) || null;
+  }
+
+  _enrich(primary = {}, ocean = null) {
+    if (!ocean) return primary;
+    const image = String(ocean.image || ocean.poster || ocean.cover || "").trim();
+    const banner = String(ocean.hentaiOceanBackdrop || ocean.highQualityBackground || ocean.backdrop || ocean.banner || "").trim();
+    const sourceTitle = primary.title;
+    return {
+      ...primary,
+      sourceTitle,
+      title: ocean.title || primary.title,
+      aliases: [...new Set([...(primary.aliases || []), sourceTitle, ocean.title].filter(Boolean))],
+      description: primary.description || ocean.description || "",
+      image: image || primary.image,
+      poster: image || primary.poster,
+      cover: image || primary.cover,
+      coverImage: image || primary.coverImage,
+      thumbnail: image || primary.thumbnail,
+      mainWallpaper: image || primary.mainWallpaper,
+      banner: banner || primary.banner,
+      backdrop: banner || primary.backdrop,
+      highQualityBackground: banner || primary.highQualityBackground,
+      adultBackground: banner || primary.adultBackground,
+      adultCinematicBackdrop: banner || primary.adultCinematicBackdrop,
+      hentaiOceanImage: image,
+      hentaiOceanBackdrop: banner,
+      hentaiOceanSlug: ocean.slug,
+      images: {
+        ...(primary.images || {}),
+        poster: image || primary.images?.poster || primary.image,
+        cover: image || primary.images?.cover || primary.image,
+        thumbnail: image || primary.images?.thumbnail || primary.image,
+        banner: banner || primary.images?.banner || primary.banner,
+        backdrop: banner || primary.images?.backdrop || primary.backdrop
+      }
+    };
+  }
+
+  _mergeCatalogs(primaryItems = [], oceanItems = []) {
+    this._oceanCatalog = oceanItems;
+    const claimedOceanIds = new Set();
+    const merged = primaryItems.map((item) => {
+      const match = this._findExactOceanMatch(item);
+      if (match) claimedOceanIds.add(match.id);
+      return this._enrich(item, match);
+    });
+    oceanItems.forEach((item) => {
+      if (!claimedOceanIds.has(item.id)) merged.push(item);
+    });
+    return merged.map((item, sourceOrder) => ({ ...item, sourceOrder }));
+  }
+
+  async listLatest(page = 1, options = {}) {
+    const results = await Promise.allSettled(this.adapters.map((adapter) => adapter.listLatest(page, options)));
+    const primaryItems = results[0]?.status === "fulfilled" ? results[0].value : [];
+    const oceanIndex = this.adapters.indexOf(this.hentaiOcean);
+    const oceanItems = oceanIndex >= 0 && results[oceanIndex]?.status === "fulfilled" ? results[oceanIndex].value : [];
+    if (!primaryItems.length && !oceanItems.length) {
+      const message = results.map((result) => result.status === "rejected" ? result.reason?.message : "").find(Boolean);
+      throw new Error(message || "Adult catalogs are unavailable");
+    }
+    return this._mergeCatalogs(primaryItems, oceanItems);
+  }
+
+  async search(query, page = 1) {
+    const results = await Promise.allSettled(this.adapters.map((adapter) => adapter.search(query, page)));
+    const primaryItems = results[0]?.status === "fulfilled" ? results[0].value : [];
+    const oceanIndex = this.adapters.indexOf(this.hentaiOcean);
+    const oceanItems = oceanIndex >= 0 && results[oceanIndex]?.status === "fulfilled" ? results[oceanIndex].value : [];
+    return this._mergeCatalogs(primaryItems, oceanItems);
+  }
+
+  async getDetails(id) {
+    const rawId = String(id || "");
+    if (/^(?:hentaiocean:|adult-hentaiocean-)/.test(rawId) && this.hentaiOcean) {
+      return this.hentaiOcean.getDetails(rawId);
+    }
+    const details = await this.primary.getDetails(rawId);
+    if (!details) return null;
+    if (!this._oceanCatalog.length && this.hentaiOcean) {
+      this._oceanCatalog = await this.hentaiOcean.listLatest(1).catch(() => []);
+    }
+    return this._enrich(details, this._findExactOceanMatch(details));
+  }
+
+  async resolveStream(id, episode) {
+    if (/^(?:hentaiocean:|adult-hentaiocean-)/.test(String(id || "")) && this.hentaiOcean) {
+      return this.hentaiOcean.resolveStream(id, episode);
+    }
+    return this.primary.resolveStream(id, episode);
+  }
+}
+
 /**
  * Tiny registry so the app can hold a single active adult source and swap it
  * later. Defaults to the null adapter — the app shows the empty 18+ catalog
@@ -352,12 +594,17 @@ const AdultSourceRegistry = (function () {
   };
 })();
 
-AdultSourceRegistry.register(new UnderHentaiAdultSourceAdapter());
+AdultSourceRegistry.register(new CompositeAdultSourceAdapter([
+  new UnderHentaiAdultSourceAdapter(),
+  new HentaiOceanAdultSourceAdapter()
+]));
 
 if (typeof window !== "undefined") {
   window.AdultSourceAdapter = AdultSourceAdapter;
   window.NullAdultSourceAdapter = NullAdultSourceAdapter;
   window.UnderHentaiAdultSourceAdapter = UnderHentaiAdultSourceAdapter;
+  window.HentaiOceanAdultSourceAdapter = HentaiOceanAdultSourceAdapter;
+  window.CompositeAdultSourceAdapter = CompositeAdultSourceAdapter;
   window.AdultSourceRegistry = AdultSourceRegistry;
 }
 
@@ -366,6 +613,8 @@ if (typeof module !== "undefined" && module.exports) {
     AdultSourceAdapter,
     NullAdultSourceAdapter,
     UnderHentaiAdultSourceAdapter,
+    HentaiOceanAdultSourceAdapter,
+    CompositeAdultSourceAdapter,
     AdultSourceRegistry
   };
 }

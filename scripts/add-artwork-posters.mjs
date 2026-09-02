@@ -35,9 +35,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function tmdb(p) {
   return new Promise((res) => {
     const headers = { Accept: "application/json" };
-    let url = "https://api.themoviedb.org/3" + p;
+    const url = new URL("https://api.themoviedb.org/3" + p);
     if (TOKEN) headers.Authorization = "Bearer " + TOKEN;
-    else url += (p.includes("?") ? "&" : "?") + "api_key=" + KEY;
+    else url.searchParams.set("api_key", KEY);
     https.get(url, { headers }, (r) => {
       const c = [];
       r.on("data", (d) => c.push(d));
