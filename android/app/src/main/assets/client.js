@@ -530,7 +530,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=608`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=609`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3250,7 +3250,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=608";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=609";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -8083,6 +8083,23 @@ function applyWatchBackdrop(show, season) {
     season?.banner, season?.backdrop
   ].map((value) => hqImage(String(value || "").trim()))
    .filter((url) => url && !verticalArt.has(url)));
+  // The same wide fields WITHOUT the verticalArt filter, used only to decide the
+  // composition. verticalArt accumulates every url the POSTER candidate builders
+  // have ever seen, and those builders read banner/backdrop fields too - so a
+  // genuine 16:9 backdrop can land in it and then be dropped from wideSources.
+  // Deciding poster-fit from that set rendered landscape art in the portrait
+  // treatment: measured on ONE PIECE, whose 3840x2160 TMDB backdrop was in
+  // verticalArt, so the hero showed a contained image with dead space either side.
+  const wideArtFields = new Set([
+    ...sourceBackdrops,
+    show.images?.backdrop, show.images?.banner,
+    show.tmdbBackdrop, show.adultCinematicBackdrop, show.highQualityBackground, show.banner, show.bannerImage,
+    show.backdrop, show.heroImage, show.wideImage,
+    show.landscapeImage, show.jikanBackground,
+    ...seasonWideBackdropCandidates(show, season),
+    season?.tmdbBackdrop, season?.highQualityBackground,
+    season?.banner, season?.backdrop
+  ].map((value) => hqImage(String(value || "").trim())).filter(Boolean));
   const bannerSources = new Set([
     ...sourceBackdrops,
     show.highQualityBackground,
@@ -8198,7 +8215,7 @@ function applyWatchBackdrop(show, season) {
   // low quality, every remaining candidate was discarded the same way, and the
   // page sat on the blurred fill with background-image: none. Measured on
   // "Tefuda ga Oome no Victoria 2": no sharp art at all, 12s after open.
-  const isPosterFallback = (url) => Boolean(url) && !wideSources.has(url);
+  const isPosterFallback = (url) => Boolean(url) && !wideArtFields.has(url);
   const paint = (url) => {
     // Portrait key art is composed, not cropped - see .is-poster-fit.
     const posterFit = isPosterFallback(url);
@@ -16012,7 +16029,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=608");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=609");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
