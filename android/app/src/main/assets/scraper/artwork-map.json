@@ -193,10 +193,30 @@
       }
     },
     "animeav1-boku-no-hero-academia-i-am-a-hero-too": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 211711,
       "bestScore": 74,
-      "bestName": "My Hero Academia"
+      "bestName": "My Hero Academia",
+      "malId": 64107,
+      "meta": {
+        "malId": 64107,
+        "year": 2026,
+        "score": null,
+        "genres": [],
+        "description": "",
+        "duration": null,
+        "episodes": 1,
+        "format": "ONA",
+        "airingStatus": "NOT_YET_RELEASED",
+        "country": "",
+        "studio": "",
+        "englishTitle": "",
+        "romajiTitle": "Boku no Hero Academia: I Am a Hero Too",
+        "_via": "offline-db"
+      },
+      "tmdbId": 65930,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/ol0H2DGp4ifBHA4JDlCpwJWxnY2.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/phuYuzqWW9ru8EA3HVjE9W2Rr3M.jpg"
     },
     "animeav1-kimetsu-no-yaiba-movie-1-mugenjou-hen-akaza-sairai": {
       "status": "ok",
@@ -479,7 +499,28 @@
       }
     },
     "animeav1-dogulwang": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 184356,
+      "malId": 63316,
+      "meta": {
+        "malId": 63316,
+        "year": 2026,
+        "score": null,
+        "genres": [],
+        "description": "",
+        "duration": null,
+        "episodes": 11,
+        "format": "TV",
+        "airingStatus": "NOT_YET_RELEASED",
+        "country": "",
+        "studio": "studio eek co.,ltd",
+        "englishTitle": "",
+        "romajiTitle": "Dogulwang",
+        "_via": "offline-db"
+      },
+      "tmdbId": 297826,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/irM3WhxOorkklhx5To9cfG2ktM6.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/xDW6cor12UD0b2IqboQWnrIn0UO.jpg"
     },
     "animeav1-thunder-3": {
       "status": "ok",
@@ -798,7 +839,28 @@
       }
     },
     "animeav1-koukaku-kidoutai-tv": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 177699,
+      "malId": 58929,
+      "meta": {
+        "malId": 58929,
+        "year": 2026,
+        "score": 80,
+        "genres": [],
+        "description": "",
+        "duration": null,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "NOT_YET_RELEASED",
+        "country": "",
+        "studio": "science saru inc.",
+        "englishTitle": "",
+        "romajiTitle": "Koukaku Kidoutai (TV)",
+        "_via": "offline-db"
+      },
+      "tmdbId": 255358,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/app8YXZ4NS0hMTYZuIA6zx92xVm.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/nUXjSyXAQZhOf32e6lkLX6C6Rf3.jpg"
     },
     "animeav1-grand-blue-season-3": {
       "status": "ok",
@@ -1203,7 +1265,28 @@
       }
     },
     "animeav1-kimi-no-koto-ga-daidaidaidaidaisuki-na-100-nin-no-kanojo-3rd-season": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": null,
+      "malId": 62811,
+      "meta": {
+        "malId": 62811,
+        "year": 2026,
+        "score": null,
+        "genres": [],
+        "description": "",
+        "duration": null,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "NOT_YET_RELEASED",
+        "country": "",
+        "studio": "bibury animation studios",
+        "englishTitle": "",
+        "romajiTitle": "Kimi no Koto ga Daidaidaidaidaisuki na 100-nin no Kanojo 3rd Season",
+        "_via": "offline-db"
+      },
+      "tmdbId": 223564,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/shXdGFZIEaSmiOkVW2BeEaPihuA.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/kBiPU7I7TEJdDXu8tHgVrgL5zAU.jpg"
     },
     "animeav1-mahou-shoujo-lyrical-nanoha-exceeds-gun-blaze-vengeance": {
       "status": "ok",
@@ -1332,7 +1415,24 @@
     },
     "animeav1-one-piece-heroines": {
       "status": "no-tmdb-candidates",
-      "anilistId": 197178
+      "anilistId": 197178,
+      "malId": 62233,
+      "meta": {
+        "malId": 62233,
+        "year": 2026,
+        "score": null,
+        "genres": [],
+        "description": "",
+        "duration": 25,
+        "episodes": 1,
+        "format": "SPECIAL",
+        "airingStatus": "NOT_YET_RELEASED",
+        "country": "",
+        "studio": "toei animation",
+        "englishTitle": "",
+        "romajiTitle": "One Piece: Heroines",
+        "_via": "offline-db"
+      }
     },
     "animeav1-kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu": {
       "status": "ok",
@@ -1458,7 +1558,28 @@
       }
     },
     "animeav1-kabushikigaisha-magi-lumiere-2nd-season": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 185692,
+      "malId": 60552,
+      "meta": {
+        "malId": 60552,
+        "year": 2026,
+        "score": null,
+        "genres": [],
+        "description": "",
+        "duration": 1,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "NOT_YET_RELEASED",
+        "country": "",
+        "studio": "j.c. staff",
+        "englishTitle": "",
+        "romajiTitle": "Kabushikigaisha Magi-Lumière 2nd Season",
+        "_via": "offline-db"
+      },
+      "tmdbId": 240576,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/6aicKBDCaK0KRpgd2eqN6aQ7Mak.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/rmQjrOxAc3kRMG78NuvN3UVVqds.jpg"
     },
     "animeav1-nijusseiki-denki-mokuroku-eureka-evrika": {
       "status": "ok",
@@ -1893,10 +2014,30 @@
       }
     },
     "animeav1-reiwa-no-dara-san": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 203880,
       "bestScore": 66,
-      "bestName": "Dara-san of Reiwa"
+      "bestName": "Dara-san of Reiwa",
+      "malId": 63082,
+      "meta": {
+        "malId": 63082,
+        "year": 2026,
+        "score": null,
+        "genres": [],
+        "description": "",
+        "duration": 25,
+        "episodes": 13,
+        "format": "TV",
+        "airingStatus": "NOT_YET_RELEASED",
+        "country": "",
+        "studio": "asahi production",
+        "englishTitle": "",
+        "romajiTitle": "Reiwa no Dara-san",
+        "_via": "offline-db"
+      },
+      "tmdbId": 312507,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/t9pxS8JUIya68VOIRVAu8rhbGZL.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/s0rPBaoGFTVR5KglSEzbBQ2u256.jpg"
     },
     "animeav1-bungou-stray-dogs-wan-2": {
       "status": "ok",
@@ -2144,10 +2285,29 @@
       }
     },
     "animeav1-boku-no-hero-academia-more": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 204356,
       "bestScore": 74,
-      "bestName": "My Hero Academia"
+      "bestName": "My Hero Academia",
+      "meta": {
+        "malId": null,
+        "year": 2026,
+        "score": 83,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 1,
+        "format": "SPECIAL",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "bones film",
+        "englishTitle": "",
+        "romajiTitle": "Boku no Hero Academia No. 170+1: More",
+        "_via": "offline-db"
+      },
+      "tmdbId": 65930,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/ol0H2DGp4ifBHA4JDlCpwJWxnY2.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/phuYuzqWW9ru8EA3HVjE9W2Rr3M.jpg"
     },
     "animeav1-aishiteru-game-wo-owarasetai": {
       "status": "ok",
@@ -2244,7 +2404,28 @@
       }
     },
     "animeav1-ichijouma-mankitsugurashi": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 195734,
+      "malId": 62018,
+      "meta": {
+        "malId": 62018,
+        "year": 2026,
+        "score": 66,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 11,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "pra ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Ichijouma Mankitsugurashi!",
+        "_via": "offline-db"
+      },
+      "tmdbId": 295751,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/syTjpyKFGKeoWglpowdZHPrc81s.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/bG0etHcKsp2J1znAr2ipNmbeUF0.jpg"
     },
     "animeav1-kuroneko-to-majo-no-kyoushitsu": {
       "status": "ok",
@@ -3265,8 +3446,28 @@
       }
     },
     "animeav1-diamond-no-ace-act-ii-second-season": {
-      "status": "no-tmdb-candidates",
-      "anilistId": 177634
+      "status": "ok",
+      "anilistId": 177634,
+      "malId": 58877,
+      "meta": {
+        "malId": 58877,
+        "year": 2026,
+        "score": 79,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 13,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "olm team yoshioka",
+        "englishTitle": "",
+        "romajiTitle": "Diamond no Ace: Act II Second Season",
+        "_via": "offline-db"
+      },
+      "tmdbId": 60761,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/wq5ZykCAFrboIpz36O8pbrJG2dF.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/wh9dA4w0iUMVpY7htFSiLDhLTYJ.jpg"
     },
     "animeav1-kanan-sama-wa-akumade-choroi": {
       "status": "ok",
@@ -4081,10 +4282,30 @@
       }
     },
     "animeav1-steel-ball-run-jojo-no-kimyou-na-bouken": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 190327,
       "bestScore": 74,
-      "bestName": "JoJo's Bizarre Adventure"
+      "bestName": "JoJo's Bizarre Adventure",
+      "malId": 61469,
+      "meta": {
+        "malId": 61469,
+        "year": 2026,
+        "score": 87,
+        "genres": [],
+        "description": "",
+        "duration": 47,
+        "episodes": 1,
+        "format": "ONA",
+        "airingStatus": "RELEASING",
+        "country": "",
+        "studio": "david production inc.",
+        "englishTitle": "",
+        "romajiTitle": "Steel Ball Run: JoJo no Kimyou na Bouken",
+        "_via": "offline-db"
+      },
+      "tmdbId": 45790,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/5mUYDoFjDlPmDvnUWSknhYjGBBh.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/ogAWwbh3frWtiTyyXrZaVFtqCgp.jpg"
     },
     "animeav1-beastars-final-season-part-2": {
       "status": "ok",
@@ -4243,7 +4464,24 @@
     },
     "animeav1-chou-kaguya-hime": {
       "status": "no-tmdb-candidates",
-      "anilistId": 201903
+      "anilistId": 201903,
+      "malId": 62896,
+      "meta": {
+        "malId": 62896,
+        "year": 2026,
+        "score": 83,
+        "genres": [],
+        "description": "",
+        "duration": 140,
+        "episodes": 1,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "studio chromato co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Chou Kaguya-hime!",
+        "_via": "offline-db"
+      }
     },
     "animeav1-prism-rondo": {
       "status": "ok",
@@ -4308,11 +4546,52 @@
       }
     },
     "animeav1-yami-shibai-16": {
-      "status": "no-tmdb-candidates",
-      "anilistId": 203939
+      "status": "ok",
+      "anilistId": 203939,
+      "malId": 63087,
+      "meta": {
+        "malId": 63087,
+        "year": 2026,
+        "score": 58,
+        "genres": [],
+        "description": "",
+        "duration": 4,
+        "episodes": 13,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "ilca, inc.",
+        "englishTitle": "",
+        "romajiTitle": "Yami Shibai 16",
+        "_via": "offline-db"
+      },
+      "tmdbId": 56559,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/gtwdI7qHNrrLe5R7nWnoDgrbEbV.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/oPFlM3EomXf3HRGYeRBGICIE76.jpg"
     },
     "animeav1-himesama-goumon-no-jikan-desu-2nd-season": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 176370,
+      "malId": 58524,
+      "meta": {
+        "malId": 58524,
+        "year": 2026,
+        "score": 75,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "pine jam",
+        "englishTitle": "",
+        "romajiTitle": "Himesama \"Goumon\" no Jikan desu 2nd Season",
+        "_via": "offline-db"
+      },
+      "tmdbId": 229443,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/l0siB5HPobsiQgU7GfOEAV28Gx5.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/xAC9rRQRVcW9bpv6bYZA5d5To0Y.jpg"
     },
     "animeav1-jingai-kyoushitsu-no-ningengirai-kyoushi": {
       "status": "ok",
@@ -4718,10 +4997,30 @@
       }
     },
     "animeav1-trigun-stargaze": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 163144,
       "bestScore": 74,
-      "bestName": "TRIGUN STAMPEDE"
+      "bestName": "TRIGUN STAMPEDE",
+      "malId": 54863,
+      "meta": {
+        "malId": 54863,
+        "year": 2026,
+        "score": 68,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "orange co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Trigun Stargaze",
+        "_via": "offline-db"
+      },
+      "tmdbId": 204266,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/6dErjmx17e8kZn5zHAqLrbcTesV.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/4rMkVmkk6AzrcbBX9JSwqyG7pbK.jpg"
     },
     "animeav1-android-wa-keiken-ninzuu-ni-hairimasu-ka": {
       "status": "ok",
@@ -5382,8 +5681,28 @@
       }
     },
     "animeav1-golden-kamuy-saishuushou": {
-      "status": "no-tmdb-candidates",
-      "anilistId": 166521
+      "status": "ok",
+      "anilistId": 166521,
+      "malId": 55772,
+      "meta": {
+        "malId": 55772,
+        "year": 2026,
+        "score": 82,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 13,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "brain's base",
+        "englishTitle": "",
+        "romajiTitle": "Golden Kamuy: Saishuushou",
+        "_via": "offline-db"
+      },
+      "tmdbId": 76757,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/rT7DcPq4Fee6uStrl4t9Jv4iOnj.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/Ab1QIcwCAQUgs8Z8pTJnVPkKS0m.jpg"
     },
     "animeav1-kirei-ni-shitemoraemasu-ka": {
       "status": "ok",
@@ -5727,10 +6046,30 @@
       }
     },
     "animeav1-kaguya-sama-wa-kokurasetai-otona-e-no-kaidan": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 194884,
       "bestScore": 66,
-      "bestName": "Kaguya-sama: Love Is War -Stairway to Adulthood-"
+      "bestName": "Kaguya-sama: Love Is War -Stairway to Adulthood-",
+      "malId": 61903,
+      "meta": {
+        "malId": 61903,
+        "year": 2025,
+        "score": 84,
+        "genres": [],
+        "description": "",
+        "duration": 52,
+        "episodes": 1,
+        "format": "SPECIAL",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "a-1 pictures inc.",
+        "englishTitle": "",
+        "romajiTitle": "Kaguya-sama wa Kokurasetai: Otona e no Kaidan",
+        "_via": "offline-db"
+      },
+      "tmdbId": 83121,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/dJ8yrSokdTMnhKJw06MllSfCegb.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/5khbC6AuNgnvnoDbjIMKCOhEtIc.jpg"
     },
     "animeav1-yi-ren-zhi-xia-6": {
       "status": "ok",
@@ -5765,7 +6104,24 @@
     },
     "animeav1-undead-unluck-winter-hen": {
       "status": "no-tmdb-candidates",
-      "anilistId": 179930
+      "anilistId": 179930,
+      "malId": 59435,
+      "meta": {
+        "malId": 59435,
+        "year": 2025,
+        "score": 75,
+        "genres": [],
+        "description": "",
+        "duration": 48,
+        "episodes": 1,
+        "format": "SPECIAL",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "david production",
+        "englishTitle": "",
+        "romajiTitle": "Undead Unluck: Winter-hen",
+        "_via": "offline-db"
+      }
     },
     "animeav1-xian-wang-de-richang-shenghuo-5": {
       "status": "ok",
@@ -5828,7 +6184,28 @@
       }
     },
     "animeav1-shuumatsu-no-walkure-iii": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 187921,
+      "malId": 61200,
+      "meta": {
+        "malId": 61200,
+        "year": 2025,
+        "score": 77,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 15,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "maru animation",
+        "englishTitle": "",
+        "romajiTitle": "Shuumatsu no Walküre III",
+        "_via": "offline-db"
+      },
+      "tmdbId": 114868,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/6pSkqecoNsxSA467Z28uhVDrjXo.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/t6GEKms3JgLhC6pXjFHhDvPP65y.jpg"
     },
     "animeav1-nukitashi-the-animation-specials": {
       "status": "ok",
@@ -5864,8 +6241,28 @@
       }
     },
     "animeav1-fujimoto-tatsuki-17-26": {
-      "status": "no-tmdb-candidates",
-      "anilistId": 198188
+      "status": "ok",
+      "anilistId": 198188,
+      "malId": 62405,
+      "meta": {
+        "malId": 62405,
+        "year": 2025,
+        "score": 79,
+        "genres": [],
+        "description": "",
+        "duration": 17,
+        "episodes": 8,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "100studio",
+        "englishTitle": "",
+        "romajiTitle": "Fujimoto Tatsuki 17-26",
+        "_via": "offline-db"
+      },
+      "tmdbId": 99353,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/5sZyCtojLzqYAsz0qH9QMllu55I.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/8XhV6ke8ltRYoG4SYmibF2bGwrC.jpg"
     },
     "animeav1-cengjing-you-yongshi": {
       "status": "ok",
@@ -5928,7 +6325,28 @@
       }
     },
     "animeav1-zombieland-saga-movie-yumeginga-paradise": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 140337,
+      "malId": 50159,
+      "meta": {
+        "malId": 50159,
+        "year": 2025,
+        "score": 80,
+        "genres": [],
+        "description": "",
+        "duration": 120,
+        "episodes": 1,
+        "format": "MOVIE",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "mappa co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Zombieland Saga Movie: Yumeginga Paradise",
+        "_via": "offline-db"
+      },
+      "tmdbId": 959646,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/zVBaDSCDFCebkjqghnh4B4ZZ4fo.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/rLyDvszQJi6mvs1Lykr0D7VTzkK.jpg"
     },
     "animeav1-kimi-to-koete-koi-ni-naru": {
       "status": "ok",
@@ -7176,7 +7594,23 @@
       "status": "rejected",
       "anilistId": 199152,
       "bestScore": 46,
-      "bestName": "GIRLS BAND CRY The Movie: Youth Rhapsody"
+      "bestName": "GIRLS BAND CRY The Movie: Youth Rhapsody",
+      "meta": {
+        "malId": null,
+        "year": null,
+        "score": null,
+        "genres": [],
+        "description": "",
+        "duration": null,
+        "episodes": 1,
+        "format": "MOVIE",
+        "airingStatus": "NOT_YET_RELEASED",
+        "country": "",
+        "studio": "",
+        "englishTitle": "",
+        "romajiTitle": "GIRLS BAND CRY (Shinsaku Eiga)",
+        "_via": "offline-db"
+      }
     },
     "animeav1-akujiki-reijou-to-kyouketsu-koushaku": {
       "status": "ok",
@@ -7427,7 +7861,24 @@
     },
     "animeav1-given-10th-mix": {
       "status": "no-tmdb-candidates",
-      "anilistId": 213353
+      "anilistId": 213353,
+      "malId": 62634,
+      "meta": {
+        "malId": 62634,
+        "year": 2025,
+        "score": 76,
+        "genres": [],
+        "description": "",
+        "duration": 18,
+        "episodes": 1,
+        "format": "OVA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "larx entertainment",
+        "englishTitle": "",
+        "romajiTitle": "Given: 10th Mix",
+        "_via": "offline-db"
+      }
     },
     "animeav1-mofa-gongzhu-de-xiao-fannao": {
       "status": "ok",
@@ -7743,7 +8194,28 @@
       }
     },
     "animeav1-luo-xiaohei-zhanji-2": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 166475,
+      "malId": 61952,
+      "meta": {
+        "malId": 61952,
+        "year": 2025,
+        "score": 84,
+        "genres": [],
+        "description": "",
+        "duration": 118,
+        "episodes": 1,
+        "format": "MOVIE",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "beijing hmch anime co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Luo Xiaohei Zhanji 2",
+        "_via": "offline-db"
+      },
+      "tmdbId": 620249,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/aVFx1VtlOxR3v0ADEatalXOvwbu.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/nWdES36hGwADWWBGzvgT1Z3Xn86.jpg"
     },
     "animeav1-bulletbullet": {
       "status": "ok",
@@ -7807,7 +8279,28 @@
       }
     },
     "animeav1-yuusha-party-wo-tsuihou-sareta-shiromadoushi-s-rank-boukensha-ni-hirowareru-kono-shiromadoushi-ga-kikakugai-sugiru": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 179885,
+      "malId": 59424,
+      "meta": {
+        "malId": 59424,
+        "year": 2025,
+        "score": 63,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "felix film",
+        "englishTitle": "",
+        "romajiTitle": "Yuusha Party wo Tsuihou sareta Shiromadoushi, S-Rank Boukensha ni Hirowareru: Kono Shiromadoushi ga Kikakugai Sugiru",
+        "_via": "offline-db"
+      },
+      "tmdbId": 284771,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/oPiZmkOlew1IGJWJ5HBKmqekuvR.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/6QZie7hNdSvqPSIsZtMiX2CRbYY.jpg"
     },
     "animeav1-kizetsu-yuusha-to-ansatsu-hime": {
       "status": "ok",
@@ -7841,8 +8334,28 @@
       }
     },
     "animeav1-yami-shibai-15": {
-      "status": "no-tmdb-candidates",
-      "anilistId": 194088
+      "status": "ok",
+      "anilistId": 194088,
+      "malId": 61793,
+      "meta": {
+        "malId": 61793,
+        "year": 2025,
+        "score": 57,
+        "genres": [],
+        "description": "",
+        "duration": 4,
+        "episodes": 13,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "ilca, inc.",
+        "englishTitle": "",
+        "romajiTitle": "Yami Shibai 15",
+        "_via": "offline-db"
+      },
+      "tmdbId": 56559,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/gtwdI7qHNrrLe5R7nWnoDgrbEbV.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/oPFlM3EomXf3HRGYeRBGICIE76.jpg"
     },
     "animeav1-tougen-anki": {
       "status": "ok",
@@ -8062,7 +8575,28 @@
       }
     },
     "animeav1-tensei-shitara-dainana-ouji-datta-node-kimama-ni-majutsu-wo-kiwamemasu-2nd-season": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 178090,
+      "malId": 59095,
+      "meta": {
+        "malId": 59095,
+        "year": 2025,
+        "score": 77,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "tsumugi akita animation lab",
+        "englishTitle": "",
+        "romajiTitle": "Tensei shitara Dainana Ouji Datta node, Kimama ni Majutsu wo Kiwamemasu 2nd Season",
+        "_via": "offline-db"
+      },
+      "tmdbId": 213830,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/ed9Mgo1gBO9Za0zAyNIpTvtjTDU.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/ruLkQB8i1yazHgO0QCWpyJRRTs9.jpg"
     },
     "animeav1-osomatsu-san-4th-season": {
       "status": "ok",
@@ -8841,10 +9375,30 @@
       }
     },
     "animeav1-seishun-buta-yarou-wa-santa-claus-no-yume-wo-minai": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 171046,
       "bestScore": 66,
-      "bestName": "Rascal Does Not Dream of Santa Claus"
+      "bestName": "Rascal Does Not Dream of Santa Claus",
+      "malId": 57433,
+      "meta": {
+        "malId": 57433,
+        "year": 2025,
+        "score": 80,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 13,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "cloverworks inc.",
+        "englishTitle": "",
+        "romajiTitle": "Seishun Buta Yarou wa Santa Claus no Yume wo Minai",
+        "_via": "offline-db"
+      },
+      "tmdbId": 82739,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/8165gnzhyRbkKfm3WFBINdkDQBR.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/fbqDG7GjodvaNecgv1q8kfSNPl5.jpg"
     },
     "animeav1-fermat-no-ryouri": {
       "status": "ok",
@@ -9124,7 +9678,28 @@
       }
     },
     "animeav1-onmyou-kaiten-rebirth": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 187387,
+      "malId": 61150,
+      "meta": {
+        "malId": 61150,
+        "year": 2025,
+        "score": 65,
+        "genres": [],
+        "description": "",
+        "duration": 22,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "david production inc.",
+        "englishTitle": "",
+        "romajiTitle": "Onmyou Kaiten Re:Birth",
+        "_via": "offline-db"
+      },
+      "tmdbId": 285828,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/fGrAejjSIi8VNEEvtuepyHjz83o.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/r5DnBhyW5BtTQH1k2sx2BSwCWxM.jpg"
     },
     "animeav1-dandadan-2nd-season": {
       "status": "ok",
@@ -9443,10 +10018,30 @@
       }
     },
     "animeav1-kobayashi-san-chi-no-maid-dragon-samishigariya-no-ryuu": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 21776,
       "bestScore": 74,
-      "bestName": "Miss Kobayashi's Dragon Maid: A lonely dragon wants to be loved"
+      "bestName": "Miss Kobayashi's Dragon Maid: A lonely dragon wants to be loved",
+      "malId": 33206,
+      "meta": {
+        "malId": 33206,
+        "year": 2017,
+        "score": 80,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 13,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "kyoto animation co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Kobayashi-san Chi no Maid Dragon",
+        "_via": "offline-db"
+      },
+      "tmdbId": 69291,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/vc3GVrH46tZPUk7RxRpQO6wH3ny.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/aDJC9SBNqUFoGQ6uuxs0EfBsqct.jpg"
     },
     "animeav1-virgin-punk-clockwork-girl": {
       "status": "ok",
@@ -9482,10 +10077,45 @@
     },
     "animeav1-lupin-the-iiird-zenigata-to-futari-no-lupin": {
       "status": "no-tmdb-candidates",
-      "anilistId": 191884
+      "anilistId": 191884,
+      "malId": 61616,
+      "meta": {
+        "malId": 61616,
+        "year": 2025,
+        "score": 75,
+        "genres": [],
+        "description": "",
+        "duration": 53,
+        "episodes": 1,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "telecom animation film",
+        "englishTitle": "",
+        "romajiTitle": "Lupin the IIIrd: Zenigata to Futari no Lupin",
+        "_via": "offline-db"
+      }
     },
     "animeav1-i-byeol-e-pil-yohan": {
-      "status": "anilist-failed"
+      "status": "anilist-failed",
+      "anilistId": 192002,
+      "malId": 61595,
+      "meta": {
+        "malId": 61595,
+        "year": 2025,
+        "score": 77,
+        "genres": [],
+        "description": "",
+        "duration": 96,
+        "episodes": 1,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "climax studio co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "I Byeol-e Pil-yohan",
+        "_via": "offline-db"
+      }
     },
     "animeav1-princess-principal-crown-handler-4": {
       "status": "ok",
@@ -9520,16 +10150,56 @@
       }
     },
     "animeav1-kono-subarashii-sekai-ni-shukufuku-wo-3-bonus-stage": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 181244,
       "bestScore": 74,
-      "bestName": "KONOSUBA - God's blessing on this wonderful world!"
+      "bestName": "KONOSUBA - God's blessing on this wonderful world!",
+      "malId": 59833,
+      "meta": {
+        "malId": 59833,
+        "year": 2025,
+        "score": 80,
+        "genres": [],
+        "description": "",
+        "duration": 25,
+        "episodes": 2,
+        "format": "OVA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "drive inc.",
+        "englishTitle": "",
+        "romajiTitle": "Kono Subarashii Sekai ni Shukufuku wo! 3: Bonus Stage",
+        "_via": "offline-db"
+      },
+      "tmdbId": 65844,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/rvZJxD36tKoglL8fXoMMWKGQfM.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/oRaOeQlwktbGSd2T31FYAcgHZlh.jpg"
     },
     "animeav1-lycoris-recoil-friends-are-thieves-of-time": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 179706,
       "bestScore": 74,
-      "bestName": "Lycoris Recoil"
+      "bestName": "Lycoris Recoil",
+      "malId": 59369,
+      "meta": {
+        "malId": 59369,
+        "year": 2025,
+        "score": 78,
+        "genres": [],
+        "description": "",
+        "duration": 3,
+        "episodes": 6,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "a-1 pictures inc.",
+        "englishTitle": "",
+        "romajiTitle": "Lycoris Recoil: Friends Are Thieves of Time.",
+        "_via": "offline-db"
+      },
+      "tmdbId": 154494,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/xIBS2ZIvQZbf6xBMzCi3ml2FSyp.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/hcPLwLGEU4alv9sOWvzSY4IorxV.jpg"
     },
     "animeav1-sentai-daishikkaku-2nd-season": {
       "status": "ok",
@@ -9686,7 +10356,28 @@
       }
     },
     "animeav1-kanpekisugite-kawaige-ga-nai-to-konyaku-haki-sareta-seijo-wa-ringoku-ni-urareru": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 183275,
+      "malId": 60157,
+      "meta": {
+        "malId": 60157,
+        "year": 2025,
+        "score": 73,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "troyca inc.",
+        "englishTitle": "",
+        "romajiTitle": "Kanpekisugite Kawaige ga Nai to Konyaku Haki sareta Seijo wa Ringoku ni Urareru",
+        "_via": "offline-db"
+      },
+      "tmdbId": 274741,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/2hefpQz2FYVzQHuAx9SilJV73fU.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/dBvBEN0uC7nnNtPjpmxVQcjO97y.jpg"
     },
     "animeav1-ninja-to-koroshiya-no-futarigurashi": {
       "status": "ok",
@@ -10412,10 +11103,30 @@
       }
     },
     "animeav1-kuroshitsuji-midori-no-majo-hen": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 179054,
       "bestScore": 74,
-      "bestName": "Black Butler"
+      "bestName": "Black Butler",
+      "malId": 59228,
+      "meta": {
+        "malId": 59228,
+        "year": 2025,
+        "score": 80,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 13,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "cloverworks inc.",
+        "englishTitle": "",
+        "romajiTitle": "Kuroshitsuji: Midori no Majo-hen",
+        "_via": "offline-db"
+      },
+      "tmdbId": 50712,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/5U0dYTkHXPhoExNnEm5iKrpDqtr.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/iXGs130TRoUplHf0o86zp9MqAYc.jpg"
     },
     "animeav1-enen-no-shouboutai-san-no-shou": {
       "status": "ok",
@@ -10980,12 +11691,49 @@
       }
     },
     "animeav1-cocoon-aru-natsu-no-shoujo-tachi-yori": {
-      "status": "no-tmdb-candidates",
-      "anilistId": 166527
+      "status": "ok",
+      "anilistId": 166527,
+      "malId": 55779,
+      "meta": {
+        "malId": 55779,
+        "year": 2025,
+        "score": 74,
+        "genres": [],
+        "description": "",
+        "duration": 60,
+        "episodes": 1,
+        "format": "SPECIAL",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "sasayuri",
+        "englishTitle": "",
+        "romajiTitle": "Cocoon: Aru Natsu no Shoujo-tachi yori",
+        "_via": "offline-db"
+      },
+      "tmdbId": 50170,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/ma3OvhntolvV1G90wXMjJuw7VUx.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/yIGUjRF0GQmuqpaCxI3H54HFYnH.jpg"
     },
     "animeav1-kaijuu-8-gou-hoshina-no-kyuujitsu": {
       "status": "no-tmdb-candidates",
-      "anilistId": 179999
+      "anilistId": 179999,
+      "malId": 59490,
+      "meta": {
+        "malId": 59490,
+        "year": 2025,
+        "score": 72,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 1,
+        "format": "SPECIAL",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "production i.g., inc.",
+        "englishTitle": "",
+        "romajiTitle": "Kaijuu 8-gou: Hoshina no Kyuujitsu",
+        "_via": "offline-db"
+      }
     },
     "animeav1-kaijuu-8-gou-movie": {
       "status": "ok",
@@ -11049,7 +11797,28 @@
       }
     },
     "animeav1-mononoke-movie-2-hinezumi": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 179852,
+      "malId": 59408,
+      "meta": {
+        "malId": 59408,
+        "year": 2025,
+        "score": 82,
+        "genres": [],
+        "description": "",
+        "duration": 74,
+        "episodes": 1,
+        "format": "MOVIE",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "crew cell",
+        "englishTitle": "",
+        "romajiTitle": "Mononoke Movie 2: Hinezumi",
+        "_via": "offline-db"
+      },
+      "tmdbId": 1322218,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/wDwfR4rDWRA2fLfLF14SdMOdHOZ.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/tPExtAM958Gx07itJ7nWqSddBQ9.jpg"
     },
     "animeav1-senpai-wa-otokonoko-movie-ame-nochi-hare": {
       "status": "ok",
@@ -11241,7 +12010,28 @@
       }
     },
     "animeav1-hyakkano-ii": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 172258,
+      "malId": 57616,
+      "meta": {
+        "malId": 57616,
+        "year": 2025,
+        "score": 79,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "bibury animation studios",
+        "englishTitle": "",
+        "romajiTitle": "Kimi no Koto ga Daidaidaidaidaisuki na 100-nin no Kanojo 2nd Season",
+        "_via": "offline-db"
+      },
+      "tmdbId": 223564,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/shXdGFZIEaSmiOkVW2BeEaPihuA.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/kBiPU7I7TEJdDXu8tHgVrgL5zAU.jpg"
     },
     "animeav1-sentai-red-isekai-de-boukensha-ni-naru": {
       "status": "ok",
@@ -12080,8 +12870,28 @@
       }
     },
     "animeav1-yami-shibai-14": {
-      "status": "no-tmdb-candidates",
-      "anilistId": 185088
+      "status": "ok",
+      "anilistId": 185088,
+      "malId": 60410,
+      "meta": {
+        "malId": 60410,
+        "year": 2025,
+        "score": 57,
+        "genres": [],
+        "description": "",
+        "duration": 4,
+        "episodes": 13,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "ilca, inc.",
+        "englishTitle": "",
+        "romajiTitle": "Yami Shibai 14",
+        "_via": "offline-db"
+      },
+      "tmdbId": 56559,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/gtwdI7qHNrrLe5R7nWnoDgrbEbV.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/oPFlM3EomXf3HRGYeRBGICIE76.jpg"
     },
     "animeav1-kono-kaisha-ni-suki-na-hito-ga-imasu": {
       "status": "ok",
@@ -12146,10 +12956,30 @@
       }
     },
     "animeav1-neet-kunoichi-to-nazeka-dousei-hajimemashita": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 174654,
       "bestScore": 75,
-      "bestName": "I'm Living with an Otaku NEET Kunoichi!?"
+      "bestName": "I'm Living with an Otaku NEET Kunoichi!?",
+      "malId": 58082,
+      "meta": {
+        "malId": 58082,
+        "year": 2025,
+        "score": 60,
+        "genres": [],
+        "description": "",
+        "duration": 12,
+        "episodes": 24,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "jfk co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "NEET Kunoichi to Nazeka Dousei Hajimemashita",
+        "_via": "offline-db"
+      },
+      "tmdbId": 273048,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/532ZdugTqAT9XH38oA318Eh0gzG.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/jzgixTaVH9SfeOv6bMtNbETyaCZ.jpg"
     },
     "animeav1-ore-dake-level-up-na-ken-season-2": {
       "status": "ok",
@@ -12306,8 +13136,28 @@
       }
     },
     "animeav1-sorairo-utility-tv": {
-      "status": "no-tmdb-candidates",
-      "anilistId": 174596
+      "status": "ok",
+      "anilistId": 174596,
+      "malId": 58066,
+      "meta": {
+        "malId": 58066,
+        "year": 2025,
+        "score": 72,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "studio lings",
+        "englishTitle": "",
+        "romajiTitle": "Sorairo Utility (TV)",
+        "_via": "offline-db"
+      },
+      "tmdbId": 245876,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/1eWI1oR4LexG8PUMXVA1GAIHkKo.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/urwkLwOCg1QBFc17wVB60Rbw5yF.jpg"
     },
     "animeav1-beheneko": {
       "status": "ok",
@@ -12654,19 +13504,76 @@
     },
     "animeav1-high-card-the-flowers-bloom": {
       "status": "no-tmdb-candidates",
-      "anilistId": 176369
+      "anilistId": 176369,
+      "malId": 58531,
+      "meta": {
+        "malId": 58531,
+        "year": 2024,
+        "score": 68,
+        "genres": [],
+        "description": "",
+        "duration": 26,
+        "episodes": 1,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "studio hibari co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "High Card: The Flowers Bloom",
+        "_via": "offline-db"
+      }
     },
     "animeav1-one-piece-gyojin-tou-hen": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 183423,
       "bestScore": 74,
-      "bestName": "One Piece"
+      "bestName": "One Piece",
+      "malId": 60108,
+      "meta": {
+        "malId": 60108,
+        "year": 2024,
+        "score": 79,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 21,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "toei animation co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "One Piece: Gyojin Tou-hen",
+        "_via": "offline-db"
+      },
+      "tmdbId": 37854,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/2rmK7mnchw9Xr3XdiTFSxTTLXqv.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/dB4EDhre2dsC2kxYDavyKWqLQwi.jpg"
     },
     "animeav1-one-piece-fan-letter": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 182469,
       "bestScore": 74,
-      "bestName": "One Piece"
+      "bestName": "One Piece",
+      "malId": 60022,
+      "meta": {
+        "malId": 60022,
+        "year": 2024,
+        "score": 86,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 1,
+        "format": "SPECIAL",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "toei animation co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "One Piece Fan Letter",
+        "_via": "offline-db"
+      },
+      "tmdbId": 37854,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/2rmK7mnchw9Xr3XdiTFSxTTLXqv.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/dB4EDhre2dsC2kxYDavyKWqLQwi.jpg"
     },
     "animeav1-ao-no-miburo": {
       "status": "ok",
@@ -12856,10 +13763,52 @@
       }
     },
     "animeav1-sayounara-ryuusei-konnichiwa-jinsei": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 176053,
+      "malId": 58445,
+      "meta": {
+        "malId": 58445,
+        "year": 2024,
+        "score": 65,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "synergy sp",
+        "englishTitle": "",
+        "romajiTitle": "Sayounara Ryuusei, Konnichiwa Jinsei",
+        "_via": "offline-db"
+      },
+      "tmdbId": 259786,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/yK6dJ0Z28R9PloEAtxltealhNa2.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/n15iwXmYASiAEWUvkfoVKEIoqWq.jpg"
     },
     "animeav1-hoshifuru-oukoku-no-nina": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 171038,
+      "malId": 57362,
+      "meta": {
+        "malId": 57362,
+        "year": 2024,
+        "score": 73,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "signal.md, inc.",
+        "englishTitle": "",
+        "romajiTitle": "Hoshifuru Oukoku no Nina",
+        "_via": "offline-db"
+      },
+      "tmdbId": 240641,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/jwwqnq0h8aTDKiHRKzI1OoGE8xD.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/goE7QiiaRkzVLnwaODRNKarWljv.jpg"
     },
     "animeav1-yarinaoshi-reijou-wa-ryuutei-heika-wo-kouryakuchuu": {
       "status": "ok",
@@ -13108,7 +14057,28 @@
       }
     },
     "animeav1-saikyou-no-shienshoku-wajutsushi-de-aru-ore-wa-sekai-saikyou-clan-wo-shitagaeru": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 177104,
+      "malId": 58714,
+      "meta": {
+        "malId": 58714,
+        "year": 2024,
+        "score": 75,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "felix film",
+        "englishTitle": "",
+        "romajiTitle": "Saikyou no Shienshoku \"Wajutsushi\" de Aru Ore wa Sekai Saikyou Clan wo Shitagaeru",
+        "_via": "offline-db"
+      },
+      "tmdbId": 258580,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/fy229btO53qlYFo1gzrH2cM6jwX.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/yREym2Qanimi40OI1W75df6weNg.jpg"
     },
     "animeav1-ao-no-exorcist-yuki-no-hate-hen": {
       "status": "ok",
@@ -13517,10 +14487,30 @@
       }
     },
     "animeav1-maou-sama-retry-r": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 168500,
       "bestScore": 74,
-      "bestName": "Demon Lord, Retry!"
+      "bestName": "Demon Lord, Retry!",
+      "malId": 56400,
+      "meta": {
+        "malId": 56400,
+        "year": 2024,
+        "score": 61,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "gekkou",
+        "englishTitle": "",
+        "romajiTitle": "Maou-sama, Retry! R",
+        "_via": "offline-db"
+      },
+      "tmdbId": 88044,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/fHd0sO7jgwSqYkzsUXcWTDeMFSn.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/d5hXGaqit05qhYP4cqZs0BUrLG.jpg"
     },
     "animeav1-bleach-sennen-kessen-hen-soukoku-tan": {
       "status": "ok",
@@ -13672,7 +14662,28 @@
       }
     },
     "animeav1-kabushikigaisha-magi-lumiere": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 171025,
+      "malId": 57360,
+      "meta": {
+        "malId": 57360,
+        "year": 2024,
+        "score": 71,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "j.c. staff",
+        "englishTitle": "",
+        "romajiTitle": "Kabushikigaisha Magi-Lumière",
+        "_via": "offline-db"
+      },
+      "tmdbId": 240576,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/6aicKBDCaK0KRpgd2eqN6aQ7Mak.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/rmQjrOxAc3kRMG78NuvN3UVVqds.jpg"
     },
     "animeav1-hitoribocchi-no-isekai-kouryaku": {
       "status": "ok",
@@ -13865,10 +14876,30 @@
       }
     },
     "animeav1-shin-tennis-no-oujisama-u-17-world-cup-semifinal-44": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 165810,
       "bestScore": 74,
-      "bestName": "The Prince of Tennis II: U-17 World Cup"
+      "bestName": "The Prince of Tennis II: U-17 World Cup",
+      "malId": 55570,
+      "meta": {
+        "malId": 55570,
+        "year": 2024,
+        "score": 67,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 13,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "m.s.c. inc.",
+        "englishTitle": "",
+        "romajiTitle": "Shin Tennis no Oujisama: U-17 World Cup Semifinal",
+        "_via": "offline-db"
+      },
+      "tmdbId": 205493,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/x3kTIGpx66VUTlUsPASyfjAlp98.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/mEOTBBxaJ7h4B4Q7rN9MWZ8kkMZ.jpg"
     },
     "animeav1-kinoko-inu": {
       "status": "ok",
@@ -14378,7 +15409,24 @@
     },
     "animeav1-kengan-ashura-season-2-part-2": {
       "status": "no-tmdb-candidates",
-      "anilistId": 169692
+      "anilistId": 169692,
+      "malId": 56704,
+      "meta": {
+        "malId": 56704,
+        "year": 2024,
+        "score": 78,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 16,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "larx entertainment co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Kengan Ashura Season 2 Part 2",
+        "_via": "offline-db"
+      }
     },
     "animeav1-delicos-nursery": {
       "status": "ok",
@@ -14412,7 +15460,28 @@
       }
     },
     "animeav1-yeosin-gangnim": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 152184,
+      "malId": 57192,
+      "meta": {
+        "malId": 57192,
+        "year": 2024,
+        "score": 67,
+        "genres": [],
+        "description": "",
+        "duration": 19,
+        "episodes": 13,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "cocktail media corp.",
+        "englishTitle": "",
+        "romajiTitle": "Yeosin Gangnim",
+        "_via": "offline-db"
+      },
+      "tmdbId": 239779,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/yNQT7fVLhopmytPytN6VVPgrMoX.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/9gpc8kIhNEG7r0VTkyI9aVBxdO3.jpg"
     },
     "animeav1-rising-impact-season-2": {
       "status": "ok",
@@ -14508,7 +15577,28 @@
       }
     },
     "animeav1-mononoke-movie-1-karakasa": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 151117,
+      "malId": 52107,
+      "meta": {
+        "malId": 52107,
+        "year": 2024,
+        "score": 79,
+        "genres": [],
+        "description": "",
+        "duration": 89,
+        "episodes": 1,
+        "format": "MOVIE",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "eota inc.",
+        "englishTitle": "",
+        "romajiTitle": "Mononoke Movie 1: Karakasa",
+        "_via": "offline-db"
+      },
+      "tmdbId": 989730,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/jIJhDofDxf7TCHZSg99YbOLqIsZ.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/s0apanRsR8mIp9jU9WJt9dgdt7Y.jpg"
     },
     "animeav1-sengoku-youko-senma-konton-hen": {
       "status": "ok",
@@ -15165,7 +16255,28 @@
       }
     },
     "animeav1-vtuber-nandaga-haishin-kiri-wasuretara-densetsu-ni-natteta": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 160488,
+      "malId": 54284,
+      "meta": {
+        "malId": 54284,
+        "year": 2024,
+        "score": 69,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "tnk co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "VTuber Nandaga Haishin Kiri Wasuretara Densetsu ni Natteta",
+        "_via": "offline-db"
+      },
+      "tmdbId": 229743,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/1ufrmUqhlB1SdyGN7EbYgUEA4VJ.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/c6eB42kmJWGZgKecme6jhDeNMQr.jpg"
     },
     "animeav1-dungeon-no-naka-no-hito": {
       "status": "ok",
@@ -15230,10 +16341,30 @@
       }
     },
     "animeav1-monogatari-series-off-monster-season": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 173533,
       "bestScore": 66,
-      "bestName": "Monogatari Series: Off & Monster Season"
+      "bestName": "Monogatari Series: Off & Monster Season",
+      "malId": 57864,
+      "meta": {
+        "malId": 57864,
+        "year": 2024,
+        "score": 84,
+        "genres": [],
+        "description": "",
+        "duration": 25,
+        "episodes": 14,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "shaft inc.",
+        "englishTitle": "",
+        "romajiTitle": "Monogatari Series: Off & Monster Season",
+        "_via": "offline-db"
+      },
+      "tmdbId": 46195,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/cHII6sQ91q8H5EMONKCwCQMauCP.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/zCEjjb1NH3LLsWeZx47wOeqkezf.jpg"
     },
     "animeav1-nige-jouzu-no-wakagimi": {
       "status": "ok",
@@ -15359,7 +16490,28 @@
       }
     },
     "animeav1-madougushi-dahliya-wa-utsumukanai": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 168623,
+      "malId": 56449,
+      "meta": {
+        "malId": 56449,
+        "year": 2024,
+        "score": 69,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "imagica infos",
+        "englishTitle": "",
+        "romajiTitle": "Madougushi Dahliya wa Utsumukanai",
+        "_via": "offline-db"
+      },
+      "tmdbId": 233523,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/jFzhOfySHlYXHltt3wjd6A9mEpX.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/avWvTT3xG8NXnxrUOVnYeM64MXf.jpg"
     },
     "animeav1-cardfight-vanguard-divinez-season-2": {
       "status": "ok",
@@ -15427,7 +16579,28 @@
       }
     },
     "animeav1-hazurewaku-no-joutai-ijou-skill-de-saikyou-ni-natta-ore-ga-subete-wo-juurin-suru-made": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 173694,
+      "malId": 57892,
+      "meta": {
+        "malId": 57892,
+        "year": 2024,
+        "score": 67,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "seven arcs co.,ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Hazurewaku no \"Joutai Ijou Skill\" de Saikyou ni Natta Ore ga Subete wo Juurin suru made",
+        "_via": "offline-db"
+      },
+      "tmdbId": 245285,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/wnOyzCLRiTAdmoY8V1Dmk3AWyHg.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/jjpkWZ9LUXoUnh4F65qp7FuFawO.jpg"
     },
     "animeav1-megami-no-cafe-terrace-2nd-season": {
       "status": "ok",
@@ -15648,7 +16821,28 @@
       }
     },
     "animeav1-tasogare-out-focus": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 166700,
+      "malId": 55844,
+      "meta": {
+        "malId": 55844,
+        "year": 2024,
+        "score": 73,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "studio deen co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Tasogare Out Focus",
+        "_via": "offline-db"
+      },
+      "tmdbId": 249409,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/inSxdAuG0f1kNedPZCPkrNn8M6Z.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/21bYoggswt5hFKqqsUBLUx1smHz.jpg"
     },
     "animeav1-tasuuketsu": {
       "status": "ok",
@@ -15714,10 +16908,52 @@
       }
     },
     "animeav1-maougun-saikyou-no-majutsushi-wa-ningen-datta": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 173584,
+      "malId": 57876,
+      "meta": {
+        "malId": 57876,
+        "year": 2024,
+        "score": 65,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "studio a-cat",
+        "englishTitle": "",
+        "romajiTitle": "Maougun Saikyou no Majutsushi wa Ningen datta",
+        "_via": "offline-db"
+      },
+      "tmdbId": 248951,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/iIjfY0Zz6LTn2PTiLEe8baGc48k.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/z0udnWYj8tXjzqYzT6MSBbZ1sMf.jpg"
     },
     "animeav1-tokidoki-bosotto-russia-go-de-dereru-tonari-no-alya-san": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 162804,
+      "malId": 54744,
+      "meta": {
+        "malId": 54744,
+        "year": 2024,
+        "score": 76,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "doga kobo",
+        "englishTitle": "",
+        "romajiTitle": "Tokidoki Bosotto Russia-go de Dereru Tonari no Alya-san",
+        "_via": "offline-db"
+      },
+      "tmdbId": 235758,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/3197ZU1CWDjdFsmqvWPZGXAYaoi.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/hfnzByZIRj6rx8xaxzS2zDilei1.jpg"
     },
     "animeav1-boku-no-tsuma-wa-kanjou-ga-nai": {
       "status": "ok",
@@ -15782,7 +17018,28 @@
       }
     },
     "animeav1-shinmai-ossan-boukensha-saikyou-party-ni-shinu-hodo-kitaerarete-muteki-ni-naru": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 163292,
+      "malId": 54913,
+      "meta": {
+        "malId": 54913,
+        "year": 2024,
+        "score": 74,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "yumeta co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Shinmai Ossan Boukensha, Saikyou Party ni Shinu hodo Kitaerarete Muteki ni Naru.",
+        "_via": "offline-db"
+      },
+      "tmdbId": 250598,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/1Jz9C5BOIjKPEWhm3zWcpDHJ0TT.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/dHxGWlygSNRb97wujSwtEts5snP.jpg"
     },
     "animeav1-look-back": {
       "status": "ok",
@@ -15816,7 +17073,24 @@
     },
     "animeav1-yuru-camp-season-3-specials": {
       "status": "no-tmdb-candidates",
-      "anilistId": 177007
+      "anilistId": 177007,
+      "malId": 58855,
+      "meta": {
+        "malId": 58855,
+        "year": 2024,
+        "score": 77,
+        "genres": [],
+        "description": "",
+        "duration": 7,
+        "episodes": 3,
+        "format": "SPECIAL",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "8-bit",
+        "englishTitle": "",
+        "romajiTitle": "Yuru Camp△ Season 3 Specials",
+        "_via": "offline-db"
+      }
     },
     "animeav1-rising-impact": {
       "status": "ok",
@@ -15914,7 +17188,24 @@
     },
     "animeav1-hanma-baki-vs-kengan-ashura": {
       "status": "no-tmdb-candidates",
-      "anilistId": 176287
+      "anilistId": 176287,
+      "malId": 58510,
+      "meta": {
+        "malId": 58510,
+        "year": 2024,
+        "score": 67,
+        "genres": [],
+        "description": "",
+        "duration": 60,
+        "episodes": 1,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "5th studio",
+        "englishTitle": "",
+        "romajiTitle": "Hanma Baki vs. Kengan Ashura",
+        "_via": "offline-db"
+      }
     },
     "animeav1-uma-musume-pretty-derby-shin-jidai-no-tobira": {
       "status": "ok",
@@ -16012,10 +17303,30 @@
       }
     },
     "animeav1-kimetsu-no-yaiba-hashira-geiko-hen": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 166240,
       "bestScore": 74,
-      "bestName": "Demon Slayer: Kimetsu no Yaiba"
+      "bestName": "Demon Slayer: Kimetsu no Yaiba",
+      "malId": 55701,
+      "meta": {
+        "malId": 55701,
+        "year": 2024,
+        "score": 81,
+        "genres": [],
+        "description": "",
+        "duration": 29,
+        "episodes": 8,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "ufotable, inc.",
+        "englishTitle": "",
+        "romajiTitle": "Kimetsu no Yaiba: Hashira Geiko-hen",
+        "_via": "offline-db"
+      },
+      "tmdbId": 85937,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/3GQKYh6Trm8pxd2AypovoYQf4Ay.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/xUfRZu2mi8jH6SzQEJGP6tjBuYj.jpg"
     },
     "animeav1-trapezium": {
       "status": "ok",
@@ -16263,13 +17574,50 @@
     },
     "animeav1-shadowverse-flame-arc-hen": {
       "status": "no-tmdb-candidates",
-      "anilistId": 172187
+      "anilistId": 172187,
+      "malId": 57614,
+      "meta": {
+        "malId": 57614,
+        "year": 2024,
+        "score": 64,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 23,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "zexcs inc.",
+        "englishTitle": "",
+        "romajiTitle": "Shadowverse Flame: Arc-hen",
+        "_via": "offline-db"
+      }
     },
     "animeav1-kuroshitsuji-kishuku-gakkou-hen": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 166715,
       "bestScore": 74,
-      "bestName": "Black Butler"
+      "bestName": "Black Butler",
+      "malId": 55855,
+      "meta": {
+        "malId": 55855,
+        "year": 2024,
+        "score": 78,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 11,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "cloverworks inc.",
+        "englishTitle": "",
+        "romajiTitle": "Kuroshitsuji: Kishuku Gakkou-hen",
+        "_via": "offline-db"
+      },
+      "tmdbId": 50712,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/5U0dYTkHXPhoExNnEm5iKrpDqtr.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/iXGs130TRoUplHf0o86zp9MqAYc.jpg"
     },
     "animeav1-kenka-dokugaku": {
       "status": "ok",
@@ -16647,8 +17995,28 @@
       }
     },
     "animeav1-hibike-euphonium-3": {
-      "status": "no-tmdb-candidates",
-      "anilistId": 109731
+      "status": "ok",
+      "anilistId": 109731,
+      "malId": 39894,
+      "meta": {
+        "malId": 39894,
+        "year": 2024,
+        "score": 85,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 13,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "kyoto animation co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Hibike! Euphonium 3",
+        "_via": "offline-db"
+      },
+      "tmdbId": 62564,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/jErTDsVzUFwQm7Ox5Un9AsGxukV.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/nY95nbirfKebWxCKEeVWr5AYFmO.jpg"
     },
     "animeav1-the-fable": {
       "status": "ok",
@@ -16716,7 +18084,28 @@
       }
     },
     "animeav1-jiisan-baasan-wakagaeru": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 168138,
+      "malId": 56230,
+      "meta": {
+        "malId": 56230,
+        "year": 2024,
+        "score": 72,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 11,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "gekkou",
+        "englishTitle": "",
+        "romajiTitle": "Jiisan Baasan Wakagaeru",
+        "_via": "offline-db"
+      },
+      "tmdbId": 239853,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/dk7yosf6MZCDloAMXTH3P89Autd.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/x2ne0Z2EoznP3S6kcXB8LFMM1lU.jpg"
     },
     "animeav1-shinigami-bocchan-to-kuro-maid-3rd-season": {
       "status": "ok",
@@ -16874,7 +18263,28 @@
       }
     },
     "animeav1-one-room-hiatari-futsuu-tenshi-tsuki": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 169927,
+      "malId": 56838,
+      "meta": {
+        "malId": 56838,
+        "year": 2024,
+        "score": 70,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "okuruto noboru inc.",
+        "englishTitle": "",
+        "romajiTitle": "One Room, Hiatari Futsuu, Tenshi-tsuki.",
+        "_via": "offline-db"
+      },
+      "tmdbId": 236533,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/1n7IFhSvYknCy34MBDKxTdTRifO.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/zfgAYt8ewfWT7myLY7UgWGDLHsG.jpg"
     },
     "animeav1-boku-no-hero-academia-memories": {
       "status": "ok",
@@ -16998,8 +18408,28 @@
       }
     },
     "animeav1-nijiyon-animation-2": {
-      "status": "no-tmdb-candidates",
-      "anilistId": 172242
+      "status": "ok",
+      "anilistId": 172242,
+      "malId": 57623,
+      "meta": {
+        "malId": 57623,
+        "year": 2024,
+        "score": 68,
+        "genres": [],
+        "description": "",
+        "duration": 3,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "sunrise inc.",
+        "englishTitle": "",
+        "romajiTitle": "Nijiyon Animation 2",
+        "_via": "offline-db"
+      },
+      "tmdbId": 210511,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/prjadMs3yzfqcFgiXEJ70EMFFDL.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/42cSoearjJMFvlqHXiboLv45CdK.jpg"
     },
     "animeav1-mahouka-koukou-no-rettousei-3rd-season": {
       "status": "ok",
@@ -17372,7 +18802,28 @@
       }
     },
     "animeav1-tensei-shitara-dainana-ouji-datta-node-kimama-ni-majutsu-wo-kiwamemasu": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 156415,
+      "malId": 53516,
+      "meta": {
+        "malId": 53516,
+        "year": 2024,
+        "score": 75,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "tsumugi akita animation lab",
+        "englishTitle": "",
+        "romajiTitle": "Tensei shitara Dainana Ouji Datta node, Kimama ni Majutsu wo Kiwamemasu",
+        "_via": "offline-db"
+      },
+      "tmdbId": 213830,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/ed9Mgo1gBO9Za0zAyNIpTvtjTDU.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/ruLkQB8i1yazHgO0QCWpyJRRTs9.jpg"
     },
     "animeav1-ookami-to-koushinryou-merchant-meets-the-wise-wolf": {
       "status": "ok",
@@ -17504,10 +18955,48 @@
     },
     "animeav1-great-pretender-razbliuto": {
       "status": "no-tmdb-candidates",
-      "anilistId": 170935
+      "anilistId": 170935,
+      "malId": 57184,
+      "meta": {
+        "malId": 57184,
+        "year": 2024,
+        "score": 70,
+        "genres": [],
+        "description": "",
+        "duration": 22,
+        "episodes": 4,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "wit studio, inc.",
+        "englishTitle": "",
+        "romajiTitle": "Great Pretender: Razbliuto",
+        "_via": "offline-db"
+      }
     },
     "animeav1-haikyuu-movie-gomisuteba-no-kessen": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 153658,
+      "malId": 52742,
+      "meta": {
+        "malId": 52742,
+        "year": 2024,
+        "score": 85,
+        "genres": [],
+        "description": "",
+        "duration": 84,
+        "episodes": 1,
+        "format": "MOVIE",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "production i.g., inc.",
+        "englishTitle": "",
+        "romajiTitle": "Haikyuu!! Movie: Gomisuteba no Kessen",
+        "_via": "offline-db"
+      },
+      "tmdbId": 1012201,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/cZmOrIOkJ2SNfVdiO85dUbOAYnL.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/ntRU0OA4etGGiMMmH1Yw0bnaMdW.jpg"
     },
     "animeav1-ninja-kamui": {
       "status": "ok",
@@ -17815,10 +19304,30 @@
       }
     },
     "animeav1-cardfight-vanguard-divinez": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 164204,
       "bestScore": 74,
-      "bestName": "CARDFIGHT!! VANGUARD"
+      "bestName": "CARDFIGHT!! VANGUARD",
+      "malId": 54142,
+      "meta": {
+        "malId": 54142,
+        "year": 2024,
+        "score": 65,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 13,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "gift-o'-animation",
+        "englishTitle": "",
+        "romajiTitle": "Cardfight!! Vanguard: Divinez",
+        "_via": "offline-db"
+      },
+      "tmdbId": 106301,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/1uuWlEEAZHnPX1VnwqJc7pfo2YM.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/arGGGiyE2CK4CJ0hPfoyR0Knkvh.jpg"
     },
     "animeav1-saijaku-tamer-wa-gomi-hiroi-no-tabi-wo-hajimemashita": {
       "status": "ok",
@@ -18135,7 +19644,28 @@
       }
     },
     "animeav1-himesama-goumon-no-jikan-desu": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 166522,
+      "malId": 55774,
+      "meta": {
+        "malId": 55774,
+        "year": 2024,
+        "score": 71,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "pine jam",
+        "englishTitle": "",
+        "romajiTitle": "Himesama \"Goumon\" no Jikan desu",
+        "_via": "offline-db"
+      },
+      "tmdbId": 229443,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/l0siB5HPobsiQgU7GfOEAV28Gx5.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/xAC9rRQRVcW9bpv6bYZA5d5To0Y.jpg"
     },
     "animeav1-akuyaku-reijou-level-99-watashi-wa-ura-boss-desu-ga-maou-dewa-arimasen": {
       "status": "ok",
@@ -18980,7 +20510,24 @@
     },
     "animeav1-burn-the-witch-08": {
       "status": "no-tmdb-candidates",
-      "anilistId": 169362
+      "anilistId": 169362,
+      "malId": 56671,
+      "meta": {
+        "malId": 56671,
+        "year": 2023,
+        "score": 75,
+        "genres": [],
+        "description": "",
+        "duration": 28,
+        "episodes": 1,
+        "format": "SPECIAL",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "studio colorido co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Burn the Witch #0.8",
+        "_via": "offline-db"
+      }
     },
     "animeav1-spy-x-family-movie-code-white": {
       "status": "ok",
@@ -19048,7 +20595,24 @@
     },
     "animeav1-boku-no-kokoro-no-yabai-yatsu-twi-yaba": {
       "status": "no-tmdb-candidates",
-      "anilistId": 170221
+      "anilistId": 170221,
+      "malId": 56948,
+      "meta": {
+        "malId": 56948,
+        "year": 2023,
+        "score": 78,
+        "genres": [],
+        "description": "",
+        "duration": 21,
+        "episodes": 1,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "shin-ei animation co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Boku no Kokoro no Yabai Yatsu: Twi-Yaba",
+        "_via": "offline-db"
+      }
     },
     "animeav1-otome-game-no-hametsu-flag-shika-nai-akuyaku-reijou-ni-tensei-shiteshimatta-movie": {
       "status": "ok",
@@ -19115,10 +20679,30 @@
       }
     },
     "animeav1-tensei-shitara-slime-datta-ken-coleus-no-yume": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 161802,
       "bestScore": 74,
-      "bestName": "That Time I Got Reincarnated as a Slime"
+      "bestName": "That Time I Got Reincarnated as a Slime",
+      "malId": 54565,
+      "meta": {
+        "malId": 54565,
+        "year": 2023,
+        "score": 77,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 3,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "8 bit",
+        "englishTitle": "",
+        "romajiTitle": "Tensei shitara Slime Datta Ken: Coleus no Yume",
+        "_via": "offline-db"
+      },
+      "tmdbId": 82684,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/eJOy7YWAHgOS3V477sdTsq4v9jp.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/pzujcdPAoH361NObVrtbA7zACE7.jpg"
     },
     "animeav1-pluto": {
       "status": "ok",
@@ -19218,10 +20802,30 @@
       }
     },
     "animeav1-boku-no-hero-academia-ua-heroes-battle": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 169402,
       "bestScore": 63,
-      "bestName": "My Hero Academia - U.A. Heroes Battle"
+      "bestName": "My Hero Academia - U.A. Heroes Battle",
+      "malId": 56685,
+      "meta": {
+        "malId": 56685,
+        "year": 2023,
+        "score": 69,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 1,
+        "format": "MOVIE",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "bones inc.",
+        "englishTitle": "",
+        "romajiTitle": "Boku no Hero Academia: UA Heroes Battle",
+        "_via": "offline-db"
+      },
+      "tmdbId": 1621093,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/ouve2EuoSKNZOUpptCwKPNqQGf0.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/uyc8SrjuqSUlqrFG1p0tdclhTfY.jpg"
     },
     "animeav1-houkago-shounen-hanako-kun": {
       "status": "ok",
@@ -19412,7 +21016,28 @@
       }
     },
     "animeav1-hyakkano": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 162694,
+      "malId": 54714,
+      "meta": {
+        "malId": 54714,
+        "year": 2023,
+        "score": 76,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "bibury animation studios",
+        "englishTitle": "",
+        "romajiTitle": "Kimi no Koto ga Daidaidaidaidaisuki na 100-nin no Kanojo",
+        "_via": "offline-db"
+      },
+      "tmdbId": 223564,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/shXdGFZIEaSmiOkVW2BeEaPihuA.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/kBiPU7I7TEJdDXu8tHgVrgL5zAU.jpg"
     },
     "animeav1-bokura-no-ame-iro-protocol": {
       "status": "ok",
@@ -19630,10 +21255,30 @@
       }
     },
     "animeav1-kanojo-mo-kanojo-season-2": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 154692,
       "bestScore": 60,
-      "bestName": "Clumsy Girlfriend Season 2"
+      "bestName": "Clumsy Girlfriend Season 2",
+      "malId": 53040,
+      "meta": {
+        "malId": 53040,
+        "year": 2023,
+        "score": 72,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "synergy sp",
+        "englishTitle": "",
+        "romajiTitle": "Kanojo mo Kanojo Season 2",
+        "_via": "offline-db"
+      },
+      "tmdbId": 113137,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/fq0DXgxDLgoilru3M7XVzKjGbOm.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/6vvqfs1Q4lDFhlzSNO5bWY4I4S.jpg"
     },
     "animeav1-kibou-no-chikara-otona-precure-23": {
       "status": "ok",
@@ -20874,7 +22519,24 @@
     },
     "animeav1-nanatsu-no-taizai-ensa-no-edinburgh-part-2": {
       "status": "no-tmdb-candidates",
-      "anilistId": 162291
+      "anilistId": 162291,
+      "malId": 53911,
+      "meta": {
+        "malId": 53911,
+        "year": 2023,
+        "score": 68,
+        "genres": [],
+        "description": "",
+        "duration": 54,
+        "episodes": 1,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "alfred imageworks",
+        "englishTitle": "",
+        "romajiTitle": "Nanatsu no Taizai: Ensa no Edinburgh Part 2",
+        "_via": "offline-db"
+      }
     },
     "animeav1-hibike-euphonium-ensemble-contest-hen": {
       "status": "ok",
@@ -21067,16 +22729,56 @@
       }
     },
     "animeav1-shiro-seijo-to-kuro-bokushi": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 150972,
       "bestScore": 70,
-      "bestName": "Saint Cecilia and Pastor Lawrence"
+      "bestName": "Saint Cecilia and Pastor Lawrence",
+      "malId": 52082,
+      "meta": {
+        "malId": 52082,
+        "year": 2023,
+        "score": 73,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "doga kobo",
+        "englishTitle": "",
+        "romajiTitle": "Shiro Seijo to Kuro Bokushi",
+        "_via": "offline-db"
+      },
+      "tmdbId": 204148,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/e2v5VheLqWA7arwfIcGkmuzipmd.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/4Twu5WXhRfbBsJwSZEqqMKrwyvj.jpg"
     },
     "animeav1-tonikaku-kawaii-joshikou-hen": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 166104,
       "bestScore": 74,
-      "bestName": "TONIKAWA: Over the Moon for You"
+      "bestName": "TONIKAWA: Over the Moon for You",
+      "malId": 55651,
+      "meta": {
+        "malId": 55651,
+        "year": 2023,
+        "score": 78,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 4,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "seven arcs co.,ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Tonikaku Kawaii: Joshikou-hen",
+        "_via": "offline-db"
+      },
+      "tmdbId": 100049,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/rnf2BDKeF1sxPEPhAcdvL0auuxr.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/jJKTrIfZKoFV66HGMzSa4tkObK0.jpg"
     },
     "animeav1-helck": {
       "status": "ok",
@@ -22078,7 +23780,24 @@
     },
     "animeav1-fate-strange-fake-whispers-of-dawn": {
       "status": "no-tmdb-candidates",
-      "anilistId": 154966
+      "anilistId": 154966,
+      "malId": 53127,
+      "meta": {
+        "malId": 53127,
+        "year": 2023,
+        "score": 80,
+        "genres": [],
+        "description": "",
+        "duration": 55,
+        "episodes": 1,
+        "format": "SPECIAL",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "a-1 pictures inc.",
+        "englishTitle": "",
+        "romajiTitle": "Fate/strange Fake: Whispers of Dawn",
+        "_via": "offline-db"
+      }
     },
     "animeav1-ryza-no-atelier-tokoyami-no-joou-to-himitsu-no-kakurega": {
       "status": "ok",
@@ -22302,7 +24021,28 @@
       }
     },
     "animeav1-biao-ren": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 122508,
+      "malId": 44388,
+      "meta": {
+        "malId": 44388,
+        "year": 2023,
+        "score": 76,
+        "genres": [],
+        "description": "",
+        "duration": 20,
+        "episodes": 15,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "chongqing caise qianbi dongman sheji youxian zeren gongsi",
+        "englishTitle": "",
+        "romajiTitle": "Biao Ren",
+        "_via": "offline-db"
+      },
+      "tmdbId": 107463,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/r56087oqO4gJrK5HI0Lxu07mMXQ.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/ck4VbauqthkMldF661byC693ify.jpg"
     },
     "animeav1-tenchi-muyou-gxp-paradise-shidou-hen": {
       "status": "ok",
@@ -22369,10 +24109,30 @@
       }
     },
     "animeav1-yahari-ore-no-seishun-love-comedy-wa-machigatteiru-kan-ova": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 128643,
       "bestScore": 74,
-      "bestName": "My Teen Romantic Comedy SNAFU"
+      "bestName": "My Teen Romantic Comedy SNAFU",
+      "malId": 46431,
+      "meta": {
+        "malId": 46431,
+        "year": 2023,
+        "score": 78,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 1,
+        "format": "OVA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "feel.",
+        "englishTitle": "",
+        "romajiTitle": "Yahari Ore no Seishun Love Comedy wa Machigatteiru. Kan: Dakara, Shishunki wa Owarazu ni, Seishun wa Tsuzuiteiku.",
+        "_via": "offline-db"
+      },
+      "tmdbId": 65676,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/5VL7HC4aeLhepAaGxaQBUBWgIGo.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/sb5MNoeZGHX21qvtwhmizUsJJqq.jpg"
     },
     "animeav1-aishang-ta-de-liyou": {
       "status": "ok",
@@ -22561,8 +24321,28 @@
       }
     },
     "animeav1-majutsushi-orphen-hagure-tabi-seiiki-hen": {
-      "status": "no-tmdb-candidates",
-      "anilistId": 163417
+      "status": "ok",
+      "anilistId": 163417,
+      "malId": 54738,
+      "meta": {
+        "malId": 54738,
+        "year": 2023,
+        "score": 65,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "studio deen co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Majutsushi Orphen Hagure Tabi: Seiiki-hen",
+        "_via": "offline-db"
+      },
+      "tmdbId": 91764,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/cFrLAsCYifsl2XuJcyvBXAybrOR.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/nWXrfd7HjbhRFTV3L2BPSNF0SK5.jpg"
     },
     "animeav1-dead-mount-death-play": {
       "status": "ok",
@@ -22750,10 +24530,30 @@
       }
     },
     "animeav1-kimetsu-no-yaiba-katanakaji-no-sato-hen": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 145139,
       "bestScore": 74,
-      "bestName": "Demon Slayer: Kimetsu no Yaiba"
+      "bestName": "Demon Slayer: Kimetsu no Yaiba",
+      "malId": 51019,
+      "meta": {
+        "malId": 51019,
+        "year": 2023,
+        "score": 83,
+        "genres": [],
+        "description": "",
+        "duration": 28,
+        "episodes": 11,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "ufotable, inc.",
+        "englishTitle": "",
+        "romajiTitle": "Kimetsu no Yaiba: Katanakaji no Sato-hen",
+        "_via": "offline-db"
+      },
+      "tmdbId": 85937,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/3GQKYh6Trm8pxd2AypovoYQf4Ay.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/xUfRZu2mi8jH6SzQEJGP6tjBuYj.jpg"
     },
     "animeav1-jijou-wo-shiranai-tenkousei-ga-guigui-kuru": {
       "status": "ok",
@@ -23069,10 +24869,30 @@
       }
     },
     "animeav1-isekai-de-cheat-skill-wo-te-ni-shita-ore-wa-genjitsu-sekai-wo-mo-musou-suru-level-up-wa-jinsei-wo-kaeta": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 170110,
       "bestScore": 74,
-      "bestName": "I Got a Cheat Skill in Another World and Became Unrivaled in the Real World, Too"
+      "bestName": "I Got a Cheat Skill in Another World and Became Unrivaled in the Real World, Too",
+      "malId": 56906,
+      "meta": {
+        "malId": 56906,
+        "year": 2026,
+        "score": 71,
+        "genres": [],
+        "description": "",
+        "duration": 47,
+        "episodes": 1,
+        "format": "SPECIAL",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "millepensee co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Isekai de Cheat Skill wo Te ni Shita Ore wa, Genjitsu Sekai wo mo Musou Suru: Level Up wa Jinsei wo Kaeta (TV Special)",
+        "_via": "offline-db"
+      },
+      "tmdbId": 208493,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/xi5O2Cxmss0pY7QgTBzUvSu9Ugk.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/dXrUejdxJFgk6FGoB8V3VQhYsjJ.jpg"
     },
     "animeav1-dr-stone-new-world": {
       "status": "ok",
@@ -23746,13 +25566,50 @@
       }
     },
     "animeav1-shingeki-no-kyojin-the-final-season-kanketsu-hen": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 162314,
       "bestScore": 74,
-      "bestName": "Attack on Titan"
+      "bestName": "Attack on Titan",
+      "meta": {
+        "malId": null,
+        "year": 2023,
+        "score": 87,
+        "genres": [],
+        "description": "",
+        "duration": 85,
+        "episodes": 1,
+        "format": "SPECIAL",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "mappa",
+        "englishTitle": "",
+        "romajiTitle": "Attack on Titan: The Final Season - Final Chapters Part 2",
+        "_via": "offline-db"
+      },
+      "tmdbId": 1429,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/rqbCbjB19amtOtFQbb3K2lgm2zv.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg"
     },
     "animeav1-buddy-daddies-intermission-cherry-pick": {
-      "status": "anilist-failed"
+      "status": "anilist-failed",
+      "anilistId": null,
+      "malId": 54656,
+      "meta": {
+        "malId": 54656,
+        "year": 2023,
+        "score": 70,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 1,
+        "format": "SPECIAL",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "p.a. works co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Buddy Daddies Intermission: Cherry-Pick",
+        "_via": "offline-db"
+      }
     },
     "animeav1-sasaki-to-miyano-movie-sotsugyou-hen": {
       "status": "ok",
@@ -23847,7 +25704,24 @@
     },
     "animeav1-lupin-iii-vs-cats-eye": {
       "status": "no-tmdb-candidates",
-      "anilistId": 154924
+      "anilistId": 154924,
+      "malId": 53109,
+      "meta": {
+        "malId": 53109,
+        "year": 2023,
+        "score": 68,
+        "genres": [],
+        "description": "",
+        "duration": 91,
+        "episodes": 1,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "moe",
+        "englishTitle": "",
+        "romajiTitle": "Lupin III vs. Cat's Eye",
+        "_via": "offline-db"
+      }
     },
     "animeav1-itou-junji-maniac": {
       "status": "ok",
@@ -25010,7 +26884,28 @@
       }
     },
     "animeav1-oniichan-wa-oshimai": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 147864,
+      "malId": 51678,
+      "meta": {
+        "malId": 51678,
+        "year": 2023,
+        "score": 76,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "studio bind",
+        "englishTitle": "",
+        "romajiTitle": "Oniichan wa Oshimai!",
+        "_via": "offline-db"
+      },
+      "tmdbId": 198152,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/15r7AEj3rxEAjGbdPv7zafeX7Ub.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/tpvVSr6ThPQFISYc9xRVR7MKjDF.jpg"
     },
     "animeav1-tomo-chan-wa-onnanoko": {
       "status": "ok",
@@ -25139,7 +27034,24 @@
     },
     "animeav1-nanatsu-no-taizai-ensa-no-edinburgh": {
       "status": "no-tmdb-candidates",
-      "anilistId": 141352
+      "anilistId": 141352,
+      "malId": 50315,
+      "meta": {
+        "malId": 50315,
+        "year": 2022,
+        "score": 65,
+        "genres": [],
+        "description": "",
+        "duration": 52,
+        "episodes": 1,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "alfred imageworks",
+        "englishTitle": "",
+        "romajiTitle": "Nanatsu no Taizai: Ensa no Edinburgh",
+        "_via": "offline-db"
+      }
     },
     "animeav1-kaguya-sama-wa-kokurasetai-first-kiss-wa-owaranai": {
       "status": "ok",
@@ -25174,8 +27086,28 @@
       }
     },
     "animeav1-yi-ren-zhi-xia-5": {
-      "status": "no-tmdb-candidates",
-      "anilistId": 142298
+      "status": "ok",
+      "anilistId": 142298,
+      "malId": 51191,
+      "meta": {
+        "malId": 51191,
+        "year": 2022,
+        "score": 70,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "qiyuan yinghua",
+        "englishTitle": "",
+        "romajiTitle": "Yi Ren Zhi Xia 5",
+        "_via": "offline-db"
+      },
+      "tmdbId": 67063,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/tRQMZPYWQTOygIeGZ7rmmQaeq1z.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/i3Vg5SKaWWNjMvK3CsuK5itIrzG.jpg"
     },
     "animeav1-oemojisangjuui": {
       "status": "ok",
@@ -25271,10 +27203,30 @@
       }
     },
     "animeav1-tonikaku-kawaii-seifuku": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 141212,
       "bestScore": 74,
-      "bestName": "TONIKAWA: Over the Moon for You"
+      "bestName": "TONIKAWA: Over the Moon for You",
+      "malId": 51533,
+      "meta": {
+        "malId": 51533,
+        "year": 2022,
+        "score": 78,
+        "genres": [],
+        "description": "",
+        "duration": 22,
+        "episodes": 1,
+        "format": "SPECIAL",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "seven arcs co.,ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Tonikaku Kawaii: Seifuku",
+        "_via": "offline-db"
+      },
+      "tmdbId": 100049,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/rnf2BDKeF1sxPEPhAcdvL0auuxr.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/jJKTrIfZKoFV66HGMzSa4tkObK0.jpg"
     },
     "animeav1-suzume-no-tojimari": {
       "status": "ok",
@@ -25561,7 +27513,24 @@
       "status": "rejected",
       "anilistId": 152207,
       "bestScore": 6,
-      "bestName": "One Morning, My Hair was in Poor Condition, and my Life Began"
+      "bestName": "One Morning, My Hair was in Poor Condition, and my Life Began",
+      "malId": 52381,
+      "meta": {
+        "malId": 52381,
+        "year": 2022,
+        "score": 53,
+        "genres": [],
+        "description": "",
+        "duration": 3,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "ekachi epilka",
+        "englishTitle": "",
+        "romajiTitle": "Aru Asa Dummy Head Mic ni Natteita Ore-kun no Jinsei",
+        "_via": "offline-db"
+      }
     },
     "animeav1-chainsaw-man": {
       "status": "ok",
@@ -25723,10 +27692,30 @@
       }
     },
     "animeav1-yowamushi-pedal-limit-break": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 142481,
       "bestScore": 74,
-      "bestName": "Yowamushi Pedal"
+      "bestName": "Yowamushi Pedal",
+      "malId": 50552,
+      "meta": {
+        "malId": 50552,
+        "year": 2022,
+        "score": 74,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 25,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "die4studio",
+        "englishTitle": "",
+        "romajiTitle": "Yowamushi Pedal: Limit Break",
+        "_via": "offline-db"
+      },
+      "tmdbId": 61441,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/3t5i6QjBmi8VPqTtYfvkzWPnqzO.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/688PJsb1sVWgosrQCbwT32vJKfI.jpg"
     },
     "animeav1-blue-lock": {
       "status": "ok",
@@ -26129,10 +28118,30 @@
       }
     },
     "animeav1-yama-no-susume-next-summit": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 131182,
       "bestScore": 74,
-      "bestName": "Encouragement of Climb"
+      "bestName": "Encouragement of Climb",
+      "malId": 48491,
+      "meta": {
+        "malId": 48491,
+        "year": 2022,
+        "score": 76,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "8 bit",
+        "englishTitle": "",
+        "romajiTitle": "Yama no Susume: Next Summit",
+        "_via": "offline-db"
+      },
+      "tmdbId": 53918,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/eH872k9IyD3I1FBuffEqwLDzUti.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/qg4YOcTbw9DTMO3Fo1ZZBmadcQh.jpg"
     },
     "animeav1-kage-no-jitsuryokusha-ni-naritakute": {
       "status": "ok",
@@ -26600,7 +28609,28 @@
       }
     },
     "animeav1-akuyaku-reijou-nanode-last-boss-wo-kattemimashita": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 139820,
+      "malId": 49979,
+      "meta": {
+        "malId": 49979,
+        "year": 2022,
+        "score": 72,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "maho film co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Akuyaku Reijou nanode Last Boss wo Kattemimashita",
+        "_via": "offline-db"
+      },
+      "tmdbId": 135334,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/9kwmwW7TnG7yjrlqbZgp8hGK9M7.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/dI52sNRWyrskfnM67ssqCHgLvoD.jpg"
     },
     "animeav1-xian-wang-de-richang-shenghuo-3": {
       "status": "ok",
@@ -26824,7 +28854,28 @@
       }
     },
     "animeav1-long-zu-episode-0": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": null,
+      "malId": 52890,
+      "meta": {
+        "malId": 52890,
+        "year": 2022,
+        "score": 75,
+        "genres": [],
+        "description": "",
+        "duration": 47,
+        "episodes": 1,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "garden culture",
+        "englishTitle": "",
+        "romajiTitle": "Long Zu Episode 0",
+        "_via": "offline-db"
+      },
+      "tmdbId": 107255,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/16oOT4iNCEnYXByMYhNGto5a32g.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/4OxjZt3Evt0UY65Ozr4C4S895CO.jpg"
     },
     "animeav1-long-zu": {
       "status": "ok",
@@ -26955,10 +29006,30 @@
       }
     },
     "animeav1-saint-seiya-knights-of-the-zodiac-battle-sanctuary": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 151659,
       "bestScore": 74,
-      "bestName": "SAINT SEIYA: Knights of the Zodiac"
+      "bestName": "SAINT SEIYA: Knights of the Zodiac",
+      "malId": 52273,
+      "meta": {
+        "malId": 52273,
+        "year": 2022,
+        "score": 61,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "toei animation",
+        "englishTitle": "",
+        "romajiTitle": "Saint Seiya: Knights of the Zodiac - Battle Sanctuary",
+        "_via": "offline-db"
+      },
+      "tmdbId": 90855,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/lA3MKdT3QOrYGe5dg7Uzuceu8zZ.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/yzfjuIkWzO0ImMEgg9fMHDzR3JP.jpg"
     },
     "animeav1-sasaki-to-miyano-koi-ni-kizuku-mae-no-chotto-shita-hanashi": {
       "status": "ok",
@@ -27179,8 +29250,28 @@
       }
     },
     "animeav1-dr-stone-ryuusui": {
-      "status": "no-tmdb-candidates",
-      "anilistId": 142876
+      "status": "ok",
+      "anilistId": 142876,
+      "malId": 50612,
+      "meta": {
+        "malId": 50612,
+        "year": 2022,
+        "score": 81,
+        "genres": [],
+        "description": "",
+        "duration": 54,
+        "episodes": 1,
+        "format": "SPECIAL",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "die studio",
+        "englishTitle": "",
+        "romajiTitle": "Dr. Stone: Ryuusui",
+        "_via": "offline-db"
+      },
+      "tmdbId": 86031,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/lN13BPAEnc5iXmoxxBQHOZ1ScfZ.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/xbZQ3fDl0y5mt0ARwfeyrgQ4JTw.jpg"
     },
     "animeav1-extreme-hearts": {
       "status": "ok",
@@ -27403,7 +29494,28 @@
       }
     },
     "animeav1-isekai-ojisan": {
-      "status": "anilist-failed"
+      "status": "ok",
+      "anilistId": 135806,
+      "malId": 49220,
+      "meta": {
+        "malId": 49220,
+        "year": 2022,
+        "score": 78,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 13,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "atelier pontdarc co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Isekai Ojisan",
+        "_via": "offline-db"
+      },
+      "tmdbId": 127714,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/piMRImsn3ZQerFmPdAoXgmOpc7R.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/ixYH9Ngm3IcPtK4964jbvB0Czi9.jpg"
     },
     "animeav1-isekai-meikyuu-de-harem-wo": {
       "status": "ok",
@@ -27536,10 +29648,30 @@
       }
     },
     "animeav1-jashin-chan-dropkick-x": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 124641,
       "bestScore": 34,
-      "bestName": "Drop Kick on My Devil!!"
+      "bestName": "Drop Kick on My Devil!!",
+      "malId": 42994,
+      "meta": {
+        "malId": 42994,
+        "year": 2022,
+        "score": 74,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "nomad inc.",
+        "englishTitle": "",
+        "romajiTitle": "Jashin-chan Dropkick X",
+        "_via": "offline-db"
+      },
+      "tmdbId": 80713,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/sDsqY4NbzreMACikux3m7jP3YN8.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/a3cpB2Nd8XEsuZdY2cwUXx77H7p.jpg"
     },
     "animeav1-overlord-iv": {
       "status": "ok",
@@ -27730,16 +29862,56 @@
       }
     },
     "animeav1-utawarerumono-futari-no-hakuoro": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 112640,
       "bestScore": 74,
-      "bestName": "Utawarerumono"
+      "bestName": "Utawarerumono",
+      "malId": 40590,
+      "meta": {
+        "malId": 40590,
+        "year": 2022,
+        "score": 74,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 28,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "white fox co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Utawarerumono: Futari no Hakuoro",
+        "_via": "offline-db"
+      },
+      "tmdbId": 46412,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/61wohujGWIWPRFxereT1o7uCArN.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/9skPAAxMLG25aYROr3UT1JJi9UQ.jpg"
     },
     "animeav1-kanojo-okarishimasu-2nd-season": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 124410,
       "bestScore": 53,
-      "bestName": "Rental a Girlfriend"
+      "bestName": "Rental a Girlfriend",
+      "malId": 42963,
+      "meta": {
+        "malId": 42963,
+        "year": 2022,
+        "score": 70,
+        "genres": [],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "studio comet",
+        "englishTitle": "",
+        "romajiTitle": "Kanojo, Okarishimasu 2nd Season",
+        "_via": "offline-db"
+      },
+      "tmdbId": 96316,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/ullfy98STkno11rDGi44SK6llwx.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/6ZpDPUNtVw6UdJoStvVlRZ62yAi.jpg"
     },
     "animeav1-bakuten-movie": {
       "status": "ok",
@@ -27896,20 +30068,91 @@
       }
     },
     "animeav1-ani-ni-tsukeru-kusuri-wa-nai-5": {
-      "status": "no-tmdb-candidates",
-      "anilistId": 137734
+      "status": "ok",
+      "anilistId": 137734,
+      "malId": 49599,
+      "meta": {
+        "malId": 49599,
+        "year": 2022,
+        "score": 74,
+        "genres": [],
+        "description": "",
+        "duration": 3,
+        "episodes": 12,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "fanworks",
+        "englishTitle": "",
+        "romajiTitle": "Ani ni Tsukeru Kusuri wa Nai! 5",
+        "_via": "offline-db"
+      },
+      "tmdbId": 70972,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/nhiFpVOTBNyFHO3Ba57LTmyIWqG.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/zCBGfrrCMu3axBk2UgCuEBAFrPn.jpg"
     },
     "animeav1-yuusha-yamemasu-kenshuu-ryokou-wa-mokuteki-wo-miushinau-na": {
       "status": "no-tmdb-candidates",
-      "anilistId": 151126
+      "anilistId": 151126,
+      "malId": 51562,
+      "meta": {
+        "malId": 51562,
+        "year": 2022,
+        "score": 69,
+        "genres": [],
+        "description": "",
+        "duration": 11,
+        "episodes": 2,
+        "format": "SPECIAL",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "emt squared",
+        "englishTitle": "",
+        "romajiTitle": "Yuusha, Yamemasu: Kenshuu Ryokou wa Mokuteki wo Miushinau na",
+        "_via": "offline-db"
+      }
     },
     "animeav1-spriggan-ona": {
       "status": "no-tmdb-candidates",
-      "anilistId": 108353
+      "anilistId": 108353,
+      "malId": 39489,
+      "meta": {
+        "malId": 39489,
+        "year": 2022,
+        "score": 70,
+        "genres": [],
+        "description": "",
+        "duration": 45,
+        "episodes": 6,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "david production inc.",
+        "englishTitle": "",
+        "romajiTitle": "Spriggan (ONA)",
+        "_via": "offline-db"
+      }
     },
     "animeav1-boku-no-hero-academia-ona": {
       "status": "no-tmdb-candidates",
-      "anilistId": 149073
+      "anilistId": 149073,
+      "malId": 51781,
+      "meta": {
+        "malId": 51781,
+        "year": 2022,
+        "score": 70,
+        "genres": [],
+        "description": "",
+        "duration": 23,
+        "episodes": 2,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "bones inc.",
+        "englishTitle": "",
+        "romajiTitle": "Boku no Hero Academia (ONA)",
+        "_via": "offline-db"
+      }
     },
     "animeav1-dragon-ball-super-super-hero": {
       "status": "ok",
@@ -28095,5 +30338,5 @@
       }
     }
   },
-  "metadataGeneratedAt": "2026-09-02T11:29:22.365Z"
+  "metadataGeneratedAt": "2026-09-02T23:20:19.813Z"
 }

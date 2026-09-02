@@ -206,7 +206,10 @@ let ids = [...idToKeys.keys()];
 if (LIMIT) ids = ids.slice(0, LIMIT);
 
 console.log(`map has ${keys.length} entries; ${ids.length} unique AniList ids need metadata`);
-if (!ids.length) { console.log("nothing to do"); process.exit(0); }
+// No early exit when AniList has nothing to do: the Jikan pass below still has
+// synopsis and genres to fill in for rows resolved from the offline database, and
+// exiting here skipped it entirely.
+if (!ids.length) console.log("no AniList lookups needed");
 
 const batches = [];
 for (let i = 0; i < ids.length; i += BATCH) batches.push(ids.slice(i, i + BATCH));
@@ -240,19 +243,40 @@ for (let i = 0; i < batches.length; i++) {
 
 // Anything AniList could not deliver, but for which a malId is known, gets one
 // more chance through Jikan. Jikan allows 3 req/s; 400ms stays inside that.
+// Two kinds of work here:
+//   - entries with no metadata at all
+//   - entries whose metadata came from the offline database, which carries no
+//     synopsis and no genres (its tags are not genres). Those render as a bare
+//     "TV - 2026" with no description, so Jikan fills in what the database cannot.
+// Existing values are never overwritten: only genuinely empty fields are filled.
 const leftover = Object.keys(entries).filter((k) => {
   const e = entries[k];
-  return e && !e.meta && (e.malId || e.meta?.malId);
+  if (!e || !e.malId) return false;
+  if (!e.meta) return true;
+  return !e.meta.description || !(e.meta.genres || []).length;
 });
 if (leftover.length) {
-  console.log(`\n${leftover.length} entries still without metadata but with a malId - trying Jikan`);
-  let viaJikan = 0;
+  console.log(`\n${leftover.length} entries with a malId need metadata or a synopsis/genres top-up - trying Jikan`);
+  let filled = 0, topped = 0;
   for (const key of leftover) {
     await sleep(400);
-    const meta = await jikanMeta(entries[key].malId);
-    if (meta) { entries[key].meta = meta; viaJikan++; }
+    const fresh = await jikanMeta(entries[key].malId);
+    if (!fresh) continue;
+    const cur = entries[key].meta;
+    if (!cur) { entries[key].meta = fresh; filled++; continue; }
+    let changed = false;
+    for (const field of ["description", "genres", "englishTitle", "studio", "duration", "episodes", "score", "year", "format", "airingStatus"]) {
+      const empty = cur[field] === null || cur[field] === undefined || cur[field] === ""
+        || (Array.isArray(cur[field]) && !cur[field].length);
+      if (empty && fresh[field] !== null && fresh[field] !== undefined && fresh[field] !== ""
+        && !(Array.isArray(fresh[field]) && !fresh[field].length)) {
+        cur[field] = fresh[field];
+        changed = true;
+      }
+    }
+    if (changed) topped++;
   }
-  console.log(`  resolved ${viaJikan}/${leftover.length} through Jikan`);
+  console.log(`  filled ${filled} from empty, topped up ${topped} offline-db entries`);
 }
 
 raw.entries = entries;
