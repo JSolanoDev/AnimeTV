@@ -7991,7 +7991,12 @@ body.adult-mode .watch-backdrop-title-rule {
    copy behind it (.watch-backdrop-blur) carry the rest of the frame. */
 .watch-backdrop.is-poster-fit {
   background-size: auto min(94%, 40rem);
-  background-position: 80% 10%;
+  /* Seat the art just LEFT of the episode panel, with a real gutter. A flat 80%
+     put it underneath: the panel is clamp(21rem, 27vw, 30rem) wide, which starts
+     between 63% (at 900px) and 75% (at 1920px) of the viewport, so no single
+     percentage clears it at every width. Anchoring the image's right edge to the
+     panel's own width expression does, exactly, at any width. */
+  background-position: right calc(clamp(21rem, 27vw, 30rem) + 5rem) top 10%;
   background-repeat: no-repeat;
   animation: none;
 }
@@ -7999,7 +8004,10 @@ body.adult-mode .watch-backdrop-title-rule {
    behind them makes both unreadable - and the same poster already appears as its
    own card immediately below. Keep just the blurred fill there. !important
    because setBackdropArt writes background-image as an inline style. */
-@media (max-width: 760px) {
+/* 860px, matching .watch-overlay.cinematic .watch-panel: below it the episode
+   panel stacks underneath, the title sits on top of the hero, and the poster
+   already has its own card below - so the sharp layer only fights the text. */
+@media (max-width: 860px) {
   .watch-overlay:not([hidden]) .watch-backdrop.is-poster-fit {
     background-image: none !important;
   }
