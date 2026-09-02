@@ -8067,6 +8067,12 @@ function anilistSearchVariants(raw) {
     variants.push(text);
   };
   add(raw.replace(/-/g, ""));                       // Tenkou-saki -> Tenkousaki
+  // The catalogue disambiguates with a bracketed format - "Koukaku Kidoutai (TV)",
+  // "Boku no Hero Academia (ONA)" - which AniList does not carry in its own titles,
+  // so the full string finds nothing. Safe to loosen here: hydrateCanonicalAnimeMetadata
+  // scores every candidate against the original title with titleMatchScore and
+  // rejects anything under 65, so a looser query cannot on its own attach a wrong show.
+  add(raw.replace(/\((?:TV|ONA|OVA|Movie|Special|Especial)\)/gi, " "));
   const plain = raw.replace(/[^\p{L}\p{N}]+/gu, " ");
   add(plain);                                       // drop commas, colons, hyphens
 
