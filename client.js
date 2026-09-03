@@ -533,7 +533,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=630`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=631`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2824,6 +2824,21 @@ async function warmSeasonArtwork(show, seasonIndex = 0, options = {}) {
   let season = seasons[index] || seasons[0] || null;
   const seasonNumber = Number(season?.season || index + 1 || 1);
 
+  // TMDB episode stills and titles arrive through enrichTmdbImages(), which until
+  // now was only ever called at the END of hydrateCanonicalAnimeMetadata - so they
+  // were gated behind AniList/Jikan. With both providers down (AniList 403, Jikan
+  // search 504) that never ran, and EVERY episode list rendered as bare "Episode N"
+  // with no thumbnail, even for the ~980 shows whose tmdbId now ships with the
+  // catalogue and needs no lookup at all.
+  //
+  // TMDB is a separate provider and is up. When the id is already known, go
+  // straight for the stills instead of waiting on a chain that cannot complete.
+  // hydrateTmdbImages() guards itself with _tmdbResolved, so this is at most one
+  // fetch per show per session.
+  if (show.tmdbId && !show._tmdbResolved && typeof enrichTmdbImages === "function") {
+    enrichTmdbImages(show);
+  }
+
   const needsSeasonScopedArt = seasons.length > 1 || Boolean(show.isFranchiseEntry);
   if (needsSeasonScopedArt && show.tmdbId && typeof ImageResolver !== "undefined" && ImageResolver.ensureSeasonStills) {
     await ImageResolver.ensureSeasonStills(show, seasonNumber, season);
@@ -3313,7 +3328,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=630";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=631";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -16233,7 +16248,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=630");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=631");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
