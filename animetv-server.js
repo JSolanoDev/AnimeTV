@@ -1326,9 +1326,10 @@ function checkRateLimit(request, url) {
   }
   // AniList metadata endpoints are called frequently during franchise traversal ΓÇö
   // use a higher per-minute limit and a separate bucket so they don't starve other API calls.
-  if (url.pathname.startsWith("/api/anilist/")) {
+  const metadataProvider = /^\/api\/(anilist|jikan|tmdb)\//.exec(url.pathname)?.[1];
+  if (metadataProvider) {
     const anilistLimit = Math.max(300, RATE_LIMIT_API_MAX_REQUESTS * 3);
-    const key = `${getClientIp(request)}:anilist`;
+    const key = `${getClientIp(request)}:${metadataProvider}`;
     const now = Date.now();
     const bucket = rateLimitBuckets.get(key) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
     if (now > bucket.resetAt) { bucket.count = 0; bucket.resetAt = now + RATE_LIMIT_WINDOW_MS; }
@@ -10528,6 +10529,8 @@ async function handleTmdbTv(url, response) {
       poster_path: payload.poster_path,
       backdrop_path: payload.backdrop_path,
       number_of_seasons: payload.number_of_seasons,
+      number_of_episodes: payload.number_of_episodes,
+      genres: payload.genres || [],
       seasons: Array.isArray(payload.seasons)
         ? payload.seasons.map((s) => ({
             season_number: s.season_number,

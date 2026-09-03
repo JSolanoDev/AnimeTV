@@ -154,6 +154,11 @@ const SeasonNormalization = (function() {
     if (!isStandalone) {
       if (format === 'MOVIE') type = TYPE_MOVIE;
       else if (parsed.isRecap || /\b(recap|summary|digest)\b/i.test(title)) type = TYPE_RECAP;
+      else if (entry.mainline === false) {
+        type = TYPE_SPECIAL;
+        parsed.seasonNumber = null;
+        parsed.partNumber = null;
+      }
       else if (onaNative && format === 'ONA' && !parsed.isSpecial) {
         // ONA is this franchise's main format, so the format says nothing. Decide
         // from the title instead: the base title, alone or with a season marker, is

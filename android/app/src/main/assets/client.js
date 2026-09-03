@@ -461,6 +461,7 @@ function setPlaceholder(input, key) {
 }
 
 function resetCatalogModeControls() {
+  cancelLibraryAutoLoad();
   state.filter = "all";
   state.search = "";
   state.libraryLetter = "all";
@@ -533,7 +534,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=631`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=642`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -1653,23 +1654,41 @@ function updateLibraryResultCount(count) {
 let libraryAutoLoadObserver = null;
 let libraryAutoLoadPending = false;
 let libraryAutoLoadIndicatorTimer = 0;
+let libraryAutoLoadStartedAt = 0;
+let libraryAutoLoadGeneration = 0;
 let libraryScrollSentinel = null;
 let libraryFallbackScrollWired = false;
 
-function setLibraryAutoLoadPending(isPending) {
+function setLibraryAutoLoadPending(isPending, immediate = false) {
+  const wasPending = libraryAutoLoadPending;
+  if (!isPending && !wasPending && !immediate) return;
   libraryAutoLoadPending = isPending;
   if (libraryGrid) libraryGrid.setAttribute("aria-busy", isPending ? "true" : "false");
   window.clearTimeout(libraryAutoLoadIndicatorTimer);
   if (!libraryAutoLoader) return;
-  if (!isPending) {
+  if (immediate) {
     libraryAutoLoader.hidden = true;
     return;
   }
-  // Appending a local batch usually finishes inside one frame. Delay the visible
-  // indicator so a fast update feels seamless instead of flashing below the rail.
+  if (isPending) {
+    libraryAutoLoadStartedAt = performance.now();
+    libraryAutoLoader.hidden = false;
+    libraryAutoLoader.classList.remove("is-complete");
+    if (libraryAutoLoaderStatus) libraryAutoLoaderStatus.textContent = "Loading titles";
+    return;
+  }
+  if (!wasPending) return;
+  libraryAutoLoader.classList.add("is-complete");
+  if (libraryAutoLoaderStatus) libraryAutoLoaderStatus.textContent = "Titles ready";
+  // Keep quick completion feedback readable without delaying the actual cards.
   libraryAutoLoadIndicatorTimer = window.setTimeout(() => {
-    if (libraryAutoLoadPending) libraryAutoLoader.hidden = false;
-  }, 140);
+    if (!libraryAutoLoadPending) libraryAutoLoader.hidden = true;
+  }, Math.max(0, 450 - (performance.now() - libraryAutoLoadStartedAt)));
+}
+
+function cancelLibraryAutoLoad() {
+  libraryAutoLoadGeneration += 1;
+  setLibraryAutoLoadPending(false, true);
 }
 
 function libraryRailIsNearEnd() {
@@ -1685,22 +1704,31 @@ function requestNextLibraryBatch() {
   const visible = Number(libraryGrid?.dataset.visibleCards || 0);
   if (!total || visible >= total) return;
 
+  const generation = ++libraryAutoLoadGeneration;
   setLibraryAutoLoadPending(true);
   const appendBatch = () => {
+    if (generation !== libraryAutoLoadGeneration) return;
     if (state.route !== "library" || state.libraryQuerySig !== querySig) {
-      setLibraryAutoLoadPending(false);
+      cancelLibraryAutoLoad();
       return;
     }
-    state.libraryVisibleLimit = Math.min(total, visible + LIBRARY_RENDER_STEP);
-    renderNow();
-    setLibraryAutoLoadPending(false);
+    try {
+      state.libraryVisibleLimit = Math.min(total, visible + LIBRARY_RENDER_STEP);
+      renderNow();
+    } finally {
+      setLibraryAutoLoadPending(false);
+    }
   };
 
-  if (typeof window.requestIdleCallback === "function") {
-    window.requestIdleCallback(appendBatch, { timeout: 280 });
-  } else {
-    window.setTimeout(appendBatch, 24);
-  }
+  // Paint feedback before the next batch does its synchronous DOM work.
+  window.requestAnimationFrame(() => {
+    if (generation !== libraryAutoLoadGeneration) return;
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(appendBatch, { timeout: 280 });
+    } else {
+      window.setTimeout(appendBatch, 0);
+    }
+  });
 }
 
 function observeLibraryScrollSentinel(sentinel) {
@@ -1716,9 +1744,10 @@ function observeLibraryScrollSentinel(sentinel) {
       });
     }
     libraryAutoLoadObserver.observe(sentinel);
-    return;
   }
 
+  // An intersection can fire just before the near-end distance check passes.
+  // Keep a cheap scroll check so that early event cannot strand the next batch.
   if (!libraryFallbackScrollWired) {
     libraryFallbackScrollWired = true;
     let scrollFrame = 0;
@@ -1755,17 +1784,10 @@ function updateLibraryAutoLoader(total = 0, visible = 0) {
   libraryGrid.dataset.hasMore = hasMore ? "true" : "false";
   libraryGrid.dataset.totalCards = String(total);
   libraryGrid.dataset.visibleCards = String(visible);
-  if (libraryAutoLoaderStatus) {
-    libraryAutoLoaderStatus.textContent = hasMore
-      ? `Loading more titles automatically. ${visible.toLocaleString()} of ${total.toLocaleString()} ready.`
-      : `All ${total.toLocaleString()} titles are ready.`;
-  }
-
   if (!hasMore) {
     if (libraryScrollSentinel) libraryAutoLoadObserver?.unobserve(libraryScrollSentinel);
     libraryScrollSentinel?.remove();
     libraryScrollSentinel = null;
-    setLibraryAutoLoadPending(false);
     return;
   }
 
@@ -3328,7 +3350,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=631";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=642";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -3898,7 +3920,7 @@ async function fetchAniListTrailers(ids) {
 // ── AniList per-show extras: HQ banner backdrop + per-episode titles/thumbnails
 const _showExtrasCache = new Map();     // anilistId -> { banner, episodes:[{title,thumbnail}] }
 const _showExtrasInFlight = new Map();
-const SHOW_EXTRAS_CACHE_PREFIX = "zenkaitv:show-extras:v1:";
+const SHOW_EXTRAS_CACHE_PREFIX = "zenkaitv:show-extras:v2:";
 const SHOW_EXTRAS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const ANIME_METADATA_CACHE_PREFIX = "zenkaitv:anime-metadata:v1:";
 const ANIME_METADATA_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -4132,6 +4154,13 @@ function applyTmdbEpisodeMetadata(show) {
     };
   });
   show.streamingEpisodesByNum = merged;
+  // Continuous series use a global TMDB episode map; a recent-source window
+  // must not hide older arcs when the episode metadata is available.
+  const continuous = (show.tmdbSeasons || []).filter(season => Number(season.season_number) > 0)
+    .reduce((total, season) => total + Number(season.episode_count || 0), 0) > 100;
+  if (continuous && SeasonNormalization.parseTitle(show.romajiTitle || show.title || "").seasonNumber <= 1) {
+    mergeAiredEpisodeMetadata(show, Object.values(tmdb));
+  }
 }
 
 function applyAniListExtras(show, data) {
@@ -4159,7 +4188,37 @@ function applyAniListExtras(show, data) {
       }
     });
     show.streamingEpisodesByNum = byNum;
+    mergeAiredEpisodeMetadata(show, data.episodes);
   }
+}
+
+function mergeAiredEpisodeMetadata(show, metadata = []) {
+  if (!show || show.adultSource || show.seasons?.length > 1) return;
+  const season = show.seasons?.[0];
+  const seasonNumber = Number(season?.season || show.seasonNumber || extractSeasonNumber(show.title, 1)) || 1;
+  const episodes = new Map((season?.episodes || show.episodes || []).map(episode => [Number(episode.episode || episode.number), episode]));
+  let latest = 0;
+  for (const entry of metadata) {
+    const number = Number(entry.episode || entry.number);
+    const aired = Date.parse(entry.aired || "");
+    if (!Number.isInteger(number) || number < 1 || !Number.isFinite(aired) || aired > Date.now()) continue;
+    latest = Math.max(latest, number);
+    const existing = episodes.get(number);
+    episodes.set(number, existing && !existing.missing ? existing : {
+      ...entry,
+      season: seasonNumber,
+      episode: number,
+      needsResolve: true,
+      anilistId: show.anilistId || null,
+      malId: show.malId || null
+    });
+  }
+  if (!latest) return;
+  const merged = [...episodes.values()].sort((a, b) => Number(a.episode) - Number(b.episode));
+  show.episodes = merged;
+  if (season) season.episodes = merged;
+  show.latestAiredEp = Math.max(Number(show.latestAiredEp) || 0, latest);
+  show.episode = Math.max(Number(show.episode) || 0, latest);
 }
 
 // Strip a leading "Episode 12 - " / "12 - " so the row shows the real title only.
@@ -4192,18 +4251,18 @@ async function fetchAniListShowExtras(show) {
   const query = `query($id:Int){ Media(id:$id, type:ANIME){ bannerImage streamingEpisodes{ title thumbnail } } }`;
   const request = (async () => {
     const [aniResp, jikanResp] = await Promise.allSettled([
-      id ? fetch("https://graphql.anilist.co", {
+      id ? fetchWithTimeout("https://graphql.anilist.co", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify({ query, variables: { id: Number(id) } })
-      }).then(r => r.json()) : Promise.resolve(null),
-      malId ? fetch(`/api/jikan/episodes?id=${encodeURIComponent(malId)}`).then(r => r.json()) : Promise.resolve(null)
+      }, 8000).then(r => r.json()) : Promise.resolve(null),
+      malId ? fetchWithTimeout(`/api/jikan/episodes?id=${encodeURIComponent(malId)}`, {}, 22000).then(r => r.json()) : Promise.resolve(null)
     ]);
 
     const media = (aniResp.status === "fulfilled" && aniResp.value) ? aniResp.value.data?.Media : null;
-    const jikanEps = (jikanResp.status === "fulfilled" && jikanResp.value) ? jikanResp.value.data : null;
+    const jikanEps = (jikanResp.status === "fulfilled" && !jikanResp.value?.unavailable) ? jikanResp.value?.data : null;
 
-    if (!media && !jikanEps) return;
+    if (!media && !jikanEps?.length) return;
 
     const mergedEpisodes = new Map();
     (Array.isArray(jikanEps) ? jikanEps : []).forEach((ep, index) => {
@@ -4304,6 +4363,34 @@ function episodePathForShow(show = {}, seasonNumber = 1, episodeNumber = 1, seas
   return `/watch/${encodeURIComponent(getShowSlug(show))}/${encodeURIComponent(ep)}`;
 }
 
+const FRANCHISE_ROUTE_CACHE_KEY = "zenkaitv-franchise-routes-v1";
+
+function readFranchiseRoutes() {
+  try {
+    const entries = JSON.parse(localStorage.getItem(FRANCHISE_ROUTE_CACHE_KEY) || "[]");
+    return Array.isArray(entries) ? entries.filter(entry =>
+      entry?.show?.isFranchiseEntry && !entry.show.adultSource &&
+      /^(anilist|jikan)-\d+$/.test(String(entry.show.id)) &&
+      Date.now() - Number(entry.savedAt) < 30 * 86400000
+    ).slice(-64) : [];
+  } catch { return []; }
+}
+
+function rememberFranchiseRoutes(shows) {
+  // Keep only metadata stubs, never full episode lists or expiring playback URLs.
+  const entries = new Map(readFranchiseRoutes().map(entry => [entry.show.id, entry]));
+  for (const show of shows) {
+    if (!show.isFranchiseEntry || show.adultSource || !/^(anilist|jikan)-\d+$/.test(String(show.id))) continue;
+    const stub = {};
+    for (const key of ["id", "anilistId", "malId", "title", "romajiTitle", "nativeTitle", "episode", "totalEpisodes", "latestAiredEp", "nextAiringEp", "nextAiringEpisodeNumber", "genre", "genres", "format", "status", "year", "source", "isFranchiseEntry", "image", "coverImageLarge", "banner", "highQualityBackground", "description", "colors", "score"]) {
+      if (show[key] != null) stub[key] = show[key];
+    }
+    entries.delete(show.id);
+    entries.set(show.id, { savedAt: Date.now(), show: stub });
+  }
+  try { localStorage.setItem(FRANCHISE_ROUTE_CACHE_KEY, JSON.stringify([...entries.values()].slice(-64))); } catch { /* storage unavailable */ }
+}
+
 function findShowBySlugOrId(value) {
   const wanted = String(value || "");
   const wantedSlug = getShowSlug({ title: wanted, slug: wanted });
@@ -4313,8 +4400,7 @@ function findShowBySlugOrId(value) {
     const entrySlug = getShowSlug(entry);
     return String(entry.id) === wanted ||
       getShowKey(entry) === wanted ||
-      acceptedSlugs.has(entrySlug) ||
-      (wantedSlug && entrySlug.startsWith(`${wantedSlug}-`));
+      acceptedSlugs.has(entrySlug);
   };
   let show = state.shows.find(matches);
   if (show) return show;
@@ -4323,6 +4409,12 @@ function findShowBySlugOrId(value) {
   if (state.av1Shows?.has(wanted)) return state.av1Shows.get(wanted);
   for (const entry of state.av1Shows?.values?.() || []) {
     if (matches(entry)) return entry;
+  }
+  const cached = readFranchiseRoutes().find(entry => matches(entry.show));
+  if (cached) {
+    show = { ...cached.show, seasons: [], episodes: [], videoUrl: "" };
+    state.shows = [...state.shows, show];
+    return show;
   }
   return null;
 }
@@ -6838,6 +6930,7 @@ function _render() {
         state.librarySort
       ].join("|");
       if (state.libraryQuerySig !== libraryQuerySig) {
+        cancelLibraryAutoLoad();
         state.libraryQuerySig = libraryQuerySig;
         state.libraryVisibleLimit = LIBRARY_INITIAL_RENDER_LIMIT;
         if (libraryGrid) libraryGrid.scrollLeft = 0;
@@ -6961,6 +7054,7 @@ function setRoute(route, options = {}) {
     route = "home";
   }
   if (!APP_ROUTES.includes(route)) route = "not-found";
+  if (route !== "library") cancelLibraryAutoLoad();
   state.route = route;
   document.body.dataset.route = route;
   if (!options.skipHistory) {
@@ -8725,11 +8819,11 @@ function episodeMetadataForNumber(show = {}, number = 0, seasonNumber = 0) {
   return {
     ...tmdb,
     ...streamed,
-    title: streamed.title && !/^(?:episode|ep)\s*\d+$/i.test(streamed.title)
-      ? streamed.title
-      : (tmdb.title || streamed.title),
+    title: tmdb.title && !/^(?:episode|ep)\s*\d+$/i.test(tmdb.title)
+      ? tmdb.title
+      : (streamed.title || tmdb.title),
     thumbnail: tmdb.thumbnail || streamed.thumbnail || "",
-    aired: streamed.aired || tmdb.aired || ""
+    aired: tmdb.aired || streamed.aired || ""
   };
 }
 
@@ -8770,6 +8864,9 @@ function episodeThumb(episode = {}, season = {}, show = {}, repeatedImages = new
   const capturedFrame = episode._capturedFrame || getCapturedEpisodeFrame(show, seasonNum || 1, episodeNum);
   let ownImage = hqImage(episode.image || episode.thumbnail || episode.still || episode.snapshot || "");
   const isAdultShow = show.adultSource || (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show));
+  const isMovie = /^(movie|film)$/i.test(String(show.format || show.type || season.format || ""));
+  const fallbackArtwork = getWatchPosterArtwork(show, season);
+  if (isMovie && !isAdultShow) return capturedFrame || getWatchBackdropArtwork(show, season) || fallbackArtwork;
   if (!isAdultShow && isAdultImageUrl(ownImage)) ownImage = "";
   const comparable = comparableImageUrl(ownImage);
   const showLevelArt = new Set([
@@ -8803,9 +8900,9 @@ function episodeThumb(episode = {}, season = {}, show = {}, repeatedImages = new
       { episodeStill: tmdbStill }
     );
     if (!isAdultShow && isAdultImageUrl(resolved)) return "";
-    return resolved || capturedFrame;
+    return resolved || capturedFrame || fallbackArtwork;
   }
-  return ownImage || capturedFrame;
+  return ownImage || capturedFrame || fallbackArtwork;
 }
 
 // Linear list of seasons for the dropdown + Prev/Next, spanning the franchise
@@ -8867,6 +8964,13 @@ function renderEpisodeList(show) {
     }).catch(() => {});
   }
   const seasons = getDetailSeasons(show);
+  const episodeHint = document.querySelector("#watchArt .watch-ready-hint");
+  if (episodeHint) {
+    const count = seasons.reduce((sum, season) => sum + (season.episodes?.length || 0), 0);
+    episodeHint.textContent = count
+      ? `${count} episode${count === 1 ? "" : "s"} · select one below to watch`
+      : "Select an episode below to load playback sources";
+  }
   if (state.activeSeasonIndex >= seasons.length) state.activeSeasonIndex = 0;
   const activeSeason = seasons[state.activeSeasonIndex] || seasons[0];
   const seasonTitle = getSeasonDisplayTitle(show, activeSeason);
@@ -9330,6 +9434,9 @@ function renderEpisodeList(show) {
   // before the franchise finished loading) can never strand navigation.
   const liveNav = () => {
     const ctx = state.activeShow || show;
+    // A background catalog refresh can replace the array after these cards render.
+    // Restore linked entries before resolving the click to a playable show object.
+    ensureFranchiseShowsInCatalog(ctx);
     const list = buildSeasonNav(ctx, getDetailSeasons(ctx));
     return { ctx, list: list.length ? list : seasonNav };
   };
@@ -12425,6 +12532,7 @@ function _buildShowsByAniListId() {
   const map = new Map();
   for (const s of state.shows) {
     if (s.anilistId) map.set(String(s.anilistId), s);
+    if (s.malId) map.set(`mal-${s.malId}`, s);
   }
   return map;
 }
@@ -13492,14 +13600,17 @@ function ensureFranchiseShowsInCatalog(show) {
   const seenEntries = new Set();
   for (const entry of allEntries) {
     const aniId   = String(entry.anilistId || "");
+    const malId = String(entry.malId || "");
     const extraId = String(entry.extraAnilistId || "");
-    if (!aniId || seenEntries.has(aniId)) continue;
-    seenEntries.add(aniId);
+    const identity = franchiseEntryKey(entry);
+    if (!identity || seenEntries.has(identity)) continue;
+    seenEntries.add(identity);
 
-    const syntheticId = `anilist-${aniId}`;
+    const syntheticId = aniId ? `anilist-${aniId}` : `jikan-${malId}`;
     const existing = state.shows.find(s =>
       s.id === syntheticId ||
-      (s.anilistId && String(s.anilistId) === aniId) ||
+      (aniId && s.anilistId && String(s.anilistId) === aniId) ||
+      (malId && s.malId && String(s.malId) === malId) ||
       (extraId && s.anilistId && String(s.anilistId) === extraId)
     );
     if (existing) {
@@ -13516,7 +13627,7 @@ function ensureFranchiseShowsInCatalog(show) {
     const epCount = getSeasonEpisodeLimit(entry);
     added.push({
       id:           syntheticId,
-      anilistId:    Number(aniId),
+      anilistId:    aniId ? Number(aniId) : null,
       malId:        entry.malId || null,
       title:        entry.title || syntheticId,
       romajiTitle:  entry.romajiTitle || "",
@@ -13531,7 +13642,7 @@ function ensureFranchiseShowsInCatalog(show) {
       format:       entry.format || "",
       status:       entry.status || "",
       year:         entry.seasonYear || "",
-      source:       "AniList",
+      source:       aniId ? "AniList" : "Jikan",
       isFranchiseEntry: true,
       image:        entry.image || show.image || "",
       coverImageLarge: entry.image || show.coverImageLarge || show.image || "",
@@ -13550,6 +13661,7 @@ function ensureFranchiseShowsInCatalog(show) {
 
   if (added.length > 0) {
     state.shows = [...state.shows, ...added];
+    rememberFranchiseRoutes(added);
   }
 }
 
@@ -13606,7 +13718,13 @@ function getDetailSeasons(show) {
 function makePlaceholderEpisodes(show, seasonNumber) {
   const knownCount = getSeasonEpisodeLimit(show);
   if (knownCount === 0) return [];
-  const count = Number.isFinite(knownCount) && knownCount > 0 ? knownCount : 12;
+  // When nothing is known this used to invent a flat 12 episodes, so a show with
+  // no episode data at all was offered as a 12-part series: The Ribbon Hero is a
+  // single 109-minute film, Pluto has 8 episodes and Kimi ni Todoke 3rd Season 5.
+  // AniList's own count now ships with the catalogue, so use it before guessing.
+  const declared = Number(show.anilistEpisodeCount);
+  const guess = Number.isFinite(declared) && declared > 0 ? declared : 12;
+  const count = Number.isFinite(knownCount) && knownCount > 0 ? knownCount : guess;
   // Cap high enough for long-running shounen (Naruto 220, Bleach 366,
   // One Piece 1100+) so their episode lists are never truncated.
   // These are aired episodes — playable on click (servers resolve then), so we
@@ -15662,21 +15780,40 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+let catalogModeChangeGeneration = 0;
+
+function handleCatalogModeChange(on) {
+  const generation = ++catalogModeChangeGeneration;
+  resetCatalogModeControls();
+  if (on) state.sourcePickerFilter = "all";
+  syncAdultModeChrome();
+  if (on) state.isLoadingCatalog = !catalogShows().length;
+  refreshCatalogStatus();
+  renderNow();
+
+  if (!on) return;
+  // Let the selected theme and cached cards paint before starting refresh work.
+  window.requestAnimationFrame(() => window.setTimeout(async () => {
+    if (generation !== catalogModeChangeGeneration || !AdultMode.isEnabled()) return;
+    try {
+      await loadAdultCatalog();
+    } catch (error) {
+      console.warn("Catalog refresh could not complete:", error);
+    } finally {
+      if (generation === catalogModeChangeGeneration && AdultMode.isEnabled()) {
+        state.isLoadingCatalog = false;
+        refreshCatalogStatus();
+        render();
+      }
+    }
+  }, 0));
+}
+
 // Restore the saved 18+ mode (theme + header badge) before the first paint.
 if (typeof AdultMode !== "undefined") {
   AdultMode.load();
   syncAdultModeChrome();
-  AdultMode.onChange(async (on) => {
-    resetCatalogModeControls();
-    if (on) {
-      state.filter = "all";
-      state.sourcePickerFilter = "all";
-    }
-    syncAdultModeChrome();
-    if (on) await loadAdultCatalog();
-    refreshCatalogStatus();   // stat line reflects the now-active catalog
-    render();
-  });
+  AdultMode.onChange(handleCatalogModeChange);
 }
 
 // ── Supabase Authentication & Social Logins ──────────────────────────────────
@@ -16242,7 +16379,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=631");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=642");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

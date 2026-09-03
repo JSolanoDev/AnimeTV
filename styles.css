@@ -7450,6 +7450,10 @@ body.reduce-motion .watch-overlay.is-closing .watch-panel {
   padding-top: 0.1rem;
 }
 
+#library .rail-shell {
+  padding-bottom: 0.5rem;
+}
+
 .library-scroll-sentinel {
   grid-row: 1 / -1;
   align-self: stretch;
@@ -7460,10 +7464,24 @@ body.reduce-motion .watch-overlay.is-closing .watch-panel {
 }
 
 .library-auto-loader {
-  display: grid;
-  place-items: center;
-  min-height: 1.2rem;
-  margin: 0.2rem auto 0;
+  position: absolute;
+  right: 3.75rem;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 1.25rem;
+  max-width: calc(100% - 5rem);
+  padding: 0.125rem 0.55rem;
+  border: 1px solid rgba(157, 169, 209, 0.2);
+  border-radius: 6px;
+  background: rgba(10, 12, 20, 0.94);
+  color: #e8eaf2;
+  font-size: 0.75rem;
+  font-weight: 650;
+  line-height: 1.25;
+  pointer-events: none;
 }
 
 .library-auto-loader[hidden] {
@@ -7473,8 +7491,9 @@ body.reduce-motion .watch-overlay.is-closing .watch-panel {
 .library-auto-loader-track {
   position: relative;
   display: block;
-  width: clamp(5.5rem, 10vw, 8rem);
-  height: 2px;
+  flex: 0 0 2.5rem;
+  width: 2.5rem;
+  height: 3px;
   overflow: hidden;
   background: rgba(157, 169, 209, 0.16);
 }
@@ -7490,6 +7509,13 @@ body.reduce-motion .watch-overlay.is-closing .watch-panel {
 
 body.adult-mode .library-auto-loader-track > span {
   background: linear-gradient(90deg, #ef3d73, #9f57e8);
+}
+
+.library-auto-loader.is-complete .library-auto-loader-track > span,
+body.reduce-motion .library-auto-loader-track > span {
+  width: 100%;
+  animation: none;
+  transform: none;
 }
 
 @keyframes library-auto-loader-sweep {

@@ -14,7 +14,7 @@
 // ── Franchise version ────────────────────────────────────────────────────────
 // Bump this whenever traversal/merge logic changes so every show gets a fresh
 // franchise rebuild on next open (in-memory cached franchises become stale).
-const _FRANCHISE_VERSION = 13;         // group bare "Part/Cour N" into the current season (split-cour) instead of new seasons
+const _FRANCHISE_VERSION = 15;
 const _MEDIA_CACHE_VERSION_KEY = "animetv-anilist-cache-v";
 const _MEDIA_CACHE_VERSION_VAL = "11"; // clears stale localStorage media cache
 
@@ -35,6 +35,67 @@ try {
 
 // ── In-memory cache (survives re-renders, cleared on page reload) ────────────
 const _anilistMemCache = new Map();
+const _franchiseMediaInFlight = new Map();
+let _anilistUnavailableUntil = 0;
+
+function franchiseEntryKey(entry = {}) {
+  return entry.anilistId ? String(entry.anilistId) : entry.malId ? `mal-${entry.malId}` : "";
+}
+
+function franchiseEntryMatches(entry, show) {
+  return Boolean(entry && show && (
+    (entry.anilistId && show.anilistId && String(entry.anilistId) === String(show.anilistId)) ||
+    (entry.malId && show.malId && String(entry.malId) === String(show.malId))
+  ));
+}
+
+function jikanFranchiseMedia(data, anilistId = null) {
+  const id = Number(data?.mal_id);
+  if (!id) return null;
+  const statuses = { "Finished Airing": "FINISHED", "Currently Airing": "RELEASING", "Not yet aired": "NOT_YET_RELEASED" };
+  const date = data.aired?.prop?.from;
+  return {
+    id: anilistId || `mal-${id}`,
+    idMal: id,
+    metadataProvider: "jikan",
+    type: "ANIME",
+    title: { english: data.title_english || data.title, romaji: data.title, native: data.title_japanese },
+    format: String(data.type || "TV").toUpperCase().replace(/ /g, "_"),
+    status: statuses[data.status] || "",
+    episodes: data.episodes || null,
+    seasonYear: data.year || date?.year || null,
+    startDate: date || null,
+    coverImage: { large: data.images?.webp?.large_image_url || data.images?.jpg?.large_image_url || "" },
+    description: data.synopsis || "",
+    genres: (data.genres || []).map(genre => genre.name),
+    averageScore: data.score ? Math.round(data.score * 10) : null,
+    relations: { edges: (data.relations || []).flatMap(relation => {
+      const type = String(relation.relation || "").toUpperCase();
+      // Only explicit continuity links; adaptations and similarly named works are not seasons.
+      if (type !== "PREQUEL" && type !== "SEQUEL") return [];
+      return (relation.entry || []).filter(entry => entry.type === "anime" && entry.mal_id).map(entry => ({
+        relationType: type,
+        node: { id: `mal-${entry.mal_id}`, idMal: entry.mal_id, type: "ANIME", format: "UNKNOWN", title: { romaji: entry.name } }
+      }));
+    }) }
+  };
+}
+
+async function _fetchJikanFranchiseMedia(malId, anilistId = null) {
+  if (!malId) return null;
+  const key = `jikan-media:${malId}`;
+  let media = _readAniListCache(key);
+  if (!media) {
+    try {
+      const response = await fetchWithTimeout(`/api/jikan/full?id=${encodeURIComponent(malId)}`, {}, 10000);
+      const payload = response.ok ? await response.json() : null;
+      if (payload?.unavailable || !payload?.data) return null;
+      media = jikanFranchiseMedia(payload.data);
+      if (media) _writeAniListCache(key, media);
+    } catch { return null; }
+  }
+  return media && anilistId ? { ...media, id: anilistId } : media;
+}
 
 function _readAniListCache(key) {
   const mem = _anilistMemCache.get(key);
@@ -61,20 +122,29 @@ function _writeAniListCache(key, data, ttl = ANILIST_META_CACHE_TTL) {
 
 // ── Server proxy calls ───────────────────────────────────────────────────────
 
-async function _fetchAniListMedia(anilistId) {
+async function _fetchAniListMedia(anilistId, malId = null) {
+  if (String(anilistId).startsWith("mal-")) return _fetchJikanFranchiseMedia(String(anilistId).slice(4));
   const key = `media:${anilistId}`;
   const cached = _readAniListCache(key);
-  if (cached) return cached;
-  try {
-    const res = await fetchWithTimeout(
-      `${ANILIST_MEDIA_ENDPOINT}?id=${encodeURIComponent(anilistId)}`, {}, 12000
-    );
-    if (!res.ok) return null;
-    const json = await res.json();
-    if (!json?.ok || !json.media) return null;
-    _writeAniListCache(key, json.media);
-    return json.media;
-  } catch { return null; }
+  if (cached && String(cached.id) === String(anilistId)) return cached;
+  const flightKey = `${key}:${malId || ""}`;
+  if (_franchiseMediaInFlight.has(flightKey)) return _franchiseMediaInFlight.get(flightKey);
+  const request = (async () => {
+      // The server may have this exact ID cached even during an upstream outage.
+      // A failure for another title must not suppress these cache reads.
+      try {
+        const res = await fetchWithTimeout(`${ANILIST_MEDIA_ENDPOINT}?id=${encodeURIComponent(anilistId)}`, {}, 8000);
+        const json = res.ok ? await res.json() : null;
+        if (json?.ok && json.media && String(json.media.id) === String(anilistId)) {
+          _writeAniListCache(key, json.media);
+          return json.media;
+        }
+        _anilistUnavailableUntil = Date.now() + 60000;
+      } catch { _anilistUnavailableUntil = Date.now() + 60000; }
+    return _fetchJikanFranchiseMedia(malId, anilistId);
+  })().finally(() => _franchiseMediaInFlight.delete(flightKey));
+  _franchiseMediaInFlight.set(flightKey, request);
+  return request;
 }
 
 async function _searchAniListAnime(title) {
@@ -117,9 +187,14 @@ function _matchScore(media, show) {
 async function _resolveAniListMedia(show) {
   // 1. Direct AniList ID — most reliable, zero ambiguity
   if (show.anilistId) {
-    const m = await _fetchAniListMedia(show.anilistId);
+    const m = await _fetchAniListMedia(show.anilistId, show.malId);
     if (m) return m;
   }
+  if (show.malId) {
+    const m = await _fetchJikanFranchiseMedia(show.malId, show.anilistId);
+    if (m) return m;
+  }
+  if (Date.now() < _anilistUnavailableUntil) return null;
 
   // 2. Try every known title variant.  Deduplicate so we don't hit the API
   //    multiple times for the same string.
@@ -165,7 +240,8 @@ function _normalizeRelationNode(node) {
   const title = node.title?.english || node.title?.userPreferred ||
                 node.title?.romaji  || node.title?.native || "";
   return {
-    anilistId:       node.id,
+    anilistId:       /^\d+$/.test(String(node.id || "")) ? Number(node.id) : null,
+    metadataId:      node.id,
     malId:           node.idMal || null,
     title,
     romajiTitle:     node.title?.romaji  || "",
@@ -232,6 +308,9 @@ async function _traverseFranchise(startMedia) {
   const nodeMap = new Map();
   const fetched  = new Set(); // ids whose fullMedia + relations are fully processed
   const mainline = new Set(); // ids in the connected SEQUEL/PREQUEL component (the seasons)
+  const hasFullMedia = (node) => [...nodeMap.values()].some(value => value.fullMedia && (
+    value.fullMedia.id === node.id || (node.idMal && Number(value.node.malId) === Number(node.idMal))
+  ));
 
   function addMedia(media, relationType = null) {
     if (!media?.id) return;
@@ -247,6 +326,7 @@ async function _traverseFranchise(startMedia) {
 
   function addNode(rawNode, relationType) {
     if (!rawNode?.id) return;
+    if (rawNode.idMal && [...nodeMap.values()].some(value => Number(value.node.malId) === Number(rawNode.idMal))) return;
     if (!nodeMap.has(rawNode.id)) {
       const node = _normalizeRelationNode(rawNode);
       node.relationType = relationType;
@@ -279,16 +359,16 @@ async function _traverseFranchise(startMedia) {
   // canFollowSeasonLink still severs separate adaptations/remakes (Doraemon).
   const MAX_NODES = 40;
   const queue = [startMedia];
-  while (queue.length && nodeMap.size < MAX_NODES) {
+  while (queue.length && fetched.size < MAX_NODES) {
     const current = queue.shift();
     const links = (current.relations?.edges || []).filter(e =>
       (e.relationType === "SEQUEL" || e.relationType === "PREQUEL") &&
       e.node?.type === "ANIME"
     );
     for (const edge of links) {
-      if (fetched.has(edge.node.id)) continue;
+      if (fetched.has(edge.node.id) || hasFullMedia(edge.node)) continue;
       if (!canFollowSeasonLink(current, edge.node)) continue;   // remake / separate adaptation
-      const media = await _fetchAniListMedia(edge.node.id);
+      const media = await _fetchAniListMedia(edge.node.id, edge.node.idMal);
       if (!media) {
         addNode(edge.node, edge.relationType);
         mainline.add(edge.node.id);
@@ -305,10 +385,11 @@ async function _traverseFranchise(startMedia) {
   // Mop up any shallow mainline nodes and expand their links too (multi-pass).
   for (let pass = 0; pass < 6; pass++) {
     const pending = [...nodeMap.values()]
-      .filter(v => mainline.has(v.node.anilistId) && !v.fullMedia);
+      .filter(v => mainline.has(v.node.metadataId) && !v.fullMedia);
     if (!pending.length) break;
+    const before = fetched.size;
     await Promise.allSettled(pending.map(async ({ node }) => {
-      const media = await _fetchAniListMedia(node.anilistId);
+      const media = await _fetchAniListMedia(node.metadataId, node.malId);
       if (!media) return;
       addMedia(media);
       mainline.add(media.id);
@@ -321,6 +402,7 @@ async function _traverseFranchise(startMedia) {
         }
       }
     }));
+    if (fetched.size === before) break;
   }
 
   // Tag every node with whether it should DISPLAY as a mainline season. We keep
@@ -472,7 +554,10 @@ async function buildFranchiseFromAniListMedia(media) {
   const recaps = normalized.groups.filter(g => g.type === "recap");
 
   return {
-    mainAnilistId: media.id,
+    mainAnilistId: /^\d+$/.test(String(media.id)) ? Number(media.id) : null,
+    mainMalId: media.idMal || null,
+    incomplete: [...nodeMap.values()].some(value => !value.fullMedia &&
+      (value.node.relationType === "PREQUEL" || value.node.relationType === "SEQUEL")),
     groups: normalized.groups,
     tvSeasons, // Now these are Groups, not just entries
     movies: movies.flatMap(g => g.items),
@@ -542,26 +627,25 @@ function buildSeasonListFromAniListFranchise(show, showsMap, getDetailSeasons, m
   if (!franchise || !franchise.groups) return null;
 
   const result = [];
-  const showAniId = String(show.anilistId || "");
 
   for (const group of franchise.groups) {
     // A group is current if any of its items match the current show
     const isCurrent = group.items.some(item =>
-      String(item.anilistId) === showAniId ||
-      (item.extraAnilistId && String(item.extraAnilistId) === showAniId)
+      franchiseEntryMatches(item, show) ||
+      (item.extraAnilistId && String(item.extraAnilistId) === String(show.anilistId || ""))
     );
 
     const mainItem = group.items[0];
-    const entryAniId = String(mainItem.anilistId);
-    const matchedShow = showsMap.get(entryAniId);
-    const resolvedId = matchedShow ? matchedShow.id : `anilist-${entryAniId}`;
+    const entryKey = franchiseEntryKey(mainItem);
+    const matchedShow = showsMap.get(entryKey) || showsMap.get(`mal-${mainItem.malId}`);
+    const resolvedId = matchedShow ? matchedShow.id : mainItem.anilistId ? `anilist-${mainItem.anilistId}` : `jikan-${mainItem.malId}`;
 
     let groupEpisodes = [];
     let groupPlayable = false;
 
     group.items.forEach(item => {
-      const itemIsCurrent = String(item.anilistId) === showAniId;
-      const itemMatched = showsMap.get(String(item.anilistId));
+      const itemIsCurrent = franchiseEntryMatches(item, show);
+      const itemMatched = showsMap.get(franchiseEntryKey(item)) || showsMap.get(`mal-${item.malId}`);
 
       let itemEps = [];
       if (itemIsCurrent) {
@@ -596,6 +680,7 @@ function buildSeasonListFromAniListFranchise(show, showsMap, getDetailSeasons, m
       status: mainItem.status,
       year: group.yearStart,
       anilistId: mainItem.anilistId,
+      malId: mainItem.malId,
       isCurrentShow: isCurrent,
       relatedShowId: isCurrent ? null : resolvedId,
       episodes: groupEpisodes,
@@ -616,22 +701,24 @@ function buildSeasonListFromAniListFranchise(show, showsMap, getDetailSeasons, m
  */
 async function hydrateShowAniListFranchise(show) {
   if (!show) return show;
+  if (show._franchiseNextTry > Date.now()) return show;
   // Skip only if the franchise was already built with the CURRENT code version.
   // If the version doesn't match, we rebuild — this automatically picks up any
   // traversal / merge improvements after a page reload.
   if (show.anilistFranchiseLoaded && show._franchiseVersion === _FRANCHISE_VERSION) {
     return show;
   }
-  // Reset stale franchise data before rebuilding
-  show.anilistFranchiseLoaded = false;
-  delete show.anilistFranchise;
+  // Keep the last usable season list visible while a provider is unavailable.
 
   try {
     const media = await _resolveAniListMedia(show);
-    if (!media) return show;
+    if (!media) {
+      show._franchiseNextTry = Date.now() + 60000;
+      return show;
+    }
 
     // Backfill IDs onto show if they were missing
-    if (!show.anilistId && media.id)     show.anilistId = media.id;
+    if (!show.anilistId && /^\d+$/.test(String(media.id))) show.anilistId = Number(media.id);
     if (!show.malId     && media.idMal)  show.malId     = media.idMal;
 
     // Update episode count from AniList (authoritative)
@@ -651,8 +738,13 @@ async function hydrateShowAniListFranchise(show) {
     }
 
     // buildFranchiseFromAniListMedia traverses the full PREQUEL→root→SEQUEL chain
-    show.anilistFranchise      = await buildFranchiseFromAniListMedia(media);
-    show.anilistFranchiseLoaded = true;
+    const franchise = await buildFranchiseFromAniListMedia(media);
+    if (!franchise.incomplete || !show.anilistFranchise ||
+        franchise.groups.length >= (show.anilistFranchise.groups?.length || 0)) {
+      show.anilistFranchise = franchise;
+    }
+    show.anilistFranchiseLoaded = !franchise.incomplete;
+    show._franchiseNextTry = franchise.incomplete ? Date.now() + 60000 : 0;
     show._franchiseVersion     = _FRANCHISE_VERSION;
   } catch (err) {
     console.warn("[AniList] franchise hydration failed:", err?.message || err);
