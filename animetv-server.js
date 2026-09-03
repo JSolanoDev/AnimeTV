@@ -10239,20 +10239,26 @@ function fetchJikanJson(pathname, { deadlineAt = Infinity } = {}) {
     }, remainingMs);
   });
   const requestJson = async () => {
-    if (controller.signal.aborted) throw timeoutError;
-    const waitMs = Math.max(0, 350 - (Date.now() - jikanLastRequestAt));
-    if (waitMs) await wait(waitMs);
-    if (controller.signal.aborted) throw timeoutError;
-    jikanLastRequestAt = Date.now();
-    const upstream = await fetch(`${JIKAN_API}${pathname}`, { signal: controller.signal });
-    if (!upstream.ok) {
-      // Carry the status so callers can tell "no such title" (404) from "the
-      // service is unwell" (429/5xx) instead of guessing from the message.
-      const error = new Error(`Jikan HTTP ${upstream.status}`);
-      error.status = upstream.status;
-      throw error;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (controller.signal.aborted) throw timeoutError;
+      const waitMs = Math.max(0, 350 - (Date.now() - jikanLastRequestAt));
+      if (waitMs) await wait(waitMs);
+      if (controller.signal.aborted) throw timeoutError;
+      jikanLastRequestAt = Date.now();
+      try {
+        const upstream = await fetch(`${JIKAN_API}${pathname}`, { signal: controller.signal });
+        if (upstream.ok) return await upstream.json();
+        await upstream.body?.cancel();
+        const error = new Error(`Jikan HTTP ${upstream.status}`);
+        error.status = upstream.status;
+        throw error;
+      } catch (error) {
+        if (controller.signal.aborted) throw timeoutError;
+        const retryable = !error.status || [408, 429, 500, 502, 503, 504].includes(error.status);
+        if (!retryable || attempt === 2) throw error;
+        await wait(650 * (2 ** attempt));
+      }
     }
-    return upstream.json();
   };
   // Race inside the queue as well so an expired body cannot block later work.
   const run = () => Promise.race([requestJson(), deadline]);

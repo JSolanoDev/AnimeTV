@@ -91,6 +91,38 @@ test("HTTP errors retain their status", async () => {
   assert.equal(h.timers.size, 0);
 });
 
+test("a transient HTTP failure is retried within the same deadline", async () => {
+  let attempts = 0;
+  let cancelled = 0;
+  const h = harness(() => ++attempts === 1
+    ? { ok: false, status: 504, body: { cancel: async () => cancelled++ } }
+    : success([{ title: "Example" }]));
+  const request = h.context.fetchJikanJson("/anime/1/full");
+  await h.advance(650);
+  assert.equal((await request).data.length, 1);
+  assert.equal(attempts, 2);
+  assert.equal(cancelled, 1);
+  assert.equal(h.timers.size, 0);
+});
+
+test("repeated HTTP failures stop after three attempts", async () => {
+  const h = harness(() => ({ ok: false, status: 504 }));
+  const request = assert.rejects(h.context.fetchJikanJson("/anime/1/full"), { status: 504 });
+  await h.advance(2000);
+  await request;
+  assert.equal(h.calls.length, 3);
+  assert.equal(h.timers.size, 0);
+});
+
+test("retries cannot reset a route deadline", async () => {
+  const h = harness(() => ({ ok: false, status: 504 }));
+  const request = assert.rejects(h.context.fetchJikanJson("/anime/1/full", { deadlineAt: 100500 }), { code: "JIKAN_TIMEOUT" });
+  await h.advance(2000);
+  await request;
+  assert.equal(h.calls.length, 1);
+  assert.equal(h.timers.size, 0);
+});
+
 for (const stage of ["headers", "body"]) {
   test(`a hung ${stage} is aborted and releases the queue`, async () => {
     let hung = true;
