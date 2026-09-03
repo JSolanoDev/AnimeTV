@@ -472,6 +472,8 @@ class CompositeAdultSourceAdapter extends AdultSourceAdapter {
     this.primary = usable[0] || new NullAdultSourceAdapter();
     this.hentaiOcean = usable.find((adapter) => adapter instanceof HentaiOceanAdultSourceAdapter) || null;
     this._oceanCatalog = [];
+    this._oceanTitleIndex = new Map();
+    this._indexedOceanCatalog = null;
   }
 
   _titleKey(value = "") {
@@ -500,8 +502,22 @@ class CompositeAdultSourceAdapter extends AdultSourceAdapter {
   }
 
   _findExactOceanMatch(item = {}) {
-    const keys = this._keys(item);
-    return this._oceanCatalog.find((candidate) => this._keys(candidate).some((key) => keys.includes(key))) || null;
+    if (this._indexedOceanCatalog !== this._oceanCatalog) {
+      this._oceanTitleIndex = new Map();
+      this._oceanCatalog.forEach((candidate, position) => {
+        for (const key of this._keys(candidate)) {
+          if (!this._oceanTitleIndex.has(key)) this._oceanTitleIndex.set(key, { candidate, position });
+        }
+      });
+      this._indexedOceanCatalog = this._oceanCatalog;
+    }
+    // Preserve the original first-candidate match, including overlapping aliases.
+    let first = null;
+    for (const key of this._keys(item)) {
+      const match = this._oceanTitleIndex.get(key);
+      if (match && (!first || match.position < first.position)) first = match;
+    }
+    return first?.candidate || null;
   }
 
   _enrich(primary = {}, ocean = null) {

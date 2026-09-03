@@ -19,7 +19,7 @@
     "check": "node --check animetv-local.js && node --check animetv-server.js && node --check api/[...path].js && node --check js/constants.js && node --check js/translations.js && node --check js/utils.js && node --check js/normalize.js && node --check js/season-normalization.js && node --check js/smart-source.js && node --check js/image-resolver.js && node --check js/router.js && node --check js/source-classification.js && node --check js/anilist-metadata.js && node --check js/adult-mode.js && node --check client.js && node --check scripts/build-underhentai-catalog.mjs && node --check scripts/build-underhentai-details.mjs && node --check scripts/verify-underhentai-playability.mjs && node scripts/test-adult-source-merge.mjs && node scripts/check-asset-versions.mjs && node scripts/check-mirror-sync.mjs && node scripts/check-vercel-config.mjs && node scripts/check-global-collisions.mjs && node scripts/security-audit.mjs && npm run adult:verify",
     "perf:audit": "node scripts/perf-audit.mjs",
     "test": "node scripts/test-grouping.mjs && node scripts/test-adult-source-merge.mjs && npm run test:metadata && npm run test:seasons && npm run test:loading",
-    "test:loading": "node --test scripts/test-loading-feedback.mjs",
+    "test:loading": "node --test scripts/test-loading-feedback.mjs scripts/test-catalog-performance.mjs",
     "test:seasons": "node --test scripts/test-season-recovery.mjs",
     "test:metadata": "node --test scripts/test-metadata-deadlines.mjs",
     "security:audit": "node scripts/security-audit.mjs",

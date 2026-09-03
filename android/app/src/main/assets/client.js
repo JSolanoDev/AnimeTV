@@ -30,6 +30,7 @@ function installAdBlockGuards() {
 let anipubCatalogCache = readResponseCache("anipub-full-catalog", CATALOG_CACHE_TTL);
 let anipubCatalogLoadingPromise = null;
 let adultCatalogLoadingPromise = null;
+let adultCatalogLoadedAt = 0;
 const anipubEpisodesCache = new Map();
 if (!localStorage.getItem(LANGUAGE_PREFERENCES_KEY)) setDefaultLanguage("japanese", "spanish");
 
@@ -534,7 +535,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=643`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=644`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2128,8 +2129,12 @@ async function loadAdultCatalog(force = false) {
     return [];
   }
   if (adultCatalogLoadingPromise) return adultCatalogLoadingPromise;
+  if (!force && adultCatalogLoadedAt && Date.now() - adultCatalogLoadedAt < 5 * 60 * 1000) {
+    const loadedItems = state.shows.filter((item) => item?.isAdult === true);
+    if (loadedItems.length) return loadedItems;
+  }
   const adapter = AdultSourceRegistry.get();
-  const cacheKey = `adult-catalog:${adapter.name}:multi-source-v8`;
+  const cacheKey = `adult-catalog:${adapter.name}:multi-source-v9`;
   const applyAdultItems = (items = [], labelPrefix = adapter.name) => {
     const adultItems = Array.isArray(items)
       ? items.filter((item) => item?.isAdult === true).map(isolateAdultSourceMetadata)
@@ -2157,6 +2162,7 @@ async function loadAdultCatalog(force = false) {
       const items = await adapter.listLatest(1, { refresh: force });
       const adultItems = applyAdultItems(items);
       if (adultItems.length) {
+        adultCatalogLoadedAt = Date.now();
         const storedDurably = await writeDurableAdultCatalog(cacheKey, adultItems);
         if (!storedDurably) writeResponseCache(cacheKey, adultItems);
         else {
@@ -3350,7 +3356,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=643";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=644";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -16379,7 +16385,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=643");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=644");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

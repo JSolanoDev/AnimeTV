@@ -8939,10 +8939,10 @@ async function handleUnderHentaiCatalog(url, response) {
   } catch (error) {
     log("warn", "Live UnderHentai catalog refresh failed", { error: error.message });
   }
-  const veoSnapshot = readVeoHentaiCatalog();
-  const veoItems = (veoSnapshot.items || []).map(prepareVeoHentaiSnapshotItem);
+  // Only use the configured catalog. Retired snapshots are excluded from the
+  // production bundle and must not silently expand localhost's title list.
   const seen = new Set();
-  items = [...liveItems, ...snapshot.items, ...veoItems].filter((item) => item.slug && !seen.has(item.slug) && seen.add(item.slug));
+  items = [...liveItems, ...snapshot.items].filter((item) => item.slug && !seen.has(item.slug) && seen.add(item.slug));
 
   const normalizedQuery = query.toLowerCase();
   const filtered = normalizedQuery
