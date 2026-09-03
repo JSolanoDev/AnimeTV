@@ -248,6 +248,8 @@ const jikanEpisodeCache = new Map(); // malId -> { data, ts }
 const jikanFullCache = new Map(); // malId -> { data, ts }
 const jikanSearchCache = new Map(); // normalized title -> { data, ts }
 const JIKAN_EPISODE_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
+const JIKAN_REQUEST_BUDGET_MS = 8000;
+const JIKAN_EPISODE_BUDGET_MS = 20000;
 let jikanRequestQueue = Promise.resolve();
 let jikanLastRequestAt = 0;
 
@@ -10222,12 +10224,27 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function fetchJikanJson(pathname) {
-  const run = async () => {
+function fetchJikanJson(pathname, { deadlineAt = Infinity } = {}) {
+  // Include queue time and body decoding in the budget, not only HTTP headers.
+  const remainingMs = Math.min(deadlineAt - Date.now(), JIKAN_REQUEST_BUDGET_MS);
+  const timeoutError = new Error("Jikan request deadline exceeded");
+  timeoutError.code = "JIKAN_TIMEOUT";
+  if (remainingMs <= 0) return Promise.reject(timeoutError);
+  const controller = new AbortController();
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort(timeoutError);
+      reject(timeoutError);
+    }, remainingMs);
+  });
+  const requestJson = async () => {
+    if (controller.signal.aborted) throw timeoutError;
     const waitMs = Math.max(0, 350 - (Date.now() - jikanLastRequestAt));
     if (waitMs) await wait(waitMs);
+    if (controller.signal.aborted) throw timeoutError;
     jikanLastRequestAt = Date.now();
-    const upstream = await fetchWithRetry(`${JIKAN_API}${pathname}`);
+    const upstream = await fetch(`${JIKAN_API}${pathname}`, { signal: controller.signal });
     if (!upstream.ok) {
       // Carry the status so callers can tell "no such title" (404) from "the
       // service is unwell" (429/5xx) instead of guessing from the message.
@@ -10237,9 +10254,11 @@ function fetchJikanJson(pathname) {
     }
     return upstream.json();
   };
+  // Race inside the queue as well so an expired body cannot block later work.
+  const run = () => Promise.race([requestJson(), deadline]);
   const request = jikanRequestQueue.then(run, run);
   jikanRequestQueue = request.catch(() => {});
-  return request;
+  return Promise.race([request, deadline]).finally(() => clearTimeout(timer));
 }
 
 async function handleJikanFull(url, response) {
@@ -10317,14 +10336,15 @@ async function handleJikanEpisodes(url, response) {
       return sendJikanUnavailable(response, cached?.data, []);
     }
 
-    const firstPayload = await fetchJikanJson(`/anime/${encodeURIComponent(malId)}/episodes?page=1`);
+    const deadlineAt = Date.now() + JIKAN_EPISODE_BUDGET_MS;
+    const firstPayload = await fetchJikanJson(`/anime/${encodeURIComponent(malId)}/episodes?page=1`, { deadlineAt });
     const pageCount = Math.max(1, Math.min(30, Number(firstPayload.pagination?.last_visible_page || 1)));
     const payloads = [firstPayload];
 
     for (let page = 2; page <= pageCount; page += 2) {
       const batch = [page, page + 1].filter((value) => value <= pageCount);
       const results = await Promise.all(batch.map((pageNumber) =>
-        fetchJikanJson(`/anime/${encodeURIComponent(malId)}/episodes?page=${pageNumber}`)
+        fetchJikanJson(`/anime/${encodeURIComponent(malId)}/episodes?page=${pageNumber}`, { deadlineAt })
       ));
       payloads.push(...results);
     }
