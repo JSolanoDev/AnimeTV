@@ -30914,7 +30914,2527 @@
         "englishTitle": "Yoroi-Shinden Samurai Troopers",
         "romajiTitle": "Yoroi Shinden Samurai Troopers"
       }
+    },
+    "anilist-269": {
+      "status": "ok",
+      "anilistId": 269,
+      "malId": 269,
+      "meta": {
+        "malId": 269,
+        "year": 2004,
+        "score": 80,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 366,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "pierrot co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Bleach",
+        "_via": "offline-db"
+      },
+      "tmdbId": 30984,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/o0NsbcIvsllg6CJX0FBFY8wWbsn.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/2EewmxXe72ogD0EaWM8gqa0ccIw.jpg"
+    },
+    "anilist-97940": {
+      "status": "ok",
+      "anilistId": 97940,
+      "malId": 34572,
+      "meta": {
+        "malId": 34572,
+        "year": 2017,
+        "score": 79,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 170,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "pierrot co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Black Clover",
+        "_via": "offline-db"
+      },
+      "tmdbId": 73223,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/oUsm3pq6rUga7lVGQFS3g84etVE.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/kaMisKeOoTBPxPkbC3OW7Wgt6ON.jpg"
+    },
+    "anilist-11061": {
+      "status": "ok",
+      "anilistId": 11061,
+      "malId": 11061,
+      "meta": {
+        "malId": 11061,
+        "year": 2011,
+        "score": 88,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 148,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "madhouse inc.",
+        "englishTitle": "",
+        "romajiTitle": "Hunter x Hunter (2011)",
+        "_via": "offline-db"
+      },
+      "tmdbId": 46298,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/bFKKyCI89Xq98Gul8cGox8K3sZa.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/i2EEr2uBvRlAwJ8d8zTG2Y19mIa.jpg"
+    },
+    "anilist-20": {
+      "status": "ok",
+      "anilistId": 20,
+      "malId": 20,
+      "meta": {
+        "malId": 20,
+        "year": 2002,
+        "score": 79,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 220,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "pierrot co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Naruto",
+        "_via": "offline-db"
+      },
+      "tmdbId": 46260,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/5F0HVEgkgP99fEWDjPyikGt9jQi.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/xppeysfvDKVx775MFuH8Z9BlpMk.jpg"
+    },
+    "anilist-1735": {
+      "status": "ok",
+      "anilistId": 1735,
+      "malId": 1735,
+      "meta": {
+        "malId": 1735,
+        "year": 2007,
+        "score": 82,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 500,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "pierrot co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Naruto: Shippuuden",
+        "_via": "offline-db"
+      },
+      "tmdbId": 31910,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/z0YhJvomqedHF85bplUJEotkN5l.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/kV27j3Nz4d5z8u6mN3EJw9RiLg2.jpg"
+    },
+    "anilist-5114": {
+      "status": "ok",
+      "anilistId": 5114,
+      "malId": 5114,
+      "meta": {
+        "malId": 5114,
+        "year": 2009,
+        "score": 90,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 64,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "bones inc.",
+        "englishTitle": "",
+        "romajiTitle": "Fullmetal Alchemist: Brotherhood",
+        "_via": "offline-db"
+      },
+      "tmdbId": 31911,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/2UG177tWHy7xRmMKWJHB7nAUmKd.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/5ZFUEOULaVml7pQuXxhpR2SmVUw.jpg"
+    },
+    "anilist-918": {
+      "status": "ok",
+      "anilistId": 918,
+      "malId": 918,
+      "meta": {
+        "malId": 918,
+        "year": 2006,
+        "score": 85,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 201,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "sunrise inc.",
+        "englishTitle": "",
+        "romajiTitle": "Gintama",
+        "_via": "offline-db"
+      },
+      "tmdbId": 57041,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/3gVl0IvJMbhOnAvH9V0Q1Y1HnXE.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/f7vK8pzZIqhyA8sYmBpWmp9Ae7.jpg"
+    },
+    "anilist-209983": {
+      "status": "ok",
+      "anilistId": 209983,
+      "malId": 63817,
+      "meta": {
+        "malId": 63817,
+        "year": 2026,
+        "score": null,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": null,
+        "episodes": 1,
+        "format": "TV",
+        "airingStatus": "NOT_YET_RELEASED",
+        "country": "",
+        "studio": "yokohama animation lab",
+        "englishTitle": "",
+        "romajiTitle": "Hell Mode: Yarikomizuki no Gamer wa Hai Settei no Isekai de Musou suru 2nd Season",
+        "_via": "offline-db"
+      },
+      "tmdbId": 280049,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/gf62V8UBVBMFPpD9yI0UFvkFvq2.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/9m8MgXfAHbR4ELxrsQR8w0b5NQM.jpg"
+    },
+    "anilist-21355": {
+      "status": "ok",
+      "anilistId": 21355,
+      "malId": 31240,
+      "meta": {
+        "malId": 31240,
+        "year": 2016,
+        "score": 83,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Drama",
+          "Fantasy",
+          "Horror"
+        ],
+        "description": "",
+        "duration": 26,
+        "episodes": 25,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "white fox co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Re:Zero kara Hajimeru Isekai Seikatsu",
+        "_via": "offline-db"
+      },
+      "tmdbId": 65942,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/7ZruEnSnHD6Jx5mF0hBt1E306Vt.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/oHqYrPAsIiTD5m4DuxumV4er8BU.jpg"
+    },
+    "anilist-1535": {
+      "status": "ok",
+      "anilistId": 1535,
+      "malId": 1535,
+      "meta": {
+        "malId": 1535,
+        "year": 2006,
+        "score": 87,
+        "genres": [
+          "Drama",
+          "Fantasy",
+          "Horror",
+          "Mystery",
+          "Psychological"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 37,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "madhouse inc.",
+        "englishTitle": "",
+        "romajiTitle": "Death Note",
+        "_via": "offline-db"
+      },
+      "tmdbId": 13916,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/z8IPicmEKXUO4I2UDdMEqw7RqOE.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/tCZFfYTIwrR7n94J6G14Y4hAFU6.jpg"
+    },
+    "anilist-180745": {
+      "status": "ok",
+      "anilistId": 180745,
+      "malId": 59708,
+      "meta": {
+        "malId": 59708,
+        "year": 2026,
+        "score": 79,
+        "genres": [
+          "Drama",
+          "Psychological",
+          "Slice of Life",
+          "Thriller"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 16,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "lerche",
+        "englishTitle": "",
+        "romajiTitle": "Youkoso Jitsuryoku Shijou Shugi no Kyoushitsu e 4th Season: 2-nensei-hen 1 Gakki",
+        "_via": "offline-db"
+      },
+      "tmdbId": 72517,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/d3yNn379emGP8xztqeOsB9oLNG2.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/yuHanbUUIv2UWRxxQFt9n8jtmOJ.jpg"
+    },
+    "anilist-119661": {
+      "status": "ok",
+      "anilistId": 119661,
+      "malId": 42203,
+      "meta": {
+        "malId": 42203,
+        "year": 2021,
+        "score": 84,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Drama",
+          "Fantasy",
+          "Psychological"
+        ],
+        "description": "",
+        "duration": 29,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "white fox co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season Part 2",
+        "_via": "offline-db"
+      },
+      "tmdbId": 65942,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/7ZruEnSnHD6Jx5mF0hBt1E306Vt.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/oHqYrPAsIiTD5m4DuxumV4er8BU.jpg"
+    },
+    "anilist-110277": {
+      "status": "ok",
+      "anilistId": 110277,
+      "malId": 40028,
+      "meta": {
+        "malId": 40028,
+        "year": 2021,
+        "score": 87,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Drama",
+          "Fantasy",
+          "Horror"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 16,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "mappa co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Shingeki no Kyojin: The Final Season",
+        "_via": "offline-db"
+      },
+      "tmdbId": 1429,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/rqbCbjB19amtOtFQbb3K2lgm2zv.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg"
+    },
+    "anilist-101280": {
+      "status": "ok",
+      "anilistId": 101280,
+      "malId": 37430,
+      "meta": {
+        "malId": 37430,
+        "year": 2018,
+        "score": 83,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 24,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "8 bit",
+        "englishTitle": "",
+        "romajiTitle": "Tensei shitara Slime Datta Ken",
+        "_via": "offline-db"
+      },
+      "tmdbId": 82684,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/eJOy7YWAHgOS3V477sdTsq4v9jp.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/pzujcdPAoH361NObVrtbA7zACE7.jpg"
+    },
+    "anilist-19": {
+      "status": "ok",
+      "anilistId": 19,
+      "malId": 19,
+      "meta": {
+        "malId": 19,
+        "year": 2004,
+        "score": 86,
+        "genres": [
+          "Drama",
+          "Horror",
+          "Mystery",
+          "Psychological",
+          "Thriller"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 74,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "madhouse inc.",
+        "englishTitle": "",
+        "romajiTitle": "Monster",
+        "_via": "offline-db"
+      },
+      "tmdbId": 30981,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/6T19aRp9zLMghZo1dTEwoNyreNZ.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/n5XNKXnoXpoXyfiCtXHOf8q8PFM.jpg"
+    },
+    "anilist-1575": {
+      "status": "ok",
+      "anilistId": 1575,
+      "malId": 1575,
+      "meta": {
+        "malId": 1575,
+        "year": 2006,
+        "score": 87,
+        "genres": [
+          "Action",
+          "Drama",
+          "Mecha",
+          "Mystery",
+          "Psychological"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 25,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "sunrise inc.",
+        "englishTitle": "",
+        "romajiTitle": "Code Geass: Hangyaku no Lelouch",
+        "_via": "offline-db"
+      },
+      "tmdbId": 31724,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/5hS2OIuZSKGkR8R5l3bY5zh04Ce.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/x316WCogkeIwNY4JR8zTCHbI2nQ.jpg"
+    },
+    "anilist-131681": {
+      "status": "ok",
+      "anilistId": 131681,
+      "malId": 48583,
+      "meta": {
+        "malId": 48583,
+        "year": 2022,
+        "score": 86,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Drama",
+          "Fantasy",
+          "Horror"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "contrail",
+        "englishTitle": "",
+        "romajiTitle": "Shingeki no Kyojin: The Final Season Part 2",
+        "_via": "offline-db"
+      },
+      "tmdbId": 1429,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/rqbCbjB19amtOtFQbb3K2lgm2zv.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg"
+    },
+    "anilist-113415": {
+      "status": "ok",
+      "anilistId": 113415,
+      "malId": 40748,
+      "meta": {
+        "malId": 40748,
+        "year": 2020,
+        "score": 85,
+        "genres": [
+          "Action",
+          "Comedy",
+          "Drama",
+          "Fantasy",
+          "Horror"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 24,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "mappa co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Jujutsu Kaisen",
+        "_via": "offline-db"
+      },
+      "tmdbId": 95479,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/qpin8cASXEVtwhzNsprHYFiOAGk.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/6qQzMJG27XOJsyAEEIisoJB45j2.jpg"
+    },
+    "anilist-108632": {
+      "status": "ok",
+      "anilistId": 108632,
+      "malId": 39587,
+      "meta": {
+        "malId": 39587,
+        "year": 2020,
+        "score": 83,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Drama",
+          "Fantasy",
+          "Horror"
+        ],
+        "description": "",
+        "duration": 26,
+        "episodes": 13,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "white fox co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season",
+        "_via": "offline-db"
+      },
+      "tmdbId": 65942,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/7ZruEnSnHD6Jx5mF0hBt1E306Vt.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/oHqYrPAsIiTD5m4DuxumV4er8BU.jpg"
+    },
+    "anilist-21613": {
+      "status": "ok",
+      "anilistId": 21613,
+      "malId": 32615,
+      "meta": {
+        "malId": 32615,
+        "year": 2017,
+        "score": 81,
+        "genres": [
+          "Action",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "nut inc.",
+        "englishTitle": "",
+        "romajiTitle": "Youjo Senki",
+        "_via": "offline-db"
+      },
+      "tmdbId": 69346,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/xe2IkfzpGFObODJLTpBB9bdRpbB.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/5nwiHomKZBBF9DLrolfZapi3fDm.jpg"
+    },
+    "anilist-2001": {
+      "status": "ok",
+      "anilistId": 2001,
+      "malId": 2001,
+      "meta": {
+        "malId": 2001,
+        "year": 2007,
+        "score": 85,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Ecchi"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 27,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "gainax co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Tengen Toppa Gurren Lagann",
+        "_via": "offline-db"
+      },
+      "tmdbId": 21729,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/la3G4VRIVcryxNmxU1YYTZcy9fL.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/sG0Z0yWJmzr7UW6183cmz5DAjqm.jpg"
+    },
+    "anilist-99147": {
+      "status": "ok",
+      "anilistId": 99147,
+      "malId": 35760,
+      "meta": {
+        "malId": 35760,
+        "year": 2018,
+        "score": 86,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Drama",
+          "Fantasy",
+          "Horror"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "wit studio, inc.",
+        "englishTitle": "",
+        "romajiTitle": "Shingeki no Kyojin Season 3",
+        "_via": "offline-db"
+      },
+      "tmdbId": 1429,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/rqbCbjB19amtOtFQbb3K2lgm2zv.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg"
+    },
+    "anilist-20958": {
+      "status": "ok",
+      "anilistId": 20958,
+      "malId": 25777,
+      "meta": {
+        "malId": 25777,
+        "year": 2017,
+        "score": 85,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Drama",
+          "Fantasy",
+          "Horror"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "wit studio, inc.",
+        "englishTitle": "",
+        "romajiTitle": "Shingeki no Kyojin Season 2",
+        "_via": "offline-db"
+      },
+      "tmdbId": 1429,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/rqbCbjB19amtOtFQbb3K2lgm2zv.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg"
+    },
+    "anilist-20605": {
+      "status": "ok",
+      "anilistId": 20605,
+      "malId": 22319,
+      "meta": {
+        "malId": 22319,
+        "year": 2014,
+        "score": 78,
+        "genres": [
+          "Action",
+          "Drama",
+          "Fantasy",
+          "Horror",
+          "Mystery"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "pierrot co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Tokyo Ghoul",
+        "_via": "offline-db"
+      },
+      "tmdbId": 61374,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/jnwRlthXIgJB75Mt9GEl93Dczki.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/1m4RlC9BTCbyY549TOdVQ5NRPcR.jpg"
+    },
+    "anilist-3588": {
+      "status": "ok",
+      "anilistId": 3588,
+      "malId": 3588,
+      "meta": {
+        "malId": 3588,
+        "year": 2008,
+        "score": 79,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Ecchi"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 51,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "bones inc.",
+        "englishTitle": "",
+        "romajiTitle": "Soul Eater",
+        "_via": "offline-db"
+      },
+      "tmdbId": 37305,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/yOkNYWCOWLh3HFtUlo3QT1g5pHG.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/hAszc4fYfKU4SexxiSIigS3z2WU.jpg"
+    },
+    "anilist-813": {
+      "status": "ok",
+      "anilistId": 813,
+      "malId": 813,
+      "meta": {
+        "malId": 813,
+        "year": 1989,
+        "score": 80,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Fantasy",
+          "Sci-Fi"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 291,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "toei animation co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Dragon Ball Z",
+        "_via": "offline-db"
+      },
+      "tmdbId": 12971,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/ydf1CeiBLfdxiyNTpskM0802TKl.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/oQ5CnVj3TRifXl2bIOri6H6rfNe.jpg"
+    },
+    "anilist-171110": {
+      "status": "ok",
+      "anilistId": 171110,
+      "malId": 57466,
+      "meta": {
+        "malId": 57466,
+        "year": 2026,
+        "score": 79,
+        "genres": [
+          "Drama",
+          "Fantasy",
+          "Slice of Life"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 24,
+        "format": "TV",
+        "airingStatus": "RELEASING",
+        "country": "",
+        "studio": "wit studio, inc.",
+        "englishTitle": "",
+        "romajiTitle": "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen - Ryoushu no Youjo",
+        "_via": "offline-db"
+      },
+      "tmdbId": 91768,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/2ta3O7D1Nh42nTZof9qxJCVAvwk.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/aVGueAM88cc4sX6PeMvuAPObDc4.jpg"
+    },
+    "anilist-166873": {
+      "status": "ok",
+      "anilistId": 166873,
+      "malId": 55888,
+      "meta": {
+        "malId": 55888,
+        "year": 2024,
+        "score": 83,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Ecchi"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "studio bind",
+        "englishTitle": "",
+        "romajiTitle": "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2",
+        "_via": "offline-db"
+      },
+      "tmdbId": 94664,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/j9fRIimor0AMFJR9kjZubXcABzZ.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/gLKOYIMyKlUHW0SVdskhgf9C0yy.jpg"
+    },
+    "anilist-104578": {
+      "status": "ok",
+      "anilistId": 104578,
+      "malId": 38524,
+      "meta": {
+        "malId": 38524,
+        "year": 2019,
+        "score": 89,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Drama",
+          "Fantasy",
+          "Horror"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 10,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "wit studio, inc.",
+        "englishTitle": "",
+        "romajiTitle": "Shingeki no Kyojin Season 3 Part 2",
+        "_via": "offline-db"
+      },
+      "tmdbId": 1429,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/rqbCbjB19amtOtFQbb3K2lgm2zv.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg"
+    },
+    "anilist-101922": {
+      "status": "ok",
+      "anilistId": 101922,
+      "malId": 38000,
+      "meta": {
+        "malId": 38000,
+        "year": 2019,
+        "score": 85,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 26,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "ufotable, inc.",
+        "englishTitle": "",
+        "romajiTitle": "Kimetsu no Yaiba",
+        "_via": "offline-db"
+      },
+      "tmdbId": 85937,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/3GQKYh6Trm8pxd2AypovoYQf4Ay.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/xUfRZu2mi8jH6SzQEJGP6tjBuYj.jpg"
+    },
+    "anilist-101348": {
+      "status": "ok",
+      "anilistId": 101348,
+      "malId": 37521,
+      "meta": {
+        "malId": 37521,
+        "year": 2019,
+        "score": 86,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Drama"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 24,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "wit studio, inc.",
+        "englishTitle": "",
+        "romajiTitle": "Vinland Saga",
+        "_via": "offline-db"
+      },
+      "tmdbId": 88803,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/pSLuy0OfN1QblifDVoEhAvst4et.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/vUHlpA5c1NXkds59reY3HMb4Abs.jpg"
+    },
+    "anilist-20755": {
+      "status": "ok",
+      "anilistId": 20755,
+      "malId": 24833,
+      "meta": {
+        "malId": 24833,
+        "year": 2015,
+        "score": 81,
+        "genres": [
+          "Action",
+          "Comedy",
+          "Drama",
+          "Sci-Fi",
+          "Supernatural"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 22,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "lerche",
+        "englishTitle": "",
+        "romajiTitle": "Ansatsu Kyoushitsu",
+        "_via": "offline-db"
+      },
+      "tmdbId": 62110,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/dOCpqck500K9JmdEIOye6Ivmoip.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/qf0l0nQ2t06Es3cSXflqx6l6vsJ.jpg"
+    },
+    "anilist-10620": {
+      "status": "ok",
+      "anilistId": 10620,
+      "malId": 10620,
+      "meta": {
+        "malId": 10620,
+        "year": 2011,
+        "score": 75,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 26,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "asread.",
+        "englishTitle": "",
+        "romajiTitle": "Mirai Nikki (TV)",
+        "_via": "offline-db"
+      },
+      "tmdbId": 46671,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/86JFnMyoj6Mk8P66QoT4NLkiMO7.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/rQScQD92q6CYAGL0DWQQNxjuVVh.jpg"
+    },
+    "anilist-142074": {
+      "status": "ok",
+      "anilistId": 142074,
+      "malId": 50461,
+      "meta": {
+        "malId": 50461,
+        "year": 2022,
+        "score": 74,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "engi co.ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Otome Game Sekai wa Mob ni Kibishii Sekai desu",
+        "_via": "offline-db"
+      },
+      "tmdbId": 139512,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/c0oFoz7PttzMLsQOQn54Lcu8V9d.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/zQInUzmgvT4MgysqSiW95YBkz1w.jpg"
+    },
+    "anilist-124080": {
+      "status": "ok",
+      "anilistId": 124080,
+      "malId": 42897,
+      "meta": {
+        "malId": 42897,
+        "year": 2021,
+        "score": 82,
+        "genres": [
+          "Comedy",
+          "Romance",
+          "Slice of Life"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 13,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "cloverworks inc.",
+        "englishTitle": "",
+        "romajiTitle": "Horimiya",
+        "_via": "offline-db"
+      },
+      "tmdbId": 110070,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/ldUbhEbyI28M6PiAkL0hZ2o8bOT.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/iSOKGl5KIeOCAtigUDCfFZe2cOi.jpg"
+    },
+    "anilist-105333": {
+      "status": "ok",
+      "anilistId": 105333,
+      "malId": 38691,
+      "meta": {
+        "malId": 38691,
+        "year": 2019,
+        "score": 83,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Sci-Fi"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 24,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "8 pan",
+        "englishTitle": "",
+        "romajiTitle": "Dr. Stone",
+        "_via": "offline-db"
+      },
+      "tmdbId": 86031,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/lN13BPAEnc5iXmoxxBQHOZ1ScfZ.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/xbZQ3fDl0y5mt0ARwfeyrgQ4JTw.jpg"
+    },
+    "anilist-101291": {
+      "status": "ok",
+      "anilistId": 101291,
+      "malId": 37450,
+      "meta": {
+        "malId": 37450,
+        "year": 2018,
+        "score": 82,
+        "genres": [
+          "Comedy",
+          "Drama",
+          "Mystery",
+          "Psychological",
+          "Romance"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 13,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "cloverworks inc.",
+        "englishTitle": "",
+        "romajiTitle": "Seishun Buta Yarou wa Bunny Girl Senpai no Yume wo Minai",
+        "_via": "offline-db"
+      },
+      "tmdbId": 82739,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/8165gnzhyRbkKfm3WFBINdkDQBR.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/fbqDG7GjodvaNecgv1q8kfSNPl5.jpg"
+    },
+    "anilist-20954": {
+      "status": "ok",
+      "anilistId": 20954,
+      "malId": 28851,
+      "meta": {
+        "malId": 28851,
+        "year": 2016,
+        "score": 88,
+        "genres": [
+          "Drama",
+          "Psychological",
+          "Romance",
+          "Slice of Life"
+        ],
+        "description": "",
+        "duration": 130,
+        "episodes": 1,
+        "format": "MOVIE",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "kyoto animation co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Koe no Katachi",
+        "_via": "offline-db"
+      },
+      "tmdbId": 378064,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/5lAMQMWpXMsirvtLLvW7cJgEPkU.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/tuFaWiqX0TXoWu7DGNcmX3UW7sT.jpg"
+    },
+    "anilist-20464": {
+      "status": "ok",
+      "anilistId": 20464,
+      "malId": 20583,
+      "meta": {
+        "malId": 20583,
+        "year": 2014,
+        "score": 85,
+        "genres": [
+          "Comedy",
+          "Drama",
+          "Slice of Life",
+          "Sports"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 25,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "production i.g., inc.",
+        "englishTitle": "",
+        "romajiTitle": "Haikyuu!!",
+        "_via": "offline-db"
+      },
+      "tmdbId": 60863,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/zr1MDQCPVB5uJEHxiO6Tukn4OjH.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/8WEr48swcqe89Zsy5sdrGCASlIg.jpg"
+    },
+    "anilist-30": {
+      "status": "ok",
+      "anilistId": 30,
+      "malId": 30,
+      "meta": {
+        "malId": 30,
+        "year": 1995,
+        "score": 83,
+        "genres": [
+          "Action",
+          "Comedy",
+          "Drama",
+          "Mecha",
+          "Mystery"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 26,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "gainax co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Shinseiki Evangelion",
+        "_via": "offline-db"
+      },
+      "tmdbId": 890,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/2NNKYsWXoO9w8fMctWX7utqyh95.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/y2ah9t0navXyIvoHg1uIbIHO3tt.jpg"
+    },
+    "anilist-195539": {
+      "status": "ok",
+      "anilistId": 195539,
+      "malId": 61990,
+      "meta": {
+        "malId": 61990,
+        "year": 2026,
+        "score": 100,
+        "genres": [
+          "Action",
+          "Drama",
+          "Horror",
+          "Mystery",
+          "Psychological"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 10,
+        "format": "ONA",
+        "airingStatus": "NOT_YET_RELEASED",
+        "country": "",
+        "studio": "trigger inc.",
+        "englishTitle": "",
+        "romajiTitle": "Cyberpunk: Edgerunners 2",
+        "_via": "offline-db"
+      },
+      "tmdbId": 326788,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/sxIGx4fXlsvOoS3kmDZEKR9MuH7.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/2GTseVGLsAZlw25PXFMi3UuI77.jpg"
+    },
+    "anilist-151970": {
+      "status": "ok",
+      "anilistId": 151970,
+      "malId": 52347,
+      "meta": {
+        "malId": 52347,
+        "year": 2023,
+        "score": 81,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 25,
+        "episodes": 25,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "c2c co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Shangri-La Frontier: Kusoge Hunter, Kamige ni Idoman to su",
+        "_via": "offline-db"
+      },
+      "tmdbId": 205050,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/xcgdODcDuzngTXRtV7AtnAFpWzu.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/aCGdpgNkgz66R1winFkTFsMAhlC.jpg"
+    },
+    "anilist-141953": {
+      "status": "ok",
+      "anilistId": 141953,
+      "malId": 60568,
+      "meta": {
+        "malId": 60568,
+        "year": 2026,
+        "score": null,
+        "genres": [
+          "Action",
+          "Mystery",
+          "Psychological"
+        ],
+        "description": "",
+        "duration": null,
+        "episodes": 7,
+        "format": "ONA",
+        "airingStatus": "NOT_YET_RELEASED",
+        "country": "",
+        "studio": "bejing tong pu wenhua chuanmei youxiangongsi",
+        "englishTitle": "",
+        "romajiTitle": "Jiyi Guanli Ju (2026)",
+        "_via": "offline-db"
+      },
+      "tmdbId": 280564,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/33h02rEshNhhyUYQNbwFxD5G2oK.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/d56peLjbWx4bBLPFuTQ0S5dFEPa.jpg"
+    },
+    "anilist-116589": {
+      "status": "ok",
+      "anilistId": 116589,
+      "malId": 41457,
+      "meta": {
+        "malId": 41457,
+        "year": 2021,
+        "score": 83,
+        "genres": [
+          "Action",
+          "Drama",
+          "Mecha",
+          "Sci-Fi"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 11,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "a-1 pictures inc.",
+        "englishTitle": "",
+        "romajiTitle": "86",
+        "_via": "offline-db"
+      },
+      "tmdbId": 100565,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/lSlL2CAPSDJ9gf2MZX0x2u2inKX.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/1RAD6bMQayJPoO8ry4vJy3GwCYt.jpg"
+    },
+    "anilist-9756": {
+      "status": "ok",
+      "anilistId": 9756,
+      "malId": 9756,
+      "meta": {
+        "malId": 9756,
+        "year": 2011,
+        "score": 84,
+        "genres": [
+          "Action",
+          "Drama",
+          "Fantasy",
+          "Horror",
+          "Mahou Shoujo"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "shaft inc.",
+        "englishTitle": "",
+        "romajiTitle": "Mahou Shoujo Madoka★Magica",
+        "_via": "offline-db"
+      },
+      "tmdbId": 39218,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/uyGH4YtKi7iSyAxKWLFdQWc7oXT.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/9Leopb4OB9j9FkP5JNHRZZlPPdg.jpg"
+    },
+    "anilist-213666": {
+      "status": "ok",
+      "anilistId": 213666,
+      "malId": null,
+      "meta": {
+        "malId": null,
+        "year": 2026,
+        "score": null,
+        "genres": [
+          "Drama",
+          "Romance"
+        ],
+        "description": "",
+        "duration": null,
+        "episodes": 0,
+        "format": "ONA",
+        "airingStatus": "NOT_YET_RELEASED",
+        "country": "",
+        "studio": "imageworks studio",
+        "englishTitle": "",
+        "romajiTitle": "Perfect Addiction",
+        "_via": "offline-db"
+      },
+      "tmdbId": 314561,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/3AoWp9dHpZHZuhYvAJaW4pEjIkP.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/yvqBzg1YHek499OQP2k6MWWI23X.jpg"
+    },
+    "anilist-195604": {
+      "status": "ok",
+      "anilistId": 195604,
+      "malId": 61967,
+      "meta": {
+        "malId": 61967,
+        "year": 2026,
+        "score": 90,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "NOT_YET_RELEASED",
+        "country": "",
+        "studio": "pierrot co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Black Clover 2nd Season",
+        "_via": "offline-db"
+      },
+      "tmdbId": 73223,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/oUsm3pq6rUga7lVGQFS3g84etVE.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/kaMisKeOoTBPxPkbC3OW7Wgt6ON.jpg"
+    },
+    "anilist-127720": {
+      "status": "ok",
+      "anilistId": 127720,
+      "malId": 45576,
+      "meta": {
+        "malId": 45576,
+        "year": 2021,
+        "score": 85,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Ecchi"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "studio bind",
+        "englishTitle": "",
+        "romajiTitle": "Mushoku Tensei: Isekai Ittara Honki Dasu Part 2",
+        "_via": "offline-db"
+      },
+      "tmdbId": 94664,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/j9fRIimor0AMFJR9kjZubXcABzZ.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/gLKOYIMyKlUHW0SVdskhgf9C0yy.jpg"
+    },
+    "anilist-99423": {
+      "status": "ok",
+      "anilistId": 99423,
+      "malId": 35849,
+      "meta": {
+        "malId": 35849,
+        "year": 2018,
+        "score": 74,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Drama",
+          "Ecchi",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 24,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "a-1 pictures",
+        "englishTitle": "",
+        "romajiTitle": "Darling in the FranXX",
+        "_via": "offline-db"
+      },
+      "tmdbId": 76121,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/tKh3pc5MEjCIGV7hSJX76qi8aGA.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/m6R8gI3brohD6izeVCXFmuGeV2m.jpg"
+    },
+    "anilist-21804": {
+      "status": "ok",
+      "anilistId": 21804,
+      "malId": 33255,
+      "meta": {
+        "malId": 33255,
+        "year": 2016,
+        "score": 82,
+        "genres": [
+          "Comedy",
+          "Slice of Life",
+          "Supernatural"
+        ],
+        "description": "",
+        "duration": 5,
+        "episodes": 120,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "egg firm",
+        "englishTitle": "",
+        "romajiTitle": "Saiki Kusuo no Ψ-nan",
+        "_via": "offline-db"
+      },
+      "tmdbId": 67676,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/hI76O9slOz3vPkhQWWQoN36WyhG.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/tpym31HVeQgenaubvCxkMF3kFHy.jpg"
+    },
+    "anilist-21507": {
+      "status": "ok",
+      "anilistId": 21507,
+      "malId": 32182,
+      "meta": {
+        "malId": 32182,
+        "year": 2016,
+        "score": 84,
+        "genres": [
+          "Action",
+          "Comedy",
+          "Drama",
+          "Psychological",
+          "Slice of Life"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "bones inc.",
+        "englishTitle": "",
+        "romajiTitle": "Mob Psycho 100",
+        "_via": "offline-db"
+      },
+      "tmdbId": 67075,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/kP5duNJEbTfXpBs6CITsaZ88pQi.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/vR7hwaGQ0ySRoq1WobiNRaPs4WO.jpg"
+    },
+    "anilist-21450": {
+      "status": "ok",
+      "anilistId": 21450,
+      "malId": 31933,
+      "meta": {
+        "malId": 31933,
+        "year": 2016,
+        "score": 84,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 39,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "david production inc.",
+        "englishTitle": "",
+        "romajiTitle": "JoJo no Kimyou na Bouken Part 4: Diamond wa Kudakenai",
+        "_via": "offline-db"
+      },
+      "tmdbId": 60862,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/2AskfZCVSh2cEbvURPgSG2VD8q5.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/8PO6QwTuCQKucMAx72gREkWYwiF.jpg"
+    },
+    "anilist-21234": {
+      "status": "ok",
+      "anilistId": 21234,
+      "malId": 31043,
+      "meta": {
+        "malId": 31043,
+        "year": 2016,
+        "score": 84,
+        "genres": [
+          "Drama",
+          "Mystery",
+          "Psychological",
+          "Slice of Life",
+          "Supernatural"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "a-1 pictures inc.",
+        "englishTitle": "",
+        "romajiTitle": "Boku dake ga Inai Machi",
+        "_via": "offline-db"
+      },
+      "tmdbId": 65249,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/rRGnjRCHdDl3m3oCVSvo5z2E5c5.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/EljUwZJhpuYfVuSfqY8Pt1xxpH.jpg"
+    },
+    "anilist-21196": {
+      "status": "ok",
+      "anilistId": 21196,
+      "malId": 28623,
+      "meta": {
+        "malId": 28623,
+        "year": 2016,
+        "score": 74,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Drama",
+          "Fantasy",
+          "Horror"
+        ],
+        "description": "",
+        "duration": 22,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "wit studio, inc.",
+        "englishTitle": "",
+        "romajiTitle": "Koutetsujou no Kabaneri",
+        "_via": "offline-db"
+      },
+      "tmdbId": 65945,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/rGpgCQbdWvAThLKASFlFWWPdj3r.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/a9lY3DCLU3DWvUshho6hAX2hKKh.jpg"
+    },
+    "anilist-20729": {
+      "status": "ok",
+      "anilistId": 20729,
+      "malId": 24405,
+      "meta": {
+        "malId": 24405,
+        "year": 2014,
+        "score": 74,
+        "genres": [
+          "Action",
+          "Comedy",
+          "Drama",
+          "Fantasy",
+          "Sci-Fi"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 73,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "toei animation co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "World Trigger",
+        "_via": "offline-db"
+      },
+      "tmdbId": 61628,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/q4zS5BRgypeMcF6ui3pxWgn0ABn.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/lchqxvVvOeSfkpuvVAIxaDm8Mth.jpg"
+    },
+    "anilist-14719": {
+      "status": "ok",
+      "anilistId": 14719,
+      "malId": 14719,
+      "meta": {
+        "malId": 14719,
+        "year": 2012,
+        "score": 79,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 26,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "david production inc.",
+        "englishTitle": "",
+        "romajiTitle": "JoJo no Kimyou na Bouken (TV)",
+        "_via": "offline-db"
+      },
+      "tmdbId": 45790,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/5mUYDoFjDlPmDvnUWSknhYjGBBh.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/ogAWwbh3frWtiTyyXrZaVFtqCgp.jpg"
+    },
+    "anilist-11617": {
+      "status": "ok",
+      "anilistId": 11617,
+      "malId": 11617,
+      "meta": {
+        "malId": 11617,
+        "year": 2012,
+        "score": 74,
+        "genres": [
+          "Action",
+          "Comedy",
+          "Ecchi",
+          "Fantasy",
+          "Romance"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "tnk co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "High School DxD",
+        "_via": "offline-db"
+      },
+      "tmdbId": 45950,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/oF8PNdntjZ7DUrAvnhNPPNRi0q6.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/5a9vaaLDAZTYjgfWIw7ZYhL1m1A.jpg"
+    },
+    "anilist-235": {
+      "status": "ok",
+      "anilistId": 235,
+      "malId": 235,
+      "meta": {
+        "malId": 235,
+        "year": 1996,
+        "score": 81,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Mystery"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 1205,
+        "format": "TV",
+        "airingStatus": "RELEASING",
+        "country": "",
+        "studio": "tms entertainment co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Meitantei Conan",
+        "_via": "offline-db"
+      },
+      "tmdbId": 30983,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/z67lpMtm8YGykJO4p89meuNMvj8.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/rRIEFvHRy01OYzmXQBbGeW0Qilc.jpg"
+    },
+    "anilist-223": {
+      "status": "ok",
+      "anilistId": 223,
+      "malId": 223,
+      "meta": {
+        "malId": 223,
+        "year": 1986,
+        "score": 78,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Ecchi",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 153,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "toei animation co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Dragon Ball",
+        "_via": "offline-db"
+      },
+      "tmdbId": 12609,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/30L49n4Dhn7dzuGG50GV3ybMhC3.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/onCLyCOgszTIyyVs2XKYSkKPOPG.jpg"
+    },
+    "anilist-210687": {
+      "status": "seeded",
+      "anilistId": 210687,
+      "malId": null,
+      "meta": {
+        "malId": null,
+        "year": 2026,
+        "score": 75,
+        "genres": [
+          "Adventure",
+          "Comedy",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 3,
+        "episodes": 12,
+        "format": "ONA",
+        "airingStatus": "RELEASING",
+        "country": "",
+        "studio": "studio puyukai",
+        "englishTitle": "",
+        "romajiTitle": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 4th Season",
+        "_via": "offline-db"
+      }
+    },
+    "anilist-140457": {
+      "status": "ok",
+      "anilistId": 140457,
+      "malId": 50175,
+      "meta": {
+        "malId": 50175,
+        "year": 2022,
+        "score": 71,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Fantasy",
+          "Slice of Life"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "emt squared",
+        "englishTitle": "",
+        "romajiTitle": "Yuusha, Yamemasu",
+        "_via": "offline-db"
+      },
+      "tmdbId": 136763,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/jkW2dLC3KVmLQAk4UzBtwvRh0HD.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/oflTB7Ddzw2lCBEADGQCkjp17OW.jpg"
+    },
+    "anilist-133965": {
+      "status": "ok",
+      "anilistId": 133965,
+      "malId": 48926,
+      "meta": {
+        "malId": 48926,
+        "year": 2021,
+        "score": 78,
+        "genres": [
+          "Comedy",
+          "Romance",
+          "Slice of Life"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "olm, inc.",
+        "englishTitle": "",
+        "romajiTitle": "Komi-san wa, Comyushou desu.",
+        "_via": "offline-db"
+      },
+      "tmdbId": 123876,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/2bHGk7j4OD21qeXRRDYrKVhxzRc.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/rOEaKS6jdZacivHnM56NQ4yhccW.jpg"
+    },
+    "anilist-117193": {
+      "status": "ok",
+      "anilistId": 117193,
+      "malId": 41587,
+      "meta": {
+        "malId": 41587,
+        "year": 2021,
+        "score": 77,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Sci-Fi"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 25,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "bones inc.",
+        "englishTitle": "",
+        "romajiTitle": "Boku no Hero Academia 5th Season",
+        "_via": "offline-db"
+      },
+      "tmdbId": 65930,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/ol0H2DGp4ifBHA4JDlCpwJWxnY2.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/phuYuzqWW9ru8EA3HVjE9W2Rr3M.jpg"
+    },
+    "anilist-112641": {
+      "status": "ok",
+      "anilistId": 112641,
+      "malId": 40591,
+      "meta": {
+        "malId": 40591,
+        "year": 2020,
+        "score": 85,
+        "genres": [
+          "Comedy",
+          "Drama",
+          "Psychological",
+          "Romance",
+          "Slice of Life"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "a-1 pictures inc.",
+        "englishTitle": "",
+        "romajiTitle": "Kaguya-sama wa Kokurasetai? Tensai-tachi no Renai Zunousen",
+        "_via": "offline-db"
+      },
+      "tmdbId": 83121,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/dJ8yrSokdTMnhKJw06MllSfCegb.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/5khbC6AuNgnvnoDbjIMKCOhEtIc.jpg"
+    },
+    "anilist-108465": {
+      "status": "ok",
+      "anilistId": 108465,
+      "malId": 39535,
+      "meta": {
+        "malId": 39535,
+        "year": 2021,
+        "score": 83,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Ecchi"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 11,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "studio bind",
+        "englishTitle": "",
+        "romajiTitle": "Mushoku Tensei: Isekai Ittara Honki Dasu",
+        "_via": "offline-db"
+      },
+      "tmdbId": 94664,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/j9fRIimor0AMFJR9kjZubXcABzZ.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/gLKOYIMyKlUHW0SVdskhgf9C0yy.jpg"
+    },
+    "anilist-103572": {
+      "status": "ok",
+      "anilistId": 103572,
+      "malId": 38101,
+      "meta": {
+        "malId": 38101,
+        "year": 2019,
+        "score": 77,
+        "genres": [
+          "Comedy",
+          "Drama",
+          "Ecchi",
+          "Romance",
+          "Slice of Life"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "tezuka productions co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "5-toubun no Hanayome",
+        "_via": "offline-db"
+      },
+      "tmdbId": 84669,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/uuqVT15I6P4ow7NS0stu7aM2X5w.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/mrahUSmFjae8UHtlOcZ58ytmAGu.jpg"
+    },
+    "anilist-101347": {
+      "status": "ok",
+      "anilistId": 101347,
+      "malId": 37520,
+      "meta": {
+        "malId": 37520,
+        "year": 2019,
+        "score": 83,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Drama",
+          "Fantasy",
+          "Supernatural"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 24,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "mappa co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Dororo",
+        "_via": "offline-db"
+      },
+      "tmdbId": 83100,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/lLjIOxGIVnUVBHQFCBYzo7OAMHt.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/mLSJO9lj2RMHdzHJMNMoksmwlbv.jpg"
+    },
+    "anilist-21856": {
+      "status": "ok",
+      "anilistId": 21856,
+      "malId": 33486,
+      "meta": {
+        "malId": 33486,
+        "year": 2017,
+        "score": 83,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 25,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "bones inc.",
+        "englishTitle": "",
+        "romajiTitle": "Boku no Hero Academia 2nd Season",
+        "_via": "offline-db"
+      },
+      "tmdbId": 65930,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/ol0H2DGp4ifBHA4JDlCpwJWxnY2.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/phuYuzqWW9ru8EA3HVjE9W2Rr3M.jpg"
+    },
+    "anilist-21170": {
+      "status": "ok",
+      "anilistId": 21170,
+      "malId": 30654,
+      "meta": {
+        "malId": 30654,
+        "year": 2016,
+        "score": 84,
+        "genres": [
+          "Action",
+          "Comedy",
+          "Drama",
+          "Sci-Fi",
+          "Supernatural"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 25,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "lerche",
+        "englishTitle": "",
+        "romajiTitle": "Ansatsu Kyoushitsu 2nd Season",
+        "_via": "offline-db"
+      },
+      "tmdbId": 62110,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/dOCpqck500K9JmdEIOye6Ivmoip.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/qf0l0nQ2t06Es3cSXflqx6l6vsJ.jpg"
+    },
+    "anilist-21087": {
+      "status": "ok",
+      "anilistId": 21087,
+      "malId": 30276,
+      "meta": {
+        "malId": 30276,
+        "year": 2015,
+        "score": 85,
+        "genres": [
+          "Action",
+          "Comedy",
+          "Drama",
+          "Fantasy",
+          "Sci-Fi"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "madhouse inc.",
+        "englishTitle": "",
+        "romajiTitle": "One Punch Man",
+        "_via": "offline-db"
+      },
+      "tmdbId": 63926,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/s0w8JbuNNxL1YgaHeDWih12C3jG.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/dT10AxJIXVvRwFAew4tt2RhzJrD.jpg"
+    },
+    "anilist-20920": {
+      "status": "ok",
+      "anilistId": 20920,
+      "malId": 28121,
+      "meta": {
+        "malId": 28121,
+        "year": 2015,
+        "score": 77,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Ecchi"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 13,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "j.c. staff",
+        "englishTitle": "",
+        "romajiTitle": "Dungeon ni Deai wo Motomeru no wa Machigatteiru Darou ka",
+        "_via": "offline-db"
+      },
+      "tmdbId": 62745,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/xHzLhMzsAg3OcrfyZlYMmRTfCJC.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/h97iHupymkJXBv0gyr4qlePhKAk.jpg"
+    },
+    "anilist-20665": {
+      "status": "ok",
+      "anilistId": 20665,
+      "malId": 23273,
+      "meta": {
+        "malId": 23273,
+        "year": 2014,
+        "score": 85,
+        "genres": [
+          "Comedy",
+          "Drama",
+          "Music",
+          "Psychological",
+          "Romance"
+        ],
+        "description": "",
+        "duration": 22,
+        "episodes": 22,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "a-1 pictures inc.",
+        "englishTitle": "",
+        "romajiTitle": "Shigatsu wa Kimi no Uso",
+        "_via": "offline-db"
+      },
+      "tmdbId": 61663,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/x6jWDL4H9TaBLGEvyej0qKiirBU.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/92P9cD5uOzLVgx0QDTnwkXffjEG.jpg"
+    },
+    "anilist-20474": {
+      "status": "ok",
+      "anilistId": 20474,
+      "malId": 20899,
+      "meta": {
+        "malId": 20899,
+        "year": 2014,
+        "score": 81,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 24,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "david production inc.",
+        "englishTitle": "",
+        "romajiTitle": "JoJo no Kimyou na Bouken Part 3: Stardust Crusaders",
+        "_via": "offline-db"
+      },
+      "tmdbId": 45790,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/5mUYDoFjDlPmDvnUWSknhYjGBBh.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/ogAWwbh3frWtiTyyXrZaVFtqCgp.jpg"
+    },
+    "anilist-11111": {
+      "status": "ok",
+      "anilistId": 11111,
+      "malId": 11111,
+      "meta": {
+        "malId": 11111,
+        "year": 2012,
+        "score": 76,
+        "genres": [
+          "Drama",
+          "Horror",
+          "Mystery",
+          "Psychological",
+          "Supernatural"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "p.a. works co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Another",
+        "_via": "offline-db"
+      },
+      "tmdbId": 42589,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/lL0rMeVqiOyVwmft6oPKQKbDYr6.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/h3YyESKtOy7Rrv7zymyF9kfpz7T.jpg"
+    },
+    "anilist-9253": {
+      "status": "ok",
+      "anilistId": 9253,
+      "malId": 9253,
+      "meta": {
+        "malId": 9253,
+        "year": 2011,
+        "score": 89,
+        "genres": [
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Mystery",
+          "Psychological"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 24,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "white fox co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Steins;Gate",
+        "_via": "offline-db"
+      },
+      "tmdbId": 42509,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/gDvxT2z6TNxervG97WfpePRZ3aR.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/96R4bV7dB8ramaWceNKsxvJgCUd.jpg"
+    },
+    "anilist-5081": {
+      "status": "ok",
+      "anilistId": 5081,
+      "malId": 5081,
+      "meta": {
+        "malId": 5081,
+        "year": 2009,
+        "score": 83,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Ecchi"
+        ],
+        "description": "",
+        "duration": 25,
+        "episodes": 15,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "shaft inc.",
+        "englishTitle": "",
+        "romajiTitle": "Bakemonogatari",
+        "_via": "offline-db"
+      },
+      "tmdbId": 46195,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/cHII6sQ91q8H5EMONKCwCQMauCP.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/zCEjjb1NH3LLsWeZx47wOeqkezf.jpg"
+    },
+    "anilist-2904": {
+      "status": "ok",
+      "anilistId": 2904,
+      "malId": 2904,
+      "meta": {
+        "malId": 2904,
+        "year": 2008,
+        "score": 88,
+        "genres": [
+          "Action",
+          "Drama",
+          "Mecha",
+          "Psychological",
+          "Sci-Fi"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 25,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "sunrise inc.",
+        "englishTitle": "",
+        "romajiTitle": "Code Geass: Hangyaku no Lelouch R2",
+        "_via": "offline-db"
+      },
+      "tmdbId": 31724,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/5hS2OIuZSKGkR8R5l3bY5zh04Ce.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/x316WCogkeIwNY4JR8zTCHbI2nQ.jpg"
+    },
+    "anilist-877": {
+      "status": "ok",
+      "anilistId": 877,
+      "malId": 877,
+      "meta": {
+        "malId": 877,
+        "year": 2006,
+        "score": 84,
+        "genres": [
+          "Comedy",
+          "Drama",
+          "Music",
+          "Romance",
+          "Slice of Life"
+        ],
+        "description": "",
+        "duration": 22,
+        "episodes": 47,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "madhouse inc.",
+        "englishTitle": "",
+        "romajiTitle": "Nana",
+        "_via": "offline-db"
+      },
+      "tmdbId": 56568,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/oDjjcXWIWBbeb6hDE28y4LpTaJd.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/egEROVWFVUupRhK03Bj5IVGAEGu.jpg"
+    },
+    "anilist-1": {
+      "status": "ok",
+      "anilistId": 1,
+      "malId": 1,
+      "meta": {
+        "malId": 1,
+        "year": 1998,
+        "score": 86,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Sci-Fi"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 26,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "sunrise inc.",
+        "englishTitle": "",
+        "romajiTitle": "Cowboy Bebop",
+        "_via": "offline-db"
+      },
+      "tmdbId": 30991,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/A4PHx94G7mvM3b8vsDJ5HEaQ6uv.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/xDiXDfZwC6XYC6fxHI1jl3A3Ill.jpg"
+    },
+    "anilist-146722": {
+      "status": "ok",
+      "anilistId": 146722,
+      "malId": 51367,
+      "meta": {
+        "malId": 51367,
+        "year": 2022,
+        "score": 81,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Drama",
+          "Supernatural"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "ONA",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "david production inc.",
+        "englishTitle": "",
+        "romajiTitle": "JoJo no Kimyou na Bouken Part 6: Stone Ocean Part 2",
+        "_via": "offline-db"
+      },
+      "tmdbId": 45790,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/5mUYDoFjDlPmDvnUWSknhYjGBBh.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/ogAWwbh3frWtiTyyXrZaVFtqCgp.jpg"
+    },
+    "anilist-132126": {
+      "status": "ok",
+      "anilistId": 132126,
+      "malId": 48849,
+      "meta": {
+        "malId": 48849,
+        "year": 2021,
+        "score": 75,
+        "genres": [
+          "Drama",
+          "Mystery",
+          "Psychological",
+          "Sci-Fi",
+          "Supernatural"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "madhouse inc.",
+        "englishTitle": "",
+        "romajiTitle": "Sonny Boy",
+        "_via": "offline-db"
+      },
+      "tmdbId": 124396,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/rgmBS8zkk6RrGUOdWqzZs8hjZer.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/5R1UmoGInl3mHixVVngApV1Ap3T.jpg"
+    },
+    "anilist-131573": {
+      "status": "ok",
+      "anilistId": 131573,
+      "malId": 48561,
+      "meta": {
+        "malId": 48561,
+        "year": 2021,
+        "score": 83,
+        "genres": [
+          "Action",
+          "Drama",
+          "Fantasy",
+          "Horror",
+          "Mystery"
+        ],
+        "description": "",
+        "duration": 104,
+        "episodes": 1,
+        "format": "MOVIE",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "mappa co., ltd.",
+        "englishTitle": "",
+        "romajiTitle": "Jujutsu Kaisen 0 Movie",
+        "_via": "offline-db"
+      },
+      "tmdbId": 810693,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/rcEDPOOOUTLFxLLQJggfLffbofe.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/23oJaeBh0FDk2mQ2P240PU9Xxfh.jpg"
+    },
+    "anilist-108511": {
+      "status": "ok",
+      "anilistId": 108511,
+      "malId": 39551,
+      "meta": {
+        "malId": 39551,
+        "year": 2021,
+        "score": 84,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 12,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "8 bit",
+        "englishTitle": "",
+        "romajiTitle": "Tensei shitara Slime Datta Ken 2nd Season",
+        "_via": "offline-db"
+      },
+      "tmdbId": 82684,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/eJOy7YWAHgOS3V477sdTsq4v9jp.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/pzujcdPAoH361NObVrtbA7zACE7.jpg"
+    },
+    "anilist-104276": {
+      "status": "ok",
+      "anilistId": 104276,
+      "malId": 38408,
+      "meta": {
+        "malId": 38408,
+        "year": 2019,
+        "score": 81,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Sci-Fi"
+        ],
+        "description": "",
+        "duration": 24,
+        "episodes": 25,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "bones inc.",
+        "englishTitle": "",
+        "romajiTitle": "Boku no Hero Academia 4th Season",
+        "_via": "offline-db"
+      },
+      "tmdbId": 65930,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/ol0H2DGp4ifBHA4JDlCpwJWxnY2.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/phuYuzqWW9ru8EA3HVjE9W2Rr3M.jpg"
+    },
+    "anilist-102883": {
+      "status": "ok",
+      "anilistId": 102883,
+      "malId": 37991,
+      "meta": {
+        "malId": 37991,
+        "year": 2018,
+        "score": 84,
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
+        "description": "",
+        "duration": 23,
+        "episodes": 39,
+        "format": "TV",
+        "airingStatus": "FINISHED",
+        "country": "",
+        "studio": "david production inc.",
+        "englishTitle": "",
+        "romajiTitle": "JoJo no Kimyou na Bouken Part 5: Ougon no Kaze",
+        "_via": "offline-db"
+      },
+      "tmdbId": 45790,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/5mUYDoFjDlPmDvnUWSknhYjGBBh.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/ogAWwbh3frWtiTyyXrZaVFtqCgp.jpg"
     }
   },
-  "metadataGeneratedAt": "2026-09-03T02:27:16.468Z"
+  "metadataGeneratedAt": "2026-09-03T02:44:41.338Z"
 }

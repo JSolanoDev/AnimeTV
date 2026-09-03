@@ -8326,6 +8326,15 @@ async function fetchWithTimeout(url, options = {}, timeout = 12000) {
 }
 
 function normalizeAniListShow(entry) {
+  // The ~87 AniList-sourced catalogue rows (Bleach, Naruto, Hunter x Hunter,
+  // Fullmetal Alchemist: Brotherhood, Re:Zero Break Time ...) shipped with NO
+  // backdrop, no year, no duration and no format: the artwork map only ever covered
+  // the scraped AnimeAV1 rows, and this function never emitted those fields at all.
+  // They are now seeded into the same map under "anilist-<id>", so the merge is the
+  // same one readScrapedRegularCatalogItems does.
+  const artHit = readArtworkMap()?.[`anilist-${entry.id}`] || null;
+  const artMeta = artHit?.meta || null;
+
   const airingDate = entry.nextAiringEpisode?.airingAt
     ? new Date(entry.nextAiringEpisode.airingAt * 1000)
     : null;
@@ -8357,13 +8366,37 @@ function normalizeAniListShow(entry) {
     day,
     time,
     colors: [color, "#111426"],
-    score: entry.averageScore,
+    score: entry.averageScore ?? artMeta?.score ?? null,
     source: "AniList",
     image: entry.coverImage?.extraLarge || entry.coverImage?.large || "",
     banner: entry.bannerImage || "",
     siteUrl: entry.siteUrl || "",
-    description: cleanDescription(entry.description),
-    videoUrl: ""
+    description: cleanDescription(entry.description) || artMeta?.description || "",
+    videoUrl: "",
+    // The live entry wins wherever it has the field; the map fills the rest. Every
+    // one of these was previously absent from this row shape entirely, which is why
+    // these shows rendered as a bare title with only "Airing" under it.
+    // year/duration/format/score/description all have explicit fallbacks in
+    // mergeClientCatalogShow, so an empty here cannot clobber another source.
+    year: entry.seasonYear || artMeta?.year || "",
+    duration: entry.duration || artMeta?.duration || "",
+    format: entry.format || artMeta?.format || "",
+    // studios and countryOfOrigin do NOT have such fallbacks - they ride the plain
+    // spread - so only emit them when there is something to say.
+    ...(artMeta?.studio ? { studios: [artMeta.studio] } : {}),
+    ...((entry.countryOfOrigin || artMeta?.country) ? { countryOfOrigin: entry.countryOfOrigin || artMeta.country } : {}),
+    // Only ever ADD artwork keys, never empty ones. mergeShows() folds these rows
+    // together with the scraped catalogue, and an empty `tmdbBackdrop` here
+    // overwrote the backdrop a scraped row had already resolved. (normalize.js now
+    // defends against that too, but emitting a meaningless empty is wrong anyway.)
+    //
+    // Set only when the build-time pass actually matched: a spin-off must NOT
+    // inherit its parent series' TMDB id. Re:Zero Break Time is a 3-minute shorts
+    // series, and borrowing the main series' entry is what filled its page with the
+    // main series' episode titles, thumbnails and key art.
+    ...(artHit?.tmdbId ? { tmdbId: artHit.tmdbId } : {}),
+    ...(artHit?.tmdbBackdrop ? { tmdbBackdrop: artHit.tmdbBackdrop, _artworkPinned: true } : {}),
+    ...(artHit?.tmdbPoster ? { tmdbPoster: artHit.tmdbPoster } : {})
   };
 }
 

@@ -526,6 +526,14 @@ function mergeClientCatalogShow(current, show) {
     genres: preferred?.genres?.length ? preferred.genres : (current.genres || show.genres || []),
     image: current.image || show.image,
     banner: preferred?.banner || current.banner || show.banner,
+    // Artwork must survive a merge. These three fall through the plain `...show`
+    // spread above, so a source that carries the KEY with an empty value silently
+    // erased artwork another source had already resolved - One Piece and ~110 other
+    // scraped rows lost their backdrop the moment AniList rows started emitting
+    // `tmdbBackdrop: ""`. Non-empty always wins, in either direction.
+    tmdbId: current.tmdbId || show.tmdbId || null,
+    tmdbBackdrop: current.tmdbBackdrop || show.tmdbBackdrop || "",
+    tmdbPoster: current.tmdbPoster || show.tmdbPoster || "",
     images: {
       ...(current.images || {}),
       ...(show.images || {})
