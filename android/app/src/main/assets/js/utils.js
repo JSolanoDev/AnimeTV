@@ -90,10 +90,35 @@ function saveAniPubFallbackCache() {
   }));
 }
 
+// The build this page is running, read off the script tag every deploy bumps.
+// There is no version constant on the client, but index.html carries ?v=NNN.
+let _assetVersionCache;
+function currentAssetVersion() {
+  if (_assetVersionCache !== undefined) return _assetVersionCache;
+  try {
+    const src = document.querySelector('script[src*="client.js"]')?.src || "";
+    _assetVersionCache = (src.match(/[?&]v=(\d+)/) || [])[1] || "";
+  } catch (error) {
+    _assetVersionCache = "";
+  }
+  return _assetVersionCache;
+}
+
 function readResponseCache(key, ttl = RESPONSE_CACHE_TTL) {
   try {
     const cached = JSON.parse(localStorage.getItem(`${RESPONSE_CACHE_PREFIX}${key}`) || "null");
     if (!cached?.timestamp || Date.now() - cached.timestamp > ttl) {
+      localStorage.removeItem(`${RESPONSE_CACHE_PREFIX}${key}`);
+      return null;
+    }
+    // A payload cached by a DIFFERENT build is stale by definition. main-catalog
+    // is held for CATALOG_CACHE_TTL (6 hours), so without this a returning viewer
+    // kept the old catalogue for hours after a fix shipped: corrected rows still
+    // rendered with their old title, description, artwork and episode data, and a
+    // row that had since been re-identified could sit alongside its fixed self and
+    // read as a duplicate. Entries written before this existed have no `v` and are
+    // dropped once, which is the intended one-time flush on upgrade.
+    if (cached.v !== currentAssetVersion()) {
       localStorage.removeItem(`${RESPONSE_CACHE_PREFIX}${key}`);
       return null;
     }
@@ -107,6 +132,7 @@ function writeResponseCache(key, data) {
   try {
     localStorage.setItem(`${RESPONSE_CACHE_PREFIX}${key}`, JSON.stringify({
       timestamp: Date.now(),
+      v: currentAssetVersion(),
       data
     }));
   } catch (error) {
