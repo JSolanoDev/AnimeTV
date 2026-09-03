@@ -42,6 +42,30 @@ const stripSeason = (t) => String(t || "")
   .replace(/\s+\d+(?:st|nd|rd|th)\s+season\s*$/i, "")
   .replace(/\s+(?:II|III|IV|V|VI|VII|VIII)\s*$/, "")
   .trim();
+// The parent franchise name, for specials / OVAs / side stories. TMDB gives most of
+// these no entry of their own but does index the parent series, and a spin-off
+// showing its franchise's backdrop is right - that is already what the accepted
+// "One Piece: Gyojin Tou-hen" -> "One Piece" matches do. Used only as a LAST resort,
+// after the full title has failed, so anything with its own TMDB entry still wins.
+const FORMAT_TAIL = /\s*[-:]?\s*\(?\b(?:ona|ova|tv|special|specials|movie|film|shorts?|picture drama|recap)\b\)?\s*$/i;
+const franchiseBase = (t) => {
+  let s = String(t || "").replace(FORMAT_TAIL, "").trim();
+  const cut = s.search(/\s[:\-–—]\s|:/);
+  if (cut > 2) s = s.slice(0, cut).trim();
+  return stripSeason(s).replace(/[:\-–—]\s*$/, "").trim();
+};
+// Collapse spellings of one name to a single query slot, keeping the first form.
+const uniqByBase = (arr) => {
+  const seen = new Set();
+  const out = [];
+  for (const s of arr) {
+    const k = baseTitle(s);
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push(s);
+  }
+  return out;
+};
 const looksEnglish = (s) => /^[\x20-\x7E]+$/.test(s) && /[aeiou]/i.test(s);
 // A short, generic alias is poison. The offline database lists "Demon Lord" as a
 // synonym of Maou-sama, Retry!; querying that returns TMDB's unrelated
@@ -85,6 +109,7 @@ const idFrom = (s, host, re) => { for (const u of s || []) if (u.includes(host))
 // Titles + synonyms per id, so the TMDB query can use the English name when the
 // database has one - TMDB is indexed in English and a romaji query often misses.
 const names = new Map();
+const byBaseName = new Map();
 if (DB && fs.existsSync(DB)) {
   await new Promise((res) => {
     const rl = readline.createInterface({ input: fs.createReadStream(DB) });
@@ -97,6 +122,12 @@ if (DB && fs.existsSync(DB)) {
       const all = [o.title, ...(o.synonyms || [])];
       if (a) names.set(`a${a}`, all);
       if (m) names.set(`m${m}`, all);
+      // Also index by base title, so a special can look up its PARENT entry's
+      // names. TMDB does not index "Boku no Hero Academia" at all - only
+      // "My Hero Academia" - and that English name lives on the parent series'
+      // database entry, not on the ONA's own.
+      const b = baseTitle(o.title);
+      if (b && !byBaseName.has(b)) byBaseName.set(b, all);
     });
     rl.on("close", res);
   });
@@ -139,28 +170,68 @@ for (let i = 0; i < todo.length; i++) {
   const year = e.meta?.year || null;
 
   // English aliases first - TMDB is an English index.
-  const queries = [...new Set([
+  //
+  // Deduped by NORMALISED form, not by exact string. The database lists many
+  // near-identical variants ("Boku no Hero Academia (ONA)" / "(Web)" / "HLA"), and
+  // a plain Set kept all of them, so the query budget was spent on five spellings
+  // of one name that TMDB does not index while the genuinely different English
+  // title further down the list was never tried.
+  const queries = uniqByBase([
     ...alias.filter(looksEnglish).map(stripSeason),
     stripSeason(scrapedTitle),
     scrapedTitle
-  ].map((s) => s.trim()).filter((s) => s.length > 2))].slice(0, 5);
+  ].map((s) => s.trim()).filter((s) => s.length > 2)).slice(0, 8);
 
   let best = null;
-  for (const q of queries) {
-    await sleep(150);
-    const url = `${BASE}/api/tmdb/search?q=${encodeURIComponent(q)}${isMovie ? "&type=movie" : ""}`;
-    const payload = await getJson(url);
-    for (const r of (payload?.results || [])) {
-      if (!r.backdrop_path) continue;
-      const rNames = [r.name, r.title, r.original_name, r.original_title];
-      let s = score([...alias, scrapedTitle], rNames);
-      const rYear = Number(String(r.first_air_date || r.release_date || "").slice(0, 4)) || null;
-      // Year is corroboration, not identity: TMDB dates the FRANCHISE from season 1,
-      // so a later season legitimately disagrees. Only reward agreement.
-      if (year && rYear && Math.abs(year - rYear) <= 1) s += 6;
-      if (!best || s > best.s) best = { s, r };
+  let scoreNames = [...alias, scrapedTitle];
+  const runQueries = async (qs, franchisePass) => {
+    for (const q of qs) {
+      await sleep(150);
+      const url = `${BASE}/api/tmdb/search?q=${encodeURIComponent(q)}${isMovie ? "&type=movie" : ""}`;
+      const payload = await getJson(url);
+      for (const r of (payload?.results || [])) {
+        if (!r.backdrop_path) continue;
+        const rNames = [r.name, r.title, r.original_name, r.original_title];
+        let s = score(scoreNames, rNames);
+        const rYear = Number(String(r.first_air_date || r.release_date || "").slice(0, 4)) || null;
+        // Year is corroboration, not identity: TMDB dates the FRANCHISE from season 1,
+        // so a later season legitimately disagrees. Only reward agreement.
+        if (year && rYear && Math.abs(year - rYear) <= 1) s += 6;
+        if (!best || s > best.s) best = { s, r, franchisePass };
+      }
+      if (best && best.s >= 100) return;
     }
-    if (best && best.s >= 100) break;
+  };
+  await runQueries(queries, false);
+
+  // Last resort: the parent franchise. Specials, OVAs and side stories mostly have
+  // no TMDB entry of their own - "Undead Unluck: Winter-hen", "Yuru Camp Season 3
+  // Specials", "Boku no Hero Academia ONA" - but their franchise does, and showing
+  // the franchise backdrop is correct. Only after the full title has failed, so
+  // anything with its own entry still wins on its own name.
+  if (!best || best.s < MIN) {
+    const bases = [...alias.filter(looksEnglish).map(franchiseBase), franchiseBase(scrapedTitle)]
+      .map((s) => s.trim()).filter((s) => s.length > 2);
+    // Pull in the PARENT entry's own names. Without this the franchise pass can
+    // only query the romaji base, which for several franchises TMDB does not index
+    // at all - "Boku no Hero Academia" returns zero results, "My Hero Academia" is
+    // the only name that works, and it lives on the parent's database entry.
+    const parentNames = [];
+    for (const b of bases) for (const n of (byBaseName.get(baseTitle(b)) || [])) parentNames.push(n);
+    // The franchise name is now a legitimate thing to match on: we are deliberately
+    // looking for the parent series, so its name should vouch for the result.
+    scoreNames = [...scoreNames, ...bases, ...parentNames.filter(isSpecific)];
+    // Specific English parent names FIRST. TMDB is an English index, and the
+    // romaji base often returns nothing at all, so leading with it wasted the
+    // budget; the acronym synonyms the database carries ("BNHA", "MHA") then ate
+    // the rest of the slots before "My Hero Academia" was ever tried.
+    const fq = uniqByBase([
+      ...parentNames.filter((n) => looksEnglish(n) && isSpecific(n)),
+      ...bases
+    ])
+      .filter((q) => !queries.includes(q))
+      .slice(0, 5);
+    if (fq.length) await runQueries(fq, true);
   }
 
   if (!best) { none++; continue; }
@@ -170,7 +241,7 @@ for (let i = 0; i < todo.length; i++) {
   if (best.r.poster_path) e.tmdbPoster = TMDB_IMG + best.r.poster_path;
   if (e.status !== "ok") e.status = "ok";
   ok++;
-  console.log(`  ${String(best.s).padStart(3)}  ${scrapedTitle.slice(0, 42).padEnd(42)} -> ${String(best.r.name || best.r.title).slice(0, 36).padEnd(36)} ${String(best.r.first_air_date || best.r.release_date || "").slice(0, 4)}`);
+  console.log(`  ${String(best.s).padStart(3)}${best.franchisePass ? " F" : "  "} ${scrapedTitle.slice(0, 42).padEnd(42)} -> ${String(best.r.name || best.r.title).slice(0, 36).padEnd(36)} ${String(best.r.first_air_date || best.r.release_date || "").slice(0, 4)}`);
 }
 
 console.log(`\nmatched   : ${ok}`);

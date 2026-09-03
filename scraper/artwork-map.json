@@ -1428,14 +1428,20 @@
       }
     },
     "animeav1-one-piece-heroines": {
-      "status": "no-tmdb-candidates",
+      "status": "ok",
       "anilistId": 197178,
       "malId": 62233,
       "meta": {
         "malId": 62233,
         "year": 2026,
         "score": null,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Fantasy",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 25,
         "episodes": 1,
@@ -1446,7 +1452,10 @@
         "englishTitle": "",
         "romajiTitle": "One Piece: Heroines",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 111110,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/qD211Hb5XwFxrszzBBe5EUYJerh.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/blWCPEqDGLBuLB9u89CxP9ORQP4.jpg"
     },
     "animeav1-kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu": {
       "status": "ok",
@@ -2312,7 +2321,13 @@
         "malId": null,
         "year": 2026,
         "score": 83,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Romance"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 1,
@@ -3475,7 +3490,10 @@
         "malId": 58877,
         "year": 2026,
         "score": 79,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Sports"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 13,
@@ -4497,7 +4515,13 @@
         "malId": 62896,
         "year": 2026,
         "score": 83,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy",
+          "Drama",
+          "Fantasy",
+          "Music"
+        ],
         "description": "",
         "duration": 140,
         "episodes": 1,
@@ -4580,7 +4604,10 @@
         "malId": 63087,
         "year": 2026,
         "score": 58,
-        "genres": [],
+        "genres": [
+          "Horror",
+          "Supernatural"
+        ],
         "description": "",
         "duration": 4,
         "episodes": 13,
@@ -4604,7 +4631,12 @@
         "malId": 58524,
         "year": 2026,
         "score": 75,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Ecchi",
+          "Fantasy",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -5033,7 +5065,13 @@
         "malId": 54863,
         "year": 2026,
         "score": 68,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Psychological"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -5715,7 +5753,13 @@
         "malId": 55772,
         "year": 2026,
         "score": 82,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Mystery"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 13,
@@ -6082,7 +6126,13 @@
         "malId": 61903,
         "year": 2025,
         "score": 84,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Drama",
+          "Psychological",
+          "Romance",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 52,
         "episodes": 1,
@@ -6130,14 +6180,20 @@
       }
     },
     "animeav1-undead-unluck-winter-hen": {
-      "status": "no-tmdb-candidates",
+      "status": "ok",
       "anilistId": 179930,
       "malId": 59435,
       "meta": {
         "malId": 59435,
         "year": 2025,
         "score": 75,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Ecchi",
+          "Sci-Fi"
+        ],
         "description": "",
         "duration": 48,
         "episodes": 1,
@@ -6148,7 +6204,10 @@
         "englishTitle": "",
         "romajiTitle": "Undead Unluck: Winter-hen",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 209077,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/8uoNGqXeJCBoG2gLOsKW3qUDuaI.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/pJYOYFlu4Vayz5xXJJuP7ViwHnT.jpg"
     },
     "animeav1-xian-wang-de-richang-shenghuo-5": {
       "status": "ok",
@@ -6279,7 +6338,13 @@
         "malId": 62405,
         "year": 2025,
         "score": 79,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy",
+          "Drama",
+          "Ecchi",
+          "Fantasy"
+        ],
         "description": "",
         "duration": 17,
         "episodes": 8,
@@ -6363,7 +6428,13 @@
         "malId": 50159,
         "year": 2025,
         "score": 80,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Drama",
+          "Fantasy",
+          "Music",
+          "Supernatural"
+        ],
         "description": "",
         "duration": 120,
         "episodes": 1,
@@ -7622,7 +7693,7 @@
       }
     },
     "animeav1-girls-band-cry-movie": {
-      "status": "rejected",
+      "status": "ok",
       "anilistId": 199152,
       "bestScore": 46,
       "bestName": "GIRLS BAND CRY The Movie: Youth Rhapsody",
@@ -7630,7 +7701,11 @@
         "malId": null,
         "year": null,
         "score": null,
-        "genres": [],
+        "genres": [
+          "Drama",
+          "Music",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": null,
         "episodes": 1,
@@ -7641,7 +7716,10 @@
         "englishTitle": "",
         "romajiTitle": "GIRLS BAND CRY (Shinsaku Eiga)",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 1431083,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/yAeaxzmCAP1pEYG63RsNdUjZ7xL.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/tiBUhzLfZ9KS91fK5kyfHO2leNL.jpg"
     },
     "animeav1-akujiki-reijou-to-kyouketsu-koushaku": {
       "status": "ok",
@@ -7898,7 +7976,12 @@
         "malId": 62634,
         "year": 2025,
         "score": 76,
-        "genres": [],
+        "genres": [
+          "Drama",
+          "Music",
+          "Romance",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 18,
         "episodes": 1,
@@ -8232,7 +8315,12 @@
         "malId": 61952,
         "year": 2025,
         "score": 84,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Drama",
+          "Fantasy"
+        ],
         "description": "",
         "duration": 118,
         "episodes": 1,
@@ -8317,7 +8405,13 @@
         "malId": 59424,
         "year": 2025,
         "score": 63,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Fantasy",
+          "Romance"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -8372,7 +8466,10 @@
         "malId": 61793,
         "year": 2025,
         "score": 57,
-        "genres": [],
+        "genres": [
+          "Horror",
+          "Supernatural"
+        ],
         "description": "",
         "duration": 4,
         "episodes": 13,
@@ -9418,7 +9515,13 @@
         "malId": 57433,
         "year": 2025,
         "score": 80,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Drama",
+          "Mystery",
+          "Psychological",
+          "Romance"
+        ],
         "description": "",
         "duration": 24,
         "episodes": 13,
@@ -9719,7 +9822,13 @@
         "malId": 61150,
         "year": 2025,
         "score": 65,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy",
+          "Drama",
+          "Fantasy",
+          "Mecha"
+        ],
         "description": "",
         "duration": 22,
         "episodes": 12,
@@ -10061,7 +10170,13 @@
         "malId": 33206,
         "year": 2017,
         "score": 80,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Ecchi",
+          "Fantasy",
+          "Mahou Shoujo",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 24,
         "episodes": 13,
@@ -10117,7 +10232,13 @@
         "malId": 61616,
         "year": 2025,
         "score": 75,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Mystery"
+        ],
         "description": "",
         "duration": 53,
         "episodes": 1,
@@ -10196,7 +10317,13 @@
         "malId": 59833,
         "year": 2025,
         "score": 80,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Ecchi",
+          "Fantasy"
+        ],
         "description": "",
         "duration": 25,
         "episodes": 2,
@@ -10402,7 +10529,12 @@
         "malId": 60157,
         "year": 2025,
         "score": 73,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Drama",
+          "Fantasy",
+          "Romance"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -11151,7 +11283,13 @@
         "malId": 59228,
         "year": 2025,
         "score": 80,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy",
+          "Drama",
+          "Fantasy",
+          "Mystery"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 13,
@@ -11737,7 +11875,10 @@
         "malId": 55779,
         "year": 2025,
         "score": 74,
-        "genres": [],
+        "genres": [
+          "Drama",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 60,
         "episodes": 1,
@@ -11754,14 +11895,19 @@
       "tmdbPoster": "https://image.tmdb.org/t/p/original/yIGUjRF0GQmuqpaCxI3H54HFYnH.jpg"
     },
     "animeav1-kaijuu-8-gou-hoshina-no-kyuujitsu": {
-      "status": "no-tmdb-candidates",
+      "status": "ok",
       "anilistId": 179999,
       "malId": 59490,
       "meta": {
         "malId": 59490,
         "year": 2025,
         "score": 72,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy",
+          "Sci-Fi",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 1,
@@ -11772,7 +11918,10 @@
         "englishTitle": "",
         "romajiTitle": "Kaijuu 8-gou: Hoshina no Kyuujitsu",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 207468,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/htGeuCcNhlBe8GTx3izKOsd8frw.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/83yDUQVpdhv8ePy3nbTRzFaKYuQ.jpg"
     },
     "animeav1-kaijuu-8-gou-movie": {
       "status": "ok",
@@ -11843,7 +11992,13 @@
         "malId": 59408,
         "year": 2025,
         "score": 82,
-        "genres": [],
+        "genres": [
+          "Fantasy",
+          "Horror",
+          "Mystery",
+          "Psychological",
+          "Supernatural"
+        ],
         "description": "",
         "duration": 74,
         "episodes": 1,
@@ -12919,7 +13074,10 @@
         "malId": 60410,
         "year": 2025,
         "score": 57,
-        "genres": [],
+        "genres": [
+          "Horror",
+          "Supernatural"
+        ],
         "description": "",
         "duration": 4,
         "episodes": 13,
@@ -13007,7 +13165,13 @@
         "malId": 58082,
         "year": 2025,
         "score": 60,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy",
+          "Ecchi",
+          "Fantasy",
+          "Romance"
+        ],
         "description": "",
         "duration": 12,
         "episodes": 24,
@@ -13185,7 +13349,11 @@
         "malId": 58066,
         "year": 2025,
         "score": 72,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Slice of Life",
+          "Sports"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -13545,14 +13713,20 @@
       }
     },
     "animeav1-high-card-the-flowers-bloom": {
-      "status": "no-tmdb-candidates",
+      "status": "ok",
       "anilistId": 176369,
       "malId": 58531,
       "meta": {
         "malId": 58531,
         "year": 2024,
         "score": 68,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy",
+          "Drama",
+          "Fantasy",
+          "Supernatural"
+        ],
         "description": "",
         "duration": 26,
         "episodes": 1,
@@ -13563,7 +13737,10 @@
         "englishTitle": "",
         "romajiTitle": "High Card: The Flowers Bloom",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 194665,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/zLtHqKWqU2vh1tNoHfHAvTWdUQc.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/aGyV4sV4P0y4NXuguucNOo3eolp.jpg"
     },
     "animeav1-one-piece-gyojin-tou-hen": {
       "status": "ok",
@@ -13820,7 +13997,13 @@
         "malId": 58445,
         "year": 2024,
         "score": 65,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Fantasy",
+          "Romance"
+        ],
         "description": "",
         "duration": 24,
         "episodes": 12,
@@ -13844,7 +14027,13 @@
         "malId": 57362,
         "year": 2024,
         "score": 73,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -14727,7 +14916,12 @@
         "malId": 57360,
         "year": 2024,
         "score": 71,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy",
+          "Fantasy",
+          "Mahou Shoujo"
+        ],
         "description": "",
         "duration": 24,
         "episodes": 12,
@@ -14943,7 +15137,11 @@
         "malId": 55570,
         "year": 2024,
         "score": 67,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy",
+          "Sports"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 13,
@@ -15466,14 +15664,19 @@
       }
     },
     "animeav1-kengan-ashura-season-2-part-2": {
-      "status": "no-tmdb-candidates",
+      "status": "ok",
       "anilistId": 169692,
       "malId": 56704,
       "meta": {
         "malId": 56704,
         "year": 2024,
         "score": 78,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy",
+          "Drama",
+          "Sports"
+        ],
         "description": "",
         "duration": 24,
         "episodes": 16,
@@ -15484,7 +15687,10 @@
         "englishTitle": "",
         "romajiTitle": "Kengan Ashura Season 2 Part 2",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 90660,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/wJtrctuWTKgIi45zLw9tTjWQFY3.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/tqR96OMBKzHNCNwJB3f3NsCkXbL.jpg"
     },
     "animeav1-delicos-nursery": {
       "status": "ok",
@@ -15525,7 +15731,12 @@
         "malId": 57192,
         "year": 2024,
         "score": 67,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Drama",
+          "Romance",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 19,
         "episodes": 13,
@@ -15642,7 +15853,13 @@
         "malId": 52107,
         "year": 2024,
         "score": 79,
-        "genres": [],
+        "genres": [
+          "Fantasy",
+          "Horror",
+          "Mystery",
+          "Psychological",
+          "Supernatural"
+        ],
         "description": "",
         "duration": 89,
         "episodes": 1,
@@ -16320,7 +16537,10 @@
         "malId": 54284,
         "year": 2024,
         "score": 69,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -16408,7 +16628,13 @@
         "malId": 57864,
         "year": 2024,
         "score": 84,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Drama",
+          "Fantasy",
+          "Mystery",
+          "Supernatural"
+        ],
         "description": "",
         "duration": 25,
         "episodes": 14,
@@ -16555,7 +16781,12 @@
         "malId": 56449,
         "year": 2024,
         "score": 69,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Fantasy",
+          "Romance",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -16890,7 +17121,11 @@
         "malId": 55844,
         "year": 2024,
         "score": 73,
-        "genres": [],
+        "genres": [
+          "Drama",
+          "Romance",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -16977,7 +17212,13 @@
         "malId": 57876,
         "year": 2024,
         "score": 65,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -17090,7 +17331,12 @@
         "malId": 54913,
         "year": 2024,
         "score": 74,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Fantasy"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -17137,14 +17383,18 @@
       }
     },
     "animeav1-yuru-camp-season-3-specials": {
-      "status": "no-tmdb-candidates",
+      "status": "ok",
       "anilistId": 177007,
       "malId": 58855,
       "meta": {
         "malId": 58855,
         "year": 2024,
         "score": 77,
-        "genres": [],
+        "genres": [
+          "Adventure",
+          "Comedy",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 7,
         "episodes": 3,
@@ -17155,7 +17405,10 @@
         "englishTitle": "",
         "romajiTitle": "Yuru Camp△ Season 3 Specials",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 76075,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/cm3lmKnEAYLs2eJmn4AcFIu18X4.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/1c5xBDBQQwa1bvX5fibAeymReGg.jpg"
     },
     "animeav1-rising-impact": {
       "status": "ok",
@@ -17259,7 +17512,11 @@
         "malId": 58510,
         "year": 2024,
         "score": 67,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy",
+          "Sports"
+        ],
         "description": "",
         "duration": 60,
         "episodes": 1,
@@ -17641,14 +17898,18 @@
       }
     },
     "animeav1-shadowverse-flame-arc-hen": {
-      "status": "no-tmdb-candidates",
+      "status": "ok",
       "anilistId": 172187,
       "malId": 57614,
       "meta": {
         "malId": 57614,
         "year": 2024,
         "score": 64,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Fantasy",
+          "Sci-Fi"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 23,
@@ -17659,7 +17920,10 @@
         "englishTitle": "",
         "romajiTitle": "Shadowverse Flame: Arc-hen",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 98823,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/qsL4S4Wfq3bhECdwRe5bhVYrTys.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/5OaguSPlSrfE1JCSsymwDXsdbz6.jpg"
     },
     "animeav1-kuroshitsuji-kishuku-gakkou-hen": {
       "status": "ok",
@@ -17671,7 +17935,13 @@
         "malId": 55855,
         "year": 2024,
         "score": 78,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy",
+          "Drama",
+          "Fantasy",
+          "Mystery"
+        ],
         "description": "",
         "duration": 24,
         "episodes": 11,
@@ -18161,7 +18431,13 @@
         "malId": 56230,
         "year": 2024,
         "score": 72,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Drama",
+          "Fantasy",
+          "Romance",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 24,
         "episodes": 11,
@@ -18340,7 +18616,13 @@
         "malId": 56838,
         "year": 2024,
         "score": 70,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Fantasy",
+          "Romance",
+          "Slice of Life",
+          "Supernatural"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -18485,7 +18767,11 @@
         "malId": 57623,
         "year": 2024,
         "score": 68,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Music",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 3,
         "episodes": 12,
@@ -19027,14 +19313,20 @@
       }
     },
     "animeav1-great-pretender-razbliuto": {
-      "status": "no-tmdb-candidates",
+      "status": "ok",
       "anilistId": 170935,
       "malId": 57184,
       "meta": {
         "malId": 57184,
         "year": 2024,
         "score": 70,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Mystery"
+        ],
         "description": "",
         "duration": 22,
         "episodes": 4,
@@ -19045,7 +19337,10 @@
         "englishTitle": "",
         "romajiTitle": "Great Pretender: Razbliuto",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 93816,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/am5RPNJ2msb91Uza8wIIxWbjTKp.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/Ang6RR0n5a49lEsKRqQrmGyDekF.jpg"
     },
     "animeav1-haikyuu-movie-gomisuteba-no-kessen": {
       "status": "ok",
@@ -19388,7 +19683,12 @@
         "malId": 54142,
         "year": 2024,
         "score": 65,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Fantasy"
+        ],
         "description": "",
         "duration": 24,
         "episodes": 13,
@@ -19726,7 +20026,12 @@
         "malId": 55774,
         "year": 2024,
         "score": 71,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Ecchi",
+          "Fantasy",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -20584,14 +20889,19 @@
       }
     },
     "animeav1-burn-the-witch-08": {
-      "status": "no-tmdb-candidates",
+      "status": "ok",
       "anilistId": 169362,
       "malId": 56671,
       "meta": {
         "malId": 56671,
         "year": 2023,
         "score": 75,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy",
+          "Fantasy",
+          "Romance"
+        ],
         "description": "",
         "duration": 28,
         "episodes": 1,
@@ -20602,7 +20912,10 @@
         "englishTitle": "",
         "romajiTitle": "Burn the Witch #0.8",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 110911,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/7R7BxbHz4RMId5YHEA3NqgZWXde.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/eNq68NjT1KOdorphIqYeZF0BM9b.jpg"
     },
     "animeav1-spy-x-family-movie-code-white": {
       "status": "ok",
@@ -20669,14 +20982,18 @@
       }
     },
     "animeav1-boku-no-kokoro-no-yabai-yatsu-twi-yaba": {
-      "status": "no-tmdb-candidates",
+      "status": "ok",
       "anilistId": 170221,
       "malId": 56948,
       "meta": {
         "malId": 56948,
         "year": 2023,
         "score": 78,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Romance",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 21,
         "episodes": 1,
@@ -20687,7 +21004,10 @@
         "englishTitle": "",
         "romajiTitle": "Boku no Kokoro no Yabai Yatsu: Twi-Yaba",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 207250,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/31VJnwcy3VOhoqETJEFIO58ZVfF.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/bC8Bx0VHLZzvPCXzuDnvTIbzVIU.jpg"
     },
     "animeav1-otome-game-no-hametsu-flag-shika-nai-akuyaku-reijou-ni-tensei-shiteshimatta-movie": {
       "status": "ok",
@@ -20763,7 +21083,12 @@
         "malId": 54565,
         "year": 2023,
         "score": 77,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Fantasy"
+        ],
         "description": "",
         "duration": 24,
         "episodes": 3,
@@ -20886,7 +21211,11 @@
         "malId": 56685,
         "year": 2023,
         "score": 69,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 1,
@@ -22599,14 +22928,19 @@
       }
     },
     "animeav1-nanatsu-no-taizai-ensa-no-edinburgh-part-2": {
-      "status": "no-tmdb-candidates",
+      "status": "ok",
       "anilistId": 162291,
       "malId": 53911,
       "meta": {
         "malId": 53911,
         "year": 2023,
         "score": 68,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Fantasy"
+        ],
         "description": "",
         "duration": 54,
         "episodes": 1,
@@ -22617,7 +22951,10 @@
         "englishTitle": "",
         "romajiTitle": "Nanatsu no Taizai: Ensa no Edinburgh Part 2",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 62104,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/cmziOVMQrqvVfrjjQdadMdi2bGL.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/gxTojpKEOtue85EEFlozwRbDXwJ.jpg"
     },
     "animeav1-hibike-euphonium-ensemble-contest-hen": {
       "status": "ok",
@@ -22819,7 +23156,12 @@
         "malId": 52082,
         "year": 2023,
         "score": 73,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Fantasy",
+          "Romance",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -22845,7 +23187,11 @@
         "malId": 55651,
         "year": 2023,
         "score": 78,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Romance",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 4,
@@ -23860,14 +24206,20 @@
       }
     },
     "animeav1-fate-strange-fake-whispers-of-dawn": {
-      "status": "no-tmdb-candidates",
+      "status": "ok",
       "anilistId": 154966,
       "malId": 53127,
       "meta": {
         "malId": 53127,
         "year": 2023,
         "score": 80,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Drama",
+          "Fantasy",
+          "Mystery"
+        ],
         "description": "",
         "duration": 55,
         "episodes": 1,
@@ -23878,7 +24230,10 @@
         "englishTitle": "",
         "romajiTitle": "Fate/strange Fake: Whispers of Dawn",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 229858,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/6SkZ268BIStCeCNu0yGH7dC09uY.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/2r5MEaLYl5lZxzgfSmrDybipngl.jpg"
     },
     "animeav1-ryza-no-atelier-tokoyami-no-joou-to-himitsu-no-kakurega": {
       "status": "ok",
@@ -24109,7 +24464,12 @@
         "malId": 44388,
         "year": 2023,
         "score": 76,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Drama",
+          "Fantasy"
+        ],
         "description": "",
         "duration": 20,
         "episodes": 15,
@@ -24199,7 +24559,12 @@
         "malId": 46431,
         "year": 2023,
         "score": 78,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Drama",
+          "Romance",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 1,
@@ -24409,7 +24774,13 @@
         "malId": 54738,
         "year": 2023,
         "score": 65,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Fantasy"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -24962,7 +25333,12 @@
         "malId": 56906,
         "year": 2026,
         "score": 71,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Fantasy",
+          "Romance"
+        ],
         "description": "",
         "duration": 47,
         "episodes": 1,
@@ -25658,7 +26034,13 @@
         "malId": null,
         "year": 2023,
         "score": 87,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Drama",
+          "Fantasy",
+          "Psychological",
+          "Romance"
+        ],
         "description": "",
         "duration": 85,
         "episodes": 1,
@@ -25675,14 +26057,17 @@
       "tmdbPoster": "https://image.tmdb.org/t/p/original/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg"
     },
     "animeav1-buddy-daddies-intermission-cherry-pick": {
-      "status": "anilist-failed",
+      "status": "ok",
       "anilistId": null,
       "malId": 54656,
       "meta": {
         "malId": 54656,
         "year": 2023,
         "score": 70,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy"
+        ],
         "description": "",
         "duration": 24,
         "episodes": 1,
@@ -25693,7 +26078,10 @@
         "englishTitle": "",
         "romajiTitle": "Buddy Daddies Intermission: Cherry-Pick",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 212963,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/ztR4oaMzDh4hzeMdgBn6iD3Uswi.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/l0zb33W1oLG8sI6n2rTjHCjpCWs.jpg"
     },
     "animeav1-sasaki-to-miyano-movie-sotsugyou-hen": {
       "status": "ok",
@@ -25794,7 +26182,12 @@
         "malId": 53109,
         "year": 2023,
         "score": 68,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Mystery"
+        ],
         "description": "",
         "duration": 91,
         "episodes": 1,
@@ -26975,7 +27368,12 @@
         "malId": 51678,
         "year": 2023,
         "score": 76,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Ecchi",
+          "Sci-Fi",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -27117,14 +27515,19 @@
       }
     },
     "animeav1-nanatsu-no-taizai-ensa-no-edinburgh": {
-      "status": "no-tmdb-candidates",
+      "status": "ok",
       "anilistId": 141352,
       "malId": 50315,
       "meta": {
         "malId": 50315,
         "year": 2022,
         "score": 65,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Fantasy"
+        ],
         "description": "",
         "duration": 52,
         "episodes": 1,
@@ -27135,7 +27538,10 @@
         "englishTitle": "",
         "romajiTitle": "Nanatsu no Taizai: Ensa no Edinburgh",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 62104,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/cmziOVMQrqvVfrjjQdadMdi2bGL.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/gxTojpKEOtue85EEFlozwRbDXwJ.jpg"
     },
     "animeav1-kaguya-sama-wa-kokurasetai-first-kiss-wa-owaranai": {
       "status": "ok",
@@ -27177,7 +27583,13 @@
         "malId": 51191,
         "year": 2022,
         "score": 70,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy",
+          "Drama",
+          "Mystery",
+          "Psychological"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -27296,7 +27708,11 @@
         "malId": 51533,
         "year": 2022,
         "score": 78,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Romance",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 22,
         "episodes": 1,
@@ -27603,7 +28019,11 @@
         "malId": 52381,
         "year": 2022,
         "score": 53,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Ecchi",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 3,
         "episodes": 12,
@@ -27785,7 +28205,11 @@
         "malId": 50552,
         "year": 2022,
         "score": 74,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Drama",
+          "Sports"
+        ],
         "description": "",
         "duration": 24,
         "episodes": 25,
@@ -28211,7 +28635,12 @@
         "malId": 48491,
         "year": 2022,
         "score": 76,
-        "genres": [],
+        "genres": [
+          "Adventure",
+          "Comedy",
+          "Slice of Life",
+          "Sports"
+        ],
         "description": "",
         "duration": 24,
         "episodes": 12,
@@ -28700,7 +29129,13 @@
         "malId": 49979,
         "year": 2022,
         "score": 72,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy",
+          "Fantasy",
+          "Romance",
+          "Supernatural"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -28945,7 +29380,9 @@
         "malId": 52890,
         "year": 2022,
         "score": 75,
-        "genres": [],
+        "genres": [
+          "Fantasy"
+        ],
         "description": "",
         "duration": 47,
         "episodes": 1,
@@ -29099,7 +29536,12 @@
         "malId": 52273,
         "year": 2022,
         "score": 61,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Fantasy",
+          "Sci-Fi"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 12,
@@ -29341,7 +29783,13 @@
         "malId": 50612,
         "year": 2022,
         "score": 81,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Sci-Fi"
+        ],
         "description": "",
         "duration": 54,
         "episodes": 1,
@@ -29585,7 +30033,13 @@
         "malId": 49220,
         "year": 2022,
         "score": 78,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Fantasy",
+          "Romance"
+        ],
         "description": "",
         "duration": 24,
         "episodes": 13,
@@ -29958,7 +30412,13 @@
         "malId": 40590,
         "year": 2022,
         "score": 74,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Drama",
+          "Ecchi"
+        ],
         "description": "",
         "duration": 24,
         "episodes": 28,
@@ -30165,7 +30625,10 @@
         "malId": 49599,
         "year": 2022,
         "score": 74,
-        "genres": [],
+        "genres": [
+          "Comedy",
+          "Slice of Life"
+        ],
         "description": "",
         "duration": 3,
         "episodes": 12,
@@ -30182,14 +30645,19 @@
       "tmdbPoster": "https://image.tmdb.org/t/p/original/zCBGfrrCMu3axBk2UgCuEBAFrPn.jpg"
     },
     "animeav1-yuusha-yamemasu-kenshuu-ryokou-wa-mokuteki-wo-miushinau-na": {
-      "status": "no-tmdb-candidates",
+      "status": "ok",
       "anilistId": 151126,
       "malId": 51562,
       "meta": {
         "malId": 51562,
         "year": 2022,
         "score": 69,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Comedy",
+          "Fantasy"
+        ],
         "description": "",
         "duration": 11,
         "episodes": 2,
@@ -30200,17 +30668,26 @@
         "englishTitle": "",
         "romajiTitle": "Yuusha, Yamemasu: Kenshuu Ryokou wa Mokuteki wo Miushinau na",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 136763,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/jkW2dLC3KVmLQAk4UzBtwvRh0HD.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/oflTB7Ddzw2lCBEADGQCkjp17OW.jpg"
     },
     "animeav1-spriggan-ona": {
-      "status": "no-tmdb-candidates",
+      "status": "ok",
       "anilistId": 108353,
       "malId": 39489,
       "meta": {
         "malId": 39489,
         "year": 2022,
         "score": 70,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Adventure",
+          "Drama",
+          "Sci-Fi",
+          "Thriller"
+        ],
         "description": "",
         "duration": 45,
         "episodes": 6,
@@ -30221,17 +30698,25 @@
         "englishTitle": "",
         "romajiTitle": "Spriggan (ONA)",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 94925,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/8v1flw4wcx1I7cIBxavaMsQqLou.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/xw3wplPpAweQG0Na1KmAdrx90lx.jpg"
     },
     "animeav1-boku-no-hero-academia-ona": {
-      "status": "no-tmdb-candidates",
+      "status": "ok",
       "anilistId": 149073,
       "malId": 51781,
       "meta": {
         "malId": 51781,
         "year": 2022,
         "score": 70,
-        "genres": [],
+        "genres": [
+          "Action",
+          "Comedy",
+          "Fantasy",
+          "Sports"
+        ],
         "description": "",
         "duration": 23,
         "episodes": 2,
@@ -30242,7 +30727,10 @@
         "englishTitle": "",
         "romajiTitle": "Boku no Hero Academia (ONA)",
         "_via": "offline-db"
-      }
+      },
+      "tmdbId": 65930,
+      "tmdbBackdrop": "https://image.tmdb.org/t/p/original/ol0H2DGp4ifBHA4JDlCpwJWxnY2.jpg",
+      "tmdbPoster": "https://image.tmdb.org/t/p/original/phuYuzqWW9ru8EA3HVjE9W2Rr3M.jpg"
     },
     "animeav1-dragon-ball-super-super-hero": {
       "status": "ok",
@@ -30428,5 +30916,5 @@
       }
     }
   },
-  "metadataGeneratedAt": "2026-09-02T23:49:38.752Z"
+  "metadataGeneratedAt": "2026-09-03T02:27:16.468Z"
 }

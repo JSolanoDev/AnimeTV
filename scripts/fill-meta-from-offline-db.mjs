@@ -12,8 +12,9 @@
 //
 //   node scripts/fill-meta-from-offline-db.mjs --db <path-to.jsonl> [--write]
 //
-// The database has no synopsis and its tags are not genres, so those two fields are
-// left empty for a later AniList/Jikan pass to fill in.
+// The database has no synopsis, so that field is left for a later AniList/Jikan
+// pass. Genres are recovered by intersecting its `tags` with AniList's fixed genre
+// vocabulary - see genresFromTags below - and only ever fill a row that has none.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -36,6 +37,35 @@ const idFrom = (s, host, re) => { for (const u of s || []) if (u.includes(host))
 // map explicitly and leave it blank when unrecognised.
 const STATUS = { FINISHED: "FINISHED", ONGOING: "RELEASING", UPCOMING: "NOT_YET_RELEASED" };
 
+// The database has `tags`, not genres, and they are far too noisy to ship as-is:
+// alongside "action" and "drama" sit "baseball", "cannibalism", "aviation" and
+// "kuudere". But AniList's genre vocabulary is a small fixed set, so intersecting
+// the tags with it recovers exactly the genres and drops the rest.
+// Emitted in this canonical order rather than tag order, so two shows with the same
+// genres list them the same way.
+const GENRES = ["Action", "Adventure", "Comedy", "Drama", "Ecchi", "Fantasy", "Horror",
+  "Mahou Shoujo", "Mecha", "Music", "Mystery", "Psychological", "Romance", "Sci-Fi",
+  "Slice of Life", "Sports", "Supernatural", "Thriller"];
+const TAG_TO_GENRE = new Map();
+for (const g of GENRES) TAG_TO_GENRE.set(g.toLowerCase(), g);
+// Spellings the database uses that do not match the canonical name directly.
+for (const [tag, g] of [
+  ["sci fi", "Sci-Fi"], ["science fiction", "Sci-Fi"],
+  ["magical girl", "Mahou Shoujo"], ["mahou shoujo", "Mahou Shoujo"],
+  ["slice of life", "Slice of Life"], ["daily life", "Slice of Life"]
+]) TAG_TO_GENRE.set(tag, g);
+
+function genresFromTags(tags) {
+  const found = new Set();
+  for (const t of tags || []) {
+    const g = TAG_TO_GENRE.get(String(t).toLowerCase().trim());
+    if (g) found.add(g);
+  }
+  // Cap at 5, matching the length AniList itself returns, so the chip row does not
+  // become a wall of text for tag-heavy entries.
+  return GENRES.filter((g) => found.has(g)).slice(0, 5);
+}
+
 const byAni = new Map();
 const byMal = new Map();
 await new Promise((res) => {
@@ -52,7 +82,7 @@ await new Promise((res) => {
       year: o.animeSeason?.year || null,
       // The database scores 1-10; this app renders "${score}%" on a 0-100 scale.
       score: typeof o.score?.arithmeticMean === "number" ? Math.round(o.score.arithmeticMean * 10) : null,
-      genres: [],                    // db has tags, not genres - too noisy to map
+      genres: genresFromTags(o.tags),
       description: "",               // not carried by the database
       duration: o.duration ? (o.duration.unit === "SECONDS" ? Math.round(o.duration.value / 60) : o.duration.value) : null,
       episodes: typeof o.episodes === "number" ? o.episodes : null,
@@ -75,7 +105,7 @@ const raw = JSON.parse(fs.readFileSync(MAP, "utf8"));
 const entries = raw.entries || {};
 const keys = Object.keys(entries);
 
-let filledMeta = 0, filledMal = 0, noHit = 0;
+let filledMeta = 0, filledMal = 0, filledGenres = 0, noHit = 0;
 for (const k of keys) {
   const e = entries[k];
   if (!e) continue;
@@ -84,12 +114,18 @@ for (const k of keys) {
   // Backfill the MAL id wherever only the AniList id was known - that is the route
   // add-artwork-metadata.mjs needs when AniList is unavailable.
   if (!e.malId && hit.malId) { e.malId = hit.malId; filledMal++; }
-  if (!e.meta) { e.meta = { ...hit }; filledMeta++; }
+  if (!e.meta) { e.meta = { ...hit }; filledMeta++; continue; }
+  // Genres only, and only when the row has none. AniList and Jikan both give better
+  // genres than tag-intersection does, so this never overwrites an existing list -
+  // it just stops a row rendering with no genre chips at all while both providers
+  // are unreachable.
+  if (!(e.meta.genres || []).length && hit.genres.length) { e.meta.genres = hit.genres; filledGenres++; }
 }
 
 console.log(`entries              : ${keys.length}`);
 console.log(`metadata filled      : ${filledMeta}`);
 console.log(`malId backfilled     : ${filledMal}`);
+console.log(`genres filled        : ${filledGenres}`);
 console.log(`still without meta   : ${keys.filter((k) => !entries[k].meta).length} (${noHit} had no database hit)`);
 
 if (!WRITE) { console.log("\n(dry run - pass --write to apply)"); process.exit(0); }
