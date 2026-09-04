@@ -342,10 +342,10 @@ function applySidebarState() {
     sidebarToggle.setAttribute("aria-pressed", String(state.sidebarCollapsed));
     sidebarToggle.setAttribute("aria-label", state.sidebarCollapsed ? "Show sidebar labels" : "Hide sidebar labels");
     // The chevron is a static inline SVG in index.html and CSS rotates the span on
-    // collapse, so there is nothing to sync here. This used to force the span
-    // textContent back to the glyph on every call, which silently deleted the SVG
-    // on first render - the markup was correct and the button still showed the old
-    // off-centre glyph.
+    // collapse, so there is nothing to sync here. This used to force the span's
+    // textContent back to the "‹" glyph on every call, which silently deleted the
+    // SVG on first render - the markup was correct and the button still showed the
+    // old off-centre glyph.
   }
 }
 
@@ -423,12 +423,20 @@ function updateFilterButtons() {
 
 function applyAppLanguage() {
   document.documentElement.lang = state.appLanguage;
-  document.querySelector('[data-route="home"]:not(.brand)')?.lastChild && (document.querySelector('[data-route="home"]:not(.brand)').lastChild.textContent = ` ${t("navHome")}`);
-  document.querySelector('[data-route="library"]')?.lastChild && (document.querySelector('[data-route="library"]').lastChild.textContent = ` ${t("navSearch")}`);
-  document.querySelector('[data-route="schedule"]')?.lastChild && (document.querySelector('[data-route="schedule"]').lastChild.textContent = ` ${t("navSchedule")}`);
-  document.querySelector('[data-route="favorites"]')?.lastChild && (document.querySelector('[data-route="favorites"]').lastChild.textContent = ` ${t("navFavorites")}`);
-  document.querySelector('[data-route="sources"]')?.lastChild && (document.querySelector('[data-route="sources"]').lastChild.textContent = ` ${t("navSources")}`);
-  document.querySelector('[data-route="settings"]')?.lastChild && (document.querySelector('[data-route="settings"]').lastChild.textContent = ` ${t("navSettings")}`);
+  // Scoped to .main-nav on purpose. These used to be bare [data-route="..."]
+  // selectors, and <body> also carries data-route - so querySelector returned the
+  // BODY (it comes first in document order) and wrote the label into the body's
+  // last child, leaving a stray " Home" text node floating at the bottom of the
+  // page. The :not(.brand) guard shows this was known about; it just missed body.
+  const navLabel = (route, key) => {
+    const link = document.querySelector(`.main-nav [data-route="${route}"]`);
+    if (link?.lastChild) link.lastChild.textContent = ` ${t(key)}`;
+  };
+  navLabel("home", "navHome");
+  navLabel("library", "navSearch");
+  navLabel("schedule", "navSchedule");
+  navLabel("favorites", "navFavorites");
+  navLabel("settings", "navSettings");
   setText(".carousel-info .eyebrow", "featuredNow");
   if (!carouselTitle.textContent || /loading|cargando/i.test(carouselTitle.textContent)) carouselTitle.textContent = t("loadingAnime");
   if (!carouselText.textContent || /fetching|buscando/i.test(carouselText.textContent)) carouselText.textContent = t("fetchingAnime");
@@ -537,7 +545,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=649`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=662`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3370,7 +3378,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=649";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=662";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -6408,9 +6416,9 @@ function renderSettings() {
   const preferences = getLanguagePreferences();
   const ui = state.uiPreferences;
   // The Sources tab was removed: connectors are resolved automatically per episode
-    // and the panel only ever exposed read-only status, so it gave the viewer nothing
-    // to act on. The /sources route and its cards are untouched.
-    const tabs = ["general", "player", "shortcuts", "legal"];
+  // and the panel only ever exposed read-only status, so it gave the viewer nothing
+  // to act on. Everything it showed is still reachable from the catalog status line.
+  const tabs = ["general", "player", "shortcuts", "legal"];
   const activeTab = tabs.includes(state.activeSettingsTab) ? state.activeSettingsTab : "general";
   const activeLegalTab = state.activeLegalTab || "terms";
   const tc = (tab) => `settings-rail-item focusable ${activeTab === tab ? "is-selected" : ""}`;
@@ -16388,7 +16396,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=649");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=662");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
