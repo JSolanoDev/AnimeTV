@@ -377,6 +377,14 @@
   let castLoadError = null;
   let castLastUrlType = "";
   let castLastContentType = "";
+  // Codec compatibility for the CURRENTLY SELECTED source. We never substitute a
+  // different provider - if the chosen one cannot be decoded by the receiver we
+  // say so and leave the choice to the viewer.
+  let castDetectedCodec = "";
+  let castCodecMethod = "";
+  let castCodecResult = "not-run";
+  let castBlockedForCodec = false;
+  const castCodecCache = new Map();
 
   function castLog(...parts) {
     if (CAST_DEV) console.log("[Cast]", ...parts);
@@ -531,7 +539,7 @@
       return;
     }
     castLog("session established", { castState: castStateNow(), sessionState: sessionStateNow() });
-    loadCastMedia();
+    loadCastMedia().catch((error) => console.error("[Cast] loadCastMedia threw", error));
   }
 
   // Stage 3. A failure here is about the MEDIA, never about discovery.
@@ -573,11 +581,92 @@
     } catch (error) { return "unknown"; }
   }
 
-  function loadCastMedia() {
+  // fourCC names in an fMP4 init segment. Video only - mp4a/ec-3 are audio and
+  // must not decide the verdict.
+  function codecFromFourCC(bytes) {
+    let ascii = "";
+    const limit = Math.min(bytes.length, 32768);
+    for (let i = 0; i < limit; i++) {
+      const b = bytes[i];
+      ascii += (b > 31 && b < 127) ? String.fromCharCode(b) : ".";
+    }
+    if (ascii.includes("av01")) return "AV1";
+    if (ascii.includes("hvc1") || ascii.includes("hev1")) return "HEVC";
+    if (ascii.includes("avc1") || ascii.includes("avc3")) return "H.264";
+    if (ascii.includes("vp09")) return "VP9";
+    return "";
+  }
+
+  function codecFromCodecsAttribute(value) {
+    const v = String(value || "").toLowerCase();
+    if (v.includes("av01")) return "AV1";
+    if (v.includes("hvc1") || v.includes("hev1")) return "HEVC";
+    if (v.includes("avc1") || v.includes("avc3")) return "H.264";
+    if (v.includes("vp09")) return "VP9";
+    return "";
+  }
+
+  // Reads the media itself rather than trusting the provider name. Cheapest
+  // reliable evidence first: a master playlist states CODECS outright, and an
+  // fMP4 rendition names it in an init segment that is a couple of KB - far less
+  // than pulling a 3MB media segment. A plain MPEG-TS media playlist carries no
+  // cheap codec evidence, so it stays UNKNOWN and is allowed through: a guess is
+  // not grounds for blocking a cast.
+  async function detectCastVideoCodec(url) {
+    const key = `${segmentsEpisodeKey}|${url}`;
+    const cached = castCodecCache.get(key);
+    if (cached) return cached;
+    const out = { codec: "UNKNOWN", method: "not determined" };
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) {
+        // Transient - deliberately NOT cached, so a later attempt can succeed.
+        out.method = `manifest HTTP ${res.status}`;
+        return out;
+      }
+      const text = await res.text();
+      const streamInf = text.match(/#EXT-X-STREAM-INF:[^\n]*/);
+      if (streamInf) {
+        const declared = (streamInf[0].match(/CODECS="([^"]+)"/i) || [])[1];
+        const codec = codecFromCodecsAttribute(declared);
+        if (codec) {
+          out.codec = codec;
+          out.method = "HLS EXT-X-STREAM-INF CODECS";
+          castCodecCache.set(key, out);
+          return out;
+        }
+      }
+      const mapUri = (text.match(/#EXT-X-MAP:[^\n]*URI="([^"]+)"/) || [])[1];
+      if (mapUri) {
+        const initRes = await fetch(new URL(mapUri, url).href, { cache: "no-store" });
+        if (!initRes.ok) {
+          out.method = `init segment HTTP ${initRes.status}`;
+          return out;   // transient, not cached
+        }
+        const codec = codecFromFourCC(new Uint8Array(await initRes.arrayBuffer()));
+        out.codec = codec || "UNKNOWN";
+        out.method = codec ? "HLS EXT-X-MAP init segment" : "init segment carried no known fourCC";
+        castCodecCache.set(key, out);
+        return out;
+      }
+      out.method = "no CODECS attribute and no EXT-X-MAP";
+      castCodecCache.set(key, out);
+      return out;
+    } catch (error) {
+      // Network/parse failure is transient: report UNKNOWN, do not cache, and do
+      // not block on it.
+      out.method = "detection failed: " + String(error?.message ?? error).slice(0, 60);
+      return out;
+    }
+  }
+
+  async function loadCastMedia() {
     const session = castSession();
     castLoadCalled = false;
     castLoadResult = "not-called";
     castLoadError = null;
+    castBlockedForCodec = false;
+    castCodecResult = "not-run";
     if (!session) {
       castLoadResult = "no-session";
       console.error("[Cast] loadMedia skipped - no current session after connect");
@@ -606,6 +695,26 @@
           ? "Can't cast from localhost - the TV can't reach this computer"
           : "This source can't be cast";
       }
+      return;
+    }
+
+    // Codec gate. The selected source is authoritative: we never swap provider,
+    // never fall back to sources[0], and never touch what the local player is
+    // playing. If the receiver cannot decode THIS source we stop and say so.
+    const detection = await detectCastVideoCodec(url);
+    castDetectedCodec = detection.codec;
+    castCodecMethod = detection.method;
+    castBlockedForCodec = detection.codec === "AV1";
+    castCodecResult = castBlockedForCodec ? "blocked" : "allowed";
+    if (castBlockedForCodec) {
+      castLoadResult = "blocked-codec";
+      console.error("[Cast] not loading - the receiver cannot decode this video codec", {
+        detectedVideoCodec: detection.codec,
+        codecDetectionMethod: detection.method,
+        sourceHost: castSourceLabel(),
+        note: "selected source kept as-is; pick another server to cast"
+      });
+      if (art) art.notice.show = "This source uses AV1 and isn\u2019t supported by your Chromecast. Try another server.";
       return;
     }
 
@@ -680,6 +789,18 @@
     get receiverApplicationId() { return castReceiverAppId; },
     get castState() { return castStateNow(); },
     get sessionState() { return sessionStateNow(); },
+    // Runs the same detection loadCastMedia uses, without needing a receiver.
+    async detectCodec() {
+      const url = castMediaUrl();
+      const result = await detectCastVideoCodec(url);
+      return {
+        detectedVideoCodec: result.codec,
+        codecDetectionMethod: result.method,
+        wouldBlockCast: result.codec === "AV1",
+        sourceHost: castSourceLabel(),
+        urlClassification: classifyCastUrl(url)
+      };
+    },
     snapshot() {
       const ctx = castContext();
       return {
@@ -697,6 +818,14 @@
         lastMediaLoadError: castLoadError,
         activeEpisode: episode || "(none)",
         activeSourceName: castSourceLabel(),
+        // Both are derived from the one sourceUrl this player was opened with, so
+        // they are equal by construction - which is the guarantee, not a coincidence.
+        castSourceName: castSourceLabel(),
+        sameSourceForCast: true,
+        detectedVideoCodec: castDetectedCodec || "not-detected",
+        codecDetectionMethod: castCodecMethod || "not-run",
+        codecDetectionResult: castCodecResult,
+        castBlockedForCodec,
         mediaUrlType: castLastUrlType || classifyCastUrl(castMediaUrl()),
         contentType: castLastContentType || castContentType(),
         secureContext: window.isSecureContext,
