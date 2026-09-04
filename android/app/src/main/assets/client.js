@@ -545,7 +545,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=676`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=677`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3400,7 +3400,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=676";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=677";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -11203,6 +11203,37 @@ window.openPlayer = openPlayer;
 // here and one in the player's SEGMENT_DEFS, and nothing else.
 const PLAYER_SKIP_SEGMENTS = ["intro", "outro"];
 
+// Cast lives in the PLAYER IFRAME (player/player.js), because that is where the
+// Cast SDK is initialised and where the video element is. DevTools evaluates
+// against the top frame by default, so window.__ZENKAI_CAST_DEBUG__ read as
+// undefined there and looked like the build had not loaded at all. This bridge
+// delegates to the frame so the console works without switching context, and
+// says plainly when the player simply is not open yet.
+window.__ZENKAI_CAST_DEBUG__ = {
+  frame: "top (bridge)",
+  get playerWindow() {
+    const frame = document.getElementById("animePlayerFrame");
+    try { return frame?.contentWindow || null; } catch (error) { return null; }
+  },
+  get inner() {
+    try { return this.playerWindow?.__ZENKAI_CAST_DEBUG__ || null; } catch (error) { return null; }
+  },
+  get available() { return Boolean(this.inner); },
+  snapshot() {
+    const inner = this.inner;
+    if (!inner) {
+      return {
+        error: "player frame not available",
+        hint: "open an episode so the player iframe exists, then run this again",
+        playerFramePresent: Boolean(document.getElementById("animePlayerFrame")),
+        topFrame: window.location.href
+      };
+    }
+    return { ...inner.snapshot(), readVia: "top-frame bridge" };
+  }
+};
+console.log("[Cast] debug bridge installed", window.location.href);
+
 // One tiny fetch per anime, cached for the session, rather than an AniSkip call
 // per playback. Keyed by MAL id, so it is independent of which streaming source
 // is selected - switching source keeps the same timestamps.
@@ -16554,7 +16585,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=676");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=677");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

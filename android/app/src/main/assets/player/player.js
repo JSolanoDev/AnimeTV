@@ -564,7 +564,12 @@
   }
 
   // Inspectable from DevTools. Deliberately carries no URLs, tokens or headers.
+  // NOTE: this is the PLAYER FRAME's window. In the app the player runs inside
+  // #animePlayerFrame, and DevTools evaluates against the top frame by default, so
+  // reading window.__ZENKAI_CAST_DEBUG__ there finds nothing. client.js installs a
+  // bridge on the top window that delegates here.
   window.__ZENKAI_CAST_DEBUG__ = {
+    frame: "player",
     get sdkAvailable() { return Boolean(window.chrome?.cast); },
     get frameworkAvailable() { return Boolean(window.cast?.framework); },
     get initState() { return castInitState; },
@@ -633,6 +638,7 @@
     // Up front, not on click: the SDK has to be loaded and the context configured
     // before anything can know whether a receiver exists.
     initCastFramework();
+    console.log("[Cast] debug helper installed", window.location.href);
     startMascot();
   }
 
