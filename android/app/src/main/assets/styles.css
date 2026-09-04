@@ -337,7 +337,12 @@ button {
   bottom: 0;
   z-index: 20;
   display: grid;
-  grid-template-rows: auto 1fr auto auto;
+  /* Three declared tracks, not four. The search box is the 4th child and is hidden
+     in the collapsed rail; with a 4th track declared it still reserved a row-gap
+     below the toggle (16px of dead space, so the toggle never sat flush at the
+     bottom). Leaving it implicit means the track only exists when the search box
+     actually does - which is exactly the expanded sidebar, where the gap is wanted. */
+  grid-template-rows: auto 1fr auto;
   grid-template-columns: 1fr;
   align-items: start;
   width: 5.9rem;
@@ -662,60 +667,141 @@ body.is-toggling .main-nav .nav-link span { animation: nav-icon-pulse 440ms cubi
   display: none;
 }
 
+/* One button, one look. It is the same circle as the back and fullscreen controls -
+   same size, surface, border and hover - so the three read as one family, and it
+   does NOT change shape between the shown and hidden states. Only its position
+   moves: bottom of the rail when shown, corner of the viewport when hidden. */
 .sidebar-toggle {
   display: grid;
   place-items: center;
-  width: 100%;
-  min-height: 2.55rem;
-  margin: 0.55rem 0 0;
-  border: 0.08rem solid rgba(178, 186, 255, 0.1);
-  border-radius: var(--radius-lg);
-  color: rgba(246, 243, 255, 0.82);
-  background: rgba(12, 15, 29, 0.72);
+  /* Pinned to the bottom of the rail: the topbar's nav row is 1fr, so auto top
+     margin plus end alignment puts it on the last usable line of the column. */
+  align-self: end;
+  justify-self: center;
+  width: 2.9rem;
+  height: 2.9rem;
+  min-height: 0;
+  margin: auto 0 0;
+  border: 0.08rem solid rgba(255, 255, 255, 0.14);
+  border-radius: 999rem;
+  color: rgba(240, 242, 252, 0.92);
+  background: rgba(12, 12, 22, 0.6);
   cursor: pointer;
-  backdrop-filter: none;
-  box-shadow: none;
-  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, color 180ms ease;
+  -webkit-backdrop-filter: blur(12px) saturate(1.1);
+  backdrop-filter: blur(12px) saturate(1.1);
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.35);
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, color 180ms ease, opacity 240ms ease;
 }
 
+/* The span stays because body.sidebar-collapsed rotates IT 180deg; it is now just
+   a centred box for the icon rather than a text run. */
 .sidebar-toggle span {
-  font-size: 1.75rem;
-  line-height: 1;
+  display: grid;
+  place-items: center;
+  line-height: 0;
   transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+.sidebar-toggle .chev-ico {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Same hover as the back and fullscreen buttons. */
 .sidebar-toggle:is(:hover, :focus-visible, .is-tv-focused) {
-  border-color: rgba(0, 210, 255, 0.24);
+  border-color: rgba(138, 85, 255, 0.55);
   color: #ffffff;
-  background: rgba(0, 210, 255, 0.095);
-  box-shadow: inset 0 0 0 0.08rem rgba(255, 255, 255, 0.035);
+  background: rgba(24, 20, 46, 0.82);
+  transform: scale(1.06);
+  box-shadow: 0 0.7rem 1.9rem rgba(0, 0, 0, 0.42);
 }
 
 /* Compact (collapsed) = narrow icon rail. The content + footer slide WITH the
    rail (push-drawer) on a unified easing, so opening/closing feels integrated.
    Default state is compact; expanding widens the rail and pushes content right. */
+/* Collapsed means HIDDEN: the whole rail leaves the side and the page reclaims the
+   space. It used to merely shrink 5.9rem -> 4.2rem, which still showed icons and
+   gave the content almost nothing back. Shown = the compact icon rail. */
 body.sidebar-collapsed .app-shell {
-  padding-left: 4.2rem;
+  padding-left: 0;
 }
 
 body.sidebar-collapsed .topbar {
-  width: 4.2rem;
-  padding-left: 0.4rem;
-  padding-right: 0.4rem;
-  background:
-    linear-gradient(90deg, rgba(8, 10, 19, 0.42), rgba(8, 10, 19, 0.12) 76%, transparent);
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  /* The toggle is fixed-positioned below and has to escape the zero-width column. */
+  overflow: visible;
 }
 
+/* With the rail gone the toggle would go with it, leaving no way back, so it floats
+   free in the bottom-left corner - and tucks itself most of the way off the edge so
+   it does not sit on top of the content it just made room for. It slides fully out
+   on hover, focus or D-pad focus, which is also how it stays reachable on TV. */
+/* Identical button, different anchor. Size, surface, border and hover all inherit
+   from .sidebar-toggle above - only the position changes, plus a gentle tuck toward
+   the edge so it does not sit on top of the content it just made room for. */
+body.sidebar-collapsed .sidebar-toggle {
+  position: fixed;
+  left: 0.85rem;
+  bottom: 1rem;
+  z-index: 90;
+  margin: 0;
+  transform: translateX(-30%);
+  opacity: 0.72;
+  transition:
+    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 240ms ease,
+    background 180ms ease,
+    border-color 180ms ease;
+}
+
+body.sidebar-collapsed .sidebar-toggle:is(:hover, :focus-visible, .is-tv-focused) {
+  transform: translateX(0) scale(1.06);
+  opacity: 1;
+}
+
+/* Reduced-motion users get the same reachability without the slide. */
+@media (prefers-reduced-motion: reduce) {
+  body.sidebar-collapsed .sidebar-toggle {
+    transform: none;
+    opacity: 0.85;
+    transition: none;
+  }
+}
+
+/* Everything except the toggle fades out. visibility (not display) keeps the grid
+   tracks intact, so the toggle does not jump when the rail hides. */
+body.sidebar-collapsed .topbar > :is(.brand, .main-nav, .search-box) {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 220ms ease, visibility 0s linear 220ms;
+}
+
+.topbar > :is(.brand, .main-nav, .search-box) {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 260ms ease;
+}
+
+/* The rail is gone entirely in this state, so the footer has no column to clear. */
 body.sidebar-collapsed .bottom-bar {
-  margin-left: -4.2rem;
-  padding-left: calc(4.2rem + clamp(1.4rem, 3.2vw, 3.4rem));
+  margin-left: 0;
+  padding-left: clamp(1.4rem, 3.2vw, 3.4rem);
 }
 
 body.sidebar-collapsed .bottom-bar::before {
-  left: 4.2rem;
+  left: 0;
 }
 
-body.sidebar-collapsed .brand-mark {
+/* Compact rail is now the DEFAULT shown state: collapsed means hidden, so the
+   icon-only styling below is unconditional. */
+.brand-mark.brand-mark {
   width: 3.1rem;
   height: 3.1rem;
 }
@@ -726,17 +812,17 @@ body.sidebar-collapsed .brand-logo {
   transform: scale(1);
 }
 
-body.sidebar-collapsed .main-nav {
+.main-nav.main-nav {
   gap: 0.5rem;
 }
 
-body.sidebar-collapsed .nav-link {
+.nav-link.nav-link {
   min-height: 3.35rem;
   font-size: 0;
   gap: 0;
 }
 
-body.sidebar-collapsed .nav-link span {
+.nav-link.nav-link span {
   font-size: 1.62rem;
   transform: translateY(0);
 }
@@ -3110,30 +3196,52 @@ select.focusable:focus-visible:not(.is-tv-focused) {
   margin: auto;
 }
 
+/* Shared chevron. Both of these used the typographic glyph "‹" (U+2039), whose ink
+   sits high and left in its em box, so it read as off-centre no matter how the
+   button was aligned - no amount of line-height or flex centring fixes a glyph that
+   is not centred in its own advance width. An inline SVG is centred by geometry. */
+.chev-ico {
+  display: block;
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
 .close-button {
   position: absolute;
   top: 1rem;
   right: 1rem;
   z-index: 60;
   flex-shrink: 0;
+  display: grid;          /* the glyph is now centred by the grid, not by line-height */
+  place-items: center;
   width: 3rem;
   height: 3rem;
-  border: 0;
+  /* Matches the topbar's glass surface instead of the flat grey it used to be, so
+     it reads as part of the app rather than pasted onto the artwork. */
+  border: 0.08rem solid rgba(178, 186, 255, 0.14);
   border-radius: 999rem;
-  color: #ffffff;
-  background: rgba(56, 58, 72, 0.92);
-  font-size: 1.65rem;
-  font-weight: 850;
-  line-height: 1;
+  color: rgba(246, 243, 255, 0.92);
+  background: rgba(12, 15, 29, 0.72);
   cursor: pointer;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 0.8rem 1.7rem rgba(0, 0, 0, 0.24);
-  transition: transform 160ms ease, background 160ms ease;
+  backdrop-filter: blur(14px) saturate(1.08);
+  box-shadow: 0 0.5rem 1.4rem rgba(0, 0, 0, 0.38);
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease, color 160ms ease;
 }
 
-.close-button:is(:hover, :focus-visible) {
-  transform: scale(1.04);
-  background: rgba(78, 80, 96, 0.96);
+.close-button .chev-ico {
+  width: 1.3rem;
+  height: 1.3rem;
+  /* Optical centring: a left chevron's mass sits right of its bounding box centre,
+     so a hair of negative offset makes it look centred even though it already is. */
+  margin-left: -0.06rem;
+}
+
+.close-button:is(:hover, :focus-visible, .is-tv-focused) {
+  transform: scale(1.06);
+  /* Picks up the app accent on hover, the same way the sidebar controls do. */
+  border-color: rgba(138, 85, 255, 0.55);
+  background: rgba(24, 20, 46, 0.86);
+  color: #ffffff;
   outline: 0;
 }
 
@@ -7695,7 +7803,7 @@ body.reduce-motion .library-auto-loader-track > span {
 .main-nav .nav-link:is(:hover, :focus-visible, .is-tv-focused) {
   transform: translateY(-0.1rem);
 }
-body.sidebar-collapsed .main-nav .nav-link:is(:hover, :focus-visible, .is-tv-focused) {
+.main-nav .nav-link.nav-link:is(:hover, :focus-visible, .is-tv-focused) {
   transform: scale(1.08);
 }
 .nav-link:is(:hover, :focus-visible, .is-tv-focused) span {
@@ -8192,11 +8300,19 @@ body.watch-detail-open {
   right: auto;
   width: 2.9rem;
   height: 2.9rem;
-  font-size: 2rem;
   background: rgba(12, 12, 22, 0.6);
-  border: 0.08rem solid rgba(255,255,255,0.14);
+  border: 0.08rem solid rgba(255, 255, 255, 0.14);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
+}
+
+/* This variant out-specifies the base .close-button hover, so the hover state has
+   to be restated here or it simply never shows on the detail page. Same accent the
+   sidebar controls use, so the two chevrons behave identically. */
+.watch-overlay.cinematic .close-button:is(:hover, :focus-visible, .is-tv-focused) {
+  border-color: rgba(138, 85, 255, 0.55);
+  background: rgba(24, 20, 46, 0.82);
+  color: #ffffff;
 }
 
 /* ── LEFT: cinematic content ─────────────────────────────────────────────── */
@@ -9136,16 +9252,20 @@ body.has-embedded-player .watch-side {
 /* ── Global fullscreen toggle (fixed top-right, every screen) ──────────────── */
 .fs-toggle {
   position: fixed;
-  top: clamp(0.75rem, 1.7vh, 1.3rem);
+  /* Sits higher than it used to: in the detail overlay the Seasons/Episodes panel
+     starts just under the top-right corner and the two were crowding each other. */
+  top: clamp(0.5rem, 1.05vh, 0.85rem);
   right: clamp(0.75rem, 1.7vw, 1.3rem);
   z-index: 60;
   display: grid;
   place-items: center;
   width: 2.9rem;
   height: 2.9rem;
-  border: 0.08rem solid rgba(255,255,255,0.18);
+  /* Same surface and border as the back button in the opposite corner, so the two
+     read as a matched pair rather than two different controls. */
+  border: 0.08rem solid rgba(255, 255, 255, 0.14);
   border-radius: 999rem;
-  background: rgba(13, 14, 24, 0.6);
+  background: rgba(12, 12, 22, 0.6);
   color: rgba(240, 242, 252, 0.92);
   cursor: pointer;
   -webkit-backdrop-filter: blur(12px) saturate(1.1);
@@ -9153,11 +9273,13 @@ body.has-embedded-player .watch-side {
   box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,0.35), inset 0 0 0 0.08rem rgba(255,255,255,0.04);
   transition: background 180ms ease, transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
+/* Identical hover to the back button: same accent, same scale, same easing. */
 .fs-toggle:is(:hover, :focus-visible) {
-  background: rgba(36, 38, 58, 0.78);
-  border-color: rgba(255,255,255,0.34);
-  transform: scale(1.07);
-  box-shadow: 0 0.7rem 1.9rem rgba(0,0,0,0.42);
+  background: rgba(24, 20, 46, 0.82);
+  border-color: rgba(138, 85, 255, 0.55);
+  color: #ffffff;
+  transform: scale(1.06);
+  box-shadow: 0 0.7rem 1.9rem rgba(0, 0, 0, 0.42);
   outline: 0;
 }
 .fs-toggle:active { transform: scale(0.94); }

@@ -1,4 +1,4 @@
-const CACHE_NAME = "zenkaitv-v645";
+const CACHE_NAME = "zenkaitv-v646";
 const ADULT_CATALOG_CACHE = "zenkaitv-adult-catalog-v1";
 // Remote artwork lives in its OWN cache that survives version bumps. It used
 // to share CACHE_NAME, so every deploy wiped every poster and the app
