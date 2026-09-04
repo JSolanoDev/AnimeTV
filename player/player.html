@@ -7,13 +7,15 @@
   <title>ZenkaiTV Player</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="/player/player.css?v=671">
+  <link rel="stylesheet" href="/player/player.css?v=676">
   <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
-  <!-- Chromecast. Pinned, 4KB, and it only fetches the Google Cast sender SDK when
-       the button is actually pressed - nothing is loaded from gstatic on page load. -->
-  <script defer src="https://cdn.jsdelivr.net/npm/artplayer-plugin-chromecast@1.1.0/dist/artplayer-plugin-chromecast.js"></script>
-  <script defer src="/player/player.js?v=671"></script>
+  <!-- Chromecast is driven directly by the Google Cast Web Sender framework in
+       player.js. The artplayer plugin used to do this, but it assigned
+       window.__onGCastApiAvailable at CLICK time and loaded the SDK then too, so
+       cast state was unknowable until after the first press and every failure
+       collapsed into one opaque callback. -->
+  <script defer src="/player/player.js?v=676"></script>
 </head>
 <body>
   <main class="ztv-player-page">

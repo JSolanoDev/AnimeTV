@@ -362,79 +362,263 @@
     // controls. Static, so it must be set before the instance is constructed.
     window.Artplayer.CONTROL_HIDE_TIME = 1800;
 
-    // ── Chromecast ───────────────────────────────────────────────────────────
+    // Development logging. The lifecycle chatter is localhost-only; real failures
+  // always reach console.error, because a silently swallowed Cast error is what
+  // made this impossible to diagnose in the first place.
+  const CAST_DEV = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
+  const CAST_SDK = "https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1";
+  let castInitState = "idle";
+  let castInitStarted = false;
+  let castReceiverAppId = "";
+
+  function castLog(...parts) {
+    if (CAST_DEV) console.log("[Cast]", ...parts);
+  }
+
+  // Enum values are read back OFF the live SDK rather than hardcoded, so these
+  // names always match whatever framework version gstatic actually served.
+  function enumName(namespace, value) {
+    try {
+      for (const [key, candidate] of Object.entries(namespace || {})) {
+        if (candidate === value) return key;
+      }
+    } catch (error) { /* fall through */ }
+    return String(value);
+  }
+
+  function castContext() {
+    try { return window.cast?.framework?.CastContext?.getInstance?.() || null; }
+    catch (error) { return null; }
+  }
+
+  function castStateNow() {
+    const ctx = castContext();
+    if (!ctx) return "NO_SDK";
+    try { return enumName(window.cast.framework.CastState, ctx.getCastState()); }
+    catch (error) { return "UNKNOWN"; }
+  }
+
+  function sessionStateNow() {
+    const ctx = castContext();
+    if (!ctx) return "NO_SDK";
+    try { return enumName(window.cast.framework.SessionState, ctx.getSessionState()); }
+    catch (error) { return "UNKNOWN"; }
+  }
+
+  // Loaded ONCE, and __onGCastApiAvailable is defined BEFORE the script tag is
+  // added - that is the contract the sender SDK documents, and doing it the other
+  // way round (which the plugin did, on click) means the callback can be missed
+  // entirely and nothing ever knows whether a receiver exists.
+  function initCastFramework() {
+    if (castInitStarted) return;
+    castInitStarted = true;
+    if (!window.isSecureContext || !window.chrome || /\b(?:Firefox|OPR)\//i.test(navigator.userAgent)) {
+      castInitState = "unsupported-browser";
+      castLog("unsupported browser or insecure context - not loading the SDK");
+      return;
+    }
+    castInitState = "loading-sdk";
+    window.__onGCastApiAvailable = (available, reason) => {
+      castLog("SDK callback received", { available, reason });
+      if (!available) {
+        castInitState = "sdk-unavailable";
+        console.error("[Cast] SDK reported unavailable", { reason });
+        return;
+      }
+      if (!window.cast?.framework) {
+        castInitState = "framework-missing";
+        console.error("[Cast] cast.framework missing despite loadCastFramework=1");
+        return;
+      }
+      castLog("framework available");
+      castLog("initialization starting");
+      try {
+        castReceiverAppId = window.chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID;
+        const ctx = window.cast.framework.CastContext.getInstance();
+        // setOptions exactly once, not per click.
+        ctx.setOptions({
+          receiverApplicationId: castReceiverAppId,
+          autoJoinPolicy: window.chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+        });
+        ctx.addEventListener(window.cast.framework.CastContextEventType.CAST_STATE_CHANGED, (event) => {
+          const name = enumName(window.cast.framework.CastState, event.castState);
+          castLog("state:", name);
+          syncCastControl(name);
+        });
+        ctx.addEventListener(window.cast.framework.CastContextEventType.SESSION_STATE_CHANGED, (event) => {
+          castLog("session:", enumName(window.cast.framework.SessionState, event.sessionState));
+        });
+        castInitState = "ready";
+        castLog("initialization complete", { receiverApplicationId: castReceiverAppId, castState: castStateNow() });
+        syncCastControl(castStateNow());
+      } catch (error) {
+        castInitState = "init-failed";
+        console.error("[Cast] initialization failed", error);
+      }
+    };
+    const script = document.createElement("script");
+    script.src = CAST_SDK;
+    script.async = true;
+    script.onerror = () => {
+      castInitState = "sdk-load-error";
+      console.error("[Cast] failed to load", CAST_SDK, "- check CSP script-src allows www.gstatic.com");
+    };
+    document.head.appendChild(script);
+  }
+
+  // Reflects availability on the button instead of pretending a device is there.
+  function syncCastControl(stateName) {
+    const control = art?.template?.$player?.querySelector?.(".art-control-chromecast");
+    if (!control) return;
+    control.classList.toggle("is-cast-connected", stateName === "CONNECTED");
+    control.classList.toggle("is-cast-connecting", stateName === "CONNECTING");
+    control.classList.toggle("is-cast-unavailable", stateName === "NO_DEVICES_AVAILABLE");
+  }
+
+  // Stage 2 of three. Discovery (stage 1) is Chrome's job, and media delivery
+  // (stage 3) happens on the receiver - each gets its own message rather than one
+  // catch-all about the network.
+  async function startCastSession() {
+    const ctx = castContext();
+    if (!ctx) {
+      console.error("[Cast] requestSession skipped - no CastContext", { castInitState });
+      if (art) art.notice.show = castInitState === "loading-sdk"
+        ? "Cast is still starting up - try again in a moment"
+        : "Casting is unavailable in this browser";
+      return;
+    }
+    const before = { castState: castStateNow(), sessionState: sessionStateNow() };
+    castLog("requestSession from click", before);
+    // Discovery found nothing. That is NOT a session failure, and saying so sends
+    // people to debug their Wi-Fi when the SDK simply has no receiver to offer.
+    if (before.castState === "NO_DEVICES_AVAILABLE") {
+      console.error("[Cast] no devices available", { ...before, receiverApplicationId: castReceiverAppId });
+      if (art) art.notice.show = "No Chromecast devices found";
+      return;
+    }
+    try {
+      await ctx.requestSession();
+    } catch (error) {
+      // The exact SDK value, not a guess. chrome.cast.ErrorCode members are strings
+      // like "cancel" / "receiver_unavailable" / "session_error"; requestSession can
+      // also reject with a bare string.
+      const code = String(error?.code ?? error?.description ?? error ?? "");
+      console.error("[Cast] requestSession failed", {
+        error,
+        code,
+        message: error?.message ?? error?.description,
+        castState: castStateNow(),
+        sessionState: sessionStateNow(),
+        receiverApplicationId: castReceiverAppId
+      });
+      if (!art) return;
+      const lower = code.toLowerCase();
+      if (lower.includes("cancel")) { art.notice.show = ""; return; }
+      if (lower.includes("receiver_unavailable") || lower.includes("unavailable")) {
+        art.notice.show = "No Chromecast devices found";
+        return;
+      }
+      if (lower.includes("timeout")) { art.notice.show = "The Chromecast did not respond - try again"; return; }
+      if (lower.includes("extension")) { art.notice.show = "Chrome cannot reach its Cast support"; return; }
+      art.notice.show = `Couldn't start the Cast session (${code || "unknown"})`;
+      return;
+    }
+    castLog("session established", { castState: castStateNow(), sessionState: sessionStateNow() });
+    loadCastMedia();
+  }
+
+  // Stage 3. A failure here is about the MEDIA, never about discovery.
+  function loadCastMedia() {
+    const session = castSession();
+    if (!session) { console.error("[Cast] no session after connect"); return; }
+    const url = castMediaUrl();
+    if (!url || /^blob:/i.test(url)) {
+      console.error("[Cast] refusing to cast a non-fetchable url", { url: url ? url.slice(0, 24) + "..." : "(empty)" });
+      if (art) art.notice.show = "This source can't be cast";
+      return;
+    }
+    try {
+      const media = new window.chrome.cast.media.MediaInfo(url, castContentType());
+      const meta = new window.chrome.cast.media.GenericMediaMetadata();
+      meta.title = title || "ZenkaiTV";
+      if (episode) meta.subtitle = String(episode);
+      if (poster) meta.images = [new window.chrome.cast.Image(poster)];
+      media.metadata = meta;
+      const request = new window.chrome.cast.media.LoadRequest(media);
+      const at = Number(art?.video?.currentTime || 0);
+      request.currentTime = Number.isFinite(at) && at > 1 ? at : 0;
+      request.autoplay = true;
+      castLog("loading media", { contentType: castContentType(), currentTime: request.currentTime });
+      session.loadMedia(request).then(() => {
+        castLog("media loaded");
+        if (art) art.notice.show = "Casting";
+        try { art?.video?.pause?.(); } catch (error) { /* already stopped */ }
+      }).catch((error) => {
+        console.error("[Cast] loadMedia failed", { error, code: String(error?.code ?? error), contentType: castContentType() });
+        if (art) art.notice.show = "Connected, but this source couldn't be loaded";
+      });
+    } catch (error) {
+      console.error("[Cast] building the load request threw", error);
+      if (art) art.notice.show = "Connected, but this source couldn't be loaded";
+    }
+  }
+
+  // Inspectable from DevTools. Deliberately carries no URLs, tokens or headers.
+  window.__ZENKAI_CAST_DEBUG__ = {
+    get sdkAvailable() { return Boolean(window.chrome?.cast); },
+    get frameworkAvailable() { return Boolean(window.cast?.framework); },
+    get initState() { return castInitState; },
+    get receiverApplicationId() { return castReceiverAppId; },
+    get castState() { return castStateNow(); },
+    get sessionState() { return sessionStateNow(); },
+    snapshot() {
+      const ctx = castContext();
+      return {
+        sdkLoaded: Boolean(window.chrome?.cast),
+        frameworkNamespace: Boolean(window.cast?.framework),
+        contextInitialized: Boolean(ctx),
+        initState: castInitState,
+        receiverApplicationId: castReceiverAppId,
+        castState: castStateNow(),
+        sessionState: sessionStateNow(),
+        hasCurrentSession: Boolean(castSession()),
+        hasMediaSession: Boolean(castMedia()),
+        secureContext: window.isSecureContext,
+        host: window.location.hostname
+      };
+    }
+  };
+
+  // ── Chromecast ───────────────────────────────────────────────────────────
     // Registered only where it can actually work. The Google Cast sender SDK is
     // Chromium-only and needs a secure context, so on Firefox/Safari or over plain
     // http the button would be permanently dead - better not to draw it at all.
+    // NOTE: localhost IS a secure context, so development is not excluded here.
     //
     // No `url` is passed on purpose: the plugin falls back to art.option.url, which
     // ArtPlayer keeps current across switchUrl(), so casting follows the episode,
     // server and quality the viewer is actually on rather than whatever happened to
     // load first.
-    const castSupported = Boolean(window.artplayerPluginChromecast)
-      && window.isSecureContext
+    const castSupported = window.isSecureContext
       && Boolean(window.chrome)
       && !/\b(?:Firefox|OPR)\//i.test(navigator.userAgent);
     if (castSupported) {
-      playerOptions.plugins = [
-        ...(playerOptions.plugins || []),
-        window.artplayerPluginChromecast({
-          // Without these two the receiver got a relative path typed as
-          // application/octet-stream, which is why casting never played anything.
-          url: castMediaUrl(),
-          mimeType: castContentType(),
-          onCastStart: () => {
-            // The LoadRequest carries no start position, so casting always began at
-            // 00:00. Seek the receiver to where the viewer actually is, then stop the
-            // local element so there is one authoritative playback state.
-            const at = Number(art?.video?.currentTime || 0);
-            if (Number.isFinite(at) && at > 1) {
-              // The media session only exists once the receiver has accepted the load.
-              const trySeek = (attempt) => {
-                if (castSeek(at) || attempt >= 10) return;
-                setTimeout(() => trySeek(attempt + 1), 400);
-              };
-              trySeek(0);
-            }
-            try { art?.video?.pause?.(); } catch (error) { /* already stopped */ }
-          },
-          onError: (error) => {
-            // The plugin funnels THREE different failures through one callback:
-            // the device picker being dismissed, no receiver being found, and the
-            // media itself failing to load. Blaming the source for all of them is
-            // wrong and misleading - dismissing the picker is not a broken stream.
-            const code = String(error?.code ?? error?.message ?? error ?? "").toLowerCase();
-            console.warn("[ztv] chromecast:", error);
-            if (!art) return;
-            // Dismissing the picker is a normal action, not an error. The plugin
-            // has already shown its own notice by this point, so clear it.
-            if (code.includes("cancel")) { art.notice.show = ""; return; }
-            if (code.includes("receiver_unavailable") || code.includes("unavailable")) {
-              art.notice.show = "No Chromecast found on this network";
-              return;
-            }
-            if (code.includes("timeout")) {
-              art.notice.show = "Chromecast timed out - try again";
-              return;
-            }
-            // Only now is the stream actually implicated: the receiver fetches the
-            // URL itself, so a source behind a referrer check or without CORS
-            // fails on the device rather than here.
-            if (code.includes("load") || code.includes("media")) {
-              art.notice.show = "This source can't be cast - try another server";
-              return;
-            }
-            // "session_error" is what the SDK returns when it cannot establish a
-            // session at all - in practice, no reachable receiver. Measured: this
-            // is the code you get with no Chromecast on the network.
-            if (code.includes("session")) {
-              art.notice.show = "Couldn't reach a Chromecast - check it's on the same network";
-              return;
-            }
-            art.notice.show = "Couldn't start casting";
-          }
-        })
-      ];
+      // Replaces the plugin entirely. The control name is kept so the existing
+      // .art-control-chromecast styling still applies unchanged.
+      playerOptions.controls = playerOptions.controls || [];
+      playerOptions.controls.push({
+        name: "chromecast",
+        position: "right",
+        index: 14,
+        html: '<i class="art-icon art-icon-cast"><svg height="20" width="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path d="M512 96H64v99c-13-2-26.4-3-40-3H0V96C0 60.7 28.7 32 64 32H512c35.3 0 64 28.7 64 64V416c0 35.3-28.7 64-64 64H288V456c0-13.6-1-27-3-40H512V96zM24 224c128.1 0 232 103.9 232 232c0 13.3-10.7 24-24 24s-24-10.7-24-24c0-101.6-82.4-184-184-184c-13.3 0-24-10.7-24-24s10.7-24 24-24zm8 192a32 32 0 1 1 0 64 32 32 0 1 1 0-64zM0 344c0-13.3 10.7-24 24-24c75.1 0 136 60.9 136 136c0 13.3-10.7 24-24 24s-24-10.7-24-24c0-48.6-39.4-88-88-88c-13.3 0-24-10.7-24-24z"/></svg></i>',
+        tooltip: "Cast to a device",
+        click: (_component, event) => {
+          event.stopPropagation();
+          // Straight off the user gesture: the Cast chooser is gated on user
+          // activation, and awaiting anything first can spend it.
+          startCastSession();
+        }
+      });
     }
 
     art = new window.Artplayer(playerOptions);
@@ -446,6 +630,9 @@
     watchPictureInsets();
     syncNextEpisodeControl();
     mountSkipLayer();
+    // Up front, not on click: the SDK has to be loaded and the context configured
+    // before anything can know whether a receiver exists.
+    initCastFramework();
     startMascot();
   }
 
@@ -1713,7 +1900,12 @@
     if (!hit || !art?.video) return;
     // Routed, not direct: while casting this has to move the RECEIVER, otherwise
     // the TV keeps playing the opening while the local element jumps ahead.
-    seekTo(hit.seg.end);
+    // A hair past the boundary, clamped to the duration: seeking to exactly end can
+    // land at 590.7499 for a 590.75 boundary, which is still inside the segment, so
+    // the button flickers straight back. 50ms is imperceptible and lands us out.
+    const duration = Number(art?.video?.duration);
+    const past = hit.seg.end + 0.05;
+    seekTo(Number.isFinite(duration) && duration > 0 ? Math.min(past, duration) : past);
     // Hide immediately rather than waiting for the next timeupdate.
     activeSegmentKey = null;
     skipLayer.classList.remove("is-visible");

@@ -425,6 +425,26 @@ body.fit-fill .art-video {
   height: 19px;
 }
 
+/* The plugin used to set the icon colour inline to signal session state (white
+   idle, orange connecting, red connected). We render the icon ourselves now, so
+   the same three states are classes toggled by syncCastControl(). Colour only -
+   the glyph, its size and its position are unchanged. */
+.art-control-chromecast.is-cast-connecting .art-icon-cast svg {
+  color: #f7a13a;
+  fill: currentColor;
+}
+
+.art-control-chromecast.is-cast-connected .art-icon-cast svg {
+  color: #ff5252;
+  fill: currentColor;
+}
+
+/* Discovery found nothing: dim it rather than hide it, so the control does not
+   appear and disappear from the bar and shift every other button. */
+.art-control-chromecast.is-cast-unavailable {
+  opacity: 0.45;
+}
+
 .art-control-rewind-10,
 .art-control-forward-10,
 .art-control-next-episode {
@@ -1169,12 +1189,13 @@ body.ztv-chrome-hidden .ztv-corner-toggle svg {
   }
 }
 
-/* Phone landscape: the picture is short, so the whole lower band is tight. Pull
-   the button closer to the bar and shrink the label rather than let it collide
-   with the subtitle line. */
+/* Phone landscape: the picture is short, so the whole lower band is tight. The
+   button still has to clear the SUBTITLE line, not just the control bar - at
+   844x390 the subtitle sits at 4.75rem, so 4.25rem put the button straight
+   through it. Sit above the subtitle and shrink the label instead. */
 @media (max-height: 460px) and (orientation: landscape) {
   .ztv-skip-layer {
-    bottom: calc(4.25rem + env(safe-area-inset-bottom));
+    bottom: calc(6.9rem + env(safe-area-inset-bottom));
   }
   .ztv-skip-btn {
     min-height: 38px;
