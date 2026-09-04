@@ -273,16 +273,39 @@ async function anilistById(id) {
   return null;
 }
 
+// The season number must agree - the rule the header comment already claims and
+// that resolve-from-offline-db.mjs enforces, but which was missing here. AniList
+// search answers a "... 2nd Season" query with the SEASON 1 entry, and because
+// titleScore strips SEASON_WORDS the two titles score identically, so nothing
+// downstream could tell them apart. Both Hell Mode seasons resolved to AniList
+// 185262; dedupeCatalogShows then merged the two catalogue rows on that shared id
+// and the survivor served season 2's episodes under season 1's title and slug.
+// Rejecting is the right failure here: a wrong id is worse than none, and
+// anilist-id-overrides.json exists to supply the id when search cannot.
+function anilistSeasonAgrees(media, scrapedTitle) {
+  const want = seasonNumberOf(scrapedTitle);
+  const names = [media?.title?.romaji, media?.title?.english, media?.title?.native,
+    ...(media?.synonyms || [])].filter(Boolean);
+  if (!names.length) return true;
+  return names.some((n) => seasonNumberOf(n) === want);
+}
+
 async function anilistSearch(title) {
   let loose = null;
+  let seasonMiss = null;
   for (const variant of anilistVariants(title)) {
     const media = await anilistDirect(variant);
     if (!media) continue;
+    if (!anilistSeasonAgrees(media, title)) {
+      if (!seasonMiss) seasonMiss = { media, variant };
+      continue;
+    }
     // The full title matching itself is always trustworthy; a shortened variant
     // has to earn it.
     if (variant === title || anilistLooksRight(media, title)) return media;
     if (!loose) loose = { media, variant };
   }
+  if (seasonMiss) console.log(`  season mismatch, discarded "${title.slice(0, 40)}" -> ${seasonMiss.media.title?.romaji || ""} (add an override if this is right)`.slice(0, 170));
   if (loose) console.log(`  discarded loose AniList hit for "${title.slice(0, 40)}": ${loose.media.title?.romaji || ""}`.slice(0, 140));
   return null;
 }

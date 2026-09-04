@@ -14,7 +14,13 @@
     "entry with Part 1 nowhere in the season picker.",
     "",
     "Add an entry only when you have confirmed the id on anilist.co. A wrong id is",
-    "worse than none: it attaches another show's synopsis, score and artwork."
+    "worse than none: it attaches another show's synopsis, score and artwork.",
+    "",
+    "The five entries added 2026-09-04 are a different failure from the rest: AniList",
+    "search DID answer, with the wrong season. Two slugs of one franchise resolved to",
+    "one id, dedupeCatalogShows merged the rows, and the survivor played season 2's",
+    "episodes under season 1's identity. anilistSearch now requires the season number",
+    "to agree, so these would resolve to nothing without an explicit id."
   ],
   "overrides": {
     "animeav1-yoroi-shin-den-samurai-troopers": 194318,
@@ -56,6 +62,11 @@
     "animeav1-biao-ren": 122508,
     "animeav1-oniichan-wa-oshimai": 147864,
     "animeav1-akuyaku-reijou-nanode-last-boss-wo-kattemimashita": 139820,
-    "animeav1-isekai-ojisan": 135806
+    "animeav1-isekai-ojisan": 135806,
+    "animeav1-hell-mode-yarikomizuki-no-gamer-wa-hai-settei-no-isekai-de-musou-suru-2nd-season": 209983,
+    "animeav1-nierautomata-ver11a-part-2": 167420,
+    "animeav1-houkago-shounen-hanako-kun-part-2": 170893,
+    "animeav1-nageki-no-bourei-wa-intai-shitai-part-2": 185801,
+    "animeav1-shangri-la-frontier-kusoge-hunter-kamige-ni-idoman-to-su": 151970
   }
 }
