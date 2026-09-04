@@ -545,7 +545,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=665`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=666`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -1663,6 +1663,8 @@ function updateLibraryResultCount(count) {
 }
 
 let libraryAutoLoadObserver = null;
+// Which axis libraryAutoLoadObserver was built for, so it can be rebuilt on a flip.
+let libraryAutoLoadObserverHorizontal = null;
 let libraryAutoLoadPending = false;
 let libraryAutoLoadIndicatorTimer = 0;
 let libraryAutoLoadStartedAt = 0;
@@ -1704,8 +1706,17 @@ function cancelLibraryAutoLoad() {
 
 function libraryRailIsNearEnd() {
   if (!libraryGrid || libraryGrid.dataset.hasMore !== "true") return false;
-  const remaining = libraryGrid.scrollWidth - libraryGrid.clientWidth - libraryGrid.scrollLeft;
-  return remaining <= Math.max(640, libraryGrid.clientWidth * 1.15);
+  // Desktop and tablet: the grid is its own horizontal scroller.
+  if (libraryGrid.scrollWidth > libraryGrid.clientWidth + 1) {
+    const remaining = libraryGrid.scrollWidth - libraryGrid.clientWidth - libraryGrid.scrollLeft;
+    return remaining <= Math.max(640, libraryGrid.clientWidth * 1.15);
+  }
+  // Phones wrap the Library into a vertical grid, so it no longer scrolls on its
+  // own axis and this test was permanently true - it would have appended the whole
+  // catalogue in a loop. Measure against the page, which is the real scroller.
+  const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+  if (!viewportHeight) return false;
+  return libraryGrid.getBoundingClientRect().bottom - viewportHeight <= Math.max(640, viewportHeight * 1.15);
 }
 
 function requestNextLibraryBatch() {
@@ -1745,12 +1756,23 @@ function requestNextLibraryBatch() {
 function observeLibraryScrollSentinel(sentinel) {
   if (!sentinel || !libraryGrid) return;
   if (typeof window.IntersectionObserver === "function") {
+    // Which axis the sentinel approaches from depends on the layout: the grid is
+    // its own horizontal scroller on desktop/tablet, but on phones it wraps into a
+    // vertical grid that the PAGE scrolls, and an observer rooted at an element
+    // that no longer scrolls, with a right-side margin, never fires. Rebuild when
+    // the axis flips so a rotation or resize past 760px cannot strand a dead one.
+    const railScrollsHorizontally = libraryGrid.scrollWidth > libraryGrid.clientWidth + 1;
+    if (libraryAutoLoadObserver && libraryAutoLoadObserverHorizontal !== railScrollsHorizontally) {
+      libraryAutoLoadObserver.disconnect();
+      libraryAutoLoadObserver = null;
+    }
     if (!libraryAutoLoadObserver) {
+      libraryAutoLoadObserverHorizontal = railScrollsHorizontally;
       libraryAutoLoadObserver = new IntersectionObserver((entries) => {
         if (entries.some((entry) => entry.isIntersecting)) requestNextLibraryBatch();
       }, {
-        root: libraryGrid,
-        rootMargin: "0px 115% 0px 0px",
+        root: railScrollsHorizontally ? libraryGrid : null,
+        rootMargin: railScrollsHorizontally ? "0px 115% 0px 0px" : "0px 0px 115% 0px",
         threshold: 0
       });
     }
@@ -3378,7 +3400,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=665";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=666";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4625,7 +4647,10 @@ function cardTemplate(show, index = 0) {
     ? imageDeliverySrcSet(posterCandidates[0], [200, 280, 360, 400, 480], 90)
     : "";
   const srcsetAttr = posterSrcSet
-    ? ` srcset="${escapeHtml(posterSrcSet)}" sizes="(max-width: 760px) 30vw, 14vw"`
+    // 30vw described the 120px home-rail card only. The Library/Favorites phone
+    // grid is 2 columns of ~46vw, and under-hinting there picks a 280w file for a
+    // 340px slot, which looks soft. The home rails step up one rung in exchange.
+    ? ` srcset="${escapeHtml(posterSrcSet)}" sizes="(max-width: 760px) 46vw, 14vw"`
     : "";
   const fallbackData = deliveredCandidates.length
     ? ` data-image-fallbacks="${escapeHtml(encodeURIComponent(JSON.stringify(deliveredCandidates)))}" data-image-fallback-index="0"`
@@ -16437,7 +16462,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=665");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=666");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
