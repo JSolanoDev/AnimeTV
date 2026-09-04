@@ -415,7 +415,10 @@ const SECURITY_HEADERS = {
   "Permissions-Policy": "autoplay=*, fullscreen=*, picture-in-picture=*, camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), xr-spatial-tracking=()",
   "Content-Security-Policy": [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+    // www.gstatic.com is the Google Cast sender SDK, loaded on demand by the
+    // Chromecast plugin the first time someone presses the cast button. Without it
+    // the SDK script is blocked and the button can only ever report a failure.
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.gstatic.com",
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self' data:",
     "img-src 'self' data: blob: https:",

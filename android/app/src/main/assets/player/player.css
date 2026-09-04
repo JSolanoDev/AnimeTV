@@ -396,9 +396,33 @@ body.fit-fill .art-video {
 .art-control-playbackRate,
 .art-control-setting,
 .art-control-pip,
+.art-control-chromecast,
 .art-control-fullscreenWeb,
 .art-control-fullscreen {
   min-width: 40px;
+}
+
+/* The Chromecast plugin ships its own 20x20 icon inside an <i>, which sits on the
+   text baseline and renders a little larger than the rest of the bar. Centre it and
+   match the others. The plugin sets the icon's COLOUR inline to signal session
+   state (white idle, orange connecting, red connected), so colour is left alone
+   deliberately - that feedback is the only indication casting is live. */
+.art-control-chromecast {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.art-control-chromecast .art-icon-cast {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.art-control-chromecast .art-icon-cast svg {
+  width: 19px;
+  height: 19px;
 }
 
 .art-control-rewind-10,

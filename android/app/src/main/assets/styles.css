@@ -722,81 +722,102 @@ body.is-toggling .main-nav .nav-link span { animation: nav-icon-pulse 440ms cubi
 /* Collapsed means HIDDEN: the whole rail leaves the side and the page reclaims the
    space. It used to merely shrink 5.9rem -> 4.2rem, which still showed icons and
    gave the content almost nothing back. Shown = the compact icon rail. */
-body.sidebar-collapsed .app-shell {
-  padding-left: 0;
-}
-
-body.sidebar-collapsed .topbar {
-  width: 0;
-  padding-left: 0;
-  padding-right: 0;
-  background: transparent;
-  box-shadow: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  /* The toggle is fixed-positioned below and has to escape the zero-width column. */
-  overflow: visible;
-}
-
-/* With the rail gone the toggle would go with it, leaving no way back, so it floats
-   free in the bottom-left corner - and tucks itself most of the way off the edge so
-   it does not sit on top of the content it just made room for. It slides fully out
-   on hover, focus or D-pad focus, which is also how it stays reachable on TV. */
-/* Identical button, different anchor. Size, surface, border and hover all inherit
-   from .sidebar-toggle above - only the position changes, plus a gentle tuck toward
-   the edge so it does not sit on top of the content it just made room for. */
-body.sidebar-collapsed .sidebar-toggle {
-  position: fixed;
-  left: 0.85rem;
-  bottom: 1rem;
-  z-index: 90;
-  margin: 0;
-  transform: translateX(-30%);
-  opacity: 0.72;
-  transition:
-    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 240ms ease,
-    background 180ms ease,
-    border-color 180ms ease;
-}
-
-body.sidebar-collapsed .sidebar-toggle:is(:hover, :focus-visible, .is-tv-focused) {
-  transform: translateX(0) scale(1.06);
-  opacity: 1;
-}
-
-/* Reduced-motion users get the same reachability without the slide. */
-@media (prefers-reduced-motion: reduce) {
-  body.sidebar-collapsed .sidebar-toggle {
-    transform: none;
-    opacity: 0.85;
-    transition: none;
+/* Desktop only. Below 960px the topbar becomes a full-width BOTTOM BAR, and these
+   hidden-state rules were leaking into it: they zeroed its width, blanked its nav
+   and floated the toggle over it, which is why a stray "Home" label sat under a
+   floating button and the page gained scroll. The bottom bar has its own layout
+   and must not see any of this. */
+@media (min-width: 961px) {
+  body.sidebar-collapsed .app-shell {
+    padding-left: 0;
   }
-}
 
-/* Everything except the toggle fades out. visibility (not display) keeps the grid
-   tracks intact, so the toggle does not jump when the rail hides. */
-body.sidebar-collapsed .topbar > :is(.brand, .main-nav, .search-box) {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 220ms ease, visibility 0s linear 220ms;
-}
+  body.sidebar-collapsed .topbar {
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    background: transparent;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    /* The toggle is fixed-positioned below and has to escape the zero-width column. */
+    overflow: visible;
+  }
 
-.topbar > :is(.brand, .main-nav, .search-box) {
-  opacity: 1;
-  visibility: visible;
-  transition: opacity 260ms ease;
-}
+  /* With the rail gone the toggle would go with it, leaving no way back, so it floats
+     free in the bottom-left corner - and tucks itself most of the way off the edge so
+     it does not sit on top of the content it just made room for. It slides fully out
+     on hover, focus or D-pad focus, which is also how it stays reachable on TV. */
+  /* Identical button, different anchor. Size, surface, border and hover all inherit
+     from .sidebar-toggle above - only the position changes, plus a gentle tuck toward
+     the edge so it does not sit on top of the content it just made room for. */
+  /* Stuck to the very edge rather than floating with a gap: it sits half off-screen
+     against the left border, rounded only on the side that shows, and pops out when
+     the pointer gets near it. A gap made it read as a stray control; flush to the
+     edge it reads as a handle for the drawer it opens. */
+  body.sidebar-collapsed .sidebar-toggle {
+    position: fixed;
+    left: 0;
+    bottom: 1.15rem;
+    z-index: 90;
+    margin: 0;
+    border-left-color: transparent;
+    border-radius: 0 999rem 999rem 0;
+    transform: translateX(-45%);
+    opacity: 0.6;
+    transition:
+      transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 240ms ease,
+      background 180ms ease,
+      border-color 180ms ease;
+  }
 
-/* The rail is gone entirely in this state, so the footer has no column to clear. */
-body.sidebar-collapsed .bottom-bar {
-  margin-left: 0;
-  padding-left: clamp(1.4rem, 3.2vw, 3.4rem);
-}
+  /* "When you get closer": an invisible catch area wider than the button, so it
+     starts sliding out before the pointer is actually on top of it. */
+  body.sidebar-collapsed .sidebar-toggle::before {
+    content: "";
+    position: absolute;
+    inset: -0.9rem -2.2rem -0.9rem -0.5rem;
+  }
 
-body.sidebar-collapsed .bottom-bar::before {
-  left: 0;
+  body.sidebar-collapsed .sidebar-toggle:is(:hover, :focus-visible, .is-tv-focused) {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  /* Reduced-motion users get the same reachability without the slide. */
+  @media (prefers-reduced-motion: reduce) {
+    body.sidebar-collapsed .sidebar-toggle {
+      transform: none;
+      opacity: 0.85;
+      transition: none;
+    }
+  }
+
+  /* Everything except the toggle fades out. visibility (not display) keeps the grid
+     tracks intact, so the toggle does not jump when the rail hides. */
+  body.sidebar-collapsed .topbar > :is(.brand, .main-nav, .search-box) {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 220ms ease, visibility 0s linear 220ms;
+  }
+
+  .topbar > :is(.brand, .main-nav, .search-box) {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 260ms ease;
+  }
+
+  /* The rail is gone entirely in this state, so the footer has no column to clear. */
+  body.sidebar-collapsed .bottom-bar {
+    margin-left: 0;
+    padding-left: clamp(1.4rem, 3.2vw, 3.4rem);
+  }
+
+  body.sidebar-collapsed .bottom-bar::before {
+    left: 0;
+  }
 }
 
 /* Compact rail is now the DEFAULT shown state: collapsed means hidden, so the

@@ -268,7 +268,11 @@
       playbackRate: true,
       aspectRatio: true,
       fullscreen: true,
-      fullscreenWeb: true,
+      // Web fullscreen ("fill screen") removed: it only stretches the video inside
+      // the page, which on this layout looks almost identical to real fullscreen
+      // and confused the two buttons sitting next to each other. Chromecast takes
+      // its place on the right of the control bar.
+      fullscreenWeb: false,
       hotkey: true,
       mutex: true,
       playsInline: true,
@@ -344,6 +348,35 @@
     // 1800ms is noticeably quicker while still leaving time to move between
     // controls. Static, so it must be set before the instance is constructed.
     window.Artplayer.CONTROL_HIDE_TIME = 1800;
+
+    // ── Chromecast ───────────────────────────────────────────────────────────
+    // Registered only where it can actually work. The Google Cast sender SDK is
+    // Chromium-only and needs a secure context, so on Firefox/Safari or over plain
+    // http the button would be permanently dead - better not to draw it at all.
+    //
+    // No `url` is passed on purpose: the plugin falls back to art.option.url, which
+    // ArtPlayer keeps current across switchUrl(), so casting follows the episode,
+    // server and quality the viewer is actually on rather than whatever happened to
+    // load first.
+    const castSupported = Boolean(window.artplayerPluginChromecast)
+      && window.isSecureContext
+      && Boolean(window.chrome)
+      && !/\b(?:Firefox|OPR)\//i.test(navigator.userAgent);
+    if (castSupported) {
+      playerOptions.plugins = [
+        ...(playerOptions.plugins || []),
+        window.artplayerPluginChromecast({
+          onError: (error) => {
+            // By far the commonest failure is a stream the Cast device cannot
+            // fetch for itself: the receiver requests the URL directly, so a
+            // source behind a referrer check, or without CORS, fails on the
+            // device rather than here. Say something the viewer can act on.
+            console.warn("[ztv] chromecast:", error);
+            if (art) art.notice.show = "This source can't be cast - try another server";
+          }
+        })
+      ];
+    }
 
     art = new window.Artplayer(playerOptions);
     wireArtEvents();
@@ -552,13 +585,11 @@
     );
   }
 
-  // Artplayer's "web fullscreen" only earns a row where real fullscreen is
-  // unavailable (notably iOS Safari, which cannot fullscreen a container and
-  // falls back to the native video shell). Everywhere else it would just be a
-  // second button that does what the fullscreen button already does.
-  function webFullscreenIsDistinct() {
-    return !(document.fullscreenEnabled || document.webkitFullscreenEnabled);
-  }
+  // webFullscreenIsDistinct() lived here. Web fullscreen is disabled outright now,
+  // so nothing consults it. Worth knowing if it is ever reinstated: it existed for
+  // iOS Safari, which cannot fullscreen a container and falls back to the native
+  // video shell - that is the one platform where "fill screen" did something real
+  // fullscreen could not.
 
   function levelLabel(level) {
     if (level && Number(level.height) > 0) return `${level.height}p`;
@@ -644,17 +675,7 @@
       });
     }
 
-    if (webFullscreenIsDistinct()) {
-      menus.push({
-        id: "fullscreen-web",
-        label: "Fill screen",
-        info: () => (art?.fullscreenWeb ? "On" : "Off"),
-        action: () => {
-          if (art) art.fullscreenWeb = !art.fullscreenWeb;
-          renderSheetRoot();
-        }
-      });
-    }
+    // "Fill screen" (web fullscreen) is gone - see fullscreenWeb in playerOptions.
 
     return menus;
   }
