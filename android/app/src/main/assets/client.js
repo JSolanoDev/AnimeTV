@@ -545,7 +545,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=664`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=665`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3378,7 +3378,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=664";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=665";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -3649,9 +3649,29 @@ function artworkRoleForImage(img) {
   return "";
 }
 
-function artworkDimensionsAreUseful(img, role) {
+// A responsive <img> reports DENSITY-CORRECTED intrinsic dimensions. With w
+// descriptors, naturalWidth is the chosen file's real pixel width divided by
+// (candidateWidth / sizesWidth) - so the SAME 280x420 poster reports 280x420 with
+// no srcset but 112x168 under the card hint on a 375px phone. The poster gate
+// below wants >= 180x250 in REAL pixels, so on phones every srcset poster looked
+// tiny, was marked low quality, and got refetched as the raw 780px TMDB JPEG -
+// losing its srcset for the rest of the session. Measured on production: 38 of 54
+// posters sat on their fallback candidate. Recover the real width from the
+// candidate the browser actually picked; our delivery URLs always carry ?w=.
+function artworkIntrinsicPixels(img) {
   const width = Number(img.naturalWidth || 0);
   const height = Number(img.naturalHeight || 0);
+  if (!width || !height) return { width: 0, height: 0 };
+  if (!img.getAttribute || !img.getAttribute("srcset")) return { width, height };
+  const picked = /[?&]w=(\d{2,4})(?:&|$)/.exec(img.currentSrc || "");
+  const real = picked ? Number(picked[1]) : 0;
+  // Only ever correct upward, and only when we can read the candidate width.
+  if (!real || real <= width) return { width, height };
+  return { width: real, height: Math.round(height * (real / width)) };
+}
+
+function artworkDimensionsAreUseful(img, role) {
+  const { width, height } = artworkIntrinsicPixels(img);
   if (!width || !height) return false;
   const ratio = width / height;
   if (role === "poster") return width >= 180 && height >= 250 && ratio >= 0.48 && ratio <= 0.9;
@@ -16417,7 +16437,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=664");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=665");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
