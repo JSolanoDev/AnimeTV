@@ -367,12 +367,39 @@
         ...(playerOptions.plugins || []),
         window.artplayerPluginChromecast({
           onError: (error) => {
-            // By far the commonest failure is a stream the Cast device cannot
-            // fetch for itself: the receiver requests the URL directly, so a
-            // source behind a referrer check, or without CORS, fails on the
-            // device rather than here. Say something the viewer can act on.
+            // The plugin funnels THREE different failures through one callback:
+            // the device picker being dismissed, no receiver being found, and the
+            // media itself failing to load. Blaming the source for all of them is
+            // wrong and misleading - dismissing the picker is not a broken stream.
+            const code = String(error?.code ?? error?.message ?? error ?? "").toLowerCase();
             console.warn("[ztv] chromecast:", error);
-            if (art) art.notice.show = "This source can't be cast - try another server";
+            if (!art) return;
+            // Dismissing the picker is a normal action, not an error. The plugin
+            // has already shown its own notice by this point, so clear it.
+            if (code.includes("cancel")) { art.notice.show = ""; return; }
+            if (code.includes("receiver_unavailable") || code.includes("unavailable")) {
+              art.notice.show = "No Chromecast found on this network";
+              return;
+            }
+            if (code.includes("timeout")) {
+              art.notice.show = "Chromecast timed out - try again";
+              return;
+            }
+            // Only now is the stream actually implicated: the receiver fetches the
+            // URL itself, so a source behind a referrer check or without CORS
+            // fails on the device rather than here.
+            if (code.includes("load") || code.includes("media")) {
+              art.notice.show = "This source can't be cast - try another server";
+              return;
+            }
+            // "session_error" is what the SDK returns when it cannot establish a
+            // session at all - in practice, no reachable receiver. Measured: this
+            // is the code you get with no Chromecast on the network.
+            if (code.includes("session")) {
+              art.notice.show = "Couldn't reach a Chromecast - check it's on the same network";
+              return;
+            }
+            art.notice.show = "Couldn't start casting";
           }
         })
       ];

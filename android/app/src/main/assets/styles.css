@@ -324,7 +324,7 @@ button {
   flex-direction: column;
   min-height: 100vh;
   min-height: 100dvh;
-  padding: 0 0 0 5.9rem;
+  padding: 0 0 0 5.1rem;
   background:
     linear-gradient(180deg, rgba(8, 10, 19, 0) 0%, rgba(8, 10, 19, 0.5) 66%, #050710 100%);
   transition: padding-left 360ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -345,7 +345,7 @@ button {
   grid-template-rows: auto 1fr auto;
   grid-template-columns: 1fr;
   align-items: start;
-  width: 5.9rem;
+  width: 5.1rem;
   min-height: 100vh;
   padding: 1.2rem 0.55rem;
   background:
@@ -823,8 +823,10 @@ body.is-toggling .main-nav .nav-link span { animation: nav-icon-pulse 440ms cubi
 /* Compact rail is now the DEFAULT shown state: collapsed means hidden, so the
    icon-only styling below is unconditional. */
 .brand-mark.brand-mark {
-  width: 3.1rem;
-  height: 3.1rem;
+  /* Bigger mark in a narrower rail: the logo is the only branded element left in
+     the compact column, so it carries it. */
+  width: 3.5rem;
+  height: 3.5rem;
 }
 
 /* The mark itself resizes (width/height), so the logo just fills it — no static
@@ -991,8 +993,8 @@ main {
   justify-items: center;
   gap: 0.9rem;
   min-height: clamp(7.3rem, 8.8vh, 8.6rem);
-  margin: 0 0 calc(-1 * var(--footer-bleed)) -5.9rem;
-  padding: var(--footer-pad-y) clamp(1.4rem, 3.2vw, 3.4rem) calc(var(--footer-pad-y) + env(safe-area-inset-bottom)) calc(5.9rem + clamp(1.4rem, 3.2vw, 3.4rem));
+  margin: 0 0 calc(-1 * var(--footer-bleed)) -5.1rem;
+  padding: var(--footer-pad-y) clamp(1.4rem, 3.2vw, 3.4rem) calc(var(--footer-pad-y) + env(safe-area-inset-bottom)) calc(5.1rem + clamp(1.4rem, 3.2vw, 3.4rem));
   /* Blend into the page instead of reading as a separate lighter band: the
      app-shell gradient bottoms out at #050710, so the footer continues that
      colour rather than introducing its own blue-tinted slab. */
@@ -1007,7 +1009,7 @@ main {
 .bottom-bar::before {
   content: "";
   position: absolute;
-  left: 5.9rem;
+  left: 5.1rem;
   right: 0;
   top: 0;
   height: 0.12rem;
@@ -5975,6 +5977,16 @@ body.player-cinema-open .close-button {
   background: linear-gradient(135deg, #22d7ff, #f2bb46);
 }
 
+/* The episode panel now shows the app's own loader mark instead of a spinning play
+   triangle, so the whole app has ONE loading visual. Smaller than the full-screen
+   one because it sits inside a panel, not a viewport. */
+.ztv-inline-loader.ztv-inline-loader {
+  width: 4.2rem;
+  height: 4.2rem;
+  border-radius: 1.2rem;
+  margin-bottom: 0.35rem;
+}
+
 .episode-video-empty.is-loading .play-symbol {
   animation: player-spin 900ms linear infinite;
 }
@@ -9604,7 +9616,7 @@ body.adult-mode .bottom-bar {
   background:
     radial-gradient(circle at 42% 0%, rgba(225, 29, 72, 0.2), transparent 24rem),
     radial-gradient(circle at 62% 110%, rgba(122, 43, 214, 0.16), transparent 23rem),
-    linear-gradient(90deg, rgba(20, 6, 12, 0.96) 0 5.9rem, rgba(20, 6, 12, 0.9) 5.9rem, rgba(20, 6, 12, 0.82) 100%),
+    linear-gradient(90deg, rgba(20, 6, 12, 0.96) 0 5.1rem, rgba(20, 6, 12, 0.9) 5.1rem, rgba(20, 6, 12, 0.82) 100%),
     linear-gradient(180deg, rgba(26, 10, 18, 0.94), #0a0306 92%, #0a0306);
 }
 body.adult-mode .bottom-bar::before {
