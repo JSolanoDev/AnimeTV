@@ -370,6 +370,13 @@
   let castInitState = "idle";
   let castInitStarted = false;
   let castReceiverAppId = "";
+  // Media-load telemetry, surfaced through snapshot() so a failure can be read
+  // out of DevTools instead of being reconstructed from console scrollback.
+  let castLoadCalled = false;
+  let castLoadResult = "not-called";
+  let castLoadError = null;
+  let castLastUrlType = "";
+  let castLastContentType = "";
 
   function castLog(...parts) {
     if (CAST_DEV) console.log("[Cast]", ...parts);
@@ -528,39 +535,136 @@
   }
 
   // Stage 3. A failure here is about the MEDIA, never about discovery.
+  // What the receiver is being asked to fetch. Extension alone is unreliable here
+  // (our proxy path has none), so the declared stream type wins when we have it.
+  function classifyCastUrl(url) {
+    if (!url) return "NONE";
+    if (/^blob:/i.test(url)) return "BLOB";
+    if (/^data:/i.test(url)) return "DATA";
+    if (/^file:/i.test(url)) return "FILE";
+    try {
+      const parsed = new URL(url);
+      // A Chromecast is a SEPARATE DEVICE. It resolves these against itself, not
+      // against this machine, so they can never work no matter how correct the
+      // rest of the request is.
+      if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[?::1\]?)$/i.test(parsed.hostname)) return "LOCAL";
+    } catch (error) { return "OTHER"; }
+    if (streamType(sourceUrl, params.get("type")) === "m3u8") return "HLS";
+    const probe = castUpstreamUrl() || url;
+    const clean = probe.split("?")[0].split("#")[0].toLowerCase();
+    if (clean.endsWith(".m3u8")) return "HLS";
+    if (clean.endsWith(".mpd")) return "DASH";
+    if (clean.endsWith(".mp4") || clean.endsWith(".m4v")) return "MP4";
+    return "OTHER";
+  }
+
+  // The upstream the proxy is fronting, when there is one.
+  function castUpstreamUrl() {
+    try { return new URL(sourceUrl, window.location.origin).searchParams.get("url") || ""; }
+    catch (error) { return ""; }
+  }
+
+  // Host only - never the full URL, which can carry signed parameters.
+  function castSourceLabel() {
+    try {
+      const upstream = castUpstreamUrl();
+      if (upstream) return new URL(upstream).host + " (via /api/source)";
+      return new URL(castMediaUrl()).host;
+    } catch (error) { return "unknown"; }
+  }
+
   function loadCastMedia() {
     const session = castSession();
-    if (!session) { console.error("[Cast] no session after connect"); return; }
-    const url = castMediaUrl();
-    if (!url || /^blob:/i.test(url)) {
-      console.error("[Cast] refusing to cast a non-fetchable url", { url: url ? url.slice(0, 24) + "..." : "(empty)" });
-      if (art) art.notice.show = "This source can't be cast";
+    castLoadCalled = false;
+    castLoadResult = "not-called";
+    castLoadError = null;
+    if (!session) {
+      castLoadResult = "no-session";
+      console.error("[Cast] loadMedia skipped - no current session after connect");
       return;
     }
+    const url = castMediaUrl();
+    const kind = classifyCastUrl(url);
+    const contentType = castContentType();
+    castLastUrlType = kind;
+    castLastContentType = contentType;
+
+    // Refuse anything the receiver cannot fetch on its own, and say WHY - these
+    // used to be indistinguishable from a discovery failure.
+    if (kind === "NONE" || kind === "BLOB" || kind === "DATA" || kind === "FILE" || kind === "LOCAL") {
+      castLoadResult = "refused";
+      castLoadError = `url is ${kind}`;
+      console.error("[Cast] refusing to load - the receiver cannot fetch this", {
+        classification: kind,
+        host: castSourceLabel(),
+        why: kind === "LOCAL"
+          ? "a Chromecast resolves localhost against ITSELF; serve the stream from an address on your LAN, or test on the deployed site"
+          : "browser-only URL, generated in this page and meaningless to another device"
+      });
+      if (art) {
+        art.notice.show = kind === "LOCAL"
+          ? "Can't cast from localhost - the TV can't reach this computer"
+          : "This source can't be cast";
+      }
+      return;
+    }
+
+    let request;
     try {
-      const media = new window.chrome.cast.media.MediaInfo(url, castContentType());
-      const meta = new window.chrome.cast.media.GenericMediaMetadata();
-      meta.title = title || "ZenkaiTV";
-      if (episode) meta.subtitle = String(episode);
-      if (poster) meta.images = [new window.chrome.cast.Image(poster)];
-      media.metadata = meta;
-      const request = new window.chrome.cast.media.LoadRequest(media);
+      const media = new window.chrome.cast.media.MediaInfo(url, contentType);
+      // Metadata is best-effort: it must never be the reason playback fails.
+      try {
+        const meta = new window.chrome.cast.media.GenericMediaMetadata();
+        meta.title = title || "ZenkaiTV";
+        if (episode) meta.subtitle = String(episode);
+        if (poster) meta.images = [new window.chrome.cast.Image(poster)];
+        media.metadata = meta;
+      } catch (error) {
+        console.warn("[Cast] metadata skipped", error);
+      }
+      request = new window.chrome.cast.media.LoadRequest(media);
       const at = Number(art?.video?.currentTime || 0);
       request.currentTime = Number.isFinite(at) && at > 1 ? at : 0;
       request.autoplay = true;
-      castLog("loading media", { contentType: castContentType(), currentTime: request.currentTime });
-      session.loadMedia(request).then(() => {
-        castLog("media loaded");
-        if (art) art.notice.show = "Casting";
-        try { art?.video?.pause?.(); } catch (error) { /* already stopped */ }
-      }).catch((error) => {
-        console.error("[Cast] loadMedia failed", { error, code: String(error?.code ?? error), contentType: castContentType() });
-        if (art) art.notice.show = "Connected, but this source couldn't be loaded";
-      });
     } catch (error) {
+      castLoadResult = "build-threw";
+      castLoadError = String(error?.message ?? error);
       console.error("[Cast] building the load request threw", error);
       if (art) art.notice.show = "Connected, but this source couldn't be loaded";
+      return;
     }
+
+    castLoadCalled = true;
+    castLoadResult = "pending";
+    console.log("[Cast] loadMedia starting", {
+      episode: episode || "(none)",
+      sourceHost: castSourceLabel(),
+      mediaUrlType: kind,
+      contentType,
+      startTime: request.currentTime
+    });
+
+    session.loadMedia(request).then((result) => {
+      castLoadResult = "resolved";
+      console.log("[Cast] loadMedia resolved", {
+        result: result ?? null,
+        hasMediaSession: Boolean(session.getMediaSession?.())
+      });
+      if (art) art.notice.show = "Casting";
+      try { art?.video?.pause?.(); } catch (error) { /* already stopped */ }
+    }).catch((error) => {
+      castLoadResult = "rejected";
+      castLoadError = String(error?.message ?? error?.code ?? error);
+      console.error("[Cast] loadMedia rejected", {
+        raw: error,
+        code: error?.code ?? null,
+        message: error?.message ?? String(error),
+        mediaUrlType: kind,
+        contentType,
+        sourceHost: castSourceLabel()
+      });
+      if (art) art.notice.show = "Connected, but this source couldn't be loaded";
+    });
   }
 
   // Inspectable from DevTools. Deliberately carries no URLs, tokens or headers.
@@ -588,6 +692,13 @@
         sessionState: sessionStateNow(),
         hasCurrentSession: Boolean(castSession()),
         hasMediaSession: Boolean(castMedia()),
+        loadMediaCalled: castLoadCalled,
+        lastMediaLoadResult: castLoadResult,
+        lastMediaLoadError: castLoadError,
+        activeEpisode: episode || "(none)",
+        activeSourceName: castSourceLabel(),
+        mediaUrlType: castLastUrlType || classifyCastUrl(castMediaUrl()),
+        contentType: castLastContentType || castContentType(),
         secureContext: window.isSecureContext,
         host: window.location.hostname
       };
