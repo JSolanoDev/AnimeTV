@@ -545,7 +545,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=662`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=664`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3378,7 +3378,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=662";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=664";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -3547,13 +3547,21 @@ function renderCarousel() {
   _carouselPaintedShow = show;
 }
 
+let _carouselDotsHtml = null;
+
 function renderCarouselIndicators(items) {
   if (!carouselIndicators) return;
-  carouselIndicators.innerHTML = items.slice(0, 8).map((show, index) => `
+  const dotsHtml = items.slice(0, 8).map((show, index) => `
     <button class="carousel-dot focusable ${index === state.carouselIndex ? "is-selected" : ""}" data-carousel-index="${index}" aria-label="Show ${escapeHtml(getShowTitle(show))}">
       ${_carouselIndicatorImagesReady && carouselArtworkOrPoster(show) ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(carouselArtworkOrPoster(show), 180, 72))}" alt="" width="180" height="101" loading="lazy" decoding="async" fetchpriority="low">` : "<span></span>"}
     </button>
   `).join("");
+
+  // Selection state lives in the markup, so a real selection change still busts
+  // this. Identical markup means the same 8 <img> nodes survive untouched.
+  if (_carouselDotsHtml === dotsHtml) return;
+  _carouselDotsHtml = dotsHtml;
+  carouselIndicators.innerHTML = dotsHtml;
 
   carouselIndicators.querySelectorAll("[data-carousel-index]").forEach((button) => {
     button.addEventListener("click", (event) => {
@@ -6146,6 +6154,15 @@ function isAniPubShow(show) {
   return String(show?.source || "").toLowerCase().includes("anipub") || String(show?.id || "").includes("anipub");
 }
 
+// render() is debounced to 80ms but still fires ~12x/sec while the catalog
+// enriches, and this used to rewrite every add-on rail on every one of those
+// passes - even when the produced HTML was byte-identical. Each rewrite threw
+// away every <img> and built a new one, so the poster repainted the dark "Z"
+// placeholder and restarted the loading sheen before its (already cached)
+// bitmap decoded. Many times a second, across whole rails, that is the
+// flashing on the home page. Every sibling renderer already memoizes this way.
+let _addonSectionsHtml = null;
+
 function renderAddonSections() {
   if (!addonSections) return;
 
@@ -6159,6 +6176,7 @@ function renderAddonSections() {
 
   // Show loading skeleton while sources are still being fetched
   if (state.externalSourcesRequested && !state.externalSourcesLoaded && !loadedSections.length && state.route === "home") {
+    _addonSectionsHtml = null;
     addonSections.innerHTML = `<div class="addon-loading-hint">Loading sources…</div>`;
     addonSections.hidden = false;
     return;
@@ -6203,9 +6221,12 @@ function renderAddonSections() {
       `;
     })
     .join("");
-  addonSections.innerHTML = sections;
+  if (_addonSectionsHtml !== sections) {
+    _addonSectionsHtml = sections;
+    addonSections.innerHTML = sections;
+    wireAddonMoreButtons();
+  }
   addonSections.hidden = state.route !== "home" || !sections;
-  wireAddonMoreButtons();
 }
 
 function wireAddonMoreButtons() {
@@ -16396,7 +16417,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=662");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=664");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

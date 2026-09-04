@@ -1059,13 +1059,64 @@
       send("error", "playback-error");
     });
 
-    const playAttempt = video?.play?.();
-    if (playAttempt && typeof playAttempt.catch === "function") {
-      playAttempt.catch(() => {
+    startPlayback(video);
+  }
+
+  // Autoplay policy is why playback used to sit there until you clicked it.
+  // Chrome gates AUDIBLE autoplay behind its Media Engagement Index, Firefox
+  // blocks it outright by default, and Safari wants prior engagement - so
+  // play() rejects with NotAllowedError on a first visit. The old handlers just
+  // called hideLoading(), which removed the spinner and left a decoded, silent
+  // first frame on screen with nothing to say it was stuck. Muted playback is
+  // permitted everywhere, so retry muted and hand the sound back on the first
+  // real interaction. The native-video path in client.js already does this.
+  let unmuteArmed = false;
+
+  function armUnmuteOnGesture(video) {
+    if (unmuteArmed) return;
+    unmuteArmed = true;
+    const unmute = () => {
+      document.removeEventListener("pointerdown", unmute);
+      document.removeEventListener("keydown", unmute);
+      unmuteArmed = false;
+      if (!video.muted) return;
+      video.muted = false;
+      if (art?.notice) art.notice.show = "";
+      // A pointerdown on the video is also the ArtPlayer play/pause toggle, so it
+      // would pause the very video the viewer just asked to hear. We have a user
+      // gesture now, so resume on the next tick and let the click mean what it
+      // plainly meant: start this properly, with sound.
+      setTimeout(() => { if (video.paused) video.play?.().catch(() => {}); }, 0);
+      send("volume", getStatus());
+    };
+    document.addEventListener("pointerdown", unmute, { once: true });
+    document.addEventListener("keydown", unmute, { once: true });
+  }
+
+  function startPlayback(video) {
+    const attempt = video?.play?.();
+    if (!attempt || typeof attempt.catch !== "function") return;
+    attempt.catch((error) => {
+      // Only autoplay blocking is worth retrying. An AbortError means a seek or a
+      // source swap interrupted us and something else has already taken over.
+      if (error?.name !== "NotAllowedError" || video.muted) {
+        hideLoading();
+        send("pause", getStatus());
+        return;
+      }
+      video.muted = true;
+      const retry = video.play?.();
+      if (!retry || typeof retry.then !== "function") return;
+      retry.then(() => {
+        if (art?.notice) art.notice.show = "Muted to start - tap or press a key for sound";
+        armUnmuteOnGesture(video);
+        send("volume", getStatus());
+      }).catch(() => {
+        video.muted = false;
         hideLoading();
         send("pause", getStatus());
       });
-    }
+    });
   }
 
   function loadHls(video, url) {
@@ -1119,8 +1170,7 @@
       // Only re-renders when the sheet is actually open.
       hls.on(window.Hls.Events.LEVEL_SWITCHED, refreshOptionsSheet);
       armStartupWatchdog();
-      const playAttempt = video.play();
-      if (playAttempt && typeof playAttempt.catch === "function") playAttempt.catch(() => hideLoading());
+      startPlayback(video);
     });
     hls.on(window.Hls.Events.ERROR, (_, data) => {
       if (!data?.fatal) return;
@@ -1317,7 +1367,7 @@
     }
     if (!art?.video) return;
     const video = art.video;
-    if (command === "play") video.play?.();
+    if (command === "play") startPlayback(video);
     if (command === "pause") video.pause?.();
     if (command === "seek") {
       armSeekRecoveryGrace();
@@ -1490,8 +1540,15 @@
   }
 
   function send(command, value) {
+    // Outbound status and inbound commands share one { vcmd } envelope, and
+    // onParentCommand listens on this window. When the player is opened as a
+    // TOP-LEVEL page rather than in an iframe (openPlayer uses location.assign),
+    // window.parent IS window - so every status message we sent came straight
+    // back to us as a command. "play" echoed into a play/pause feedback loop
+    // that ran thousands of times a second. Only ever talk to a real parent.
+    if (!window.parent || window.parent === window) return;
     try {
-      window.parent?.postMessage(JSON.stringify({ vcmd: command, val: value }), "*");
+      window.parent.postMessage(JSON.stringify({ vcmd: command, val: value }), "*");
     } catch (error) {}
   }
 
