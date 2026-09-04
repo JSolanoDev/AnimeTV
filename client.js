@@ -545,7 +545,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=670`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=671`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3400,7 +3400,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=670";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=671";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -7255,6 +7255,9 @@ async function openShow(id, target = {}) {
     state.currentRouteInfo = appRouter()?.parsePath?.(location.pathname) || state.currentRouteInfo;
   }
   state.activeShow = show;
+  // Fire-and-forget: the skip-time map for this anime is fetched while the viewer
+  // is still choosing an episode, so opening one never waits on it.
+  warmSkipTimes(show);
   state.activeEpisodeUrl = "";
   state.activeEpisode = null;
   // Opening a show from a card/poster must land on the detail view, not start
@@ -11200,6 +11203,43 @@ window.openPlayer = openPlayer;
 // here and one in the player's SEGMENT_DEFS, and nothing else.
 const PLAYER_SKIP_SEGMENTS = ["intro", "outro"];
 
+// One tiny fetch per anime, cached for the session, rather than an AniSkip call
+// per playback. Keyed by MAL id, so it is independent of which streaming source
+// is selected - switching source keeps the same timestamps.
+const _skipTimesByMal = new Map();
+
+function skipTimesCacheKey(show) {
+  const mal = Number(show?.malId || 0);
+  return Number.isFinite(mal) && mal > 0 ? mal : 0;
+}
+
+async function warmSkipTimes(show) {
+  const mal = skipTimesCacheKey(show);
+  // No MAL id means no lookup at all - we never guess one from the title.
+  if (!mal || _skipTimesByMal.has(mal)) return;
+  _skipTimesByMal.set(mal, {});   // claim it so parallel opens do not double-fetch
+  try {
+    const response = await fetchWithTimeout(`/api/skip-times?malId=${mal}`, {}, 4000);
+    const payload = await response.json();
+    _skipTimesByMal.set(mal, payload && typeof payload.episodes === "object" ? payload.episodes : {});
+  } catch (error) {
+    // Absent timestamps are a normal outcome; the buttons just stay hidden.
+    _skipTimesByMal.set(mal, {});
+  }
+}
+
+// episode.intro / episode.outro win when a provider ever supplies them; the
+// AniSkip map is the fallback. Either way the player receives generic metadata.
+function resolveEpisodeSkipSegment(show, episode, name) {
+  const direct = episode?.[name];
+  if (direct) return direct;
+  const mal = skipTimesCacheKey(show);
+  if (!mal) return null;
+  const number = Number(episode?.episode ?? episode?.number);
+  if (!Number.isFinite(number)) return null;
+  return _skipTimesByMal.get(mal)?.[String(number)]?.[name] || null;
+}
+
 // { start, end } in seconds, decimals allowed -> "start,end". Returns "" for
 // anything that is not a usable pair; the same rules are re-checked in the
 // player, because metadata can also arrive by postMessage.
@@ -11251,7 +11291,7 @@ function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null) 
   options.episode = currentEpisodeKicker();
   options.hasNext = Boolean(getEpisodeNavigationTargets().next);
   for (const segmentName of PLAYER_SKIP_SEGMENTS) {
-    const value = skipSegmentParam(episode?.[segmentName]);
+    const value = skipSegmentParam(resolveEpisodeSkipSegment(state.activeShow, episode, segmentName));
     if (value) options[segmentName] = value;
   }
   options.episodeKey = episodeSkipKey(episode);
@@ -16514,7 +16554,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=670");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=671");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

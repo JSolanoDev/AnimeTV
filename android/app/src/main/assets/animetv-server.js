@@ -693,6 +693,19 @@ function handleRequest(request, response) {
     return;
   }
 
+  if (url.pathname === "/api/skip-times") {
+    const payload = skipTimesForMalId(url.searchParams.get("malId"));
+    const body = JSON.stringify({ ok: true, episodes: payload });
+    response.writeHead(200, {
+      ...SECURITY_HEADERS,
+      ...corsHeaders(),
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "public, max-age=3600"
+    });
+    response.end(body);
+    return;
+  }
+
   if (url.pathname === "/api/source") {
     handleSourceProxy(request, url, response);
     return;
@@ -2140,6 +2153,42 @@ function readTioAnimeSlugsFromScrapedMetadata() {
 // Pre-resolved AniList ids + TMDB backdrops, built offline by
 // scripts/build-artwork-map.mjs. Read once per process (the file is static and
 // the catalogue payload is itself cached behind CATALOG_RESPONSE_TTL_MS).
+// Opening/ending timestamps resolved from AniSkip by scripts/build-aniskip-map.mjs.
+// Keyed "<malId>:<episode>" because skip times belong to an anime + MAL entry +
+// episode, NOT to a streaming provider - switching source keeps the same values.
+// Read once per process, same as the artwork map.
+let _skipTimesCache;
+function readSkipTimesMap() {
+  if (_skipTimesCache !== undefined) return _skipTimesCache;
+  try {
+    const raw = JSON.parse(fs.readFileSync(path.join(root, "scraper", "aniskip-map.json"), "utf8"));
+    _skipTimesCache = raw && typeof raw.entries === "object" ? raw.entries : {};
+  } catch (error) {
+    _skipTimesCache = {}; // optional file - absent just means no timestamps yet
+  }
+  return _skipTimesCache;
+}
+
+// Only the episodes of one anime, so the client fetches a few hundred bytes per
+// show instead of the whole map. Missing entries are simply absent.
+function skipTimesForMalId(malId) {
+  const id = Number(malId);
+  if (!Number.isFinite(id) || id <= 0) return {};
+  const entries = readSkipTimesMap();
+  const prefix = `${id}:`;
+  const out = {};
+  for (const [key, value] of Object.entries(entries)) {
+    if (!key.startsWith(prefix)) continue;
+    if (!value || (!value.intro && !value.outro)) continue;   // a miss is not shipped
+    const episode = key.slice(prefix.length);
+    const record = {};
+    if (value.intro) record.intro = value.intro;
+    if (value.outro) record.outro = value.outro;
+    out[episode] = record;
+  }
+  return out;
+}
+
 let _artworkMapCache;
 function readArtworkMap() {
   if (_artworkMapCache !== undefined) return _artworkMapCache;
