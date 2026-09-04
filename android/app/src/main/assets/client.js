@@ -545,7 +545,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=667`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=669`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3400,7 +3400,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=667";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=669";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -11169,6 +11169,13 @@ function buildPlayerUrl(videoUrl = "", title = "", options = {}) {
   if (options.subtitles) playerUrl.searchParams.set("subtitles", options.subtitles);
   if (options.forceSubtitles) playerUrl.searchParams.set("forceSubtitles", "1");
   if (options.hasNext) playerUrl.searchParams.set("hasNext", "1");
+  // Skip segments travel as "start,end" seconds (decimals kept). The player
+  // validates and ignores anything malformed, so a bad scrape can never stop an
+  // episode from opening. episodeKey stamps who they belong to, so a segment
+  // update that arrives after the viewer has moved on is discarded there.
+  if (options.intro) playerUrl.searchParams.set("intro", options.intro);
+  if (options.outro) playerUrl.searchParams.set("outro", options.outro);
+  if (options.episodeKey) playerUrl.searchParams.set("episodeKey", options.episodeKey);
   if (Array.isArray(options.tracks) && options.tracks.length) {
     playerUrl.searchParams.set("tracks", encodeURIComponent(JSON.stringify(options.tracks.slice(0, 8))));
   }
@@ -11187,6 +11194,30 @@ function openPlayer(videoUrl, title = "", options = {}) {
 }
 
 window.openPlayer = openPlayer;
+
+// Skip-segment plumbing. The player owns the behaviour; this side only decides
+// what to hand it. Kept as a list so a third segment ("recap") needs one entry
+// here and one in the player's SEGMENT_DEFS, and nothing else.
+const PLAYER_SKIP_SEGMENTS = ["intro", "outro"];
+
+// { start, end } in seconds, decimals allowed -> "start,end". Returns "" for
+// anything that is not a usable pair; the same rules are re-checked in the
+// player, because metadata can also arrive by postMessage.
+function skipSegmentParam(segment) {
+  if (!segment || typeof segment !== "object") return "";
+  const start = Number(segment.start);
+  const end = Number(segment.end);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return "";
+  if (start < 0 || end <= start) return "";
+  return `${start},${end}`;
+}
+
+// Identifies the episode the segments were read from, so the player can drop a
+// late update meant for an episode the viewer has already left.
+function episodeSkipKey(episode) {
+  if (!episode) return "";
+  return String(episode.episodeKey || episode.id || episode.url || episode.episode || episode.number || "");
+}
 
 function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null) {
   const options = {};
@@ -11219,6 +11250,11 @@ function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null) 
   options.fit = state.uiPreferences.playerFit || "contain";
   options.episode = currentEpisodeKicker();
   options.hasNext = Boolean(getEpisodeNavigationTargets().next);
+  for (const segmentName of PLAYER_SKIP_SEGMENTS) {
+    const value = skipSegmentParam(episode?.[segmentName]);
+    if (value) options[segmentName] = value;
+  }
+  options.episodeKey = episodeSkipKey(episode);
   options.poster = episodeThumb(
     episode || state.activeEpisode?.episode || {},
     state.activeEpisode?.season || {},
@@ -16478,7 +16514,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=667");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=669");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

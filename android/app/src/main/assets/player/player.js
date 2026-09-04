@@ -12,6 +12,19 @@
   const fit = String(params.get("fit") || params.get("scale") || "contain").toLowerCase();
   const forceSubtitles = params.get("forceSubtitles") === "1";
   let hasNextEpisode = params.get("hasNext") === "1";
+  // Skip segments arrive per episode as "start,end" in seconds, decimals allowed.
+  // Generic on purpose: adding "recap" later means adding one entry to SEGMENT_DEFS
+  // and one param, nothing else. episodeKey stamps which episode they belong to so a
+  // late postMessage for the PREVIOUS episode cannot apply to this one.
+  const SEGMENT_DEFS = [
+    { key: "intro", label: "Skip Opening" },
+    { key: "outro", label: "Skip Ending" }
+  ];
+  let segments = parseSegmentsFromParams(params);
+  let segmentsEpisodeKey = String(params.get("episodeKey") || params.get("episode") || "");
+  let activeSegmentKey = null;
+  let skipLayer = null;
+  let skipButton = null;
   const isEmbeddedPlayer = window.parent && window.parent !== window;
   let art = null;
   let hls = null;
@@ -413,6 +426,7 @@
     wireTapToHideControls();
     watchPictureInsets();
     syncNextEpisodeControl();
+    mountSkipLayer();
     startMascot();
   }
 
@@ -1031,6 +1045,14 @@
       send("stalled", getStatus());
       scheduleRecovery("stalled");
     });
+    art.on("video:seeked", () => {
+      syncSkipSegments(video.currentTime || 0);
+    });
+    art.on("video:loadedmetadata", () => {
+      // duration is known now, so segments past the end can be dropped.
+      validateSegmentsAgainstDuration(video.duration);
+      syncSkipSegments(video.currentTime || 0);
+    });
     art.on("video:seeking", () => {
       armSeekRecoveryGrace();
     });
@@ -1047,6 +1069,7 @@
         lastProgressPosition = position;
       }
       captureArtworkFrame(video);
+      syncSkipSegments(position);
       send("time", getStatus());
     });
     art.on("video:volumechange", () => {
@@ -1365,6 +1388,10 @@
       syncNextEpisodeControl();
       return;
     }
+    if (command === "segments") {
+      applySegments(value);
+      return;
+    }
     if (!art?.video) return;
     const video = art.video;
     if (command === "play") startPlayback(video);
@@ -1537,6 +1564,135 @@
     } catch {
       // A cross-origin stream may play normally while intentionally blocking canvas reads.
     }
+  }
+
+  // ── Skip segments ───────────────────────────────────────────────────────
+  // One generic mechanism, not two parallel ones: every entry in SEGMENT_DEFS
+  // gets the same validation, the same visibility rule and the same button.
+
+  function parseSegmentPair(raw) {
+    if (raw == null) return null;
+    let start;
+    let end;
+    if (typeof raw === "object") {
+      start = Number(raw.start);
+      end = Number(raw.end);
+    } else {
+      const parts = String(raw).split(",");
+      if (parts.length !== 2) return null;
+      start = Number(parts[0]);
+      end = Number(parts[1]);
+    }
+    // Bad metadata is ignored, never thrown - a broken timestamp must not cost
+    // the viewer the episode.
+    if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+    if (start < 0 || end <= start) return null;
+    return { start, end };
+  }
+
+  function parseSegmentsFromParams(search) {
+    const out = {};
+    for (const def of SEGMENT_DEFS) {
+      const seg = parseSegmentPair(search.get(def.key));
+      if (seg) out[def.key] = seg;
+    }
+    return out;
+  }
+
+  function validateSegmentsAgainstDuration(duration) {
+    const dur = Number(duration);
+    if (!Number.isFinite(dur) || dur <= 0) return;
+    for (const def of SEGMENT_DEFS) {
+      const seg = segments[def.key];
+      if (!seg) continue;
+      // A segment that starts past the end of the video is meaningless. One that
+      // merely runs long is clamped, so a slightly generous outro still works.
+      if (seg.start >= dur) { delete segments[def.key]; continue; }
+      if (seg.end > dur) seg.end = dur;
+      if (seg.end <= seg.start) delete segments[def.key];
+    }
+  }
+
+  // Replaces every segment at once. Called on a source switch or an episode
+  // change, so anything left over from the previous episode is cleared even when
+  // the new payload is empty or malformed.
+  function applySegments(payload) {
+    const next = payload && typeof payload === "object" ? payload : {};
+    const key = String(next.episodeKey ?? segmentsEpisodeKey);
+    // A response for an episode the viewer has already left must not apply. The
+    // parent stamps the key it asked for; if it disagrees with ours, drop it.
+    if (next.episodeKey != null && key !== segmentsEpisodeKey) return;
+    segments = {};
+    for (const def of SEGMENT_DEFS) {
+      const seg = parseSegmentPair(next[def.key]);
+      if (seg) segments[def.key] = seg;
+    }
+    validateSegmentsAgainstDuration(art?.video?.duration);
+    // undefined, not null: null is a REAL state (no active segment), so resetting
+    // to it makes the next sync compare null === null and early-return, leaving a
+    // button on screen that belongs to segments we just threw away. undefined can
+    // never equal a computed key, so the next sync always repaints.
+    activeSegmentKey = undefined;
+    syncSkipSegments(art?.video?.currentTime || 0);
+  }
+
+  function mountSkipLayer() {
+    const root = art?.template?.$player;
+    if (!root || skipLayer) return;
+    skipLayer = document.createElement("div");
+    skipLayer.className = "ztv-skip-layer";
+    skipButton = document.createElement("button");
+    skipButton.type = "button";
+    skipButton.className = "ztv-skip-btn focusable";
+    skipButton.addEventListener("click", onSkipClick);
+    skipLayer.appendChild(skipButton);
+    // Inside the player element, so it comes along into fullscreen for free.
+    root.appendChild(skipLayer);
+    syncSkipSegments(art?.video?.currentTime || 0);
+  }
+
+  function segmentAt(position) {
+    for (const def of SEGMENT_DEFS) {
+      const seg = segments[def.key];
+      if (!seg) continue;
+      // Half-open on purpose: at exactly seg.end the segment is over, which is
+      // also what makes the button disappear the moment we seek there.
+      if (position >= seg.start && position < seg.end) return { key: def.key, label: def.label, seg };
+    }
+    return null;
+  }
+
+  // Cheap enough to run on every timeupdate: a couple of numeric comparisons, and
+  // it only touches the DOM when the active segment actually changes.
+  function syncSkipSegments(position) {
+    if (!skipLayer) return;
+    const hit = segmentAt(Number(position) || 0);
+    const key = hit ? hit.key : null;
+    if (key === activeSegmentKey) return;
+    activeSegmentKey = key;
+    if (!hit) {
+      skipLayer.classList.remove("is-visible");
+      skipButton.removeAttribute("data-segment");
+      return;
+    }
+    skipButton.textContent = hit.label;
+    skipButton.setAttribute("aria-label", hit.label);
+    skipButton.dataset.segment = hit.key;
+    skipLayer.classList.add("is-visible");
+  }
+
+  function onSkipClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const hit = segmentAt(art?.video?.currentTime || 0);
+    if (!hit || !art?.video) return;
+    // Seek through the video element rather than art.seek so this behaves the
+    // same as the existing rewind/forward controls.
+    art.video.currentTime = hit.seg.end;
+    // Hide immediately rather than waiting for the next timeupdate.
+    activeSegmentKey = null;
+    skipLayer.classList.remove("is-visible");
+    if (art.video.paused) art.video.play?.().catch(() => {});
   }
 
   function send(command, value) {

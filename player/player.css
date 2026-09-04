@@ -1101,3 +1101,91 @@ body.ztv-chrome-hidden .ztv-corner-toggle svg {
 .art-settings {
   bottom: calc(4.4rem + env(safe-area-inset-bottom)) !important;
 }
+
+/* ── Skip Opening / Skip Ending ─────────────────────────────────────────────
+   Lives inside .art-video-player, so it follows the picture into fullscreen and
+   into mobile landscape with no extra handling. Sits ABOVE the subtitle line
+   (.art-subtitle is at 4.75rem, 4.25rem on phones) rather than beside it, so a
+   long centred subtitle can never end up underneath the button, and clear of
+   .art-bottom so it never covers a control. Only the button is interactive -
+   the layer itself is pointer-events:none so it cannot steal a click on the
+   picture, which is the play/pause toggle. */
+.ztv-skip-layer {
+  position: absolute;
+  right: clamp(0.75rem, 2.5vw, 1.75rem);
+  bottom: calc(6.5rem + env(safe-area-inset-bottom));
+  z-index: 60;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(0.4rem);
+  visibility: hidden;
+  transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+}
+.ztv-skip-layer.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+}
+.ztv-skip-btn {
+  pointer-events: auto;
+  /* 44px min: a real touch target even where the label is short. */
+  min-height: 44px;
+  padding: 0 clamp(0.9rem, 2.6vw, 1.35rem);
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 12px;
+  /* Deliberately near-opaque rather than a light glass panel: this has to stay
+     legible over a bright sky or a white flash, which a translucent fill does not. */
+  background: rgba(6, 8, 18, 0.86);
+  backdrop-filter: blur(10px);
+  color: var(--ztv-text);
+  font: inherit;
+  font-size: clamp(0.9rem, 2.4vw, 1rem);
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, transform 120ms ease;
+}
+.ztv-skip-btn:hover,
+.ztv-skip-btn:focus-visible {
+  background: rgba(139, 92, 246, 0.9);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+.ztv-skip-btn:focus-visible {
+  outline: 2px solid var(--ztv-text);
+  outline-offset: 2px;
+}
+.ztv-skip-btn:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 700px) {
+  .ztv-skip-layer {
+    bottom: calc(5.75rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Phone landscape: the picture is short, so the whole lower band is tight. Pull
+   the button closer to the bar and shrink the label rather than let it collide
+   with the subtitle line. */
+@media (max-height: 460px) and (orientation: landscape) {
+  .ztv-skip-layer {
+    bottom: calc(4.25rem + env(safe-area-inset-bottom));
+  }
+  .ztv-skip-btn {
+    min-height: 38px;
+    font-size: 0.85rem;
+    padding: 0 0.85rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ztv-skip-layer {
+    transition: opacity 1ms linear, visibility 1ms linear;
+    transform: none;
+  }
+}
