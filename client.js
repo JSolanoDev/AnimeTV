@@ -537,7 +537,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=646`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=647`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3370,7 +3370,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=646";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=647";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -6407,12 +6407,15 @@ function renderSettings() {
   const language = state.appLanguage;
   const preferences = getLanguagePreferences();
   const ui = state.uiPreferences;
-  const tabs = ["general", "player", "sources", "shortcuts", "legal"];
+  // The Sources tab was removed: connectors are resolved automatically per episode
+    // and the panel only ever exposed read-only status, so it gave the viewer nothing
+    // to act on. The /sources route and its cards are untouched.
+    const tabs = ["general", "player", "shortcuts", "legal"];
   const activeTab = tabs.includes(state.activeSettingsTab) ? state.activeSettingsTab : "general";
   const activeLegalTab = state.activeLegalTab || "terms";
   const tc = (tab) => `settings-rail-item focusable ${activeTab === tab ? "is-selected" : ""}`;
   const pa = (tab) => `class="settings-panel ${activeTab === tab ? "is-active" : ""}" id="settings-${tab}" data-settings-panel="${tab}" ${activeTab === tab ? "" : "hidden"}`;
-  const enabled = state.localSources.filter((s) => s.enabled).length;
+  // (the enabled-source count lived only in the removed Sources panel)
 
   settingsGrid.innerHTML = `
     <aside class="settings-rail" aria-label="Settings categories">
@@ -6421,9 +6424,6 @@ function renderSettings() {
       </button>
       <button class="${tc("player")}" data-settings-nav="player" type="button">
         <span class="rail-icon" aria-hidden="true">▶</span> Player
-      </button>
-      <button class="${tc("sources")}" data-settings-nav="sources" type="button">
-        <span class="rail-icon" aria-hidden="true">◉</span> Sources
       </button>
       <button class="${tc("shortcuts")}" data-settings-nav="shortcuts" type="button">
         <span class="rail-icon" aria-hidden="true">⌨</span> Shortcuts
@@ -6541,25 +6541,6 @@ function renderSettings() {
         <div class="settings-line">
           <span>Rich metadata <small>Show AniList/MAL IDs, status, score, and source info in anime details</small></span>
           <button class="settings-switch focusable ${ui.metadataDetail ? "is-on" : ""}" data-toggle-pref="metadataDetail" type="button"><b></b></button>
-        </div>
-      </section>
-
-      <!-- ── Sources ── -->
-      <section ${pa("sources")}>
-        <div class="settings-panel-head">
-          <span class="settings-icon" aria-hidden="true">◉</span>
-          <div>
-            <h3>Sources &amp; Addons</h3>
-            <p>Manage catalog connectors, APIs, and streaming endpoints.</p>
-          </div>
-        </div>
-        <p class="settings-source-summary">${
-          state.localSources.length
-            ? `${enabled} enabled source${enabled === 1 ? "" : "s"} · Metadata: ${escapeHtml(state.apiStatus.metadata)} · Direct: ${escapeHtml(state.apiStatus.direct)}`
-            : t("sourceSummaryDefault")
-        }</p>
-        <div class="settings-sources-grid" id="settingsSourcesGrid">
-          ${buildSourceCardsHtml()}
         </div>
       </section>
 
@@ -16399,7 +16380,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=646");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=647");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
