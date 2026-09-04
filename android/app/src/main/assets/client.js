@@ -545,7 +545,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=666`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=667`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3400,7 +3400,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=666";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=667";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -12390,10 +12390,26 @@ function getSeasonStats(show, season, seasonNumber) {
 }
 
 // Most-recent in-progress episodes (progress 1–89%), newest first.
+// progress is a ROUNDED percentage (Math.round((pos / dur) * 100) above), so
+// anything under half a percent stores as 0 - that is the first ~7 seconds of a
+// 24-minute episode. Gating Continue Watching on progress > 0 therefore hid every
+// episode you had only just started, including the one auto-play had advanced you
+// into: finish E7, get moved to E8, watch a few seconds, and the whole show left
+// the rail, because E7 was watched and E8 still read as 0%. The identical test in
+// clearContinueWatching() also meant those rows could never be cleared. An entry
+// only exists because recordWatchProgress ran during playback, so any saved
+// position counts as started.
+function isResumableWatchEntry(entry) {
+  if (!entry || entry.watched) return false;
+  if (Number(entry.progress) >= 90) return false;
+  if (Number(entry.progress) > 0) return true;
+  return Number(entry.position || entry.lastPosition || 0) > 0;
+}
+
 function getContinueWatchingList(limit = 20) {
   const map = getWatchMap();
   return Object.values(map)
-    .filter((e) => e && e.progress > 0 && e.progress < 90 && !e.watched)
+    .filter(isResumableWatchEntry)
     .map((e) => {
       sanitizeWatchEntry(e);
       return e;
@@ -12516,7 +12532,7 @@ function clearContinueWatchingList(isAdult = false) {
   const keysToDelete = [];
   for (const key in map) {
     const entry = map[key];
-    if (entry && entry.progress > 0 && entry.progress < 90 && !entry.watched) {
+    if (isResumableWatchEntry(entry)) {
       const entryIsAdult = isEntryAdult(entry);
       if (isAdult === entryIsAdult) {
         keysToDelete.push(key);
@@ -16462,7 +16478,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=666");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=667");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
