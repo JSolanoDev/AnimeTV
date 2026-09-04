@@ -379,6 +379,25 @@
       playerOptions.plugins = [
         ...(playerOptions.plugins || []),
         window.artplayerPluginChromecast({
+          // Without these two the receiver got a relative path typed as
+          // application/octet-stream, which is why casting never played anything.
+          url: castMediaUrl(),
+          mimeType: castContentType(),
+          onCastStart: () => {
+            // The LoadRequest carries no start position, so casting always began at
+            // 00:00. Seek the receiver to where the viewer actually is, then stop the
+            // local element so there is one authoritative playback state.
+            const at = Number(art?.video?.currentTime || 0);
+            if (Number.isFinite(at) && at > 1) {
+              // The media session only exists once the receiver has accepted the load.
+              const trySeek = (attempt) => {
+                if (castSeek(at) || attempt >= 10) return;
+                setTimeout(() => trySeek(attempt + 1), 400);
+              };
+              trySeek(0);
+            }
+            try { art?.video?.pause?.(); } catch (error) { /* already stopped */ }
+          },
           onError: (error) => {
             // The plugin funnels THREE different failures through one callback:
             // the device picker being dismissed, no receiver being found, and the
@@ -1441,7 +1460,13 @@
     const video = art?.video;
     if (!video) return;
     const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : Infinity;
-    const nextTime = Math.max(0, Math.min(duration, (video.currentTime || 0) + delta));
+    // Measured from whichever end is authoritative, so +/-10 stays +/-10 on the TV.
+    const nextTime = Math.max(0, Math.min(duration, currentPlaybackTime() + delta));
+    if (isCasting()) {
+      castSeek(nextTime);
+      showSeekToast(delta);
+      return;
+    }
     try {
       armSeekRecoveryGrace();
       art.seek = nextTime;
@@ -1686,13 +1711,101 @@
     event.stopPropagation();
     const hit = segmentAt(art?.video?.currentTime || 0);
     if (!hit || !art?.video) return;
-    // Seek through the video element rather than art.seek so this behaves the
-    // same as the existing rewind/forward controls.
-    art.video.currentTime = hit.seg.end;
+    // Routed, not direct: while casting this has to move the RECEIVER, otherwise
+    // the TV keeps playing the opening while the local element jumps ahead.
+    seekTo(hit.seg.end);
     // Hide immediately rather than waiting for the next timeupdate.
     activeSegmentKey = null;
     skipLayer.classList.remove("is-visible");
     if (art.video.paused) art.video.play?.().catch(() => {});
+  }
+
+  // ── Chromecast ──────────────────────────────────────────────────────────
+  // A receiver is a separate device on the network: it fetches the media itself,
+  // so it needs an absolute URL, an honest content type, and a start position.
+  // The plugin supplied none of the three.
+
+  // art.option.url is the RELATIVE proxy path ("/api/source?url=..."). A receiver
+  // has no base to resolve that against, so the load could never even be tried.
+  function castMediaUrl() {
+    try {
+      return new URL(sourceUrl, window.location.origin).href;
+    } catch (error) {
+      return "";
+    }
+  }
+
+  // The plugin guesses the type from the last dot-separated token of the URL. For
+  // "/api/source?url=...&refererHost=player.zilla-networks.com" that token is
+  // "com", so every stream was announced as application/octet-stream and the
+  // Default Media Receiver refused it. Resolve from the type hint first, then from
+  // the UPSTREAM url inside the proxy query - the proxy path has no extension.
+  function castContentType() {
+    if (streamType(sourceUrl, params.get("type")) === "m3u8") return "application/x-mpegURL";
+    let probe = String(sourceUrl || "");
+    try {
+      const inner = new URL(sourceUrl, window.location.origin).searchParams.get("url");
+      if (inner) probe = inner;
+    } catch (error) { /* not a parseable proxy url - fall through */ }
+    const clean = probe.split("?")[0].split("#")[0].toLowerCase();
+    if (clean.endsWith(".m3u8")) return "application/x-mpegURL";
+    if (clean.endsWith(".mpd")) return "application/dash+xml";
+    if (clean.endsWith(".webm")) return "video/webm";
+    if (clean.endsWith(".mkv")) return "video/x-matroska";
+    if (clean.endsWith(".mov")) return "video/quicktime";
+    return "video/mp4";
+  }
+
+  function castSession() {
+    try {
+      return window.cast?.framework?.CastContext?.getInstance?.()?.getCurrentSession?.() || null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function castMedia() {
+    try { return castSession()?.getMediaSession?.() || null; } catch (error) { return null; }
+  }
+
+  function isCasting() {
+    return Boolean(castMedia());
+  }
+
+  function castSeek(seconds) {
+    const media = castMedia();
+    if (!media || !window.chrome?.cast?.media?.SeekRequest) return false;
+    try {
+      const request = new window.chrome.cast.media.SeekRequest();
+      request.currentTime = Math.max(0, Number(seconds) || 0);
+      media.seek(request, () => {}, (error) => {
+        console.warn("[ZenkaiPlayer] Cast seek failed", error);
+      });
+      return true;
+    } catch (error) {
+      console.warn("[ZenkaiPlayer] Cast seek threw", error);
+      return false;
+    }
+  }
+
+  // Whichever end is actually playing is the one that knows the time.
+  function currentPlaybackTime() {
+    const media = castMedia();
+    if (media && typeof media.getEstimatedTime === "function") {
+      const remote = Number(media.getEstimatedTime());
+      if (Number.isFinite(remote)) return remote;
+    }
+    return Number(art?.video?.currentTime || 0);
+  }
+
+  // One seek for the whole player. Rewind/forward, Skip Opening and Skip Ending
+  // all go through here, so none of them can move the local video while the TV
+  // carries on at the old position.
+  function seekTo(seconds) {
+    const target = Math.max(0, Number(seconds) || 0);
+    if (castSeek(target)) return "remote";
+    if (art?.video) art.video.currentTime = target;
+    return "local";
   }
 
   function send(command, value) {

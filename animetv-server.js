@@ -441,6 +441,21 @@ const configuredCorsOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIG
   .filter(Boolean);
 if (process.env.VERCEL_URL) configuredCorsOrigins.push(`https://${process.env.VERCEL_URL}`.replace(/\/+$/, ""));
 
+// The source proxy serves public media and takes no credentials, so it can be
+// world-readable - and it has to be. A Chromecast receiver fetches the manifest
+// and every segment ITSELF, from its own origin, so the origin-pinned header
+// corsHeaders() emits (in production that is process.env.VERCEL_URL, i.e. a
+// stale preview deployment) blocks the receiver outright. Nothing here is
+// user-specific, so * is both correct and safe.
+function mediaCorsHeaders() {
+  return {
+    "Access-Control-Allow-Methods": "GET,HEAD,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Range",
+    "Access-Control-Expose-Headers": "Content-Length, Content-Range, Accept-Ranges",
+    "Access-Control-Allow-Origin": "*"
+  };
+}
+
 function corsHeaders() {
   const base = {
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
@@ -1674,7 +1689,7 @@ async function handleSourceProxy(request, url, response) {
     const isPlaylist = /mpegurl|m3u8/i.test(contentType) || /\.m3u8(\?|#|$)/i.test(target);
     const responseHeaders = {
       ...SECURITY_HEADERS,
-      ...corsHeaders(),
+      ...mediaCorsHeaders(),
       "Content-Type": contentType,
       "Cache-Control": "no-store, max-age=0"
     };

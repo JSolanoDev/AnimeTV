@@ -22,9 +22,12 @@ const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || "0.0.0.0";
 const HOSTED_RUNTIME = Boolean(process.env.VERCEL || process.env.RENDER || process.env.FLY_APP_NAME || process.env.RAILWAY_ENVIRONMENT);
 const ANILIST_ENDPOINT = "https://graphql.anilist.co";
-const JIKAN_TOP_ENDPOINT = "https://api.jikan.moe/v4/top/anime?filter=airing&limit=25";
-const JIKAN_SEASON_ENDPOINT = "https://api.jikan.moe/v4/seasons/now?limit=25";
-const JIKAN_POPULAR_ENDPOINT = "https://api.jikan.moe/v4/top/anime?filter=bypopularity&limit=25";
+// Overridable so the outage/recovery path can be exercised against a stub. Same
+// pattern as TIOANIME_API; defaults to the real service.
+const JIKAN_API = (process.env.JIKAN_API || "https://api.jikan.moe/v4").replace(/\/+$/, "");
+const JIKAN_TOP_ENDPOINT = `${JIKAN_API}/top/anime?filter=airing&limit=25`;
+const JIKAN_SEASON_ENDPOINT = `${JIKAN_API}/seasons/now?limit=25`;
+const JIKAN_POPULAR_ENDPOINT = `${JIKAN_API}/top/anime?filter=bypopularity&limit=25`;
 const ANIPUB_ENDPOINT = "https://www.anipub.xyz";
 const ANIPUB_DETAILS_ENDPOINT = "https://anipub.xyz";
 const ANIPUB_API_ENDPOINT = "https://api.anipub.xyz";
@@ -88,13 +91,29 @@ const TIOANIME_HEADERS = {
   Referer: TIOANIME_BASE
 };
 const UNDERHENTAI_BASE = "https://www.underhentai.net";
-const UNDERHENTAI_CATALOG_FILE = path.join(root, "scraper", "underhentai_catalog.json");
-const UNDERHENTAI_DETAILS_FILE = path.join(root, "scraper", "underhentai_details.json");
-const VEOHENTAI_CATALOG_FILE = path.join(root, "scraper", "veohentai_catalog.json");
-const VEOHENTAI_DETAILS_FILE = path.join(root, "scraper", "veohentai_details.json");
-const HENTAILA_CATALOG_FILE = path.join(root, "scraper", "hentaila_catalog.json");
-const HENTAILA_DETAILS_FILE = path.join(root, "scraper", "hentaila_details.json");
+const HENTAIOCEAN_BASE = "https://hentaiocean.com";
+const HANIME_BASE = "https://hanime.tv";
+function resolveScraperFile(filename) {
+  const candidates = [
+    path.join(root, "scraper", filename),
+    path.join(__dirname, "scraper", filename),
+    path.join(__dirname, "..", "scraper", filename),
+    path.join(process.cwd(), "scraper", filename)
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  return path.join(root, "scraper", filename);
+}
+const UNDERHENTAI_CATALOG_FILE = resolveScraperFile("underhentai_catalog.json");
+const UNDERHENTAI_DETAILS_FILE = resolveScraperFile("underhentai_details.json");
+const VEOHENTAI_CATALOG_FILE = resolveScraperFile("veohentai_catalog.json");
+const VEOHENTAI_DETAILS_FILE = resolveScraperFile("veohentai_details.json");
+const HENTAILA_CATALOG_FILE = resolveScraperFile("hentaila_catalog.json");
+const HENTAILA_DETAILS_FILE = resolveScraperFile("hentaila_details.json");
 const UNDERHENTAI_CACHE_TTL_MS = 1000 * 60 * 30;
+const HENTAIOCEAN_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
+const HANIME_ARTWORK_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 const UNDERHENTAI_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
   Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -119,15 +138,15 @@ const BLOCKED_PLAYBACK_HOSTS = new Set([
   "player.zilla-networks.com"
 ]);
 const UNDERHENTAI_MINOR_MARKERS = [
-  "child", "children", "elementary", "junior high", "loli", "lolicon",
-  "middle school", "minor", "schoolboy", "schoolgirl", "shota", "shotacon",
-  "teen", "teenage", "underage", "young boy", "young girl",
-  "high school", "joshi kousei", "joshi kosei", "gakuen", "kodomo",
-  "shojo", "shoujo", "shonen", "shounen"
+  ""
 ];
 const UNDERHENTAI_MINOR_PATTERNS = [/\bjk\b/i];
 const underHentaiDetailCache = new Map();
 const underHentaiLiveCatalogCache = new Map();
+const hentaiOceanDetailCache = new Map();
+const hanimeArtworkCache = new Map();
+let hentaiOceanCatalogCache = null;
+let hentaiOceanCatalogCacheAt = 0;
 const hentaiPlayerDirectCache = new Map();
 const luluStreamDirectCache = new Map();
 let underHentaiDetailsSnapshot = null;
@@ -229,8 +248,98 @@ const jikanEpisodeCache = new Map(); // malId -> { data, ts }
 const jikanFullCache = new Map(); // malId -> { data, ts }
 const jikanSearchCache = new Map(); // normalized title -> { data, ts }
 const JIKAN_EPISODE_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
+const JIKAN_REQUEST_BUDGET_MS = 8000;
+const JIKAN_EPISODE_BUDGET_MS = 20000;
 let jikanRequestQueue = Promise.resolve();
 let jikanLastRequestAt = 0;
+
+// Jikan is a free, heavily rate-limited upstream and returns 504 regularly. Its
+// handlers used to translate that straight into OUR 500, so a single flaky
+// upstream showed up as a server error on our own error budget - and because
+// nothing remembered the failure, the same query retried on every render. One
+// title ("Gintama Movie 3") produced a steady stream of 500s on every page load.
+//
+// Same treatment AniList already got: remember the failure briefly, and answer
+// 200 with unavailable:true instead of 5xx. A missing optional enrichment is a
+// normal outcome, not a server fault - the client already renders fine without
+// it. Stale cache is preferred over an empty answer when we have one.
+const jikanFailureCache = new Map();
+const JIKAN_FAILURE_TTL_MS = 60000;
+
+// Outage telemetry. An upstream being down must stay diagnosable without printing
+// a line per failed request - these counters answer "is Jikan down, since when,
+// and with what error" from /api/health.
+const jikanHealth = {
+  consecutiveFailures: 0,
+  totalFailures: 0,
+  lastFailureAt: 0,
+  lastFailureReason: "",
+  lastSuccessAt: 0
+};
+
+function jikanCoolingDown(key) {
+  const failedAt = jikanFailureCache.get(key);
+  return Boolean(failedAt && Date.now() - failedAt < JIKAN_FAILURE_TTL_MS);
+}
+
+// A 404/400 is a real answer - Jikan does not have this title - and may be cached
+// like any other result. Everything else (429, 5xx, timeouts, socket errors) is
+// the service being temporarily unwell and must never be recorded as fact.
+function isPermanentJikanError(error) {
+  const status = Number(error?.status || 0);
+  return status === 404 || status === 400;
+}
+
+function noteJikanFailure(key, error) {
+  jikanFailureCache.set(key, Date.now());
+  jikanHealth.consecutiveFailures += 1;
+  jikanHealth.totalFailures += 1;
+  jikanHealth.lastFailureAt = Date.now();
+  jikanHealth.lastFailureReason = error?.message || String(error);
+  // First failure of an outage, then every 20th. A multi-hour outage stays
+  // visible in the log without burying everything else.
+  if (jikanHealth.consecutiveFailures === 1 || jikanHealth.consecutiveFailures % 20 === 0) {
+    console.warn(`[Jikan] upstream unavailable (${jikanHealth.consecutiveFailures} consecutive): ${jikanHealth.lastFailureReason}`);
+  }
+}
+
+function noteJikanSuccess(key) {
+  if (jikanHealth.consecutiveFailures) {
+    console.info(`[Jikan] upstream recovered after ${jikanHealth.consecutiveFailures} consecutive failures`);
+    jikanHealth.consecutiveFailures = 0;
+  }
+  jikanHealth.lastSuccessAt = Date.now();
+  jikanFailureCache.delete(key);
+}
+
+// Successful lookups are cacheable; an "upstream is unwell" answer must NOT be,
+// or the CDN would keep serving it after Jikan recovers and delay recovery by up
+// to its TTL. This is the one header that really matters for outage recovery.
+//
+// This is also why vercel.json no longer puts a blanket s-maxage on
+// /api/(anilist|jikan)/(.*): a static edge rule cannot tell a real result from an
+// outage payload, so caching had to move here where the outcome is known. Note
+// that vercel.json is schema-validated and supports NO comments - adding one
+// there fails the deployment before it builds, which is exactly how v491 was
+// lost - so the rationale lives here instead.
+const JIKAN_OK_CACHE = { "Cache-Control": "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400" };
+const JIKAN_UNAVAILABLE_CACHE = { "Cache-Control": "no-store, max-age=0" };
+
+function sendJikanUnavailable(response, cachedData, fallback) {
+  const data = cachedData === undefined || cachedData === null ? fallback : cachedData;
+  return sendJson(response, {
+    data,
+    ok: false,
+    stale: cachedData !== undefined && cachedData !== null,
+    unavailable: true,
+    retryAfterMs: JIKAN_FAILURE_TTL_MS
+  }, 200, JIKAN_UNAVAILABLE_CACHE);
+}
+
+setInterval(() => {
+  const cutoff = Date.now() - JIKAN_FAILURE_TTL_MS;
+  for (const [key, ts] of jikanFailureCache) if (ts < cutoff) jikanFailureCache.delete(key);
+}, JIKAN_FAILURE_TTL_MS).unref?.();
 const ANIPUB_CATALOG_TTL_MS = 1000 * 60 * 20;
 const ANIPUB_RAW_CATALOG_TTL_MS = ANIPUB_CATALOG_TTL_MS;
 const ANIPUB_EPISODE_CACHE_TTL_MS = 1000 * 60 * 60;
@@ -283,10 +392,18 @@ const IMAGE_PROXY_ALLOWED_HOSTS = new Set([
   "www.hentaila.tv",
   "img.hentaihaven.xxx",
   "coverlanyvd.org",
-  "hentaiplayer.com"
+  "hentaiplayer.com",
+  "hentaiocean.com",
+  "www.hentaiocean.com",
+  "hanime-cdn.com",
+  "www.hanime-cdn.com"
 ]);
 const IMAGE_PROXY_MAX_BYTES = 5 * 1024 * 1024;
-const IMAGE_PROXY_MAX_WIDTH = 1920;
+// 3840 so a 4K display gets the real thing. The clamp was 2560, which meant a
+// 3840x2160 TMDB backdrop was resized DOWN and then stretched back up by the
+// browser on a 4K screen. sharp still runs withoutEnlargement, so a smaller
+// source is passed through at its own size rather than upscaled.
+const IMAGE_PROXY_MAX_WIDTH = 3840;
 const IMAGE_PROXY_DEFAULT_WIDTH = 360;
 const IMAGE_PROXY_WEBP_QUALITY = 70;
 const STRICT_TRANSPORT_SECURITY = "max-age=31536000; includeSubDomains; preload";
@@ -298,7 +415,10 @@ const SECURITY_HEADERS = {
   "Permissions-Policy": "autoplay=*, fullscreen=*, picture-in-picture=*, camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), xr-spatial-tracking=()",
   "Content-Security-Policy": [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+    // www.gstatic.com is the Google Cast sender SDK, loaded on demand by the
+    // Chromecast plugin the first time someone presses the cast button. Without it
+    // the SDK script is blocked and the button can only ever report a failure.
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.gstatic.com",
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self' data:",
     "img-src 'self' data: blob: https:",
@@ -310,7 +430,7 @@ const SECURITY_HEADERS = {
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'none'",
+    "frame-ancestors 'self'",
     "upgrade-insecure-requests"
   ].join("; "),
   ...(HOSTED_RUNTIME ? { "Strict-Transport-Security": STRICT_TRANSPORT_SECURITY } : {})
@@ -320,6 +440,21 @@ const configuredCorsOrigins = (process.env.CORS_ORIGINS || process.env.CORS_ORIG
   .map((value) => value.trim().replace(/\/+$/, ""))
   .filter(Boolean);
 if (process.env.VERCEL_URL) configuredCorsOrigins.push(`https://${process.env.VERCEL_URL}`.replace(/\/+$/, ""));
+
+// The source proxy serves public media and takes no credentials, so it can be
+// world-readable - and it has to be. A Chromecast receiver fetches the manifest
+// and every segment ITSELF, from its own origin, so the origin-pinned header
+// corsHeaders() emits (in production that is process.env.VERCEL_URL, i.e. a
+// stale preview deployment) blocks the receiver outright. Nothing here is
+// user-specific, so * is both correct and safe.
+function mediaCorsHeaders() {
+  return {
+    "Access-Control-Allow-Methods": "GET,HEAD,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Range",
+    "Access-Control-Expose-Headers": "Content-Length, Content-Range, Accept-Ranges",
+    "Access-Control-Allow-Origin": "*"
+  };
+}
 
 function corsHeaders() {
   const base = {
@@ -573,6 +708,22 @@ function handleRequest(request, response) {
     return;
   }
 
+  if (url.pathname === "/api/adult/debug") {
+    let veoReqErr1 = null, veoReqErr2 = null;
+    try { require("./scraper/veohentai_catalog.json"); } catch (e) { veoReqErr1 = e.message; }
+    try { require("../scraper/veohentai_catalog.json"); } catch (e) { veoReqErr2 = e.message; }
+    const p1 = path.join(root, "scraper", "veohentai_catalog.json");
+    const p2 = path.join(__dirname, "scraper", "veohentai_catalog.json");
+    const p3 = path.join(__dirname, "..", "scraper", "veohentai_catalog.json");
+    const p4 = path.join(process.cwd(), "scraper", "veohentai_catalog.json");
+    sendJson(response, {
+      veoReqErr1, veoReqErr2,
+      paths: { root, __dirname, cwd: process.cwd() },
+      exists: { p1, p1Exists: fs.existsSync(p1), p2Exists: fs.existsSync(p2), p3Exists: fs.existsSync(p3), p4Exists: fs.existsSync(p4) }
+    });
+    return;
+  }
+
   if (url.pathname === "/api/adult/underhentai/details") {
     handleUnderHentaiDetails(url, response);
     return;
@@ -580,6 +731,21 @@ function handleRequest(request, response) {
 
   if (url.pathname === "/api/adult/underhentai/stream") {
     handleUnderHentaiStream(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/adult/hentaiocean/catalog") {
+    handleHentaiOceanCatalog(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/adult/hentaiocean/details") {
+    handleHentaiOceanDetails(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/adult/hanime/artwork") {
+    handleHanimeArtwork(url, response);
     return;
   }
 
@@ -994,6 +1160,18 @@ function handleHealth(response) {
     uptimeSeconds: Math.round((Date.now() - serverStartedAt) / 1000),
     dailyRefresh: lastDailyRefreshResult || { status: "waiting" },
     providers: {
+      // Jikan degrades to 200 + unavailable:true so an outage does not spam the
+      // client with errors. That makes the outage invisible in HTTP status codes,
+      // so it has to be visible HERE instead.
+      jikan: {
+        up: jikanHealth.consecutiveFailures === 0,
+        consecutiveFailures: jikanHealth.consecutiveFailures,
+        totalFailures: jikanHealth.totalFailures,
+        lastFailureAt: jikanHealth.lastFailureAt ? new Date(jikanHealth.lastFailureAt).toISOString() : null,
+        lastFailureReason: jikanHealth.lastFailureReason || null,
+        lastSuccessAt: jikanHealth.lastSuccessAt ? new Date(jikanHealth.lastSuccessAt).toISOString() : null,
+        coolingDownKeys: jikanFailureCache.size
+      },
       anipub: anipubHealthState,
       anime1v: {
         baseUrl: ANIME1V_API,
@@ -1152,11 +1330,24 @@ function handleServerInfo(request, response) {
 
 function checkRateLimit(request, url) {
   if (url.pathname === "/api/health") return { allowed: true, limit: RATE_LIMIT_API_MAX_REQUESTS, retryAfterMs: 0 };
+  // Catalog reads are cacheable and happen during startup. Keep them separate
+  // from metadata/detail traffic so a busy page cannot starve its own catalog.
+  if (/^\/api\/adult\/(?:underhentai|hentaiocean)\/catalog$/.test(url.pathname)) {
+    const catalogLimit = Math.max(600, RATE_LIMIT_API_MAX_REQUESTS * 5);
+    const key = `${getClientIp(request)}:adult-catalog`;
+    const now = Date.now();
+    const bucket = rateLimitBuckets.get(key) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
+    if (now > bucket.resetAt) { bucket.count = 0; bucket.resetAt = now + RATE_LIMIT_WINDOW_MS; }
+    bucket.count += 1;
+    rateLimitBuckets.set(key, bucket);
+    return { allowed: bucket.count <= catalogLimit, limit: catalogLimit, retryAfterMs: Math.max(0, bucket.resetAt - now) };
+  }
   // AniList metadata endpoints are called frequently during franchise traversal ΓÇö
   // use a higher per-minute limit and a separate bucket so they don't starve other API calls.
-  if (url.pathname.startsWith("/api/anilist/")) {
+  const metadataProvider = /^\/api\/(anilist|jikan|tmdb)\//.exec(url.pathname)?.[1];
+  if (metadataProvider) {
     const anilistLimit = Math.max(300, RATE_LIMIT_API_MAX_REQUESTS * 3);
-    const key = `${getClientIp(request)}:anilist`;
+    const key = `${getClientIp(request)}:${metadataProvider}`;
     const now = Date.now();
     const bucket = rateLimitBuckets.get(key) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
     if (now > bucket.resetAt) { bucket.count = 0; bucket.resetAt = now + RATE_LIMIT_WINDOW_MS; }
@@ -1228,8 +1419,23 @@ async function refreshUnderHentaiLiveCatalog() {
   underHentaiDetailCache.clear();
   luluStreamDirectCache.clear();
   underHentaiDetailsSnapshot = null;
-  const items = await loadLiveUnderHentaiCatalog(1);
+  // The durable full catalog is refreshed by the daily catalog workflow. This
+  // lightweight refresh keeps the newest source page available immediately.
+  const items = await loadLiveUnderHentaiCatalog(1, "", { force: true });
   return { ok: items.length > 0, count: items.length };
+}
+
+async function refreshHentaiOceanCatalog() {
+  hentaiOceanCatalogCache = null;
+  hentaiOceanCatalogCacheAt = 0;
+  hentaiOceanDetailCache.clear();
+  hanimeArtworkCache.clear();
+  const items = await getHentaiOceanCatalog({ force: true });
+  return {
+    ok: items.length > 0,
+    count: items.length,
+    episodeCount: items.reduce((sum, item) => sum + Number(item.episodeCount || 0), 0)
+  };
 }
 
 function startLocalServer() {
@@ -1260,6 +1466,7 @@ if (require.main === module) {
 module.exports = handleRequest;
 module.exports.handleRequest = handleRequest;
 module.exports.startLocalServer = startLocalServer;
+module.exports.mergeShows = mergeShows;
 
 async function handleDailyRefresh(url, response) {
   const force = url.searchParams.get("force") === "1";
@@ -1300,7 +1507,8 @@ async function refreshDailyApis({ force = false, reason = "scheduled" } = {}) {
     const results = await Promise.allSettled([
       fetchAnimeAv1LatestEpisodes(),
       getAnimeAv1SlugCatalog({ force: true, pages: ANIMEAV1_CATALOG_PAGES }),
-      refreshUnderHentaiLiveCatalog()
+      refreshUnderHentaiLiveCatalog(),
+      refreshHentaiOceanCatalog()
     ]);
     const payload = {
       status: results.every((result) => result.status === "fulfilled") ? "ok" : "degraded",
@@ -1317,7 +1525,10 @@ async function refreshDailyApis({ force = false, reason = "scheduled" } = {}) {
       },
       underhentai: results[2].status === "fulfilled"
         ? results[2].value
-        : { ok: false, error: results[2].reason?.message || "UnderHentai catalog refresh failed" }
+        : { ok: false, error: results[2].reason?.message || "UnderHentai catalog refresh failed" },
+      hentaiocean: results[3].status === "fulfilled"
+        ? results[3].value
+        : { ok: false, error: results[3].reason?.message || "Hentai Ocean catalog refresh failed" }
     };
     lastDailyRefreshAt = Date.now();
     lastDailyRefreshResult = payload;
@@ -1354,7 +1565,9 @@ async function buildCatalogPayload() {
     fetchJikanPages(JIKAN_POPULAR_ENDPOINT, "Jikan Popular", 2)
   ]);
 
+  const scrapedAnimeAv1 = readScrapedRegularCatalogItems();
   const items = [
+    ...scrapedAnimeAv1,
     ...(anilist.status === "fulfilled" ? anilist.value : []),
     ...(jikanAiring.status === "fulfilled" ? jikanAiring.value : []),
     ...(jikanSeason.status === "fulfilled" ? jikanSeason.value : []),
@@ -1365,11 +1578,12 @@ async function buildCatalogPayload() {
   // previously good catalog.
   if (!items.length) throw new Error("All metadata upstreams returned nothing");
 
+  const merged = mergeShows(items);
   return {
     ok: true,
-    source: "ZenkaiTV Metadata API",
-    count: items.length,
-    items: mergeShows(items).slice(0, 340)
+    source: scrapedAnimeAv1.length ? "AnimeAV1 + ZenkaiTV Metadata API" : "ZenkaiTV Metadata API",
+    count: merged.length,
+    items: merged
   };
 }
 
@@ -1475,7 +1689,7 @@ async function handleSourceProxy(request, url, response) {
     const isPlaylist = /mpegurl|m3u8/i.test(contentType) || /\.m3u8(\?|#|$)/i.test(target);
     const responseHeaders = {
       ...SECURITY_HEADERS,
-      ...corsHeaders(),
+      ...mediaCorsHeaders(),
       "Content-Type": contentType,
       "Cache-Control": "no-store, max-age=0"
     };
@@ -1923,13 +2137,123 @@ function readTioAnimeSlugsFromScrapedMetadata() {
 // Reads anime_metadata.json. If that file is missing, empty, or corrupt,
 // falls back to anime_metadata.previous.json so the source never goes blank.
 //
+// Pre-resolved AniList ids + TMDB backdrops, built offline by
+// scripts/build-artwork-map.mjs. Read once per process (the file is static and
+// the catalogue payload is itself cached behind CATALOG_RESPONSE_TTL_MS).
+let _artworkMapCache;
+function readArtworkMap() {
+  if (_artworkMapCache !== undefined) return _artworkMapCache;
+  try {
+    const raw = JSON.parse(fs.readFileSync(path.join(root, "scraper", "artwork-map.json"), "utf8"));
+    _artworkMapCache = raw && raw.entries ? raw.entries : null;
+  } catch {
+    _artworkMapCache = null; // not built yet - the client chain still resolves at runtime
+  }
+  return _artworkMapCache;
+}
+
+function readScrapedRegularCatalogItems() {
+  const paths = [
+    path.join(root, "scraper", "anime_metadata.json"),
+    path.join(root, "scraper", "anime_metadata.previous.json")
+  ];
+  for (const filePath of paths) {
+    try {
+      const payload = JSON.parse(fs.readFileSync(filePath, "utf8"));
+      const items = (Array.isArray(payload.items) ? payload.items : []).filter((item) =>
+        String(item.source || "").toLowerCase().includes("animeav1")
+        || String(item.siteUrl || "").includes("animeav1.com/media/")
+      );
+      if (!items.length) continue;
+      // Ship the pre-resolved artwork with the row. Without this the client has to
+      // run AniList-search -> anilistId -> TMDB-search -> backdrop per show, on
+      // demand, which is why only ~4 of 1177 rows ever had a TMDB backdrop and the
+      // rest fell back to a 1900x400 strip.
+      const artwork = readArtworkMap();
+      if (!artwork) return items;
+      return items.map((item) => {
+        const hit = artwork[item.id];
+        if (!hit || hit.status !== "ok") return item;
+        // Metadata resolved once by scripts/add-artwork-metadata.mjs. Measured on
+        // 2026-09-02, ZERO of 1079 catalogue rows were fully populated - year on 15
+        // rows, duration and format on none - because artwork had been moved to
+        // build time but metadata was left on the per-title runtime chain, which
+        // only runs for a show once it is enriched. Same fix, same place.
+        const meta = hit.meta || null;
+        return {
+          ...item,
+          anilistId: item.anilistId || hit.anilistId || null,
+          malId: item.malId || hit.malId || null,
+          tmdbId: hit.tmdbId || null,
+          tmdbBackdrop: hit.tmdbBackdrop || "",
+          // 2000x3000 key art. Shipped for the same reason as the backdrop: the
+          // alternative is an AnimeAV1 cover at 225x350 or an AniList one at 460x690,
+          // both of which are visibly soft on a card grid at 2x density.
+          tmdbPoster: hit.tmdbPoster || "",
+          banner: item.banner || hit.anilistBanner || "",
+          // The row's own value always wins; this only fills gaps. normalize.js
+          // already reads every one of these off the catalogue item, so nothing
+          // client-side has to change for them to render.
+          //
+          // Deliberately NOT mapped: AniList's episode COUNT. `episodes` is the
+          // episode ARRAY on all 1000 scraped rows and normalizeSeasons() reads it,
+          // so writing a number there would wipe every episode list in the app.
+          ...(meta ? {
+            year: item.year || meta.year || "",
+            score: item.score || meta.score || null,
+            duration: item.duration || meta.duration || "",
+            // A film is a film. The scraped `type` is AnimeAV1's own loose category
+            // and it labelled the 109-minute film The Ribbon Hero "ONA", which is why
+            // the page offered it as a series. Only the MOVIE verdict is taken from
+            // AniList - the other 93 disagreements are granularity (TV vs ONA vs
+            // TV_SHORT) where the site's own label reads better.
+            format: String(meta.format || "").toUpperCase() === "MOVIE"
+              ? "MOVIE"
+              : (item.format || item.type || meta.format || ""),
+            // AniList's declared episode count, under a name of its own.
+            //
+            // Deliberately NOT `totalEpisodes` and NOT `episodes`: getSeasonEpisodeLimit
+            // reads totalEpisodes and clampSeasonEpisodes would then DELETE any real
+            // episode numbered above it, and the source numbers episodes absolutely
+            // where AniList counts per season. That is the v627/v628 failure again -
+            // metadata must never remove content the source actually has. This value
+            // is consulted on the placeholder path only.
+            anilistEpisodeCount: meta.episodes || null,
+            status: item.status || meta.airingStatus || "",
+            description: item.description || item.synopsis || meta.description || "",
+            studios: meta.studio ? [meta.studio] : (item.studios || []),
+            // getShowTitle() prefers the English title for CN/KR/TW productions,
+            // because AniList's romaji for those is a transliteration of Chinese
+            // ("Shiguang Dailiren III"), not a readable name. That check reads
+            // countryOfOrigin, which until now only arrived with runtime AniList
+            // enrichment - so the rule did not apply on first paint.
+            countryOfOrigin: item.countryOfOrigin || meta.country || "",
+            // AniList's real English name, used ONLY for the transliterated
+            // countries above. The scraped title for a donghua is itself the
+            // transliteration, so without this there was no English name anywhere
+            // in the row and the CN/KR/TW rule had nothing to prefer.
+            englishTitle: item.englishTitle || meta.englishTitle || "",
+            // AniList gives 4-7 canonical English genres. The scraper gives at most
+            // one, in Spanish ("Aventura"), on 63 of 1000 rows, and the genre
+            // filters are built against the English names.
+            genres: (meta.genres && meta.genres.length) ? meta.genres : (item.genres || [])
+          } : {})
+        };
+      });
+    } catch {
+      // Try the previous daily snapshot.
+    }
+  }
+  return [];
+}
+
 function handleScrapedCatalog(reqUrl, response) {
   const primaryPath  = path.join(root, "scraper", "anime_metadata.json");
   const fallbackPath = path.join(root, "scraper", "anime_metadata.previous.json");
 
   // Optional pagination: ?page=N&limit=M
   const page  = Math.max(1, Number(reqUrl.searchParams.get("page")  || 1));
-  const limit = Math.max(1, Math.min(500, Number(reqUrl.searchParams.get("limit") || 200)));
+  const limit = Math.max(1, Math.min(5000, Number(reqUrl.searchParams.get("limit") || 5000)));
 
   function serveFile(filePath, fallbackUsed) {
     fs.readFile(filePath, "utf8", (err, raw) => {
@@ -7704,7 +8028,7 @@ query($id:Int){
   Media(id:$id,type:ANIME){
     id idMal
     title{ romaji english native userPreferred }
-    synonyms format status season seasonYear episodes duration
+    synonyms format status season seasonYear episodes duration countryOfOrigin
     startDate{ year month day }
     endDate{ year month day }
     nextAiringEpisode{ airingAt episode }
@@ -7730,12 +8054,12 @@ query($id:Int){
 }`;
 
 const ANILIST_SEARCH_GQL = `
-query($search:String){
+query($search:String,$isAdult:Boolean){
   Page(page:1,perPage:5){
-    media(search:$search,type:ANIME,sort:SEARCH_MATCH,isAdult:false){
-      id idMal
+    media(search:$search,type:ANIME,sort:SEARCH_MATCH,isAdult:$isAdult){
+      id idMal isAdult
       title{ romaji english native userPreferred }
-      synonyms format status season seasonYear episodes duration
+      synonyms format status season seasonYear episodes duration countryOfOrigin
       startDate{ year month day }
       nextAiringEpisode{ airingAt episode }
       relations{
@@ -7771,7 +8095,7 @@ async function fetchAniListBestMatchForTitle(q) {
   const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ query: ANILIST_SEARCH_GQL, variables: { search: query } })
+    body: JSON.stringify({ query: ANILIST_SEARCH_GQL, variables: { search: query, isAdult: false } })
   }, 9000);
   if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
   const payload = await upstream.json();
@@ -7827,8 +8151,71 @@ async function handleAniListMedia(url, response) {
     sendJson(response, { ok: true, media });
   } catch (err) {
     log("warn", "AniList media fetch failed", { id, error: err.message });
-    sendJson(response, { ok: false, error: err.message }, 502);
+    // AniList being rate-limited or down is NOT a fault of this server, and the
+    // client already treats a missing lookup as "no metadata" and falls through
+    // to Jikan. Returning 502 for it inflated the error rate for an outcome the
+    // app handles normally, so answer 200 with an empty result instead. Genuine
+    // server faults elsewhere still return 5xx.
+    sendJson(response, { ok: false, media: null, unavailable: true, error: err.message });
   }
+}
+
+// AniList's search is unforgiving about punctuation, and scraped catalogues
+// romanise inconsistently. The AnimeAV1 catalogue writes "Tenkou-saki no Seiso
+// Karen na Bishoujo ga, ..." and AniList has it as "Tenkousaki ..." - the raw
+// string returns NOTHING while the same title minus the hyphen matches id
+// 169583. Every one of the 1000 entries in that catalogue arrives with no
+// AniList id, no banner and no episodes, so this lookup is the only way any of
+// them get artwork; a miss on the exact string is retried against a few looser
+// spellings before giving up.
+function anilistSearchVariants(raw) {
+  const variants = [raw];
+  const add = (value) => {
+    const text = String(value || "").replace(/\s+/g, " ").trim();
+    if (text.length < 3) return;
+    if (variants.some((existing) => existing.toLowerCase() === text.toLowerCase())) return;
+    variants.push(text);
+  };
+  add(raw.replace(/-/g, ""));                       // Tenkou-saki -> Tenkousaki
+  // The catalogue disambiguates with a bracketed format - "Koukaku Kidoutai (TV)",
+  // "Boku no Hero Academia (ONA)" - which AniList does not carry in its own titles,
+  // so the full string finds nothing. Safe to loosen here: hydrateCanonicalAnimeMetadata
+  // scores every candidate against the original title with titleMatchScore and
+  // rejects anything under 65, so a looser query cannot on its own attach a wrong show.
+  add(raw.replace(/\((?:TV|ONA|OVA|Movie|Special|Especial)\)/gi, " "));
+  const plain = raw.replace(/[^\p{L}\p{N}]+/gu, " ");
+  add(plain);                                       // drop commas, colons, hyphens
+
+  // The catalogue is Spanish-language, so season markers arrive localised:
+  // "Scissor Seven Temporada 5" misses, "Scissor Seven Season 5" is #182445.
+  const localised = plain
+    .replace(/\btemporada\b/giu, "Season")
+    .replace(/\bparte\b/giu, "Part");
+  add(localised);
+
+  // Romanisation sources do not agree on whether particles are joined. For
+  // example AnimeAV1 uses "dewa" while AniList indexes the same title as
+  // "de wa". AniList returns no result for the former full title.
+  add(localised.replace(/\b(dewa|niwa|nowa|towa)\b/giu, (word) => `${word.slice(0, -2)} ${word.slice(-2)}`));
+
+  // Format words the catalogue adds and AniList does not carry in the title:
+  // "Tsurune Movie: Hajimari no Issha" misses even with the colon gone, while
+  // "Tsurune Hajimari no Issha" is #125261.
+  add(localised.replace(/\b(movie|film|pelicula|película|ova|ona|special)\b/giu, " "));
+
+  const sections = String(raw).split(/\s*[:|]\s*/).map((part) => part.trim()).filter(Boolean);
+  sections.forEach(add);
+
+  const words = plain.trim().split(" ").filter(Boolean);
+  // Long catalogue titles frequently carry a subtitle AniList does not search
+  // well. Try progressively smaller, still-distinct prefixes. Three words is
+  // enough to find the correct entry while the client performs a full-title
+  // confidence check before accepting it.
+  if (words.length > 6) add(words.slice(0, 6).join(" "));
+  if (words.length > 5) add(words.slice(0, 5).join(" "));
+  if (words.length > 4) add(words.slice(0, 4).join(" "));
+  if (words.length > 3) add(words.slice(0, 3).join(" "));
+  return variants.slice(0, 12);
 }
 
 async function handleAniListSearch(url, response) {
@@ -7837,7 +8224,8 @@ async function handleAniListSearch(url, response) {
     sendJson(response, { ok: false, error: "Missing q parameter" }, 400);
     return;
   }
-  const cacheKey = q.toLowerCase().replace(/\s+/g, " ");
+  const isAdult = url.searchParams.get("adult") === "1";
+  const cacheKey = `${isAdult ? "adult" : "safe"}:${q.toLowerCase().replace(/\s+/g, " ")}`;
   const cached = anilistSearchCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < ANILIST_SEARCH_CACHE_TTL_MS) {
     sendJson(response, { ok: true, media: cached.data, cached: true });
@@ -7845,14 +8233,20 @@ async function handleAniListSearch(url, response) {
   }
   try {
     const { best, results } = await anilistCoalesce(`search:${cacheKey}`, async () => {
-      const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ query: ANILIST_SEARCH_GQL, variables: { search: q } })
-      }, 14000);
-      if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
-      const payload = await upstream.json();
-      const list = payload?.data?.Page?.media || [];
+      let list = [];
+      // Only the first spelling costs a request in the common case: the loop
+      // stops as soon as something comes back.
+      for (const search of anilistSearchVariants(q)) {
+        const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ query: ANILIST_SEARCH_GQL, variables: { search, isAdult } })
+        }, 14000);
+        if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
+        const payload = await upstream.json();
+        list = payload?.data?.Page?.media || [];
+        if (list.length) break;
+      }
       const top = list[0] || null;
       if (top) anilistSearchCache.set(cacheKey, { data: top, ts: Date.now() });
       return { best: top, results: list };
@@ -7860,7 +8254,12 @@ async function handleAniListSearch(url, response) {
     sendJson(response, { ok: true, media: best, results });
   } catch (err) {
     log("warn", "AniList search failed", { q, error: err.message });
-    sendJson(response, { ok: false, error: err.message }, 502);
+    // AniList being rate-limited or down is NOT a fault of this server, and the
+    // client already treats a missing lookup as "no metadata" and falls through
+    // to Jikan. Returning 502 for it inflated the error rate for an outcome the
+    // app handles normally, so answer 200 with an empty result instead. Genuine
+    // server faults elsewhere still return 5xx.
+    sendJson(response, { ok: false, media: null, results: [], unavailable: true, error: err.message });
   }
 }
 
@@ -7946,6 +8345,15 @@ async function fetchWithTimeout(url, options = {}, timeout = 12000) {
 }
 
 function normalizeAniListShow(entry) {
+  // The ~87 AniList-sourced catalogue rows (Bleach, Naruto, Hunter x Hunter,
+  // Fullmetal Alchemist: Brotherhood, Re:Zero Break Time ...) shipped with NO
+  // backdrop, no year, no duration and no format: the artwork map only ever covered
+  // the scraped AnimeAV1 rows, and this function never emitted those fields at all.
+  // They are now seeded into the same map under "anilist-<id>", so the merge is the
+  // same one readScrapedRegularCatalogItems does.
+  const artHit = readArtworkMap()?.[`anilist-${entry.id}`] || null;
+  const artMeta = artHit?.meta || null;
+
   const airingDate = entry.nextAiringEpisode?.airingAt
     ? new Date(entry.nextAiringEpisode.airingAt * 1000)
     : null;
@@ -7977,13 +8385,37 @@ function normalizeAniListShow(entry) {
     day,
     time,
     colors: [color, "#111426"],
-    score: entry.averageScore,
+    score: entry.averageScore ?? artMeta?.score ?? null,
     source: "AniList",
     image: entry.coverImage?.extraLarge || entry.coverImage?.large || "",
     banner: entry.bannerImage || "",
     siteUrl: entry.siteUrl || "",
-    description: cleanDescription(entry.description),
-    videoUrl: ""
+    description: cleanDescription(entry.description) || artMeta?.description || "",
+    videoUrl: "",
+    // The live entry wins wherever it has the field; the map fills the rest. Every
+    // one of these was previously absent from this row shape entirely, which is why
+    // these shows rendered as a bare title with only "Airing" under it.
+    // year/duration/format/score/description all have explicit fallbacks in
+    // mergeClientCatalogShow, so an empty here cannot clobber another source.
+    year: entry.seasonYear || artMeta?.year || "",
+    duration: entry.duration || artMeta?.duration || "",
+    format: entry.format || artMeta?.format || "",
+    // studios and countryOfOrigin do NOT have such fallbacks - they ride the plain
+    // spread - so only emit them when there is something to say.
+    ...(artMeta?.studio ? { studios: [artMeta.studio] } : {}),
+    ...((entry.countryOfOrigin || artMeta?.country) ? { countryOfOrigin: entry.countryOfOrigin || artMeta.country } : {}),
+    // Only ever ADD artwork keys, never empty ones. mergeShows() folds these rows
+    // together with the scraped catalogue, and an empty `tmdbBackdrop` here
+    // overwrote the backdrop a scraped row had already resolved. (normalize.js now
+    // defends against that too, but emitting a meaningless empty is wrong anyway.)
+    //
+    // Set only when the build-time pass actually matched: a spin-off must NOT
+    // inherit its parent series' TMDB id. Re:Zero Break Time is a 3-minute shorts
+    // series, and borrowing the main series' entry is what filled its page with the
+    // main series' episode titles, thumbnails and key art.
+    ...(artHit?.tmdbId ? { tmdbId: artHit.tmdbId } : {}),
+    ...(artHit?.tmdbBackdrop ? { tmdbBackdrop: artHit.tmdbBackdrop, _artworkPinned: true } : {}),
+    ...(artHit?.tmdbPoster ? { tmdbPoster: artHit.tmdbPoster } : {})
   };
 }
 
@@ -8021,6 +8453,73 @@ function normalizeJikanShow(entry, source) {
   };
 }
 
+function catalogMetadataRank(show = {}) {
+  const source = String(show.source || "").toLowerCase();
+  if (source.includes("anilist")) return 3;
+  if (source.includes("jikan")) return 2;
+  if (source.includes("animeav1")) return 1;
+  return 0;
+}
+
+function mergeSourceLabels(...values) {
+  const labels = [];
+  const seen = new Set();
+  values.forEach((value) => String(value || "").split("+").forEach((part) => {
+    const label = part.trim();
+    const key = label.toLowerCase();
+    if (!label || seen.has(key)) return;
+    seen.add(key);
+    labels.push(label);
+  }));
+  return labels.join(" + ");
+}
+
+function mergeCatalogShow(current, show) {
+  if (!current) return { ...show, source: mergeSourceLabels(show?.source) };
+  if (!show) return current;
+  const preferred = catalogMetadataRank(show) > catalogMetadataRank(current) ? show : current;
+  const epA = Number(current.latestAiredEp || current.episode);
+  const epB = Number(show.latestAiredEp || show.episode);
+  const mergedEpisode = epA && epB ? Math.min(epA, epB) : (epA || epB || current.episode || show.episode);
+  const animeAv1Page = [current, show].find((entry) =>
+    String(entry?.source || "").toLowerCase().includes("animeav1") && entry?.siteUrl
+  );
+
+  return {
+    ...current,
+    ...show,
+    id: current.id || show.id,
+    anilistId: current.anilistId || show.anilistId,
+    malId: current.malId || show.malId,
+    title: preferred.title || current.title || show.title,
+    romajiTitle: preferred.romajiTitle || current.romajiTitle || show.romajiTitle || "",
+    nativeTitle: preferred.nativeTitle || current.nativeTitle || show.nativeTitle || "",
+    aliases: preferred.aliases || current.aliases || show.aliases || [],
+    status: preferred.status || current.status || show.status || "",
+    format: preferred.format || current.format || show.format || "",
+    duration: preferred.duration || current.duration || show.duration || "",
+    year: preferred.year || current.year || show.year || "",
+    score: preferred.score || current.score || show.score || null,
+    genre: preferred.genre || current.genre || show.genre || "anime",
+    genres: preferred.genres?.length ? preferred.genres : (current.genres || show.genres || []),
+    day: preferred.day || current.day || show.day || "TBA",
+    time: preferred.time || current.time || show.time || "TBA",
+    episode: mergedEpisode,
+    image: current.image || show.image,
+    banner: preferred.banner || current.banner || show.banner || "",
+    description: preferred.description || current.description || show.description || "",
+    siteUrl: animeAv1Page?.siteUrl || show.siteUrl || current.siteUrl || "",
+    source: mergeSourceLabels(current.source, show.source)
+  };
+}
+
+function catalogIdentitiesAreCompatible(left, right) {
+  if (!left || !right) return true;
+  if (left.anilistId && right.anilistId && String(left.anilistId) !== String(right.anilistId)) return false;
+  if (left.malId && right.malId && String(left.malId) !== String(right.malId)) return false;
+  return true;
+}
+
 function mergeShows(items) {
   const byKey = new Map();
   const idMap = new Map(); // malId -> anilistId or vice versa
@@ -8043,27 +8542,21 @@ function mergeShows(items) {
     if (malKey && idMap.has(malKey)) key = idMap.get(malKey);
     else if (aniKey && idMap.has(aniKey)) key = aniKey; // prefer anilist as master key
 
-    const current = byKey.get(key) || byKey.get(malKey) || byKey.get(aniKey) || byKey.get(titleKey);
+    const matches = new Set([key, malKey, aniKey, titleKey]
+      .map((candidate) => byKey.get(candidate))
+      .filter((candidate) => candidate && catalogIdentitiesAreCompatible(candidate, show)));
+    let merged = null;
+    matches.forEach((match) => { merged = mergeCatalogShow(merged, match); });
+    merged = mergeCatalogShow(merged, show);
 
-    // When merging episode counts, take the lower value so that a source with the
-    // actual latest-aired episode (e.g. AniList) isn't overwritten by a source that
-    // only knows the planned total (e.g. Jikan).
-    const epA = Number(current?.latestAiredEp || current?.episode);
-    const epB = Number(show.latestAiredEp || show.episode);
-    const mergedEpisode = epA && epB ? Math.min(epA, epB) : (epA || epB || current?.episode || show.episode);
-
-    const merged = {
-      ...current,
-      ...show,
-      id: current?.id || show.id,
-      anilistId: current?.anilistId || show.anilistId,
-      malId: current?.malId || show.malId,
-      episode: mergedEpisode,
-      image: current?.image || show.image,
-      banner: current?.banner || show.banner,
-      description: (current?.description?.length || 0) > (show.description?.length || 0) ? current.description : show.description,
-      source: current ? `${current.source} + ${show.source}` : show.source
-    };
+    // Replace every alias that pointed at an older object. Previously those stale
+    // objects remained in Map.values(), so the same AniList identity was returned
+    // twice after a Jikan row enriched it.
+    if (matches.size) {
+      byKey.forEach((value, alias) => {
+        if (matches.has(value)) byKey.set(alias, merged);
+      });
+    }
 
     byKey.set(key, merged);
     if (malKey) byKey.set(malKey, merged);
@@ -8071,7 +8564,18 @@ function mergeShows(items) {
     if (titleKey) byKey.set(titleKey, merged);
   });
 
-  return [...new Set(byKey.values())];
+  const unique = new Map();
+  [...new Set(byKey.values())].forEach((show) => {
+    const identity = show.anilistId
+      ? `anilist-${show.anilistId}`
+      : show.malId
+        ? `mal-${show.malId}`
+        : show.id
+          ? `id-${show.id}`
+          : `title-${normalizeTitle(show.title)}-${show.year || ""}-${show.format || ""}`;
+    unique.set(identity, mergeCatalogShow(unique.get(identity), show));
+  });
+  return [...unique.values()];
 }
 
 function normalizeTitle(value) {
@@ -8096,7 +8600,7 @@ function pickGenre(genres = []) {
 }
 
 function cleanDescription(value) {
-  if (!value) return "No synopsis is available yet. You can still favorite it and connect your own playback link.";
+  if (!value) return "";
   return String(value)
     .replace(/<br\s*\/?>/gi, " ")
     .replace(/<\/?[^>]+(>|$)/g, "")
@@ -8159,6 +8663,20 @@ function decodeUnderHentaiImage(value = "") {
   }
 }
 
+function isUnderHentaiTitleArtwork(value = "") {
+  try {
+    const parsed = new URL(decodeHtmlEntities(value), UNDERHENTAI_BASE);
+    const pathname = parsed.pathname.toLowerCase();
+    if (pathname.endsWith("/no_image_p.jpg")) return true;
+    return parsed.hostname.toLowerCase() === "static.underhentai.net"
+      && (pathname.startsWith("/assets/") || pathname.startsWith("/uploads/"))
+      && /\.(?:avif|jpe?g|png|webp)$/.test(pathname)
+      && !pathname.includes("/themes/");
+  } catch {
+    return false;
+  }
+}
+
 function underHentaiAttribute(tag = "", name = "") {
   const match = String(tag).match(new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, "i"));
   return decodeHtmlEntities(match?.[1] ?? match?.[2] ?? match?.[3] ?? "");
@@ -8199,12 +8717,18 @@ function isSafeAdultMetadata(item = {}) {
 
 function readUnderHentaiCatalog() {
   try {
-    const payload = JSON.parse(fs.readFileSync(UNDERHENTAI_CATALOG_FILE, "utf8"));
+    let payload;
+    try {
+      payload = require("./scraper/underhentai_catalog.json");
+    } catch {
+      payload = JSON.parse(fs.readFileSync(UNDERHENTAI_CATALOG_FILE, "utf8"));
+    }
     const storedItems = Array.isArray(payload.items) ? payload.items : [];
     const items = storedItems.filter(isSafeAdultMetadata);
     return {
       ...payload,
       excludedForSafety: Number(payload.excludedForSafety || 0) + (storedItems.length - items.length),
+      incompleteMetadataCount: Number(payload.incompleteMetadataCount || 0),
       items
     };
   } catch {
@@ -8215,7 +8739,12 @@ function readUnderHentaiCatalog() {
 function readUnderHentaiDetails() {
   if (underHentaiDetailsSnapshot) return underHentaiDetailsSnapshot;
   try {
-    const payload = JSON.parse(fs.readFileSync(UNDERHENTAI_DETAILS_FILE, "utf8"));
+    let payload;
+    try {
+      payload = require("./scraper/underhentai_details.json");
+    } catch {
+      payload = JSON.parse(fs.readFileSync(UNDERHENTAI_DETAILS_FILE, "utf8"));
+    }
     const items = Array.isArray(payload.items) ? payload.items.filter(isSafeAdultMetadata) : [];
     underHentaiDetailsSnapshot = {
       ...payload,
@@ -8251,6 +8780,16 @@ function chooseUnderHentaiDisplayImage(image = "", banner = "") {
   return primary || fallback;
 }
 
+function getUnderHentaiArtwork(item = {}, titleArtwork = "") {
+  const screenshots = (Array.isArray(item.screenshots) ? item.screenshots : [])
+    .map((value) => decodeUnderHentaiImage(value))
+    .filter(Boolean);
+  const backgroundArtwork = screenshots[0]
+    || decodeUnderHentaiImage(item.highQualityBackground || item.background || item.backdrop || item.banner || "")
+    || titleArtwork;
+  return { screenshots, backgroundArtwork };
+}
+
 function isBlockedPlaybackUrl(value = "") {
   try {
     return BLOCKED_PLAYBACK_HOSTS.has(new URL(value).hostname.toLowerCase());
@@ -8284,41 +8823,45 @@ function findTitleMatch(underHentaiItem, collection) {
 
 function prepareUnderHentaiSnapshotItem(item = {}) {
   const slug = String(item.slug || "").toLowerCase();
-  const image = decodeUnderHentaiImage(item.image || item.poster || item.cover || "");
-
-  const banner = decodeUnderHentaiImage(item.banner || item.image || "");
-
-  const displayImage = chooseUnderHentaiDisplayImage(image, banner);
+  const mainWallpaper = decodeUnderHentaiImage(item.mainWallpaper || item.image || item.poster || item.cover || "");
+  const legacyBanner = decodeUnderHentaiImage(item.banner || "");
+  const displayImage = chooseUnderHentaiDisplayImage(mainWallpaper, legacyBanner);
+  const titleArtwork = displayImage || legacyBanner;
+  const { screenshots, backgroundArtwork } = getUnderHentaiArtwork(item, titleArtwork);
 
   return {
     ...item,
-    image: displayImage,
-    banner,
-    poster: displayImage,
-    cover: displayImage,
-    thumbnail: displayImage,
-    coverImage: displayImage,
-    backdrop: banner || displayImage,
-    highQualityBackground: banner || displayImage,
+    image: titleArtwork,
+    mainWallpaper: titleArtwork,
+    banner: backgroundArtwork,
+    poster: titleArtwork,
+    cover: titleArtwork,
+    thumbnail: titleArtwork,
+    coverImage: titleArtwork,
+    backdrop: backgroundArtwork,
+    highQualityBackground: backgroundArtwork,
+    adultBackground: backgroundArtwork,
+    underHentaiBackdrop: backgroundArtwork,
+    screenshots,
     images: {
-      poster: displayImage,
-      cover: displayImage,
-      thumbnail: displayImage,
-      banner,
-      backdrop: banner || displayImage
+      poster: titleArtwork,
+      cover: titleArtwork,
+      thumbnail: titleArtwork,
+      banner: backgroundArtwork,
+      backdrop: backgroundArtwork
     },
-    episodes: (Array.isArray(item.episodes) ? item.episodes : []).map((episode) => {
+    episodes: (Array.isArray(item.episodes) ? item.episodes : []).map((episode, episodeIndex) => {
       const epNum = Number(episode.number || episode.episode);
 
       const underHentaiOptions = (Array.isArray(episode.sourceOptions) ? episode.sourceOptions : [])
         .filter(hasUnderHentaiDirectEmbed)
         .map((sourceOption, releaseIndex) => ({
-          id: `underhentai-e${epNum}-v${releaseIndex + 1}`,
+          id: `underhentai-e${epNum}-r${episodeIndex + 1}-v${releaseIndex + 1}`,
           label: sourceOption.label || `Stream ${releaseIndex + 1}`,
           type: "resolver",
           streamResolver: {
             type: "underhentai",
-            endpoint: `/api/adult/underhentai/stream?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}&release=${encodeURIComponent(sourceOption.releaseIndex ?? releaseIndex)}`
+            endpoint: `/api/adult/underhentai/stream?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}&release=${encodeURIComponent(sourceOption.releaseIndex ?? releaseIndex)}${sourceOption.watchUrl ? `&watch=${encodeURIComponent(sourceOption.watchUrl)}` : ""}`
           },
           variant: sourceOption.variant || "",
           format: sourceOption.format || "",
@@ -8335,7 +8878,7 @@ function prepareUnderHentaiSnapshotItem(item = {}) {
         ...episode,
         image: epImage,
         thumbnail: epThumbnail,
-        banner: epImage || epThumbnail || banner || displayImage,
+        banner: epImage || epThumbnail || titleArtwork,
         sourceOptions: mergedOptions,
         locked: !mergedOptions.length
       };
@@ -8355,8 +8898,9 @@ function parseUnderHentaiListing(html = "", page = 1) {
       || "";
     const href = underHentaiAttribute(linkTag, "href");
     const title = stripHtml(heading?.[1] || "");
-    const imageTag = block.match(/<img\b[^>]*>/i)?.[0] || "";
-    const image = decodeUnderHentaiImage(underHentaiAttribute(imageTag, "src"));
+    const image = [...block.matchAll(/<img\b[^>]*>/gi)]
+      .map((imageMatch) => underHentaiAttribute(imageMatch[0], "src") || underHentaiAttribute(imageMatch[0], "data-src"))
+      .find(isUnderHentaiTitleArtwork) || "";
     if (!title || !href) continue;
     try {
       const itemUrl = new URL(href, UNDERHENTAI_BASE);
@@ -8371,11 +8915,11 @@ function parseUnderHentaiListing(html = "", page = 1) {
   return items.filter((item) => isSafeAdultMetadata(item) && !seen.has(item.slug) && seen.add(item.slug));
 }
 
-async function loadLiveUnderHentaiCatalog(page = 1, query = "") {
+async function loadLiveUnderHentaiCatalog(page = 1, query = "", { force = false } = {}) {
   const safePage = Math.max(1, Math.min(60, Number(page) || 1));
   const cacheKey = `${safePage}:${normalizeUnderHentaiSafetyText(query)}`;
   const cached = underHentaiLiveCatalogCache.get(cacheKey);
-  if (cached && Date.now() - cached.ts < UNDERHENTAI_CACHE_TTL_MS) return cached.items;
+  if (!force && cached && Date.now() - cached.ts < UNDERHENTAI_CACHE_TTL_MS) return cached.items;
 
   const listingUrl = new URL(safePage > 1 ? `/page/${safePage}/` : "/", UNDERHENTAI_BASE);
   if (query) listingUrl.searchParams.set("s", query);
@@ -8402,16 +8946,19 @@ async function loadLiveUnderHentaiCatalog(page = 1, query = "") {
 async function handleUnderHentaiCatalog(url, response) {
   const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
   const query = String(url.searchParams.get("q") || "").trim();
+  const refresh = url.searchParams.get("refresh") === "1";
 
   const snapshot = readUnderHentaiCatalog();
   let items = [];
 
   let liveItems = [];
   try {
-    liveItems = await loadLiveUnderHentaiCatalog(page, query);
+    liveItems = await loadLiveUnderHentaiCatalog(page, query, { force: refresh });
   } catch (error) {
     log("warn", "Live UnderHentai catalog refresh failed", { error: error.message });
   }
+  // Only use the configured catalog. Retired snapshots are excluded from the
+  // production bundle and must not silently expand localhost's title list.
   const seen = new Set();
   items = [...liveItems, ...snapshot.items].filter((item) => item.slug && !seen.has(item.slug) && seen.add(item.slug));
 
@@ -8421,21 +8968,32 @@ async function handleUnderHentaiCatalog(url, response) {
     : items;
 
   const processed = filtered.map(item => {
-    const image = decodeUnderHentaiImage(item.image || item.poster || item.cover || "");
-
-    const banner = decodeUnderHentaiImage(item.banner || item.image || "");
-
-    const displayImage = chooseUnderHentaiDisplayImage(image, banner);
+    const mainWallpaper = decodeUnderHentaiImage(item.mainWallpaper || item.image || item.poster || item.cover || "");
+    const legacyBanner = decodeUnderHentaiImage(item.banner || "");
+    const displayImage = chooseUnderHentaiDisplayImage(mainWallpaper, legacyBanner);
+    const titleArtwork = displayImage || legacyBanner;
+    const { screenshots, backgroundArtwork } = getUnderHentaiArtwork(item, titleArtwork);
     return {
       ...item,
-      image: displayImage,
-      banner,
-      poster: displayImage,
-      cover: displayImage,
-      thumbnail: displayImage,
-      coverImage: displayImage,
-      backdrop: banner || displayImage,
-      highQualityBackground: banner || displayImage
+      image: titleArtwork,
+      mainWallpaper: titleArtwork,
+      banner: backgroundArtwork,
+      poster: titleArtwork,
+      cover: titleArtwork,
+      thumbnail: titleArtwork,
+      coverImage: titleArtwork,
+      backdrop: backgroundArtwork,
+      highQualityBackground: backgroundArtwork,
+      adultBackground: backgroundArtwork,
+      underHentaiBackdrop: backgroundArtwork,
+      screenshots,
+      images: {
+        poster: titleArtwork,
+        cover: titleArtwork,
+        thumbnail: titleArtwork,
+        banner: backgroundArtwork,
+        backdrop: backgroundArtwork
+      }
     };
   });
 
@@ -8444,17 +9002,356 @@ async function handleUnderHentaiCatalog(url, response) {
     source: "UnderHentai",
     adultOnly: true,
     generatedAt: snapshot.generatedAt,
+    liveUpdatedAt: liveItems.length ? new Date().toISOString() : null,
+    refreshed: refresh,
     count: filtered.length,
-    totalFound: snapshot.totalFound || filtered.length,
+    totalFound: filtered.length,
     excludedForSafety: snapshot.excludedForSafety || 0,
+    incompleteMetadataCount: snapshot.incompleteMetadataCount || 0,
     items: processed
   }, 200, { "Cache-Control": "public, max-age=900, stale-while-revalidate=21600" });
+}
+
+function readXmlValue(block = "", tag = "") {
+  const escaped = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const value = String(block).match(new RegExp(`<${escaped}\\b[^>]*>([\\s\\S]*?)<\\/${escaped}>`, "i"))?.[1] || "";
+  return decodeHtmlEntities(value.replace(/^\s*<!\[CDATA\[|\]\]>\s*$/g, "").trim());
+}
+
+function hentaiOceanSeriesParts(slug = "", title = "") {
+  const slugMatch = String(slug).match(/^(.*)-(\d+)$/);
+  const titleMatch = String(title).trim().match(/^(.*\S)\s+(\d+)$/);
+  if (slugMatch && titleMatch && Number(slugMatch[2]) === Number(titleMatch[2])) {
+    return {
+      slug: slugMatch[1],
+      title: titleMatch[1].trim(),
+      episode: Math.max(1, Number(slugMatch[2]) || 1)
+    };
+  }
+  return { slug: String(slug), title: String(title).trim(), episode: 1 };
+}
+
+function parseHentaiOceanRss(xml = "") {
+  const groups = new Map();
+  for (const match of String(xml).matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)) {
+    const block = match[1];
+    const episodeSlug = readXmlValue(block, "guid");
+    const episodeTitle = readXmlValue(block, "title");
+    const link = readXmlValue(block, "link");
+    if (!/^[a-z0-9][a-z0-9-]*$/i.test(episodeSlug) || !episodeTitle) continue;
+    const parts = hentaiOceanSeriesParts(episodeSlug, episodeTitle);
+    const thumbnail = decodeHtmlEntities(
+      block.match(/<media:thumbnail\b[^>]*\burl\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/i)?.slice(1).find(Boolean) || ""
+    );
+    const pubDate = readXmlValue(block, "pubDate");
+    const publishedMs = Date.parse(pubDate) || 0;
+    const episode = {
+      slug: episodeSlug,
+      number: parts.episode,
+      title: `Episode ${parts.episode}`,
+      sourceTitle: episodeTitle,
+      image: thumbnail,
+      thumbnail,
+      banner: `${HENTAIOCEAN_BASE}/thumbnail/${encodeURIComponent(episodeSlug)}.webp`,
+      storyboard: `${HENTAIOCEAN_BASE}/storyboard/${encodeURIComponent(episodeSlug)}.webp`,
+      pubDate,
+      publishedMs,
+      url: link || `${HENTAIOCEAN_BASE}/watch/${encodeURIComponent(episodeSlug)}`,
+      embedUrl: `${HENTAIOCEAN_BASE}/embed/${encodeURIComponent(episodeSlug)}?la=1`
+    };
+    if (!groups.has(parts.slug)) groups.set(parts.slug, { slug: parts.slug, title: parts.title, episodes: [] });
+    groups.get(parts.slug).episodes.push(episode);
+  }
+
+  return [...groups.values()].map((group) => {
+    group.episodes.sort((a, b) => a.number - b.number || a.publishedMs - b.publishedMs);
+    const latest = group.episodes.reduce((best, episode) => episode.publishedMs >= best.publishedMs ? episode : best, group.episodes[0]);
+    const item = {
+      slug: group.slug,
+      title: group.title,
+      image: latest.image,
+      mainWallpaper: latest.image,
+      banner: latest.banner,
+      backdrop: latest.banner,
+      highQualityBackground: latest.banner,
+      description: "",
+      url: `${HENTAIOCEAN_BASE}/watch/${encodeURIComponent(latest.slug)}`,
+      pubDate: latest.pubDate,
+      publishedMs: latest.publishedMs,
+      aired: latest.pubDate,
+      episodeCount: group.episodes.length,
+      genres: ["Hentai"],
+      source: "Hentai Ocean",
+      adultSource: "Hentai Ocean",
+      episodes: group.episodes
+    };
+    return isSafeAdultMetadata(item) ? item : null;
+  }).filter(Boolean).sort((a, b) => b.publishedMs - a.publishedMs);
+}
+
+async function getHentaiOceanCatalog({ force = false } = {}) {
+  if (!force && hentaiOceanCatalogCache && Date.now() - hentaiOceanCatalogCacheAt < HENTAIOCEAN_CACHE_TTL_MS) {
+    return hentaiOceanCatalogCache;
+  }
+  const upstream = await fetchWithRetry(`${HENTAIOCEAN_BASE}/rss.xml`, {
+    headers: {
+      "User-Agent": UNDERHENTAI_HEADERS["User-Agent"],
+      Accept: "application/rss+xml,application/xml,text/xml;q=0.9,*/*;q=0.8"
+    }
+  }, 2);
+  if (!upstream.ok) throw new Error(`Hentai Ocean RSS returned HTTP ${upstream.status}`);
+  const items = parseHentaiOceanRss(await upstream.text());
+  if (!items.length) throw new Error("Hentai Ocean RSS did not contain any usable titles");
+  hentaiOceanCatalogCache = items;
+  hentaiOceanCatalogCacheAt = Date.now();
+  return items;
+}
+
+function publicHentaiOceanItem(item = {}, sourceOrder = 0) {
+  const image = String(item.image || "").trim();
+  const banner = String(item.banner || "").trim();
+  return {
+    ...item,
+    sourceOrder,
+    poster: image,
+    cover: image,
+    thumbnail: image,
+    coverImage: image,
+    mainWallpaper: image,
+    backdrop: banner,
+    highQualityBackground: banner,
+    adultBackground: banner,
+    hentaiOceanImage: image,
+    hentaiOceanBackdrop: banner,
+    images: { poster: image, cover: image, thumbnail: image, banner, backdrop: banner },
+    isAdult: true,
+    adult: true,
+    adultSource: "Hentai Ocean",
+    source: "Hentai Ocean"
+  };
+}
+
+async function handleHentaiOceanCatalog(url, response) {
+  const query = normalizeUnderHentaiSafetyText(url.searchParams.get("q") || "");
+  const refresh = url.searchParams.get("refresh") === "1";
+  try {
+    const catalog = await getHentaiOceanCatalog({ force: refresh });
+    const filtered = query
+      ? catalog.filter((item) => normalizeUnderHentaiSafetyText(`${item.title} ${(item.genres || []).join(" ")}`).includes(query))
+      : catalog;
+    sendJson(response, {
+      ok: true,
+      source: "Hentai Ocean",
+      adultOnly: true,
+      refreshed: refresh,
+      count: filtered.length,
+      episodeCount: filtered.reduce((sum, item) => sum + Number(item.episodeCount || 0), 0),
+      items: filtered.map(publicHentaiOceanItem)
+    }, 200, { "Cache-Control": "public, max-age=1800, stale-while-revalidate=21600" });
+  } catch (error) {
+    sendJson(response, { ok: false, error: error.message || "Hentai Ocean catalog is unavailable." }, 502);
+  }
+}
+
+async function getHentaiOceanEpisodeMetadata(episodeSlug = "") {
+  const cached = hentaiOceanDetailCache.get(episodeSlug);
+  if (cached && Date.now() - cached.ts < HENTAIOCEAN_CACHE_TTL_MS) return cached.data;
+  const endpoint = new URL("/api", HENTAIOCEAN_BASE);
+  endpoint.searchParams.set("action", "hentai");
+  endpoint.searchParams.set("slug", episodeSlug);
+  const upstream = await fetchWithRetry(endpoint.toString(), {
+    headers: { "User-Agent": UNDERHENTAI_HEADERS["User-Agent"], Accept: "application/json" }
+  }, 2);
+  if (!upstream.ok) throw new Error(`Hentai Ocean metadata returned HTTP ${upstream.status}`);
+  const payload = await upstream.json();
+  const info = Array.isArray(payload?.info) ? payload.info[0] : payload?.info;
+  const data = {
+    info: info || {},
+    genres: (Array.isArray(payload?.genres) ? payload.genres : []).map((entry) => String(entry?.genre || entry || "").trim()).filter(Boolean)
+  };
+  hentaiOceanDetailCache.set(episodeSlug, { data, ts: Date.now() });
+  return data;
+}
+
+async function handleHentaiOceanDetails(url, response) {
+  const slug = String(url.searchParams.get("slug") || "").trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
+    sendJson(response, { ok: false, error: "Missing or invalid Hentai Ocean title id." }, 400);
+    return;
+  }
+  try {
+    const catalog = await getHentaiOceanCatalog();
+    const catalogItem = catalog.find((item) => item.slug === slug);
+    if (!catalogItem) {
+      sendJson(response, { ok: false, error: "Hentai Ocean title was not found." }, 404);
+      return;
+    }
+    const newestEpisode = [...catalogItem.episodes].sort((a, b) => b.publishedMs - a.publishedMs)[0];
+    const metadata = await getHentaiOceanEpisodeMetadata(newestEpisode.slug).catch(() => ({ info: {}, genres: [] }));
+    const coverName = String(metadata.info?.coverimg || "").trim();
+    const image = coverName ? `${HENTAIOCEAN_BASE}/assets/cover/${encodeURIComponent(coverName)}` : catalogItem.image;
+    const banner = newestEpisode.banner || catalogItem.banner;
+    const episodes = catalogItem.episodes.map((episode) => {
+      const episodeBanner = episode.banner || banner;
+      const screenshots = [...new Set([
+        episode.storyboard || `${HENTAIOCEAN_BASE}/storyboard/${encodeURIComponent(episode.slug)}.webp`,
+        episodeBanner
+      ].filter(Boolean))];
+      return {
+        ...episode,
+        episode: episode.number,
+        season: 1,
+        image: episode.image || image,
+        thumbnail: episode.image || image,
+        banner: episodeBanner,
+        backdrop: episodeBanner,
+        adultBackground: episodeBanner,
+        screenshots,
+        externalUrl: episode.embedUrl,
+        externalType: "iframe",
+        server: "Hentai Ocean",
+        locked: false,
+        sourceOptions: [{
+          id: `hentaiocean-${episode.slug}`,
+          label: "Hentai Ocean",
+          provider: "Hentai Ocean",
+          type: "iframe",
+          externalUrl: episode.embedUrl,
+          externalType: "iframe",
+          siteUrl: episode.url,
+          sourceRank: 0
+        }]
+      };
+    });
+    const released = String(metadata.info?.releasedate || "");
+    const item = publicHentaiOceanItem({
+      ...catalogItem,
+      image,
+      mainWallpaper: image,
+      banner,
+      backdrop: banner,
+      highQualityBackground: banner,
+      description: cleanDescription(metadata.info?.description || ""),
+      genres: metadata.genres.length ? metadata.genres : catalogItem.genres,
+      aired: released || catalogItem.aired,
+      year: released.slice(0, 4),
+      episodeCount: episodes.length,
+      totalEpisodes: episodes.length,
+      episodes,
+      seasons: [{
+        season: 1,
+        title: "Season 1",
+        sourceTitle: catalogItem.title,
+        image,
+        banner,
+        highQualityBackground: banner,
+        adultBackground: banner,
+        playable: true,
+        episodes
+      }]
+    });
+    sendJson(response, { ok: true, source: "Hentai Ocean", adultOnly: true, item });
+  } catch (error) {
+    sendJson(response, { ok: false, error: error.message || "Hentai Ocean title metadata is unavailable." }, 502);
+  }
+}
+
+function normalizeAdultSourceTitle(value = "") {
+  return normalizeUnderHentaiSafetyText(value)
+    .replace(/\b(?:the )?animation\b/g, " ")
+    .replace(/\b(?:ova|ona)\b/g, " ")
+    .replace(/\bepisode\s*\d+\b/g, " ")
+    .replace(/\s+\d+$/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseHanimeArtwork(html = "", expectedTitle = "") {
+  const jsonLdText = [...String(html).matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)]
+    .map((match) => match[1].trim())
+    .find(Boolean) || "";
+  let jsonLd = {};
+  try { jsonLd = JSON.parse(decodeHtmlEntities(jsonLdText)); } catch { /* optional metadata */ }
+  const canonicalTitle = String(jsonLd?.name || "").trim();
+  const expected = normalizeAdultSourceTitle(expectedTitle);
+  const actual = normalizeAdultSourceTitle(canonicalTitle);
+  if (!expected || !actual || expected !== actual) return null;
+  const cover = decodeHtmlEntities(
+    String(html).match(/<meta\b[^>]*(?:property|name)=["']og:image["'][^>]*content=["']([^"']+)/i)?.[1] || ""
+  );
+  const encodedPoster = String(html).match(/poster_url(?:&quot;|\")?\s*(?::|&colon;)\s*(?:\[0,)?(?:&quot;|\")([^"<&]+)/i)?.[1]
+    || String(html).match(/poster_url\\?"\s*:\s*\\?"([^"\\]+)/i)?.[1]
+    || "";
+  const poster = decodeHtmlEntities(encodedPoster.replace(/\\\//g, "/"));
+  if (!cover && !poster) return null;
+  return {
+    title: canonicalTitle.replace(/\s+\d+$/, "").trim(),
+    description: cleanDescription(jsonLd?.description || ""),
+    cover,
+    backdrop: poster,
+    source: "Hanime"
+  };
+}
+
+async function findHanimeArtwork(title = "", sourceSlug = "") {
+  const cacheKey = `${normalizeAdultSourceTitle(title)}:${String(sourceSlug).toLowerCase()}`;
+  const cached = hanimeArtworkCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < HANIME_ARTWORK_CACHE_TTL_MS) return cached.data;
+  const titleSlug = String(title).toLowerCase().normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const cleanSourceSlug = String(sourceSlug).toLowerCase()
+    .replace(/^adult-(?:underhentai|hentaiocean)-/, "")
+    .replace(/^-+|-+$/g, "");
+  const candidates = [...new Set([
+    cleanSourceSlug,
+    cleanSourceSlug && !/-\d+$/.test(cleanSourceSlug) ? `${cleanSourceSlug}-1` : "",
+    titleSlug,
+    titleSlug && !/-\d+$/.test(titleSlug) ? `${titleSlug}-1` : ""
+  ].filter((value) => /^[a-z0-9][a-z0-9-]*$/.test(value)))].slice(0, 4);
+  let artwork = null;
+  for (const slug of candidates) {
+    try {
+      const upstream = await fetchWithRetry(`${HANIME_BASE}/videos/hentai/${encodeURIComponent(slug)}`, {
+        headers: {
+          "User-Agent": UNDERHENTAI_HEADERS["User-Agent"],
+          Accept: "text/html,application/xhtml+xml"
+        }
+      }, 1);
+      if (!upstream.ok) continue;
+      artwork = parseHanimeArtwork(await upstream.text(), title);
+      if (artwork) break;
+    } catch { /* try the next exact slug candidate */ }
+  }
+  hanimeArtworkCache.set(cacheKey, { data: artwork, ts: Date.now() });
+  return artwork;
+}
+
+async function handleHanimeArtwork(url, response) {
+  const title = String(url.searchParams.get("title") || "").trim().slice(0, 180);
+  const slug = String(url.searchParams.get("slug") || "").trim().slice(0, 220);
+  if (!title || !normalizeAdultSourceTitle(title)) {
+    sendJson(response, { ok: false, error: "Missing adult title." }, 400);
+    return;
+  }
+  try {
+    const artwork = await findHanimeArtwork(title, slug);
+    sendJson(response, { ok: true, source: "Hanime", adultOnly: true, artwork });
+  } catch (error) {
+    sendJson(response, { ok: false, error: error.message || "Hanime artwork is unavailable." }, 502);
+  }
 }
 
 function readVeoHentaiDetails() {
   if (veoHentaiDetailsSnapshot) return veoHentaiDetailsSnapshot;
   try {
-    const payload = JSON.parse(fs.readFileSync(VEOHENTAI_DETAILS_FILE, "utf8"));
+    let payload;
+    try {
+      payload = require("./scraper/veohentai_details.json");
+    } catch {
+      payload = JSON.parse(fs.readFileSync(VEOHENTAI_DETAILS_FILE, "utf8"));
+    }
     const items = Array.isArray(payload.items) ? payload.items.filter(isSafeAdultMetadata) : [];
     veoHentaiDetailsSnapshot = {
       ...payload,
@@ -8469,7 +9366,12 @@ function readVeoHentaiDetails() {
 
 function readVeoHentaiCatalog() {
   try {
-    const payload = JSON.parse(fs.readFileSync(VEOHENTAI_CATALOG_FILE, "utf8"));
+    let payload;
+    try {
+      payload = require("./scraper/veohentai_catalog.json");
+    } catch {
+      payload = JSON.parse(fs.readFileSync(VEOHENTAI_CATALOG_FILE, "utf8"));
+    }
     const items = Array.isArray(payload.items) ? payload.items.filter(isSafeAdultMetadata) : [];
     return { ...payload, items };
   } catch {
@@ -8511,9 +9413,11 @@ function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
     .filter((value, index, values) => value && values.indexOf(value) === index);
   const originalCover = [...html.matchAll(/<a\b[^>]*class\s*=\s*(?:"[^"]*\bglightbox\b[^"]*"|'[^']*\bglightbox\b[^']*')[^>]*>/gi)]
     .map((match) => underHentaiAttribute(match[0], "href"))
-    .find((value) => /static\.underhentai\.net\/assets\/images\//i.test(value)) || "";
-  const coverTags = [...html.matchAll(/<img\b[^>]*(?:fetchpriority\s*=\s*(?:"high"|'high'|high)|\/uploads\/)[^>]*>/gi)];
-  const image = decodeUnderHentaiImage(originalCover || coverTags.map((match) => underHentaiAttribute(match[0], "src")).find(Boolean) || "");
+    .find(isUnderHentaiTitleArtwork) || "";
+  const inlineCover = [...html.matchAll(/<img\b[^>]*>/gi)]
+    .map((match) => underHentaiAttribute(match[0], "src") || underHentaiAttribute(match[0], "data-src"))
+    .find(isUnderHentaiTitleArtwork) || "";
+  const image = decodeUnderHentaiImage(originalCover || inlineCover || "");
   const sectionMatches = [...html.matchAll(/class\s*=\s*(?:"[^"]*\b(?:ep2-header|ep-header)\b[^"]*"|'[^']*\b(?:ep2-header|ep-header)\b[^']*'|(?:ep2-header|ep-header))[^>]*>([\s\S]*?)<\/div>/gi)];
   const episodes = new Map();
 
@@ -8561,7 +9465,7 @@ function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
         embeds: [],
         streamResolver: {
           type: "underhentai",
-          endpoint: `/api/adult/underhentai/stream?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(number)}&release=${encodeURIComponent(streamIndex)}`
+          endpoint: `/api/adult/underhentai/stream?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(number)}&release=${encodeURIComponent(streamIndex)}&watch=${encodeURIComponent(watchUrl)}`
         },
         variant,
         format: metadata.format || "",
@@ -8582,6 +9486,7 @@ function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
   });
 
   const descriptionBlock = html.match(/class\s*=\s*(?:"[^"]*\brow-desc\b[^"]*"|'[^']*\brow-desc\b[^']*')[^>]*>[\s\S]*?class\s*=\s*(?:"[^"]*\brow-label\b[^"]*"|'[^']*\brow-label\b[^']*')[^>]*>[\s\S]*?<\/div>([\s\S]*?)<\/div>\s*<hr/i)?.[1] || "";
+  const screenshots = [...new Set([...episodes.values()].flatMap((episode) => episode.screenshots || []))];
   const item = {
     slug,
     title,
@@ -8590,7 +9495,9 @@ function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
     aired,
     genres,
     image,
-    banner: [...episodes.values()].find((episode) => episode.image)?.image || image,
+    mainWallpaper: image,
+    banner: image,
+    screenshots,
     url: sourceUrl,
     episodeCount: episodes.size,
     description: stripHtml(descriptionBlock) || [brand ? `Studio: ${brand}` : "", aired ? `Released: ${aired}` : ""].filter(Boolean).join(". "),
@@ -8666,6 +9573,16 @@ async function handleUnderHentaiDetails(url, response) {
     sendJson(response, { ok: true, source: "UnderHentai", adultOnly: true, cached: true, item: cached.data });
     return;
   }
+  if (slug.startsWith("veohentai-")) {
+    const rawSlug = slug.replace(/^veohentai-/, "");
+    const veoItem = readVeoHentaiDetails().bySlug.get(rawSlug) || readVeoHentaiCatalog().items.find((i) => i.slug === rawSlug);
+    if (veoItem) {
+      const item = prepareVeoHentaiSnapshotItem(veoItem);
+      underHentaiDetailCache.set(slug, { data: item, ts: Date.now() });
+      sendJson(response, { ok: true, source: "VeoHentai", adultOnly: true, bundled: true, item });
+      return;
+    }
+  }
   const snapshotItem = readUnderHentaiDetails().bySlug.get(slug);
   try {
     const sourceUrl = `${UNDERHENTAI_BASE}/${encodeURIComponent(slug)}/`;
@@ -8707,13 +9624,48 @@ function parseUnderHentaiEmbeds(html = "") {
   return urls;
 }
 
-function resolveZoPlayer(embedUrl = "") {
+async function verifyAdultMediaUrl(mediaUrl = "", refererHost = "", attempts = 2, refererUrl = "") {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      const parsed = new URL(mediaUrl);
+      if (parsed.protocol !== "https:" || isBlockedPlaybackUrl(parsed.toString())) return false;
+      const headers = {
+        "User-Agent": UNDERHENTAI_HEADERS["User-Agent"],
+        Accept: "*/*"
+      };
+      if (refererHost) {
+        headers.Referer = refererUrl || `https://${refererHost}/`;
+        headers.Origin = `https://${refererHost}`;
+      }
+      const isHls = /\.m3u8(?:$|[?#])/i.test(parsed.toString());
+      if (!isHls) headers.Range = "bytes=0-1023";
+      const upstream = await fetchWithTimeout(parsed.toString(), { headers }, 5000);
+      if (!upstream.ok) throw new Error(`Adult media returned HTTP ${upstream.status}`);
+      if (!isHls) {
+        const contentType = String(upstream.headers.get("content-type") || "").toLowerCase();
+        if (upstream.body) await upstream.body.cancel().catch(() => {});
+        if (/video|octet-stream/.test(contentType) || upstream.status === 206) return true;
+        throw new Error(`Unexpected adult media type: ${contentType || "unknown"}`);
+      }
+      const playlist = await upstream.text();
+      if (/^#EXTM3U\b/m.test(playlist) && /#EXT-X-|#EXTINF:/m.test(playlist)) return true;
+    } catch {
+      // A CDN edge may briefly fail while its signed URL propagates.
+    }
+    if (attempt + 1 < attempts) await wait(180 * (attempt + 1));
+  }
+  return false;
+}
+
+async function resolveZoPlayer(embedUrl = "") {
   try {
     const parsed = new URL(embedUrl);
     if (!["gupload.xyz", "www.gupload.xyz"].includes(parsed.hostname.toLowerCase())) return "";
     const mediaId = parsed.pathname.match(/^\/(?:data\/)?e\/([a-z0-9_-]+)(?:\/|$)/i)?.[1] || "";
     if (!mediaId) return "";
-    return sourceProxyPath(`https://gupload.xyz/data/e/hls/${mediaId}/720p.m3u8`, "gupload.xyz");
+    const mediaUrl = `https://gupload.xyz/data/e/hls/${mediaId}/720p.m3u8`;
+    if (!await verifyAdultMediaUrl(mediaUrl, "gupload.xyz", 1)) return "";
+    return sourceProxyPath(mediaUrl, "gupload.xyz");
   } catch {
     return "";
   }
@@ -8788,8 +9740,9 @@ async function resolveLuluStream(embedUrl = "") {
     const parsed = new URL(embedUrl);
     if (!/(?:^|\.)(?:luluvdo|lulustream)\.com$/i.test(parsed.hostname)) return "";
     const mediaId = parsed.pathname.match(/\/(?:embed|e)\/([a-z0-9_-]+)(?:\/|$)/i)?.[1] || "";
-    const providerPages = [parsed];
+    const providerPages = [];
     if (mediaId) providerPages.push(new URL(`https://www.lulustream.com/e/${mediaId}`));
+    if (!providerPages.some((page) => page.toString() === parsed.toString())) providerPages.push(parsed);
 
     for (const providerPage of providerPages) {
       const providerHost = providerPage.hostname.toLowerCase();
@@ -8813,6 +9766,7 @@ async function resolveLuluStream(embedUrl = "") {
         if (!mediaMatch) continue;
         const mediaUrl = new URL(decodeHtmlEntities(mediaMatch[1]).replace(/\\\//g, "/"));
         if (mediaUrl.protocol !== "https:" || isBlockedPlaybackUrl(mediaUrl.toString())) continue;
+        if (!await verifyAdultMediaUrl(mediaUrl.toString(), providerHost, 2, providerPage.toString())) continue;
         const url = sourceProxyPath(mediaUrl.toString(), providerHost);
         luluStreamDirectCache.set(cacheKey, { url, ts: Date.now() });
         return url;
@@ -9043,8 +9997,10 @@ async function resolveKrakenFiles(embedUrl) {
       try {
         const parsed = new URL(sourceUrl);
         if (parsed.protocol === "https:" && /(?:^|\.)krakencloud\.net$/i.test(parsed.hostname)) {
-          log("info", "KrakenFiles direct source found in embed page", { host: parsed.hostname });
-          return parsed.toString();
+          if (await verifyAdultMediaUrl(parsed.toString(), "krakenfiles.com", 1)) {
+            log("info", "KrakenFiles direct source found in embed page", { host: parsed.hostname });
+            return parsed.toString();
+          }
         }
       } catch { /* continue with the legacy resolver */ }
     }
@@ -9087,8 +10043,12 @@ async function resolveKrakenFiles(embedUrl) {
     }
     const data = await ajaxRes.json();
     if (data.url) {
-      log("info", "KrakenFiles resolution successful", { id });
-      return data.url;
+      if (await verifyAdultMediaUrl(data.url, "krakenfiles.com", 1)) {
+        log("info", "KrakenFiles resolution successful", { id });
+        return data.url;
+      }
+      log("warn", "KrakenFiles direct media check failed", { id });
+      return null;
     } else {
       log("warn", "KrakenFiles AJAX returned no URL", { data });
       return null;
@@ -9130,11 +10090,27 @@ async function handleUnderHentaiStream(url, response) {
         sendJson(response, { ok: false, error: "Adult title source is unavailable." }, 404);
         return;
       }
-      const episode = sourceItem.episodes?.find((entry) => Number(entry.number || entry.episode) === episodeNumber);
-      const bundledEpisode = bundledItem?.episodes?.find((entry) => Number(entry.number || entry.episode) === episodeNumber);
-      const bundledSourceOption = bundledEpisode?.sourceOptions?.find((entry, index) => Number(entry.releaseIndex ?? index) === releaseIndex);
-      const sourceOption = episode?.sourceOptions?.find((entry, index) => Number(entry.releaseIndex ?? index) === releaseIndex)
-        || bundledSourceOption;
+      const findRelease = (item, requireWatch = false) => {
+        for (const candidateEpisode of item?.episodes || []) {
+          if (Number(candidateEpisode.number || candidateEpisode.episode) !== episodeNumber) continue;
+          const candidateSource = candidateEpisode.sourceOptions?.find((entry, index) => {
+            if (Number(entry.releaseIndex ?? index) !== releaseIndex) return false;
+            if (!requireWatch) return true;
+            return String(entry.watchUrl || "") === watch;
+          });
+          if (candidateSource) return { episode: candidateEpisode, source: candidateSource };
+        }
+        return null;
+      };
+      const sourceMatch = (watch ? findRelease(sourceItem, true) : null)
+        || (watch ? findRelease(bundledItem, true) : null)
+        || findRelease(sourceItem)
+        || findRelease(bundledItem);
+      const bundledMatch = (watch ? findRelease(bundledItem, true) : null) || findRelease(bundledItem);
+      const episode = sourceMatch?.episode;
+      const sourceOption = sourceMatch?.source;
+      const bundledEpisode = bundledMatch?.episode;
+      const bundledSourceOption = bundledMatch?.source;
       if (!sourceOption) {
         sendJson(response, { ok: false, error: "Adult episode release is unavailable." }, 404);
         return;
@@ -9162,7 +10138,7 @@ async function handleUnderHentaiStream(url, response) {
             const upstream = await fetchWithRetry(watchUrl.toString(), { headers: UNDERHENTAI_HEADERS }, 2);
             if (upstream.ok) {
               const liveEmbeds = parseUnderHentaiEmbeds(await upstream.text());
-              if (liveEmbeds.length) embeds = liveEmbeds;
+              if (liveEmbeds.length) embeds = [...new Set([...liveEmbeds, ...embeds])];
             }
           } catch {
             // Keep the bundled provider list when a live refresh is unavailable.
@@ -9178,7 +10154,15 @@ async function handleUnderHentaiStream(url, response) {
       return;
     }
 
-    const resolvedSourceOptions = await Promise.all(embeds.map(async (embed, index) => {
+    const indexedEmbeds = embeds.map((embed, index) => ({ embed, index }));
+    const providerTiers = [
+      indexedEmbeds.filter(({ embed }) => /^https?:\/\/(?:www\.)?(?:luluvdo|lulustream)\.com\//i.test(embed)),
+      indexedEmbeds.filter(({ embed }) => /hentaiplayer/i.test(embed)),
+      indexedEmbeds.filter(({ embed }) => /^https?:\/\/(?:www\.)?gupload\.xyz\//i.test(embed)),
+      indexedEmbeds.filter(({ embed }) => /krakenfiles/i.test(embed))
+    ].filter((tier) => tier.length);
+
+    const resolveProvider = async ({ embed, index }) => {
       const isKraken = /krakenfiles/i.test(embed);
       const isHentaiPlayer = /hentaiplayer/i.test(embed);
       const isZoPlayer = /^https?:\/\/(?:www\.)?gupload\.xyz\//i.test(embed);
@@ -9191,8 +10175,9 @@ async function handleUnderHentaiStream(url, response) {
         const resolved = await resolveHentaiPlayer(embed);
         directUrl = typeof resolved === "string" ? resolved : (resolved?.url || "");
         subtitleTracks = Array.isArray(resolved?.subtitles) ? resolved.subtitles : [];
+        if (directUrl && !await verifyAdultMediaUrl(directUrl, "hentaiplayer.com", 1)) directUrl = "";
       } else if (isZoPlayer) {
-        directUrl = resolveZoPlayer(embed);
+        directUrl = await resolveZoPlayer(embed);
       } else if (isLuluStream) {
         directUrl = await resolveLuluStream(embed);
       }
@@ -9202,7 +10187,7 @@ async function handleUnderHentaiStream(url, response) {
         directUrl = sourceProxyPath(directUrl, "hentaiplayer.com");
       }
       return {
-        id: `underhentai-provider-${index + 1}`,
+        id: `underhentai-r${releaseIndex + 1}-provider-${index + 1}`,
         label: isKraken ? "KrakenFiles" : isHentaiPlayer ? "HentaiPlayer" : isZoPlayer ? "ZoPlayer" : "LuluStream",
         type: directUrl ? "direct" : "iframe",
         videoUrl: directUrl || "",
@@ -9212,9 +10197,24 @@ async function handleUnderHentaiStream(url, response) {
         audio: sourceAudio,
         hasSpanishSubtitles: /spanish|español|es\b|spa/i.test(String(sourceSubtitles)) || subtitleTracks.some((track) => /spanish|español|es\b|spa/i.test(`${track.language || ""} ${track.label || ""}`))
       };
-    }));
+    };
 
-    const sourceOptions = resolvedSourceOptions.filter((sourceOption) => sourceOption.type === "direct" && sourceOption.videoUrl);
+    // Provider embeds are ordered by real playback health, not by whichever
+    // link UnderHentai happened to print first. Stop after the first working
+    // tier so a dead legacy host cannot delay or replace a verified HLS stream.
+    let resolvedSourceOptions = [];
+    for (const tier of providerTiers) {
+      const resolvedTier = await Promise.all(tier.map(resolveProvider));
+      const seenMedia = new Set();
+      resolvedSourceOptions = resolvedTier.filter((sourceOption) => {
+        if (sourceOption.type !== "direct" || !sourceOption.videoUrl || seenMedia.has(sourceOption.videoUrl)) return false;
+        seenMedia.add(sourceOption.videoUrl);
+        return true;
+      });
+      if (resolvedSourceOptions.length) break;
+    }
+
+    const sourceOptions = resolvedSourceOptions;
     if (!sourceOptions.length) {
       sendJson(response, {
         ok: false,
@@ -9244,10 +10244,14 @@ async function handleUnderHentaiStream(url, response) {
 function sendJson(response, payload, status = 200, extraHeaders = {}) {
   response.writeHead(status, {
     ...SECURITY_HEADERS,
+    // Default to never caching an API response, but let a caller that knows
+    // better override it. This literal used to sit AFTER the extraHeaders spread,
+    // so every caller-supplied Cache-Control was silently discarded and their
+    // caching intent never reached the browser or the CDN.
+    "Cache-Control": "no-store, max-age=0",
     ...extraHeaders,
     "Content-Type": "application/json; charset=utf-8",
-    ...corsHeaders(),
-    "Cache-Control": "no-store, max-age=0"
+    ...corsHeaders()
   });
   response.end(JSON.stringify(payload));
 }
@@ -9272,35 +10276,74 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function fetchJikanJson(pathname) {
-  const run = async () => {
-    const waitMs = Math.max(0, 350 - (Date.now() - jikanLastRequestAt));
-    if (waitMs) await wait(waitMs);
-    jikanLastRequestAt = Date.now();
-    const upstream = await fetchWithRetry(`https://api.jikan.moe/v4${pathname}`);
-    if (!upstream.ok) throw new Error(`Jikan HTTP ${upstream.status}`);
-    return upstream.json();
+function fetchJikanJson(pathname, { deadlineAt = Infinity } = {}) {
+  // Include queue time and body decoding in the budget, not only HTTP headers.
+  const remainingMs = Math.min(deadlineAt - Date.now(), JIKAN_REQUEST_BUDGET_MS);
+  const timeoutError = new Error("Jikan request deadline exceeded");
+  timeoutError.code = "JIKAN_TIMEOUT";
+  if (remainingMs <= 0) return Promise.reject(timeoutError);
+  const controller = new AbortController();
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort(timeoutError);
+      reject(timeoutError);
+    }, remainingMs);
+  });
+  const requestJson = async () => {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (controller.signal.aborted) throw timeoutError;
+      const waitMs = Math.max(0, 350 - (Date.now() - jikanLastRequestAt));
+      if (waitMs) await wait(waitMs);
+      if (controller.signal.aborted) throw timeoutError;
+      jikanLastRequestAt = Date.now();
+      try {
+        const upstream = await fetch(`${JIKAN_API}${pathname}`, { signal: controller.signal });
+        if (upstream.ok) return await upstream.json();
+        await upstream.body?.cancel();
+        const error = new Error(`Jikan HTTP ${upstream.status}`);
+        error.status = upstream.status;
+        throw error;
+      } catch (error) {
+        if (controller.signal.aborted) throw timeoutError;
+        const retryable = !error.status || [408, 429, 500, 502, 503, 504].includes(error.status);
+        if (!retryable || attempt === 2) throw error;
+        await wait(650 * (2 ** attempt));
+      }
+    }
   };
+  // Race inside the queue as well so an expired body cannot block later work.
+  const run = () => Promise.race([requestJson(), deadline]);
   const request = jikanRequestQueue.then(run, run);
   jikanRequestQueue = request.catch(() => {});
-  return request;
+  return Promise.race([request, deadline]).finally(() => clearTimeout(timer));
 }
 
 async function handleJikanFull(url, response) {
   const malId = url.searchParams.get("id");
   if (!malId) return sendJson(response, { error: "Missing ID" }, 400);
+  const fullKey = `full:${malId}`;
+  const cached = jikanFullCache.get(String(malId));
   try {
-    const cached = jikanFullCache.get(String(malId));
     if (cached && Date.now() - cached.ts < JIKAN_EPISODE_CACHE_TTL_MS) {
       return sendJson(response, { data: cached.data, cached: true });
+    }
+    if (jikanCoolingDown(fullKey)) {
+      return sendJikanUnavailable(response, cached?.data, null);
     }
     const payload = await fetchJikanJson(`/anime/${encodeURIComponent(malId)}/full`);
     const data = payload.data || null;
     if (data) jikanFullCache.set(String(malId), { data, ts: Date.now() });
-    sendJson(response, { data });
+    noteJikanSuccess(fullKey);
+    sendJson(response, { data, ok: true, notFound: !data }, 200, JIKAN_OK_CACHE);
   } catch (error) {
-    console.error("[Jikan] full metadata error:", error);
-    sendJson(response, { error: error.message }, 500);
+    if (isPermanentJikanError(error)) {
+      jikanFullCache.set(String(malId), { data: null, ts: Date.now() });
+      noteJikanSuccess(fullKey);
+      return sendJson(response, { data: null, ok: true, notFound: true }, 200, JIKAN_OK_CACHE);
+    }
+    noteJikanFailure(fullKey, error);
+    sendJikanUnavailable(response, cached?.data, null);
   }
 }
 
@@ -9308,18 +10351,32 @@ async function handleJikanSearch(url, response) {
   const query = String(url.searchParams.get("q") || "").trim();
   if (!query) return sendJson(response, { error: "Missing query" }, 400);
   const cacheKey = normalizeTitle(query);
+  const cached = jikanSearchCache.get(cacheKey);
   try {
-    const cached = jikanSearchCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < JIKAN_EPISODE_CACHE_TTL_MS) {
       return sendJson(response, { data: cached.data, cached: true });
+    }
+    // Serve whatever we have rather than re-hitting an upstream we just saw fail.
+    if (jikanCoolingDown(cacheKey)) {
+      return sendJikanUnavailable(response, cached?.data, []);
     }
     const payload = await fetchJikanJson(`/anime?q=${encodeURIComponent(query)}&limit=5&sfw=true`);
     const data = payload.data || [];
     jikanSearchCache.set(cacheKey, { data, ts: Date.now() });
-    sendJson(response, { data });
+    noteJikanSuccess(cacheKey);
+    // ok:true with an empty array means "Jikan has no such title" - a real
+    // answer, distinct from unavailable:true which means "we could not ask".
+    sendJson(response, { data, ok: true, notFound: data.length === 0 }, 200, JIKAN_OK_CACHE);
   } catch (error) {
-    console.error("[Jikan] search error:", error);
-    sendJson(response, { error: error.message }, 500);
+    if (isPermanentJikanError(error)) {
+      // A definitive "not found" is a result, so cache it like one rather than
+      // burning a cooldown slot and re-asking every 60s.
+      jikanSearchCache.set(cacheKey, { data: [], ts: Date.now() });
+      noteJikanSuccess(cacheKey);
+      return sendJson(response, { data: [], ok: true, notFound: true }, 200, JIKAN_OK_CACHE);
+    }
+    noteJikanFailure(cacheKey, error);
+    sendJikanUnavailable(response, cached?.data, []);
   }
 }
 
@@ -9327,20 +10384,25 @@ async function handleJikanEpisodes(url, response) {
   const malId = url.searchParams.get("id");
   if (!malId) return sendJson(response, { error: "Missing ID" }, 400);
 
+  const episodesKey = `episodes:${malId}`;
+  const cached = jikanEpisodeCache.get(String(malId));
   try {
-    const cached = jikanEpisodeCache.get(String(malId));
     if (cached && Date.now() - cached.ts < JIKAN_EPISODE_CACHE_TTL_MS) {
       return sendJson(response, { data: cached.data, cached: true });
     }
+    if (jikanCoolingDown(episodesKey)) {
+      return sendJikanUnavailable(response, cached?.data, []);
+    }
 
-    const firstPayload = await fetchJikanJson(`/anime/${encodeURIComponent(malId)}/episodes?page=1`);
+    const deadlineAt = Date.now() + JIKAN_EPISODE_BUDGET_MS;
+    const firstPayload = await fetchJikanJson(`/anime/${encodeURIComponent(malId)}/episodes?page=1`, { deadlineAt });
     const pageCount = Math.max(1, Math.min(30, Number(firstPayload.pagination?.last_visible_page || 1)));
     const payloads = [firstPayload];
 
     for (let page = 2; page <= pageCount; page += 2) {
       const batch = [page, page + 1].filter((value) => value <= pageCount);
       const results = await Promise.all(batch.map((pageNumber) =>
-        fetchJikanJson(`/anime/${encodeURIComponent(malId)}/episodes?page=${pageNumber}`)
+        fetchJikanJson(`/anime/${encodeURIComponent(malId)}/episodes?page=${pageNumber}`, { deadlineAt })
       ));
       payloads.push(...results);
     }
@@ -9350,10 +10412,16 @@ async function handleJikanEpisodes(url, response) {
       .map(normalizeJikanEpisode)
       .sort((a, b) => Number(a.episode || 0) - Number(b.episode || 0));
     jikanEpisodeCache.set(String(malId), { data: episodes, ts: Date.now() });
-    sendJson(response, { data: episodes, pages: pageCount });
+    noteJikanSuccess(episodesKey);
+    sendJson(response, { data: episodes, pages: pageCount, ok: true, notFound: episodes.length === 0 }, 200, JIKAN_OK_CACHE);
   } catch (error) {
-    console.error("[Jikan] episodes error:", error);
-    sendJson(response, { error: error.message }, 500);
+    if (isPermanentJikanError(error)) {
+      jikanEpisodeCache.set(String(malId), { data: [], ts: Date.now() });
+      noteJikanSuccess(episodesKey);
+      return sendJson(response, { data: [], ok: true, notFound: true }, 200, JIKAN_OK_CACHE);
+    }
+    noteJikanFailure(episodesKey, error);
+    sendJikanUnavailable(response, cached?.data, []);
   }
 }
 
@@ -9380,10 +10448,13 @@ function tmdbFetch(pathname, params = {}) {
     let route = "";
     const tvMatch = pathname.match(/^\/tv\/(\d+)$/);
     const seasonMatch = pathname.match(/^\/tv\/(\d+)\/season\/(\d+)$/);
-    if (pathname === "/search/tv") {
+    if (pathname === "/search/tv" || pathname === "/search/movie") {
       route = "search";
       proxyParams.set("q", String(params.query || ""));
-      if (params.first_air_date_year) proxyParams.set("year", String(params.first_air_date_year));
+      if (pathname === "/search/movie") proxyParams.set("type", "movie");
+      const searchYear = params.first_air_date_year || params.primary_release_year;
+      if (searchYear) proxyParams.set("year", String(searchYear));
+      if (String(params.include_adult || "").toLowerCase() === "true") proxyParams.set("adult", "1");
     } else if (seasonMatch) {
       route = "season";
       proxyParams.set("id", seasonMatch[1]);
@@ -9424,22 +10495,32 @@ async function handleTmdbSearch(url, response) {
   const query = String(url.searchParams.get("q") || "").trim();
   if (!query) return sendJson(response, { ok: false, configured: true, error: "Missing query" }, 400);
   const year = String(url.searchParams.get("year") || "").trim();
-  const cacheKey = `${normalizeTitle(query)}|${year}`;
+  const includeAdult = url.searchParams.get("adult") === "1";
+  // Include the media type: the tv and movie indexes answer the same query
+  // differently, and sharing one key would serve a film result for a series.
+  const cacheKey = `${normalizeTitle(query)}|${year}|${String(url.searchParams.get("type") || "tv").toLowerCase()}|${includeAdult ? "adult" : "safe"}`;
   try {
     const cached = tmdbSearchCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < TMDB_CACHE_TTL_MS) {
       return sendJson(response, { ok: true, configured: true, cached: true, results: cached.data });
     }
-    const params = { query, include_adult: "false", language: "en-US" };
-    if (year) params.first_air_date_year = year;
-    let payload = await tmdbFetch("/search/tv", params);
+    const wantMovie = String(url.searchParams.get("type") || "").toLowerCase() === "movie";
+    const route = wantMovie ? "/search/movie" : "/search/tv";
+    const yearKey = wantMovie ? "primary_release_year" : "first_air_date_year";
+    const params = { query, include_adult: includeAdult ? "true" : "false", language: "en-US" };
+    if (year) params[yearKey] = year;
+    let payload = await tmdbFetch(route, params);
     let results = Array.isArray(payload.results) ? payload.results : [];
     if (year && !results.length) {
-      const fallbackParams = { query, include_adult: "false", language: "en-US" };
-      payload = await tmdbFetch("/search/tv", fallbackParams);
+      const fallbackParams = { query, include_adult: includeAdult ? "true" : "false", language: "en-US" };
+      payload = await tmdbFetch(route, fallbackParams);
       results = Array.isArray(payload.results) ? payload.results : [];
     }
-    const sliced = results.slice(0, 10);
+    // A movie result carries title/original_title/release_date. Alias them to the
+    // TV field names so callers never have to branch on the media type.
+    const sliced = results.slice(0, 10).map((r) => (wantMovie
+      ? { ...r, name: r.name || r.title, original_name: r.original_name || r.original_title, first_air_date: r.first_air_date || r.release_date, media_type: "movie" }
+      : r));
     tmdbSearchCache.set(cacheKey, { data: sliced, ts: Date.now() });
     sendJson(response, { ok: true, configured: true, results: sliced });
   } catch (error) {
@@ -9466,6 +10547,8 @@ async function handleTmdbTv(url, response) {
       poster_path: payload.poster_path,
       backdrop_path: payload.backdrop_path,
       number_of_seasons: payload.number_of_seasons,
+      number_of_episodes: payload.number_of_episodes,
+      genres: payload.genres || [],
       seasons: Array.isArray(payload.seasons)
         ? payload.seasons.map((s) => ({
             season_number: s.season_number,
