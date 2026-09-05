@@ -380,6 +380,16 @@
   let castLoadError = null;
   let castLastUrlType = "";
   let castLastContentType = "";
+  // HLS packaging, and the Cast fields derived from it. Set only on real evidence.
+  let castHlsPackaging = "";
+  let castHlsSegmentFormat = "";
+  let castHlsVideoSegmentFormat = "";
+  // Receiver-side truth, filled in by the RemotePlayer listeners below.
+  let remotePlayer = null;
+  let remoteController = null;
+  let lastReceiverIdleReason = null;
+  let lastReceiverMediaError = null;
+  let mediaSessionSeenAt = null;
   // Codec compatibility for the CURRENTLY SELECTED source. We never substitute a
   // different provider - if the chosen one cannot be decoded by the receiver we
   // say so and leave the choice to the viewer.
@@ -615,17 +625,50 @@
   // than pulling a 3MB media segment. A plain MPEG-TS media playlist carries no
   // cheap codec evidence, so it stays UNKNOWN and is allowed through: a guess is
   // not grounds for blocking a cast.
+  // Packaging is read from the playlist and, if needed, the segment bytes - never
+  // inferred from the codec. EXT-X-MAP only exists for fMP4, a .ts segment or a
+  // 0x47 sync byte means MPEG-TS, and anything else stays UNKNOWN so no packaging
+  // metadata gets invented.
+  async function detectHlsPackaging(text, url) {
+    if (/#EXT-X-MAP/.test(text)) return { packaging: "FMP4", how: "EXT-X-MAP present" };
+    const segLine = text.split("\n").find((l) => l.trim() && !l.startsWith("#"));
+    if (!segLine) return { packaging: "UNKNOWN", how: "no segment lines" };
+    let probe = segLine.trim();
+    try {
+      const abs = new URL(probe, url);
+      probe = abs.searchParams.get("url") || abs.pathname;
+    } catch (error) { /* use the raw line */ }
+    const clean = String(probe).split("?")[0].split("#")[0].toLowerCase();
+    if (clean.endsWith(".ts")) return { packaging: "MPEG2_TS", how: ".ts segment extension" };
+    if (clean.endsWith(".m4s") || clean.endsWith(".mp4")) return { packaging: "FMP4", how: "fMP4 segment extension" };
+    // The AnimeAV1 CDN names segments .html, so extension proves nothing - look.
+    try {
+      const segRes = await fetch(new URL(segLine.trim(), url).href, { cache: "no-store" });
+      if (!segRes.ok) return { packaging: "UNKNOWN", how: `segment HTTP ${segRes.status}` };
+      const head = new Uint8Array((await segRes.arrayBuffer()).slice(0, 16));
+      if (head[0] === 0x47) return { packaging: "MPEG2_TS", how: "0x47 TS sync byte" };
+      const box = String.fromCharCode(head[4], head[5], head[6], head[7]);
+      if (box === "styp" || box === "ftyp") return { packaging: "FMP4", how: `ISO-BMFF ${box} box` };
+      return { packaging: "UNKNOWN", how: "segment head matched nothing" };
+    } catch (error) {
+      return { packaging: "UNKNOWN", how: "segment probe failed" };
+    }
+  }
+
+  // Reads the media itself rather than trusting the provider name. Cheapest
+  // reliable evidence first: a master playlist states CODECS outright, and an
+  // fMP4 rendition names it in an init segment that is a couple of KB - far less
+  // than pulling a 3MB media segment.
   async function detectCastVideoCodec(url) {
     const key = `${segmentsEpisodeKey}|${url}`;
     const cached = castCodecCache.get(key);
     if (cached) return cached;
-    const out = { codec: "UNKNOWN", method: "not determined" };
+    const out = { codec: "UNKNOWN", method: "not determined", packaging: "UNKNOWN", packagingHow: "not determined" };
     try {
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) {
-        // Transient - deliberately NOT cached, so a later attempt can succeed.
         out.method = `manifest HTTP ${res.status}`;
-        return out;
+        return out;   // transient, not cached
       }
       const text = await res.text();
       const streamInf = text.match(/#EXT-X-STREAM-INF:[^\n]*/);
@@ -635,10 +678,19 @@
         if (codec) {
           out.codec = codec;
           out.method = "HLS EXT-X-STREAM-INF CODECS";
+          // A master playlist says nothing about packaging without following a
+          // variant. Leave it UNKNOWN rather than spend a request guessing: the
+          // MPEG-TS path already casts correctly with no HLS format fields at all,
+          // and inventing metadata there could only break it.
+          out.packaging = "UNKNOWN";
+          out.packagingHow = "master playlist - variant not followed";
           castCodecCache.set(key, out);
           return out;
         }
       }
+      const pack = await detectHlsPackaging(text, url);
+      out.packaging = pack.packaging;
+      out.packagingHow = pack.how;
       const mapUri = (text.match(/#EXT-X-MAP:[^\n]*URI="([^"]+)"/) || [])[1];
       if (mapUri) {
         const initRes = await fetch(new URL(mapUri, url).href, { cache: "no-store" });
@@ -656,10 +708,68 @@
       castCodecCache.set(key, out);
       return out;
     } catch (error) {
-      // Network/parse failure is transient: report UNKNOWN, do not cache, and do
-      // not block on it.
       out.method = "detection failed: " + String(error?.message ?? error).slice(0, 60);
       return out;
+    }
+  }
+
+  // Receiver-side truth. Without this the only thing we could see was that the
+  // media session vanished; these events say WHY.
+  function initRemotePlayer() {
+    if (remotePlayer || !window.cast?.framework?.RemotePlayer) return;
+    try {
+      remotePlayer = new window.cast.framework.RemotePlayer();
+      remoteController = new window.cast.framework.RemotePlayerController(remotePlayer);
+      const E = window.cast.framework.RemotePlayerEventType;
+      const report = (name) => () => {
+        castLog("remote player", {
+          event: name,
+          isConnected: remotePlayer.isConnected,
+          isMediaLoaded: remotePlayer.isMediaLoaded,
+          playerState: remotePlayer.playerState,
+          currentTime: remotePlayer.currentTime,
+          duration: remotePlayer.duration
+        });
+        if (remotePlayer.isMediaLoaded && !mediaSessionSeenAt) mediaSessionSeenAt = "remote player reported loaded";
+        captureReceiverStatus();
+      };
+      for (const [key, name] of [["IS_CONNECTED_CHANGED", "IS_CONNECTED_CHANGED"], ["IS_MEDIA_LOADED_CHANGED", "IS_MEDIA_LOADED_CHANGED"], ["PLAYER_STATE_CHANGED", "PLAYER_STATE_CHANGED"], ["MEDIA_INFO_CHANGED", "MEDIA_INFO_CHANGED"], ["DURATION_CHANGED", "DURATION_CHANGED"]]) {
+        if (E?.[key]) remoteController.addEventListener(E[key], report(name));
+      }
+      castLog("remote player instrumented");
+    } catch (error) {
+      console.warn("[Cast] RemotePlayer instrumentation failed", error);
+    }
+  }
+
+  // idleReason is the receiver saying why it stopped - ERROR here would mean it
+  // took the media and then could not play it.
+  function captureReceiverStatus() {
+    const media = castMedia();
+    if (!media) return;
+    if (!mediaSessionSeenAt) mediaSessionSeenAt = new Date().toISOString();
+    if (media.idleReason) lastReceiverIdleReason = String(media.idleReason);
+    const status = media.playerState ? String(media.playerState) : null;
+    if (status) castLog("receiver playerState", status, "idleReason", media.idleReason ?? null);
+  }
+
+  // Diagnostic only - getMediaSession() does not necessarily appear synchronously,
+  // so look again at intervals instead of concluding from one reading.
+  function observeMediaSession(tag) {
+    const at = [0, 250, 1000, 3000, 5000];
+    for (const ms of at) {
+      setTimeout(() => {
+        const media = castMedia();
+        captureReceiverStatus();
+        castLog(`mediaSession @${ms}ms (${tag})`, {
+          hasMediaSession: Boolean(media),
+          playerState: media?.playerState ?? null,
+          idleReason: media?.idleReason ?? null,
+          remoteIsMediaLoaded: remotePlayer?.isMediaLoaded ?? null,
+          remotePlayerState: remotePlayer?.playerState ?? null,
+          remoteDuration: remotePlayer?.duration ?? null
+        });
+      }, ms);
     }
   }
 
@@ -701,35 +811,40 @@
       return;
     }
 
-    // Codec gate. The selected source is authoritative: we never swap provider,
-    // never fall back to sources[0], and never touch what the local player is
-    // playing. If the receiver cannot decode THIS source we stop and say so.
+    // Codec and packaging are now DESCRIBED to the receiver rather than used to
+    // refuse the cast. The previous pre-block assumed AV1 could not be decoded, but
+    // that was never tested against a receiver that was told the truth about the
+    // stream: a CMAF/fMP4 HLS ladder announced without hlsSegmentFormat is parsed
+    // as MPEG-TS, which fails regardless of codec. Describe it correctly, let the
+    // receiver answer, and report what it actually says.
     const detection = await detectCastVideoCodec(url);
     castDetectedCodec = detection.codec;
     castCodecMethod = detection.method;
-    castBlockedForCodec = detection.codec === "AV1";
-    castCodecResult = castBlockedForCodec ? "blocked" : "allowed";
-    if (castBlockedForCodec) {
-      castLoadResult = "blocked-codec";
-      console.error("[Cast] not loading - the receiver cannot decode this video codec", {
-        detectedVideoCodec: detection.codec,
-        codecDetectionMethod: detection.method,
-        sourceHost: castSourceLabel(),
-        note: "selected source kept as-is; pick another server to cast"
-      });
-      if (art) {
-        // Only offer another server when one actually exists. For an episode with a
-        // single AV1 source, "try another server" is a dead end dressed as advice.
-        art.notice.show = episodeSourceCount > 1
-          ? "This source uses AV1 and isn\u2019t supported by your Chromecast. Try another server."
-          : "No Chromecast-compatible source is available for this episode.";
-      }
-      return;
-    }
+    castHlsPackaging = detection.packaging;
+    castBlockedForCodec = false;
+    castCodecResult = "described";
 
     let request;
     try {
       const media = new window.chrome.cast.media.MediaInfo(url, contentType);
+      // Enums come off the live SDK; if a build ever lacks them we set nothing
+      // rather than smuggle in string literals the receiver may not accept.
+      const SegFmt = window.chrome?.cast?.media?.HlsSegmentFormat;
+      const VidFmt = window.chrome?.cast?.media?.HlsVideoSegmentFormat;
+      const StreamType = window.chrome?.cast?.media?.StreamType;
+      if (StreamType?.BUFFERED) media.streamType = StreamType.BUFFERED;
+      castHlsSegmentFormat = "";
+      castHlsVideoSegmentFormat = "";
+      if (detection.packaging === "FMP4" && SegFmt?.FMP4 && VidFmt?.FMP4) {
+        media.hlsSegmentFormat = SegFmt.FMP4;
+        media.hlsVideoSegmentFormat = VidFmt.FMP4;
+        castHlsSegmentFormat = String(SegFmt.FMP4);
+        castHlsVideoSegmentFormat = String(VidFmt.FMP4);
+      }
+      // MPEG-TS and UNKNOWN are deliberately left undescribed. The MPEG-TS ladder
+      // already casts correctly with no HLS format fields at all, so adding them
+      // there could only put a working path at risk, and UNKNOWN has no evidence
+      // to describe in the first place.
       // Metadata is best-effort: it must never be the reason playback fails.
       try {
         const meta = new window.chrome.cast.media.GenericMediaMetadata();
@@ -748,17 +863,23 @@
       castLoadResult = "build-threw";
       castLoadError = String(error?.message ?? error);
       console.error("[Cast] building the load request threw", error);
-      if (art) art.notice.show = "Connected, but this source couldn't be loaded";
+      if (art) art.notice.show = "This source couldn't be played by this Cast device.";
       return;
     }
 
     castLoadCalled = true;
     castLoadResult = "pending";
+    initRemotePlayer();
     console.log("[Cast] loadMedia starting", {
       episode: episode || "(none)",
       sourceHost: castSourceLabel(),
       mediaUrlType: kind,
       contentType,
+      detectedVideoCodec: detection.codec,
+      hlsPackaging: detection.packaging,
+      hlsPackagingEvidence: detection.packagingHow,
+      hlsSegmentFormat: castHlsSegmentFormat || "(not set)",
+      hlsVideoSegmentFormat: castHlsVideoSegmentFormat || "(not set)",
       startTime: request.currentTime
     });
 
@@ -768,6 +889,9 @@
         result: result ?? null,
         hasMediaSession: Boolean(session.getMediaSession?.())
       });
+      // Resolved only means the receiver ACCEPTED the load. Whether it then plays
+      // is a separate question, and the answer arrives over the next few seconds.
+      observeMediaSession("after resolve");
       if (art) art.notice.show = "Casting";
       try { art?.video?.pause?.(); } catch (error) { /* already stopped */ }
     }).catch((error) => {
@@ -781,7 +905,7 @@
         contentType,
         sourceHost: castSourceLabel()
       });
-      if (art) art.notice.show = "Connected, but this source couldn't be loaded";
+      if (art) art.notice.show = "This source couldn't be played by this Cast device.";
     });
   }
 
@@ -802,10 +926,16 @@
     async detectCodec() {
       const url = castMediaUrl();
       const result = await detectCastVideoCodec(url);
+      const SegFmt = window.chrome?.cast?.media?.HlsSegmentFormat;
+      const VidFmt = window.chrome?.cast?.media?.HlsVideoSegmentFormat;
+      const wouldDescribe = result.packaging === "FMP4" && Boolean(SegFmt?.FMP4 && VidFmt?.FMP4);
       return {
         detectedVideoCodec: result.codec,
         codecDetectionMethod: result.method,
-        wouldBlockCast: result.codec === "AV1",
+        hlsPackaging: result.packaging,
+        hlsPackagingEvidence: result.packagingHow,
+        wouldSetHlsSegmentFormat: wouldDescribe ? String(SegFmt.FMP4) : "(not set)",
+        wouldSetHlsVideoSegmentFormat: wouldDescribe ? String(VidFmt.FMP4) : "(not set)",
         sourceHost: castSourceLabel(),
         urlClassification: classifyCastUrl(url)
       };
@@ -837,6 +967,17 @@
         castBlockedForCodec,
         mediaUrlType: castLastUrlType || classifyCastUrl(castMediaUrl()),
         contentType: castLastContentType || castContentType(),
+        hlsPackaging: castHlsPackaging || "not-detected",
+        hlsSegmentFormat: castHlsSegmentFormat || "(not set)",
+        hlsVideoSegmentFormat: castHlsVideoSegmentFormat || "(not set)",
+        remoteIsConnected: remotePlayer ? remotePlayer.isConnected : null,
+        remoteIsMediaLoaded: remotePlayer ? remotePlayer.isMediaLoaded : null,
+        remotePlayerState: remotePlayer ? remotePlayer.playerState : null,
+        remoteCurrentTime: remotePlayer ? remotePlayer.currentTime : null,
+        remoteDuration: remotePlayer ? remotePlayer.duration : null,
+        lastReceiverIdleReason,
+        lastReceiverMediaError,
+        mediaSessionSeenAt,
         secureContext: window.isSecureContext,
         host: window.location.hostname
       };
