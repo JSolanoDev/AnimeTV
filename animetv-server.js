@@ -1667,7 +1667,13 @@ async function handleSourceProxy(request, url, response) {
     const luluMediaId = isLuluMedia
       ? targetUrl.pathname.match(/\/([a-z0-9]+)_h(?:\/|$)/i)?.[1] || ""
       : "";
-    const isZillaSegment = isZilla && /^\/segs\/[a-f0-9]{32}\/.+\.html$/i.test(targetUrl.pathname);
+    // Anything under /segs/<hash>/ is a media segment - the .html suffix is the
+    // CDN disguising them, not a description. Narrowing this to .html left the
+    // init segment (and any other spelling) to whatever Content-Type the CDN felt
+    // like sending, which hls.js ignores and a Cast receiver does not.
+    const isZillaSegment = isZilla
+      && /^\/segs\/[a-f0-9]{32}\/.+$/i.test(targetUrl.pathname)
+      && !/\.m3u8$/i.test(targetUrl.pathname);
     const isGuploadSegment = isGupload && /^\/data\/e\/hls\/[a-z0-9_-]+\/[^/]+\.jpg$/i.test(targetUrl.pathname);
     const headers = {
       "User-Agent": String(request.headers["user-agent"] || UNDERHENTAI_HEADERS["User-Agent"])

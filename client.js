@@ -548,7 +548,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=684`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=686`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3464,7 +3464,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=684";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=686";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -11220,6 +11220,36 @@ const PLAYER_SHELL_VERSION = (() => {
   }
 })();
 
+// The ordered list of sources the PLAYER may retry on if the TV refuses the first
+// one. Built from getEpisodePlaybackSources - the very list the source picker
+// renders - so casting can never reach a source the viewer could not have picked
+// by hand. That is what keeps the adult-source rule intact: this adds no source
+// to the list and applies no new admission logic, it only reorders what is
+// already there, and it reorders it for Cast alone. Browser source priority and
+// the picker are untouched.
+//
+// The selected source stays FIRST. Casting must never quietly play a different
+// server than the one on screen; the rest exist only to rescue an attempt the
+// receiver could not start.
+function buildCastCandidateList() {
+  const episode = state.activeEpisode?.episode;
+  if (!episode || typeof getEpisodePlaybackSources !== "function") return [];
+  const sources = getEpisodePlaybackSources(episode) || [];
+  const active = typeof isActivePlaybackSource === "function"
+    ? sources.find((source) => isActivePlaybackSource(source, episode))
+    : null;
+  const ordered = [active, ...sources.filter((source) => source !== active)].filter(Boolean);
+  return ordered.map((source) => {
+    const url = String(source.videoUrl || source.url || "");
+    if (!url) return null;
+    return {
+      label: String(source.label || source.id || "source"),
+      url: isLocalSourceProxyUrl(url) ? localSourceProxyPath(url) : resolveSourceEndpoint(url),
+      type: streamTypeFromUrl(url)
+    };
+  }).filter(Boolean).slice(0, 4);
+}
+
 function buildPlayerUrl(videoUrl = "", title = "", options = {}) {
   const playerUrl = new URL("/player/player.html", location.origin);
   if (PLAYER_SHELL_VERSION) playerUrl.searchParams.set("v", PLAYER_SHELL_VERSION);
@@ -11548,6 +11578,12 @@ function createApkPlayerController(iframe, options = {}) {
     }
     if (command === "next") {
       options.onNext?.();
+      return;
+    }
+    // Cast-only. The player frame is opened with ONE src, so without this there
+    // is nothing for a failed cast to fall back to.
+    if (command === "castCandidates") {
+      postApkPlayerCommand(iframe, "castCandidates", buildCastCandidateList());
       return;
     }
     if (command === "back") {
@@ -16704,7 +16740,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=684");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=686");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

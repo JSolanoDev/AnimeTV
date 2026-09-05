@@ -368,7 +368,15 @@
     // Development logging. The lifecycle chatter is localhost-only; real failures
   // always reach console.error, because a silently swallowed Cast error is what
   // made this impossible to diagnose in the first place.
-  const CAST_DEV = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
+  // Cast tracing. Localhost always, and on the real site when it is asked for -
+  // ?castdebug=1 on the page, or localStorage ztv:cast-debug=1, which survives the
+  // navigations a Cast test involves. This gate is why the v683 instrumentation
+  // produced no evidence on the one device that could produce it: every
+  // RemotePlayer listener and every media-session sample ran on zenkaitv.com and
+  // printed nothing, so the real-device test came back with nothing to read.
+  const CAST_DEV = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname)
+    || params.get("castdebug") === "1"
+    || (() => { try { return localStorage.getItem("ztv:cast-debug") === "1"; } catch (error) { return false; } })();
   const CAST_SDK = "https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1";
   let castInitState = "idle";
   let castInitStarted = false;
@@ -398,6 +406,32 @@
   let castCodecResult = "not-run";
   let castBlockedForCodec = false;
   const castCodecCache = new Map();
+
+  // A Cast load that the receiver ACCEPTS can still never play. On the Hisense
+  // 65U8K the Default Media Receiver took an AV1 fMP4/CMAF ladder, resolved
+  // loadMedia() successfully, and then sat on its loading screen indefinitely -
+  // no error, no state change, nothing for the sender to react to. Treating the
+  // resolved promise as success is what left the TV stuck forever, so every
+  // attempt is now watched against a deadline and abandoned if it never reaches
+  // real playback.
+  //
+  // 15s is deliberately generous: a cold manifest + init segment + first media
+  // segment measures 2-4s in the browser, so this leaves roughly 4x headroom for
+  // a TV on wifi while still being a wait somebody will actually sit through. A
+  // receiver that reports IDLE/ERROR is abandoned at once rather than waiting the
+  // clock out.
+  const CAST_PLAYBACK_DEADLINE_MS = 15000;
+  // The parent frame owns the source list. If it does not answer in this long we
+  // cast the source we were opened with and nothing else, which is exactly the
+  // old behaviour - the ladder is an enhancement, never a prerequisite.
+  const CAST_CANDIDATE_REPLY_MS = 1500;
+  // Bumped per attempt. Every async watcher captures it and bails the moment it
+  // no longer matches, so a late callback from an abandoned attempt can never
+  // resolve, abort or report on behalf of the current one.
+  let castAttemptSeq = 0;
+  let castAttempts = [];
+  let castCandidatesCache = null;
+  let castLadderRunning = false;
 
   function castLog(...parts) {
     if (CAST_DEV) console.log("[Cast]", ...parts);
@@ -629,6 +663,19 @@
   // inferred from the codec. EXT-X-MAP only exists for fMP4, a .ts segment or a
   // 0x47 sync byte means MPEG-TS, and anything else stays UNKNOWN so no packaging
   // metadata gets invented.
+  // Every probe below runs BEFORE loadMedia, while the TV already sits on the
+  // launched receiver screen. An unbounded fetch here is indistinguishable from a
+  // stuck cast: the loading screen stays up and loadMedia is never even called.
+  // So all of them are bounded, and a slow probe degrades to "UNKNOWN" rather
+  // than to a hang.
+  const CAST_PROBE_TIMEOUT_MS = 6000;
+  function castFetch(url, init) {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), CAST_PROBE_TIMEOUT_MS);
+    return fetch(url, { ...init, cache: "no-store", signal: controller.signal })
+      .finally(() => window.clearTimeout(timer));
+  }
+
   async function detectHlsPackaging(text, url) {
     if (/#EXT-X-MAP/.test(text)) return { packaging: "FMP4", how: "EXT-X-MAP present" };
     const segLine = text.split("\n").find((l) => l.trim() && !l.startsWith("#"));
@@ -643,7 +690,7 @@
     if (clean.endsWith(".m4s") || clean.endsWith(".mp4")) return { packaging: "FMP4", how: "fMP4 segment extension" };
     // The AnimeAV1 CDN names segments .html, so extension proves nothing - look.
     try {
-      const segRes = await fetch(new URL(segLine.trim(), url).href, { cache: "no-store" });
+      const segRes = await castFetch(new URL(segLine.trim(), url).href);
       if (!segRes.ok) return { packaging: "UNKNOWN", how: `segment HTTP ${segRes.status}` };
       const head = new Uint8Array((await segRes.arrayBuffer()).slice(0, 16));
       if (head[0] === 0x47) return { packaging: "MPEG2_TS", how: "0x47 TS sync byte" };
@@ -663,9 +710,14 @@
     const key = `${segmentsEpisodeKey}|${url}`;
     const cached = castCodecCache.get(key);
     if (cached) return cached;
-    const out = { codec: "UNKNOWN", method: "not determined", packaging: "UNKNOWN", packagingHow: "not determined" };
+    const out = {
+      codec: "UNKNOWN", method: "not determined",
+      packaging: "UNKNOWN", packagingHow: "not determined",
+      // A receiver treats a playlist with no ENDLIST and no PLAYLIST-TYPE as live.
+      hasEndlist: null, playlistType: null
+    };
     try {
-      const res = await fetch(url, { cache: "no-store" });
+      const res = await castFetch(url);
       if (!res.ok) {
         out.method = `manifest HTTP ${res.status}`;
         return out;   // transient, not cached
@@ -678,12 +730,30 @@
         if (codec) {
           out.codec = codec;
           out.method = "HLS EXT-X-STREAM-INF CODECS";
-          // A master playlist says nothing about packaging without following a
-          // variant. Leave it UNKNOWN rather than spend a request guessing: the
-          // MPEG-TS path already casts correctly with no HLS format fields at all,
-          // and inventing metadata there could only break it.
-          out.packaging = "UNKNOWN";
-          out.packagingHow = "master playlist - variant not followed";
+          // FOLLOW the variant. Returning UNKNOWN here - which is what v683 did -
+          // meant that for any ladder whose master playlist declares CODECS, the
+          // fMP4 description was never attached at all: the whole point of that
+          // change was skipped on exactly the streams most likely to need it, and
+          // the receiver went back to parsing CMAF as MPEG-TS. One extra request
+          // buys a real answer instead of a guess.
+          const variantUri = (text.match(/#EXT-X-STREAM-INF:[^\n]*\n([^#\n][^\n]*)/) || [])[1];
+          if (variantUri) {
+            try {
+              const variantUrl = new URL(variantUri.trim(), url).href;
+              const variantRes = await castFetch(variantUrl);
+              if (variantRes.ok) {
+                const pack = await detectHlsPackaging(await variantRes.text(), variantUrl);
+                out.packaging = pack.packaging;
+                out.packagingHow = `variant: ${pack.how}`;
+              } else {
+                out.packagingHow = `variant HTTP ${variantRes.status}`;
+              }
+            } catch (error) {
+              out.packagingHow = "variant probe failed";
+            }
+          } else {
+            out.packagingHow = "master playlist declared no variant URI";
+          }
           castCodecCache.set(key, out);
           return out;
         }
@@ -691,9 +761,11 @@
       const pack = await detectHlsPackaging(text, url);
       out.packaging = pack.packaging;
       out.packagingHow = pack.how;
+      out.hasEndlist = /#EXT-X-ENDLIST/.test(text);
+      out.playlistType = (text.match(/#EXT-X-PLAYLIST-TYPE:(\w+)/) || [])[1] || "(none)";
       const mapUri = (text.match(/#EXT-X-MAP:[^\n]*URI="([^"]+)"/) || [])[1];
       if (mapUri) {
-        const initRes = await fetch(new URL(mapUri, url).href, { cache: "no-store" });
+        const initRes = await castFetch(new URL(mapUri, url).href);
         if (!initRes.ok) {
           out.method = `init segment HTTP ${initRes.status}`;
           return out;   // transient, not cached
@@ -749,6 +821,16 @@
     if (!media) return;
     if (!mediaSessionSeenAt) mediaSessionSeenAt = new Date().toISOString();
     if (media.idleReason) lastReceiverIdleReason = String(media.idleReason);
+    // Previously declared, surfaced in snapshot() and never written, so a hard
+    // receiver-side failure still reported lastReceiverMediaError: null.
+    const reportedError = media.customData?.error || media.error || null;
+    if (reportedError) {
+      lastReceiverMediaError = {
+        code: reportedError.code ?? null,
+        detailedErrorCode: reportedError.detailedErrorCode ?? null,
+        reason: reportedError.reason ?? null
+      };
+    }
     const status = media.playerState ? String(media.playerState) : null;
     if (status) castLog("receiver playerState", status, "idleReason", media.idleReason ?? null);
   }
@@ -773,6 +855,223 @@
     }
   }
 
+  // Host only, never the query string - these URLs carry signed upstream targets
+  // and referer hints that must not reach a console log or a bug report.
+  function hostOnly(url) {
+    try {
+      const parsed = new URL(String(url || ""), window.location.origin);
+      const inner = parsed.searchParams.get("url");
+      if (inner) {
+        try { return `${new URL(inner).hostname} (via ${parsed.pathname})`; }
+        catch (error) { return parsed.hostname + parsed.pathname; }
+      }
+      return parsed.hostname;
+    } catch (error) {
+      return "(unparseable)";
+    }
+  }
+
+
+  // Describes the media to the receiver. hlsSegmentFormat is the AUDIO segment
+  // format and hlsVideoSegmentFormat the VIDEO one - they are two different fields
+  // for two different tracks, and a CMAF ladder carries both in fMP4. Enum values
+  // are read off the live SDK so a build that lacks them describes nothing rather
+  // than smuggling in string literals the receiver may reject.
+  function buildCastLoadRequest(candidate, detection) {
+    const media = new window.chrome.cast.media.MediaInfo(candidate.url, candidate.contentType);
+    const SegFmt = window.chrome?.cast?.media?.HlsSegmentFormat;
+    const VidFmt = window.chrome?.cast?.media?.HlsVideoSegmentFormat;
+    const StreamType = window.chrome?.cast?.media?.StreamType;
+    if (StreamType?.BUFFERED) media.streamType = StreamType.BUFFERED;
+    castHlsSegmentFormat = "";
+    castHlsVideoSegmentFormat = "";
+    if (detection.packaging === "FMP4") {
+      if (SegFmt?.FMP4) {
+        media.hlsSegmentFormat = SegFmt.FMP4;
+        castHlsSegmentFormat = String(SegFmt.FMP4);
+      }
+      if (VidFmt?.FMP4) {
+        media.hlsVideoSegmentFormat = VidFmt.FMP4;
+        castHlsVideoSegmentFormat = String(VidFmt.FMP4);
+      }
+    }
+    // MPEG-TS and UNKNOWN are deliberately left undescribed. The MPEG-TS ladder
+    // already casts correctly with no HLS format fields at all, so adding them
+    // there could only put a working path at risk, and UNKNOWN has no evidence to
+    // describe in the first place.
+    try {
+      const meta = new window.chrome.cast.media.GenericMediaMetadata();
+      meta.title = title || "ZenkaiTV";
+      if (episode) meta.subtitle = String(episode);
+      if (poster) meta.images = [new window.chrome.cast.Image(poster)];
+      media.metadata = meta;
+    } catch (error) {
+      console.warn("[Cast] metadata skipped", error);
+    }
+    const request = new window.chrome.cast.media.LoadRequest(media);
+    const at = Number(art?.video?.currentTime || 0);
+    request.currentTime = Number.isFinite(at) && at > 1 ? at : 0;
+    request.autoplay = true;
+    return request;
+  }
+
+  // Ask the parent for every source this episode could be cast from. The player
+  // frame is opened with ONE src, so without this there is nothing to fall back
+  // to. The parent answers from the same list the source picker renders, which is
+  // what keeps the adult-source rules intact: a source that could not be picked
+  // by hand cannot be reached by casting either.
+  function requestCastCandidates() {
+    if (castCandidatesCache) return Promise.resolve(castCandidatesCache);
+    if (window.parent === window) return Promise.resolve([]);
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (list) => {
+        if (done) return;
+        done = true;
+        castCandidatesResolve = null;
+        castCandidatesCache = Array.isArray(list) ? list : [];
+        resolve(castCandidatesCache);
+      };
+      castCandidatesResolve = finish;
+      window.setTimeout(() => finish([]), CAST_CANDIDATE_REPLY_MS);
+      try {
+        window.parent.postMessage(JSON.stringify({ vcmd: "castCandidates" }), "*");
+      } catch (error) {
+        finish([]);
+      }
+    });
+  }
+
+  // The ordered list of things to try. The source the viewer actually chose is
+  // always first - casting must not silently play a different server than the one
+  // on screen - and the rest only exist to rescue a stuck attempt.
+  async function castCandidateLadder() {
+    const own = {
+      label: castSourceLabel() || "selected source",
+      url: castMediaUrl(),
+      contentType: castContentType()
+    };
+    const fromParent = await requestCastCandidates();
+    const seen = new Set([own.url]);
+    const ladder = [own];
+    for (const entry of fromParent) {
+      let absolute = "";
+      try { absolute = new URL(String(entry?.url || ""), window.location.origin).href; }
+      catch (error) { continue; }
+      if (!absolute || seen.has(absolute)) continue;
+      seen.add(absolute);
+      ladder.push({
+        label: String(entry.label || "alternate source"),
+        url: absolute,
+        contentType: castContentTypeFor(absolute, entry.type)
+      });
+    }
+    return ladder;
+  }
+
+  // Watches what the RECEIVER is doing, which is the only thing that says whether
+  // the cast worked. Polled rather than event-driven on purpose: the media session
+  // does not exist yet when loadMedia() resolves, so there is nothing to attach an
+  // update listener to at the one moment we need to start watching.
+  function watchCastPlayback(deadlineMs, token) {
+    return new Promise((resolve) => {
+      const PlayerState = window.chrome?.cast?.media?.PlayerState || {};
+      const IdleReason = window.chrome?.cast?.media?.IdleReason || {};
+      const startedAt = Date.now();
+      let timer = null;
+      let lastState = "";
+      const stop = (outcome, detail) => {
+        window.clearInterval(timer);
+        resolve({ outcome, detail, waitedMs: Date.now() - startedAt, lastState });
+      };
+      timer = window.setInterval(() => {
+        if (token !== castAttemptSeq) return stop("superseded", "a newer attempt took over");
+        const media = castMedia();
+        const state = media?.playerState ? enumName(PlayerState, media.playerState) : "";
+        const idle = media?.idleReason ? enumName(IdleReason, media.idleReason) : "";
+        if (state) lastState = state;
+        if (idle) lastReceiverIdleReason = idle;
+        if (state === "PLAYING") return stop("playing", "receiver reported PLAYING");
+        // A receiver that is PAUSED past zero has decoded and rendered frames, so
+        // the media is good even though it is not running right now.
+        if (state === "PAUSED" && Number(media?.currentTime || 0) > 0) {
+          return stop("playing", "receiver reported PAUSED past 0s");
+        }
+        // IDLE after a load is the receiver giving up. ERROR says so outright;
+        // FINISHED without ever playing means it discarded the media.
+        if (state === "IDLE" && (idle === "ERROR" || idle === "FINISHED")) {
+          return stop("error", `receiver went IDLE with idleReason ${idle}`);
+        }
+        if (Date.now() - startedAt >= deadlineMs) {
+          return stop("timeout", lastState
+            ? `receiver stuck in ${lastState} for ${Math.round(deadlineMs / 1000)}s`
+            : `receiver never reported a playback state within ${Math.round(deadlineMs / 1000)}s`);
+        }
+      }, 400);
+    });
+  }
+
+  // Leaves the SESSION connected - only the media is dropped, so the next rung of
+  // the ladder does not have to reconnect to the TV.
+  function abortCastAttempt() {
+    const media = castMedia();
+    if (!media) return Promise.resolve();
+    return new Promise((resolve) => {
+      let settled = false;
+      const done = () => { if (!settled) { settled = true; resolve(); } };
+      window.setTimeout(done, 2000);
+      try {
+        media.stop(new window.chrome.cast.media.StopRequest(), done, done);
+      } catch (error) {
+        done();
+      }
+    });
+  }
+
+  // One attempt, one candidate, no retries. Returns what the receiver did.
+  async function attemptCast(session, candidate, token) {
+    const kind = classifyCastUrl(candidate.url);
+    if (kind === "NONE" || kind === "BLOB" || kind === "DATA" || kind === "FILE" || kind === "LOCAL") {
+      return { outcome: "refused", detail: `url is ${kind}`, kind };
+    }
+    const detection = await detectCastVideoCodec(candidate.url);
+    let request;
+    try {
+      request = buildCastLoadRequest(candidate, detection);
+    } catch (error) {
+      return { outcome: "build-threw", detail: String(error?.message ?? error), kind, detection };
+    }
+    castLog("attempt", {
+      candidate: candidate.label,
+      host: hostOnly(candidate.url),
+      contentType: candidate.contentType,
+      codec: detection.codec,
+      container: detection.packaging,
+      containerEvidence: detection.packagingHow,
+      hasEndlist: detection.hasEndlist,
+      playlistType: detection.playlistType,
+      hlsSegmentFormat: castHlsSegmentFormat || "(not set)",
+      hlsVideoSegmentFormat: castHlsVideoSegmentFormat || "(not set)"
+    });
+    let loaded;
+    try {
+      await session.loadMedia(request);
+      loaded = true;
+    } catch (error) {
+      return {
+        outcome: "rejected",
+        detail: String(error?.message ?? error?.code ?? error),
+        code: error?.code ?? null,
+        kind,
+        detection
+      };
+    }
+    if (token !== castAttemptSeq) return { outcome: "superseded", detail: "a newer attempt took over", kind, detection };
+    // Accepted. Now find out whether it actually plays.
+    const watched = await watchCastPlayback(CAST_PLAYBACK_DEADLINE_MS, token);
+    return { ...watched, loaded, kind, detection };
+  }
+
   async function loadCastMedia() {
     const session = castSession();
     castLoadCalled = false;
@@ -785,128 +1084,79 @@
       console.error("[Cast] loadMedia skipped - no current session after connect");
       return;
     }
-    const url = castMediaUrl();
-    const kind = classifyCastUrl(url);
-    const contentType = castContentType();
-    castLastUrlType = kind;
-    castLastContentType = contentType;
-
-    // Refuse anything the receiver cannot fetch on its own, and say WHY - these
-    // used to be indistinguishable from a discovery failure.
-    if (kind === "NONE" || kind === "BLOB" || kind === "DATA" || kind === "FILE" || kind === "LOCAL") {
-      castLoadResult = "refused";
-      castLoadError = `url is ${kind}`;
-      console.error("[Cast] refusing to load - the receiver cannot fetch this", {
-        classification: kind,
-        host: castSourceLabel(),
-        why: kind === "LOCAL"
-          ? "a Chromecast resolves localhost against ITSELF; serve the stream from an address on your LAN, or test on the deployed site"
-          : "browser-only URL, generated in this page and meaningless to another device"
-      });
-      if (art) {
-        art.notice.show = kind === "LOCAL"
-          ? "Can't cast from localhost - the TV can't reach this computer"
-          : "This source can't be cast";
-      }
+    // One ladder at a time. Without this, a second trigger (reconnect, episode
+    // change) would race the first and both would fight over the same session.
+    if (castLadderRunning) {
+      castLog("ladder already running - ignoring duplicate trigger");
       return;
     }
-
-    // Codec and packaging are now DESCRIBED to the receiver rather than used to
-    // refuse the cast. The previous pre-block assumed AV1 could not be decoded, but
-    // that was never tested against a receiver that was told the truth about the
-    // stream: a CMAF/fMP4 HLS ladder announced without hlsSegmentFormat is parsed
-    // as MPEG-TS, which fails regardless of codec. Describe it correctly, let the
-    // receiver answer, and report what it actually says.
-    const detection = await detectCastVideoCodec(url);
-    castDetectedCodec = detection.codec;
-    castCodecMethod = detection.method;
-    castHlsPackaging = detection.packaging;
-    castBlockedForCodec = false;
-    castCodecResult = "described";
-
-    let request;
+    castLadderRunning = true;
+    castAttempts = [];
+    const token = ++castAttemptSeq;
     try {
-      const media = new window.chrome.cast.media.MediaInfo(url, contentType);
-      // Enums come off the live SDK; if a build ever lacks them we set nothing
-      // rather than smuggle in string literals the receiver may not accept.
-      const SegFmt = window.chrome?.cast?.media?.HlsSegmentFormat;
-      const VidFmt = window.chrome?.cast?.media?.HlsVideoSegmentFormat;
-      const StreamType = window.chrome?.cast?.media?.StreamType;
-      if (StreamType?.BUFFERED) media.streamType = StreamType.BUFFERED;
-      castHlsSegmentFormat = "";
-      castHlsVideoSegmentFormat = "";
-      if (detection.packaging === "FMP4" && SegFmt?.FMP4 && VidFmt?.FMP4) {
-        media.hlsSegmentFormat = SegFmt.FMP4;
-        media.hlsVideoSegmentFormat = VidFmt.FMP4;
-        castHlsSegmentFormat = String(SegFmt.FMP4);
-        castHlsVideoSegmentFormat = String(VidFmt.FMP4);
+      const ladder = await castCandidateLadder();
+      if (art) art.notice.show = "Starting on your TV...";
+      for (let index = 0; index < ladder.length; index++) {
+        if (token !== castAttemptSeq) return;
+        const candidate = ladder[index];
+        castLastUrlType = classifyCastUrl(candidate.url);
+        castLastContentType = candidate.contentType;
+        castLoadCalled = true;
+        castLoadResult = "pending";
+        const result = await attemptCast(session, candidate, token);
+        if (token !== castAttemptSeq) return;
+        castAttempts.push({
+          candidate: candidate.label,
+          host: hostOnly(candidate.url),
+          contentType: candidate.contentType,
+          codec: result.detection?.codec || "not-detected",
+          container: result.detection?.packaging || "not-detected",
+          outcome: result.outcome,
+          detail: result.detail,
+          waitedMs: result.waitedMs ?? null,
+          receiverState: result.lastState || null,
+          idleReason: lastReceiverIdleReason
+        });
+        if (result.outcome === "playing") {
+          castLoadResult = "playing";
+          castLog("playing on the receiver", { candidate: candidate.label, waitedMs: result.waitedMs });
+          if (art) art.notice.show = "Casting";
+          try { art?.video?.pause?.(); } catch (error) { /* already stopped */ }
+          return;
+        }
+        if (result.outcome === "superseded") return;
+        castLoadResult = result.outcome;
+        castLoadError = result.detail;
+        console.error("[Cast] attempt did not reach playback", {
+          candidate: candidate.label,
+          host: hostOnly(candidate.url),
+          contentType: candidate.contentType,
+          codec: result.detection?.codec || "not-detected",
+          container: result.detection?.packaging || "not-detected",
+          outcome: result.outcome,
+          detail: result.detail,
+          receiverState: result.lastState || null,
+          idleReason: lastReceiverIdleReason,
+          remaining: ladder.length - index - 1
+        });
+        // Drop the dead media before the next rung so the receiver is not left
+        // holding a stream it could not play.
+        await abortCastAttempt();
+        if (token !== castAttemptSeq) return;
+        if (index < ladder.length - 1 && art) {
+          art.notice.show = "That source did not start - trying another";
+        }
       }
-      // MPEG-TS and UNKNOWN are deliberately left undescribed. The MPEG-TS ladder
-      // already casts correctly with no HLS format fields at all, so adding them
-      // there could only put a working path at risk, and UNKNOWN has no evidence
-      // to describe in the first place.
-      // Metadata is best-effort: it must never be the reason playback fails.
-      try {
-        const meta = new window.chrome.cast.media.GenericMediaMetadata();
-        meta.title = title || "ZenkaiTV";
-        if (episode) meta.subtitle = String(episode);
-        if (poster) meta.images = [new window.chrome.cast.Image(poster)];
-        media.metadata = meta;
-      } catch (error) {
-        console.warn("[Cast] metadata skipped", error);
+      // Every rung failed. Say so plainly rather than leaving the TV spinning.
+      if (art) {
+        art.notice.show = ladder.length > 1
+          ? "None of this episode\u2019s sources would play on your TV."
+          : "Your TV could not play this source, and this episode has no other.";
       }
-      request = new window.chrome.cast.media.LoadRequest(media);
-      const at = Number(art?.video?.currentTime || 0);
-      request.currentTime = Number.isFinite(at) && at > 1 ? at : 0;
-      request.autoplay = true;
-    } catch (error) {
-      castLoadResult = "build-threw";
-      castLoadError = String(error?.message ?? error);
-      console.error("[Cast] building the load request threw", error);
-      if (art) art.notice.show = "This source couldn't be played by this Cast device.";
-      return;
+      console.error("[Cast] every candidate failed", { attempts: castAttempts });
+    } finally {
+      castLadderRunning = false;
     }
-
-    castLoadCalled = true;
-    castLoadResult = "pending";
-    initRemotePlayer();
-    console.log("[Cast] loadMedia starting", {
-      episode: episode || "(none)",
-      sourceHost: castSourceLabel(),
-      mediaUrlType: kind,
-      contentType,
-      detectedVideoCodec: detection.codec,
-      hlsPackaging: detection.packaging,
-      hlsPackagingEvidence: detection.packagingHow,
-      hlsSegmentFormat: castHlsSegmentFormat || "(not set)",
-      hlsVideoSegmentFormat: castHlsVideoSegmentFormat || "(not set)",
-      startTime: request.currentTime
-    });
-
-    session.loadMedia(request).then((result) => {
-      castLoadResult = "resolved";
-      console.log("[Cast] loadMedia resolved", {
-        result: result ?? null,
-        hasMediaSession: Boolean(session.getMediaSession?.())
-      });
-      // Resolved only means the receiver ACCEPTED the load. Whether it then plays
-      // is a separate question, and the answer arrives over the next few seconds.
-      observeMediaSession("after resolve");
-      if (art) art.notice.show = "Casting";
-      try { art?.video?.pause?.(); } catch (error) { /* already stopped */ }
-    }).catch((error) => {
-      castLoadResult = "rejected";
-      castLoadError = String(error?.message ?? error?.code ?? error);
-      console.error("[Cast] loadMedia rejected", {
-        raw: error,
-        code: error?.code ?? null,
-        message: error?.message ?? String(error),
-        mediaUrlType: kind,
-        contentType,
-        sourceHost: castSourceLabel()
-      });
-      if (art) art.notice.show = "This source couldn't be played by this Cast device.";
-    });
   }
 
   // Inspectable from DevTools. Deliberately carries no URLs, tokens or headers.
@@ -955,6 +1205,9 @@
         loadMediaCalled: castLoadCalled,
         lastMediaLoadResult: castLoadResult,
         lastMediaLoadError: castLoadError,
+        // One row per candidate tried, with what the RECEIVER did about it. This
+        // is the thing to copy out of a real-device test.
+        attempts: castAttempts,
         activeEpisode: episode || "(none)",
         activeSourceName: castSourceLabel(),
         // Both are derived from the one sourceUrl this player was opened with, so
@@ -1994,6 +2247,13 @@
       applySegments(value);
       return;
     }
+    // The parent answering castCandidateLadder()'s request. Nothing else in the
+    // player reads it, and a reply that never arrives just leaves the ladder with
+    // the one source this frame was opened with.
+    if (command === "castCandidates") {
+      if (typeof castCandidatesResolve === "function") castCandidatesResolve(Array.isArray(value) ? value : []);
+      return;
+    }
     if (!art?.video) return;
     const video = art.video;
     if (command === "play") startPlayback(video);
@@ -2323,25 +2583,45 @@
     }
   }
 
+  // Set by the Cast ladder (which lives inside initPlayer) and read by
+  // onParentCommand (which does not), so it has to be declared out here where both
+  // can see it. Declared inside initPlayer it was invisible to the message handler,
+  // and because the handler tests it with typeof - which does not throw for an
+  // undeclared name - the parent's reply would have been dropped in silence and the
+  // ladder would have quietly had nothing but its own source, for ever.
+  let castCandidatesResolve = null;
+
+  // Content type for an ARBITRARY url, so every rung of the Cast ladder is
+  // described from its own address rather than from the one source this frame
+  // happens to have been opened with.
+  //
+  // Lives out here, next to castContentType(), and NOT with the rest of the Cast
+  // code: that whole block is nested inside initPlayer(), so it can reach outwards
+  // to this, while castContentType() - which is out here - could never have
+  // reached inwards to it. Getting that backwards made every snapshot() throw.
+  function castContentTypeFor(url, typeHint) {
+    if (streamType(url, typeHint) === "m3u8") return "application/x-mpegurl";
+    let probe = String(url || "");
+    try {
+      const inner = new URL(url, window.location.origin).searchParams.get("url");
+      if (inner) probe = inner;
+    } catch (error) { /* not a parseable proxy url - fall through */ }
+    const clean = probe.split("?")[0].split("#")[0].toLowerCase();
+    if (clean.endsWith(".m3u8")) return "application/x-mpegurl";
+    if (clean.endsWith(".mpd")) return "application/dash+xml";
+    if (clean.endsWith(".webm")) return "video/webm";
+    if (clean.endsWith(".mkv")) return "video/x-matroska";
+    if (clean.endsWith(".mov")) return "video/quicktime";
+    return "video/mp4";
+  }
+
   // The plugin guesses the type from the last dot-separated token of the URL. For
   // "/api/source?url=...&refererHost=player.zilla-networks.com" that token is
   // "com", so every stream was announced as application/octet-stream and the
   // Default Media Receiver refused it. Resolve from the type hint first, then from
   // the UPSTREAM url inside the proxy query - the proxy path has no extension.
   function castContentType() {
-    if (streamType(sourceUrl, params.get("type")) === "m3u8") return "application/x-mpegURL";
-    let probe = String(sourceUrl || "");
-    try {
-      const inner = new URL(sourceUrl, window.location.origin).searchParams.get("url");
-      if (inner) probe = inner;
-    } catch (error) { /* not a parseable proxy url - fall through */ }
-    const clean = probe.split("?")[0].split("#")[0].toLowerCase();
-    if (clean.endsWith(".m3u8")) return "application/x-mpegURL";
-    if (clean.endsWith(".mpd")) return "application/dash+xml";
-    if (clean.endsWith(".webm")) return "video/webm";
-    if (clean.endsWith(".mkv")) return "video/x-matroska";
-    if (clean.endsWith(".mov")) return "video/quicktime";
-    return "video/mp4";
+    return castContentTypeFor(sourceUrl, params.get("type"));
   }
 
   function castSession() {
