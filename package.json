@@ -49,6 +49,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1",
+    "@vercel/speed-insights": "^2.0.0",
     "hls.js": "^1.6.16",
     "sharp": "0.35.2"
   },
