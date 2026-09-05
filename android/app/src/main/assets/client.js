@@ -2391,6 +2391,43 @@ async function liveSearchAniList(query) {
   }
 }
 
+// Weekday name -> 0..6, for whatever locale wrote the string.
+//
+// show.day comes out of toLocaleDateString({weekday:"short"}), so it is in the
+// locale of the machine that built the row: the server bakes Spanish ("sab",
+// "mie"), while a row normalised in the browser uses the viewer's locale. The
+// old table listed the seven English abbreviations and nothing else, so every
+// Spanish row simply returned null and dropped out of the recently-aired pool
+// without a word. Ask Intl for the names instead of guessing at them.
+//
+// Folded to letters-only and three characters so "mie"/"mie" and "Mo."/"Mo"
+// land on the same key. Earlier locales win, so the viewer's own locale is
+// authoritative and en/es only fill gaps.
+let _weekdayIndexByName = null;
+function weekdayIndexFromName(value) {
+  const fold = (name) => String(name || "").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z]/g, "").slice(0, 3);
+  if (!_weekdayIndexByName) {
+    _weekdayIndexByName = new Map();
+    // 2023-01-01 was a Sunday, so +i days is weekday i.
+    const locales = [...new Set([
+      ...(navigator.languages || []), navigator.language, "en", "es"
+    ].filter(Boolean))];
+    for (const locale of locales) {
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(Date.UTC(2023, 0, 1 + i));
+        for (const width of ["short", "long"]) {
+          try {
+            const key = fold(new Intl.DateTimeFormat(locale, { weekday: width, timeZone: "UTC" }).format(date));
+            if (key && !_weekdayIndexByName.has(key)) _weekdayIndexByName.set(key, i);
+          } catch (error) { /* unknown locale: the next one still works */ }
+        }
+      }
+    }
+  }
+  return _weekdayIndexByName.get(fold(value));
+}
+
 /**
  * Absolute timestamp (ms) of when a show's most-recently-released episode aired,
  * or null if the show has no usable airing signal / nothing has aired yet.
@@ -2417,8 +2454,7 @@ function lastEpisodeAiredMs(show, nowMs = Date.now()) {
 
   // Fallback: reconstruct from the broadcast day + time (viewer-local).
   if (!show.day || show.day === "TBA" || show.day === "Local") return null;
-  const DAY_IDX = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
-  const dayNum = DAY_IDX[show.day.toLowerCase().slice(0, 3)];
+  const dayNum = weekdayIndexFromName(show.day);
   if (dayNum === undefined) return null;
 
   let airH = 0, airM = 0;
@@ -3377,6 +3413,25 @@ function carouselArtworkOrPoster(show = {}) {
   return getCarouselArtwork(show) || String(show.image || show.poster || show.cover || "").trim();
 }
 
+// How long the carousel will wait for the real catalogue before settling for
+// the bootstrap one. The deferred refresh starts 1.5s after load and runs in a
+// requestIdleCallback with a 5s timeout, so a healthy load lands well inside
+// this; past it, something is wrong and a stale line-up beats an empty stage.
+const CAROUSEL_PROVISIONAL_HOLD_MS = 6000;
+let _carouselProvisionalSince = 0;
+
+function carouselLineupIsProvisional() {
+  if (state.catalogTier !== "bootstrap") { _carouselProvisionalSince = 0; return false; }
+  const now = Date.now();
+  if (!_carouselProvisionalSince) {
+    _carouselProvisionalSince = now;
+    // Nothing else repaints if the full catalogue never lands, so book the one
+    // render that ends the hold.
+    window.setTimeout(() => { if (state.route === "home") renderCarousel(); }, CAROUSEL_PROVISIONAL_HOLD_MS + 50);
+  }
+  return (now - _carouselProvisionalSince) < CAROUSEL_PROVISIONAL_HOLD_MS;
+}
+
 function renderCarousel() {
   // On-air / recently-aired pool only (these already have landscape artwork).
   let pool = recentlyAiredShows(24).filter((s) => getCarouselArtwork(s));
@@ -3386,6 +3441,12 @@ function renderCarousel() {
   if (!pool.length) {
     pool = sortCarouselQuality(catalogShows().filter((s) => carouselArtworkOrPoster(s))).slice(0, 12);
   }
+  // See CAROUSEL_PROVISIONAL_HOLD_MS: a line-up chosen from the bootstrap
+  // snapshot is guaranteed to be replaced, so decline to choose one yet. An
+  // empty pool falls into the not-ready branch below, which already leaves a
+  // restored hero alone and only paints the placeholder when there is genuinely
+  // nothing to show.
+  if (carouselLineupIsProvisional()) pool = [];
   // Stable line-up so the hero doesn't reshuffle/blink when trailers or airing
   // data resolve in the background.
   const items = buildStableCarouselItems(pool);

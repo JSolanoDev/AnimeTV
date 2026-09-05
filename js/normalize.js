@@ -31,6 +31,16 @@ function normalizeExternalShow(item, source, index) {
     episode: item.episode || item.episodeNumber || item.latestEpisode || "?",
     genre,
     genres,
+    // The absolute instant the next episode airs, kept ALONGSIDE the display
+    // strings below rather than folded into them. `day`/`time` are produced by
+    // toLocaleDateString(), so they carry the locale of whichever machine built
+    // the row - the server bakes Spanish - which makes them text to show, never
+    // a value to compute with. Dropping these two fields here is what left
+    // lastEpisodeAiredMs() with nothing but those strings to parse, so every
+    // airing show fell out of the recently-aired pool and the carousel quietly
+    // became an all-time popularity list. /api/catalog has always sent them.
+    nextAiringAt: item.nextAiringAt ?? null,
+    nextAiringEpisodeNumber: item.nextAiringEpisodeNumber ?? null,
     day: item.day || item.airDay || "Local",
     time: item.time || item.airTime || "",
     colors: item.colors || ["#40dfc2", "#251d47"],
