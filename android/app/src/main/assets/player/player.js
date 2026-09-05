@@ -12,6 +12,9 @@
   const fit = String(params.get("fit") || params.get("scale") || "contain").toLowerCase();
   const forceSubtitles = params.get("forceSubtitles") === "1";
   let hasNextEpisode = params.get("hasNext") === "1";
+  // Valid sources for this episode, current one included. Anything above 1 means a
+  // real alternative exists to switch to.
+  const episodeSourceCount = Math.max(0, Number(params.get("sources") || 0));
   // Skip segments arrive per episode as "start,end" in seconds, decimals allowed.
   // Generic on purpose: adding "recap" later means adding one entry to SEGMENT_DEFS
   // and one param, nothing else. episodeKey stamps which episode they belong to so a
@@ -714,7 +717,13 @@
         sourceHost: castSourceLabel(),
         note: "selected source kept as-is; pick another server to cast"
       });
-      if (art) art.notice.show = "This source uses AV1 and isn\u2019t supported by your Chromecast. Try another server.";
+      if (art) {
+        // Only offer another server when one actually exists. For an episode with a
+        // single AV1 source, "try another server" is a dead end dressed as advice.
+        art.notice.show = episodeSourceCount > 1
+          ? "This source uses AV1 and isn\u2019t supported by your Chromecast. Try another server."
+          : "No Chromecast-compatible source is available for this episode.";
+      }
       return;
     }
 

@@ -545,7 +545,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=679`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=680`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3400,7 +3400,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=679";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=680";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -10553,6 +10553,9 @@ function renderSourcePickerInSidePanel() {
 
   // Wire source selection
   wireSourceButtonWarmups(episodeList, state.activeEpisode?.episode);
+  // Fire and forget: the label arrives a moment after the list, and its absence
+  // never blocks choosing a server.
+  annotateSourcePickerCodecs(episodeList);
   episodeList.querySelectorAll("[data-player-source]").forEach((button) => {
     button.addEventListener("click", () => {
       const selectedEpisode = state.activeEpisode?.episode;
@@ -11179,6 +11182,9 @@ function buildPlayerUrl(videoUrl = "", title = "", options = {}) {
   if (options.intro) playerUrl.searchParams.set("intro", options.intro);
   if (options.outro) playerUrl.searchParams.set("outro", options.outro);
   if (options.episodeKey) playerUrl.searchParams.set("episodeKey", options.episodeKey);
+  // How many valid sources this episode really has, so the player can tell
+  // "try another server" from "there is no other server".
+  if (Number(options.sourceCount) > 0) playerUrl.searchParams.set("sources", String(options.sourceCount));
   if (Array.isArray(options.tracks) && options.tracks.length) {
     playerUrl.searchParams.set("tracks", encodeURIComponent(JSON.stringify(options.tracks.slice(0, 8))));
   }
@@ -11202,6 +11208,44 @@ window.openPlayer = openPlayer;
 // what to hand it. Kept as a list so a third segment ("recap") needs one entry
 // here and one in the player's SEGMENT_DEFS, and nothing else.
 const PLAYER_SKIP_SEGMENTS = ["intro", "outro"];
+
+// Informational codec label on the source picker. REUSES the detector that already
+// lives in the player frame rather than duplicating it - the player is what has to
+// make the cast decision, so there is one implementation and one answer. It can
+// only speak for the source actually loaded, so only that entry is labelled and the
+// rest are left alone rather than guessed at. Purely a label: the source stays
+// selectable, because AV1 plays perfectly well locally.
+const CAST_CODEC_LABELS = {
+  "AV1": "AV1 \u00b7 Chromecast unsupported",
+  "H.264": "H.264 \u00b7 Chromecast compatible",
+  "HEVC": "HEVC \u00b7 Chromecast support varies",
+  "VP9": "VP9 \u00b7 Chromecast compatible"
+};
+
+async function annotateSourcePickerCodecs(root = document) {
+  const buttons = [...root.querySelectorAll("[data-player-source]")];
+  if (!buttons.length) return;
+  const episode = state.activeEpisode?.episode;
+  const activeId = episode?.selectedSourceId;
+  const frame = document.getElementById("animePlayerFrame");
+  let detector = null;
+  try { detector = frame?.contentWindow?.__ZENKAI_CAST_DEBUG__ || null; } catch (error) { detector = null; }
+  if (!detector || typeof detector.detectCodec !== "function") return;
+  let info = null;
+  try { info = await detector.detectCodec(); } catch (error) { return; }
+  const codec = info?.detectedVideoCodec || "UNKNOWN";
+  const text = CAST_CODEC_LABELS[codec] || "Codec unknown";
+  for (const button of buttons) {
+    // Only the entry that IS the loaded source - never a guess about the others.
+    if (activeId && button.dataset.playerSource !== activeId) continue;
+    if (button.querySelector(".source-codec-note")) continue;
+    const note = document.createElement("span");
+    note.className = "source-codec-note";
+    note.dataset.codec = codec;
+    note.textContent = text;
+    button.appendChild(note);
+  }
+}
 
 // Cast lives in the PLAYER IFRAME (player/player.js), because that is where the
 // Cast SDK is initialised and where the video element is. DevTools evaluates
@@ -11326,6 +11370,8 @@ function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null) 
     if (value) options[segmentName] = value;
   }
   options.episodeKey = episodeSkipKey(episode);
+  // Counted from the same list the picker renders, so the two can never disagree.
+  options.sourceCount = episode ? (getEpisodePlaybackSources(episode) || []).length : 0;
   options.poster = episodeThumb(
     episode || state.activeEpisode?.episode || {},
     state.activeEpisode?.season || {},
@@ -16585,7 +16631,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=679");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=680");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

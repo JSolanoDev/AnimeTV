@@ -152,9 +152,25 @@ function orderSourceOptions(sources = []) {
     .map(o => o.s);
 }
 
+// The stream the player is ACTUALLY using. normalizeEpisodeSourceOptions rebuilds
+// it as { id: "direct", label: "Auto" } carrying the upstream host, so after
+// normalization its identity text no longer contains the provider name - and the
+// whitelist below dropped it. Measured on Kami no Shizuku S1E9: one real source,
+// isAnimeAv1Source false, zero picker entries, for an episode that plays fine.
+// This admits exactly that one option and nothing else: it is matched by URL
+// against the episode's own resolved stream, so it can neither invent a source nor
+// leak an adult fallback into regular anime (or the reverse).
+function isActivePlaybackSource(source = {}, episode = {}) {
+  if (typeof pickPlayableUrl !== "function") return false;
+  const playable = pickPlayableUrl(episode);
+  if (!playable) return false;
+  return String(source.videoUrl || "") === String(playable);
+}
+
 function getEpisodePlaybackSources(episode = {}) {
   return orderSourceOptions(normalizeEpisodeSourceOptions(episode).filter((source) => (
-    !isBlockedPlaybackSource(source) && (isAnimeAv1Source(source) || isAdultFallbackSource(source))
+    !isBlockedPlaybackSource(source)
+    && (isAnimeAv1Source(source) || isAdultFallbackSource(source) || isActivePlaybackSource(source, episode))
   )));
 }
 

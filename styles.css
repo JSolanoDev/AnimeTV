@@ -12195,3 +12195,18 @@ main {
     height: 1px;
   }
 }
+
+/* Codec note on a source-picker row. Informational only - the source stays
+   selectable, because AV1 plays fine locally and only Chromecast cannot take it. */
+.source-codec-note {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.01em;
+  opacity: 0.72;
+}
+
+.source-codec-note[data-codec="AV1"] {
+  color: #f7a13a;
+  opacity: 0.95;
+}
