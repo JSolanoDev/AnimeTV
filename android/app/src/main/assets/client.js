@@ -545,7 +545,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=680`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=681`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3400,7 +3400,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=680";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=681";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -11226,7 +11226,16 @@ async function annotateSourcePickerCodecs(root = document) {
   const buttons = [...root.querySelectorAll("[data-player-source]")];
   if (!buttons.length) return;
   const episode = state.activeEpisode?.episode;
-  const activeId = episode?.selectedSourceId;
+  // episode.selectedSourceId is the PROVIDER id ("animeav1-hls-..."), while the
+  // picker button carries the NORMALIZED option id ("direct"). Comparing the two
+  // never matched, so the badge was skipped on the only row. Identify the row with
+  // the same predicate the filter uses - the option whose URL is the stream actually
+  // loaded - and fall back to the sole row when there is only one.
+  const sources = episode ? (getEpisodePlaybackSources(episode) || []) : [];
+  const active = (typeof isActivePlaybackSource === "function"
+    ? sources.find((s) => isActivePlaybackSource(s, episode))
+    : null) || (sources.length === 1 ? sources[0] : null);
+  const activeId = active?.id;
   const frame = document.getElementById("animePlayerFrame");
   let detector = null;
   try { detector = frame?.contentWindow?.__ZENKAI_CAST_DEBUG__ || null; } catch (error) { detector = null; }
@@ -16631,7 +16640,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=680");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=681");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
