@@ -82,6 +82,11 @@
     <script defer src="js/router.js?v=679"></script>
     <script defer src="js/source-classification.js?v=679"></script>
     <script defer src="client.js?v=679"></script>
+    <!-- Vercel Speed Insights -->
+    <script type="module">
+      import { injectSpeedInsights } from './node_modules/@vercel/speed-insights/dist/index.mjs';
+      injectSpeedInsights();
+    </script>
   </head>
   <body>
     <script>(function(){var p=location.pathname.replace(/\/+$/,"")||"/";var h=(location.hash||"").replace(/^#/,"");var r=p==="/search"||p==="/browse"||/^\/(genre|year|season|studio)\//.test(p)?"library":p==="/schedule"?"schedule":p==="/favorites"?"favorites":p==="/settings"?"settings":p==="/sources"?"sources":p==="/profile"||p==="/login"?"profile":"home";var m={search:"library",browse:"library",library:"library",home:"home",schedule:"schedule",favorites:"favorites",settings:"settings",sources:"sources",profile:"profile"};if(p==="/"&&m[h])r=m[h];document.body.dataset.route=r;try{if(localStorage.getItem("animetv-sidebar-collapsed")!=="false")document.body.classList.add("sidebar-collapsed")}catch(e){document.body.classList.add("sidebar-collapsed")}})()</script>
