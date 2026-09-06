@@ -11127,6 +11127,26 @@ body.is-tv .topbar-auth {
     max-height: none;
     overflow: visible;
   }
+  /* Phones skip the pre-playback placeholder entirely. #videoFrame renders a
+     .watch-ready-state before an episode is chosen: a SECOND copy of the poster
+     that is already at the top of the page, a source badge, the line "N episodes
+     - select one below to watch", and a down arrow pointing at the list directly
+     beneath it. On a phone that is a full screen of restating what the next
+     screenful shows. Hiding it collapses #videoFrame to 0 and lifts the episode
+     list from y=627 to y=429 - measured on a 375x812 phone - so opening a show
+     lands on its episodes. The frame still holds the real player once an episode
+     is selected; only this placeholder is skipped, and only on phones. */
+  .watch-overlay .watch-ready-state {
+    display: none;
+  }
+
+  /* The panel title earns its place on desktop, where the sidebar has no other
+     label. On a phone the show's name is already the page heading a short scroll
+     above, so a second copy directly under it is the same restatement. */
+  .watch-overlay .watch-side .ep-panel-title {
+    display: none;
+  }
+
   /* The show this panel is listing. On a phone the artwork and the watch title
      have usually scrolled away by the time the episode list is on screen, so
      the panel says it itself. Cleared past the fixed Back button for the same
