@@ -9229,6 +9229,9 @@ function renderEpisodeList(show) {
   }
 
   episodeList.hidden = false;
+  // Drives the compact-width rules that drop the redundant Seasons tab but
+  // keep the Gallery one. Set before the markup so the two can never disagree.
+  episodeList.classList.toggle("is-adult-detail", !!isAdultDetailShow);
   episodeList.innerHTML = `
     <p class="ep-panel-title" title="${escapeHtml(getShowTitle(show))}">${escapeHtml(getShowTitle(show))}</p>
     <div class="detail-tabs detail-tabs-2" role="tablist" aria-label="Anime details">

@@ -8624,6 +8624,33 @@ body.reduce-motion .watch-stage-body { animation: none; }
   .watch-overlay .watch-side .ep-panel-title {
     display: none;
   }
+
+  /* The Seasons tab is redundant on compact widths: the Episodes pane already
+     carries the whole season navigator - Prev / Next and a dropdown listing
+     every season - so the tab only ever led to a second way of doing what is
+     already one tap away, at the cost of a full-width bar above the list.
+
+     Adult titles are the exception and keep their bar. There the first tab is
+     Gallery, not Seasons, and .adult-detail-gallery has no other route to it -
+     hiding that would remove the only way in. The marker is set per SHOW, so a
+     normal title browsed while adult mode is on still drops its tab bar. */
+  #episodeList:not(.is-adult-detail) .detail-tabs.detail-tabs-2 {
+    display: none;
+  }
+
+  /* With no tab bar there is no way back, so the panes cannot be left to the
+     remembered tab: a /anime/x?tab=seasons deep link would otherwise open the
+     seasons pane with nothing to switch away from it. Pin them. */
+  #episodeList:not(.is-adult-detail) .detail-pane[data-detail-pane="seasons"] {
+    display: none;
+  }
+
+  .watch-side #episodeList:not(.is-adult-detail) .detail-pane[data-detail-pane="episodes"] {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
 }
 
 .watch-side .detail-tabs.detail-tabs-2 {
