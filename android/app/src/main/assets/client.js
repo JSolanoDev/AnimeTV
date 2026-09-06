@@ -548,7 +548,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=699`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=700`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -822,6 +822,14 @@ async function enrichCatalogAiringData(attempt = 0) {
     if (changed) {
       writeResponseCache("direct-catalog", regularCatalogSnapshot());
       render();
+      // The Weekly Schedule paints from this same airing data, but it is built
+      // by its own renderer rather than by render(), so it kept whatever it drew
+      // BEFORE the merge landed - measured in production: an empty week cached
+      // under signature "6|" while 40 shows with a real broadcast day sat in the
+      // catalogue. Refresh it explicitly. renderSchedule() has its own signature
+      // guard and returns immediately when nothing changed, so this is cheap and
+      // safe to call from whichever route happens to be active.
+      if (typeof renderSchedule === "function") { try { renderSchedule(); } catch { /* one bad row must not break the merge */ } }
     }
   } catch {
     // /api/catalog may still be warming up — retry a few times.
@@ -3531,7 +3539,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=699";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=700";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -16876,7 +16884,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=699");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=700");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
