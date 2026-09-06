@@ -999,6 +999,11 @@ function handleRequest(request, response) {
     return;
   }
 
+  if (url.pathname === "/api/anilist/airing") {
+    handleAniListAiring(url, response);
+    return;
+  }
+
   if (url.pathname === "/api/anilist/media") {
     handleAniListMedia(url, response);
     return;
@@ -8210,6 +8215,85 @@ async function fetchAniListMediaById(id) {
   const media = payload?.data?.Media || null;
   if (media) anilistMediaCache.set(cacheKey, { data: media, ts: Date.now() });
   return media;
+}
+
+// The Weekly Schedule needs one thing the catalogue does not carry: when the
+// next episode of each airing show goes out. /api/catalog ships no nextAiringAt
+// at all - measured, 0 of 994 rows - so every row fell back to day:"Local",
+// which the Schedule excludes, and the week rendered seven empty columns.
+//
+// The browser cannot ask AniList itself: a direct graphql.anilist.co request
+// from the page fails outright, which is why the existing bulk query never
+// populated anything. This is the same proxy the per-show route already uses.
+//
+// ONE request answers the whole week rather than one per show: ~70 titles are
+// releasing at any time, and 70 proxied lookups on entering the route would be
+// a request storm. Cached for 30 minutes server-side and 10 minutes at the
+// edge, because an airing schedule changes on the order of days.
+const ANILIST_AIRING_GQL = `
+query ($page: Int!) {
+  Page(page: $page, perPage: 50) {
+    pageInfo { hasNextPage }
+    media(type: ANIME, status: RELEASING, sort: POPULARITY_DESC) {
+      id idMal status
+      title { romaji english userPreferred }
+      nextAiringEpisode { airingAt episode }
+    }
+  }
+}`;
+const ANILIST_AIRING_TTL_MS = 30 * 60 * 1000;
+const anilistAiringCache = { data: null, ts: 0 };
+
+async function handleAniListAiring(url, response) {
+  const now = Date.now();
+  if (anilistAiringCache.data && now - anilistAiringCache.ts < ANILIST_AIRING_TTL_MS) {
+    sendJson(response, { ok: true, items: anilistAiringCache.data, cached: true }, 200, {
+      "Cache-Control": "public, max-age=600"
+    });
+    return;
+  }
+  try {
+    const items = await anilistCoalesce("airing", async () => {
+      const collected = [];
+      // Three pages of 50 covers every currently-releasing title with room to
+      // spare, and stops early the moment AniList says there is no next page.
+      for (let page = 1; page <= 3; page += 1) {
+        const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ query: ANILIST_AIRING_GQL, variables: { page } })
+        }, 14000);
+        if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
+        const payload = await upstream.json();
+        const media = payload?.data?.Page?.media || [];
+        for (const entry of media) {
+          const airingAt = Number(entry?.nextAiringEpisode?.airingAt || 0);
+          if (!airingAt) continue;   // no instant means nothing to schedule
+          collected.push({
+            anilistId: entry.id,
+            malId: entry.idMal || null,
+            title: entry.title?.userPreferred || entry.title?.romaji || entry.title?.english || "",
+            status: entry.status || "RELEASING",
+            // Milliseconds, matching normalize.js - AniList sends seconds.
+            nextAiringAt: airingAt * 1000,
+            nextAiringEpisodeNumber: entry.nextAiringEpisode?.episode || null
+          });
+        }
+        if (!payload?.data?.Page?.pageInfo?.hasNextPage) break;
+      }
+      anilistAiringCache.data = collected;
+      anilistAiringCache.ts = Date.now();
+      return collected;
+    });
+    sendJson(response, { ok: true, items }, 200, { "Cache-Control": "public, max-age=600" });
+  } catch (err) {
+    log("warn", "AniList airing fetch failed", { error: err.message });
+    // Serve the last good answer rather than nothing: a stale schedule beats an
+    // empty one, and AniList being rate-limited is not a fault of this server.
+    sendJson(response, { ok: false, items: anilistAiringCache.data || [] }, 200, {
+      "Cache-Control": "public, max-age=60"
+    });
+  }
 }
 
 async function handleAniListMedia(url, response) {

@@ -548,7 +548,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=695`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=699`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -764,11 +764,32 @@ async function enrichCatalogAiringData(attempt = 0) {
     const json = await res.json();
     const items = Array.isArray(json.items) ? json.items : [];
     if (!items.length) throw new Error("catalog empty");
+    // /api/catalog carries identity, status and artwork but no airing instants
+    // at all - measured, 0 of 994 rows have nextAiringAt - so despite its name
+    // this function had nothing to enrich WITH, and the Weekly Schedule stayed
+    // empty. /api/anilist/airing answers the whole week in one proxied request;
+    // the browser cannot reach graphql.anilist.co itself. An empty answer (the
+    // route degrades to [] when AniList is rate-limited) leaves the behaviour
+    // exactly as it was rather than clearing anything.
+    const airingRows = await fetchWithTimeout("/api/anilist/airing", {}, 12000)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((p) => (Array.isArray(p && p.items) ? p.items : []))
+      .catch(() => []);
     const byAni = new Map();
     const byMal = new Map();
     items.forEach((it) => {
       if (it.anilistId) byAni.set(String(it.anilistId), it);
       if (it.malId) byMal.set(String(it.malId), it);
+    });
+    // Airing rows overlay the catalogue ones under the same identity: same show,
+    // strictly better airing fields.
+    airingRows.forEach((row) => {
+      const previous = (row.anilistId && byAni.get(String(row.anilistId)))
+                    || (row.malId && byMal.get(String(row.malId)))
+                    || {};
+      const merged = { ...previous, ...row };
+      if (row.anilistId) byAni.set(String(row.anilistId), merged);
+      if (row.malId) byMal.set(String(row.malId), merged);
     });
     let changed = false;
     // Patch the live catalog (state.shows) so later array swaps don't lose this.
@@ -779,6 +800,19 @@ async function enrichCatalogAiringData(attempt = 0) {
       if (it.latestAiredEp != null) s.latestAiredEp = it.latestAiredEp;
       if (it.nextAiringEpisodeNumber != null) s.nextAiringEpisodeNumber = it.nextAiringEpisodeNumber;
       if (it.nextAiringAt != null && s.nextAiringAt == null) s.nextAiringAt = it.nextAiringAt;
+      // The airing INSTANT was merged, but the two display strings the Weekly
+      // Schedule actually reads were not. /api/catalog sends no day at all, so
+      // every row kept the "Local" default - a value the Schedule explicitly
+      // excludes - and the week rendered seven empty columns even once real
+      // airing data had arrived from AniList. Derive both from the merged
+      // instant, in the viewer's timezone, through the same formatter the
+      // carousel uses, so the two surfaces can never describe different moments.
+      const mergedAiringMs = Number(s.nextAiringAt || 0);
+      if (mergedAiringMs > 0) {
+        const mergedAiringDate = new Date(mergedAiringMs);
+        s.day = formatAiringWeekday(mergedAiringDate);
+        s.time = formatAiringClock(mergedAiringDate);
+      }
       if (it.totalEpisodes != null) s.totalEpisodes = it.totalEpisodes;
       if (it.status) s.status = it.status;
       if (it.episode != null && it.episode !== "?") s.episode = it.episode;
@@ -3497,7 +3531,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=695";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=699";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -3654,7 +3688,9 @@ function renderCarousel() {
   }
   carouselTitle.textContent = getShowTitle(show);
   carouselText.textContent = simpleCarouselText(show);
-  carouselMeta.textContent = [show.day, show.time, (show.genre || "").toUpperCase()].filter(Boolean).join(" | ");
+  // Same derived clock as the Schedule, so one timestamp reads identically on
+  // both surfaces instead of the carousel printing a stale 24-hour string.
+  carouselMeta.textContent = [show.day, showAiringTimeText(show), (show.genre || "").toUpperCase()].filter(Boolean).join(" | ");
   const target = getCardTarget(show);
   carouselOpen.dataset.openShow = String(show.id || "");
   carouselOpen.dataset.openSeason = String(target.seasonNumber || "");
@@ -4992,7 +5028,14 @@ function renderSchedule() {
   scheduleList.innerHTML = days.map((day, idx) => {
     const isToday = idx === todayIdx;
     const shows = airingShows
-      .filter((show) => show.day?.toLowerCase().startsWith(day.toLowerCase()))
+      // Matched by weekday INDEX, not by an English string prefix: show.day is
+      // produced by Intl in the viewer's locale, so "Fri".startsWith("fri") only
+      // ever worked in English. weekdayIndexFromName folds localised names to an
+      // index; days[] is Monday-first while the index is Sunday-first, hence +6%7.
+      .filter((show) => {
+        const weekday = weekdayIndexFromName(show.day);
+        return weekday !== undefined && ((weekday + 6) % 7) === idx;
+      })
       .slice(0, 12);
     return `
       <section class="schedule-day-column${isToday ? " is-today" : ""}"${isToday ? ' aria-current="date"' : ""}>
@@ -5042,7 +5085,7 @@ function renderSchedule() {
               </span>
               <span class="schedule-copy">
                 <span class="schedule-title">${escapeHtml(getShowTitle(show))}</span>
-                <span class="show-meta">${show.time && show.time !== "TBA" ? escapeHtml(show.time) : "Time TBA"}${show.source ? ` · ${escapeHtml(show.source)}` : ""}</span>
+                <span class="show-meta">${(() => { const t = showAiringTimeText(show); return t ? escapeHtml(t) : "Time TBA"; })()}${show.source ? ` · ${escapeHtml(show.source)}` : ""}</span>
               </span>
             </a>
           `;
@@ -16833,7 +16876,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=695");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=699");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

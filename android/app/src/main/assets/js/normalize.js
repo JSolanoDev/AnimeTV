@@ -16,6 +16,10 @@ function normalizeExternalShow(item, source, index) {
   const seasons = normalizeSeasons(item);
   const episodes = seasons.flatMap((season) => season.episodes);
   const videoUrl = pickPlayableUrl(item) || getEpisodeUrl(episodes[0]) || "";
+  // nextAiringAt is milliseconds. One Date for both the weekday and the clock
+  // below, so the pair can never describe different moments.
+  const externalAiringMs = Number(item.nextAiringAt || 0);
+  const externalAiringDate = externalAiringMs > 0 ? new Date(externalAiringMs) : null;
 
   return {
     id: `source-${source.id || source.name}-${item.id || item.malId || item.anilistId || index}`,
@@ -41,8 +45,16 @@ function normalizeExternalShow(item, source, index) {
     // became an all-time popularity list. /api/catalog has always sent them.
     nextAiringAt: item.nextAiringAt ?? null,
     nextAiringEpisodeNumber: item.nextAiringEpisodeNumber ?? null,
-    day: item.day || item.airDay || "Local",
-    time: item.time || item.airTime || "",
+    // Derived from the numeric instant above, not from whatever strings the
+    // server baked. /api/catalog sends no day at all, so every one of the ~994
+    // catalogue rows defaulted to "Local" - a value the Weekly Schedule
+    // explicitly excludes, which is why the Schedule rendered seven empty day
+    // columns. When the server DOES send a string it carries the locale of the
+    // machine that built it, so the instant is the better source either way:
+    // it converts in the viewer's own timezone, and the Schedule and the
+    // carousel both read these fields, so both describe the same moment.
+    day: externalAiringDate ? formatAiringWeekday(externalAiringDate) : (item.day || item.airDay || "Local"),
+    time: externalAiringDate ? formatAiringClock(externalAiringDate) : (item.time || item.airTime || ""),
     colors: item.colors || ["#40dfc2", "#251d47"],
     score: item.score || null,
     status: item.status || item.airingStatus || "",

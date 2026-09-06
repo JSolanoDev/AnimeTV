@@ -439,6 +439,27 @@ function sortCarouselCurrency(items, nowMs = Date.now(), lastAiredFor = () => nu
     .map((x) => x.show);
 }
 
+// The airing time a surface should SHOW, derived rather than trusted.
+//
+// show.time is a string, and strings persist: rows cached before the clock was
+// centralised carry 24-hour text like "23:00", and restoring them put 24-hour
+// times back on the Schedule no matter how the formatter behaves today. The
+// numeric instant is authoritative, so prefer it; a legacy HH:MM string is
+// re-rendered through the same formatter instead of being printed as-is.
+function showAiringTimeText(show) {
+  const ms = Number(show && show.nextAiringAt || 0);
+  if (ms > 0) return formatAiringClock(new Date(ms));
+  const stored = String(show && show.time || "").trim();
+  if (!stored || stored === "TBA" || stored === "Local") return "";
+  const legacy = stored.match(/^(\d{1,2}):(\d{2})$/);
+  if (legacy) {
+    const when = new Date();
+    when.setHours(Number(legacy[1]), Number(legacy[2]), 0, 0);
+    return formatAiringClock(when);
+  }
+  return stored;
+}
+
 function sortCarouselQuality(items) {
   return [...items].sort((a, b) => {
     const hasBannerB = Boolean(b.banner || b.tmdbBackdrop || b.highQualityBackground || b.bannerImage || b.backdrop || b.heroImage || b.wideImage || b.landscapeImage);
@@ -586,6 +607,7 @@ if (typeof module !== "undefined" && module.exports) {
     isCurrentSeasonShow,
     carouselCurrencyTier,
     carouselCurrencyDistanceMs,
+    showAiringTimeText,
     sortCarouselCurrency,
     sortCarouselQuality,
     normalizeTitle,
