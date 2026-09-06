@@ -4998,7 +4998,15 @@ function renderSchedule() {
       <section class="schedule-day-column${isToday ? " is-today" : ""}"${isToday ? ' aria-current="date"' : ""}>
         <h3>${fullDayName(day)}${isToday ? '<span class="schedule-today-badge">Today</span>' : ""}</h3>
         <div class="schedule-day-rail">
-          ${shows.length ? shows.map((show) => `
+          ${shows.length ? shows.map((show) => {
+            // One bad entry must not take the week with it. Every helper below -
+            // animePathForShow, getCardTarget, cardEpisodeLabel, getShowTitle,
+            // imageDeliveryUrl - runs per show, and a single throw inside this
+            // map would abort the whole .map() and leave scheduleList.innerHTML
+            // unassigned: a blank Schedule because one item was malformed.
+            // Isolate each card; a broken one is skipped and the rest render.
+            try {
+            return `
             <a class="schedule-item focusable" href="${escapeHtml(animePathForShow(show))}" data-open-show="${escapeHtml(show.id)}" data-open-season="${getCardTarget(show).seasonNumber}" data-open-episode="${getCardTarget(show).episodeNumber}">
               <span class="schedule-thumb">
                 ${(() => {
@@ -5034,10 +5042,12 @@ function renderSchedule() {
               </span>
               <span class="schedule-copy">
                 <span class="schedule-title">${escapeHtml(getShowTitle(show))}</span>
-                <span class="show-meta">${show.time ? escapeHtml(show.time) : "TBA"}${show.source ? ` · ${escapeHtml(show.source)}` : ""}</span>
+                <span class="show-meta">${show.time && show.time !== "TBA" ? escapeHtml(show.time) : "Time TBA"}${show.source ? ` · ${escapeHtml(show.source)}` : ""}</span>
               </span>
             </a>
-          `).join("") : `<p class="schedule-empty">No new episodes</p>`}
+          `;
+            } catch { return ""; }
+          }).join("") : `<p class="schedule-empty">No new episodes</p>`}
         </div>
       </section>
     `;
