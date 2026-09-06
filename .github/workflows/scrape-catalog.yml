@@ -147,6 +147,16 @@ jobs:
           print("Validation OK — ready to commit.")
           PYEOF
 
+      # graphql.anilist.co answers 403 to Vercel and to the browser, so airing
+      # schedules and season chains cannot be fetched at runtime. This runner is
+      # on a different network, so the data is baked here and committed beside
+      # the catalogue. The script never fails the job: if AniList is unreachable
+      # it leaves the existing map untouched and exits 0.
+      - name: Bake airing schedules and season chains
+        run: node scripts/build-airing-map.mjs --write
+        timeout-minutes: 10
+        continue-on-error: true
+
       - name: Refresh Adult Mode catalog
         run: npm run adult:catalog
         env:
@@ -169,6 +179,7 @@ jobs:
             scraper/anime_metadata.json
             scraper/anime_metadata.previous.json
             scraper/anime_metadata.csv
+            scraper/airing-map.json
             scraper/underhentai_catalog.json
             scraper/underhentai_details.json
             android/app/src/main/assets/scraper/underhentai_catalog.json
@@ -197,6 +208,7 @@ jobs:
             scraper/anime_metadata.json
             scraper/anime_metadata.previous.json
             scraper/anime_metadata.csv
+            scraper/airing-map.json
             scraper/underhentai_catalog.json
             scraper/underhentai_details.json
           retention-days: 7

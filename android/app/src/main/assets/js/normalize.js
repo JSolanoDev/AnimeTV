@@ -45,6 +45,15 @@ function normalizeExternalShow(item, source, index) {
     // became an all-time popularity list. /api/catalog has always sent them.
     nextAiringAt: item.nextAiringAt ?? null,
     nextAiringEpisodeNumber: item.nextAiringEpisodeNumber ?? null,
+    // Baked by scripts/build-airing-map.mjs and merged by /api/catalog.
+    // season/seasonYear let the carousel rank by how CURRENT a title is;
+    // franchiseSeasons is the ordered SEQUEL/PREQUEL chain the season picker
+    // needs. All three were being dropped here - this function builds an
+    // explicit field list, so anything not named simply does not survive, which
+    // is the same way the airing fields went missing before.
+    season: item.season || "",
+    seasonYear: item.seasonYear ?? null,
+    franchiseSeasons: Array.isArray(item.franchiseSeasons) ? item.franchiseSeasons : null,
     // Derived from the numeric instant above, not from whatever strings the
     // server baked. /api/catalog sends no day at all, so every one of the ~994
     // catalogue rows defaulted to "Local" - a value the Weekly Schedule

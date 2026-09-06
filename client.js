@@ -548,7 +548,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=706`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=710`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3539,7 +3539,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=706";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=710";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -13063,6 +13063,97 @@ function _buildShowsByAniListId() {
   return map;
 }
 
+// The season chain baked into the catalogue by scripts/build-airing-map.mjs.
+//
+// This is the SAME relation data the runtime path uses - AniList SEQUEL and
+// PREQUEL edges, nothing inferred from titles - so it carries the same accuracy
+// guarantee the note below demands. It exists because graphql.anilist.co answers
+// 403 to both the browser and the Vercel functions, so show.anilistFranchise is
+// never populated in production and a three-season show could only ever offer
+// the parts of the one you opened.
+//
+// Entries already arrive ordered by release date, which is the only ordering
+// that survives inconsistent numbering ("II", "2nd Season", "Final Season
+// Part 2"). A chain entry that is not in the catalogue still gets a row, built
+// from its own episode count, so the season exists in the picker even when we
+// cannot play it.
+// The opened show is not always the catalogue row that carries the baked data.
+// The deep-link path builds an object with the source's raw id ("animeav1-x")
+// while the catalogue row is normalised ("source-<source>-animeav1-x") - the
+// same show as two objects. Measured: the API row and the catalogue entry both
+// had the chain while state.activeShow had none. Match on AniList id first,
+// then on the id suffix, so either object finds it.
+function bakedChainFor(show) {
+  if (Array.isArray(show.franchiseSeasons) && show.franchiseSeasons.length) {
+    return { chain: show.franchiseSeasons, selfAniListId: show.anilistId || null };
+  }
+  const shows = typeof catalogShows === "function" ? catalogShows() : [];
+  const hasChain = (s) => Array.isArray(s.franchiseSeasons) && s.franchiseSeasons.length;
+  if (show.anilistId) {
+    const byAniList = shows.find((s) => hasChain(s) && String(s.anilistId) === String(show.anilistId));
+    if (byAniList) return { chain: byAniList.franchiseSeasons, selfAniListId: show.anilistId };
+  }
+  const rawId = String(show.id || "");
+  if (!rawId) return null;
+  const bySuffix = shows.find((s) => hasChain(s) && (String(s.id || "").endsWith(rawId) || rawId.endsWith(String(s.id || ""))));
+  // The matched row is the same show, so ITS AniList id identifies which link
+  // of the chain we are on - the opened object often has no anilistId of its own.
+  return bySuffix ? { chain: bySuffix.franchiseSeasons, selfAniListId: bySuffix.anilistId || null } : null;
+}
+
+function buildSeasonListFromBakedChain(show, showsMap) {
+  const resolved = bakedChainFor(show);
+  const chain = resolved ? resolved.chain : [];
+  if (chain.length < 2) return null;
+
+  const currentAniListId = String(show.anilistId || resolved.selfAniListId || "");
+  const list = chain.map((entry, index) => {
+    const isCurrent = currentAniListId && String(entry.anilistId) === currentAniListId;
+    const matched = showsMap.get(String(entry.anilistId));
+    let episodes = [];
+    if (isCurrent) {
+      episodes = (getDetailSeasons(show) || []).flatMap((s) => s.episodes || []);
+    } else if (matched) {
+      episodes = makePlaceholderEpisodes(matched, index + 1);
+    } else if (Number(entry.episodes) > 0) {
+      // Not in the catalogue: a locked row per episode, so the season is
+      // visible and honestly marked rather than silently missing.
+      episodes = Array.from({ length: Math.min(Number(entry.episodes), 500) }, (_, i) => ({
+        id: `chain-${entry.anilistId}-e${i + 1}`,
+        title: "Not available yet",
+        season: index + 1,
+        episode: i + 1,
+        locked: true,
+        missing: true,
+        unavailable: true,
+        server: "Not in catalog"
+      }));
+    }
+    return {
+      id: matched ? matched.id : `anilist-${entry.anilistId}`,
+      season: index + 1,
+      part: null,
+      type: "main",
+      title: entry.title || `Season ${index + 1}`,
+      sourceTitle: isCurrent ? show.title : (matched?.title || entry.title || ""),
+      image: isCurrent ? (show.image || "") : (matched?.image || show.image || ""),
+      format: entry.format || "",
+      formatBadge: "",
+      status: entry.status || "",
+      year: entry.seasonYear || null,
+      anilistId: entry.anilistId,
+      malId: matched?.malId || null,
+      isCurrentShow: isCurrent,
+      relatedShowId: isCurrent ? null : (matched ? matched.id : null),
+      episodes,
+      playable: isCurrent || Boolean(matched)
+    };
+  });
+
+  // Worth using only if it actually says more than the single entry would.
+  return list.some((s) => (s.episodes || []).length) ? list : null;
+}
+
 function getFranchiseSeasonList(show) {
   // ── AniList-powered franchise (most accurate) ────────────────────────────
   if (show.anilistFranchise) {
@@ -13072,6 +13163,10 @@ function getFranchiseSeasonList(show) {
     );
     if (list && list.length > 0) return list;
   }
+
+  // ── The same relations, baked at build time ──────────────────────────────
+  const baked = buildSeasonListFromBakedChain(show, _buildShowsByAniListId());
+  if (baked && baked.length > 1) return baked;
 
   // ── No relation-based franchise available ────────────────────────────────
   // Do NOT group different shows just because they share a normalized title —
@@ -16941,7 +17036,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=706");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=710");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

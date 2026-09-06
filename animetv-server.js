@@ -2247,6 +2247,22 @@ function readArtworkMap() {
   return _artworkMapCache;
 }
 
+// Airing schedules and season chains, baked by scripts/build-airing-map.mjs.
+// graphql.anilist.co answers 403 to this process, so nothing here can be
+// fetched at runtime; the nightly GitHub Actions job is on a different network
+// and commits the answer. Absent file = the app behaves exactly as before.
+let _airingMapCache;
+function readAiringMap() {
+  if (_airingMapCache !== undefined) return _airingMapCache;
+  try {
+    const raw = JSON.parse(fs.readFileSync(path.join(root, "scraper", "airing-map.json"), "utf8"));
+    _airingMapCache = raw && raw.entries ? raw.entries : null;
+  } catch {
+    _airingMapCache = null; // not built yet
+  }
+  return _airingMapCache;
+}
+
 function readScrapedRegularCatalogItems() {
   const paths = [
     path.join(root, "scraper", "anime_metadata.json"),
@@ -2265,10 +2281,25 @@ function readScrapedRegularCatalogItems() {
       // demand, which is why only ~4 of 1177 rows ever had a TMDB backdrop and the
       // rest fell back to a 1900x400 strip.
       const artwork = readArtworkMap();
-      if (!artwork) return items;
+      const airing = readAiringMap();
+      if (!artwork && !airing) return items;
       return items.map((item) => {
-        const hit = artwork[item.id];
-        if (!hit || hit.status !== "ok") return item;
+        const hit = artwork ? artwork[item.id] : null;
+        // The airing map is keyed by the same row id, and is independent of the
+        // artwork one: a row with no artwork entry can still have a schedule.
+        const airingHit = airing ? airing[item.id] : null;
+        if (!hit || hit.status !== "ok") {
+          return airingHit ? {
+            ...item,
+            nextAiringAt: item.nextAiringAt ?? airingHit.nextAiringAt ?? null,
+            nextAiringEpisodeNumber: item.nextAiringEpisodeNumber ?? airingHit.nextAiringEpisodeNumber ?? null,
+            season: item.season || airingHit.season || "",
+            seasonYear: item.seasonYear || airingHit.seasonYear || null,
+            status: item.status || airingHit.airingStatus || "",
+            ...(airingHit.franchiseSeasons && airingHit.franchiseSeasons.length
+              ? { franchiseSeasons: airingHit.franchiseSeasons } : {})
+          } : item;
+        }
         // Metadata resolved once by scripts/add-artwork-metadata.mjs. Measured on
         // 2026-09-02, ZERO of 1079 catalogue rows were fully populated - year on 15
         // rows, duration and format on none - because artwork had been moved to
@@ -2332,6 +2363,32 @@ function readScrapedRegularCatalogItems() {
             // one, in Spanish ("Aventura"), on 63 of 1000 rows, and the genre
             // filters are built against the English names.
             genres: (meta.genres && meta.genres.length) ? meta.genres : (item.genres || [])
+          } : {}),
+          // Airing data, from the build-time map. Strictly additive:
+          //
+          //   nextAiringAt / nextAiringEpisodeNumber - the Weekly Schedule and the
+          //     carousel derive their weekday and clock from this instant. Without
+          //     it every row fell back to day:"Local", which the Schedule excludes,
+          //     and the week rendered seven empty columns.
+          //   season / seasonYear - the carousel ranks by how CURRENT a title is,
+          //     and with no season it could only fall back to popularity.
+          //   franchiseSeasons - the ordered SEQUEL/PREQUEL chain, so a show with
+          //     three seasons can offer all three instead of only the parts of the
+          //     one you opened.
+          //
+          // Deliberately NOT mapped here, for the same reason the block above says
+          // it: nothing that getSeasonEpisodeLimit reads as an episode ceiling.
+          // anilistEpisodeCount already carries AniList's count under a name that
+          // cannot be mistaken for the episode array.
+          ...(airingHit ? {
+            nextAiringAt: item.nextAiringAt ?? airingHit.nextAiringAt ?? null,
+            nextAiringEpisodeNumber: item.nextAiringEpisodeNumber ?? airingHit.nextAiringEpisodeNumber ?? null,
+            season: item.season || airingHit.season || "",
+            seasonYear: item.seasonYear || airingHit.seasonYear || null,
+            status: item.status || airingHit.airingStatus || (meta ? meta.airingStatus : "") || "",
+            franchiseSeasons: airingHit.franchiseSeasons && airingHit.franchiseSeasons.length
+              ? airingHit.franchiseSeasons
+              : undefined
           } : {})
         };
       });
