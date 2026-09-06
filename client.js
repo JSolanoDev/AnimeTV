@@ -2823,15 +2823,25 @@ function imageDeliveryUrl(url, width = 360, quality = 70) {
       host === "hanime-cdn.com" ||
       host === "www.hanime-cdn.com";
     if (!allowed) return raw;
-    // TMDB "/original/" files can be several MB. When we're only rendering a
-    // small image (thumbnails, carousel dots, cards) the proxy still had to pull
-    // that whole original down before resizing, which is why small artwork was
-    // slow to appear. Ask TMDB for its own w780 variant instead -- w780 is valid
-    // for both posters and backdrops, and it is still larger than any target we
-    // resize to here, so there is no visible quality loss.
-    if ((host === "image.tmdb.org" || host === "media.themoviedb.org") &&
-        width && Number(width) <= 780 && parsed.pathname.includes("/original/")) {
-      parsed.pathname = parsed.pathname.replace("/original/", "/w780/");
+    // TMDB already publishes the sizes we were asking the proxy to produce, so
+    // for small artwork the proxy earns nothing. Measured on one poster: our
+    // WebP at w=360 q=88 came to 57,996 bytes against TMDB's own w342 at 57,397
+    // - 1% LARGER - for the price of a function invocation and a sharp decode,
+    // resize and re-encode. Hand those to the CDN directly.
+    //
+    // Above 780 the proxy keeps its job, because there the transcode is worth
+    // real bytes: the hero at w=2560 q=92 is 336 KB of WebP against a 976 KB
+    // TMDB original. Every non-TMDB host is untouched - AnimeAV1 answers 403 to
+    // a direct request, and the adult hosts stay proxied as before.
+    if ((host === "image.tmdb.org" || host === "media.themoviedb.org") && Number(width) > 0 && Number(width) <= 780) {
+      // Only rewrite a path that really is /t/p/<size>/<file>; anything else
+      // keeps the proxy rather than having a size invented for it.
+      const sized = parsed.pathname.match(/^(\/t\/p\/)[^/]+(\/.+)$/);
+      if (sized) {
+        const native = Number(width) <= 342 ? "w342" : Number(width) <= 500 ? "w500" : "w780";
+        parsed.pathname = `${sized[1]}${native}${sized[2]}`;
+        return parsed.toString();
+      }
     }
     const proxy = new URL("/api/image", location.origin);
     proxy.searchParams.set("src", parsed.toString());
@@ -2881,15 +2891,24 @@ function cinematicBackdropUrl(url) {
 function imageDeliverySrcSet(url, widths, quality = 80) {
   const raw = String(url || "").trim();
   if (!raw) return "";
-  // Only same proxy-eligible hosts produce resized variants; otherwise srcset is
-  // pointless (imageDeliveryUrl returns the raw URL unchanged for every width).
-  const probe = imageDeliveryUrl(raw, widths[0], quality);
-  if (!probe.startsWith("/api/image") && !probe.startsWith("/api/image") && !probe.includes("/api/image")) {
-    return "";
+  // Every candidate has to be described by the width it ACTUALLY is. The proxy
+  // resizes to whatever ?w= asks for, so there the requested width is the file
+  // width. A direct TMDB file only exists in its own native sizes, so several
+  // requested widths collapse onto one file - describing that file by the width
+  // we asked for would lie to the browser's candidate picking and to
+  // artworkIntrinsicPixels. Deduplicate, and label each by its real size.
+  //
+  // A host that is not delivery-eligible returns the raw URL for every width, so
+  // it collapses to a single entry and yields no srcset - as before.
+  const candidates = new Map();
+  for (const w of widths) {
+    const delivered = imageDeliveryUrl(raw, w, quality);
+    if (!delivered || delivered === raw) continue;
+    const native = /\/t\/p\/w(\d{2,4})\//.exec(delivered);
+    if (!candidates.has(delivered)) candidates.set(delivered, native ? Number(native[1]) : w);
   }
-  return widths
-    .map((w) => `${imageDeliveryUrl(raw, w, quality)} ${w}w`)
-    .join(", ");
+  if (candidates.size < 2) return "";
+  return [...candidates].map(([url_, w]) => `${url_} ${w}w`).join(", ");
 }
 
 const artworkImagePreloads = new Map();
@@ -3749,7 +3768,18 @@ function artworkIntrinsicPixels(img) {
   const height = Number(img.naturalHeight || 0);
   if (!width || !height) return { width: 0, height: 0 };
   if (!img.getAttribute || !img.getAttribute("srcset")) return { width, height };
-  const picked = /[?&]w=(\d{2,4})(?:&|$)/.exec(img.currentSrc || "");
+  // Two URL shapes carry the width of the candidate the browser picked. The
+  // proxy states it in the query (?w=360); a direct TMDB file names it in the
+  // path (/t/p/w342/file.jpg). Without the second shape every phone poster
+  // served straight from TMDB failed the gate: naturalWidth is density
+  // corrected to ~172 on a 375px screen, below the 180 poster floor, and the
+  // artwork cascaded to a fallback.
+  //
+  // Deliberately narrow: \\d{2,4} only, so /t/p/wabc/ and /t/p/bad/ match
+  // nothing, and /original/ is not treated as a width because it states none.
+  // Anything unmatched falls through to the raw naturalWidth exactly as before.
+  const src = img.currentSrc || "";
+  const picked = /[?&]w=(\d{2,4})(?:&|$)/.exec(src) || /\/t\/p\/w(\d{2,4})\//.exec(src);
   const real = picked ? Number(picked[1]) : 0;
   // Only ever correct upward, and only when we can read the candidate width.
   if (!real || real <= width) return { width, height };
