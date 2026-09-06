@@ -72,6 +72,54 @@ const solo = Object.values(JSON.parse(fs.readFileSync(outPath, "utf8")).entries)
 check("a standalone show carries no chain", solo.franchiseSeasons, []);
 check("and no airing instant it does not have", solo.nextAiringAt, null);
 
+/* ── 2b. THE MULTI-HOP CASE ────────────────────────────────────────────────
+   SEQUEL/PREQUEL edges are a linked list. Mushoku Tensei S3's own edges name
+   only S2 - season 1 is two hops away, and reading one media's edges could
+   never reach it. Measured on production 2026-09-06: opening S3 offered exactly
+   two tabs, "Season 3 Part 1" and "Season 3 Part 2", and no season 1 at all.
+
+   Here S3 and S2 are both fetched; season 1 is named ONLY by S2 and is never
+   fetched (it is absent from our catalogue and from the AnimeAV1 source). It
+   must still appear, and the chain must be identical whichever season is
+   opened. */
+{
+  fs.writeFileSync(fixturePath, JSON.stringify([
+    {
+      id: 178789, title: { romaji: "Mushoku Tensei III" }, format: "TV", status: "RELEASING",
+      episodes: 14, seasonYear: 2026, startDate: { year: 2026, month: 4, day: 6 },
+      relations: { edges: [
+        { relationType: "PREQUEL", node: { id: 146065, type: "ANIME", format: "TV", title: { romaji: "Mushoku Tensei II" }, seasonYear: 2023 } }
+      ] }
+    },
+    {
+      id: 146065, title: { romaji: "Mushoku Tensei II" }, format: "TV", status: "FINISHED",
+      episodes: 12, seasonYear: 2023, startDate: { year: 2023, month: 10, day: 4 },
+      relations: { edges: [
+        // Season 1: named here, never fetched, no full startDate - only a year.
+        { relationType: "PREQUEL", node: { id: 108465, type: "ANIME", format: "TV", episodes: 23, title: { romaji: "Mushoku Tensei" }, seasonYear: 2021 } },
+        { relationType: "SEQUEL", node: { id: 178789, type: "ANIME", format: "TV", title: { romaji: "Mushoku Tensei III" }, seasonYear: 2026 } }
+      ] }
+    }
+  ], null, 2));
+  execFileSync(process.execPath, [
+    path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--fixture", fixturePath, "--out", outPath, "--write"
+  ], { stdio: "pipe" });
+  const built = JSON.parse(fs.readFileSync(outPath, "utf8"));
+  const s3 = built.entries[Object.keys(built.entries).find((k) => built.entries[k].anilistId === 178789)];
+  const s2 = built.entries[Object.keys(built.entries).find((k) => built.entries[k].anilistId === 146065)];
+
+  check("season 1 is reached through season 2, two hops from the opened show",
+    s3.franchiseSeasons.map((x) => x.anilistId), [108465, 146065, 178789]);
+  check("an unfetched season still orders by its year alone",
+    s3.franchiseSeasons.map((x) => x.seasonYear), [2021, 2023, 2026]);
+  check("season 1 keeps its own episode count", s3.franchiseSeasons[0].episodes, 23);
+  check("the chain is identical opened from season 2",
+    s2.franchiseSeasons.map((x) => x.anilistId), [108465, 146065, 178789]);
+  check("and is numbered 1..3 from the true first season",
+    s3.franchiseSeasons.map((x) => x.order), [1, 2, 3]);
+}
+
 /* ── 3. The client half ───────────────────────────────────────────────────── */
 const src = fs.readFileSync(path.join(ROOT, "client.js"), "utf8");
 const slice = (start, end) => {

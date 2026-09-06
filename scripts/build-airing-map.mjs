@@ -88,38 +88,101 @@ async function fetchBatch(ids) {
 const titleOf = (t) => (t && (t.userPreferred || t.romaji || t.english)) || "";
 const startMs = (d) => (d && d.year ? Date.UTC(d.year, Math.max(0, (d.month || 1) - 1), d.day || 1) : 0);
 
-function seasonChainFor(media) {
-  // SEQUEL/PREQUEL only. SIDE_STORY and SPIN_OFF are a different work, and
-  // treating them as seasons is how a spin-off ends up numbered as season 4.
-  const edges = (media.relations?.edges || [])
-    .filter((e) => e && (e.relationType === "SEQUEL" || e.relationType === "PREQUEL"))
-    .map((e) => e.node)
-    .filter((n) => n && n.type === "ANIME" && n.format !== "MUSIC");
+// SEQUEL/PREQUEL edges form a LINKED LIST, not a star: Mushoku Tensei S3 links
+// only to S2 Part 2, which links to S2, which links to S1. Reading one media's
+// own edges therefore yields its NEIGHBOURS, never the franchise - open S3 and
+// you would be offered S3 and S2 and told that is the whole show. Season 1 is
+// unreachable in one hop, which is exactly the season the viewer wanted.
+//
+// So walk the CONNECTED COMPONENT instead. Every catalogue row is fetched with
+// its edges, so the union of those edges already describes the whole spine; a
+// component walk turns it into one ordered chain that every member shares. The
+// chain is identical no matter which season was opened, and members we never
+// fetched (S1 is not in our catalogue and not on our source) still appear,
+// because a fetched neighbour named them.
+const isSeasonEdge = (type) => type === "SEQUEL" || type === "PREQUEL";
 
-  const entries = [media, ...edges].map((n) => ({
-    anilistId: n.id,
-    title: titleOf(n.title),
-    format: n.format || "",
-    status: n.status || "",
-    episodes: n.episodes || null,
-    season: n.season || "",
-    seasonYear: n.seasonYear || null,
-    startedAt: startMs(n.startDate)
-  }));
-
-  // Deduplicate, then order by when each entry actually began: release order is
-  // the only ordering that holds when titles are numbered inconsistently
-  // ("II", "2nd Season", "Final Season Part 2").
-  const byId = new Map();
-  for (const e of entries) if (e.anilistId && !byId.has(e.anilistId)) byId.set(e.anilistId, e);
-  return [...byId.values()]
-    .sort((a, b) => (a.startedAt || Infinity) - (b.startedAt || Infinity))
-    .map((e, i) => ({ ...e, order: i + 1 }));
+function nodeToEntry(node) {
+  return {
+    anilistId: node.id,
+    title: titleOf(node.title),
+    format: node.format || "",
+    status: node.status || "",
+    episodes: node.episodes || null,
+    season: node.season || "",
+    seasonYear: node.seasonYear || null,
+    // A relation stub sometimes carries only the year. Falling back to it keeps
+    // an unfetched season in its right place; without this it sorts to the end
+    // and season 1 is offered as the last tab.
+    startedAt: startMs(node.startDate) || (node.seasonYear ? Date.UTC(node.seasonYear, 0, 1) : 0)
+  };
 }
 
-function entryFor(media) {
+// Adjacency over every media we hold plus every node they name.
+function buildChains(allMedia) {
+  const nodes = new Map();   // anilistId -> entry (best known version)
+  const adjacency = new Map();
+
+  const remember = (node) => {
+    if (!node || !node.id) return null;
+    const entry = nodeToEntry(node);
+    const previous = nodes.get(node.id);
+    // A fully fetched media beats a relation stub, which carries no episode
+    // count and often no date - preferring it keeps ordering and labels right.
+    if (!previous || (!previous.startedAt && entry.startedAt) || (!previous.episodes && entry.episodes)) {
+      nodes.set(node.id, previous ? { ...previous, ...entry } : entry);
+    }
+    if (!adjacency.has(node.id)) adjacency.set(node.id, new Set());
+    return node.id;
+  };
+
+  for (const media of allMedia) {
+    const from = remember(media);
+    if (from == null) continue;
+    for (const edge of media.relations?.edges || []) {
+      // SIDE_STORY and SPIN_OFF are a different work. Following them is how a
+      // spin-off ends up numbered as season 4.
+      if (!edge || !isSeasonEdge(edge.relationType)) continue;
+      const node = edge.node;
+      if (!node || node.type !== "ANIME" || node.format === "MUSIC") continue;
+      const to = remember(node);
+      if (to == null || to === from) continue;
+      adjacency.get(from).add(to);
+      adjacency.get(to).add(from);
+    }
+  }
+
+  // Breadth-first over each component, then order by release date.
+  const chainFor = new Map();
+  const seen = new Set();
+  for (const startId of nodes.keys()) {
+    if (seen.has(startId)) continue;
+    const component = [];
+    const queue = [startId];
+    seen.add(startId);
+    while (queue.length) {
+      const id = queue.shift();
+      component.push(id);
+      for (const next of adjacency.get(id) || []) {
+        if (seen.has(next)) continue;
+        seen.add(next);
+        queue.push(next);
+      }
+    }
+    // Release order is the only ordering that survives inconsistent numbering
+    // ("II", "2nd Season", "Final Season Part 2"). An undated entry sorts last
+    // rather than pretending to be the first season.
+    const ordered = component
+      .map((id) => nodes.get(id))
+      .sort((a, b) => (a.startedAt || Infinity) - (b.startedAt || Infinity))
+      .map((entry, index) => ({ ...entry, order: index + 1 }));
+    for (const id of component) chainFor.set(id, ordered);
+  }
+  return chainFor;
+}
+
+function entryFor(media, chain = []) {
   const airingAt = Number(media.nextAiringEpisode?.airingAt || 0);
-  const chain = seasonChainFor(media);
   return {
     anilistId: media.id,
     airingStatus: media.status || "",
@@ -156,12 +219,15 @@ async function main() {
   log(`${Object.keys(entries).length} catalogue rows, ${targets.length} with an AniList id, ${wanted.length} to fetch`);
 
   const byAnilistId = new Map();
+  // Every media we manage to fetch, kept whole - the chains are computed from
+  // the union of their edges once the whole set is in hand, not per-media.
+  const fetched = [];
 
   if (FIXTURE) {
     // Offline path, so the shaping can be exercised without the network.
     const fixture = JSON.parse(fs.readFileSync(FIXTURE, "utf8"));
-    for (const media of (Array.isArray(fixture) ? fixture : [fixture])) byAnilistId.set(media.id, entryFor(media));
-    log(`fixture: shaped ${byAnilistId.size} entr(ies)`);
+    for (const media of (Array.isArray(fixture) ? fixture : [fixture])) if (media && media.id) fetched.push(media);
+    log(`fixture: loaded ${fetched.length} media`);
   } else {
     let failures = 0;
     for (let i = 0; i < wanted.length; i += BATCH) {
@@ -169,7 +235,7 @@ async function main() {
       try {
         const data = await fetchBatch(slice);
         for (const media of Object.values(data)) {
-          if (media && media.id) byAnilistId.set(media.id, entryFor(media));
+          if (media && media.id) fetched.push(media);
         }
       } catch (error) {
         failures += 1;
@@ -181,6 +247,9 @@ async function main() {
       if (i + BATCH < wanted.length) await sleep(PAUSE_MS);
     }
   }
+
+  const chains = buildChains(fetched);
+  for (const media of fetched) byAnilistId.set(media.id, entryFor(media, chains.get(media.id) || []));
 
   if (!byAnilistId.size) {
     log("resolved nothing - the existing map is left exactly as it is (this is not a build failure)");
