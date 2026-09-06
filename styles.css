@@ -8597,6 +8597,19 @@ body.reduce-motion .watch-stage-body { animation: none; }
 /* Two-tab selector (Seasons / Episodes) — two simple pills on a sticky bar that
    is the SAME colour as the panel, so there is no track box / seam, and it stays
    opaque so episodes never bleed through while scrolling. */
+
+/* The panel names the show it is listing, on every width; the phone block far
+   below only changes this element's spacing. */
+.watch-side .ep-panel-title {
+  margin: 0 0 0.5rem;
+  padding: 0 0.15rem;
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #eef1fb;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
 .watch-side .detail-tabs.detail-tabs-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   position: relative;
@@ -11114,15 +11127,34 @@ body.is-tv .topbar-auth {
     max-height: none;
     overflow: visible;
   }
-  /* Seasons / Episodes tabs scroll WITH the list — no sticky "follow". */
+  /* The show this panel is listing. On a phone the artwork and the watch title
+     have usually scrolled away by the time the episode list is on screen, so
+     the panel says it itself. Cleared past the fixed Back button for the same
+     reason .watch-stage-body is. */
+  .watch-overlay .watch-side .ep-panel-title {
+    margin: 0 0 0.55rem;
+    padding: 3.9rem 0.15rem 0;
+    font-size: 1.02rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #eef1fb;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+  }
+
+  /* Pinned just below the fixed Back / fullscreen controls rather than
+     scrolling under them. Those two occupy the viewport to y=57 and y=55; 4rem
+     clears both. This replaces an earlier static treatment - the tabs scrolled
+     with the list, which is exactly how they ended up beneath the controls. */
   .watch-overlay .watch-side .detail-tabs.detail-tabs-2 {
-    position: static;
-    top: auto;
-    z-index: auto;
+    position: sticky;
+    top: 4rem;
+    z-index: 8;
     margin: 0 0 0.6rem;
-    padding: 0;
+    padding: 0.35rem 0 0.4rem;
     border-radius: 0;
-    background: transparent;
+    /* Opaque, or episode rows show through as they scroll behind the tabs. */
+    background: #0f1224;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -11964,6 +11996,11 @@ body.player-cinema-open .watch-overlay .close-button {
 @media (max-width: 760px) {
   .watch-stage-body {
     gap: 0.62rem;
+    /* Back is position:fixed at top .65rem and 2.9rem tall, so it covers the
+       viewport down to ~57px. Without this the title's first line rendered at
+       y=48 and ran underneath it. 1.75rem puts the title at y=76 - a 19px gap -
+       and holds for 2-line and 4-line titles alike. */
+    padding-top: 1.75rem;
   }
 
   /* Specificity has to match `.watch-overlay.cinematic .watch-title`, whose

@@ -9200,6 +9200,7 @@ function renderEpisodeList(show) {
 
   episodeList.hidden = false;
   episodeList.innerHTML = `
+    <p class="ep-panel-title" title="${escapeHtml(getShowTitle(show))}">${escapeHtml(getShowTitle(show))}</p>
     <div class="detail-tabs detail-tabs-2" role="tablist" aria-label="Anime details">
       <button class="detail-tab focusable ${tab === "seasons" || tab === "gallery" ? "is-selected" : ""}" data-detail-tab="${isAdultDetailShow ? "gallery" : "seasons"}" role="tab" aria-selected="${tab === "seasons" || tab === "gallery"}">${isAdultDetailShow ? "Gallery" : "Seasons"}</button>
       <button class="detail-tab focusable ${tab === "episodes" ? "is-selected" : ""}" data-detail-tab="episodes" role="tab" aria-selected="${tab === "episodes"}">Episodes</button>
