@@ -11298,6 +11298,26 @@ function buildCastCandidateList() {
   }).filter(Boolean).slice(0, 4);
 }
 
+// The poster travels in the player iframe's QUERY STRING, so its length is
+// charged against the request line, not the body. A data: URI poster is base64
+// artwork - tens of kilobytes at least - and Chrome answered the resulting URL
+// with 431 Request Header Fields Too Large and refused to load the player at
+// all. Playback only recovered because a later retry happened to carry an
+// ordinary https URL instead.
+//
+// Only real http(s) artwork is worth passing. A data: or blob: URI is dropped,
+// and so is any URL long enough to threaten the limit on its own. The poster is
+// an optional hint: when it is omitted the player uses its own fallback, which
+// is a far better outcome than a player that will not load.
+const PLAYER_POSTER_MAX_LENGTH = 1024;
+function playerPosterParam(poster) {
+  const value = String(poster == null ? "" : poster).trim();
+  if (!value) return "";
+  if (!/^https?:\/\//i.test(value)) return "";
+  if (value.length > PLAYER_POSTER_MAX_LENGTH) return "";
+  return value;
+}
+
 function buildPlayerUrl(videoUrl = "", title = "", options = {}) {
   const playerUrl = new URL("/player/player.html", location.origin);
   if (PLAYER_SHELL_VERSION) playerUrl.searchParams.set("v", PLAYER_SHELL_VERSION);
@@ -11307,7 +11327,8 @@ function buildPlayerUrl(videoUrl = "", title = "", options = {}) {
   playerUrl.searchParams.set("src", source);
   if (title) playerUrl.searchParams.set("title", title);
   if (options.episode) playerUrl.searchParams.set("episode", options.episode);
-  if (options.poster) playerUrl.searchParams.set("poster", options.poster);
+  const posterParam = playerPosterParam(options.poster);
+  if (posterParam) playerUrl.searchParams.set("poster", posterParam);
   if (options.subtitle) playerUrl.searchParams.set("subtitle", options.subtitle);
   if (options.type) playerUrl.searchParams.set("type", options.type);
   if (options.start) playerUrl.searchParams.set("start", String(options.start));
