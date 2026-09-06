@@ -548,7 +548,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=687`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=689`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2169,7 +2169,7 @@ async function loadAdultCatalog(force = false) {
     if (loadedItems.length) return loadedItems;
   }
   const adapter = AdultSourceRegistry.get();
-  const cacheKey = `adult-catalog:${adapter.name}:multi-source-v9`;
+  const cacheKey = `adult-catalog:${adapter.name}:multi-source-v10`;
   const applyAdultItems = (items = [], labelPrefix = adapter.name) => {
     const adultItems = Array.isArray(items)
       ? items.filter((item) => item?.isAdult === true).map(isolateAdultSourceMetadata)
@@ -3464,7 +3464,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=687";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=689";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -7936,6 +7936,17 @@ function hideAdultGalleryPanel() {
   galleryPanel.style.width = "";
 }
 
+function isPhoneGalleryPopupDisabled() {
+  try {
+    return Math.max(
+      Number(window.innerWidth || 0),
+      Number(document.documentElement?.clientWidth || 0)
+    ) <= 760;
+  } catch {
+    return false;
+  }
+}
+
 function stopActivePlayback() {
   teardownPlayerAutoHide();
   const ctx = _activeProgressPlayer;
@@ -9501,6 +9512,7 @@ function renderEpisodeList(show) {
     };
     episodeList.querySelectorAll(".adult-detail-gallery-thumb").forEach((thumb) => {
       thumb.addEventListener("click", () => {
+        if (isPhoneGalleryPopupDisabled()) return;
         const seasonIndex = Number(thumb.dataset.galleryEpisodeSeason);
         const episodeIndex = Number(thumb.dataset.galleryEpisodeIndex);
         const imageIndex = Number(thumb.dataset.galleryImageIndex);
@@ -10698,7 +10710,10 @@ function renderSourcePickerInSidePanel() {
       lb.focus();
     };
     galleryPanel.querySelectorAll(".agp-thumb").forEach((thumb) => {
-      thumb.addEventListener("click", () => openLightbox(Number(thumb.dataset.galleryIndex)));
+      thumb.addEventListener("click", () => {
+        if (isPhoneGalleryPopupDisabled()) return;
+        openLightbox(Number(thumb.dataset.galleryIndex));
+      });
       thumb.addEventListener("focus", () => {
         document.documentElement.scrollLeft = 0;
         document.body.scrollLeft = 0;
@@ -16740,7 +16755,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=687");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=689");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

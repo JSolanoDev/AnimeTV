@@ -124,6 +124,7 @@ test("local-only retired files cannot change the production catalog total", asyn
       decodeUnderHentaiImage: value => value,
       chooseUnderHentaiDisplayImage: value => value,
       getUnderHentaiArtwork: () => ({ screenshots: [], backgroundArtwork: "" }),
+      UNDERHENTAI_LIVE_CATALOG_ENABLED: false,
       sendJson: (_response, payload) => results.push(payload),
       log() {}
     });
@@ -133,5 +134,5 @@ test("local-only retired files cannot change the production catalog total", asyn
   }
   assert.deepEqual(results.map(result => result.count), [1, 1]);
   assert.deepEqual(results.map(result => result.excludedForSafety), [1, 1]);
-  assert.match(client, /multi-source-v9/, "retired browser snapshots must not be restored after upgrading");
+  assert.match(client, /multi-source-v10/, "retired browser snapshots must not be restored after upgrading");
 });

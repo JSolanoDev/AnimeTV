@@ -13,6 +13,7 @@ let checkedTitles = 0;
 let checkedEpisodes = 0;
 let checkedReleases = 0;
 let galleryEpisodes = 0;
+let iframeFallbackReleases = 0;
 
 async function checkRelease(title, episode, source, releaseIndex) {
   const endpoint = new URL("/api/adult/underhentai/stream", baseUrl);
@@ -29,19 +30,27 @@ async function checkRelease(title, episode, source, releaseIndex) {
         await new Promise((resolve) => setTimeout(resolve, retryAfterMs + Math.floor(Math.random() * 500)));
         continue;
       }
-      const directSources = (Array.isArray(payload.sourceOptions) ? payload.sourceOptions : [])
-        .filter((option) => option?.type === "direct" && option.videoUrl);
-      if (!response.ok || payload.ok !== true || !directSources.length) {
+      const sourceOptions = Array.isArray(payload.sourceOptions) ? payload.sourceOptions : [];
+      const directSources = sourceOptions.filter((option) => option?.type === "direct" && option.videoUrl);
+      const iframeSources = sourceOptions.filter((option) => option?.type === "iframe" && option.externalUrl);
+      const playable = response.ok && payload.ok === true && (
+        directSources.length ||
+        iframeSources.length ||
+        payload.videoUrl ||
+        payload.externalUrl
+      );
+      if (!playable) {
         unavailableReleases.push({
           slug: title.slug,
           episode: episode.number || episode.episode,
           release: source.releaseIndex ?? releaseIndex,
           status: response.status,
-          error: payload.error || "No verified direct source"
+          error: payload.error || "No playable direct or iframe source"
         });
         checkedReleases += 1;
         return false;
       }
+      if (!directSources.length && (iframeSources.length || payload.externalUrl)) iframeFallbackReleases += 1;
       checkedReleases += 1;
       return true;
     } catch (error) {
@@ -107,6 +116,7 @@ console.log(JSON.stringify({
   episodes: checkedEpisodes,
   releases: checkedReleases,
   episodesWithGallery: galleryEpisodes,
+  iframeFallbackReleases,
   unavailableReleases: unavailableReleases.length,
   episodesWithoutPlayback: episodesWithoutPlayback.length
 }, null, 2));

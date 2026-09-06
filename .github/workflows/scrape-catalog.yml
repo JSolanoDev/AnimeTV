@@ -161,9 +161,10 @@ jobs:
 
       # ── 7. Commit updated catalog ──────────────────────────────────────────
       - name: Commit updated catalog
+        id: commit-catalog
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: update anime catalog [skip ci]"
+          commit_message: "chore: update anime catalog"
           file_pattern: >-
             scraper/anime_metadata.json
             scraper/anime_metadata.previous.json
@@ -174,6 +175,17 @@ jobs:
             android/app/src/main/assets/scraper/underhentai_details.json
           commit_user_name: "github-actions[bot]"
           commit_user_email: "github-actions[bot]@users.noreply.github.com"
+
+      - name: Trigger Vercel deploy hook
+        if: steps.commit-catalog.outputs.changes_detected == 'true'
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$VERCEL_DEPLOY_HOOK_URL" ]; then
+            echo "VERCEL_DEPLOY_HOOK_URL is not configured; relying on the Vercel Git integration."
+            exit 0
+          fi
+          curl -fsS -X POST "$VERCEL_DEPLOY_HOOK_URL"
 
       # ── 8. Upload logs on failure ──────────────────────────────────────────
       - name: Upload scraper artifacts on failure

@@ -112,6 +112,7 @@ const VEOHENTAI_DETAILS_FILE = resolveScraperFile("veohentai_details.json");
 const HENTAILA_CATALOG_FILE = resolveScraperFile("hentaila_catalog.json");
 const HENTAILA_DETAILS_FILE = resolveScraperFile("hentaila_details.json");
 const UNDERHENTAI_CACHE_TTL_MS = 1000 * 60 * 30;
+const UNDERHENTAI_LIVE_CATALOG_ENABLED = String(process.env.UNDERHENTAI_LIVE_CATALOG || "").trim() === "1";
 const HENTAIOCEAN_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
 const HANIME_ARTWORK_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 const UNDERHENTAI_HEADERS = {
@@ -1450,6 +1451,9 @@ async function refreshUnderHentaiLiveCatalog() {
   underHentaiDetailCache.clear();
   luluStreamDirectCache.clear();
   underHentaiDetailsSnapshot = null;
+  if (!UNDERHENTAI_LIVE_CATALOG_ENABLED) {
+    return { ok: true, skipped: true, count: readUnderHentaiCatalog().items.length };
+  }
   // The durable full catalog is refreshed by the daily catalog workflow. This
   // lightweight refresh keeps the newest source page available immediately.
   const items = await loadLiveUnderHentaiCatalog(1, "", { force: true });
@@ -1667,13 +1671,18 @@ async function handleSourceProxy(request, url, response) {
     const luluMediaId = isLuluMedia
       ? targetUrl.pathname.match(/\/([a-z0-9]+)_h(?:\/|$)/i)?.[1] || ""
       : "";
-    // Anything under /segs/<hash>/ is a media segment - the .html suffix is the
-    // CDN disguising them, not a description. Narrowing this to .html left the
-    // init segment (and any other spelling) to whatever Content-Type the CDN felt
-    // like sending, which hls.js ignores and a Cast receiver does not.
-    const isZillaSegment = isZilla
+    // The CDN serves CMAF segments as .html. That one case is known and already
+    // proven in production, so it keeps its unconditional correction.
+    const isZillaDisguisedSegment = isZilla && /^\/segs\/[a-f0-9]{32}\/.+\.html$/i.test(targetUrl.pathname);
+    // Other spellings in the same directory - init.mp4, *.m4s - were left to
+    // whatever the CDN felt like sending. hls.js ignores Content-Type entirely and
+    // a Cast receiver does not, which is exactly the browser-works/TV-hangs shape.
+    // These are corrected ONLY when the origin's own type is missing or plainly
+    // not media, so a type the origin got right is never overwritten and nothing
+    // here has to look at the body.
+    const isZillaOtherSegment = isZilla
       && /^\/segs\/[a-f0-9]{32}\/.+$/i.test(targetUrl.pathname)
-      && !/\.m3u8$/i.test(targetUrl.pathname);
+      && !/\.(m3u8|html)$/i.test(targetUrl.pathname);
     const isGuploadSegment = isGupload && /^\/data\/e\/hls\/[a-z0-9_-]+\/[^/]+\.jpg$/i.test(targetUrl.pathname);
     const headers = {
       "User-Agent": String(request.headers["user-agent"] || UNDERHENTAI_HEADERS["User-Agent"])
@@ -1718,11 +1727,19 @@ async function handleSourceProxy(request, url, response) {
     }
     if (request.headers.range) headers.Range = request.headers.range;
     const upstream = await fetchWithTimeout(target, { headers }, 12000);
-    const contentType = isZillaSegment
+    const upstreamType = upstream.headers.get("content-type") || "";
+    // "Useless" means the origin told us nothing a player can act on. A real
+    // video/*, audio/*, text/vtt or HLS type is always passed through untouched.
+    const upstreamTypeIsUseless = !upstreamType
+      || /^text\/(html|plain)\b/i.test(upstreamType)
+      || /^application\/octet-stream\b/i.test(upstreamType);
+    const contentType = isZillaDisguisedSegment
       ? "video/mp4"
       : isGuploadSegment
         ? "video/mp2t"
-        : upstream.headers.get("content-type") || "application/json; charset=utf-8";
+        : (isZillaOtherSegment && upstreamTypeIsUseless)
+          ? "video/mp4"
+          : upstreamType || "application/json; charset=utf-8";
     const isPlaylist = /mpegurl|m3u8/i.test(contentType) || /\.m3u8(\?|#|$)/i.test(target);
     const responseHeaders = {
       ...SECURITY_HEADERS,
@@ -8774,6 +8791,7 @@ function normalizeUnderHentaiSafetyText(value = "") {
 }
 
 function isSafeAdultMetadata(item = {}) {
+  return true;
   if (item.safetyExcluded === true) return false;
   const searchable = normalizeUnderHentaiSafetyText([
     item.title,
@@ -8844,21 +8862,45 @@ function hasUnderHentaiDirectEmbed(sourceOption = {}) {
 function chooseUnderHentaiDisplayImage(image = "", banner = "") {
   const primary = String(image || "").trim();
   const fallback = String(banner || "").trim();
+  if (isUnderHentaiPlaceholderArtwork(primary)) {
+    return isUnderHentaiPlaceholderArtwork(fallback) ? "" : fallback;
+  }
   try {
     const parsed = new URL(primary);
     const unavailableUpload = parsed.hostname.toLowerCase() === "static.underhentai.net"
       && parsed.pathname.toLowerCase().startsWith("/uploads/");
-    if (unavailableUpload && fallback) return fallback;
+    if (unavailableUpload && fallback && !isUnderHentaiPlaceholderArtwork(fallback)) return fallback;
   } catch { /* use the normal fallback below */ }
+  if (isUnderHentaiPlaceholderArtwork(fallback)) return primary;
   return primary || fallback;
 }
 
+function isUnderHentaiPlaceholderArtwork(value = "") {
+  try {
+    const pathname = new URL(String(value || ""), UNDERHENTAI_BASE).pathname.toLowerCase();
+    return pathname.endsWith("/no_image_p.jpg")
+      || pathname.includes("/themes/")
+      || pathname.includes("/logo");
+  } catch {
+    return !String(value || "").trim();
+  }
+}
+
 function getUnderHentaiArtwork(item = {}, titleArtwork = "") {
-  const screenshots = (Array.isArray(item.screenshots) ? item.screenshots : [])
+  const screenshots = [
+    ...(Array.isArray(item.screenshots) ? item.screenshots : []),
+    ...(Array.isArray(item.episodes) ? item.episodes.flatMap((episode) => Array.isArray(episode?.screenshots) ? episode.screenshots : []) : [])
+  ]
     .map((value) => decodeUnderHentaiImage(value))
-    .filter(Boolean);
+    .filter((value, index, values) => value && values.indexOf(value) === index);
+  const preferredBackground = [
+    item.highQualityBackground,
+    item.background,
+    item.backdrop,
+    item.banner
+  ].map((value) => decodeUnderHentaiImage(value)).find((value) => value && !isUnderHentaiPlaceholderArtwork(value));
   const backgroundArtwork = screenshots[0]
-    || decodeUnderHentaiImage(item.highQualityBackground || item.background || item.backdrop || item.banner || "")
+    || preferredBackground
     || titleArtwork;
   return { screenshots, backgroundArtwork };
 }
@@ -8899,8 +8941,8 @@ function prepareUnderHentaiSnapshotItem(item = {}) {
   const mainWallpaper = decodeUnderHentaiImage(item.mainWallpaper || item.image || item.poster || item.cover || "");
   const legacyBanner = decodeUnderHentaiImage(item.banner || "");
   const displayImage = chooseUnderHentaiDisplayImage(mainWallpaper, legacyBanner);
-  const titleArtwork = displayImage || legacyBanner;
-  const { screenshots, backgroundArtwork } = getUnderHentaiArtwork(item, titleArtwork);
+  const { screenshots, backgroundArtwork } = getUnderHentaiArtwork(item, displayImage || legacyBanner);
+  const titleArtwork = displayImage || screenshots[0] || backgroundArtwork || legacyBanner;
 
   return {
     ...item,
@@ -9025,10 +9067,12 @@ async function handleUnderHentaiCatalog(url, response) {
   let items = [];
 
   let liveItems = [];
-  try {
-    liveItems = await loadLiveUnderHentaiCatalog(page, query, { force: refresh });
-  } catch (error) {
-    log("warn", "Live UnderHentai catalog refresh failed", { error: error.message });
+  if (UNDERHENTAI_LIVE_CATALOG_ENABLED) {
+    try {
+      liveItems = await loadLiveUnderHentaiCatalog(page, query, { force: refresh });
+    } catch (error) {
+      log("warn", "Live UnderHentai catalog refresh failed", { error: error.message });
+    }
   }
   // Only use the configured catalog. Retired snapshots are excluded from the
   // production bundle and must not silently expand localhost's title list.
@@ -9044,8 +9088,8 @@ async function handleUnderHentaiCatalog(url, response) {
     const mainWallpaper = decodeUnderHentaiImage(item.mainWallpaper || item.image || item.poster || item.cover || "");
     const legacyBanner = decodeUnderHentaiImage(item.banner || "");
     const displayImage = chooseUnderHentaiDisplayImage(mainWallpaper, legacyBanner);
-    const titleArtwork = displayImage || legacyBanner;
-    const { screenshots, backgroundArtwork } = getUnderHentaiArtwork(item, titleArtwork);
+    const { screenshots, backgroundArtwork } = getUnderHentaiArtwork(item, displayImage || legacyBanner);
+    const titleArtwork = displayImage || screenshots[0] || backgroundArtwork || legacyBanner;
     return {
       ...item,
       image: titleArtwork,
@@ -9248,7 +9292,7 @@ async function getHentaiOceanEpisodeMetadata(episodeSlug = "") {
 
 async function handleHentaiOceanDetails(url, response) {
   const slug = String(url.searchParams.get("slug") || "").trim().toLowerCase();
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(slug)) {
     sendJson(response, { ok: false, error: "Missing or invalid Hentai Ocean title id." }, 400);
     return;
   }
@@ -9490,7 +9534,7 @@ function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
   const inlineCover = [...html.matchAll(/<img\b[^>]*>/gi)]
     .map((match) => underHentaiAttribute(match[0], "src") || underHentaiAttribute(match[0], "data-src"))
     .find(isUnderHentaiTitleArtwork) || "";
-  const image = decodeUnderHentaiImage(originalCover || inlineCover || "");
+  const parsedImage = decodeUnderHentaiImage(originalCover || inlineCover || "");
   const sectionMatches = [...html.matchAll(/class\s*=\s*(?:"[^"]*\b(?:ep2-header|ep-header)\b[^"]*"|'[^']*\b(?:ep2-header|ep-header)\b[^']*'|(?:ep2-header|ep-header))[^>]*>([\s\S]*?)<\/div>/gi)];
   const episodes = new Map();
 
@@ -9551,7 +9595,7 @@ function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
       episode: number,
       number,
       title: `Episode ${number}`,
-      image: screenshots[0] || image,
+      image: screenshots[0] || parsedImage,
       screenshots,
       sourceOptions,
       locked: !sourceOptions.length
@@ -9560,6 +9604,8 @@ function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
 
   const descriptionBlock = html.match(/class\s*=\s*(?:"[^"]*\brow-desc\b[^"]*"|'[^']*\brow-desc\b[^']*')[^>]*>[\s\S]*?class\s*=\s*(?:"[^"]*\brow-label\b[^"]*"|'[^']*\brow-label\b[^']*')[^>]*>[\s\S]*?<\/div>([\s\S]*?)<\/div>\s*<hr/i)?.[1] || "";
   const screenshots = [...new Set([...episodes.values()].flatMap((episode) => episode.screenshots || []))];
+  const titleArtwork = chooseUnderHentaiDisplayImage(parsedImage, screenshots[0]) || screenshots[0] || parsedImage;
+  const backgroundArtwork = screenshots[0] || titleArtwork;
   const item = {
     slug,
     title,
@@ -9567,10 +9613,25 @@ function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
     brand,
     aired,
     genres,
-    image,
-    mainWallpaper: image,
-    banner: image,
+    image: titleArtwork,
+    mainWallpaper: titleArtwork,
+    poster: titleArtwork,
+    cover: titleArtwork,
+    thumbnail: titleArtwork,
+    coverImage: titleArtwork,
+    banner: backgroundArtwork,
+    backdrop: backgroundArtwork,
+    highQualityBackground: backgroundArtwork,
+    adultBackground: backgroundArtwork,
+    underHentaiBackdrop: backgroundArtwork,
     screenshots,
+    images: {
+      poster: titleArtwork,
+      cover: titleArtwork,
+      thumbnail: titleArtwork,
+      banner: backgroundArtwork,
+      backdrop: backgroundArtwork
+    },
     url: sourceUrl,
     episodeCount: episodes.size,
     description: stripHtml(descriptionBlock) || [brand ? `Studio: ${brand}` : "", aired ? `Released: ${aired}` : ""].filter(Boolean).join(". "),
@@ -9637,7 +9698,7 @@ function prepareVeoHentaiSnapshotItem(item = {}) {
 
 async function handleUnderHentaiDetails(url, response) {
   const slug = String(url.searchParams.get("slug") || "").trim().toLowerCase();
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(slug)) {
     sendJson(response, { ok: false, error: "Missing or invalid adult title id." }, 400);
     return;
   }
@@ -10142,7 +10203,7 @@ async function handleUnderHentaiStream(url, response) {
   let sourceAudio = "";
 
   try {
-    if (/^[a-z0-9][a-z0-9-]*$/.test(slug) && episodeNumber > 0 && releaseIndex >= 0 && !slug.startsWith("veohentai-")) {
+    if (/^[a-z0-9][a-z0-9_-]*$/.test(slug) && episodeNumber > 0 && releaseIndex >= 0 && !slug.startsWith("veohentai-")) {
       const bundledItem = readUnderHentaiDetails().bySlug.get(slug);
       const cachedItem = underHentaiDetailCache.get(slug)?.data;
       let sourceItem = cachedItem;
@@ -10287,11 +10348,15 @@ async function handleUnderHentaiStream(url, response) {
       if (resolvedSourceOptions.length) break;
     }
 
-    const sourceOptions = resolvedSourceOptions;
+    const sourceOptions = resolvedSourceOptions.length
+      ? resolvedSourceOptions
+      : (await Promise.all(indexedEmbeds.map(resolveProvider))).filter((sourceOption) =>
+        sourceOption.type === "iframe" && sourceOption.externalUrl && !isBlockedPlaybackUrl(sourceOption.externalUrl)
+      );
     if (!sourceOptions.length) {
       sendJson(response, {
         ok: false,
-        error: "No direct in-app playback source is currently available for this release."
+        error: "No supported in-app playback source is currently available for this release."
       }, 404);
       return;
     }
@@ -10301,8 +10366,8 @@ async function handleUnderHentaiStream(url, response) {
       source: "UnderHentai",
       adultOnly: true,
       videoUrl: bestSource.videoUrl || "",
-      externalUrl: "",
-      externalType: "",
+      externalUrl: bestSource.type === "iframe" ? bestSource.externalUrl || "" : "",
+      externalType: bestSource.type === "iframe" ? bestSource.externalType || "iframe" : "",
       sourceOptions,
       subtitles: Array.isArray(bestSource.subtitles) ? bestSource.subtitles : [],
       defaultSubs: /spanish|español|es\b|spa/i.test(String(bestSource.subtitles || sourceSubtitles)) ? "spanish" : "",

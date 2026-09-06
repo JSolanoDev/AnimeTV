@@ -69,6 +69,29 @@ function isTitleArtworkUrl(value = "") {
   }
 }
 
+function isPlaceholderArtwork(value = "") {
+  try {
+    const url = new URL(String(value || ""), BASE_URL);
+    const pathname = url.pathname.toLowerCase();
+    return pathname.endsWith("/no_image_p.jpg")
+      || pathname.includes("/themes/")
+      || pathname.includes("/logo");
+  } catch {
+    return true;
+  }
+}
+
+function uniqueImages(values = []) {
+  return values
+    .map((value) => String(value || "").trim())
+    .filter((value, index, all) => value && all.indexOf(value) === index);
+}
+
+function bestArtwork(...values) {
+  const candidates = uniqueImages(values);
+  return candidates.find((value) => !isPlaceholderArtwork(value)) || candidates[0] || "";
+}
+
 async function fetchText(url, attempts = 3) {
   let lastError;
   let retryAfterMs = 0;
@@ -148,7 +171,7 @@ function parseTitlePage(html, catalogItem) {
   const originalCover = [...html.matchAll(/<a\b[^>]*class\s*=\s*(?:"[^"]*\bglightbox\b[^"]*"|'[^']*\bglightbox\b[^']*')[^>]*>/gi)]
     .map((match) => attr(match[0], "href"))
     .find(isTitleArtworkUrl) || "";
-  const image = normalizeImageUrl(originalCover || catalogItem.image || "");
+  const parsedImage = normalizeImageUrl(originalCover || catalogItem.image || "");
   const sectionMatches = [...html.matchAll(/class\s*=\s*(?:"[^"]*\b(?:ep2-header|ep-header)\b[^"]*"|'[^']*\b(?:ep2-header|ep-header)\b[^']*'|(?:ep2-header|ep-header))[^>]*>([\s\S]*?)<\/div>/gi)];
   const episodes = sectionMatches.map((header, sectionIndex) => {
     const number = Number(stripHtml(header[1]).match(/(\d+)/)?.[1] || sectionIndex + 1);
@@ -200,20 +223,37 @@ function parseTitlePage(html, catalogItem) {
       episode: number,
       number,
       title: `Episode ${number}`,
-      image: screenshots[0] || catalogItem.banner || image,
+      image: screenshots[0] || catalogItem.banner || parsedImage,
       screenshots,
       sourceOptions,
       locked: !sourceOptions.length
     };
   });
 
-  const screenshots = [...new Set(episodes.flatMap((episode) => episode.screenshots || []))];
+  const screenshots = uniqueImages(episodes.flatMap((episode) => episode.screenshots || []));
+  const titleArtwork = bestArtwork(parsedImage, catalogItem.mainWallpaper, catalogItem.image, screenshots[0]);
+  const backgroundArtwork = bestArtwork(screenshots[0], catalogItem.highQualityBackground, catalogItem.backdrop, catalogItem.banner, titleArtwork);
   return {
     ...catalogItem,
-    image,
-    mainWallpaper: image,
-    banner: image,
+    image: titleArtwork,
+    mainWallpaper: titleArtwork,
+    banner: backgroundArtwork,
+    poster: titleArtwork,
+    cover: titleArtwork,
+    thumbnail: titleArtwork,
+    coverImage: titleArtwork,
+    backdrop: backgroundArtwork,
+    highQualityBackground: backgroundArtwork,
+    adultBackground: backgroundArtwork,
+    underHentaiBackdrop: backgroundArtwork,
     screenshots,
+    images: {
+      poster: titleArtwork,
+      cover: titleArtwork,
+      thumbnail: titleArtwork,
+      banner: backgroundArtwork,
+      backdrop: backgroundArtwork
+    },
     episodeCount: episodes.length || catalogItem.episodeCount || 0,
     episodes
   };
@@ -245,6 +285,22 @@ function hasPlayableEmbed(sourceOption = {}) {
     });
 }
 
+function needsDetailRefresh(catalogItem = {}, detail = null) {
+  if (!detail) return true;
+  const episodes = Array.isArray(detail.episodes) ? detail.episodes : [];
+  const expectedEpisodes = Math.max(0, Number(catalogItem.episodeCount || 0));
+  const expectedReleases = Math.max(0, Number(catalogItem.releaseCount || 0));
+  const actualReleases = episodes.reduce((count, episode) =>
+    count + (Array.isArray(episode.sourceOptions) ? episode.sourceOptions.length : 0), 0);
+  if (expectedEpisodes && episodes.length < expectedEpisodes) return true;
+  if (expectedReleases && actualReleases < expectedReleases) return true;
+  return episodes.some((episode) =>
+    !Array.isArray(episode.sourceOptions) ||
+    !episode.sourceOptions.length ||
+    episode.sourceOptions.some((source) => !String(source.watchUrl || "").includes("/watch/?"))
+  );
+}
+
 async function main() {
   const catalog = JSON.parse(await readFile(CATALOG, "utf8"));
   const items = Array.isArray(catalog.items) ? catalog.items : [];
@@ -255,9 +311,10 @@ async function main() {
     // First build.
   }
   const existingBySlug = new Map((existing.items || []).map((item) => [item.slug, item]));
-  const itemsToRefresh = existingBySlug.size === 0
+  const refreshAll = String(process.env.UNDERHENTAI_REFRESH_ALL_DETAILS || "") === "1";
+  const itemsToRefresh = refreshAll || existingBySlug.size === 0
     ? items
-    : items.filter((item) => !existingBySlug.has(item.slug) || Number(item.sourceOrder) < 24);
+    : items.filter((item) => Number(item.sourceOrder) < 24 || needsDetailRefresh(item, existingBySlug.get(item.slug)));
   console.log(`Loading ${itemsToRefresh.length} detail pages for ${items.length} eligible titles.`);
 
   const parsed = await mapConcurrent(
@@ -271,13 +328,53 @@ async function main() {
     .map((item) => {
       const detail = parsedBySlug.get(item.slug) || existingBySlug.get(item.slug);
       if (!detail) return null;
-      const titleArtwork = item.mainWallpaper || item.image || detail.mainWallpaper || detail.image || "";
+      const episodes = Array.isArray(detail.episodes) ? detail.episodes : [];
+      const screenshots = uniqueImages([
+        ...(Array.isArray(detail.screenshots) ? detail.screenshots : []),
+        ...episodes.flatMap((episode) => Array.isArray(episode?.screenshots) ? episode.screenshots : [])
+      ]);
+      const titleArtwork = bestArtwork(
+        item.mainWallpaper,
+        item.image,
+        detail.mainWallpaper,
+        detail.image,
+        detail.poster,
+        screenshots[0]
+      );
+      const backgroundArtwork = bestArtwork(
+        detail.highQualityBackground,
+        detail.adultBackground,
+        detail.backdrop,
+        detail.banner,
+        item.highQualityBackground,
+        item.backdrop,
+        item.banner,
+        screenshots[0],
+        titleArtwork
+      );
       return {
-        ...detail,
         ...item,
+        ...detail,
         image: titleArtwork,
         mainWallpaper: titleArtwork,
-        banner: titleArtwork
+        poster: titleArtwork,
+        cover: titleArtwork,
+        thumbnail: titleArtwork,
+        coverImage: titleArtwork,
+        banner: backgroundArtwork,
+        backdrop: backgroundArtwork,
+        highQualityBackground: backgroundArtwork,
+        adultBackground: backgroundArtwork,
+        underHentaiBackdrop: backgroundArtwork,
+        screenshots,
+        images: {
+          ...(detail.images || {}),
+          poster: titleArtwork,
+          cover: titleArtwork,
+          thumbnail: titleArtwork,
+          banner: backgroundArtwork,
+          backdrop: backgroundArtwork
+        }
       };
     })
     .filter(Boolean);

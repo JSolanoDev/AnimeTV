@@ -653,16 +653,18 @@
     return "";
   }
 
-  // Reads the media itself rather than trusting the provider name. Cheapest
-  // reliable evidence first: a master playlist states CODECS outright, and an
-  // fMP4 rendition names it in an init segment that is a couple of KB - far less
-  // than pulling a 3MB media segment. A plain MPEG-TS media playlist carries no
-  // cheap codec evidence, so it stays UNKNOWN and is allowed through: a guess is
-  // not grounds for blocking a cast.
-  // Packaging is read from the playlist and, if needed, the segment bytes - never
-  // inferred from the codec. EXT-X-MAP only exists for fMP4, a .ts segment or a
-  // 0x47 sync byte means MPEG-TS, and anything else stays UNKNOWN so no packaging
-  // metadata gets invented.
+  // Audio is reported, never acted on. It is here so a failed cast can say what
+  // the receiver was asked to decode on both tracks instead of only the video.
+  function audioCodecFrom(text) {
+    const v = String(text || "").toLowerCase();
+    if (v.includes("mp4a")) return "AAC";
+    if (v.includes("ec-3") || v.includes("ec3")) return "E-AC3";
+    if (v.includes("ac-3") || v.includes("ac3")) return "AC3";
+    if (v.includes("opus")) return "Opus";
+    if (v.includes("fLaC") || v.includes("flac")) return "FLAC";
+    return "";
+  }
+
   // Every probe below runs BEFORE loadMedia, while the TV already sits on the
   // launched receiver screen. An unbounded fetch here is indistinguishable from a
   // stuck cast: the loading screen stays up and loadMedia is never even called.
@@ -712,6 +714,7 @@
     if (cached) return cached;
     const out = {
       codec: "UNKNOWN", method: "not determined",
+      audioCodec: "UNKNOWN",
       packaging: "UNKNOWN", packagingHow: "not determined",
       // A receiver treats a playlist with no ENDLIST and no PLAYLIST-TYPE as live.
       hasEndlist: null, playlistType: null
@@ -729,6 +732,7 @@
         const codec = codecFromCodecsAttribute(declared);
         if (codec) {
           out.codec = codec;
+          out.audioCodec = audioCodecFrom(declared) || "UNKNOWN";
           out.method = "HLS EXT-X-STREAM-INF CODECS";
           // FOLLOW the variant. Returning UNKNOWN here - which is what v683 did -
           // meant that for any ladder whose master playlist declares CODECS, the
@@ -742,9 +746,14 @@
               const variantUrl = new URL(variantUri.trim(), url).href;
               const variantRes = await castFetch(variantUrl);
               if (variantRes.ok) {
-                const pack = await detectHlsPackaging(await variantRes.text(), variantUrl);
+                const variantText = await variantRes.text();
+                const pack = await detectHlsPackaging(variantText, variantUrl);
                 out.packaging = pack.packaging;
                 out.packagingHow = `variant: ${pack.how}`;
+                // The master carries neither, so read them off the rendition that
+                // will actually be played.
+                out.hasEndlist = /#EXT-X-ENDLIST/.test(variantText);
+                out.playlistType = (variantText.match(/#EXT-X-PLAYLIST-TYPE:(\w+)/) || [])[1] || "(none)";
               } else {
                 out.packagingHow = `variant HTTP ${variantRes.status}`;
               }
@@ -770,7 +779,15 @@
           out.method = `init segment HTTP ${initRes.status}`;
           return out;   // transient, not cached
         }
-        const codec = codecFromFourCC(new Uint8Array(await initRes.arrayBuffer()));
+        const initBytes = new Uint8Array(await initRes.arrayBuffer());
+        const codec = codecFromFourCC(initBytes);
+        // Same bytes, no extra request: the init segment names both tracks.
+        let initAscii = "";
+        for (let i = 0; i < Math.min(initBytes.length, 32768); i++) {
+          const b = initBytes[i];
+          initAscii += (b > 31 && b < 127) ? String.fromCharCode(b) : ".";
+        }
+        out.audioCodec = audioCodecFrom(initAscii) || "UNKNOWN";
         out.codec = codec || "UNKNOWN";
         out.method = codec ? "HLS EXT-X-MAP init segment" : "init segment carried no known fourCC";
         castCodecCache.set(key, out);
@@ -952,14 +969,29 @@
       contentType: castContentType()
     };
     const fromParent = await requestCastCandidates();
-    const seen = new Set([own.url]);
+    // Identity is the UPSTREAM stream, not the proxy URL that wraps it. The frame
+    // was opened with one spelling of /api/source?url=... and the parent builds
+    // candidates with another (parameter order, a refererHost that is present on
+    // one and not the other), so comparing whole URLs let the SAME stream enter
+    // the ladder twice - and the duplicate would burn a second full deadline on a
+    // source that had already failed.
+    const identity = (value) => {
+      try {
+        const parsed = new URL(String(value || ""), window.location.origin);
+        return parsed.searchParams.get("url") || parsed.href;
+      } catch (error) {
+        return String(value || "");
+      }
+    };
+    const seen = new Set([identity(own.url)]);
     const ladder = [own];
     for (const entry of fromParent) {
       let absolute = "";
       try { absolute = new URL(String(entry?.url || ""), window.location.origin).href; }
       catch (error) { continue; }
-      if (!absolute || seen.has(absolute)) continue;
-      seen.add(absolute);
+      const id = identity(absolute);
+      if (!absolute || seen.has(id)) continue;
+      seen.add(id);
       ladder.push({
         label: String(entry.label || "alternate source"),
         url: absolute,
@@ -978,11 +1010,17 @@
       const PlayerState = window.chrome?.cast?.media?.PlayerState || {};
       const IdleReason = window.chrome?.cast?.media?.IdleReason || {};
       const startedAt = Date.now();
+      // A media session can read IDLE for a moment right after loadMedia resolves,
+      // before the receiver has moved on. Failing on that would abandon casts that
+      // were about to work, so IDLE only counts once this much has passed - except
+      // for idleReason ERROR, which is never transient.
+      const IDLE_GRACE_MS = 2000;
       let timer = null;
       let lastState = "";
+      let lastTime = 0;
       const stop = (outcome, detail) => {
         window.clearInterval(timer);
-        resolve({ outcome, detail, waitedMs: Date.now() - startedAt, lastState });
+        resolve({ outcome, detail, waitedMs: Date.now() - startedAt, lastState, lastTime });
       };
       timer = window.setInterval(() => {
         if (token !== castAttemptSeq) return stop("superseded", "a newer attempt took over");
@@ -991,16 +1029,29 @@
         const idle = media?.idleReason ? enumName(IdleReason, media.idleReason) : "";
         if (state) lastState = state;
         if (idle) lastReceiverIdleReason = idle;
+        const now = Number(media?.currentTime || 0);
+        if (now > lastTime) lastTime = now;
         if (state === "PLAYING") return stop("playing", "receiver reported PLAYING");
         // A receiver that is PAUSED past zero has decoded and rendered frames, so
         // the media is good even though it is not running right now.
-        if (state === "PAUSED" && Number(media?.currentTime || 0) > 0) {
+        if (state === "PAUSED" && now > 0) {
           return stop("playing", "receiver reported PAUSED past 0s");
         }
-        // IDLE after a load is the receiver giving up. ERROR says so outright;
-        // FINISHED without ever playing means it discarded the media.
-        if (state === "IDLE" && (idle === "ERROR" || idle === "FINISHED")) {
-          return stop("error", `receiver went IDLE with idleReason ${idle}`);
+        // Bare BUFFERING is NOT success - buffering for ever is the whole bug.
+        // Buffering with the clock moving is different: frames are being decoded,
+        // so that counts.
+        if (state === "BUFFERING" && now > 0) {
+          return stop("playing", "receiver buffering with the clock past 0s");
+        }
+        // IDLE after a load means the receiver is not going to play this. ERROR is
+        // never transient, so act on it at once; the other reasons only count once
+        // the grace has passed, so a momentary IDLE right after the load does not
+        // abandon an attempt that was about to succeed.
+        if (state === "IDLE") {
+          if (idle === "ERROR") return stop("error", "receiver went IDLE with idleReason ERROR");
+          if (Date.now() - startedAt >= IDLE_GRACE_MS) {
+            return stop("error", `receiver went IDLE with idleReason ${idle || "(none reported)"}`);
+          }
         }
         if (Date.now() - startedAt >= deadlineMs) {
           return stop("timeout", lastState
@@ -1106,16 +1157,32 @@
         const result = await attemptCast(session, candidate, token);
         if (token !== castAttemptSeq) return;
         castAttempts.push({
+          rung: index + 1,
+          of: ladder.length,
+          episode: episode || "(none)",
           candidate: candidate.label,
           host: hostOnly(candidate.url),
           contentType: candidate.contentType,
+          manifestType: result.detection?.method || "not-detected",
           codec: result.detection?.codec || "not-detected",
+          audioCodec: result.detection?.audioCodec || "not-detected",
           container: result.detection?.packaging || "not-detected",
+          containerEvidence: result.detection?.packagingHow || "not-detected",
+          hasEndlist: result.detection?.hasEndlist ?? null,
+          playlistType: result.detection?.playlistType ?? null,
+          hlsSegmentFormat: castHlsSegmentFormat || "(not set)",
+          hlsVideoSegmentFormat: castHlsVideoSegmentFormat || "(not set)",
+          loadMediaResult: result.loaded ? "resolved" : result.outcome,
           outcome: result.outcome,
           detail: result.detail,
           waitedMs: result.waitedMs ?? null,
+          deadlineMs: CAST_PLAYBACK_DEADLINE_MS,
           receiverState: result.lastState || null,
-          idleReason: lastReceiverIdleReason
+          receiverTime: result.lastTime ?? null,
+          idleReason: lastReceiverIdleReason,
+          castErrorCode: result.code ?? null,
+          receiverMediaError: lastReceiverMediaError,
+          fallbackAttempted: index > 0
         });
         if (result.outcome === "playing") {
           castLoadResult = "playing";

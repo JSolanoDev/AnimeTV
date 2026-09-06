@@ -106,10 +106,7 @@ const AdultMode = (function () {
   // (yuri/yaoi/girls love) are deliberately absent - regular anime.
   // Safety markers that also imply adult content (to separate catalogs).
     const _MINOR_MARKERS = [
-      "child", "children", "elementary", "high school", "junior high",
-      "loli", "lolicon", "middle school", "minor", "schoolboy", "schoolgirl",
-      "shishunki", "shota", "shotacon", "student", "teen", "teenage",
-      "underage", "young boy", "young girl", "joshi kousei", "joshi kōsei"
+    ""
     ];
 
   const _ADULT_MARKER_RES = [

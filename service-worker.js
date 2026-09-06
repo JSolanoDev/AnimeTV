@@ -1,4 +1,4 @@
-const CACHE_NAME = "zenkaitv-v687";
+const CACHE_NAME = "zenkaitv-v689";
 const ADULT_CATALOG_CACHE = "zenkaitv-adult-catalog-v1";
 // Remote artwork lives in its OWN cache that survives version bumps. It used
 // to share CACHE_NAME, so every deploy wiped every poster and the app
@@ -96,22 +96,41 @@ self.addEventListener("fetch", (event) => {
   // The optimized same-origin artwork endpoint is immutable by its full URL.
   // Keep it in the persistent image cache so returning to a season does not
   // resize and download the same backdrop and episode stills again.
+  //
+  // CACHE-FIRST, with no background revalidation. The response carries
+  // Cache-Control: public, max-age=31536000, immutable, and the URL is content
+  // addressed - src, w and q are all in the query string - so the bytes behind a
+  // given URL can never change. Revalidating it could only ever re-fetch the
+  // identical image.
+  //
+  // This is NOT a request saving on a warm load, and it is worth being exact
+  // about that: the stale-while-revalidate branch it replaces called fetch(),
+  // which the browser's own HTTP cache satisfied locally because the response is
+  // immutable. A controlled A/B on the dev server - same page, same warm image
+  // cache, old worker vs new - moved the origin's request counter by the same 11
+  // API requests either way, and Chrome reports every entry as deliveryType
+  // "cache-storage" with transferSize 0.
+  //
+  // What it removes is a failure mode. Cache Storage is durable; the HTTP cache
+  // is small and volatile. A browser that has evicted the HTTP entry but kept the
+  // Cache Storage one would issue a real network request per cached image per
+  // load - ~200 on the home page - each able to miss the edge and wake the
+  // function that re-runs the sharp transcode. It also drops a fetch(), a
+  // cache.put() and a trimImageCache() per image per load on the client.
+  //
+  // A URL that is not cached still goes to the network exactly as before.
   if (url.origin === self.location.origin && url.pathname === "/api/image") {
     event.respondWith(
       caches.open(IMAGE_CACHE).then(async (cache) => {
         const cached = await cache.match(event.request);
-        const refresh = () => fetch(event.request).then(async (response) => {
+        if (cached) return cached;
+        return fetch(event.request).then(async (response) => {
           if (response.ok) {
             await cache.put(event.request, response.clone());
             trimImageCache(cache);
           }
           return response;
-        });
-        if (cached) {
-          event.waitUntil(refresh().catch(() => {}));
-          return cached;
-        }
-        return refresh().catch(() => new Response("", { status: 503 }));
+        }).catch(() => new Response("", { status: 503 }));
       })
     );
     return;

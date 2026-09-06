@@ -57,7 +57,8 @@ function makeEnv({ receiverBehaviour, candidates, manifest, variantManifest, dea
       // to find. Giving it bytes with no fourCC would test nothing.
       const bytes = new Uint8Array([
         0, 0, 0, 24, 115, 116, 121, 112, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 16, 97, 118, 48, 49, 0, 0, 0, 0, 0, 0, 0, 0
+        0, 0, 0, 16, 97, 118, 48, 49, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 16, 109, 112, 52, 97, 0, 0, 0, 0, 0, 0, 0, 0
       ]);
       return { ok: true, status: 200, text: async () => body, arrayBuffer: async () => bytes.buffer };
     },
@@ -93,7 +94,12 @@ function makeEnv({ receiverBehaviour, candidates, manifest, variantManifest, dea
       playerState = "BUFFERING_STATE"; idleReason = null;
       if (behaviour === "play") setTimeout(() => { playerState = "PLAYING_STATE"; media.currentTime = 1; }, 200);
       if (behaviour === "error") setTimeout(() => { playerState = "IDLE_STATE"; idleReason = "ERROR_REASON"; }, 200);
-      // "hang" -> stays BUFFERING forever.
+      // A receiver that goes IDLE for a reason OTHER than ERROR. Only counts as a
+      // failure once the grace has passed, so this also proves the grace exists.
+      if (behaviour === "cancelled") setTimeout(() => { playerState = "IDLE_STATE"; idleReason = "CANCELLED_REASON"; }, 100);
+      // Buffering, but the clock is moving: frames ARE being decoded.
+      if (behaviour === "creep") setTimeout(() => { media.currentTime = 0.5; }, 300);
+      // "hang" -> stays BUFFERING forever, clock frozen at 0.
       return {};
     }
   };
@@ -136,8 +142,26 @@ function makeEnv({ receiverBehaviour, candidates, manifest, variantManifest, dea
     function castMedia(){ try { return castSession().getMediaSession(); } catch (e) { return null; } }
     function castMediaUrl(){ try { return new URL(sourceUrl, location.origin).href; } catch (e) { return ""; } }
     function castContentType(){ return castContentTypeFor(sourceUrl, params.get("type")); }
+    // Also outside initPlayer in player.js, so the message handler can reach it.
+    let castCandidatesResolve = null;
   ` + castContentTypeForSrc + `
   `, ctx);
+  // Stand in for the parent frame. onParentCommand lives outside the extracted
+  // block, so replicate exactly what it does: hand the list to castCandidatesResolve.
+  if (candidates) {
+    sandbox.window.parent = {
+      postMessage() {
+        setTimeout(() => {
+          try {
+            vm.runInContext(
+              `if (typeof castCandidatesResolve === "function") castCandidatesResolve(${JSON.stringify(candidates)});`,
+              ctx
+            );
+          } catch (error) { /* the ladder falls back to its own source */ }
+        }, 10);
+      }
+    };
+  }
   // Shorten the deadline in the SOURCE TEXT rather than reassigning the const, so
   // the production value stays a const and the test still runs the real code path.
   const block = deadlineMs
@@ -230,6 +254,128 @@ const FMP4_MANIFEST = "#EXTM3U\n#EXT-X-MAP:URI=\"init.mp4\"\n#EXT-X-PLAYLIST-TYP
   check("7. MPEG-TS sets no HLS format fields", vm.runInContext("castHlsSegmentFormat", env.ctx), "");
   check("7b. nor the video one", vm.runInContext("castHlsVideoSegmentFormat", env.ctx), "");
   env.timers.forEach(clearTimeout);
+}
+
+const TWO = [
+  { label: "AnimeAV1", url: "/api/source?url=https%3A%2F%2Fplayer.zilla-networks.com%2Fm3u8%2Fabc", type: "hls" },
+  { label: "Second Server", url: "/api/source?url=https%3A%2F%2Fplayer.zilla-networks.com%2Fm3u8%2Fdef", type: "hls" }
+];
+
+/* 8. A stuck first candidate must hand over to the second. */
+{
+  const env = makeEnv({ receiverBehaviour: ["hang", "play"], manifest: FMP4_MANIFEST, candidates: TWO, deadlineMs: 900 });
+  await vm.runInContext("loadCastMedia()", env.ctx);
+  check("8. a stuck candidate falls through to the next", vm.runInContext("castLoadResult", env.ctx), "playing");
+  check("8b. exactly two loads - one per candidate", env.loadCount(), 2);
+  const attempts = vm.runInContext("JSON.parse(JSON.stringify(castAttempts))", env.ctx);
+  check("8c. both attempts recorded", attempts.length, 2);
+  check("8d. the first is not marked a fallback", attempts[0].fallbackAttempted, false);
+  check("8e. the second is", attempts[1].fallbackAttempted, true);
+  check("8f. rung numbering is 1-of-2 then 2-of-2", `${attempts[0].rung}/${attempts[0].of} ${attempts[1].rung}/${attempts[1].of}`, "1/2 2/2");
+  env.timers.forEach(clearTimeout);
+}
+
+/* 9 + 10. Every candidate is tried at most ONCE, and the ladder terminates. */
+{
+  const env = makeEnv({ receiverBehaviour: ["hang", "hang"], manifest: FMP4_MANIFEST, candidates: TWO, deadlineMs: 700 });
+  const began = Date.now();
+  await vm.runInContext("loadCastMedia()", env.ctx);
+  const took = Date.now() - began;
+  check("9. two candidates -> exactly two attempts, never a retry", env.loadCount(), 2);
+  check("10. the ladder terminates instead of looping", took < 6000, true);
+  check("10b. and says every source failed",
+    /None of this episode/.test(env.notices[env.notices.length - 1] || ""), true);
+  env.timers.forEach(clearTimeout);
+}
+
+/* 11. Buffering with the clock moving is real playback, not the hang. */
+{
+  const env = makeEnv({ receiverBehaviour: ["creep"], manifest: FMP4_MANIFEST, deadlineMs: 4000 });
+  await vm.runInContext("loadCastMedia()", env.ctx);
+  check("11. BUFFERING with an advancing clock counts as playing", vm.runInContext("castLoadResult", env.ctx), "playing");
+  env.timers.forEach(clearTimeout);
+}
+
+/* 12. IDLE for a reason other than ERROR still ends the attempt - after the grace. */
+{
+  const env = makeEnv({ receiverBehaviour: ["cancelled"], manifest: FMP4_MANIFEST, deadlineMs: 20000 });
+  const began = Date.now();
+  await vm.runInContext("loadCastMedia()", env.ctx);
+  const took = Date.now() - began;
+  check("12. IDLE/CANCELLED is treated as failure", vm.runInContext("castLoadResult", env.ctx), "error");
+  check(`12b. it waited out the 2s grace, not the 20s deadline (${took}ms)`, took > 1800 && took < 8000, true);
+  const attempts = vm.runInContext("JSON.parse(JSON.stringify(castAttempts))", env.ctx);
+  check("12c. the idleReason is recorded", /CANCELLED/.test(String(attempts[0].idleReason)), true);
+  env.timers.forEach(clearTimeout);
+}
+
+/* 13. The attempt row carries what a real-device report needs. */
+{
+  const env = makeEnv({ receiverBehaviour: ["hang"], manifest: FMP4_MANIFEST, deadlineMs: 700 });
+  await vm.runInContext("loadCastMedia()", env.ctx);
+  const a = vm.runInContext("JSON.parse(JSON.stringify(castAttempts))", env.ctx)[0];
+  check("13. audio codec is reported", a.audioCodec, "AAC");
+  check("13b. container evidence is reported", a.containerEvidence, "EXT-X-MAP present");
+  check("13c. the deadline is reported alongside the wait", a.deadlineMs, 700);
+  check("13d. loadMedia's own result is distinguished from the outcome",
+    `${a.loadMediaResult}/${a.outcome}`, "resolved/timeout");
+  check("13e. no URL, query string or token in the row",
+    /\?|token|refererHost|http/i.test(JSON.stringify(a).replace(/"manifestType":"[^"]*"/, "")), false);
+  env.timers.forEach(clearTimeout);
+}
+
+/* 14. A rejected load records the Cast error code. */
+{
+  const env = makeEnv({ receiverBehaviour: ["reject"], manifest: FMP4_MANIFEST });
+  await vm.runInContext("loadCastMedia()", env.ctx);
+  const a = vm.runInContext("JSON.parse(JSON.stringify(castAttempts))", env.ctx)[0];
+  check("14. the Cast error code is captured", a.castErrorCode, "load_failed");
+  check("14b. and the outcome is rejected", a.outcome, "rejected");
+  env.timers.forEach(clearTimeout);
+}
+
+/* 15. The proxy's Content-Type rules, read straight out of animetv-server.js so
+      the test cannot drift away from what actually ships. */
+{
+  const server = fs.readFileSync("animetv-server.js", "utf8");
+  const grab = (name) => {
+    const m = server.match(new RegExp(`const ${name} = ([^;]+);`));
+    return m ? m[1] : null;
+  };
+  const disguised = grab("isZillaDisguisedSegment");
+  const other = grab("isZillaOtherSegment");
+  const useless = grab("upstreamTypeIsUseless");
+  check("15. the narrow disguised-segment rule is the one that ships", Boolean(disguised && /\\.html\$/.test(disguised)), true);
+  check("15b. other spellings are a separate, conditional rule", Boolean(other && /m3u8\|html/.test(other)), true);
+  check("15c. and it only fires on a useless upstream type", Boolean(useless && /octet-stream/.test(useless)), true);
+
+  // Evaluate the real predicates rather than restating them.
+  const H = "0".repeat(32);
+  const evalFor = (pathname, upstreamType) => {
+    const targetUrl = { pathname };
+    const isZilla = true;
+    const isZillaDisguisedSegment = eval(disguised);
+    const isZillaOtherSegment = eval(other);
+    const upstreamTypeIsUseless = eval(useless.replace(/upstreamType/g, JSON.stringify(upstreamType)));
+    if (isZillaDisguisedSegment) return "video/mp4";
+    if (isZillaOtherSegment && upstreamTypeIsUseless) return "video/mp4";
+    return upstreamType || "application/json; charset=utf-8";
+  };
+  check("15d. disguised .html segment is corrected", evalFor(`/segs/${H}/seg1.html`, "text/html"), "video/mp4");
+  check("15e. init.mp4 with a useless type is corrected", evalFor(`/segs/${H}/init.mp4`, "text/html"), "video/mp4");
+  check("15f. init.mp4 with a CORRECT type is left alone", evalFor(`/segs/${H}/init.mp4`, "video/mp4"), "video/mp4");
+  check("15g. a segment the origin typed as audio is NOT overwritten", evalFor(`/segs/${H}/a.m4s`, "audio/mp4"), "audio/mp4");
+  check("15h. a playlist under /segs keeps its own type", evalFor(`/segs/${H}/index.m3u8`, "application/vnd.apple.mpegurl"), "application/vnd.apple.mpegurl");
+  check("15i. a subtitle is never rewritten", evalFor(`/segs/${H}/subs.vtt`, "text/vtt"), "text/vtt");
+  check("15j. the manifest path itself is untouched", evalFor(`/m3u8/${H}`, "application/vnd.apple.mpegurl"), "application/vnd.apple.mpegurl");
+}
+
+/* 16. Nothing in the sender pretends it can ask the receiver about codecs. */
+{
+  const player = fs.readFileSync("player/player.js", "utf8");
+  check("16. no canDisplayType call in the sender", /canDisplayType\s*\(/.test(player), false);
+  check("16b. no CastReceiverContext use in the sender", /CastReceiverContext/.test(player), false);
+  check("16c. no transcode path", /transcod/i.test(player), false);
 }
 
 console.log(results.join("\n"));

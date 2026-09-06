@@ -69,6 +69,29 @@ function isTitleArtworkUrl(value = "") {
   }
 }
 
+function isPlaceholderArtwork(value = "") {
+  try {
+    const url = new URL(String(value || ""), BASE_URL);
+    const pathname = url.pathname.toLowerCase();
+    return pathname.endsWith("/no_image_p.jpg")
+      || pathname.includes("/themes/")
+      || pathname.includes("/logo");
+  } catch {
+    return true;
+  }
+}
+
+function uniqueImages(values = []) {
+  return values
+    .map((value) => String(value || "").trim())
+    .filter((value, index, all) => value && all.indexOf(value) === index);
+}
+
+function bestArtwork(...values) {
+  const candidates = uniqueImages(values);
+  return candidates.find((value) => !isPlaceholderArtwork(value)) || candidates[0] || "";
+}
+
 function normalizeSafetyText(value = "") {
   const confusables = {
     "а": "a", "е": "e", "і": "i", "ј": "j", "к": "k", "м": "m",
@@ -270,6 +293,8 @@ function extractMetadata(html, item) {
     ...[...html.matchAll(/\bdata-src\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi)].map((match) => match[1] || match[2] || match[3] || ""),
     ...[...html.matchAll(/https:\/\/static\.underhentai\.net\/thumbs\/[^"'\s<>]+/gi)].map((match) => match[0])
   ].map(normalizeImageUrl).filter((value, index, values) => value && values.indexOf(value) === index);
+  const titleArtwork = bestArtwork(cover, item.mainWallpaper, item.image, screenshots[0], DEFAULT_TITLE_ARTWORK);
+  const backgroundArtwork = bestArtwork(screenshots[0], item.highQualityBackground, item.backdrop, item.banner, titleArtwork);
   const episodeNumbers = [...html.matchAll(/class\s*=\s*(?:"[^"]*\b(?:ep2-header|ep-header)\b[^"]*"|'[^']*\b(?:ep2-header|ep-header)\b[^']*'|(?:ep2-header|ep-header))[^>]*>([\s\S]*?)<\/div>/gi)]
     .map((match) => Number(stripHtml(match[1]).match(/(\d+)/)?.[1] || 0))
     .filter((number) => number > 0);
@@ -282,10 +307,25 @@ function extractMetadata(html, item) {
     aired: currentMetaRow(html, "Aired"),
     brand: currentMetaRow(html, "Brand"),
     genres,
-    image: cover,
-    mainWallpaper: cover,
-    banner: cover,
+    image: titleArtwork,
+    mainWallpaper: titleArtwork,
+    poster: titleArtwork,
+    cover: titleArtwork,
+    thumbnail: titleArtwork,
+    coverImage: titleArtwork,
+    banner: backgroundArtwork,
+    backdrop: backgroundArtwork,
+    highQualityBackground: backgroundArtwork,
+    adultBackground: backgroundArtwork,
+    underHentaiBackdrop: backgroundArtwork,
     screenshots,
+    images: {
+      poster: titleArtwork,
+      cover: titleArtwork,
+      thumbnail: titleArtwork,
+      banner: backgroundArtwork,
+      backdrop: backgroundArtwork
+    },
     episodeCount: new Set(episodeNumbers).size || (streamCount > 0 ? 1 : 0),
     releaseCount: streamCount,
     metadataCheckedAt: new Date().toISOString()
@@ -304,6 +344,9 @@ async function main() {
     : (Array.isArray(detailsFallback.items) ? detailsFallback.items : []);
   const recoveredFromDetails = !existing.items?.length && existingItems.length > 0;
   const existingBySlug = new Map(existingItems.filter((item) => item?.slug).map((item) => [item.slug, item]));
+  const detailsBySlug = new Map((Array.isArray(detailsFallback.items) ? detailsFallback.items : [])
+    .filter((item) => item?.slug)
+    .map((item) => [item.slug, item]));
 
   const firstHtml = await fetchText(`${BASE_URL}/`);
   const pageNumbers = [...firstHtml.matchAll(/page\/(\d+)\//gi)].map((match) => Number(match[1]));
@@ -330,16 +373,61 @@ async function main() {
       : new Set();
   const mergedListings = listed.map((listedItem) => {
     const previous = existingBySlug.get(listedItem.slug) || {};
+    const detailFallback = detailsBySlug.get(listedItem.slug) || {};
+    const previousScreenshots = uniqueImages([
+      ...(Array.isArray(detailFallback.screenshots) ? detailFallback.screenshots : []),
+      ...(Array.isArray(detailFallback.episodes) ? detailFallback.episodes.flatMap((episode) => Array.isArray(episode?.screenshots) ? episode.screenshots : []) : []),
+      ...(Array.isArray(previous.screenshots) ? previous.screenshots : []),
+      ...(Array.isArray(previous.episodes) ? previous.episodes.flatMap((episode) => Array.isArray(episode?.screenshots) ? episode.screenshots : []) : [])
+    ]);
     const listingArtwork = isTitleArtworkUrl(listedItem.image) ? normalizeImageUrl(listedItem.image) : "";
     const previousCandidate = String(previous.mainWallpaper || previous.image || "").trim();
     const previousArtwork = isTitleArtworkUrl(previousCandidate) ? normalizeImageUrl(previousCandidate) : "";
-    const titleArtwork = listingArtwork || previousArtwork || DEFAULT_TITLE_ARTWORK;
+    const titleArtwork = bestArtwork(
+      listingArtwork,
+      previousArtwork,
+      previous.poster,
+      detailFallback.mainWallpaper,
+      detailFallback.image,
+      detailFallback.poster,
+      previousScreenshots[0],
+      DEFAULT_TITLE_ARTWORK
+    );
+    const backgroundArtwork = bestArtwork(
+      detailFallback.highQualityBackground,
+      detailFallback.adultBackground,
+      detailFallback.backdrop,
+      detailFallback.banner,
+      previous.highQualityBackground,
+      previous.adultBackground,
+      previous.backdrop,
+      previous.banner,
+      previousScreenshots[0],
+      titleArtwork
+    );
     return {
       ...previous,
       ...listedItem,
       image: titleArtwork,
       mainWallpaper: titleArtwork,
-      banner: titleArtwork
+      poster: titleArtwork,
+      cover: titleArtwork,
+      thumbnail: titleArtwork,
+      coverImage: titleArtwork,
+      banner: backgroundArtwork,
+      backdrop: backgroundArtwork,
+      highQualityBackground: backgroundArtwork,
+      adultBackground: backgroundArtwork,
+      underHentaiBackdrop: backgroundArtwork,
+      screenshots: previousScreenshots,
+      images: {
+        ...(previous.images || {}),
+        poster: titleArtwork,
+        cover: titleArtwork,
+        thumbnail: titleArtwork,
+        banner: backgroundArtwork,
+        backdrop: backgroundArtwork
+      }
     };
   });
 

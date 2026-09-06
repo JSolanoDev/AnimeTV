@@ -27,18 +27,47 @@ function hasPlayableRoute(item) {
   );
 }
 
-function hasTitleArtwork(item) {
-  const artwork = String(item?.mainWallpaper || item?.image || "").trim();
-  if (!artwork) return false;
+function hasPlayableEpisode(episode) {
+  return Array.isArray(episode?.sourceOptions) && episode.sourceOptions.some((source) =>
+    source?.watchUrl && Array.isArray(source?.embeds) && source.embeds.some(isSupportedEmbed)
+  );
+}
+
+function hasPlayableRelease(source) {
+  return source?.watchUrl && Array.isArray(source?.embeds) && source.embeds.some(isSupportedEmbed);
+}
+
+function isPlaceholderArtwork(value = "") {
   try {
-    const pathname = new URL(artwork).pathname.toLowerCase();
-    if (pathname.endsWith("/no_image_p.jpg")) return true;
-    return !pathname.startsWith("/thumbs/")
-      && !pathname.includes("/themes/")
-      && !pathname.includes("logo");
+    const pathname = new URL(String(value || "")).pathname.toLowerCase();
+    return pathname.endsWith("/no_image_p.jpg")
+      || pathname.includes("/themes/")
+      || pathname.includes("/logo");
   } catch {
-    return false;
+    return true;
   }
+}
+
+function hasTitlePoster(item) {
+  const artwork = String(item?.mainWallpaper || item?.image || item?.poster || item?.images?.poster || "").trim();
+  if (!artwork) return false;
+  return !isPlaceholderArtwork(artwork);
+}
+
+function hasTitleBackground(item) {
+  const artwork = String(item?.highQualityBackground || item?.adultBackground || item?.backdrop || item?.banner || item?.images?.backdrop || "").trim();
+  if (!artwork) return false;
+  return !isPlaceholderArtwork(artwork);
+}
+
+function hasEpisodeGallery(episode) {
+  return Array.isArray(episode?.screenshots) && episode.screenshots.some((value) => {
+    try {
+      return /^https?:$/i.test(new URL(String(value || "")).protocol);
+    } catch {
+      return false;
+    }
+  });
 }
 
 const [catalog, details] = await Promise.all([
@@ -52,26 +81,67 @@ const detailsBySlug = new Map((Array.isArray(details.items) ? details.items : []
   .map((item) => [item.slug, item]));
 const missingDetails = [];
 const missingPlayback = [];
-const invalidArtwork = [];
+const incompleteDetails = [];
+const missingEpisodePlayback = [];
+const missingReleasePlayback = [];
+const invalidPosters = [];
+const invalidBackgrounds = [];
+const missingGallery = [];
+let episodeCount = 0;
+let releaseCount = 0;
 
 for (const item of catalogItems) {
-  if (!hasTitleArtwork(item)) invalidArtwork.push(item.slug);
+  if (!hasTitlePoster(item)) invalidPosters.push(item.slug);
+  if (!hasTitleBackground(item)) invalidBackgrounds.push(item.slug);
   const detail = detailsBySlug.get(item.slug);
   if (!detail) {
     missingDetails.push(item.slug);
-  } else if (!hasPlayableRoute(detail)) {
+    continue;
+  }
+  if (!hasTitlePoster(detail)) invalidPosters.push(`${item.slug} details`);
+  if (!hasTitleBackground(detail)) invalidBackgrounds.push(`${item.slug} details`);
+  const expectedEpisodes = Math.max(1, Number(item.episodeCount || detail.episodeCount || 0));
+  const expectedReleases = Math.max(1, Number(item.releaseCount || detail.releaseCount || 0));
+  const episodes = Array.isArray(detail.episodes) ? detail.episodes : [];
+  const actualReleases = episodes.reduce((count, episode) =>
+    count + (Array.isArray(episode.sourceOptions) ? episode.sourceOptions.length : 0), 0);
+  episodeCount += episodes.length;
+  releaseCount += actualReleases;
+  if (episodes.length < expectedEpisodes || actualReleases < expectedReleases) {
+    incompleteDetails.push(`${item.slug} episodes ${episodes.length}/${expectedEpisodes}, releases ${actualReleases}/${expectedReleases}`);
+  }
+  for (const episode of episodes) {
+    const episodeNumber = Number(episode.number || episode.episode || 0) || "?";
+    if (!hasPlayableEpisode(episode)) {
+      missingEpisodePlayback.push(`${item.slug}#${episodeNumber}`);
+    }
+    if (!hasEpisodeGallery(episode)) {
+      missingGallery.push(`${item.slug}#${episodeNumber}`);
+    }
+    (Array.isArray(episode.sourceOptions) ? episode.sourceOptions : []).forEach((source, index) => {
+      if (!hasPlayableRelease(source)) {
+        missingReleasePlayback.push(`${item.slug}#${episodeNumber}r${source.releaseIndex ?? index}`);
+      }
+    });
+  }
+  if (!hasPlayableRoute(detail)) {
     missingPlayback.push(item.slug);
   }
 }
 
 if (!catalogItems.length) throw new Error("Adult catalog is empty.");
-if (missingDetails.length || missingPlayback.length || invalidArtwork.length) {
+if (missingDetails.length || incompleteDetails.length || missingPlayback.length || missingEpisodePlayback.length || missingReleasePlayback.length || invalidPosters.length || invalidBackgrounds.length || missingGallery.length) {
   const examples = [
     missingDetails.length ? `missing details: ${missingDetails.slice(0, 8).join(", ")}` : "",
+    incompleteDetails.length ? `incomplete details: ${incompleteDetails.slice(0, 8).join(", ")}` : "",
     missingPlayback.length ? `missing playback: ${missingPlayback.slice(0, 8).join(", ")}` : "",
-    invalidArtwork.length ? `invalid title artwork: ${invalidArtwork.slice(0, 8).join(", ")}` : ""
+    missingEpisodePlayback.length ? `missing episode playback: ${missingEpisodePlayback.slice(0, 8).join(", ")}` : "",
+    missingReleasePlayback.length ? `missing release playback: ${missingReleasePlayback.slice(0, 8).join(", ")}` : "",
+    invalidPosters.length ? `invalid posters: ${invalidPosters.slice(0, 8).join(", ")}` : "",
+    invalidBackgrounds.length ? `invalid backgrounds: ${invalidBackgrounds.slice(0, 8).join(", ")}` : "",
+    missingGallery.length ? `missing gallery: ${missingGallery.slice(0, 8).join(", ")}` : ""
   ].filter(Boolean).join("; ");
   throw new Error(`Adult catalog verification failed (${examples}).`);
 }
 
-console.log(`Verified a supported in-app playback route for all ${catalogItems.length} adult titles.`);
+console.log(`Verified playable details, artwork, backgrounds, and galleries for all ${catalogItems.length} adult titles, ${episodeCount} episodes, and ${releaseCount} release routes.`);
