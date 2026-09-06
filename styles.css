@@ -8618,6 +8618,19 @@ body.reduce-motion .watch-stage-body { animation: none; }
     border-top: 0.08rem solid rgba(255, 255, 255, 0.07);
   }
 
+  /* The poster carries a 0.1rem / 0.22-alpha border all the way round. In a
+     desktop column that reads as a frame. In the compact panel the poster
+     spans the full width, so only its top and bottom edges are ever visible -
+     measured 1.6px at 0.22 alpha, twice the width and three times the opacity
+     of every other line here - and they land either side of the season row as
+     two bright rules bracketing it. Soften them to the same weight as the rest
+     of the seams; the frame is kept, it just stops shouting. */
+  .watch-overlay .watch-poster,
+  .watch-overlay .watch-poster-placeholder {
+    border-width: 0.06rem;
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
   /* The Seasons tab is redundant on compact widths: the Episodes pane already
      carries the whole season navigator - Prev / Next and a dropdown listing
      every season - so the tab only ever led to a second way of doing what is

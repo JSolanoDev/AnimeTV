@@ -548,7 +548,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=704`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=705`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3539,7 +3539,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=704";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=705";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -14204,7 +14204,7 @@ function getDetailSeasons(show) {
       ...s,
       season: s.season || i + 1,
       title: s.title || `Season ${s.season || i + 1}`,
-      episodes: clampSeasonEpisodes(repairEpisodeGaps(s.episodes || [], s.season || i + 1), show, s)
+      episodes: clampSeasonEpisodes(repairEpisodeGaps(s.episodes || [], s.season || i + 1, seasonAiredFloor(show, s)), show, s)
     }));
   }
 
@@ -14213,7 +14213,7 @@ function getDetailSeasons(show) {
     const grouped = groupEpisodesBySeason(rawEpisodes);
     return grouped.map(s => ({
       ...s,
-      episodes: clampSeasonEpisodes(repairEpisodeGaps(s.episodes || [], s.season), show, s)
+      episodes: clampSeasonEpisodes(repairEpisodeGaps(s.episodes || [], s.season, seasonAiredFloor(show, s)), show, s)
     }));
   }
 
@@ -14389,7 +14389,14 @@ function validateEpisodeIntegrity(show) {
   return { ok: missing.length === 0, missing, seasons: numbersBySeason.size };
 }
 
-function repairEpisodeGaps(episodes = [], seasonNumber = 1) {
+// knownAired is how many episodes the show is KNOWN to have, from its own
+// airing metadata. Without it the list can only be repaired up to the highest
+// number it already contains, so a season whose source returned a single
+// episode rendered exactly one row even when the metadata said eleven had
+// aired - which is what "it is not showing the total amount of episodes"
+// looks like. The episodes it adds are marked missing/locked, so the app says
+// "Not available yet" rather than pretending it can play them.
+function repairEpisodeGaps(episodes = [], seasonNumber = 1, knownAired = 0) {
   const normalizedSeason = Number(seasonNumber) || 1;
   const byNumber = new Map();
   episodes.filter(Boolean).forEach((episode) => {
@@ -14412,7 +14419,11 @@ function repairEpisodeGaps(episodes = [], seasonNumber = 1) {
       season: normalizedSeason
     });
   });
-  const maxEpisode = Math.max(0, ...byNumber.keys());
+  // 2000 is a sanity ceiling, not a product rule: a corrupt total must not be
+  // able to allocate an unbounded list. The longest real season here is One
+  // Piece's ~1177, so nothing legitimate comes close to it.
+  const floor = Math.min(Math.max(0, Math.floor(Number(knownAired) || 0)), 2000);
+  const maxEpisode = Math.max(0, floor, ...byNumber.keys());
   if (!maxEpisode) return [];
   return Array.from({ length: maxEpisode }, (_, index) => {
     const episode = index + 1;
@@ -16919,7 +16930,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=704");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=705");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

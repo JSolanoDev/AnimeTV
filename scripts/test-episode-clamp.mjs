@@ -20,18 +20,23 @@ const slice = (start, end) => {
 const code = [
   slice("function getSeasonEpisodeLimit(", "\nfunction "),
   slice("function clampSeasonEpisodes(", "\nfunction "),
-  slice("function mergeAiredEpisodeMetadata(", "\n// Strip a leading")
+  slice("function mergeAiredEpisodeMetadata(", "\n// Strip a leading"),
+  slice("function repairEpisodeGaps(", "\nfunction ")
 ].join("\n");
 
 const ctx = vm.createContext({
   Number, Math, Array, Date, String, JSON, console,
   // mergeAiredEpisodeMetadata's only outside dependency
-  extractSeasonNumber: () => 1
+  extractSeasonNumber: () => 1,
+  // repairEpisodeGaps' dependencies
+  getEpisodeUrl: (e) => e.videoUrl || e.url || "",
+  normalizeEpisodeSourceOptions: () => []
 });
 vm.runInContext(code, ctx, { filename: "client.js extract" });
 const getSeasonEpisodeLimit = vm.runInContext("getSeasonEpisodeLimit", ctx);
 const clampSeasonEpisodes = vm.runInContext("clampSeasonEpisodes", ctx);
 const mergeAiredEpisodeMetadata = vm.runInContext("mergeAiredEpisodeMetadata", ctx);
+const repairEpisodeGaps = vm.runInContext("repairEpisodeGaps", ctx);
 
 const rows = [];
 const check = (name, got, want) => {
@@ -131,6 +136,23 @@ check("nextAiring still caps a mid-air season",
                 { episode: 4, locked: true }, { episode: 5, locked: true }];
   check("aired kept, locked future ones dropped",
     clampSeasonEpisodes(list, show, {}).map((e) => e.episode), [1, 2, 3]);
+}
+
+/* -- the list is repaired up to the episode count the show is KNOWN to have --
+   Mushoku Tensei S3: the source returned a single episode while the metadata
+   said eleven had aired, so the page rendered exactly one row. */
+{
+  const one = [{ episode: 1, title: "E1" }];
+  check("without a floor only the present episode survives", repairEpisodeGaps(one, 1).length, 1);
+  const filled = repairEpisodeGaps(one, 1, 11);
+  check("with a floor of 11 the season is 11 long", filled.length, 11);
+  check("the real episode is kept", filled[0].title, "E1");
+  check("the filled ones are marked unavailable", filled[5].missing, true);
+  check("and are locked, so nothing pretends to play", filled[5].locked, true);
+  check("a floor below what is present never truncates", repairEpisodeGaps([{ episode: 9 }], 1, 3).length, 9);
+  check("a zero floor behaves exactly as before", repairEpisodeGaps(one, 1, 0).length, 1);
+  check("a corrupt floor cannot allocate without bound", repairEpisodeGaps(one, 1, 1e9).length, 2000);
+  check("an empty list with a floor still fills", repairEpisodeGaps([], 1, 12).length, 12);
 }
 
 console.log(rows.join("\n"));

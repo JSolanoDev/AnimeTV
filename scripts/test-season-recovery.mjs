@@ -34,6 +34,10 @@ function context(fetchWithTimeout = async () => ({ ok: false })) {
     getShowKey: show => String(show.id),
     groupEpisodesBySeason: episodes => [{ season: 1, episodes }],
     repairEpisodeGaps: episodes => episodes,
+    // getDetailSeasons asks how many episodes a season is known to have so the
+    // list can be repaired up to that count. These tests stub repairEpisodeGaps
+    // to a pass-through, so no floor is wanted here.
+    seasonAiredFloor: () => 0,
     normalizeEpisodeSourceOptions: () => [],
     getEpisodeUrl: episode => episode.videoUrl || ""
   });
