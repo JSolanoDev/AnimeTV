@@ -57,8 +57,13 @@ const eps = (n) => Array.from({ length: n }, (_, i) => ({ episode: i + 1, title:
 
 /* ── a genuinely mid-air show still clamps ────────────────────────────────── */
 {
-  // 24 slots: 11 aired (dated in the past), 13 dated in the future.
-  const show = { title: "Airing", status: "RELEASING", episode: 24, episodes: eps(24) };
+  // 24 slots: 11 aired (dated in the past), 13 dated in the future. The app marks
+  // episodes the source cannot serve as locked - verified in production, where
+  // "Smoking Behind the Supermarket" carries locked:true on all 12 of its rows
+  // while Mebius Dust carries locked:false on the five it actually serves - so
+  // the fixture models that rather than leaving the flag off.
+  const show = { title: "Airing", status: "RELEASING", episode: 24,
+    episodes: eps(24).map(e => (e.episode > 11 ? { ...e, locked: true } : e)) };
   const metadata = eps(24).map((e) => ({ episode: e.episode, aired: e.episode <= 11 ? PAST : FUTURE }));
   mergeAiredEpisodeMetadata(show, metadata);
   check("a fully dated list DOES publish latestAiredEp", show.latestAiredEp, 11);
@@ -105,6 +110,27 @@ check("nextAiring still caps a mid-air season",
   mergeAiredEpisodeMetadata(show, []);
   check("empty metadata leaves the list alone", show.episodes.length, 8);
   check("empty metadata publishes no latestAiredEp", show.latestAiredEp, undefined);
+}
+
+/* -- an unlocked episode is never clamped away -------------------------------
+   Verified in production: Mebius Dust serves episodes 4..8 with locked:false and
+   real videoUrl/streamResolver/server fields, while reporting latestAiredEp 2.
+   The clamp deleted all five and repairEpisodeGaps backfilled two empty rows. */
+{
+  const show = { title: "Mebius Dust", status: "RELEASING", latestAiredEp: 2,
+    episodes: [4, 5, 6, 7, 8].map((n) => ({ episode: n })) };
+  check("limit still reflects the (wrong) metadata", getSeasonEpisodeLimit(show, {}), 2);
+  check("every unlocked episode survives it", clampSeasonEpisodes(show.episodes, show, {}).length, 5);
+  check("their numbers are intact", clampSeasonEpisodes(show.episodes, show, {}).map((e) => e.episode), [4, 5, 6, 7, 8]);
+}
+
+/* -- locked episodes above the limit are still held back -------------------- */
+{
+  const show = { title: "Mixed", status: "RELEASING", latestAiredEp: 3 };
+  const list = [{ episode: 1 }, { episode: 2 }, { episode: 3 },
+                { episode: 4, locked: true }, { episode: 5, locked: true }];
+  check("aired kept, locked future ones dropped",
+    clampSeasonEpisodes(list, show, {}).map((e) => e.episode), [1, 2, 3]);
 }
 
 console.log(rows.join("\n"));

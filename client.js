@@ -548,7 +548,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=703`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=704`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3539,7 +3539,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=703";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=704";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -14352,7 +14352,21 @@ function clampSeasonEpisodes(episodes = [], show = {}, season = {}) {
     // only fires when real, unlocked episodes exist.
     return episodes.some((episode) => !episode.locked) ? episodes : [];
   }
-  return episodes.filter((episode) => Number(episode.episode || episode.number || 0) <= limit);
+  return episodes.filter((episode) => {
+    // An UNLOCKED episode is one the source is actually serving, and those are
+    // never hidden. The clamp exists to keep episodes that have not aired yet
+    // out of the list - not to delete playable ones - and the airing metadata
+    // it leans on is regularly wrong or missing. Mebius Dust serves episodes
+    // 4 through 8, every one of them unlocked, while reporting latestAiredEp 2:
+    // the clamp threw all five away and repairEpisodeGaps backfilled two empty
+    // placeholder rows in their place.
+    //
+    // This is the same rule the limit<=0 branch above already applies, just
+    // applied at every limit: data beats metadata. Locked episodes - the ones
+    // that genuinely have not dropped - are still held back by the limit.
+    if (!episode.locked) return true;
+    return Number(episode.episode || episode.number || 0) <= limit;
+  });
 }
 
 function validateEpisodeIntegrity(show) {
@@ -16905,7 +16919,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=703");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=704");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
