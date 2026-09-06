@@ -120,7 +120,10 @@ const PLAYBACK_SCRAPERS = [
     name: "AnimeAV1",
     desc: "Direct HLS / Mega / MP4Upload scraper — fast, ad-free playback.",
     endpoint: "/api/animeav1/sources",
-    health: "/api/animeav1/info?slug=one-piece"
+    // Was /api/animeav1/info, which this server does not implement. It only
+    // ever passed because unknown /api paths used to answer 200 with the SPA
+    // shell, so the button reported "online" whatever the scraper was doing.
+    health: "/api/animeav1/health"
   }
 ];
 
@@ -545,7 +548,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=683`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=684`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3400,7 +3403,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=683";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=684";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -16640,7 +16643,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=683");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=684");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

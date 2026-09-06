@@ -1099,6 +1099,24 @@ function handleRequest(request, response) {
     return;
   }
 
+  // Every /api/ route above returns on a match, so anything still here is a
+  // path this server does not implement. It must not reach the static handler:
+  // that handler answers an extension-less GET carrying Accept: text/html with
+  // index.html and HTTP 200, which is what made /api/generate, /api/demo and
+  // /api/blog look like working endpoints - 200 is an invitation to keep
+  // scanning. Nothing legitimate lands here: there is no static file under
+  // /api/ in the build output, and every /api path the client calls is either
+  // handled above or points at another origin.
+  if (url.pathname.startsWith("/api/")) {
+    // Short public TTL so the CDN answers the repeats rather than waking the
+    // function again for a path that will never exist.
+    sendJson(response, { ok: false, error: "Not found" }, 404, {
+      "Cache-Control": "public, max-age=300",
+      "X-Robots-Tag": "noindex"
+    });
+    return;
+  }
+
   const pathname = url.pathname === "/" ? "/index.html" : decodeURIComponent(url.pathname);
   const filePath = path.resolve(path.join(root, pathname));
 
