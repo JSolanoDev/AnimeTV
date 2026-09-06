@@ -9763,7 +9763,7 @@ function episodeAvailabilityText(episode = {}) {
     ? new Date(Number(dateValue) * (Number(dateValue) < 100000000000 ? 1000 : 1))
     : dateValue ? new Date(dateValue) : null;
   if (date && !Number.isNaN(date.getTime())) {
-    return `Not available yet - ${date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} at ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+    return `Not available yet - ${date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} at ${formatAiringClock(date)}`;
   }
   return "Not available yet";
 }

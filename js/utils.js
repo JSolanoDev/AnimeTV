@@ -467,9 +467,35 @@ function canGroupAsSeason(parent, candidate) {
   return canFollowSeasonLink(parent, candidate);
 }
 
+// One clock format for every user-facing airing time - the Weekly Schedule and
+// the homepage carousel both read from here, so the two can never disagree.
+//
+// hour12 is stated explicitly rather than left to the locale. Without it a
+// 24-hour locale rendered "23:00", which is not the format this app shows.
+// Passing undefined as the locale keeps the viewer's own locale for everything
+// else (separators, AM/PM wording) while pinning the 12-hour clock.
+function formatAiringClock(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
+  }).format(date);
+}
+
+// The weekday comes from the SAME Date instance as the clock time, so both are
+// read off one converted instant. That is what stops a single timestamp being
+// shown as "Friday 11:00 PM" on one surface and "Saturday" on another.
+function formatAiringWeekday(date, weekday = "short") {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat(undefined, { weekday }).format(date);
+}
+
 // Node export so the logic can be unit-tested without a browser/DOM.
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
+    formatAiringClock,
+    formatAiringWeekday,
     normalizeTitle,
     getFranchiseKey,
     extractSeasonNumber,

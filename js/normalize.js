@@ -386,8 +386,10 @@ function normalizeAniListShow(entry) {
   const airingDate = entry.nextAiringEpisode?.airingAt
     ? new Date(entry.nextAiringEpisode.airingAt * 1000)
     : null;
-  const day = airingDate ? airingDate.toLocaleDateString([], { weekday: "short" }) : "TBA";
-  const time = airingDate ? airingDate.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "TBA";
+  // Both read from the one airingDate instant, through the shared formatter, so
+  // the weekday and the clock time can never describe different moments.
+  const day = airingDate ? formatAiringWeekday(airingDate) : "TBA";
+  const time = airingDate ? formatAiringClock(airingDate) : "TBA";
   const genre = pickGenre(entry.genres);
   const color = entry.coverImage?.color || "#40dfc2";
   const nextAiringEp = entry.nextAiringEpisode?.episode;
