@@ -8608,7 +8608,11 @@ body.reduce-motion .watch-stage-body { animation: none; }
      sitting directly on the tabs while desktop had a full 1rem of space. Restore
      the gap, and soften the line itself so it reads as a seam between sections
      rather than a rule drawn across the panel. */
-  .watch-side .episode-list {
+  /* .watch-overlay scopes this above the later (max-width: 860px) rule that
+     sets .watch-side .episode-list { padding: 0 } - same specificity, and it
+     comes after, so it was winning the padding back to zero and leaving the
+     line flush against the tabs. */
+  .watch-overlay .watch-side .episode-list {
     margin-top: 1.1rem;
     padding-top: 0.9rem;
     border-top: 0.08rem solid rgba(255, 255, 255, 0.07);
