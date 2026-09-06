@@ -8598,8 +8598,8 @@ body.reduce-motion .watch-stage-body { animation: none; }
    is the SAME colour as the panel, so there is no track box / seam, and it stays
    opaque so episodes never bleed through while scrolling. */
 
-/* The panel names the show it is listing, on every width; the phone block far
-   below only changes this element's spacing. */
+/* The panel names the show it is listing - but only where that name is not
+   already on screen. See the compact override directly below. */
 .watch-side .ep-panel-title {
   margin: 0 0 0.5rem;
   padding: 0 0.15rem;
@@ -8610,6 +8610,22 @@ body.reduce-motion .watch-stage-body { animation: none; }
   text-wrap: balance;
   overflow-wrap: anywhere;
 }
+
+/* Compact and tablet layouts stack the side panel UNDER the watch content, so
+   the show's name is already on screen a short scroll above and the panel
+   repeating it is a duplicate heading - plus the line box it occupied pushed
+   Seasons / Episodes / Gallery down for nothing. Hidden to 1024px, which covers
+   phones and the whole tablet range. Above 1024 the panel is a true side column
+   with no other label of its own, so the title earns its place and stays.
+
+   display:none rather than a spacing override: the element must reserve no
+   height at all, and this is the ONLY rule that touches it below 1024px. */
+@media (max-width: 1024px) {
+  .watch-overlay .watch-side .ep-panel-title {
+    display: none;
+  }
+}
+
 .watch-side .detail-tabs.detail-tabs-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   position: relative;
@@ -11138,28 +11154,6 @@ body.is-tv .topbar-auth {
      is selected; only this placeholder is skipped, and only on phones. */
   .watch-overlay .watch-ready-state {
     display: none;
-  }
-
-  /* The panel title earns its place on desktop, where the sidebar has no other
-     label. On a phone the show's name is already the page heading a short scroll
-     above, so a second copy directly under it is the same restatement. */
-  .watch-overlay .watch-side .ep-panel-title {
-    display: none;
-  }
-
-  /* The show this panel is listing. On a phone the artwork and the watch title
-     have usually scrolled away by the time the episode list is on screen, so
-     the panel says it itself. Cleared past the fixed Back button for the same
-     reason .watch-stage-body is. */
-  .watch-overlay .watch-side .ep-panel-title {
-    margin: 0 0 0.55rem;
-    padding: 3.9rem 0.15rem 0;
-    font-size: 1.02rem;
-    font-weight: 700;
-    line-height: 1.25;
-    color: #eef1fb;
-    text-wrap: balance;
-    overflow-wrap: anywhere;
   }
 
   /* Pinned just below the fixed Back / fullscreen controls rather than
