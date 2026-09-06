@@ -8598,33 +8598,9 @@ body.reduce-motion .watch-stage-body { animation: none; }
    is the SAME colour as the panel, so there is no track box / seam, and it stays
    opaque so episodes never bleed through while scrolling. */
 
-/* The panel names the show it is listing - but only where that name is not
-   already on screen. See the compact override directly below. */
-.watch-side .ep-panel-title {
-  margin: 0 0 0.5rem;
-  padding: 0 0.15rem;
-  font-size: 0.98rem;
-  font-weight: 700;
-  line-height: 1.3;
-  color: #eef1fb;
-  text-wrap: balance;
-  overflow-wrap: anywhere;
-}
-
-/* Compact and tablet layouts stack the side panel UNDER the watch content, so
-   the show's name is already on screen a short scroll above and the panel
-   repeating it is a duplicate heading - plus the line box it occupied pushed
-   Seasons / Episodes / Gallery down for nothing. Hidden to 1024px, which covers
-   phones and the whole tablet range. Above 1024 the panel is a true side column
-   with no other label of its own, so the title earns its place and stays.
-
-   display:none rather than a spacing override: the element must reserve no
-   height at all, and this is the ONLY rule that touches it below 1024px. */
+/* The panel does not repeat the show's name. The watch content already carries
+   it directly above on every layout this panel appears in. */
 @media (max-width: 1024px) {
-  .watch-overlay .watch-side .ep-panel-title {
-    display: none;
-  }
-
   /* The Seasons tab is redundant on compact widths: the Episodes pane already
      carries the whole season navigator - Prev / Next and a dropdown listing
      every season - so the tab only ever led to a second way of doing what is
@@ -8934,14 +8910,21 @@ body.has-embedded-player .watch-side {
   position: sticky;
   top: 0;
   z-index: 3;
-  display: flex;
+  display: grid;
+  /* rail | centred season button | rail - the outer tracks size to their
+     buttons, so the middle one is always the true centre of the bar. */
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 0.4rem;
   padding: 0.36rem 0.2rem 0.62rem;
   margin: 0 -0.1rem;
   background: #0c0d16;
 }
+/* The rails keep their own size; only the middle track is free to absorb the
+   remaining width, which is what keeps the button centred as the panel grows. */
+.ep-panel-head > .ep-nav-btn:first-child { justify-self: start; }
+.ep-panel-head > .ep-nav-btn:last-child { justify-self: end; }
+.ep-panel-head > .ep-season-select { justify-self: center; max-width: 100%; }
 .ep-nav-btn {
   display: inline-flex;
   align-items: center;
@@ -8986,7 +8969,14 @@ body.has-embedded-player .watch-side {
   box-shadow: 0 0 0 0.16rem rgba(0, 210, 255, 0.08);
   outline: 0;
 }
-.ep-season-caret { font-size: 0.8rem; color: rgba(255,255,255,0.6); }
+.ep-season-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.ep-season-btn { max-width: 100%; }
+.ep-season-caret { flex: 0 0 auto; font-size: 0.8rem; color: rgba(255,255,255,0.6); }
 .ep-season-menu {
   position: absolute;
   top: calc(100% + 0.35rem);

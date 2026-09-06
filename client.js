@@ -548,7 +548,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=689`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=690`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3483,7 +3483,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=689";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=690";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -9233,7 +9233,6 @@ function renderEpisodeList(show) {
   // keep the Gallery one. Set before the markup so the two can never disagree.
   episodeList.classList.toggle("is-adult-detail", !!isAdultDetailShow);
   episodeList.innerHTML = `
-    <p class="ep-panel-title" title="${escapeHtml(getShowTitle(show))}">${escapeHtml(getShowTitle(show))}</p>
     <div class="detail-tabs detail-tabs-2" role="tablist" aria-label="Anime details">
       <button class="detail-tab focusable ${tab === "seasons" || tab === "gallery" ? "is-selected" : ""}" data-detail-tab="${isAdultDetailShow ? "gallery" : "seasons"}" role="tab" aria-selected="${tab === "seasons" || tab === "gallery"}">${isAdultDetailShow ? "Gallery" : "Seasons"}</button>
       <button class="detail-tab focusable ${tab === "episodes" ? "is-selected" : ""}" data-detail-tab="episodes" role="tab" aria-selected="${tab === "episodes"}">Episodes</button>
@@ -16789,7 +16788,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=689");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=690");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
