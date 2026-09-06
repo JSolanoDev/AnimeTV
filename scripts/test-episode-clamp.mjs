@@ -155,6 +155,42 @@ check("nextAiring still caps a mid-air season",
   check("an empty list with a floor still fills", repairEpisodeGaps([], 1, 12).length, 12);
 }
 
+
+/* -- a PARTIAL metadata feed is a lower bound, never a ceiling ---------------
+   Measured on production 2026-09-06: /api/jikan/episodes?id=59193 (Mushoku
+   Tensei S3) answers with exactly ONE row - episode 1, aired 2026-07-04, a real
+   PAST date - while the show is known to have 14 episodes and the AnimeAV1
+   source serves episode 11 (HTTP 200). undated was therefore 0, the guard
+   passed, latestAiredEp became 1, and a 14-episode season rendered as one row. */
+{
+  const show = { title: "Mushoku Tensei III", status: "RELEASING", totalEpisodes: 14, anilistEpisodeCount: 14, episodes: [] };
+  mergeAiredEpisodeMetadata(show, [{ episode: 1, aired: PAST }]);
+  check("a one-row feed for a 14-episode show publishes no ceiling", show.latestAiredEp, undefined);
+  check("and does not move show.episode either", show.episode, undefined);
+  check("so the limit stays unknown rather than 1", getSeasonEpisodeLimit(show, {}), null);
+}
+{
+  // The very same feed once it is COMPLETE: 14 rows, 11 past, 3 future.
+  const show = { title: "Mushoku Tensei III", status: "RELEASING", totalEpisodes: 14, anilistEpisodeCount: 14, episodes: [] };
+  mergeAiredEpisodeMetadata(show, eps(14).map((e) => ({ episode: e.episode, aired: e.episode <= 11 ? PAST : FUTURE })));
+  check("a complete feed IS still trusted", show.latestAiredEp, 11);
+  check("and clamps to the last aired episode", getSeasonEpisodeLimit(show, {}), 11);
+}
+{
+  // Short feeds are not an airing-only hazard.
+  const show = { title: "Finished", status: "FINISHED", totalEpisodes: 24, episodes: [] };
+  mergeAiredEpisodeMetadata(show, [{ episode: 1, aired: PAST }, { episode: 2, aired: PAST }]);
+  check("a 2-row feed for a 24-episode show publishes no ceiling", show.latestAiredEp, undefined);
+  check("the planned total still answers the limit", getSeasonEpisodeLimit(show, {}), 24);
+}
+{
+  // Regression guard: with no known total there is nothing to compare against,
+  // so a fully dated feed must keep behaving exactly as it did before.
+  const show = { title: "No total", status: "RELEASING", episode: 3, episodes: eps(12) };
+  mergeAiredEpisodeMetadata(show, eps(12).map((e) => ({ episode: e.episode, aired: e.episode <= 9 ? PAST : FUTURE })));
+  check("an unknown total still trusts a fully dated feed", show.latestAiredEp, 9);
+}
+
 console.log(rows.join("\n"));
 const failed = rows.filter((r) => r.startsWith("FAIL")).length;
 console.log(failed ? `\n${failed} FAILED` : "\nall episode-clamp checks passed");

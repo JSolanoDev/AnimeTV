@@ -548,7 +548,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=710`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=711`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3539,7 +3539,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=710";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=711";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4442,9 +4442,11 @@ function mergeAiredEpisodeMetadata(show, metadata = []) {
   // with a parseable date on just the first: latest came out 1, was written to
   // latestAiredEp, and getSeasonEpisodeLimit clamped the list to a single row.
   let undated = 0;
+  let counted = 0;
   for (const entry of metadata) {
     const number = Number(entry.episode || entry.number);
     if (!Number.isInteger(number) || number < 1) continue;
+    counted += 1;
     const aired = Date.parse(entry.aired || "");
     if (!Number.isFinite(aired)) { undated += 1; continue; }
     if (aired > Date.now()) continue;
@@ -4468,8 +4470,18 @@ function mergeAiredEpisodeMetadata(show, metadata = []) {
   // clamp wants. With even one undated entry `latest` is a lower bound, and
   // publishing a lower bound here deletes real, playable episodes. The list we
   // already have still stands; it simply is not clamped by a guess.
-  if (!undated) show.latestAiredEp = Math.max(Number(show.latestAiredEp) || 0, latest);
-  show.episode = Math.max(Number(show.episode) || 0, latest);
+  // ...and a feed that returned only a HANDFUL of rows is a PARTIAL feed, not
+  // a short season. Jikan answers /episodes for Mushoku Tensei S3 with a single
+  // dated row while the show is known to have 14, so `latest` came out 1 and a
+  // 14-episode season rendered as one. `latest` is a ceiling only when the feed
+  // accounted for essentially every episode the show is known to have; short of
+  // that it is a lower bound, and neither field may be moved by it.
+  const knownTotal = Number(show.totalEpisodes || show.anilistEpisodeCount || 0);
+  const coversSeason = !(Number.isFinite(knownTotal) && knownTotal > 0) || counted >= knownTotal;
+  if (!undated && coversSeason) {
+    show.latestAiredEp = Math.max(Number(show.latestAiredEp) || 0, latest);
+    show.episode = Math.max(Number(show.episode) || 0, latest);
+  }
 }
 
 // Strip a leading "Episode 12 - " / "12 - " so the row shows the real title only.
@@ -17036,7 +17048,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=710");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=711");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
