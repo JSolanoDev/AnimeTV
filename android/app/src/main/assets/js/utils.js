@@ -353,6 +353,92 @@ function simpleHash(value) {
   return String(hash).replace("-", "n");
 }
 
+// AniList seasons run WINTER (Dec-Feb), SPRING, SUMMER, FALL. December belongs
+// to the FOLLOWING year's winter season, which is why the year is nudged.
+function currentAnimeSeason(nowMs = Date.now()) {
+  const d = new Date(nowMs);
+  const month = d.getMonth();
+  const year = d.getFullYear();
+  if (month === 11) return { season: "WINTER", seasonYear: year + 1 };
+  if (month <= 1) return { season: "WINTER", seasonYear: year };
+  if (month <= 4) return { season: "SPRING", seasonYear: year };
+  if (month <= 7) return { season: "SUMMER", seasonYear: year };
+  return { season: "FALL", seasonYear: year };
+}
+
+function isCurrentSeasonShow(show, nowMs = Date.now()) {
+  if (!show) return false;
+  const { season, seasonYear } = currentAnimeSeason(nowMs);
+  return String(show.season || "").toUpperCase() === season &&
+         Number(show.seasonYear || 0) === seasonYear;
+}
+
+// How "current" a title is, best tier first. Popularity is a TIE-BREAKER inside
+// a tier and never lifts a title out of one - ranking on score alone is exactly
+// what put three-year-old completed hits in the hero, because the carousel's
+// pad and its empty-pool fallback both sorted on quality with no status or
+// recency test at all.
+//
+//   0  airing, with a real episode instant just past or coming up
+//   1  a current-season title with no usable instant yet
+//   2  anything else still airing / not yet finished
+//   3  everything else - completed, cancelled, undated
+//
+// lastAiredMs is passed in rather than recomputed: the caller already has it
+// from lastEpisodeAiredMs(), and it is the timezone-correct value.
+const CAROUSEL_CURRENCY_WINDOW_MS = 21 * 24 * 60 * 60 * 1000;
+
+// How far this title is from "right now", in either direction: the gap since its
+// last episode aired, or the wait until its next one, whichever is nearer.
+//
+// One metric for both directions is what makes the ordering read correctly. A
+// show whose episode dropped 30 minutes ago and a show whose next episode is two
+// hours away are both current, and the first is more so; ranking on last-aired
+// alone would instead have sorted a show airing tomorrow above one airing in two
+// hours, because neither had aired recently.
+//
+// nextAiringAt is milliseconds (normalize.js multiplies AniList's seconds by
+// 1000), so it compares directly against nowMs.
+function carouselCurrencyDistanceMs(show, nowMs = Date.now(), lastAiredMs = null) {
+  const distances = [];
+  if (lastAiredMs != null && Number.isFinite(Number(lastAiredMs)) && Number(lastAiredMs) <= nowMs) {
+    distances.push(nowMs - Number(lastAiredMs));
+  }
+  const nextAt = Number(show && show.nextAiringAt || 0);
+  if (nextAt > 0 && nextAt >= nowMs) distances.push(nextAt - nowMs);
+  return distances.length ? Math.min(...distances) : Number.POSITIVE_INFINITY;
+}
+
+function carouselCurrencyTier(show, nowMs = Date.now(), lastAiredMs = null) {
+  if (!show) return 3;
+  const status = String(show.status || "").toUpperCase();
+  if (status === "FINISHED" || status === "CANCELLED") return 3;
+  if (carouselCurrencyDistanceMs(show, nowMs, lastAiredMs) <= CAROUSEL_CURRENCY_WINDOW_MS) return 0;
+  if (isCurrentSeasonShow(show, nowMs)) return 1;
+  return 2;
+}
+
+// Orders a pool by how current it is, then - only within a tier - by how
+// recently it aired, then by quality. Used wherever the carousel previously
+// fell back to sortCarouselQuality alone.
+function sortCarouselCurrency(items, nowMs = Date.now(), lastAiredFor = () => null) {
+  return [...items]
+    .map((show) => {
+      const lastAiredMs = lastAiredFor(show);
+      return {
+        show,
+        distance: carouselCurrencyDistanceMs(show, nowMs, lastAiredMs),
+        tier: carouselCurrencyTier(show, nowMs, lastAiredMs)
+      };
+    })
+    .sort((a, b) => {
+      if (a.tier !== b.tier) return a.tier - b.tier;
+      if (a.distance !== b.distance) return a.distance - b.distance;
+      return Number(b.show.score || 0) - Number(a.show.score || 0);
+    })
+    .map((x) => x.show);
+}
+
 function sortCarouselQuality(items) {
   return [...items].sort((a, b) => {
     const hasBannerB = Boolean(b.banner || b.tmdbBackdrop || b.highQualityBackground || b.bannerImage || b.backdrop || b.heroImage || b.wideImage || b.landscapeImage);
@@ -496,6 +582,12 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     formatAiringClock,
     formatAiringWeekday,
+    currentAnimeSeason,
+    isCurrentSeasonShow,
+    carouselCurrencyTier,
+    carouselCurrencyDistanceMs,
+    sortCarouselCurrency,
+    sortCarouselQuality,
     normalizeTitle,
     getFranchiseKey,
     extractSeasonNumber,

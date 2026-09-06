@@ -2515,10 +2515,16 @@ function recentlyAiredShows(limit = 8) {
     if (result.length >= limit) break;
   }
 
-  // If we still don't have enough, pad with high-quality airing shows
+  // Padding used to be sortCarouselQuality() over the whole catalogue, which
+  // ranks on banner, source and score with no status or recency test - so a
+  // short pool pulled in years-old completed hits purely because they scored
+  // well. Rank the pad by how CURRENT a title is instead; quality still breaks
+  // ties, it just no longer decides the tier.
   if (result.length < limit) {
-    const pad = sortCarouselQuality(
-      catalogShows().filter((s) => getCarouselArtwork(s) && !seenTitles.has(normalizeTitle(s.title)))
+    const pad = sortCarouselCurrency(
+      catalogShows().filter((s) => getCarouselArtwork(s) && !seenTitles.has(normalizeTitle(s.title))),
+      nowMs,
+      (s) => lastEpisodeAiredMs(s, nowMs)
     ).slice(0, limit - result.length);
     result.push(...pad);
   }
@@ -3458,7 +3464,15 @@ function renderCarousel() {
   // fall back to the best poster-bearing shows so the hero never gets stuck on
   // "Loading…" while the catalog actually has content.
   if (!pool.length) {
-    pool = sortCarouselQuality(catalogShows().filter((s) => carouselArtworkOrPoster(s))).slice(0, 12);
+    // Same correction as the pad: when no landscape banner has resolved yet the
+    // hero still has to show something, but "something" must stay current rather
+    // than becoming whatever scores highest in the whole catalogue.
+    const fallbackNow = Date.now();
+    pool = sortCarouselCurrency(
+      catalogShows().filter((s) => carouselArtworkOrPoster(s)),
+      fallbackNow,
+      (s) => lastEpisodeAiredMs(s, fallbackNow)
+    ).slice(0, 12);
   }
   // See CAROUSEL_PROVISIONAL_HOLD_MS: a line-up chosen from the bootstrap
   // snapshot is guaranteed to be replaced, so decline to choose one yet. An
