@@ -12123,58 +12123,79 @@ body.player-cinema-open .watch-overlay .close-button {
    Through 1024 rather than 760: the inline bar is the same three buttons at
    tablet widths, and above 1024 the wide pill still suits a full desktop row. */
 @media (max-width: 1024px) {
+  /* Built to the SAME spec as .ep-panel-head, the season row directly beneath
+     it, so the two read as one family rather than two unrelated bars: the same
+     auto | 1fr | auto tracks, the same 0.4rem gap, the same pill buttons, and
+     no container box of its own. Prev and Next sit on the rails and the middle
+     action is centred on the bar - which lines each control up with its
+     counterpart in the row below. Values are copied from .ep-nav-btn and
+     .ep-season-btn deliberately; if those change, change these with them. */
   .video-frame > .player-episode-actions {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.2rem;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.4rem;
     min-height: 0;
     /* .video-frame is a grid with justify-items:center, which sized this row to
-       its own content - measured 238px of a 375px frame, floating centred with
-       the video full-bleed above it. Stretching the item back across its track
-       and insetting with margin puts it in the same 11px column as the episode
-       rows below. */
+       its own content - measured 238px of a 375px frame, floating centred under
+       a full-bleed video. Stretching it back across its track and insetting by
+       margin puts it in the same column as the season row and episode list. */
     justify-self: stretch;
     width: auto;
-    margin: 0.6rem 0.7rem 0;
-    padding: 0.25rem;
-    border: 0.08rem solid var(--line);
-    border-radius: var(--radius-md);
-    background: var(--bg-raised);
+    margin: 0.55rem 0.7rem 0;
+    padding: 0.36rem 0.2rem 0.2rem;
+    border: 0;
+    border-radius: 0;
+    background: none;
     box-shadow: none;
   }
 
+  /* A download turns the middle into two actions; they share the centre track
+     rather than adding a fourth column, so the rails stay put. */
   .video-frame > .player-episode-actions:has(.player-download-action) {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
   }
 
+  /* .ep-nav-btn, matched. */
   .video-frame > .player-episode-actions .player-nav-action,
   .video-frame > .player-episode-actions .player-download-action {
-    min-height: 2.5rem;
+    width: auto;
     gap: 0.3rem;
-    padding-inline: 0.3rem;
+    min-height: 2.25rem;
+    padding: 0.32rem 0.55rem;
     border: 0;
-    border-radius: calc(var(--radius-md) - 0.3rem);
-    background: transparent;
-    color: rgba(226, 228, 242, 0.82);
-    font-size: 0.78rem;
+    border-radius: 999rem;
+    background: rgba(255, 255, 255, 0.045);
+    color: rgba(226, 228, 242, 0.74);
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  /* The glyphs are set at 1.3rem for the wide desktop pill, which overpowers a
+     0.82rem label at this size. .ep-nav-btn uses 1.08rem for the same reason. */
+  .video-frame > .player-episode-actions .player-nav-action span[aria-hidden] {
+    font-size: 1.08rem;
+    line-height: 1;
+  }
+
+  /* The centre action, sized and centred like .ep-season-btn - it is the same
+     slot in the same grid as the season button directly below. It keeps the
+     accent because it is the action of the three, where the season button only
+     opens a list. */
+  .video-frame > .player-episode-actions .player-nav-action.is-list {
+    justify-self: center;
+    max-width: 100%;
+    min-height: 2.38rem;
+    padding: 0.38rem 0.82rem;
+    border: 0.08rem solid rgba(138, 92, 255, 0.52);
+    background: linear-gradient(135deg, rgba(138, 92, 255, 0.95), rgba(138, 92, 255, 0.7));
+    color: #fff;
     font-weight: 800;
   }
 
-  /* The glyphs were set at 1.3rem for the wide pill and crowded the labels
-     once the segments lost their own padding. */
-  .video-frame > .player-episode-actions .player-nav-action span[aria-hidden] {
-    font-size: 1rem;
-  }
-
-  .video-frame > .player-episode-actions .player-nav-action.is-list {
-    background: linear-gradient(135deg, rgba(138, 92, 255, 0.95), rgba(138, 92, 255, 0.7));
-    color: #fff;
-  }
-
-  /* Dimmed in place rather than given a fill of its own - a disabled segment
-     that paints a box breaks the single-control read. */
+  /* .ep-nav-btn[disabled] fades rather than repainting; matched. */
   .video-frame > .player-episode-actions .player-nav-action:disabled {
-    background: transparent;
-    opacity: 0.4;
+    background: rgba(255, 255, 255, 0.045);
+    opacity: 0.32;
   }
 }
 
