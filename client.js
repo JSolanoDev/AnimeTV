@@ -548,7 +548,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=700`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=701`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3539,7 +3539,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=700";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=701";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -3698,7 +3698,13 @@ function renderCarousel() {
   carouselText.textContent = simpleCarouselText(show);
   // Same derived clock as the Schedule, so one timestamp reads identically on
   // both surfaces instead of the carousel printing a stale 24-hour string.
-  carouselMeta.textContent = [show.day, showAiringTimeText(show), (show.genre || "").toUpperCase()].filter(Boolean).join(" | ");
+  //
+  // "Local" and "TBA" are placeholders normalizeExternalShow falls back to when
+  // no broadcast day is known - they are not weekdays, and printing them put
+  // "Local | ACTION" on the hero, which says nothing to a viewer. Drop them and
+  // show only what is actually known; no day is better than a fake one.
+  const heroDay = ["Local", "TBA", ""].includes(String(show.day || "").trim()) ? "" : show.day;
+  carouselMeta.textContent = [heroDay, showAiringTimeText(show), (show.genre || "").toUpperCase()].filter(Boolean).join(" | ");
   const target = getCardTarget(show);
   carouselOpen.dataset.openShow = String(show.id || "");
   carouselOpen.dataset.openSeason = String(target.seasonNumber || "");
@@ -16884,7 +16890,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=700");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=701");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
