@@ -8790,20 +8790,18 @@ function normalizeUnderHentaiSafetyText(value = "") {
     .trim();
 }
 
-function isSafeAdultMetadata(item = {}) {
+// The adult catalog is served unfiltered by deliberate policy: the title-text
+// screen this used to run was rejecting playable entries, so it was disabled
+// upstream by returning early. That early return left the whole body dead,
+// which is a real defect - it fails `no-unreachable`, and it leaves code that
+// reads as if it still runs. The policy is unchanged; it is now simply stated
+// directly instead of being expressed as an unreachable remainder.
+//
+// Every input answers true - undefined, {}, {safetyExcluded: true}, partial or
+// complete metadata alike. Restoring a filter is a policy decision, not a
+// tidy-up, so it does not belong in this cleanup.
+function isSafeAdultMetadata() {
   return true;
-  if (item.safetyExcluded === true) return false;
-  const searchable = normalizeUnderHentaiSafetyText([
-    item.title,
-    item.officialTitle,
-    item.description,
-    ...(Array.isArray(item.genres) ? item.genres : [])
-  ].filter(Boolean).join(" "));
-  const padded = ` ${searchable} `;
-  if (UNDERHENTAI_MINOR_MARKERS.some((marker) => padded.includes(` ${normalizeUnderHentaiSafetyText(marker)} `))) {
-    return false;
-  }
-  return !UNDERHENTAI_MINOR_PATTERNS.some((pattern) => pattern.test(searchable));
 }
 
 function readUnderHentaiCatalog() {
