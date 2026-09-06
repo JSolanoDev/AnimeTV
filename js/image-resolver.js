@@ -1087,6 +1087,25 @@ const ImageResolver = (function () {
   }
 
   const _seasonStillsFetching = new Map();
+  // _seasonStillsTried is a Set while the page is running, but the anime object
+  // is cached through JSON - and JSON has no Set. A Set serialises to {} and
+  // comes back a plain object with no .has and no .add, so the very first
+  // .has(sNum) threw "is not a function" and took the whole episode panel down
+  // with it. Only shows restored from cache were affected, which is why it
+  // looked intermittent.
+  //
+  // Normalising on read means no caller has to care what survived the trip.
+  // An array is the one restored shape that still carries real values, so it is
+  // rehydrated; {} (a serialised Set) and null/undefined carry none and start
+  // empty. The repaired Set is written back so the coercion happens once.
+  function seasonStillsTried(anime) {
+    const current = anime._seasonStillsTried;
+    if (current instanceof Set) return current;
+    const restored = Array.isArray(current) ? new Set(current) : new Set();
+    anime._seasonStillsTried = restored;
+    return restored;
+  }
+
   function ensureSeasonStills(anime, appSeasonNumber, appSeasonMeta) {
     if (!anime || !anime.tmdbId) return Promise.resolve(anime);
     const sNum = Number(appSeasonNumber || 0);
@@ -1100,12 +1119,11 @@ const ImageResolver = (function () {
       applySeasonArtwork(anime, sNum, cached);
       return Promise.resolve(anime);
     }
-    if (anime._seasonStillsTried && anime._seasonStillsTried.has(sNum)) return Promise.resolve(anime);
+    if (seasonStillsTried(anime).has(sNum)) return Promise.resolve(anime);
 
     const tmdbSeasonNumber = mapAppSeasonToTmdb(anime, sNum, appSeasonMeta);
     if (!tmdbSeasonNumber) {
-      if (!anime._seasonStillsTried) anime._seasonStillsTried = new Set();
-      anime._seasonStillsTried.add(sNum);
+      seasonStillsTried(anime).add(sNum);
       return Promise.resolve(anime);
     }
 
@@ -1195,8 +1213,7 @@ const ImageResolver = (function () {
         debug(`season-aware fetch failed: ${err && err.message}`);
         return anime;
       } finally {
-        if (!anime._seasonStillsTried) anime._seasonStillsTried = new Set();
-        anime._seasonStillsTried.add(sNum);
+        seasonStillsTried(anime).add(sNum);
         _seasonStillsFetching.delete(key);
       }
     })();
