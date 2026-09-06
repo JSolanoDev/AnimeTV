@@ -548,7 +548,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=701`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=702`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3539,7 +3539,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=701";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=702";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4434,10 +4434,20 @@ function mergeAiredEpisodeMetadata(show, metadata = []) {
   const seasonNumber = Number(season?.season || show.seasonNumber || extractSeasonNumber(show.title, 1)) || 1;
   const episodes = new Map((season?.episodes || show.episodes || []).map(episode => [Number(episode.episode || episode.number), episode]));
   let latest = 0;
+  // Entries get skipped for two very different reasons, and collapsing them is
+  // what broke this. An entry dated in the FUTURE is genuinely unaired, so
+  // `latest` is the truth. An entry with no usable date at all says nothing -
+  // and counting it the same way turns "I could only date one episode" into
+  // "only one episode aired". Mushoku Tensei S3 shipped 14 playable episodes
+  // with a parseable date on just the first: latest came out 1, was written to
+  // latestAiredEp, and getSeasonEpisodeLimit clamped the list to a single row.
+  let undated = 0;
   for (const entry of metadata) {
     const number = Number(entry.episode || entry.number);
+    if (!Number.isInteger(number) || number < 1) continue;
     const aired = Date.parse(entry.aired || "");
-    if (!Number.isInteger(number) || number < 1 || !Number.isFinite(aired) || aired > Date.now()) continue;
+    if (!Number.isFinite(aired)) { undated += 1; continue; }
+    if (aired > Date.now()) continue;
     latest = Math.max(latest, number);
     const existing = episodes.get(number);
     episodes.set(number, existing && !existing.missing ? existing : {
@@ -4453,7 +4463,12 @@ function mergeAiredEpisodeMetadata(show, metadata = []) {
   const merged = [...episodes.values()].sort((a, b) => Number(a.episode) - Number(b.episode));
   show.episodes = merged;
   if (season) season.episodes = merged;
-  show.latestAiredEp = Math.max(Number(show.latestAiredEp) || 0, latest);
+  // Only authoritative when every entry could be dated - then anything above
+  // `latest` was skipped for being in the future, which is exactly what the
+  // clamp wants. With even one undated entry `latest` is a lower bound, and
+  // publishing a lower bound here deletes real, playable episodes. The list we
+  // already have still stands; it simply is not clamped by a guess.
+  if (!undated) show.latestAiredEp = Math.max(Number(show.latestAiredEp) || 0, latest);
   show.episode = Math.max(Number(show.episode) || 0, latest);
 }
 
@@ -16890,7 +16905,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=701");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=702");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

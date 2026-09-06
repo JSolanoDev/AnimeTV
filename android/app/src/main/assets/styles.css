@@ -8601,6 +8601,19 @@ body.reduce-motion .watch-stage-body { animation: none; }
 /* The panel does not repeat the show's name. The watch content already carries
    it directly above on every layout this panel appears in. */
 @media (max-width: 1024px) {
+  /* The rule that draws the panel separator sets border-top AND padding-top:1rem
+     together, but a later (max-width: 860px) rule zeroes .episode-list padding
+     outright - so the compact panel kept the line and lost the air under it.
+     Measured at 820 and at 375: border-top 0.8px with padding-top 0, the hairline
+     sitting directly on the tabs while desktop had a full 1rem of space. Restore
+     the gap, and soften the line itself so it reads as a seam between sections
+     rather than a rule drawn across the panel. */
+  .watch-side .episode-list {
+    margin-top: 1.1rem;
+    padding-top: 0.9rem;
+    border-top: 0.08rem solid rgba(255, 255, 255, 0.07);
+  }
+
   /* The Seasons tab is redundant on compact widths: the Episodes pane already
      carries the whole season navigator - Prev / Next and a dropdown listing
      every season - so the tab only ever led to a second way of doing what is
