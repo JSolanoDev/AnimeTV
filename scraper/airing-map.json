@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-09-07T02:21:22.743Z",
-  "count": 165,
+  "generatedAt": "2026-09-07T02:32:49.654Z",
+  "count": 166,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -1181,6 +1181,17 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [
         {
+          "anilistId": 140960,
+          "title": "Spy x Family",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2022,
+          "startedAt": 1648771200000,
+          "order": 1
+        },
+        {
           "anilistId": 142838,
           "title": "Spy x Family Part 2",
           "format": "TV",
@@ -1189,7 +1200,7 @@
           "season": "FALL",
           "seasonYear": 2022,
           "startedAt": 1664582400000,
-          "order": 1
+          "order": 2
         },
         {
           "anilistId": 158927,
@@ -1200,7 +1211,7 @@
           "season": "FALL",
           "seasonYear": 2023,
           "startedAt": 1696118400000,
-          "order": 2
+          "order": 3
         },
         {
           "anilistId": 177937,
@@ -1211,7 +1222,7 @@
           "season": "FALL",
           "seasonYear": 2025,
           "startedAt": 1759276800000,
-          "order": 3
+          "order": 4
         }
       ]
     },
@@ -3631,6 +3642,17 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [
         {
+          "anilistId": 21507,
+          "title": "Mob Psycho 100",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2016,
+          "startedAt": 1467331200000,
+          "order": 1
+        },
+        {
           "anilistId": 101338,
           "title": "Mob Psycho 100 II",
           "format": "TV",
@@ -3639,7 +3661,7 @@
           "season": "WINTER",
           "seasonYear": 2019,
           "startedAt": 1546300800000,
-          "order": 1
+          "order": 2
         },
         {
           "anilistId": 140439,
@@ -3650,7 +3672,7 @@
           "season": "FALL",
           "seasonYear": 2022,
           "startedAt": 1664582400000,
-          "order": 2
+          "order": 3
         }
       ]
     },
@@ -3977,6 +3999,17 @@
           "seasonYear": 2017,
           "startedAt": 1491004800000,
           "order": 3
+        },
+        {
+          "anilistId": 165523,
+          "title": "Boruto: Naruto Next Generations Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 1,
+          "season": "UNDEFINED",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 4
         }
       ]
     },
@@ -4021,6 +4054,17 @@
           "seasonYear": 2017,
           "startedAt": 1491004800000,
           "order": 3
+        },
+        {
+          "anilistId": 165523,
+          "title": "Boruto: Naruto Next Generations Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 1,
+          "season": "UNDEFINED",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 4
         }
       ]
     },
@@ -4064,6 +4108,17 @@
           "seasonYear": 2011,
           "startedAt": 1301616000000,
           "order": 2
+        },
+        {
+          "anilistId": 15417,
+          "title": "Gintama': Enchousen",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2012,
+          "startedAt": 1349049600000,
+          "order": 3
         }
       ]
     },
@@ -4989,6 +5044,39 @@
         }
       ]
     },
+    "anilist-105333": {
+      "anilistId": 105333,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2019,
+      "anilistEpisodeCount": 24,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 105333,
+          "title": "Dr. Stone",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "SUMMER",
+          "seasonYear": 2019,
+          "startedAt": 1561939200000,
+          "order": 1
+        },
+        {
+          "anilistId": 113936,
+          "title": "Dr. Stone: Stone Wars",
+          "format": "TV",
+          "status": "",
+          "episodes": 11,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 2
+        }
+      ]
+    },
     "anilist-20464": {
       "anilistId": 20464,
       "airingStatus": "",
@@ -5019,6 +5107,17 @@
           "seasonYear": 2015,
           "startedAt": 1443657600000,
           "order": 2
+        },
+        {
+          "anilistId": 21698,
+          "title": "Haikyuu!! Karasuno Koukou vs. Shiratorizawa Gakuen Koukou",
+          "format": "TV",
+          "status": "",
+          "episodes": 10,
+          "season": "FALL",
+          "seasonYear": 2016,
+          "startedAt": 1475280000000,
+          "order": 3
         }
       ]
     },
