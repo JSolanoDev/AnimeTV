@@ -8744,10 +8744,31 @@ function mergeCatalogShow(current, show) {
   };
 }
 
+// The AnimeAV1 slug is the only identity that is OURS: it is what the source
+// serves episodes under, so a row that loses it stops being playable.
+function animeAv1SlugOf(show) {
+  const direct = String(show?.animeAv1Slug || show?._av1Slug || "").trim();
+  if (direct) return direct;
+  const match = /^animeav1-(.+)$/.exec(String(show?.id || ""));
+  return match ? match[1] : "";
+}
+
 function catalogIdentitiesAreCompatible(left, right) {
   if (!left || !right) return true;
   if (left.anilistId && right.anilistId && String(left.anilistId) !== String(right.anilistId)) return false;
   if (left.malId && right.malId && String(left.malId) !== String(right.malId)) return false;
+  // Two DIFFERENT AnimeAV1 entries are two different shows, whatever identity a
+  // matcher proposed for them. artwork-map.json currently hands one AniList id
+  // to two slugs in eight cases - "Nukitashi the Animation" and "Nukitashi the
+  // Animation Specials" are both 174188 - and merging on that guess deleted the
+  // base series from the catalogue outright, leaving only the specials
+  // reachable. Six shows were unplayable this way.
+  //
+  // An id can be wrong; the slug cannot, because it is the key the source
+  // itself serves under. So the slug wins.
+  const leftSlug = animeAv1SlugOf(left);
+  const rightSlug = animeAv1SlugOf(right);
+  if (leftSlug && rightSlug && leftSlug !== rightSlug) return false;
   return true;
 }
 
@@ -8797,13 +8818,20 @@ function mergeShows(items) {
 
   const unique = new Map();
   [...new Set(byKey.values())].forEach((show) => {
-    const identity = show.anilistId
-      ? `anilist-${show.anilistId}`
-      : show.malId
-        ? `mal-${show.malId}`
-        : show.id
-          ? `id-${show.id}`
-          : `title-${normalizeTitle(show.title)}-${show.year || ""}-${show.format || ""}`;
+    // Key on the AnimeAV1 slug FIRST where there is one. Keying on anilistId
+    // re-collapsed exactly what the compatibility check above kept apart: two
+    // slugs sharing one guessed id came back through here as a single row.
+    // Rows that already merged carry one slug, so this never splits them.
+    const slug = animeAv1SlugOf(show);
+    const identity = slug
+      ? `av1-${slug}`
+      : show.anilistId
+        ? `anilist-${show.anilistId}`
+        : show.malId
+          ? `mal-${show.malId}`
+          : show.id
+            ? `id-${show.id}`
+            : `title-${normalizeTitle(show.title)}-${show.year || ""}-${show.format || ""}`;
     unique.set(identity, mergeCatalogShow(unique.get(identity), show));
   });
   return [...unique.values()];
