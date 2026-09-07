@@ -116,6 +116,10 @@ function normalizeExternalShow(item, source, index) {
     // How many episodes the SOURCE actually serves, probed at build time. Not a
     // metadata guess: an airing show's planned total is not what is playable.
     sourceEpisodeCount: item.sourceEpisodeCount || null,
+    // The broadcast slot the Weekly Schedule is rebuilt from.
+    broadcastDay: item.broadcastDay || "",
+    broadcastTime: item.broadcastTime || "",
+    broadcastTimezone: item.broadcastTimezone || "",
     studios: Array.isArray(item.studios) ? item.studios : [],
     // Artwork that came from the catalogue is curated: build-artwork-map.mjs picks
     // TMDB's primary backdrop and poster for the matched show. A later runtime

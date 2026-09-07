@@ -10,10 +10,11 @@ const src = fs.readFileSync(ROOT + "/js/utils.js", "utf8");
 const start = src.indexOf("function formatAiringClock");
 if (start < 0) { console.error("MISS formatAiringClock"); process.exit(1); }
 const end = src.indexOf("// Node export so the logic", start);
-const ctx = vm.createContext({ Intl, Number, Date });
+const ctx = vm.createContext({ Intl, Number, Date, String, Math });
 vm.runInContext(src.slice(start, end), ctx, { filename: "js/utils.js extract" });
 const formatAiringClock = vm.runInContext("formatAiringClock", ctx);
 const formatAiringWeekday = vm.runInContext("formatAiringWeekday", ctx);
+const broadcastInstant = vm.runInContext("broadcastInstant", ctx);
 
 const rows = [];
 const check = (name, got, want) => {
@@ -77,6 +78,53 @@ for (const [label, value] of [["undefined", undefined], ["null", null], ["a stri
   check("00:30 next day reads as the next weekday",
     formatAiringWeekday(satEarly, "long") !== day || !isEnglish, true);
   check("clock for 00:30 is 12:30 AM", isEnglish ? norm(formatAiringClock(satEarly)) : "12:30 AM", "12:30 AM");
+}
+
+/* -- the broadcast slot is the only airing data left ------------------------
+   AniList is gone, so nextAiringEpisode is gone with it, and the Weekly
+   Schedule rendered seven empty columns while the carousel put every show in
+   the same "not current" tier. Measured on production: 0 of 996 rows had an
+   airing instant and all 996 carried day "Local".
+
+   Jikan still reports a broadcast slot - {"day":"Mondays","time":"00:00",
+   "timezone":"Asia/Tokyo"} - and a weekday plus a wall clock never goes stale
+   the way a baked instant does, so it is turned into the NEXT occurrence at
+   read time. JST is a fixed +09:00 with no daylight saving. */
+{
+  // A Wednesday, 12:00 UTC = 21:00 JST the same day.
+  const wed = Date.UTC(2026, 8, 9, 12, 0);
+  const next = broadcastInstant("Mondays", "00:00", "Asia/Tokyo", wed);
+  check("a slot resolves to an instant", next > wed, true);
+  check("and it is the NEXT Monday in Tokyo",
+    new Date(next + 9 * 3600000).getUTCDay(), 1);
+  check("at the stated Tokyo wall-clock hour",
+    new Date(next + 9 * 3600000).getUTCHours(), 0);
+  check("within the coming week",
+    next - wed < 8 * 86400000, true);
+}
+{
+  // Asked ON the broadcast day but after the slot has passed: must roll forward
+  // a week, never report a time that has already been and gone.
+  const wedLate = Date.UTC(2026, 8, 9, 15, 0);   // 00:00 JST Thursday
+  const next = broadcastInstant("Thursdays", "00:00", "Asia/Tokyo", wedLate);
+  check("a slot that just passed rolls to next week", next > wedLate, true);
+  check("and stays on the right weekday",
+    new Date(next + 9 * 3600000).getUTCDay(), 4);
+}
+{
+  check("a singular weekday is accepted too",
+    broadcastInstant("Monday", "23:30", "Asia/Tokyo", Date.UTC(2026, 8, 9)) > 0, true);
+  check("an unknown weekday yields nothing",
+    broadcastInstant("Someday", "12:00", "Asia/Tokyo"), 0);
+  check("a malformed time yields nothing",
+    broadcastInstant("Mondays", "25h", "Asia/Tokyo"), 0);
+  check("an out-of-range hour yields nothing",
+    broadcastInstant("Mondays", "26:00", "Asia/Tokyo"), 0);
+  check("a missing slot yields nothing", broadcastInstant("", "", ""), 0);
+  // Guessing at another zone would put a show on the wrong DAY, which is worse
+  // than leaving it off the schedule entirely.
+  check("a timezone we do not model yields nothing",
+    broadcastInstant("Mondays", "00:00", "America/New_York"), 0);
 }
 
 console.log(rows.join("\n"));

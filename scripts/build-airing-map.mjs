@@ -50,6 +50,10 @@ const RELATIONS_OVERRIDE = argOf("--relations-cache", "");
 // test suite depends on AniList being reachable, which is the very thing that
 // is broken.
 const SKIP_ANILIST = Boolean(JIKAN_FIXTURE);
+// Rebuild the map from the cache alone, touching no provider. Useful when the
+// crawl has nothing left to add, or - as happened here - when Jikan is
+// throttling us and continuing to ask would be both useless and rude.
+const NO_FETCH = args.includes("--no-fetch");
 if (ARTWORK_OVERRIDE) ARTWORK_MAP = path.resolve(ARTWORK_OVERRIDE);
 if (RELATIONS_OVERRIDE) RELATIONS_CACHE = path.resolve(RELATIONS_OVERRIDE);
 
@@ -267,8 +271,12 @@ const MAX_DEFERRALS = 4;
 // Write the cache as we go. A 28-minute crawl that is killed on the last minute
 // - by the step timeout, by a cancelled run - must not throw away everything it
 // learned, because the whole point of the cache is that runs accumulate.
-const SAVE_EVERY = 50;
-const JIKAN_GIVE_UP_AFTER = 25;
+const SAVE_EVERY = 25;
+// Ordered by MAL id, so this must tolerate a long opening run of failures.
+// Run 1 of 4 gave up after 25 - Jikan was measurably healthy at the time
+// (4/5 by hand), but the first ids in catalogue order are all recent ones that
+// 504, so the guard fired before the crawl ever reached an id that answers.
+const JIKAN_GIVE_UP_AFTER = 80;
 // A wall-clock stop, because retries multiply the worst case past any request
 // count. The job's step timeout is 40 minutes; stop well inside it and keep
 // whatever was built rather than being killed with nothing.
@@ -343,6 +351,10 @@ async function jikanRelations(malId) {
   const response = await fetch(`${JIKAN}/anime/${malId}/full`, { headers: { Accept: "application/json" } });
   if (!response.ok) throw new Error(`Jikan HTTP ${response.status}`);
   const payload = await response.json();
+  // The same response carries the broadcast slot, which is the ONLY airing data
+  // we can still get: AniList's nextAiringEpisode is gone with AniList, and the
+  // Weekly Schedule rendered seven empty columns without it. Free to keep here.
+  rememberBroadcast(malId, payload.data);
   return parseRelationBlocks(payload.data?.relations);
 }
 
@@ -381,12 +393,37 @@ function nodeFromDatabase(db, malId) {
   };
 }
 
+// malId -> { day, time, timezone } for shows that are actually airing. A day
+// and a time never go stale the way a computed instant does, so the client works
+// out the next occurrence itself.
+const broadcastByMal = new Map();
+
+function rememberBroadcast(malId, data) {
+  const broadcast = data?.broadcast;
+  if (!broadcast?.day || !broadcast?.time) return;
+  // Only for shows currently airing - a finished show's old slot would put it
+  // back on the schedule every week forever.
+  if (data.airing !== true && String(data.status || "") !== "Currently Airing") return;
+  broadcastByMal.set(Number(malId), {
+    day: String(broadcast.day),
+    time: String(broadcast.time),
+    timezone: String(broadcast.timezone || "Asia/Tokyo")
+  });
+}
+
 function loadRelationsCache() {
   try {
     const raw = JSON.parse(fs.readFileSync(RELATIONS_CACHE, "utf8"));
     const edges = new Map();
     for (const [malId, entry] of Object.entries(raw?.edges || {})) {
       if (Array.isArray(entry)) edges.set(Number(malId), entry);
+    }
+    // Broadcast slots persist with the edges: a run that could not reach an id
+    // today still knows when it airs from the night it could.
+    for (const [malId, slot] of Object.entries(raw?.broadcast || {})) {
+      if (slot?.day && slot?.time && !broadcastByMal.has(Number(malId))) {
+        broadcastByMal.set(Number(malId), slot);
+      }
     }
     return edges;
   } catch {
@@ -411,8 +448,9 @@ function saveRelationsCache(edges, quiet = false) {
   for (const [malId, list] of edges.entries()) merged.set(malId, list);
   if (merged.size < had) { log("refusing to shrink the relation cache"); return; }
 
-  const out = { generatedAt: new Date().toISOString(), count: merged.size, edges: {} };
+  const out = { generatedAt: new Date().toISOString(), count: merged.size, edges: {}, broadcast: {} };
   for (const [malId, list] of [...merged.entries()].sort((a, b) => a[0] - b[0])) out.edges[malId] = list;
+  for (const [malId, slot] of [...broadcastByMal.entries()].sort((a, b) => a[0] - b[0])) out.broadcast[malId] = slot;
   try {
     fs.mkdirSync(path.dirname(RELATIONS_CACHE), { recursive: true });
     fs.writeFileSync(RELATIONS_CACHE, JSON.stringify(out, null, 2), "utf8");
@@ -453,7 +491,13 @@ async function fetchViaJikan(targets) {
   // Part 2 and silently dropped season 1 - the exact season being asked for.
   // A season we do NOT carry is precisely the one the viewer is missing, so its
   // own edges have to be read too.
-  const seeds = (LIMIT ? candidates.slice(0, LIMIT) : candidates).map((t) => t.malId);
+  // Oldest MAL ids first. Jikan serves long-established entries reliably and
+  // 504s on recent ones, so this front-loads the requests that succeed instead
+  // of opening with a wall of failures that looks like an outage.
+  const ordered = (LIMIT ? candidates.slice(0, LIMIT) : candidates)
+    .slice()
+    .sort((a, b) => a.malId - b.malId);
+  const seeds = ordered.map((t) => t.malId);
   const queue = [...seeds];
   const queued = new Set(seeds);
   log(`${withMal.length} rows with a MAL id, ${candidates.length} sit beside another TV/ONA entry`);
@@ -474,15 +518,18 @@ async function fetchViaJikan(targets) {
   while (queue.length) {
     const malId = queue.shift();
     let edges = cache.get(malId);
+    let hitNetwork = false;
     if (edges) {
       // Learned on an earlier night. Free, so it never touches either budget -
       // which is what lets the component keep expanding after the network work
       // has stopped.
       reused += 1;
     } else {
+      if (NO_FETCH) { stoppedBy = "--no-fetch"; break; }
       if (requests >= JIKAN_MAX_REQUESTS) { stoppedBy = "request budget"; break; }
       if (!fixture && Date.now() - startedAt > JIKAN_DEADLINE_MS) { stoppedBy = "time budget"; break; }
       requests += 1;
+      hitNetwork = true;
       edges = await relationsOnce(malId, fixture);
       if (edges === null) {
         failures += 1;
@@ -527,7 +574,10 @@ async function fetchViaJikan(targets) {
       queued.add(edge.malId);
       queue.push(edge.malId);
     }
-    if (!fixture && queue.length) await sleep(JIKAN_PAUSE_MS);
+    // Pace only what actually went to the provider. Sleeping between CACHED
+    // ids cost 1.1s each for nothing: with 187 of them that was 3.4 minutes of a
+    // 28-minute budget spent idling, and it grows every night the cache does.
+    if (!fixture && hitNetwork && queue.length) await sleep(JIKAN_PAUSE_MS);
   }
   // The budgets stop NETWORK work, not the walk. Anything still queued that we
   // already know is free to expand, so drain it - otherwise a chain sits half
@@ -793,7 +843,7 @@ async function main() {
     if (shaped) { out.entries[rowId] = shaped; out.count += 1; }
   }
 
-  if (!FIXTURE && !JIKAN_FIXTURE) {
+  if (!FIXTURE && !JIKAN_FIXTURE && !NO_FETCH) {
     try {
       const db = offlineIndexRef.value || await loadOfflineIndex();
       offlineIndexRef.value = db;
@@ -803,6 +853,21 @@ async function main() {
       log(`source episode probe skipped: ${error.message}`);
     }
   }
+
+  // Attach the broadcast slot to every row we know one for. This is what puts
+  // shows back on the Weekly Schedule: measured before this, 0 of 996 catalogue
+  // rows had any airing instant and all 996 carried day "Local", which the
+  // schedule excludes, so all seven columns read "No new episodes".
+  let withBroadcast = 0;
+  for (const { rowId, malId } of targets) {
+    const slot = malId ? broadcastByMal.get(Number(malId)) : null;
+    if (!slot || !out.entries[rowId]) continue;
+    out.entries[rowId].broadcastDay = slot.day;
+    out.entries[rowId].broadcastTime = slot.time;
+    out.entries[rowId].broadcastTimezone = slot.timezone;
+    withBroadcast += 1;
+  }
+  log(`${withBroadcast} row(s) carry a broadcast slot`);
 
   const withAiring = Object.values(out.entries).filter((e) => e.nextAiringAt).length;
   const withChain = Object.values(out.entries).filter((e) => e.franchiseSeasons.length).length;

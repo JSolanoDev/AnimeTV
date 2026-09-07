@@ -2353,6 +2353,12 @@ function readScrapedRegularCatalogItems() {
             // What the SOURCE actually serves, measured at build time. An airing
             // show's planned total is not what is playable.
             ...(airingHit.sourceEpisodeCount ? { sourceEpisodeCount: airingHit.sourceEpisodeCount } : {}),
+            // The Weekly Schedule's only remaining input now AniList is gone.
+            ...(airingHit.broadcastDay ? {
+              broadcastDay: airingHit.broadcastDay,
+              broadcastTime: airingHit.broadcastTime,
+              broadcastTimezone: airingHit.broadcastTimezone
+            } : {}),
             ...(airingHit.franchiseSeasons && airingHit.franchiseSeasons.length
               ? { franchiseSeasons: airingHit.franchiseSeasons } : {})
           } : item;
@@ -2444,6 +2450,11 @@ function readScrapedRegularCatalogItems() {
             seasonYear: item.seasonYear || airingHit.seasonYear || null,
             status: item.status || airingHit.airingStatus || (meta ? meta.airingStatus : "") || "",
             ...(airingHit.sourceEpisodeCount ? { sourceEpisodeCount: airingHit.sourceEpisodeCount } : {}),
+            ...(airingHit.broadcastDay ? {
+              broadcastDay: airingHit.broadcastDay,
+              broadcastTime: airingHit.broadcastTime,
+              broadcastTimezone: airingHit.broadcastTimezone
+            } : {}),
             franchiseSeasons: airingHit.franchiseSeasons && airingHit.franchiseSeasons.length
               ? airingHit.franchiseSeasons
               : undefined

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-07T05:13:04.321Z",
+  "generatedAt": "2026-09-07T08:17:06.245Z",
   "count": 347,
   "entries": {
     "animeav1-one-piece": {
@@ -11,7 +11,10 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1177
+      "sourceEpisodeCount": 1177,
+      "broadcastDay": "Sundays",
+      "broadcastTime": "23:15",
+      "broadcastTimezone": "Asia/Tokyo"
     },
     "animeav1-bleach-sennen-kessen-hen-kashin-tan": {
       "anilistId": 185874,
@@ -5387,7 +5390,10 @@
       "anilistEpisodeCount": 1205,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
+      "franchiseSeasons": [],
+      "broadcastDay": "Saturdays",
+      "broadcastTime": "18:00",
+      "broadcastTimezone": "Asia/Tokyo"
     },
     "anilist-223": {
       "anilistId": 223,

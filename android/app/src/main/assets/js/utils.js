@@ -593,6 +593,44 @@ function formatAiringClock(date) {
 // The weekday comes from the SAME Date instance as the clock time, so both are
 // read off one converted instant. That is what stops a single timestamp being
 // shown as "Friday 11:00 PM" on one surface and "Saturday" on another.
+// AniList's nextAiringEpisode is gone with AniList, so the only airing data
+// left is Jikan's broadcast slot: a weekday, a wall-clock time and Asia/Tokyo.
+// A slot never goes stale the way a baked instant does, so turn it into the
+// NEXT occurrence here, at read time, in the viewer's own clock.
+//
+// JST is a fixed +09:00 with no daylight saving, which is what makes this safe
+// to do by shifting the epoch rather than by parsing zones.
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const BROADCAST_WEEKDAYS = {
+  sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6
+};
+
+function broadcastInstant(day, time, timezone, now = Date.now()) {
+  // Jikan writes "Mondays"; tolerate either spelling.
+  const key = String(day || "").trim().toLowerCase().replace(/s$/, "");
+  const weekday = BROADCAST_WEEKDAYS[key];
+  if (weekday === undefined) return 0;
+  const parts = /^(\d{1,2}):(\d{2})$/.exec(String(time || "").trim());
+  if (!parts) return 0;
+  const hours = Number(parts[1]);
+  const minutes = Number(parts[2]);
+  if (!(hours >= 0 && hours <= 23) || !(minutes >= 0 && minutes <= 59)) return 0;
+  // Only Asia/Tokyo is modelled. Guessing at any other zone would put a show on
+  // the wrong day, which is worse than leaving it off the schedule.
+  if (timezone && !/tokyo|jst/i.test(String(timezone))) return 0;
+
+  // Shift the epoch so the UTC fields of this Date read as JST wall clock.
+  const shiftedNow = now + JST_OFFSET_MS;
+  const shifted = new Date(shiftedNow);
+  let candidate = Date.UTC(
+    shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate(), hours, minutes
+  );
+  candidate += ((weekday - shifted.getUTCDay() + 7) % 7) * DAY_MS;
+  if (candidate <= shiftedNow) candidate += 7 * DAY_MS;
+  return candidate - JST_OFFSET_MS;
+}
+
 function formatAiringWeekday(date, weekday = "short") {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
   return new Intl.DateTimeFormat(undefined, { weekday }).format(date);
@@ -603,6 +641,7 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     formatAiringClock,
     formatAiringWeekday,
+  broadcastInstant,
     currentAnimeSeason,
     isCurrentSeasonShow,
     carouselCurrencyTier,
