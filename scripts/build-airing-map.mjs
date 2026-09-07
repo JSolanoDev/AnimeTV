@@ -119,6 +119,13 @@ const startMs = (d) => (d && d.year ? Date.UTC(d.year, Math.max(0, (d.month || 1
 // fetched (S1 is not in our catalogue and not on our source) still appear,
 // because a fetched neighbour named them.
 const isSeasonEdge = (type) => type === "SEQUEL" || type === "PREQUEL";
+// A SEQUEL edge is not enough on its own. MAL chains recaps and specials into
+// the sequel spine, so the first real chains this produced offered "Boku no
+// Hero Academia: Memories" (a 4-episode special) and "...: More" (1 episode) as
+// seasons 3 and 5, and a 1-episode "Wistoria Recap" as season 3. A season is a
+// TV or ONA run; everything else is an extra, however it is linked.
+const CHAIN_FORMATS = new Set(["TV", "TV_SHORT", "ONA"]);
+const isSeasonFormat = (format) => CHAIN_FORMATS.has(String(format || "").toUpperCase());
 
 function nodeToEntry(node) {
   return {
@@ -162,7 +169,7 @@ function buildChains(allMedia) {
       // spin-off ends up numbered as season 4.
       if (!edge || !isSeasonEdge(edge.relationType)) continue;
       const node = edge.node;
-      if (!node || node.type !== "ANIME" || node.format === "MUSIC") continue;
+      if (!node || node.type !== "ANIME" || !isSeasonFormat(node.format)) continue;
       const to = remember(node);
       if (to == null || to === from) continue;
       adjacency.get(from).add(to);
@@ -256,7 +263,7 @@ const JIKAN_MAX_REQUESTS = 1400;
 // rest of the crawl happen first - by the time it comes round again, minutes
 // have passed and the window has usually moved. It costs no extra wall time,
 // because there is always other work to do.
-const MAX_DEFERRALS = 2;
+const MAX_DEFERRALS = 4;
 // Write the cache as we go. A 28-minute crawl that is killed on the last minute
 // - by the step timeout, by a cancelled run - must not throw away everything it
 // learned, because the whole point of the cache is that runs accumulate.
@@ -386,14 +393,29 @@ function loadRelationsCache() {
   }
 }
 
+// The cache never shrinks. A run observed it drop from 124 ids to 91 - the cause
+// was not pinned down, and it does not need to be: this file is the only thing
+// that makes the crawl converge, so losing entries defeats its whole purpose.
+// Merging with whatever is on disk makes any writer, racing or buggy, additive.
 function saveRelationsCache(edges, quiet = false) {
   if (!WRITE) return;
-  const out = { generatedAt: new Date().toISOString(), count: edges.size, edges: {} };
-  for (const [malId, list] of [...edges.entries()].sort((a, b) => a[0] - b[0])) out.edges[malId] = list;
+  const merged = new Map();
+  try {
+    const previous = JSON.parse(fs.readFileSync(RELATIONS_CACHE, "utf8"));
+    for (const [malId, list] of Object.entries(previous?.edges || {})) {
+      if (Array.isArray(list)) merged.set(Number(malId), list);
+    }
+  } catch { /* first write */ }
+  const had = merged.size;
+  for (const [malId, list] of edges.entries()) merged.set(malId, list);
+  if (merged.size < had) { log("refusing to shrink the relation cache"); return; }
+
+  const out = { generatedAt: new Date().toISOString(), count: merged.size, edges: {} };
+  for (const [malId, list] of [...merged.entries()].sort((a, b) => a[0] - b[0])) out.edges[malId] = list;
   try {
     fs.mkdirSync(path.dirname(RELATIONS_CACHE), { recursive: true });
     fs.writeFileSync(RELATIONS_CACHE, JSON.stringify(out, null, 2), "utf8");
-    if (!quiet) log(`relation cache: ${edges.size} id(s) known`);
+    if (!quiet) log(`relation cache: ${out.count} id(s) known`);
   } catch (error) {
     log(`could not write the relation cache: ${error.message}`);
   }
@@ -445,6 +467,7 @@ async function fetchViaJikan(targets) {
   let failures = 0;
   let missed = 0;
   let reused = 0;
+  let resolvedThisRun = 0;
   let stoppedBy = "";
   while (queue.length) {
     const malId = queue.shift();
@@ -468,11 +491,20 @@ async function fetchViaJikan(targets) {
         } else {
           missed += 1;
         }
-        if (failures >= JIKAN_GIVE_UP_AFTER) { stoppedBy = `${failures} consecutive failures`; break; }
+        // Only a provider that has answered NOTHING is a provider that is down.
+        // A long failure streak at the TAIL is just the deferred ids coming round
+        // with nothing left between them - and treating that as an outage ended a
+        // run after 581 requests with 20 of its 28 minutes unused, leaving the
+        // Mushoku chain cached at both ends and broken in the middle.
+        if (failures >= JIKAN_GIVE_UP_AFTER && resolvedThisRun === 0) {
+          stoppedBy = "the provider answered nothing at all";
+          break;
+        }
         if (!fixture) await sleep(JIKAN_PAUSE_MS);
         continue;
       }
       failures = 0;
+      resolvedThisRun += 1;
       cache.set(malId, edges);
       if (cache.size - cachedAtStart >= SAVE_EVERY && (cache.size - cachedAtStart) % SAVE_EVERY === 0) saveRelationsCache(cache, true);
     }
