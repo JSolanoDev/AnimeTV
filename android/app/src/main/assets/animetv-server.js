@@ -1014,6 +1014,11 @@ function handleRequest(request, response) {
     return;
   }
 
+  if (url.pathname === "/api/anilist/trailers") {
+    handleAniListTrailers(url, response);
+    return;
+  }
+
   if (url.pathname === "/api/anilist/search") {
     handleAniListSearch(url, response);
     return;
@@ -4387,12 +4392,17 @@ async function handleCheckUpdate(response) {
       manifest
     });
   } catch (error) {
+    // An update manifest we cannot reach is not a server fault, and this runs on
+    // every page load: it was posting a 502 to the console of every visitor for
+    // a feature the web build does not even use. Same convention as
+    // /api/anilist/media - answer 200 and say plainly that it is unavailable.
     sendJson(response, {
       ok: false,
       currentVersion: APP_VERSION,
       updateAvailable: false,
+      unavailable: true,
       error: error.message
-    }, 502);
+    });
   }
 }
 
@@ -8272,6 +8282,19 @@ query($id:Int){
     description(asHtml:false)
     genres averageScore popularity
     studios{ nodes{ name isAnimationStudio } }
+    trailer{ id site }
+    streamingEpisodes{ title thumbnail }
+  }
+}`;
+
+// Trailers are looked up for a whole rail at once. The browser used to POST this
+// to graphql.anilist.co itself, which can never work - AniList sends no
+// Access-Control-Allow-Origin, so every one of those requests was a guaranteed
+// CORS failure and pure console noise.
+const ANILIST_TRAILERS_GQL = `
+query($ids:[Int]){
+  Page(perPage:50){
+    media(id_in:$ids, type:ANIME){ id trailer{ id site } }
   }
 }`;
 
@@ -8458,6 +8481,33 @@ async function handleAniListMedia(url, response) {
     // app handles normally, so answer 200 with an empty result instead. Genuine
     // server faults elsewhere still return 5xx.
     sendJson(response, { ok: false, media: null, unavailable: true, error: err.message });
+  }
+}
+
+async function handleAniListTrailers(url, response) {
+  const ids = String(url.searchParams.get("ids") || "")
+    .split(",")
+    .map((value) => Number(value.trim()))
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .slice(0, 50);
+  if (!ids.length) {
+    sendJson(response, { ok: false, error: "Missing or invalid ids" }, 400);
+    return;
+  }
+  try {
+    const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ query: ANILIST_TRAILERS_GQL, variables: { ids } })
+    }, 12000);
+    if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
+    const payload = await upstream.json();
+    sendJson(response, { ok: true, media: payload?.data?.Page?.media || [] });
+  } catch (err) {
+    log("warn", "AniList trailers fetch failed", { error: err.message });
+    // Same reasoning as /api/anilist/media: a missing trailer is an outcome the
+    // client handles normally, not a fault of this server.
+    sendJson(response, { ok: false, media: [], unavailable: true, error: err.message });
   }
 }
 

@@ -549,7 +549,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=716`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=717`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3542,7 +3542,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=716";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=717";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4130,16 +4130,14 @@ async function fetchAniListTrailers(ids) {
   const need = [...new Set(ids.map(String))].filter((id) => _readTrailerCache(id) === undefined);
   if (!need.length || _trailerFetchInFlight) return;
   _trailerFetchInFlight = true;
-  const query = `query($ids:[Int]){ Page(perPage:50){ media(id_in:$ids, type:ANIME){ id trailer{ id site } } } }`;
+  // Through our own proxy, never straight to AniList: the browser cannot read
+  // that response (no Access-Control-Allow-Origin), so a direct call is a
+  // guaranteed CORS failure that only ever produced console noise.
   try {
-    const res = await fetch("https://graphql.anilist.co", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Accept": "application/json" },
-      body: JSON.stringify({ query, variables: { ids: need.map(Number) } })
-    });
+    const res = await fetch(`/api/anilist/trailers?ids=${need.map(Number).join(",")}`);
     if (!res.ok) { need.forEach((id) => _writeTrailerCache(id, null)); return; }
     const json = await res.json();
-    const media = json?.data?.Page?.media || [];
+    const media = json?.media || [];
     const seen = new Set();
     media.forEach((m) => {
       seen.add(String(m.id));
@@ -4514,18 +4512,18 @@ async function fetchAniListShowExtras(show) {
     return data;
   }
 
-  const query = `query($id:Int){ Media(id:$id, type:ANIME){ bannerImage streamingEpisodes{ title thumbnail } } }`;
   const request = (async () => {
     const [aniResp, jikanResp] = await Promise.allSettled([
-      id ? fetchWithTimeout("https://graphql.anilist.co", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({ query, variables: { id: Number(id) } })
-      }, 8000).then(r => r.json()) : Promise.resolve(null),
+      // Same reason as the trailer lookup: a direct AniList call from the
+      // browser is always a CORS failure. /api/anilist/media now carries
+      // bannerImage and streamingEpisodes for exactly this.
+      id ? fetchWithTimeout(`/api/anilist/media?id=${encodeURIComponent(id)}`, {}, 8000).then(r => r.json()) : Promise.resolve(null),
       malId ? fetchWithTimeout(`/api/jikan/episodes?id=${encodeURIComponent(malId)}`, {}, 22000).then(r => r.json()) : Promise.resolve(null)
     ]);
 
-    const media = (aniResp.status === "fulfilled" && aniResp.value) ? aniResp.value.data?.Media : null;
+    const media = (aniResp.status === "fulfilled" && aniResp.value && !aniResp.value.unavailable)
+      ? aniResp.value.media
+      : null;
     const jikanEps = (jikanResp.status === "fulfilled" && !jikanResp.value?.unavailable) ? jikanResp.value?.data : null;
 
     if (!media && !jikanEps?.length) return;
@@ -13145,6 +13143,17 @@ function bakedChainFor(show) {
   return bySuffix ? { chain: bySuffix.franchiseSeasons, selfAniListId: bySuffix.anilistId || null } : null;
 }
 
+// ensureFranchiseShowsInCatalog() materialises a row for every franchise entry
+// so each season has a navigation target even when our paginated catalogue
+// omitted that cour. Those rows are synthetic - "anilist-108465" - and carry no
+// AnimeAV1 slug, so they are navigable but nothing is known to play behind them.
+// Counting them as a match is what made all five Mushoku Tensei seasons read
+// PLAYABLE when only two had a source: the other three would have failed on
+// click, which is the same complaint that started this.
+function isSyntheticFranchiseRow(row) {
+  return /^(anilist|jikan)-\d+$/.test(String(row?.id || ""));
+}
+
 function buildSeasonListFromBakedChain(show, showsMap) {
   const resolved = bakedChainFor(show);
   const chain = resolved ? resolved.chain : [];
@@ -13232,7 +13241,9 @@ function buildSeasonListFromBakedChain(show, showsMap) {
       isCurrentShow: isCurrent,
       relatedShowId: isCurrent ? null : (matched ? matched.id : null),
       episodes,
-      playable: isCurrent || Boolean(matched)
+      // Navigable is not the same as playable. relatedShowId above still points
+      // at the synthetic row, so the season opens and resolves honestly there.
+      playable: isCurrent || Boolean(matched && !isSyntheticFranchiseRow(matched))
     };
   });
 
@@ -17275,7 +17286,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=716");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=717");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

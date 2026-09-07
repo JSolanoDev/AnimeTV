@@ -372,6 +372,18 @@ check("and none of them carries a video URL",
 
 // A single-entry chain says nothing the normal path does not.
 catalog = [{ id: "x", anilistId: 5, franchiseSeasons: [{ anilistId: 5, title: "Only", episodes: 12, order: 1 }] }];
+// Navigable is not playable. ensureFranchiseShowsInCatalog materialises an
+// "anilist-<id>" row for every franchise entry so the season can be opened,
+// but those rows carry no source slug - counting them as a match made all five
+// Mushoku Tensei seasons read PLAYABLE when only two had anything behind them.
+catalog = [catalogRow, { id: "anilist-108465", anilistId: 108465, title: "Mushoku Tensei", isFranchiseEntry: true }];
+{
+  const withSynthetic = buildSeasonListFromBakedChain(opened, new Map([["108465", { id: "anilist-108465", anilistId: 108465 }]]));
+  check("a synthetic navigation target is not playable", withSynthetic[0].playable, false);
+  check("but it is still navigable", withSynthetic[0].relatedShowId, "anilist-108465");
+}
+catalog = [catalogRow];
+
 check("a one-link chain is not a season list", buildSeasonListFromBakedChain({ id: "x", anilistId: 5 }, new Map()), null);
 check("no chain at all is not a season list", buildSeasonListFromBakedChain({ id: "nope" }, new Map()), null);
 
