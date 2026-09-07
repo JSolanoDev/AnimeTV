@@ -147,14 +147,21 @@ jobs:
           print("Validation OK — ready to commit.")
           PYEOF
 
-      # graphql.anilist.co answers 403 to Vercel and to the browser, so airing
-      # schedules and season chains cannot be fetched at runtime. This runner is
-      # on a different network, so the data is baked here and committed beside
-      # the catalogue. The script never fails the job: if AniList is unreachable
-      # it leaves the existing map untouched and exits 0.
+      # graphql.anilist.co answers 403 to Vercel, to the browser AND to this
+      # runner - run #111 finished this step in 3 seconds, where ~40 batched
+      # requests at a 1200ms pause cannot finish inside a minute. The idea that
+      # Actions is "a different network" was simply wrong.
+      #
+      # So the chains come from Jikan, which labels its relations Prequel/Sequel
+      # exactly as AniList did, plus the manami offline database for each entry's
+      # title, episode count and AniList id. ~600 catalogue rows sit beside
+      # another TV entry, and following each chain outward to the seasons we do
+      # not carry adds more, capped at 1400 requests paced at 1.1s - roughly 26
+      # minutes. The script still cannot fail this job: it exits 0 whatever
+      # happens and always leaves a valid map behind.
       - name: Bake airing schedules and season chains
         run: node scripts/build-airing-map.mjs --write
-        timeout-minutes: 10
+        timeout-minutes: 40
         continue-on-error: true
 
       - name: Refresh Adult Mode catalog

@@ -22,7 +22,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
-const ARTWORK_MAP = path.join(root, "scraper", "artwork-map.json");
+let ARTWORK_MAP = path.join(root, "scraper", "artwork-map.json");
 let OUT = path.join(root, "scraper", "airing-map.json");
 const ANILIST = "https://graphql.anilist.co";
 
@@ -34,6 +34,16 @@ const FIXTURE = argOf("--fixture", "");
 // Lets the tests exercise the real shaping without touching the committed map.
 const OUT_OVERRIDE = argOf("--out", "");
 if (OUT_OVERRIDE) OUT = path.resolve(OUT_OVERRIDE);
+// The Jikan fallback below reaches two networks. Both can be replaced by a file
+// so the whole path is testable without touching either provider.
+const OFFLINE_FIXTURE = argOf("--offline-fixture", "");
+const JIKAN_FIXTURE = argOf("--jikan-fixture", "");
+const ARTWORK_OVERRIDE = argOf("--artwork", "");
+// A run driven entirely by fixtures must not touch the network - otherwise the
+// test suite depends on AniList being reachable, which is the very thing that
+// is broken.
+const SKIP_ANILIST = Boolean(JIKAN_FIXTURE);
+if (ARTWORK_OVERRIDE) ARTWORK_MAP = path.resolve(ARTWORK_OVERRIDE);
 
 // AniList allows 90 requests/minute. 25 ids per request keeps a 1000-row
 // catalogue inside ~40 requests, and the pause keeps a comfortable margin.
@@ -197,6 +207,203 @@ function entryFor(media, chain = []) {
   };
 }
 
+/* ── Fallback source: Jikan relations + the offline database ───────────────
+   AniList answers 403 from Vercel, from a browser, from a dev machine AND from
+   the GitHub Actions runner (run #111: the bake finished in 3 seconds, where 40
+   batched requests at a 1200ms pause cannot finish inside a minute). So the
+   primary source is simply gone, and the season chains it was meant to produce
+   have to come from somewhere else.
+
+   Jikan labels its relations explicitly - "Prequel" / "Sequel" - which is the
+   same semantics AniList gave us, so the chain stays trustworthy. What Jikan
+   does NOT cheaply give is the title, episode count and year of every related
+   entry; that comes from the manami offline database, one static release asset,
+   no rate limit.
+
+   The offline database's own relatedAnime is UNTYPED and must never be used as
+   the relation source. Measured over this catalogue, untyped components merge
+   78 Gundam series into one "franchise", and attach Ponkotsu Quest to Vinland
+   Saga and SKET Dance to Gintama. Typed edges are the whole point. */
+const OFFLINE_DB_RELEASE = "https://api.github.com/repos/manami-project/anime-offline-database/releases/latest";
+const OFFLINE_DB_ASSET = "anime-offline-database.jsonl";
+const JIKAN = "https://api.jikan.moe/v4";
+// Jikan publishes 3 requests/second and 60/minute. One per 1.1s sits inside the
+// per-minute limit with room to spare; this is a nightly job, not a race.
+const JIKAN_PAUSE_MS = 1100;
+// 599 catalogue rows sit beside another TV/ONA entry; following the chain
+// outward adds the seasons we do not carry. 1400 at ~1.1s is roughly 26 minutes,
+// which is a nightly job's business and nobody else's.
+const JIKAN_MAX_REQUESTS = 1400;
+const SEASONISH = new Set(["TV", "ONA"]);
+// Ordering inside a year: AniList sorts by air date and the offline database
+// only carries a season name, so map it back to the month the season starts.
+const SEASON_MONTH = { WINTER: 1, SPRING: 4, SUMMER: 7, FALL: 10 };
+
+function indexOfflineDatabase(text) {
+  const byMal = new Map();
+  for (const line of text.split("\n")) {
+    if (!line.trim()) continue;
+    let row;
+    try { row = JSON.parse(line); } catch { continue; }
+    let anilistId = null;
+    let malId = null;
+    for (const source of row.sources || []) {
+      const a = /anilist\.co\/anime\/(\d+)/.exec(source);
+      if (a) anilistId = Number(a[1]);
+      const m = /myanimelist\.net\/anime\/(\d+)/.exec(source);
+      if (m) malId = Number(m[1]);
+    }
+    if (!malId) continue;
+    const related = [];
+    for (const link of row.relatedAnime || []) {
+      const m = /myanimelist\.net\/anime\/(\d+)/.exec(link);
+      if (m) related.push(Number(m[1]));
+    }
+    byMal.set(malId, {
+      malId,
+      anilistId,
+      title: row.title || "",
+      type: String(row.type || "").toUpperCase(),
+      episodes: Number(row.episodes) || null,
+      year: row.animeSeason?.year || null,
+      season: String(row.animeSeason?.season || "").toUpperCase(),
+      related
+    });
+  }
+  return byMal;
+}
+
+async function loadOfflineIndex() {
+  if (OFFLINE_FIXTURE) return indexOfflineDatabase(fs.readFileSync(OFFLINE_FIXTURE, "utf8"));
+  const listing = await fetch(OFFLINE_DB_RELEASE, { headers: { Accept: "application/vnd.github+json" } });
+  if (!listing.ok) throw new Error(`GitHub releases HTTP ${listing.status}`);
+  const release = await listing.json();
+  const asset = (release.assets || []).find((a) => a.name === OFFLINE_DB_ASSET);
+  if (!asset) throw new Error(`release ${release.tag_name} has no ${OFFLINE_DB_ASSET}`);
+  log(`offline database ${release.tag_name} (${Math.round((asset.size || 0) / 1048576)}MB)`);
+  const download = await fetch(asset.browser_download_url);
+  if (!download.ok) throw new Error(`offline database HTTP ${download.status}`);
+  return indexOfflineDatabase(await download.text());
+}
+
+// Only rows that actually sit beside another TV/ONA entry can have a chain, and
+// asking Jikan about the rest is a request spent to learn nothing. Over this
+// catalogue that is 599 of 1071 rows - roughly eleven minutes instead of twenty.
+function couldHaveSeasons(db, malId) {
+  const entry = db.get(malId);
+  if (!entry || !SEASONISH.has(entry.type)) return false;
+  return entry.related.some((id) => SEASONISH.has(db.get(id)?.type || ""));
+}
+
+async function jikanRelations(malId) {
+  // /relations is the obvious endpoint and it answers 504 ("failed to connect to
+  // MyAnimeList") while /full - which carries the same typed relations - answers
+  // 200. Measured 2026-09-07 across all five Mushoku ids: /relations 504 on every
+  // one, /full 200 with Prequel:55888 on the first.
+  const response = await fetch(`${JIKAN}/anime/${malId}/full`, { headers: { Accept: "application/json" } });
+  if (!response.ok) throw new Error(`Jikan HTTP ${response.status}`);
+  const payload = await response.json();
+  return parseRelationBlocks(payload.data?.relations);
+}
+
+function parseRelationBlocks(blocks) {
+  const edges = [];
+  for (const block of blocks || []) {
+    const relation = String(block.relation || "").toUpperCase();
+    // PREQUEL/SEQUEL only. Side stories, spin-offs, summaries, alternative
+    // versions and "other" are a different work; numbering them as seasons is
+    // the entire hazard this source exists to avoid.
+    if (relation !== "PREQUEL" && relation !== "SEQUEL") continue;
+    for (const entry of block.entry || []) {
+      if (String(entry.type || "").toLowerCase() !== "anime") continue;
+      if (entry.mal_id) edges.push({ relationType: relation, malId: Number(entry.mal_id) });
+    }
+  }
+  return edges;
+}
+
+// Shape a database row into the same object the AniList query returns, so the
+// component walk and entryFor below cannot tell the two sources apart.
+function nodeFromDatabase(db, malId) {
+  const entry = db.get(malId);
+  if (!entry) return null;
+  const month = SEASON_MONTH[entry.season] || 1;
+  return {
+    id: entry.anilistId || `mal-${malId}`,
+    type: "ANIME",
+    format: entry.type || "",
+    status: "",
+    episodes: entry.episodes,
+    season: entry.season || "",
+    seasonYear: entry.year,
+    startDate: entry.year ? { year: entry.year, month, day: 1 } : null,
+    title: { romaji: entry.title, userPreferred: entry.title }
+  };
+}
+
+async function fetchViaJikan(targets) {
+  const db = await loadOfflineIndex();
+  log(`offline database indexed: ${db.size} entries`);
+
+  const fixture = JIKAN_FIXTURE ? JSON.parse(fs.readFileSync(JIKAN_FIXTURE, "utf8")) : null;
+  const withMal = targets.filter((t) => t.malId);
+  const candidates = withMal.filter((t) => couldHaveSeasons(db, t.malId));
+  // Seed with our own rows, then follow the chain OUTWARD. Asking only about
+  // rows we carry closes the component over fetched nodes and leaves everything
+  // else a leaf: Mushoku Tensei season 1 is reachable only through Part 2, which
+  // is not in our catalogue, so seeding alone produced a chain that began at
+  // Part 2 and silently dropped season 1 - the exact season being asked for.
+  // A season we do NOT carry is precisely the one the viewer is missing, so its
+  // own edges have to be read too.
+  const seeds = (LIMIT ? candidates.slice(0, LIMIT) : candidates).map((t) => t.malId);
+  const queue = [...seeds];
+  const queued = new Set(seeds);
+  log(`${withMal.length} rows with a MAL id, ${candidates.length} sit beside another TV/ONA entry`);
+
+  const media = [];
+  let requests = 0;
+  let failures = 0;
+  while (queue.length && requests < JIKAN_MAX_REQUESTS) {
+    const malId = queue.shift();
+    requests += 1;
+    let edges;
+    try {
+      edges = fixture ? parseRelationBlocks(fixture[String(malId)]) : await jikanRelations(malId);
+      failures = 0;
+    } catch (error) {
+      failures += 1;
+      log(`mal ${malId} failed: ${error.message}`);
+      // Jikan answers 504 ("failed to connect to MyAnimeList") in bursts. Back
+      // off, and give up entirely rather than grinding through hundreds of them.
+      if (failures >= 5) { log("five consecutive Jikan failures - abandoning the fallback"); break; }
+      if (!fixture) await sleep(JIKAN_PAUSE_MS * 3);
+      continue;
+    }
+    const self = nodeFromDatabase(db, malId);
+    if (self) {
+      media.push({
+        ...self,
+        relations: {
+          edges: edges
+            .map((edge) => { const node = nodeFromDatabase(db, edge.malId); return node ? { relationType: edge.relationType, node } : null; })
+            .filter(Boolean)
+        }
+      });
+    }
+    for (const edge of edges) {
+      if (queued.has(edge.malId)) continue;
+      if (!SEASONISH.has(db.get(edge.malId)?.type || "")) continue;
+      queued.add(edge.malId);
+      queue.push(edge.malId);
+    }
+    if (!fixture && queue.length) await sleep(JIKAN_PAUSE_MS);
+  }
+  // Never let a cap look like completeness.
+  if (queue.length) log(`request budget spent - ${queue.length} chain link(s) left unexplored`);
+  log(`Jikan: ${requests} request(s), ${media.length} media shaped`);
+  return media;
+}
+
 // The nightly job commits this path BY NAME. `git add` exits 128 on a pathspec
 // that matches nothing, so the first time AniList was unreachable the missing
 // file took down the entire commit step - discarding that run's anime_metadata
@@ -232,7 +439,9 @@ async function main() {
   const targets = [];
   for (const [rowId, entry] of Object.entries(entries)) {
     const anilistId = Number(entry?.anilistId || 0);
-    if (anilistId > 0) targets.push({ rowId, anilistId });
+    // malId is carried for the Jikan fallback - artwork-map already resolves it
+    // for 1079 of 1085 rows, so no second identity pass is needed.
+    if (anilistId > 0) targets.push({ rowId, anilistId, malId: Number(entry?.malId || 0) || null });
   }
   const ids = [...new Set(targets.map((t) => t.anilistId))];
   const wanted = LIMIT ? ids.slice(0, LIMIT) : ids;
@@ -250,7 +459,7 @@ async function main() {
     log(`fixture: loaded ${fetched.length} media`);
   } else {
     let failures = 0;
-    for (let i = 0; i < wanted.length; i += BATCH) {
+    for (let i = 0; SKIP_ANILIST ? false : i < wanted.length; i += BATCH) {
       const slice = wanted.slice(i, i + BATCH);
       try {
         const data = await fetchBatch(slice);
@@ -265,6 +474,15 @@ async function main() {
         if (failures >= 3) { log("three consecutive failures - abandoning this run"); break; }
       }
       if (i + BATCH < wanted.length) await sleep(PAUSE_MS);
+    }
+  }
+
+  if (!fetched.length && !FIXTURE) {
+    log("AniList resolved nothing - falling back to Jikan relations + the offline database");
+    try {
+      fetched.push(...await fetchViaJikan(targets));
+    } catch (error) {
+      log(`fallback unavailable: ${error.message} - leaving the map alone`);
     }
   }
 

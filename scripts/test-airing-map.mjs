@@ -150,6 +150,88 @@ check("and no airing instant it does not have", solo.nextAiringAt, null);
     JSON.parse(fs.readFileSync(emptyOut, "utf8")).count, 2);
 }
 
+/* ── 2d. THE JIKAN + OFFLINE-DATABASE FALLBACK ────────────────────────────
+   AniList answers 403 from every network we have, GitHub Actions included, so
+   the season chain has to come from somewhere else. Jikan labels its relations
+   ("Prequel" / "Sequel"), which keeps the chain trustworthy; the manami offline
+   database supplies each entry's title, episode count and AniList id without a
+   second request.
+
+   The database's own relatedAnime is UNTYPED and is never the relation source.
+   Measured over this catalogue it merges 78 Gundam series into one franchise
+   and attaches Ponkotsu Quest to Vinland Saga - hence the decoy below, a real
+   TV show wired in through Spin-off/Side story/Other, which must never appear.
+
+   Ids and episode counts here are the real ones. */
+{
+  const offline = path.join(tmp, "offline.jsonl");
+  const jikan = path.join(tmp, "jikan.json");
+  const artwork = path.join(tmp, "artwork.json");
+  const chainOut = path.join(tmp, "chain.json");
+
+  // relatedAnime is what PRESELECTS a row for a Jikan call - the cheap "could
+  // this possibly have seasons at all?" test - so it has to be populated exactly
+  // as the real database populates it. Note it is deliberately UNTYPED here,
+  // which is precisely why it can never be the relation source itself.
+  const dbRow = (mal, ani, title, type, episodes, year, season, related = []) => JSON.stringify({
+    sources: [`https://anilist.co/anime/${ani}`, `https://myanimelist.net/anime/${mal}`],
+    title, type, episodes, animeSeason: { season, year },
+    relatedAnime: related.map((id) => `https://myanimelist.net/anime/${id}`)
+  });
+  fs.writeFileSync(offline, [
+    dbRow(39535, 108465, "Mushoku Tensei: Isekai Ittara Honki Dasu", "TV", 11, 2021, "WINTER", [45576, 21]),
+    dbRow(45576, 127720, "Mushoku Tensei: Isekai Ittara Honki Dasu Part 2", "TV", 12, 2021, "FALL", [39535, 51179]),
+    dbRow(51179, 146065, "Mushoku Tensei II: Isekai Ittara Honki Dasu", "TV", 12, 2023, "SUMMER", [45576, 55888, 21]),
+    dbRow(55888, 166873, "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2", "TV", 12, 2024, "SPRING", [51179, 59193]),
+    dbRow(59193, 178789, "Mushoku Tensei III: Isekai Ittara Honki Dasu", "TV", 14, 2026, "SUMMER", [55888]),
+    dbRow(21, 21, "One Piece", "TV", null, 1999, "FALL", [39535, 51179])
+  ].join("\n") + "\n");
+
+  const anime = (mal, name) => ({ mal_id: mal, type: "anime", name });
+  fs.writeFileSync(jikan, JSON.stringify({
+    39535: [{ relation: "Sequel", entry: [anime(45576, "Part 2")] },
+            { relation: "Other", entry: [anime(21, "DECOY")] }],
+    45576: [{ relation: "Prequel", entry: [anime(39535, "S1")] },
+            { relation: "Sequel", entry: [anime(51179, "II")] }],
+    51179: [{ relation: "Prequel", entry: [anime(45576, "Part 2")] },
+            { relation: "Sequel", entry: [anime(55888, "II Part 2")] },
+            { relation: "Spin-off", entry: [anime(21, "DECOY")] },
+            { relation: "Side story", entry: [anime(21, "DECOY")] }],
+    55888: [{ relation: "Prequel", entry: [anime(51179, "II")] },
+            { relation: "Sequel", entry: [anime(59193, "III")] }],
+    59193: [{ relation: "Prequel", entry: [anime(55888, "II Part 2")] }]
+  }, null, 2));
+
+  // Only the two seasons our catalogue actually carries.
+  fs.writeFileSync(artwork, JSON.stringify({ entries: {
+    "animeav1-mushoku-tensei-ii-isekai-ittara-honki-dasu": { anilistId: 146065, malId: 51179 },
+    "animeav1-mushoku-tensei-iii-isekai-ittara-honki-dasu": { anilistId: 178789, malId: 59193 }
+  } }, null, 2));
+
+  execFileSync(process.execPath, [
+    path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--artwork", artwork, "--offline-fixture", offline, "--jikan-fixture", jikan,
+    "--out", chainOut, "--write"
+  ], { stdio: "pipe" });
+
+  const built = JSON.parse(fs.readFileSync(chainOut, "utf8"));
+  const s3 = Object.values(built.entries).find((e) => e.anilistId === 178789);
+  const s2 = Object.values(built.entries).find((e) => e.anilistId === 146065);
+  const ids = s3.franchiseSeasons.map((x) => x.anilistId);
+
+  check("the fallback builds a chain with no AniList at all", ids.length, 5);
+  check("season 1 survives two links outside the catalogue", ids[0], 108465);
+  check("season 2 is there too", ids.includes(146065), true);
+  check("in release order", s3.franchiseSeasons.map((x) => x.seasonYear), [2021, 2021, 2023, 2024, 2026]);
+  check("ordered within a year by the season it aired in",
+    s3.franchiseSeasons.slice(0, 2).map((x) => x.season), ["WINTER", "FALL"]);
+  check("each season keeps its own episode count",
+    s3.franchiseSeasons.map((x) => x.episodes), [11, 12, 12, 12, 14]);
+  check("a spin-off/side-story/other decoy is never a season", ids.includes(21), false);
+  check("the chain is identical opened from season 2", s2.franchiseSeasons.map((x) => x.anilistId), ids);
+  check("numbering starts at the true first season", s3.franchiseSeasons.map((x) => x.order), [1, 2, 3, 4, 5]);
+}
+
 /* ── 3. The client half ───────────────────────────────────────────────────── */
 const src = fs.readFileSync(path.join(ROOT, "client.js"), "utf8");
 const slice = (start, end) => {
