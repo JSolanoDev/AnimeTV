@@ -75,17 +75,17 @@ for (const [label, value] of shapes) {
 {
   const fromArray = { id: 3, tmdbId: 999, _seasonStillsTried: [7, 8] };
   ensure(fromArray, 1);
-  // ensure() also records the season it was asked about (1), so 1 joins 7 and 8.
-  check("array values are rehydrated", [...fromArray._seasonStillsTried].sort((a,b)=>a-b), [1, 7, 8]);
+  // No TMDB season list means the requested season remains retryable.
+  check("array values are rehydrated", [...fromArray._seasonStillsTried].sort((a,b)=>a-b), [7, 8]);
 
   const fromObject = { id: 4, tmdbId: 999, _seasonStillsTried: {} };
   ensure(fromObject, 1);
-  check("a serialised Set starts empty, not corrupt", [...fromObject._seasonStillsTried], [1]);
+  check("a serialised Set starts empty, not corrupt", [...fromObject._seasonStillsTried], []);
 }
 
 // ── the guard still short-circuits a season already tried ─────────────────
 {
-  const anime = { id: 5, tmdbId: 999, _seasonStillsTried: new Set([2]) };
+  const anime = { id: 5, tmdbId: 999, _seasonStillsTried: vm.runInContext("new Set([2])", ctx) };
   checkNoThrow("an already-tried season resolves without throwing", () => ensure(anime, 2));
   check("already-tried season still recorded", anime._seasonStillsTried.has(2), true);
 }
@@ -93,6 +93,63 @@ for (const [label, value] of shapes) {
 // ── a show with no tmdbId must not blow up either ─────────────────────────
 checkNoThrow("show without tmdbId resolves", () => ensure({ id: 6 }, 1));
 checkNoThrow("undefined show resolves", () => ensure(undefined, 1));
+
+// A cache row is only reusable when it came from the TMDB season the current
+// mapping selects. This is the regression behind Season 3 displaying Season 1
+// episode names after a reload.
+{
+  const anime = {
+    id: "season-cache",
+    anilistId: 178789,
+    tmdbId: 94664,
+    title: "Mushoku Tensei III: Isekai Ittara Honki Dasu",
+    seasonNumber: 3,
+    isFranchiseEntry: true,
+    tmdbSeasons: [
+      { season_number: 1, episode_count: 12, name: "Season 1", air_date: "2021-01-01" },
+      { season_number: 3, episode_count: 12, name: "Season 3", air_date: "2026-01-01" }
+    ]
+  };
+  const cacheKey = "zenkaitv:tmdb-season-art:v7:178789:s3";
+  store.set(cacheKey, JSON.stringify({
+    savedAt: Date.now(),
+    data: {
+      anilistId: "178789",
+      tmdbId: "94664",
+      appSeasonNumber: 3,
+      tmdbSeasonNumber: 1,
+      stills: {},
+      metas: { 1: { episode: 1, title: "Wrong Season" } }
+    }
+  }));
+  let fetches = 0;
+  ctx.fetch = async (url) => {
+    fetches += 1;
+    check("wrong cached mapping refetches TMDB Season 3", String(url).includes("season=3"), true);
+    return {
+      ok: true,
+      json: async () => ({ season: { poster_path: null, episodes: [
+        { episode_number: 1, name: "Correct Season", overview: "", air_date: "2026-01-01", still_path: null }
+      ] } })
+    };
+  };
+  await ensure(anime, 3, { season: 3, title: "Season 3", sourceTitle: anime.title });
+  check("wrong cached season is discarded", fetches, 1);
+  check("refetched metadata belongs to Season 3", anime.tmdbEpisodesBySeasonNum[3][1].title, "Correct Season");
+  const repaired = JSON.parse(store.get(cacheKey));
+  check("cache stores TMDB season provenance", repaired.data.tmdbSeasonNumber, 3);
+}
+
+{
+  const franchise = {
+    isFranchiseEntry: true,
+    tmdbEpisodeStills: { 1: "https://example.test/season-1.jpg" },
+    tmdbEpisodesByNum: { 1: { episode: 1, title: "Season 1" } }
+  };
+  check("franchise stills never fall through to a flat season", ImageResolver.getEpisodeStill(franchise, { episode: 1 }, 3), "");
+  check("franchise nearest still never crosses seasons", ImageResolver.getNearestEpisodeStill(franchise, { episode: 1 }, 3), "");
+  check("franchise metadata never crosses seasons", ImageResolver.getSeasonEpisodeMeta(franchise, 3, 1), null);
+}
 
 console.log(rows.join("\n"));
 const failed = rows.filter((r) => r.startsWith("FAIL")).length;

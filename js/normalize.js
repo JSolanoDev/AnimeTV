@@ -71,6 +71,15 @@ function normalizeExternalShow(item, source, index) {
     season: item.season || "",
     seasonYear: item.seasonYear ?? null,
     franchiseSeasons: Array.isArray(item.franchiseSeasons) ? item.franchiseSeasons : null,
+    // These fields are assigned when a relation chain turns separate provider
+    // titles into canonical seasons. Keep them through every catalog refresh;
+    // dropping them relabels a sequel's sole provider season back to Season 1.
+    canonicalSeasonNumber: item.canonicalSeasonNumber ?? item.canonicalSeason ?? item.seasonNumber ?? null,
+    canonicalSeasonPart: item.canonicalSeasonPart ?? item.seasonPart ?? null,
+    providerEpisodeOffset: Number(item.providerEpisodeOffset) || 0,
+    providerBaseTitle: item.providerBaseTitle || "",
+    franchiseEpisodeCount: item.franchiseEpisodeCount ?? null,
+    normalizedSeasonTitle: item.normalizedSeasonTitle || "",
     // Derived from the numeric instant above, not from whatever strings the
     // server baked. /api/catalog sends no day at all, so every one of the ~994
     // catalogue rows defaulted to "Local" - a value the Weekly Schedule
@@ -141,28 +150,47 @@ function normalizeExternalShow(item, source, index) {
 
 function normalizeSeasons(item) {
   const rawSeasons = Array.isArray(item.seasons) ? item.seasons : [];
+  const explicitShowSeason = item.canonicalSeasonNumber ?? item.canonicalSeason ?? item.seasonNumber;
+  const showSeasonNumber = explicitShowSeason != null
+    ? canonicalSeasonNumber(explicitShowSeason, item.title || item.name || item.animeTitle, 1)
+    : null;
   if (rawSeasons.length) {
     return rawSeasons
       .map((season, index) => {
-        const seasonNumber = canonicalSeasonNumber(
-          season.season ?? season.seasonNumber ?? season.number,
-          season.title || season.name || item.title,
-          index + 1
-        );
+        // A separate sequel/cour record commonly contains one provider season
+        // numbered 1. Its relation-chain identity is authoritative for the app.
+        const seasonNumber = rawSeasons.length === 1 && showSeasonNumber
+          ? showSeasonNumber
+          : canonicalSeasonNumber(
+              season.season ?? season.seasonNumber ?? season.number,
+              season.title || season.name || item.title,
+              index + 1
+            );
+        const seasonPart = rawSeasons.length === 1
+          ? (item.canonicalSeasonPart ?? item.seasonPart ?? season.part ?? null)
+          : (season.part ?? null);
         const seasonItem = {
           ...item,
           episodes: season.episodes || season.videos || season.streams || season.files || []
         };
         return {
           season: seasonNumber,
-          title: season.title || season.name || `Season ${seasonNumber}`,
+          canonicalSeasonNumber: seasonNumber,
+          part: seasonPart,
+          canonicalSeasonPart: seasonPart,
+          title: rawSeasons.length === 1 && item.normalizedSeasonTitle
+            ? item.normalizedSeasonTitle
+            : (season.title || season.name || `Season ${seasonNumber}`),
           episodes: normalizeEpisodes(seasonItem, seasonNumber)
         };
       })
       .filter((season) => season.episodes.length);
   }
 
-  const normalized = normalizeEpisodes(item);
+  // Top-level episode arrays are also common for separately published sequels.
+  // Give them the title's canonical identity just like a sole `seasons[]`
+  // bucket; otherwise provider-local S1 survives into the click path.
+  const normalized = normalizeEpisodes(item, showSeasonNumber || "");
   if (normalized.length) return groupEpisodesBySeason(normalized);
 
   // No episodes array — generate numbered placeholders from the episode count so
@@ -174,13 +202,17 @@ function normalizeSeasons(item) {
   );
   if (totalEps > 0) {
     const seasonNumber = canonicalSeasonNumber(
-      item.seasonNumber ?? item.canonicalSeason,
+      item.canonicalSeasonNumber ?? item.canonicalSeason ?? item.seasonNumber,
       item.title || item.name || item.animeTitle,
       1
     );
+    const seasonPart = item.canonicalSeasonPart ?? item.seasonPart ?? null;
     return [{
       season: seasonNumber,
-      title: seasonNumber > 1 ? `Season ${seasonNumber}` : "Season 1",
+      canonicalSeasonNumber: seasonNumber,
+      part: seasonPart,
+      canonicalSeasonPart: seasonPart,
+      title: item.normalizedSeasonTitle || (seasonNumber > 1 ? `Season ${seasonNumber}` : "Season 1"),
       episodes: Array.from({ length: totalEps }, (_, i) => ({
         id: `${item.id || item.title || "ep"}-s${seasonNumber}-e${i + 1}`,
         title: `Episode ${i + 1}`,
@@ -327,11 +359,17 @@ function normalizeEpisodes(item, parentSeason = "") {
         episode.sourceEpisodeNumber ?? episode.originalEpisodeNumber ?? rawEpNum
       );
       const providerEpisodeId = getProviderEpisodeId(episode, sourceEpisodeNumber ?? parsedEpNum);
-      const seasonNumber = canonicalSeasonNumber(
-        episode.canonicalSeason ?? episode.season ?? episode.seasonNumber ?? fallbackSeason,
-        item.title,
-        fallbackSeason
-      );
+      // Once an episode is inside a normalized season group, that parent owns
+      // canonical season identity. Providers commonly number every separately
+      // published sequel/cour as season 1; letting that local value win turns a
+      // correctly grouped Season 2 episode back into Season 1 during routing.
+      const seasonNumber = parentSeason !== "" && parentSeason != null
+        ? canonicalSeasonNumber(parentSeason, item.title, fallbackSeason)
+        : canonicalSeasonNumber(
+            episode.canonicalSeason ?? episode.season ?? episode.seasonNumber ?? fallbackSeason,
+            item.title,
+            fallbackSeason
+          );
       return {
         ...episode,
         id: episode.id || episode.slug || `${item.id || item.title || "episode"}-${index}`,
@@ -720,6 +758,9 @@ function mergeClientCatalogShow(current, show) {
   if (!current) return { ...show, source: mergeCatalogSourceLabels(show?.source) };
   if (!show) return current;
   const preferred = catalogMetadataRank(show) > catalogMetadataRank(current) ? show : current;
+  const currentChain = Array.isArray(current.franchiseSeasons) ? current.franchiseSeasons : [];
+  const incomingChain = Array.isArray(show.franchiseSeasons) ? show.franchiseSeasons : [];
+  const franchiseSeasons = incomingChain.length > currentChain.length ? incomingChain : currentChain;
   return {
     ...current,
     ...show,
@@ -747,6 +788,16 @@ function mergeClientCatalogShow(current, show) {
     tmdbId: current.tmdbId || show.tmdbId || null,
     tmdbBackdrop: current.tmdbBackdrop || show.tmdbBackdrop || "",
     tmdbPoster: current.tmdbPoster || show.tmdbPoster || "",
+    animeAv1Slug: show.animeAv1Slug || current.animeAv1Slug || "",
+    providerAnimeId: show.providerAnimeId || current.providerAnimeId || null,
+    canonicalSeasonNumber: show.canonicalSeasonNumber ?? current.canonicalSeasonNumber ?? null,
+    canonicalSeasonPart: show.canonicalSeasonPart ?? current.canonicalSeasonPart ?? null,
+    providerEpisodeOffset: Number(show.providerEpisodeOffset) || Number(current.providerEpisodeOffset) || 0,
+    providerBaseTitle: show.providerBaseTitle || current.providerBaseTitle || "",
+    franchiseEpisodeCount: show.franchiseEpisodeCount ?? current.franchiseEpisodeCount ?? null,
+    normalizedSeasonTitle: show.normalizedSeasonTitle || current.normalizedSeasonTitle || "",
+    franchiseSeasons: franchiseSeasons.length ? franchiseSeasons : null,
+    sourceEpisodeCount: Number(show.sourceEpisodeCount) || Number(current.sourceEpisodeCount) || null,
     images: {
       ...(current.images || {}),
       ...(show.images || {})
@@ -815,6 +866,9 @@ function mergeSeasons(current = [], incoming = []) {
     const existing = bySeason.get(seasonNumber);
     bySeason.set(seasonNumber, {
       season: seasonNumber,
+      canonicalSeasonNumber: season.canonicalSeasonNumber ?? existing?.canonicalSeasonNumber ?? seasonNumber,
+      part: season.part ?? existing?.part ?? null,
+      canonicalSeasonPart: season.canonicalSeasonPart ?? existing?.canonicalSeasonPart ?? season.part ?? null,
       title: existing?.title || season.title || `Season ${seasonNumber}`,
       episodes: mergeEpisodes(existing?.episodes, season.episodes)
     });

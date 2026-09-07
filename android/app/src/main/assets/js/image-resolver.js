@@ -22,7 +22,10 @@ const ImageResolver = (function () {
   const TMDB_IMG_BASE = "https://image.tmdb.org/t/p";
   const MATCH_CACHE_PREFIX = "zenkaitv:tmdb-match:v17:";
   const MATCH_CACHE_TTL_MS = 1000 * 60 * 60 * 24; // Refresh airing episode stills daily.
-  const SEASON_ART_CACHE_PREFIX = "zenkaitv:tmdb-season-art:v5:";
+  // v6 records the TMDB season that produced each app-season cache entry. A
+  // transient mapping made app S3 cache TMDB S1 under the old key, so every
+  // later visit faithfully replayed the wrong episode titles and stills.
+  const SEASON_ART_CACHE_PREFIX = "zenkaitv:tmdb-season-art:v7:";
   const SEASON_ART_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
   const FAILED_CACHE_KEY = "zenkaitv:img-failed:v1";
   const FAILED_CACHE_MAX = 400;
@@ -346,7 +349,7 @@ const ImageResolver = (function () {
     return `${SEASON_ART_CACHE_PREFIX}${id}:s${seasonNumber}`;
   }
 
-  function readSeasonArtCache(anime, seasonNumber) {
+  function readSeasonArtCache(anime, seasonNumber, expectedTmdbSeasonNumber = 0) {
     try {
       const key = seasonArtCacheKey(anime, seasonNumber);
       const cached = JSON.parse(localStorage.getItem(key) || "null");
@@ -354,7 +357,20 @@ const ImageResolver = (function () {
         if (cached) localStorage.removeItem(key);
         return null;
       }
-      return cached.data || null;
+      const data = cached.data || null;
+      const cachedAniListId = String(data?.anilistId || "");
+      const currentAniListId = String(anime?.anilistId || "");
+      const cachedTmdbId = String(data?.tmdbId || "");
+      const currentTmdbId = String(anime?.tmdbId || "");
+      const cachedTmdbSeason = Number(data?.tmdbSeasonNumber || 0);
+      const wrongIdentity = cachedAniListId && currentAniListId && cachedAniListId !== currentAniListId;
+      const wrongTmdb = cachedTmdbId && currentTmdbId && cachedTmdbId !== currentTmdbId;
+      const wrongSeason = expectedTmdbSeasonNumber > 0 && cachedTmdbSeason !== Number(expectedTmdbSeasonNumber);
+      if (!data || wrongIdentity || wrongTmdb || wrongSeason) {
+        localStorage.removeItem(key);
+        return null;
+      }
+      return data;
     } catch { return null; }
   }
 
@@ -851,6 +867,16 @@ const ImageResolver = (function () {
   }
 
   // ── Per-surface resolution (the documented priority chains) ─────────────────
+  function requiresSeasonScopedEpisodeArt(anime, appSeasonNumber) {
+    if (!anime || !Number(appSeasonNumber || 0)) return false;
+    return Boolean(
+      anime.isFranchiseEntry
+      || anime.canonicalSeasonNumber
+      || anime.canonicalSeasonPart
+      || (Array.isArray(anime.seasons) && anime.seasons.length > 1)
+    );
+  }
+
   function getEpisodeStill(anime, episode, appSeasonNumber) {
     if (!anime) return "";
     const num = Number(episode?.episode || episode?.episodeNumber || 0);
@@ -863,9 +889,11 @@ const ImageResolver = (function () {
     if (sNum && anime.tmdbStillsBySeason && anime.tmdbStillsBySeason[sNum]) {
       const scoped = anime.tmdbStillsBySeason[sNum];
       if (scoped[num]) return scoped[num];
+      if (requiresSeasonScopedEpisodeArt(anime, sNum)) return "";
       const localMax = Math.max(0, ...Object.keys(scoped).map((key) => Number(key) || 0));
       if (num <= localMax) return "";
     }
+    if (requiresSeasonScopedEpisodeArt(anime, sNum)) return "";
     if (!anime.tmdbEpisodeStills) return "";
     return anime.tmdbEpisodeStills[num] || "";
   }
@@ -878,7 +906,7 @@ const ImageResolver = (function () {
     const scoped = sNum && anime.tmdbStillsBySeason && anime.tmdbStillsBySeason[sNum]
       ? anime.tmdbStillsBySeason[sNum]
       : null;
-    const pool = scoped || anime.tmdbEpisodeStills || {};
+    const pool = scoped || (requiresSeasonScopedEpisodeArt(anime, sNum) ? {} : (anime.tmdbEpisodeStills || {}));
     const numbers = Object.keys(pool)
       .map((key) => Number(key) || 0)
       .filter((key) => key > 0 && pool[key])
@@ -1076,9 +1104,12 @@ const ImageResolver = (function () {
       englishTitle: anime.englishTitle,
       nativeTitle: anime.nativeTitle,
       synonyms: anime.synonyms,
-      // Related AniList entries restart at local Season 1. Their own title/year
-      // must select the TMDB season instead of blindly mapping every part to S1.
-      seasonNumber: anime.isFranchiseEntry ? null : appSeasonNumber,
+      // Provider pages for related AniList entries restart at local Season 1,
+      // but appSeasonNumber has already been canonicalized from the relation
+      // chain. Keep that identity here. Dropping it made titles whose sequel
+      // marker is embedded in the name ("Mushoku Tensei III: ...") fall back to
+      // TMDB Season 1 before the year matcher could run.
+      seasonNumber: appSeasonNumber,
       seasonYear: meta.year || meta.startYear || (meta.startDate && meta.startDate.year) ||
                   anime.seasonYear || anime.year
     };
@@ -1110,27 +1141,36 @@ const ImageResolver = (function () {
     if (!anime || !anime.tmdbId) return Promise.resolve(anime);
     const sNum = Number(appSeasonNumber || 0);
     if (!sNum) return Promise.resolve(anime);
+    const triedSeasons = seasonStillsTried(anime);
     if (anime.tmdbStillsBySeason && Object.prototype.hasOwnProperty.call(anime.tmdbStillsBySeason, sNum)) {
       return Promise.resolve(anime);
     }
 
-    const cached = readSeasonArtCache(anime, sNum);
+    const tmdbSeasonNumber = mapAppSeasonToTmdb(anime, sNum, appSeasonMeta);
+    if (!tmdbSeasonNumber) {
+      // The detail route often renders before hydrateTmdbImages has returned the
+      // TMDB season list. That is "not ready", not a failed mapping; keep it
+      // retryable until a real season list makes the mapping authoritative.
+      if (Array.isArray(anime.tmdbSeasons) && anime.tmdbSeasons.length) {
+        triedSeasons.add(sNum);
+      }
+      return Promise.resolve(anime);
+    }
+
+    const cached = readSeasonArtCache(anime, sNum, tmdbSeasonNumber);
     if (cached) {
       applySeasonArtwork(anime, sNum, cached);
       return Promise.resolve(anime);
     }
-    if (seasonStillsTried(anime).has(sNum)) return Promise.resolve(anime);
-
-    const tmdbSeasonNumber = mapAppSeasonToTmdb(anime, sNum, appSeasonMeta);
-    if (!tmdbSeasonNumber) {
-      seasonStillsTried(anime).add(sNum);
-      return Promise.resolve(anime);
-    }
+    if (triedSeasons.has(sNum)) return Promise.resolve(anime);
 
     const key = `${anime.anilistId || anime.id}:app${sNum}`;
     if (_seasonStillsFetching.has(key)) return _seasonStillsFetching.get(key);
 
     const request = (async () => {
+      const requestAnimeId = String(anime.id || "");
+      const requestAniListId = String(anime.anilistId || "");
+      const requestTmdbId = String(anime.tmdbId || "");
       try {
         const url = `/api/tmdb/season?id=${encodeURIComponent(anime.tmdbId)}&season=${encodeURIComponent(tmdbSeasonNumber)}`;
         const resp = typeof fetchWithTimeout === "function"
@@ -1198,7 +1238,26 @@ const ImageResolver = (function () {
           const pick = stillPaths[Math.min(stillPaths.length - 1, Math.floor(stillPaths.length * fraction))];
           backdrop = tmdbBackdropUrl(pick);
         }
-        const data = { stills, metas, poster, backdrop };
+        // The same live show object may be enriched/replaced while this fetch is
+        // in flight. Recompute the mapping before applying it so an old response
+        // cannot paint another title or another season into the selected route.
+        const currentTmdbSeasonNumber = mapAppSeasonToTmdb(anime, sNum, appSeasonMeta);
+        const sameIdentity = (!requestAnimeId || String(anime.id || "") === requestAnimeId)
+          && (!requestAniListId || String(anime.anilistId || "") === requestAniListId)
+          && (!requestTmdbId || String(anime.tmdbId || "") === requestTmdbId);
+        if (!sameIdentity || Number(currentTmdbSeasonNumber) !== Number(tmdbSeasonNumber)) return anime;
+
+        const data = {
+          stills,
+          metas,
+          poster,
+          backdrop,
+          animeId: requestAnimeId || null,
+          anilistId: requestAniListId || null,
+          tmdbId: requestTmdbId || null,
+          appSeasonNumber: sNum,
+          tmdbSeasonNumber
+        };
         applySeasonArtwork(anime, sNum, data);
         writeSeasonArtCache(anime, sNum, data);
 
@@ -1213,7 +1272,7 @@ const ImageResolver = (function () {
         debug(`season-aware fetch failed: ${err && err.message}`);
         return anime;
       } finally {
-        seasonStillsTried(anime).add(sNum);
+        triedSeasons.add(sNum);
         _seasonStillsFetching.delete(key);
       }
     })();
@@ -1232,9 +1291,11 @@ const ImageResolver = (function () {
     if (sNum && anime.tmdbEpisodesBySeasonNum && anime.tmdbEpisodesBySeasonNum[sNum]) {
       const scoped = anime.tmdbEpisodesBySeasonNum[sNum];
       if (scoped[num]) return scoped[num];
+      if (requiresSeasonScopedEpisodeArt(anime, sNum)) return null;
       const localMax = Math.max(0, ...Object.keys(scoped).map((key) => Number(key) || 0));
       if (num <= localMax) return null;
     }
+    if (requiresSeasonScopedEpisodeArt(anime, sNum)) return null;
     return anime.tmdbEpisodesByNum ? (anime.tmdbEpisodesByNum[num] || null) : null;
   }
 

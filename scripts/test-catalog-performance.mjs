@@ -112,6 +112,144 @@ test("a failed refresh keeps existing cards and does not mark stale data fresh",
   assert.equal(h.c.state.shows.length, 1);
 });
 
+test("an in-flight addon load cannot replace a newer full catalog", async () => {
+  let releaseCatalog;
+  const sourceResult = new Promise((resolve) => { releaseCatalog = resolve; });
+  const state = {
+    customSources: [],
+    localSources: [],
+    addonSections: [],
+    shows: [{ id: "bootstrap" }],
+    apiStatus: {}
+  };
+  const c = vm.createContext({
+    state,
+    fetch: async () => ({
+      ok: true,
+      json: async () => ({ sources: [{ id: "fixture", name: "Fixture", enabled: true, endpoint: "/fixture" }] })
+    }),
+    applySourceOverride: (source) => source,
+    fetchExternalCatalogData: async () => sourceResult,
+    timedRequest: async (_label, request) => request(),
+    mergeShows: (items) => [...new Map(items.map((item) => [item.id, item])).values()],
+    markSourceStatus() {},
+    renderAddonSections() {},
+    renderCarousel() {},
+    renderSources() {},
+    render() {},
+    warmAnimeAv1SlugCatalog() {},
+    warmVisibleShowMetadata() {},
+    applyAnimeAv1SlugFromMap() {},
+    setSourceStatus() {},
+    catalogStatusLabel: () => "fixture",
+    enrichCatalogAiringData() {},
+    _animeAv1SlugTitleMap: null,
+    console: { warn() {} }
+  });
+  vm.runInContext(section(client, "async function loadExternalSources(", "async function fetchLocalMetadataCatalog("), c);
+
+  const loading = c.loadExternalSources();
+  await Promise.resolve();
+  state.shows = [{ id: "full", franchiseSeasons: [{ anilistId: 1 }, { anilistId: 2 }] }];
+  releaseCatalog({ items: [{ id: "addon" }], page: 1, hasMore: false });
+  await loading;
+
+  assert.deepEqual(state.shows.map((show) => show.id), ["full", "addon"]);
+  assert.equal(state.shows[0].franchiseSeasons.length, 2);
+});
+
+test("direct anime and watch routes bypass the deferred homepage catalog path", () => {
+  const loadSource = section(client, "async function loadAnimeSources(", "function scheduleLazyAddonCatalogLoad(");
+  assert.match(loadSource, /isDirectDetailRoute\s*=\s*\/\^\\\/\(\?:anime\|watch\)\\\/\//);
+  assert.match(loadSource, /state\.route === "home" && !isDirectDetailRoute/);
+});
+
+test("catalog replacement enriches the live detail object instead of orphaning it", () => {
+  const open = { id: "same", title: "Example", franchiseSeasons: null };
+  const fresh = { id: "same", title: "Example", franchiseSeasons: [{ anilistId: 1 }, { anilistId: 2 }] };
+  const state = { shows: [open], activeShow: open, activeEpisode: null, playIntent: false, catalogTier: "cached" };
+  const c = vm.createContext({
+    state,
+    AdultMode: { isAdultContent: () => false },
+    mergeShows: (items) => items.map((item) => ({ ...item })),
+    scheduleAiringEnrichment() {},
+    window: { requestAnimationFrame: (callback) => callback() },
+    overlay: { hidden: true }
+  });
+  vm.runInContext(section(client, "function replaceRegularCatalog(", "function regularCatalogSnapshot("), c);
+  c.replaceRegularCatalog([fresh], "full");
+  assert.equal(state.activeShow, open);
+  assert.equal(state.shows[0], open);
+  assert.equal(open.franchiseSeasons.length, 2);
+  assert.equal(state.catalogTier, "full");
+});
+
+test("late episode metadata cannot cross from one canonical season into another", () => {
+  const c = vm.createContext({
+    mergeAiredEpisodeMetadata() {},
+    parseEpisodeNumber: (value) => Number(value),
+    SeasonNormalization: { parseTitle: () => ({ seasonNumber: null }) }
+  });
+  vm.runInContext(
+    section(client, "function requiresSeasonScopedEpisodeMetadata(", "function mergeAiredEpisodeMetadata("),
+    c
+  );
+  const show = { anilistId: 200, malId: 300, banner: "", streamingEpisodesByNum: {} };
+  const stale = {
+    anilistId: 100,
+    malId: 150,
+    banner: "stale-season.jpg",
+    episodes: [{ episode: 2, title: "Wrong season" }]
+  };
+  assert.equal(c.applyAniListExtras(show, stale), false);
+  assert.equal(show.banner, "");
+  assert.deepEqual(show.streamingEpisodesByNum, {});
+
+  const matching = {
+    anilistId: 200,
+    malId: 300,
+    banner: "current-season.jpg",
+    episodes: [{ episode: 2, title: "Current season" }]
+  };
+  assert.equal(c.applyAniListExtras(show, matching), true);
+  assert.equal(show.banner, "current-season.jpg");
+  assert.equal(show.streamingEpisodesByNum[2].title, "Current season");
+  assert.match(client, /zenkaitv:show-extras:v3:/);
+
+  const sequel = {
+    anilistId: 178789,
+    malId: 59193,
+    title: "Mushoku Tensei III: Isekai Ittara Honki Dasu",
+    seasonNumber: 3,
+    canonicalSeasonNumber: 3,
+    isFranchiseEntry: true,
+    streamingEpisodesByNum: { 2: { title: "Wrong Season 1 title" } }
+  };
+  assert.equal(c.applyAniListExtras(sequel, {
+    anilistId: 178789,
+    malId: 59193,
+    episodes: [{ episode: 2, title: "Howl, Mad Dog" }]
+  }), true);
+  assert.equal(sequel.streamingEpisodesBySeasonNum[3][2].title, "Howl, Mad Dog");
+  assert.equal(sequel.streamingEpisodesByNum[2].title, "Wrong Season 1 title");
+});
+
+test("cached canonical metadata cannot mutate the selected title into another season", () => {
+  const c = vm.createContext({});
+  vm.runInContext(
+    section(client, "function canonicalMetadataIdentityMatches(", "async function hydrateCanonicalAnimeMetadata("),
+    c
+  );
+  const selected = { anilistId: 146065, malId: 51179, title: "Season 2" };
+  const staleSeason = {
+    media: { id: 178789, idMal: 59193, title: { romaji: "Season 3" } },
+    jikan: { mal_id: 59193 }
+  };
+  assert.equal(c.applyCanonicalAnimeMetadata(selected, staleSeason), false);
+  assert.deepEqual(selected, { anilistId: 146065, malId: 51179, title: "Season 2" });
+  assert.match(client, /zenkaitv:anime-metadata:v2:/);
+});
+
 test("local-only retired files cannot change the production catalog total", async () => {
   const results = [];
   for (const hasRetiredFile of [false, true]) {

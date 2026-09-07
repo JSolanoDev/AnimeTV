@@ -39,6 +39,7 @@ function normalizationContext() {
   vm.runInContext(`${normalizeSource}\nthis.pipeline = {
     normalizeExternalShow, normalizeSeasons, normalizeEpisodes,
     normalizeEpisodeSourceOptions, groupEpisodesBySeason, mergeEpisodes,
+    mergeShows, mergeSeasons,
     parseEpisodeNumber, getCanonicalEpisodeNumber, getProviderEpisodeId,
     canonicalEpisodeIdentity
   };`, sandbox);
@@ -106,15 +107,40 @@ test("1. single-season episode selection retains canonical identity", () => {
   assert.equal(seasons[0].episodes[0].canonicalEpisode, 1);
 });
 
-test("2. Season 2 Episode 1 is not relabeled as Season 1", () => {
+test("2. Season 2 Episode 1 survives a provider season numbered 1", () => {
   const { pipeline } = normalizationContext();
-  const [episode] = pipeline.normalizeEpisodes({
+  const show = pipeline.normalizeExternalShow({
     id: "second",
     title: "Example Season 2",
-    episodes: [{ episode: 1, season: 2 }]
-  });
+    canonicalSeasonNumber: 2,
+    canonicalSeasonPart: 1,
+    normalizedSeasonTitle: "Season 2 Part 1",
+    providerEpisodeOffset: 12,
+    seasons: [{
+      season: 1,
+      title: "Season 1",
+      episodes: [{ episode: 1, season: 1, providerEpisodeId: 13 }]
+    }]
+  }, { id: "animeav1", name: "AnimeAV1", provider: "AnimeAV1" }, 0);
+  const [season] = show.seasons;
+  const [episode] = season.episodes;
+  assert.equal(show.canonicalSeasonNumber, 2);
+  assert.equal(show.canonicalSeasonPart, 1);
+  assert.equal(show.providerEpisodeOffset, 12);
+  assert.equal(season.season, 2);
+  assert.equal(season.part, 1);
   assert.equal(episode.canonicalSeason, 2);
   assert.equal(episode.canonicalEpisode, 1);
+  assert.equal(episode.providerEpisodeId, 13);
+
+  const topLevel = pipeline.normalizeExternalShow({
+    id: "second-flat",
+    title: "Example Season 2",
+    seasonNumber: 2,
+    episodes: [{ episode: 1, season: 1, providerEpisodeId: 1 }]
+  }, { id: "animeav1", name: "AnimeAV1", provider: "AnimeAV1" }, 0);
+  assert.equal(topLevel.seasons[0].season, 2);
+  assert.equal(topLevel.seasons[0].episodes[0].canonicalSeason, 2);
 });
 
 test("3. switching Season 1 to Season 2 selects that season's object", () => {
@@ -292,6 +318,32 @@ test("17. mobile route application preserves Season 2 Episode 3", () => {
   assert.equal(c.state.activeEpisode.episode.id, "s2e3");
 });
 
+test("phone gallery lightboxes stay disabled at 760px and below", () => {
+  const isDisabledAt = (innerWidth, clientWidth = innerWidth) => {
+    const sandbox = vm.createContext({
+      Math,
+      Number,
+      window: { innerWidth },
+      document: { documentElement: { clientWidth } }
+    });
+    vm.runInContext(
+      section(clientSource, "function isPhoneGalleryPopupDisabled(", "function stopActivePlayback("),
+      sandbox
+    );
+    return sandbox.isPhoneGalleryPopupDisabled();
+  };
+
+  assert.equal(isDisabledAt(390), true);
+  assert.equal(isDisabledAt(760), true);
+  assert.equal(isDisabledAt(761), false);
+  assert.equal(isDisabledAt(390, 1024), false);
+  assert.equal(
+    (clientSource.match(/if \(isPhoneGalleryPopupDisabled\(\)\) return;/g) || []).length,
+    2,
+    "both adult gallery thumbnail handlers must block phone lightboxes"
+  );
+});
+
 test("18. Cast candidates start with the selected source from the active episode", () => {
   const episode = {
     selectedSourceId: "selected",
@@ -317,6 +369,169 @@ test("18. Cast candidates start with the selected source from the active episode
   assert.equal(candidates.length, 2);
 });
 
+test("19. stale provider season routes use the canonical sequel and cour identity", () => {
+  const state = { activeShow: null, activeEpisode: null, activeSeasonIndex: 0 };
+  const sandbox = vm.createContext({
+    state,
+    SeasonNormalization,
+    appRouter: () => ({
+      episodeSlug: (season, episode, part) => `s${season}${part ? `-part-${part}` : ""}-e${episode}`
+    }),
+    getShowSlug: (show = {}) => show.slug || "example"
+  });
+  vm.runInContext(section(clientSource, "function episodePathForShow(", "const FRANCHISE_ROUTE_CACHE_KEY"), sandbox);
+  vm.runInContext(section(clientSource, "function selectedSeasonIdentity(", "function selectedSeasonLabel("), sandbox);
+  const show = {
+    slug: "example-season-2",
+    canonicalSeasonNumber: 2,
+    canonicalSeasonPart: 1,
+    seasons: [{ season: 1, episodes: [{ season: 1, episode: 3 }] }]
+  };
+  assert.equal(
+    sandbox.episodePathForShow(show, 1, 3, ""),
+    "/watch/example-season-2/s2-part-1-e3"
+  );
+
+  const chainOnlyShow = {
+    slug: "example-season-2",
+    anilistId: 2,
+    canonicalSeasonNumber: 2,
+    canonicalSeasonPart: null,
+    isFranchiseEntry: true,
+    franchiseSeasons: [
+      { anilistId: 1, title: "Example", format: "TV", episodes: 12, seasonYear: 2021 },
+      { anilistId: 2, title: "Example II", format: "TV", episodes: 12, seasonYear: 2022 },
+      { anilistId: 3, title: "Example II Part 2", format: "TV", episodes: 12, seasonYear: 2023 }
+    ],
+    seasons: [
+      { season: 1, title: "Season 1", episodes: [{ season: 1, episode: 3 }] },
+      { season: 1, title: "Season 1", episodes: [] }
+    ]
+  };
+  const selected = {
+    season: chainOnlyShow.seasons[0],
+    episode: chainOnlyShow.seasons[0].episodes[0],
+    seasonIndex: 0,
+    episodeIndex: 0
+  };
+  state.activeShow = chainOnlyShow;
+  state.activeEpisode = selected;
+  vm.runInContext(section(clientSource, "function selectedSeasonLabel(", "function normalizeDisplayText("), sandbox);
+  assert.equal(
+    sandbox.episodePathForShow(chainOnlyShow, 1, 3, ""),
+    "/watch/example-season-2/s2-part-1-e3"
+  );
+  assert.equal(sandbox.selectedSeasonLabel(selected), "Season 2 Part 1");
+});
+
+test("20. a resolved URL mounts after the first episode-row click", async () => {
+  let plays = 0;
+  const episode = { id: "show-s2-e3", videoUrl: "https://media.example/episode.m3u8" };
+  const frame = { querySelector: () => null };
+  const sandbox = vm.createContext({
+    state: { playIntent: true, activeEpisode: { episode }, activeEpisodeUrl: "" },
+    location: { hostname: "example.test" },
+    console: { debug() {} },
+    document: { querySelector: (selector) => selector === "#videoFrame" ? frame : null },
+    getEpisodeUrl: (value) => value.videoUrl || "",
+    getSelectedEpisodeSource: () => null,
+    playActiveShow: async () => { plays += 1; }
+  });
+  vm.runInContext(section(clientSource, "function debugPromotion(", "function getSelectedEpisodeSource("), sandbox);
+  assert.equal(sandbox.promoteResolvedEpisodeSource(episode), true);
+  await Promise.resolve();
+  assert.equal(plays, 1);
+  assert.equal(sandbox.state.activeEpisodeUrl, episode.videoUrl);
+
+  frame.querySelector = () => ({ id: "animePlayerFrame" });
+  assert.equal(sandbox.promoteResolvedEpisodeSource(episode), false);
+  await Promise.resolve();
+  assert.equal(plays, 1);
+});
+
+test("21. an episode-row click reaches source scheduling with canonical season identity", () => {
+  let scheduled = null;
+  const episode = { id: "show-s2-e3", episode: 3, canonicalEpisode: 3 };
+  const season = { season: 2, part: 1, episodes: [episode] };
+  const state = {
+    activeShow: { id: "show", slug: "show", canonicalSeasonNumber: 2, canonicalSeasonPart: 1 },
+    activeEpisode: null,
+    activeSeasonIndex: 0,
+    currentRouteInfo: null
+  };
+  const frame = { style: { setProperty() {} } };
+  const sandbox = vm.createContext({
+    state,
+    getDetailSeasons: () => [season],
+    getEpisodeUrl: () => "",
+    selectedSeasonIdentity: () => ({ seasonNumber: 2, seasonPart: 1 }),
+    getCanonicalEpisodeNumber: (value, fallback) => value.canonicalEpisode ?? fallback,
+    episodePathForShow: (_show, s, e, p) => `/watch/show/s${s}-part-${p}-e${e}`,
+    appRouter: () => ({
+      replace: (path) => { sandbox.location.pathname = path; },
+      parsePath: (path) => ({ path })
+    }),
+    location: { pathname: "/anime/show" },
+    updateRouteMeta() {},
+    document: {
+      body: { classList: { remove() {} } },
+      querySelector: (selector) => selector === "#videoFrame" ? frame : null
+    },
+    stopActivePlayback() {},
+    getWatchBackdropArtwork: () => "",
+    schedulePlaybackSourceOptions: (_show, value, canonicalSeason, options) => {
+      scheduled = { value, canonicalSeason, options };
+    },
+    renderEpisodeList() {},
+    refreshFocusables() {},
+    Math
+  });
+  vm.runInContext(section(clientSource, "function selectEpisodeByPosition(", "function showEpisodeListTab("), sandbox);
+  sandbox.selectEpisodeByPosition(0, 0, true);
+  assert.equal(scheduled.value, episode);
+  assert.equal(scheduled.canonicalSeason, 2);
+  assert.equal(scheduled.options.autoReplay, true);
+  assert.equal(sandbox.location.pathname, "/watch/show/s2-part-1-e3");
+});
+
+test("22. catalog dedupe cannot erase a baked franchise chain", () => {
+  const { pipeline } = normalizationContext();
+  const chain = [
+    { anilistId: 1, title: "Example", episodes: 12 },
+    { anilistId: 2, title: "Example Season 2", episodes: 12 }
+  ];
+  const [merged] = pipeline.mergeShows([
+    {
+      id: "animeav1-example-season-2",
+      anilistId: 2,
+      title: "Example Season 2",
+      source: "AnimeAV1",
+      animeAv1Slug: "example-season-2",
+      canonicalSeasonNumber: 2,
+      canonicalSeasonPart: 1,
+      franchiseSeasons: chain,
+      seasons: [{ season: 2, part: 1, episodes: [{ season: 2, episode: 1 }] }]
+    },
+    {
+      id: "anilist-2",
+      anilistId: 2,
+      title: "Example Season 2",
+      source: "AniList",
+      animeAv1Slug: "",
+      canonicalSeasonNumber: null,
+      canonicalSeasonPart: null,
+      franchiseSeasons: null,
+      seasons: []
+    }
+  ]);
+  assert.equal(merged.franchiseSeasons.length, 2);
+  assert.equal(merged.canonicalSeasonNumber, 2);
+  assert.equal(merged.canonicalSeasonPart, 1);
+  assert.equal(merged.animeAv1Slug, "example-season-2");
+  assert.equal(merged.seasons[0].canonicalSeasonNumber, 2);
+  assert.equal(merged.seasons[0].part, 1);
+});
+
 test("Mushoku Tensei relation chain is ordered into three canonical seasons", () => {
   const getCanonicalEpisodeNumber = (episode = {}, fallback = null) => {
     const value = episode.canonicalEpisode ?? episode.episode ?? episode.number;
@@ -334,12 +549,17 @@ test("Mushoku Tensei relation chain is ordered into three canonical seasons", ()
     getCanonicalEpisodeNumber,
     getEpisodeUrl: (episode = {}) => episode.videoUrl || "",
     groupEpisodesBySeason: (episodes) => [{ season: 1, episodes }],
-    repairEpisodeGaps: (episodes) => episodes,
+    repairEpisodeGaps: (episodes, seasonNumber) => episodes.map((episode) => ({
+      ...episode,
+      season: seasonNumber,
+      canonicalSeason: seasonNumber
+    })),
     seasonAiredFloor: () => 0,
     extractSeasonNumber: utils.extractSeasonNumber
   });
   vm.runInContext(section(clientSource, "function bakedChainFor(", "// ── TioAnime source integration"), sandbox);
   vm.runInContext(section(clientSource, "function ensureFranchiseShowsInCatalog(", "function validateEpisodeIntegrity("), sandbox);
+  vm.runInContext(section(clientSource, "function selectedSeasonIdentity(", "function selectedSeasonLabel("), sandbox);
 
   const chain = [
     { anilistId: 108465, malId: 39535, title: "Mushoku Tensei: Isekai Ittara Honki Dasu", format: "TV", seasonYear: 2021, episodes: 11, status: "FINISHED" },
@@ -355,10 +575,60 @@ test("Mushoku Tensei relation chain is ordered into three canonical seasons", ()
     title: chain[4].title,
     animeAv1Slug: "mushoku-tensei-iii-isekai-ittara-honki-dasu",
     franchiseSeasons: chain,
-    seasons: [{ season: 3, episodes: Array.from({ length: 14 }, (_, index) => ({ episode: index + 1 })) }]
+    canonicalSeasonPart: 1,
+    anilistFranchise: {
+      groups: [
+        {
+          seasonNumber: 3,
+          partNumber: 1,
+          title: "Season 3 Part 1",
+          episodeCount: 14,
+          items: [{ ...chain[4] }]
+        },
+        {
+          seasonNumber: 3,
+          partNumber: 2,
+          title: "Season 3 Part 2",
+          episodeCount: 12,
+          items: [{ ...chain[3] }]
+        }
+      ]
+    },
+    // AnimeAV1 publishes each sequel as a standalone page whose top-level
+    // episodes still carry local Season 1. Relation data must canonicalize this
+    // before detail rendering.
+    seasons: [],
+    episodes: Array.from({ length: 14 }, (_, index) => ({ season: 1, canonicalSeason: 1, episode: index + 1 }))
   };
-  state.shows = [current];
+  const catalogTwin = {
+    id: "animeav1-s3",
+    anilistId: 178789,
+    malId: 59284,
+    title: chain[4].title,
+    franchiseSeasons: chain,
+    canonicalSeasonPart: 1,
+    seasons: []
+  };
+  // The bootstrap/detail object can follow a full-catalog twin with the same
+  // AniList ID. Both must receive the relation identity before episode rows are
+  // built; stamping only Array.find()'s first match recreates the production bug.
+  state.shows = [catalogTwin, current];
   sandbox.ensureFranchiseShowsInCatalog(current);
+  const [canonicalDetailSeason] = sandbox.getDetailSeasons(current);
+  assert.equal(catalogTwin.canonicalSeasonNumber, 3);
+  assert.equal(current.canonicalSeasonNumber, 3);
+  assert.equal(catalogTwin.canonicalSeasonPart, null);
+  assert.equal(current.canonicalSeasonPart, null);
+  assert.equal(canonicalDetailSeason.season, 3);
+  assert.equal(canonicalDetailSeason.part, null);
+  assert.deepEqual(
+    { ...sandbox.selectedSeasonIdentity(current, {
+      season: { season: 3, part: 1, canonicalSeasonPart: 1 },
+      episode: { season: 3, episode: 2 }
+    }, 2) },
+    { seasonNumber: 3, seasonPart: "" }
+  );
+  assert.equal(canonicalDetailSeason.episodes[0].canonicalSeason, 3);
   const showsMap = new Map();
   state.shows.forEach((show) => {
     if (show.anilistId) showsMap.set(String(show.anilistId), show);

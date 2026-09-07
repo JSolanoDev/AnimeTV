@@ -105,6 +105,8 @@ function episodeNumber(item = {}) {
 function catalogEpisodeLimit(item = {}) {
   const format = String(item.format || item.type || "").toUpperCase();
   if (format === "MOVIE") return 1;
+  const servedBySource = Number(item.sourceEpisodeCount || 0);
+  if (Number.isFinite(servedBySource) && servedBySource > 0) return servedBySource;
   const episodes = Array.isArray(item.episodes) ? item.episodes : [];
   const maxSourceEpisode = Math.max(0, ...episodes.map(episodeNumber).filter(Number.isFinite));
   const status = String(item.status || "").toUpperCase();
@@ -385,14 +387,45 @@ function summarize(records, phase) {
   };
 }
 
-const catalogPayload = await fetchJson(`${baseUrl}/api/catalog`, 60000);
-const catalog = (catalogPayload.items || []).filter((item) => /animeav1/i.test(String(item.source || item.id || item.siteUrl || ""))).slice(0, titleLimit);
 const metadataPath = fileURLToPath(new URL("../scraper/anime_metadata.json", import.meta.url));
 const metadataPayload = JSON.parse(await readFile(metadataPath, "utf8"));
 const slugItems = (Array.isArray(metadataPayload.items) ? metadataPayload.items : [])
   .filter((item) => /animeav1/i.test(String(item.source || item.id || item.siteUrl || "")))
   .map((item) => ({ slug: authoritativeSlug(item), title: item.title || item.name || "" }))
   .filter((item) => item.slug && item.title);
+async function readOptionalSnapshot(relativePath) {
+  try {
+    return JSON.parse(await readFile(fileURLToPath(new URL(relativePath, import.meta.url)), "utf8"));
+  } catch {
+    return {};
+  }
+}
+const [airingPayload, artworkPayload] = await Promise.all([
+  readOptionalSnapshot("../scraper/airing-map.json"),
+  readOptionalSnapshot("../scraper/artwork-map.json")
+]);
+const catalog = (Array.isArray(metadataPayload.items) ? metadataPayload.items : [])
+  .filter((item) => /animeav1/i.test(String(item.source || item.id || item.siteUrl || "")))
+  .map((item) => {
+    const airing = airingPayload.entries?.[item.id] || {};
+    const artwork = artworkPayload.entries?.[item.id] || {};
+    const metadata = artwork.meta || {};
+    return {
+      ...item,
+      anilistId: item.anilistId || artwork.anilistId || null,
+      malId: item.malId || artwork.malId || null,
+      // The provider's own media type and measured episode count outrank
+      // enrichment metadata, matching normalizeExternalShow/getSeasonEpisodeLimit.
+      format: item.format || item.type || metadata.format || "",
+      status: item.status || airing.airingStatus || metadata.status || "",
+      sourceEpisodeCount: item.sourceEpisodeCount || airing.sourceEpisodeCount || null,
+      anilistEpisodeCount: item.anilistEpisodeCount || airing.anilistEpisodeCount || metadata.episodes || null,
+      latestAiredEp: item.latestAiredEp || airing.latestAiredEp || null,
+      nextAiringEpisodeNumber: item.nextAiringEpisodeNumber || airing.nextAiringEpisodeNumber || null,
+      franchiseSeasons: item.franchiseSeasons || airing.franchiseSeasons || null
+    };
+  })
+  .slice(0, titleLimit);
 const legacyByTitle = new Map();
 slugItems.forEach((item) => {
   legacyTitleKeys(item.title, item.slug).forEach((key) => {
