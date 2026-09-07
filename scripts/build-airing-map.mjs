@@ -247,7 +247,20 @@ const JIKAN_MAX_REQUESTS = 1400;
 // abandoned the whole crawl after 1m7s because five consecutive failures were
 // treated as "the provider is down". They are not; they are weather. Retry each
 // id, and only give up when failures are sustained across many DIFFERENT ids.
-const JIKAN_RETRIES = 2;
+// Retrying an id three times inside six seconds is not a retry strategy: Jikan's
+// 504s cluster in TIME, so all three attempts land in the same bad window.
+// Measured 2026-09-07: a local crawl failed 31 ids in a row "3x" each, and two
+// of those same ids answered 200 when asked again minutes later.
+//
+// So do not retry in place. Put the id back at the END of the queue and let the
+// rest of the crawl happen first - by the time it comes round again, minutes
+// have passed and the window has usually moved. It costs no extra wall time,
+// because there is always other work to do.
+const MAX_DEFERRALS = 2;
+// Write the cache as we go. A 28-minute crawl that is killed on the last minute
+// - by the step timeout, by a cancelled run - must not throw away everything it
+// learned, because the whole point of the cache is that runs accumulate.
+const SAVE_EVERY = 50;
 const JIKAN_GIVE_UP_AFTER = 25;
 // A wall-clock stop, because retries multiply the worst case past any request
 // count. The job's step timeout is 40 minutes; stop well inside it and keep
@@ -373,20 +386,20 @@ function loadRelationsCache() {
   }
 }
 
-function saveRelationsCache(edges) {
+function saveRelationsCache(edges, quiet = false) {
   if (!WRITE) return;
   const out = { generatedAt: new Date().toISOString(), count: edges.size, edges: {} };
   for (const [malId, list] of [...edges.entries()].sort((a, b) => a[0] - b[0])) out.edges[malId] = list;
   try {
     fs.mkdirSync(path.dirname(RELATIONS_CACHE), { recursive: true });
     fs.writeFileSync(RELATIONS_CACHE, JSON.stringify(out, null, 2), "utf8");
-    log(`relation cache: ${edges.size} id(s) known`);
+    if (!quiet) log(`relation cache: ${edges.size} id(s) known`);
   } catch (error) {
     log(`could not write the relation cache: ${error.message}`);
   }
 }
 
-async function relationsWithRetry(malId, fixture) {
+async function relationsOnce(malId, fixture) {
   if (fixture) {
     // A key that is ABSENT models an id Jikan could not answer for - a 504, which
     // is the common case. An explicitly empty array models a real answer with no
@@ -395,18 +408,11 @@ async function relationsWithRetry(malId, fixture) {
       ? parseRelationBlocks(fixture[String(malId)])
       : null;
   }
-  for (let attempt = 0; attempt <= JIKAN_RETRIES; attempt += 1) {
-    try {
-      return await jikanRelations(malId);
-    } catch (error) {
-      if (attempt === JIKAN_RETRIES) {
-        log(`mal ${malId} failed ${attempt + 1}x: ${error.message}`);
-        return null;
-      }
-      await sleep(JIKAN_PAUSE_MS * (attempt + 2));
-    }
+  try {
+    return await jikanRelations(malId);
+  } catch {
+    return null;
   }
-  return null;
 }
 
 async function fetchViaJikan(targets) {
@@ -433,6 +439,7 @@ async function fetchViaJikan(targets) {
   const cache = loadRelationsCache();
   const cachedAtStart = cache.size;
   const media = [];
+  const deferrals = new Map();
   const startedAt = Date.now();
   let requests = 0;
   let failures = 0;
@@ -451,15 +458,23 @@ async function fetchViaJikan(targets) {
       if (requests >= JIKAN_MAX_REQUESTS) { stoppedBy = "request budget"; break; }
       if (!fixture && Date.now() - startedAt > JIKAN_DEADLINE_MS) { stoppedBy = "time budget"; break; }
       requests += 1;
-      edges = await relationsWithRetry(malId, fixture);
+      edges = await relationsOnce(malId, fixture);
       if (edges === null) {
         failures += 1;
-        missed += 1;
+        const soFar = deferrals.get(malId) || 0;
+        if (soFar < MAX_DEFERRALS) {
+          deferrals.set(malId, soFar + 1);
+          queue.push(malId);            // try again once the rest has been walked
+        } else {
+          missed += 1;
+        }
         if (failures >= JIKAN_GIVE_UP_AFTER) { stoppedBy = `${failures} consecutive failures`; break; }
+        if (!fixture) await sleep(JIKAN_PAUSE_MS);
         continue;
       }
       failures = 0;
       cache.set(malId, edges);
+      if (cache.size - cachedAtStart >= SAVE_EVERY && (cache.size - cachedAtStart) % SAVE_EVERY === 0) saveRelationsCache(cache, true);
     }
     const self = nodeFromDatabase(db, malId);
     if (self) {
@@ -483,8 +498,11 @@ async function fetchViaJikan(targets) {
   // The budgets stop NETWORK work, not the walk. Anything still queued that we
   // already know is free to expand, so drain it - otherwise a chain sits half
   // built purely because the clock ran out on an unrelated id.
+  const drained = new Set();
   while (queue.length) {
     const malId = queue.shift();
+    if (drained.has(malId)) continue;
+    drained.add(malId);
     const edges = cache.get(malId);
     if (!edges) continue;
     reused += 1;
