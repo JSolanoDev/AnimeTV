@@ -438,6 +438,7 @@ function applyAppLanguage() {
   navLabel("home", "navHome");
   navLabel("library", "navSearch");
   navLabel("schedule", "navSchedule");
+  navLabel("releases", "navReleases");
   navLabel("favorites", "navFavorites");
   navLabel("settings", "navSettings");
   setText(".carousel-info .eyebrow", "featuredNow");
@@ -548,7 +549,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=711`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=713`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2301,8 +2302,10 @@ function syncAdultModeChrome() {
     headerToggle.classList.toggle("is-active", on);
     headerToggle.setAttribute("aria-pressed", on ? "true" : "false");
   }
-  // The Weekly Schedule isn't shown in 18+ mode — bounce off it if we're there.
-  if (on && state.route === "schedule") setRoute("home");
+  const releasesNav = document.querySelector('.main-nav [data-route="releases"]');
+  if (releasesNav) releasesNav.hidden = !on;
+  if (on && state.route === "schedule") setRoute("releases");
+  if (!on && state.route === "releases") setRoute("home");
 }
 
 // 18+ age-confirmation gate shown the first time adult mode is enabled.
@@ -3539,7 +3542,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=711";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=713";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4582,7 +4585,7 @@ function trailerEmbedUrl(trailer) {
   return `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${id}&modestbranding=1&playsinline=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&enablejsapi=1`;
 }
 
-const APP_ROUTES = ["home", "library", "schedule", "favorites", "settings", "sources", "profile", "not-found"];
+const APP_ROUTES = ["home", "library", "schedule", "releases", "favorites", "settings", "sources", "profile", "not-found"];
 const ROUTE_SLUG_ALIASES = {
   "demon-slayer": ["kimetsu-no-yaiba", "kimetsu-no-yaiba-yuukaku-hen", "kimetsu-no-yaiba-katanakaji-no-sato-hen"],
   "naruto": ["naruto", "naruto-shippuuden", "naruto-shippuden"],
@@ -4600,6 +4603,7 @@ function routePathFor(route) {
     home: "/",
     library: "/browse",
     schedule: "/schedule",
+    releases: "/releases",
     favorites: "/favorites",
     settings: "/settings",
     sources: "/sources",
@@ -7237,6 +7241,9 @@ function _render() {
     if (emptyFavorites && favoritesGrid) emptyFavorites.hidden = favoritesGrid.children.length > 0;
   }
   if (isSchedule) renderSchedule();
+  if (state.route === "releases" && typeof AdultReleases !== "undefined") {
+    AdultReleases.render({ language: state.appLanguage, shows: state.shows, imageUrl: imageDeliveryUrl, escape: escapeHtml, animePath: animePathForShow });
+  }
   if (isSources) renderSources();
   if (isSettings) renderSettings();
   if (isProfile) renderProfile();
@@ -7326,9 +7333,16 @@ function wireRailButtons() {
 
 let _routeHistoryInit = false;
 function setRoute(route, options = {}) {
-  // Weekly Schedule is hidden in 18+ mode — send those navigations Home instead.
+  const requestedRoute = route;
+  // Adult Mode uses the dated release calendar in place of the weekly schedule.
   if (route === "schedule" && typeof AdultMode !== "undefined" && AdultMode.isEnabled()) {
-    route = "home";
+    route = "releases";
+  }
+  if (route === "releases" && (typeof AdultMode === "undefined" || !AdultMode.isEnabled())) route = "home";
+  if (route !== requestedRoute && options.skipHistory) {
+    appRouter()?.replace?.(routePathFor(route), { silent: true });
+    state.currentRouteInfo = appRouter()?.current?.();
+    updateRouteMeta(state.currentRouteInfo);
   }
   if (!APP_ROUTES.includes(route)) route = "not-found";
   if (route !== "library") cancelLibraryAutoLoad();
@@ -17048,7 +17062,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=711");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=713");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

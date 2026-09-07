@@ -30,6 +30,9 @@ jobs:
       - name: Tests
         run: npm test
 
+      - name: Release calendar tests
+        run: npm run adult:setup && npm run test:releases
+
       # ESLint is deliberately not a devDependency: it would add ~98 packages to
       # every Vercel install for a tool the production build never runs. Install
       # it for this step only, without touching package.json or the lockfile.

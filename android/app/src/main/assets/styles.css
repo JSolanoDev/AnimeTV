@@ -9616,6 +9616,106 @@ body.is-tv .ep-season-menu { background: rgba(18, 19, 32, 1); }
    18+ / Hentai Mode — mature theme, header badge, age-gate dialog
    The toggle adds `.adult-mode` to <body>; removing it fully reverts the theme.
    ══════════════════════════════════════════════════════════════════════════ */
+.nav-link[data-route="releases"] { --nav-accent: var(--route-schedule); }
+.main-nav [data-route="releases"][hidden],
+body:not(.adult-mode) .main-nav [data-route="releases"],
+body:not(.adult-mode) #releases { display: none !important; }
+
+.release-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 1.2rem;
+  height: 1.2rem;
+  background: currentColor;
+  mask: var(--release-icon) center / contain no-repeat;
+  -webkit-mask: var(--release-icon) center / contain no-repeat;
+}
+.release-icon-calendar-days { --release-icon: url("js/icons/calendar-days.svg"); }
+.release-icon-chevron-left { --release-icon: url("js/icons/chevron-left.svg"); }
+.release-icon-chevron-right { --release-icon: url("js/icons/chevron-right.svg"); }
+.release-icon-arrow-up-right { --release-icon: url("js/icons/arrow-up-right.svg"); }
+.release-icon-search { --release-icon: url("js/icons/search.svg"); }
+.main-nav .nav-link > .release-icon { width: 1.3rem; height: 1.3rem; background: currentColor; border-radius: 0; }
+#releases { min-width: 0; letter-spacing: 0; }
+.releases-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.6rem 0 1.7rem; }
+.releases-heading-copy { min-width: 0; }
+.releases-kicker { display: block; color: var(--muted); font-size: 0.75rem; margin-bottom: 0.35rem; }
+.releases-heading h1 { margin: 0; font-size: 2rem; line-height: 1.15; font-weight: 800; letter-spacing: 0; overflow-wrap: anywhere; }
+.releases-year-nav { display: flex; align-items: center; flex: 0 0 auto; gap: 0.4rem; margin-right: 3rem; }
+.release-icon-button { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; padding: 0; color: var(--text); background: transparent; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+.release-icon-button:disabled { opacity: 0.3; cursor: default; }
+.releases-year-nav select { width: 6.2rem; height: 2.5rem; border: 0; background: var(--bg-raised); color: var(--text); padding: 0 0.7rem; border-radius: 6px; font: inherit; font-size: 1.1rem; font-weight: 700; }
+.releases-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding-bottom: 1.2rem; }
+.releases-status-tabs { display: flex; align-items: center; gap: 0.2rem; min-width: 0; padding: 0.2rem; background: rgba(255,255,255,0.035); border-radius: 6px; }
+.releases-status-tabs button { border: 0; border-radius: 4px; padding: 0.65rem 0.95rem; background: transparent; color: var(--muted); font: inherit; font-size: 0.82rem; font-weight: 650; cursor: pointer; }
+.releases-status-tabs button[aria-pressed="true"] { background: #ad1941; color: #fff; }
+.releases-search { display: flex; align-items: center; gap: 0.6rem; width: min(18rem, 38%); min-width: 0; border-bottom: 1px solid rgba(255,255,255,0.18); color: var(--muted); padding: 0.6rem 0; }
+.releases-search input { width: 100%; min-width: 0; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 0.85rem; outline-offset: 4px; }
+.releases-search input::placeholder { color: var(--muted); opacity: 0.8; }
+.releases-months { display: flex; gap: 0.15rem; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-width: none; border-block: 1px solid var(--line); padding: 0.45rem 0; }
+.releases-months::-webkit-scrollbar { display: none; }
+.releases-months button { display: flex; align-items: center; justify-content: center; gap: 0.35rem; flex: 1 0 auto; min-height: 2.8rem; padding: 0.55rem; border: 0; border-radius: 4px; background: transparent; color: var(--muted); font: inherit; font-size: 0.78rem; cursor: pointer; white-space: nowrap; }
+.releases-months button span { font-size: 0.62rem; opacity: 0.65; font-variant-numeric: tabular-nums; }
+.releases-months button[aria-pressed="true"] { color: #fff; background: rgba(225,29,72,0.17); box-shadow: inset 0 -2px #f05d81; }
+.releases-summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 3.7rem; color: var(--muted); font-size: 0.75rem; }
+.releases-summary p { margin: 0; color: var(--text); }
+.releases-summary > span { text-align: right; }
+.release-month-group { margin-bottom: 2rem; }
+.release-month-heading { display: flex; align-items: baseline; gap: 0.8rem; margin: 0 0 1rem; }
+.release-month-heading h2 { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: 0; }
+.release-month-heading > span { color: var(--muted); font-size: 0.7rem; }
+.release-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1.6rem 1.1rem; }
+.release-card { display: block; min-width: 0; color: var(--text); text-decoration: none; border-radius: 8px; }
+.release-poster { position: relative; width: 100%; aspect-ratio: 259 / 370; overflow: hidden; isolation: isolate; background: var(--bg-raised) url("logo-mark-128.webp") center / 3rem no-repeat; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+.release-poster img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 220ms ease; }
+.release-poster img[hidden] { display: none; }
+.release-episode { position: absolute; left: 0.55rem; bottom: 0.55rem; padding: 0.28rem 0.45rem; border-radius: 4px; background: rgba(8,8,12,0.91); color: #fff; font-size: 0.66rem; font-weight: 700; line-height: 1.4; }
+.release-open { position: absolute; top: 0.55rem; right: 0.55rem; display: grid; place-items: center; width: 1.8rem; height: 1.8rem; border-radius: 50%; color: #fff; background: rgba(8,8,12,0.82); opacity: 0; transition: opacity 180ms ease; }
+.release-card:is(:hover, :focus-visible, .is-tv-focused) .release-open { opacity: 1; }
+a.release-card:is(:hover, :focus-visible, .is-tv-focused) .release-poster img { transform: scale(1.035); }
+.release-card-copy { padding-top: 0.65rem; }
+.release-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.5rem; font-size: 0.68rem; line-height: 1.5; }
+.release-card-meta time { color: var(--muted); }
+.release-status { display: inline-flex; align-items: center; gap: 0.3rem; }
+.release-status::before { content: ""; width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+.release-status.is-available { color: #7edab3; }
+.release-status.is-upcoming { color: #eec46b; }
+.release-status.is-released { color: #bcb5c2; }
+.release-card h3 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; min-height: 2.8em; margin: 0.35rem 0 0; font-size: 0.87rem; line-height: 1.4; font-weight: 650; letter-spacing: 0; overflow-wrap: anywhere; }
+.release-card:focus-visible, #releases button:focus-visible, #releases select:focus-visible { outline: 2px solid #fb7185; outline-offset: 3px; }
+#releases button:not(:disabled):hover { color: #fff; }
+.releases-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 17rem; padding: 2rem 1rem; text-align: center; color: var(--muted); }
+.releases-empty > .release-icon { width: 2rem; height: 2rem; color: #f05d81; }
+.releases-empty button { border: 1px solid var(--line); background: var(--bg-raised); color: var(--text); border-radius: 6px; padding: 0.6rem 1rem; font: inherit; font-size: 0.85rem; cursor: pointer; }
+.release-skeleton > div { aspect-ratio: 259 / 370; background: rgba(255,255,255,0.055); border-radius: 8px; animation: release-pulse 1.4s ease-in-out infinite alternate; }
+.release-skeleton > span { display: block; height: 0.7rem; margin-top: 0.7rem; width: 85%; background: rgba(255,255,255,0.05); border-radius: 3px; }
+.release-skeleton > span:last-child { width: 55%; }
+@keyframes release-pulse { to { opacity: 0.45; } }
+@media (max-width: 1250px) { .release-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (max-width: 1050px) { .release-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 800px) { .release-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .releases-heading { align-items: center; padding-top: 2.8rem; padding-bottom: 1.2rem; gap: 0.5rem; }
+  .releases-heading h1 { font-size: 1.65rem; }
+  .releases-kicker { font-size: 0.65rem; }
+  .releases-year-nav { gap: 0.1rem; margin-right: 0; }
+  .release-icon-button { width: 2rem; height: 2.5rem; border: 0; }
+  .releases-year-nav select { width: 5.2rem; font-size: 0.95rem; padding: 0 0.3rem; }
+  .releases-toolbar { flex-direction: column; align-items: stretch; gap: 0.7rem; }
+  .releases-status-tabs button { flex: 1; padding: 0.65rem 0.4rem; font-size: 0.78rem; }
+  .releases-search { width: 100%; }
+  .releases-months button { padding-inline: 0.7rem; }
+  .releases-summary { gap: 0.5rem; font-size: 0.68rem; }
+  .release-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem 0.8rem; }
+  .release-card h3 { font-size: 0.8rem; }
+  .release-card-meta { font-size: 0.65rem; gap: 0.2rem 0.4rem; }
+  .release-month-heading h2 { font-size: 1.05rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .release-poster img, .release-open { transition: none; }
+  .release-skeleton > div { animation: none; }
+}
+
 body.adult-mode {
   color-scheme: dark;
   --bg: #0a0306;

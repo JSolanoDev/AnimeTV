@@ -7,6 +7,7 @@
     ["/browse", { name: "browse", appRoute: "library", title: "Anime Library - ZenkaiTV", description: "Browse the full ZenkaiTV anime library." }],
     ["/latest", { name: "latest", appRoute: "home", focus: "latest", title: "Latest Episodes - ZenkaiTV", description: "Watch the latest anime episodes on ZenkaiTV." }],
     ["/schedule", { name: "schedule", appRoute: "schedule", title: "Weekly Schedule - ZenkaiTV", description: "See the weekly anime release schedule on ZenkaiTV." }],
+    ["/releases", { name: "releases", appRoute: "releases", title: "Releases - ZenkaiTV", description: "Browse the release calendar on ZenkaiTV." }],
     ["/continue-watching", { name: "continue-watching", appRoute: "home", focus: "continueWatching", title: "Continue Watching - ZenkaiTV", description: "Resume your anime on ZenkaiTV." }],
     ["/favorites", { name: "favorites", appRoute: "favorites", title: "Favorites - ZenkaiTV", description: "Your ZenkaiTV favorites and watchlist." }],
     ["/settings", { name: "settings", appRoute: "settings", title: "Settings - ZenkaiTV", description: "Adjust ZenkaiTV playback and app settings." }],
@@ -25,6 +26,7 @@
     ["settings", "/settings"],
     ["sources", "/sources"],
     ["schedule", "/schedule"],
+    ["releases", "/releases"],
     ["profile", "/profile"]
   ]);
 

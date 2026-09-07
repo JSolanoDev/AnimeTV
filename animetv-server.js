@@ -722,6 +722,11 @@ function handleRequest(request, response) {
     return;
   }
 
+  if (url.pathname === "/api/adult/underhentai/releases") {
+    handleUnderHentaiReleases(url, response);
+    return;
+  }
+
   if (url.pathname === "/api/adult/debug") {
     let veoReqErr1 = null, veoReqErr2 = null;
     try { require("./scraper/veohentai_catalog.json"); } catch (e) { veoReqErr1 = e.message; }
@@ -9015,6 +9020,28 @@ function normalizeUnderHentaiSafetyText(value = "") {
 // tidy-up, so it does not belong in this cleanup.
 function isSafeAdultMetadata() {
   return true;
+}
+
+function handleUnderHentaiReleases(url, response) {
+  const requestedYear = url.searchParams.get("year");
+  if (requestedYear && !/^\d{4}$/.test(requestedYear)) {
+    sendJson(response, { error: "Invalid release year." }, 400);
+    return;
+  }
+  try {
+    const snapshot = require("./scraper/underhentai_releases.json");
+    const years = Object.keys(snapshot.years).map(Number).sort((a, b) => b - a);
+    const year = requestedYear ? Number(requestedYear) : Math.min(new Date().getUTCFullYear(), years[0]);
+    if (!years.includes(year)) {
+      sendJson(response, { error: "Release year not found.", years }, 404);
+      return;
+    }
+    sendJson(response, { source: snapshot.source, generatedAt: snapshot.generatedAt, year, years, items: snapshot.years[year] }, 200, {
+      "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400"
+    });
+  } catch {
+    sendJson(response, { error: "Release calendar is temporarily unavailable." }, 503);
+  }
 }
 
 function readUnderHentaiCatalog() {

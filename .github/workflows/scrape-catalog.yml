@@ -174,7 +174,7 @@ jobs:
         timeout-minutes: 45
 
       - name: Validate Adult Mode catalog
-        run: npm run adult:verify
+        run: npm run adult:verify && npm run test:releases
 
       # ── 7. Commit updated catalog ──────────────────────────────────────────
       - name: Commit updated catalog
@@ -190,8 +190,10 @@ jobs:
             scraper/relations-cache.json
             scraper/underhentai_catalog.json
             scraper/underhentai_details.json
+            scraper/underhentai_releases.json
             android/app/src/main/assets/scraper/underhentai_catalog.json
             android/app/src/main/assets/scraper/underhentai_details.json
+            android/app/src/main/assets/scraper/underhentai_releases.json
           commit_user_name: "github-actions[bot]"
           commit_user_email: "github-actions[bot]@users.noreply.github.com"
 
