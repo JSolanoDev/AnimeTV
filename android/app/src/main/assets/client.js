@@ -549,7 +549,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=717`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=718`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -715,15 +715,19 @@ async function loadLazyAddonCatalogs() {
 async function loadDirectCatalogFallback() {
   if (state.apiStatus.direct === "Online") return;
   state.apiStatus.direct = "Loading";
-  const [anilist, jikanTop, jikanSeason, jikanPopular] = await Promise.allSettled([
-    timedRequest("AniList", () => fetchAniListTrending()),
+  // No AniList here. fetchAniListTrending() POSTs to graphql.anilist.co, which
+  // a browser can never read - AniList sends no Access-Control-Allow-Origin - so
+  // it contributed six guaranteed CORS failures per page load and zero rows.
+  // Proxying it would not help either: this path only runs when /api/catalog is
+  // already unreachable, and that is our own server. Jikan does send CORS
+  // headers, so the three lookups below are the ones that actually work.
+  const [jikanTop, jikanSeason, jikanPopular] = await Promise.allSettled([
     timedRequest("Jikan Airing", () => fetchJikanPages(JIKAN_TOP_ENDPOINT, "Jikan Airing", 3)),
     timedRequest("Jikan Season", () => fetchJikanPages(JIKAN_SEASON_ENDPOINT, "Jikan Season", 3)),
     timedRequest("Jikan Popular", () => fetchJikanPages(JIKAN_POPULAR_ENDPOINT, "Jikan Popular", 3))
   ]);
 
   const loaded = [
-    ...(anilist.status === "fulfilled" ? anilist.value : []),
     ...(jikanTop.status === "fulfilled" ? jikanTop.value : []),
     ...(jikanSeason.status === "fulfilled" ? jikanSeason.value : []),
     ...(jikanPopular.status === "fulfilled" ? jikanPopular.value : [])
@@ -737,7 +741,7 @@ async function loadDirectCatalogFallback() {
     state.apiStatus.direct = "Online";
     writeResponseCache("direct-catalog", merged);
     writeResponseCache("main-catalog", merged);
-    setSourceStatus(catalogStatusLabel("AniList + Jikan", merged));
+    setSourceStatus(catalogStatusLabel("Jikan", merged));
     scheduleVisibleMetadataWarm(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
   } else {
     state.apiStatus.direct = "Offline";
@@ -3542,7 +3546,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=717";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=718";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -17286,7 +17290,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=717");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=718");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
