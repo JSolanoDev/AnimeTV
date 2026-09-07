@@ -4,6 +4,20 @@
 function normalizeExternalShow(item, source, index) {
   const title = item.title || item.name || item.animeTitle;
   if (!title) return null;
+  const sourceSiteUrl = item.siteUrl || item.url || "";
+  const animeAv1SiteMatch = String(sourceSiteUrl).match(/animeav1\.com\/media\/([^/?#]+)/i);
+  const animeAv1IdMatch = String(item.id || "").match(/^animeav1-(.+)$/i);
+  const belongsToAnimeAv1 = /animeav1/i.test([
+    source?.id,
+    source?.name,
+    source?.provider,
+    item.provider,
+    item.source
+  ].filter(Boolean).join(" "));
+  const animeAv1Slug = String(
+    item.animeAv1Slug || item._av1Slug || animeAv1SiteMatch?.[1] ||
+    animeAv1IdMatch?.[1] || (belongsToAnimeAv1 ? item._slug : "") || ""
+  ).trim().toLowerCase();
   const sourceImage = item.image || item.poster || item.cover || item.thumbnail || "";
   const sourcePoster = animeAv1ArtworkVariant(sourceImage, "poster") || sourceImage;
   const sourceBackdrop = animeAv1ArtworkVariant(sourceImage, "backdrop");
@@ -23,6 +37,9 @@ function normalizeExternalShow(item, source, index) {
 
   return {
     id: `source-${source.id || source.name}-${item.id || item.malId || item.anilistId || index}`,
+    catalogAnimeId: item.catalogAnimeId || item.id || null,
+    providerAnimeId: item.providerAnimeId || item.provider_anime_id || item.animeId || item.id || null,
+    animeAv1Slug,
     aniPubId: item.aniPubId || item.anipubId || item._id || (source.id === "anipub-catalog" ? item.id : ""),
     consumetId: item.consumetId || item.consumet_id || item.kickAssAnimeId || item.kickassanimeId || (source.id === "consumet-kickassanime" ? item.id : ""),
     finder: item.finder || item.slug || "",
@@ -104,7 +121,7 @@ function normalizeExternalShow(item, source, index) {
     // TMDB's primary backdrop and poster for the matched show. A later runtime
     // resolve must not replace it - see applyResolvedMatch in js/image-resolver.js.
     _artworkPinned: Boolean(item.tmdbBackdrop || item.tmdbPoster),
-    siteUrl: item.siteUrl || item.url || "",
+    siteUrl: sourceSiteUrl,
     description: cleanDescription(item.description || item.synopsis || ""),
     anime1vUrl: item.anime1vUrl || item.animeUrl || item.url || item.link || "",
     provider: item.provider || source.provider || "",
@@ -121,7 +138,11 @@ function normalizeSeasons(item) {
   if (rawSeasons.length) {
     return rawSeasons
       .map((season, index) => {
-        const seasonNumber = season.season || season.seasonNumber || season.number || index + 1;
+        const seasonNumber = canonicalSeasonNumber(
+          season.season ?? season.seasonNumber ?? season.number,
+          season.title || season.name || item.title,
+          index + 1
+        );
         const seasonItem = {
           ...item,
           episodes: season.episodes || season.videos || season.streams || season.files || []
@@ -146,13 +167,32 @@ function normalizeSeasons(item) {
     Math.max(0, Number(item.episode || item.episodeNumber || item.latestEpisode || item.total_episodes || item.episodeCount || 0))
   );
   if (totalEps > 0) {
+    const seasonNumber = canonicalSeasonNumber(
+      item.seasonNumber ?? item.canonicalSeason,
+      item.title || item.name || item.animeTitle,
+      1
+    );
     return [{
-      season: 1,
-      title: "Season 1",
+      season: seasonNumber,
+      title: seasonNumber > 1 ? `Season ${seasonNumber}` : "Season 1",
       episodes: Array.from({ length: totalEps }, (_, i) => ({
-        id: `${item.id || item.title || "ep"}-s1-e${i + 1}`,
+        id: `${item.id || item.title || "ep"}-s${seasonNumber}-e${i + 1}`,
         title: `Episode ${i + 1}`,
-        season: 1,
+        animeId: item.id || null,
+        catalogAnimeId: item.id || null,
+        anilistId: item.anilistId || null,
+        malId: item.malId || item.mal_id || null,
+        tmdbId: item.tmdbId || null,
+        provider: item.provider || sourceNameOf(item),
+        providerAnimeId: item.providerAnimeId || item.animeAv1Slug || item._slug || item.id || null,
+        providerAnimeSlug: item.animeAv1Slug || item._slug || "",
+        providerEpisodeId: i + 1,
+        sourceEpisodeNumber: i + 1,
+        canonicalSeason: seasonNumber,
+        canonicalEpisode: i + 1,
+        absoluteEpisode: i + 1,
+        displayEpisodeNumber: i + 1,
+        season: seasonNumber,
         episode: i + 1,
         number: i + 1,
         videoUrl: "",
@@ -165,21 +205,85 @@ function normalizeSeasons(item) {
   return [];
 }
 
-// Extract a numeric episode number from varied title formats:
-//   "Episode 01", "E3", "Ep. 12", "Capitulo 5", "Capítulo 05", "EP. 12", 42, "42"
+function sourceNameOf(item = {}) {
+  return item.server || item.provider || item.source || "";
+}
+
+function canonicalSeasonNumber(value, title = "", fallback = 1) {
+  const numeric = Number(value);
+  if (Number.isInteger(numeric) && numeric > 0) return numeric;
+  if (typeof SeasonNormalization !== "undefined" && SeasonNormalization.parseTitle) {
+    const parsed = SeasonNormalization.parseTitle(title || "");
+    if (Number.isInteger(parsed?.seasonNumber) && parsed.seasonNumber > 0) return parsed.seasonNumber;
+  }
+  return Number(fallback) > 0 ? Number(fallback) : 1;
+}
+
+// Extract a numeric episode number from varied title formats without destroying
+// valid provider identities such as episode 0 or 12.5.
 function parseEpisodeNumber(value, fallback = null) {
-  if (typeof value === "number" && Number.isFinite(value) && value > 0) return value;
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) return value;
   const str = String(value || "");
-  // Bare integer string
-  const bare = str.match(/^0*(\d+)$/);
+  const bare = str.match(/^0*(\d+(?:\.\d+)?)$/);
   if (bare) return Number(bare[1]);
-  // Prefixed: E3, Ep.12, Episode 01, EP. 5, Capitulo 3, Cap. 3
-  const prefixed = str.match(/(?:ep(?:isode)?|cap(?:ítulo|itulo)?|e)[\s.\-#]*0*(\d+)/i);
+  const prefixed = str.match(/(?:ep(?:isode)?|cap(?:ítulo|itulo)?|e)[\s.\-#]*0*(\d+(?:\.\d+)?)/i);
   if (prefixed) return Number(prefixed[1]);
-  // Trailing number: "Titulo 12", "Title - 04"
-  const trailing = str.match(/\b0*(\d+)\s*$/);
+  const trailing = str.match(/\b0*(\d+(?:\.\d+)?)\s*$/);
   if (trailing) return Number(trailing[1]);
   return fallback;
+}
+
+function getCanonicalEpisodeNumber(episode = {}, fallback = null) {
+  for (const value of [
+    episode.canonicalEpisode,
+    episode.episode,
+    episode.number,
+    episode.episodeNumber,
+    episode.displayEpisodeNumber
+  ]) {
+    const parsed = parseEpisodeNumber(value);
+    if (parsed !== null) return parsed;
+  }
+  return fallback;
+}
+
+function getOriginalProviderEpisodeId(episode = {}) {
+  for (const value of [
+    episode.providerEpisodeId,
+    episode.provider_episode_id,
+    episode.sourceEpisodeId,
+    episode.source_episode_id,
+    episode.episodeId,
+    episode.sourceEpisodeNumber,
+    episode.originalEpisodeNumber
+  ]) {
+    if (value !== undefined && value !== null && String(value).trim() !== "") return value;
+  }
+  return null;
+}
+
+function getProviderEpisodeId(episode = {}, fallback = null) {
+  const original = getOriginalProviderEpisodeId(episode);
+  if (original !== null) return original;
+  const canonical = getCanonicalEpisodeNumber(episode);
+  return canonical !== null ? canonical : fallback;
+}
+
+function canonicalEpisodeIdentity(episode = {}, context = {}) {
+  const season = canonicalSeasonNumber(
+    episode.canonicalSeason ?? episode.season ?? episode.seasonNumber,
+    context.title || "",
+    context.season || 1
+  );
+  const canonicalEpisode = getCanonicalEpisodeNumber(episode);
+  const providerEpisodeId = getProviderEpisodeId(episode);
+  const animeIdentity = episode.catalogAnimeId || episode.animeId || episode.anilistId || episode.malId || context.animeId || "anime";
+  const episodeIdentity = providerEpisodeId !== null && providerEpisodeId !== undefined && String(providerEpisodeId) !== ""
+    ? `provider:${String(providerEpisodeId)}`
+    : canonicalEpisode !== null
+      ? `episode:${canonicalEpisode}`
+      : `id:${episode.id || "unknown"}`;
+  return `${animeIdentity}:s${season}:${episodeIdentity}`;
 }
 
 function normalizeEpisodes(item, parentSeason = "") {
@@ -195,6 +299,11 @@ function normalizeEpisodes(item, parentSeason = "") {
           title: `Episode ${index + 1}`,
           season: fallbackSeason,
           episode: index + 1,
+          canonicalSeason: fallbackSeason,
+          canonicalEpisode: index + 1,
+          displayEpisodeNumber: index + 1,
+          providerEpisodeId: index + 1,
+          sourceEpisodeNumber: index + 1,
           videoUrl: episode,
           server: "Local"
         };
@@ -205,15 +314,43 @@ function normalizeEpisodes(item, parentSeason = "") {
       const externalUrl = episode.externalUrl || episode.embedUrl || episode.iframeUrl || "";
       const subtitles = normalizeSubtitleTracks(episode);
       // Parse episode number robustly — never leave it as a string that sorts lexically
-      const rawEpNum = episode.episode ?? episode.number;
-      const epNum = parseEpisodeNumber(rawEpNum) ??
-                    parseEpisodeNumber(episode.title) ??
-                    (index + 1);
+      const rawEpNum = episode.canonicalEpisode ?? episode.episode ?? episode.number ?? episode.episodeNumber;
+      const parsedEpNum = parseEpisodeNumber(rawEpNum) ?? parseEpisodeNumber(episode.title);
+      const displayEpNum = parsedEpNum ?? (index + 1);
+      const sourceEpisodeNumber = parseEpisodeNumber(
+        episode.sourceEpisodeNumber ?? episode.originalEpisodeNumber ?? rawEpNum
+      );
+      const providerEpisodeId = getProviderEpisodeId(episode, sourceEpisodeNumber ?? parsedEpNum);
+      const seasonNumber = canonicalSeasonNumber(
+        episode.canonicalSeason ?? episode.season ?? episode.seasonNumber ?? fallbackSeason,
+        item.title,
+        fallbackSeason
+      );
       return {
+        ...episode,
         id: episode.id || episode.slug || `${item.id || item.title || "episode"}-${index}`,
-        title: episode.title || episode.name || `Episode ${epNum}`,
-        season: Number(episode.season || episode.seasonNumber || fallbackSeason) || fallbackSeason,
-        episode: epNum,
+        title: episode.title || episode.name || `Episode ${displayEpNum}`,
+        animeId: episode.animeId || item.animeId || item.id || null,
+        catalogAnimeId: episode.catalogAnimeId || item.catalogAnimeId || item.id || null,
+        anilistId: episode.anilistId || item.anilistId || null,
+        malId: episode.malId || item.malId || item.mal_id || null,
+        tmdbId: episode.tmdbId || item.tmdbId || null,
+        provider: episode.provider || episode.server || item.provider || item.source || "",
+        providerAnimeId: episode.providerAnimeId || episode.provider_anime_id || item.providerAnimeId || item.animeAv1Slug || item._slug || item.id || null,
+        providerAnimeSlug: episode.providerAnimeSlug || item.animeAv1Slug || item._slug || "",
+        providerEpisodeId,
+        sourceEpisodeNumber: sourceEpisodeNumber ?? parsedEpNum,
+        originalEpisodeNumber: episode.originalEpisodeNumber ?? rawEpNum ?? null,
+        canonicalSeason: seasonNumber,
+        canonicalEpisode: parsedEpNum,
+        absoluteEpisode: parseEpisodeNumber(episode.absoluteEpisode ?? episode.absolute_episode),
+        displayEpisodeNumber: displayEpNum,
+        episodeNumberSource: parsedEpNum === null ? "position" : "metadata",
+        episodeType: episode.episodeType || episode.episode_type || episode.type || "episode",
+        airDate: episode.airDate || episode.aired || episode.air_date || "",
+        season: seasonNumber,
+        episode: displayEpNum,
+        number: displayEpNum,
         videoUrl: url,
         streamResolver,
         externalUrl,
@@ -234,7 +371,7 @@ function normalizeEpisodes(item, parentSeason = "") {
 function groupEpisodesBySeason(episodes = []) {
   const bySeason = new Map();
   episodes.forEach((episode) => {
-    const seasonNumber = Number(episode.season || episode.seasonNumber || 1) || 1;
+    const seasonNumber = canonicalSeasonNumber(episode.canonicalSeason ?? episode.season ?? episode.seasonNumber, "", 1);
     if (!bySeason.has(seasonNumber)) {
       bySeason.set(seasonNumber, {
         season: seasonNumber,
@@ -247,8 +384,8 @@ function groupEpisodesBySeason(episodes = []) {
   return [...bySeason.values()].map((season) => ({
     ...season,
     episodes: season.episodes.sort((a, b) => {
-      const numA = Number(a.episode || a.number || a.episodeNumber || 0);
-      const numB = Number(b.episode || b.number || b.episodeNumber || 0);
+      const numA = getCanonicalEpisodeNumber(a, Number.POSITIVE_INFINITY);
+      const numB = getCanonicalEpisodeNumber(b, Number.POSITIVE_INFINITY);
       if (numA !== numB) return numA - numB;
       const dateA = a.airDate || a.aired || a.air_date || "";
       const dateB = b.airDate || b.aired || b.air_date || "";
@@ -269,39 +406,73 @@ function normalizeEpisodeSourceOptions(episode = {}) {
     : Array.isArray(episode.sources)
       ? episode.sources
       : [];
-  const options = raw.map((source, index) => ({
-    id: source.id || source.source || `source-${index}`,
-    label: cleanPlaybackSourceLabel(source.label || source.name || source.server || source.source || `Source ${index + 1}`),
-    type: source.type || (source.externalUrl || source.embedUrl || source.iframeUrl ? "iframe" : "direct"),
-    videoUrl: pickPlayableUrl(source) || source.url || "",
-    externalUrl: source.externalUrl || source.embedUrl || source.iframeUrl || source.embed || "",
-    downloadUrl: source.downloadUrl || source.download || source.download_url || source.fileUrl || source.file_url || pickPlayableUrl(source) || "",
-    streamResolver: source.streamResolver || source.resolver || null
-  }));
+  const options = raw.map((source, index) => {
+    const videoUrl = pickPlayableUrl(source) || source.url || "";
+    const externalUrl = source.externalUrl || source.embedUrl || source.iframeUrl || source.embed || "";
+    const inferredType = source.type || (externalUrl ? "iframe" : "direct");
+    return {
+      ...source,
+      id: source.id || source.sourceId || source.originalSourceId || source.source || `source-${index}`,
+      originalSourceId: source.originalSourceId || source.sourceId || source.id || source.source || null,
+      label: cleanPlaybackSourceLabel(source.label || source.name || source.server || source.source || `Source ${index + 1}`),
+      provider: source.provider || source.server || episode.provider || episode.server || "",
+      type: inferredType,
+      videoUrl,
+      externalUrl,
+      downloadUrl: source.downloadUrl || source.download || source.download_url || source.fileUrl || source.file_url || videoUrl || "",
+      streamResolver: source.streamResolver || source.resolver || null,
+      mimeType: source.mimeType || source.mime || source.contentType || source.content_type || "",
+      container: source.container || source.format || "",
+      codec: source.codec || source.codecs || source.videoCodec || source.video_codec || "",
+      audioCodec: source.audioCodec || source.audio_codec || "",
+      resolution: source.resolution || source.quality || "",
+      bitrate: source.bitrate ?? source.bandwidth ?? null,
+      headers: source.headers || source.requestHeaders || source.request_headers || null,
+      referer: source.referer || source.referrer || source.headers?.Referer || source.headers?.referer || "",
+      providerEpisodeId: source.providerEpisodeId ?? source.provider_episode_id ?? getProviderEpisodeId(episode)
+    };
+  });
   if (pickPlayableUrl(episode)) {
     options.unshift({
-      id: "direct",
+      id: episode.sourceId || episode.originalSourceId || "direct",
+      originalSourceId: episode.originalSourceId || episode.sourceId || null,
       label: cleanPlaybackSourceLabel(episode.server || "Direct"),
+      provider: episode.provider || episode.server || "",
       type: "direct",
       videoUrl: pickPlayableUrl(episode),
-      downloadUrl: episode.downloadUrl || episode.download || episode.download_url || pickPlayableUrl(episode)
+      downloadUrl: episode.downloadUrl || episode.download || episode.download_url || pickPlayableUrl(episode),
+      mimeType: episode.mimeType || episode.mime || episode.contentType || "",
+      container: episode.container || episode.format || "",
+      codec: episode.codec || episode.codecs || episode.videoCodec || "",
+      audioCodec: episode.audioCodec || "",
+      resolution: episode.resolution || episode.quality || "",
+      bitrate: episode.bitrate ?? null,
+      headers: episode.headers || episode.requestHeaders || null,
+      referer: episode.referer || episode.referrer || "",
+      providerEpisodeId: getProviderEpisodeId(episode)
     });
   }
   if (episode.externalUrl) {
     options.push({
       id: episode.viaAniPub ? "anipub" : isAnime1vEpisode(episode) ? "anime1v" : "external",
       label: cleanPlaybackSourceLabel(episode.viaAniPub ? "AniPub" : isAnime1vEpisode(episode) ? "Anime1v" : episode.server || "External"),
+      provider: episode.provider || episode.server || "",
       type: "iframe",
       externalUrl: episode.externalUrl,
-      downloadUrl: episode.downloadUrl || episode.download || episode.download_url || ""
+      downloadUrl: episode.downloadUrl || episode.download || episode.download_url || "",
+      headers: episode.headers || episode.requestHeaders || null,
+      referer: episode.referer || episode.referrer || "",
+      providerEpisodeId: getProviderEpisodeId(episode)
     });
   }
   if (episode.streamResolver) {
     options.push({
       id: episode.streamResolver.type || "resolver",
       label: cleanPlaybackSourceLabel(episode.server || sourceLabelFromResolver(episode.streamResolver)),
+      provider: episode.provider || episode.server || episode.streamResolver.provider || "",
       type: "resolver",
-      streamResolver: episode.streamResolver
+      streamResolver: episode.streamResolver,
+      providerEpisodeId: getProviderEpisodeId(episode)
     });
   }
   const seen = new Set();
@@ -615,7 +786,10 @@ function mergeEpisodes(current = [], incoming = []) {
   const byEpisode = new Map();
   episodes.forEach((episode) => {
     const url = getEpisodeUrl(episode);
-    const key = url || `${episode.season || 1}-${episode.episode || episode.title || byEpisode.size}`;
+    const providerId = getProviderEpisodeId(episode);
+    const key = providerId !== null && providerId !== undefined && String(providerId) !== ""
+      ? `${episode.provider || episode.server || "provider"}:${episode.providerAnimeId || episode.providerAnimeSlug || "anime"}:s${episode.canonicalSeason ?? episode.season ?? 1}:${providerId}`
+      : url || canonicalEpisodeIdentity(episode, { season: episode.season || 1 });
     const existing = byEpisode.get(key);
     byEpisode.set(key, {
       ...existing,
@@ -624,7 +798,7 @@ function mergeEpisodes(current = [], incoming = []) {
       locked: episode.locked ?? existing?.locked ?? !url
     });
   });
-  return [...byEpisode.values()].sort((a, b) => Number(a.episode || 0) - Number(b.episode || 0));
+  return [...byEpisode.values()].sort((a, b) => getCanonicalEpisodeNumber(a, 0) - getCanonicalEpisodeNumber(b, 0));
 }
 
 function mergeSeasons(current = [], incoming = []) {

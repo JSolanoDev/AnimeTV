@@ -305,15 +305,30 @@ const slice = (start, end) => {
 
 let catalog = [];
 const ctx = vm.createContext({
-  Number, String, Array, Math, JSON, Boolean, Object,
+  Number, String, Array, Math, JSON, Boolean, Object, Map, Set, Date,
   catalogShows: () => catalog,
   getDetailSeasons: (show) => [{ season: 1, episodes: (show.episodes || []).slice() }],
   _buildShowsByAniListId: () => new Map(),
+  // Populates state.shows as a side effect; irrelevant to which list is chosen.
+  ensureFranchiseShowsInCatalog: () => {},
   // Swapped per-case below to stand in for whatever the live traversal returned.
   buildSeasonListFromAniListFranchise: () => null,
   makePlaceholderEpisodes: (show, n) => Array.from({ length: Number(show.anilistEpisodeCount || 3) }, (_, i) => ({ episode: i + 1, season: n }))
 });
+// Episode identity lives in js/normalize.js and the season builders call into
+// it. At runtime these are classic scripts sharing one global scope, so the
+// extract has to pull from both files or the helpers are simply not defined.
+const normalizeSrc = fs.readFileSync(ROOT + "/js/normalize.js", "utf8");
+const sliceFrom = (source, start, end) => {
+  const a = source.indexOf(start);
+  if (a < 0) { console.error("MISS " + start); process.exit(1); }
+  const b = source.indexOf(end, a);
+  return source.slice(a, b < 0 ? undefined : b);
+};
+
 vm.runInContext([
+  sliceFrom(normalizeSrc, "function canonicalSeasonNumber(", "\nfunction getOriginalProviderEpisodeId("),
+  sliceFrom(normalizeSrc, "function getOriginalProviderEpisodeId(", "\nfunction canonicalEpisodeIdentity("),
   slice("function bakedChainFor(", "\nfunction getFranchiseSeasonList("),
   slice("function getFranchiseSeasonList(", "\n// ── TioAnime source integration")
 ].join("\n"), ctx, { filename: "client.js extract" });
@@ -345,7 +360,15 @@ check("exactly one is the current show", list.filter((s) => s.isCurrentShow).len
 check("and it is the one that was opened", list.find((s) => s.isCurrentShow).anilistId, 178789);
 check("the current season uses the real episodes", list.find((s) => s.isCurrentShow).episodes.length, 2);
 check("other seasons are filled from their own counts", list[0].episodes.length, 23);
-check("filled episodes are locked, not pretend-playable", list[0].episodes.every((e) => e.locked), true);
+// A season we do not carry is no longer pre-emptively locked: a related title
+// can be missing from our catalogue while its provider page still exists, so
+// every row carries needsResolve and the click path validates the real slug
+// before reporting anything unavailable. What must NOT happen is a row that
+// silently presents as ready to play with nothing behind it.
+check("filled episodes are unresolved, not pretend-playable",
+  list[0].episodes.every((e) => e.needsResolve === true), true);
+check("and none of them carries a video URL",
+  list[0].episodes.some((e) => e.videoUrl || e.url), false);
 
 // A single-entry chain says nothing the normal path does not.
 catalog = [{ id: "x", anilistId: 5, franchiseSeasons: [{ anilistId: 5, title: "Only", episodes: 12, order: 1 }] }];
@@ -371,8 +394,13 @@ check("no chain at all is not a season list", buildSeasonListFromBakedChain({ id
   setLive([{ season: 3, title: "Season 3 Part 1" }, { season: 3, title: "Season 3 Part 2" }]);
   const withDegradedLive = getFranchiseSeasonList(opened);
   check("a degraded live franchise never beats a fuller baked chain", withDegradedLive.length, 3);
-  check("and the baked labels are the ones shown",
-    withDegradedLive.map((x) => x.title), ["Mushoku Tensei", "Mushoku Tensei II", "Mushoku Tensei III"]);
+  // Titles are now normalised into real seasons, with Parts merged, so the
+  // exact strings are not the point. The point is that the two-entry live stub
+  // lost - no "Part N" labels, and a chain numbered from season one.
+  check("the degraded stub labels are gone",
+    withDegradedLive.some((x) => /Part \d/.test(x.title || "")), false);
+  check("and the chain is numbered from season one",
+    withDegradedLive.map((x) => x.season), [1, 2, 3]);
 
   // The live source still wins when it genuinely knows more - AniList coming
   // back, or a season that aired after the last bake.

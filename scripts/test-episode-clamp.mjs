@@ -17,7 +17,20 @@ const slice = (start, end) => {
   return src.slice(a, b < 0 ? undefined : b);
 };
 
+// Episode identity now lives in js/normalize.js, and mergeAiredEpisodeMetadata
+// calls into it. These are classic scripts sharing one global scope at runtime,
+// so the extract has to pull from both files or the function is not defined.
+const normalizeSrc = fs.readFileSync(ROOT + "/js/normalize.js", "utf8");
+const sliceFrom = (source, start, end) => {
+  const a = source.indexOf(start);
+  if (a < 0) { console.error("MISS " + start); process.exit(1); }
+  const b = source.indexOf(end, a);
+  return source.slice(a, b < 0 ? undefined : b);
+};
+
 const code = [
+  sliceFrom(normalizeSrc, "function canonicalSeasonNumber(", "\nfunction getOriginalProviderEpisodeId("),
+  sliceFrom(normalizeSrc, "function getOriginalProviderEpisodeId(", "\nfunction canonicalEpisodeIdentity("),
   slice("function getSeasonEpisodeLimit(", "\nfunction "),
   slice("function clampSeasonEpisodes(", "\nfunction "),
   slice("function mergeAiredEpisodeMetadata(", "\n// Strip a leading"),
@@ -25,7 +38,7 @@ const code = [
 ].join("\n");
 
 const ctx = vm.createContext({
-  Number, Math, Array, Date, String, JSON, console,
+  Number, Math, Array, Date, String, JSON, console, Boolean, Object, Map, Set,
   // mergeAiredEpisodeMetadata's only outside dependency
   extractSeasonNumber: () => 1,
   // repairEpisodeGaps' dependencies

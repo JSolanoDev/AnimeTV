@@ -53,18 +53,23 @@ function isPreferredAdultSource(source = {}) {
   return isAdultFallbackSource(source) && source.type === "direct" && !isBlockedPlaybackSource(source);
 }
 
+function knownSourceServer(key) {
+  if (typeof KNOWN_SOURCE_SERVERS === "undefined" || !Array.isArray(KNOWN_SOURCE_SERVERS)) return null;
+  return KNOWN_SOURCE_SERVERS.find((definition) => definition.key === key) || null;
+}
+
 function isAdultFallbackSource(source = {}) {
-  return Boolean(KNOWN_SOURCE_SERVERS.find((def) => def.key === "underhentai")?.match(source));
+  return Boolean(knownSourceServer("underhentai")?.match(source));
 }
 
 function isAnimeAv1Source(source = {}) {
   const text = sourceIdentityText(source);
-  return text.includes("animeav1") || Boolean(KNOWN_SOURCE_SERVERS.find((d) => d.key === "animeav1")?.match(source));
+  return text.includes("animeav1") || Boolean(knownSourceServer("animeav1")?.match(source));
 }
 
 function isJKAnimeSource(source = {}) {
   const text = sourceIdentityText(source);
-  return text.includes("jkanime") || Boolean(KNOWN_SOURCE_SERVERS.find((d) => d.key === "jkanime")?.match(source));
+  return text.includes("jkanime") || Boolean(knownSourceServer("jkanime")?.match(source));
 }
 
 function isHlsSource(source = {}) {
@@ -75,6 +80,44 @@ function isHlsSource(source = {}) {
 
 function isMp4UploadSource(source = {}) {
   return /mp4\s*upload|mp4upload/.test(sourceIdentityText(source));
+}
+
+function declaredVideoCodec(source = {}) {
+  const value = [source.codec, source.codecs, source.videoCodec, source.mimeType]
+    .filter(Boolean).join(" ").toLowerCase();
+  if (/\b(?:av01|av1)\b/.test(value)) return "av1";
+  if (/\b(?:avc1|avc3|h\.?264)\b/.test(value)) return "h264";
+  if (/\b(?:hvc1|hev1|hevc|h\.?265)\b/.test(value)) return "hevc";
+  if (/\b(?:vp09|vp9)\b/.test(value)) return "vp9";
+  return "";
+}
+
+function browserSupportsDeclaredCodec(source = {}) {
+  const codec = declaredVideoCodec(source);
+  if (!codec) return null;
+  const probes = {
+    av1: ['video/mp4; codecs="av01.0.05M.08"', 'video/webm; codecs="av01.0.05M.08"'],
+    h264: ['video/mp4; codecs="avc1.42E01E"'],
+    hevc: ['video/mp4; codecs="hvc1.1.6.L93.B0"', 'video/mp4; codecs="hev1.1.6.L93.B0"'],
+    vp9: ['video/webm; codecs="vp09.00.10.08"']
+  }[codec] || [];
+  let checked = false;
+  try {
+    if (typeof MediaSource !== "undefined" && typeof MediaSource.isTypeSupported === "function") {
+      checked = true;
+      if (probes.some((mime) => MediaSource.isTypeSupported(mime))) return true;
+    }
+  } catch { /* fall through to HTMLMediaElement */ }
+  try {
+    if (typeof document !== "undefined") {
+      const video = document.createElement("video");
+      if (typeof video.canPlayType === "function") {
+        checked = true;
+        if (probes.some((mime) => Boolean(video.canPlayType(mime)))) return true;
+      }
+    }
+  } catch { /* capability remains unknown */ }
+  return checked ? false : null;
 }
 
 function sourcePreferredFilterValue(source = {}) {
@@ -110,25 +153,26 @@ function sourcePreferenceScore(source = {}) {
   const isMp4  = isMp4UploadSource(source);
   const isAdFree = /yourupload|you\s*upload|youupload|ok\.?ru|okru|streamwish|filelions/.test(label);
   const isAdWalled = /\bvoe\b|netu|hqq|streamsb|embedsb|\bsb\b|dood|filemoon|vidhide|mixdrop/.test(label);
+  const compatibilityPenalty = browserSupportsDeclaredCodec(source) === false ? 50 : 0;
 
   // Adult catalog: use a resolved direct stream before an in-page provider.
-  if (isPreferredAdultSource(source))    return 0;
-  if (identity.includes("hentaila"))     return 1;
+  if (isPreferredAdultSource(source))    return 0 + compatibilityPenalty;
+  if (identity.includes("hentaila"))     return 1 + compatibilityPenalty;
 
   // ── AnimeAV1 first (most reliable) — HLS is the very top pick ────────────
-  if (isAnimeAv1 && isHls)              return 0; // AnimeAV1 — HLS  (best)
-  if (isJKAnime && isMp4)               return 1; // JKAnime — MP4Upload
-  if (isAnimeAv1 && isDirect)           return 2; // AnimeAV1 — other direct
-  if (isAnimeAv1 && (isMega || isMp4))  return 3; // AnimeAV1 — Mega / MP4Upload
-  if (isAnimeAv1 && !isAdWalled)        return 4; // AnimeAV1 — other ad-free embed
+  if (isAnimeAv1 && isHls)              return 0 + compatibilityPenalty; // AnimeAV1 — HLS  (best)
+  if (isJKAnime && isMp4)               return 1 + compatibilityPenalty; // JKAnime — MP4Upload
+  if (isAnimeAv1 && isDirect)           return 2 + compatibilityPenalty; // AnimeAV1 — other direct
+  if (isAnimeAv1 && (isMega || isMp4))  return 3 + compatibilityPenalty; // AnimeAV1 — Mega / MP4Upload
+  if (isAnimeAv1 && !isAdWalled)        return 4 + compatibilityPenalty; // AnimeAV1 — other ad-free embed
   // ── Then the other dependable, ad-free servers ─────────────────────────
-  if (isHls || isDirect)               return 5; // any other direct / HLS stream
-  if (isMega || isMp4)                 return 6; // Mega / MP4Upload (TioAnime etc.)
-  if (isAdFree)                        return 7; // YourUpload / Ok.ru / …
-  if (isAdultFallbackSource(source))    return 8; // UnderHentai/Kraken fallback
+  if (isHls || isDirect)               return 5 + compatibilityPenalty; // any other direct / HLS stream
+  if (isMega || isMp4)                 return 6 + compatibilityPenalty; // Mega / MP4Upload (TioAnime etc.)
+  if (isAdFree)                        return 7 + compatibilityPenalty; // YourUpload / Ok.ru / …
+  if (isAdultFallbackSource(source))    return 8 + compatibilityPenalty; // UnderHentai/Kraken fallback
   // ── Ad-walled hosts sink to the bottom ─────────────────────────────────
-  if (isAdWalled)                      return 9;
-  return 8;                                       // neutral / unknown
+  if (isAdWalled)                      return 9 + compatibilityPenalty;
+  return 8 + compatibilityPenalty;                // neutral / unknown
 }
 
 // Order sources so the auto-selected one (index 0) is the best playable pick:
@@ -185,6 +229,8 @@ if (typeof module !== "undefined" && module.exports) {
     isJKAnimeSource,
     isHlsSource,
     isMp4UploadSource,
+    declaredVideoCodec,
+    browserSupportsDeclaredCodec,
     sourcePreferredFilterValue,
     getPrimarySourceFilterOptions,
     sourcePreferenceScore,
