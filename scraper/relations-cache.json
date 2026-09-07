@@ -1,7 +1,32 @@
 {
-  "generatedAt": "2026-09-07T01:33:48.060Z",
-  "count": 5,
+  "generatedAt": "2026-09-07T02:07:26.599Z",
+  "count": 102,
   "edges": {
+    "21": [],
+    "6702": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 22043
+      }
+    ],
+    "16498": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 25777
+      }
+    ],
+    "31964": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 33486
+      }
+    ],
+    "36754": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 58772
+      }
+    ],
     "39535": [
       {
         "relationType": "SEQUEL",
@@ -18,6 +43,24 @@
         "malId": 51179
       }
     ],
+    "49785": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 35972
+      }
+    ],
+    "50306": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 44203
+      }
+    ],
+    "50695": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 57559
+      }
+    ],
     "51179": [
       {
         "relationType": "PREQUEL",
@@ -28,6 +71,179 @@
         "malId": 55888
       }
     ],
+    "52299": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 58567
+      }
+    ],
+    "52505": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 62865
+      }
+    ],
+    "52701": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 59068
+      }
+    ],
+    "52807": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 34134
+      },
+      {
+        "relationType": "PREQUEL",
+        "malId": 62653
+      },
+      {
+        "relationType": "SEQUEL",
+        "malId": 63193
+      }
+    ],
+    "52991": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 59978
+      }
+    ],
+    "53410": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 38474
+      },
+      {
+        "relationType": "SEQUEL",
+        "malId": 60267
+      }
+    ],
+    "53447": [],
+    "53512": [],
+    "53590": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 63078
+      }
+    ],
+    "53770": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 59189
+      }
+    ],
+    "53879": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 57635
+      }
+    ],
+    "54000": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 50461
+      }
+    ],
+    "54275": [],
+    "54492": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 58514
+      }
+    ],
+    "54595": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 48316
+      },
+      {
+        "relationType": "SEQUEL",
+        "malId": 57584
+      }
+    ],
+    "54703": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 49709
+      }
+    ],
+    "54714": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 57616
+      }
+    ],
+    "54724": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 60059
+      }
+    ],
+    "54744": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 59873
+      }
+    ],
+    "54757": [],
+    "54789": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 49918
+      },
+      {
+        "relationType": "PREQUEL",
+        "malId": 57519
+      },
+      {
+        "relationType": "SEQUEL",
+        "malId": 60098
+      }
+    ],
+    "54852": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 57612
+      }
+    ],
+    "54900": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 59160
+      }
+    ],
+    "54947": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 51252
+      }
+    ],
+    "55265": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 59131
+      }
+    ],
+    "55318": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 61335
+      }
+    ],
+    "55749": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 52973
+      }
+    ],
+    "55774": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 58524
+      }
+    ],
+    "55866": [],
     "55888": [
       {
         "relationType": "PREQUEL",
@@ -38,11 +254,353 @@
         "malId": 59193
       }
     ],
+    "55973": [],
+    "56538": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 9656
+      }
+    ],
+    "56613": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 40930
+      }
+    ],
+    "56690": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 62567
+      }
+    ],
+    "56840": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 59274
+      }
+    ],
+    "57025": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 53446
+      }
+    ],
+    "57181": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 61323
+      }
+    ],
+    "57325": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 60555
+      }
+    ],
+    "57524": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 61398
+      }
+    ],
+    "57810": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 59828
+      }
+    ],
+    "58259": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 61325
+      }
+    ],
+    "58359": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 63254
+      }
+    ],
+    "58514": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 54492
+      },
+      {
+        "relationType": "SEQUEL",
+        "malId": 61987
+      }
+    ],
+    "58515": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 54265
+      }
+    ],
+    "58567": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 52299
+      },
+      {
+        "relationType": "SEQUEL",
+        "malId": 64546
+      }
+    ],
+    "58861": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 63780
+      }
+    ],
+    "58883": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 58920
+      }
+    ],
+    "58913": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 62584
+      }
+    ],
+    "59027": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 53887
+      }
+    ],
+    "59145": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 60564
+      }
+    ],
     "59193": [
       {
         "relationType": "PREQUEL",
         "malId": 55888
       }
-    ]
+    ],
+    "59205": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 62513
+      }
+    ],
+    "59342": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 61608
+      }
+    ],
+    "59424": [],
+    "59452": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 61897
+      }
+    ],
+    "59466": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 49520
+      }
+    ],
+    "59484": [],
+    "59517": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 62484
+      }
+    ],
+    "59644": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 63140
+      }
+    ],
+    "59983": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 58059
+      },
+      {
+        "relationType": "PREQUEL",
+        "malId": 63857
+      },
+      {
+        "relationType": "SEQUEL",
+        "malId": 64500
+      }
+    ],
+    "59986": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 37105
+      },
+      {
+        "relationType": "SEQUEL",
+        "malId": 62542
+      }
+    ],
+    "60059": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 54724
+      }
+    ],
+    "60098": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 54789
+      },
+      {
+        "relationType": "SEQUEL",
+        "malId": 63130
+      }
+    ],
+    "60146": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 61831
+      }
+    ],
+    "60334": [],
+    "60371": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 63832
+      }
+    ],
+    "60407": [],
+    "60460": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 63817
+      }
+    ],
+    "60522": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 48760
+      }
+    ],
+    "60564": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 59145
+      },
+      {
+        "relationType": "SEQUEL",
+        "malId": 63801
+      }
+    ],
+    "60593": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 61942
+      }
+    ],
+    "60619": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 58172
+      }
+    ],
+    "60636": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 56784
+      }
+    ],
+    "60969": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 63121
+      }
+    ],
+    "61142": [],
+    "61211": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 63789
+      }
+    ],
+    "61269": [],
+    "61316": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 54857
+      }
+    ],
+    "61469": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 53273
+      }
+    ],
+    "61517": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 53223
+      },
+      {
+        "relationType": "SEQUEL",
+        "malId": 63185
+      }
+    ],
+    "61851": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 41567
+      }
+    ],
+    "61897": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 59452
+      }
+    ],
+    "61930": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 59636
+      }
+    ],
+    "62430": [],
+    "62513": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 59205
+      }
+    ],
+    "62542": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 59986
+      }
+    ],
+    "62883": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 42250
+      }
+    ],
+    "63403": [],
+    "63780": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 58861
+      }
+    ],
+    "63832": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 60371
+      }
+    ],
+    "64012": []
   }
 }

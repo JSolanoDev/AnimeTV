@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-09-07T01:25:33.602Z",
-  "count": 99,
+  "generatedAt": "2026-09-07T02:07:26.603Z",
+  "count": 101,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -264,6 +264,39 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [
         {
+          "anilistId": 108465,
+          "title": "Mushoku Tensei: Isekai Ittara Honki Dasu",
+          "format": "TV",
+          "status": "",
+          "episodes": 11,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 1
+        },
+        {
+          "anilistId": 127720,
+          "title": "Mushoku Tensei: Isekai Ittara Honki Dasu Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2021,
+          "startedAt": 1633046400000,
+          "order": 2
+        },
+        {
+          "anilistId": 146065,
+          "title": "Mushoku Tensei II: Isekai Ittara Honki Dasu",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 3
+        },
+        {
           "anilistId": 166873,
           "title": "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2",
           "format": "TV",
@@ -272,7 +305,7 @@
           "season": "SPRING",
           "seasonYear": 2024,
           "startedAt": 1711929600000,
-          "order": 1
+          "order": 4
         },
         {
           "anilistId": 178789,
@@ -283,7 +316,7 @@
           "season": "SUMMER",
           "seasonYear": 2026,
           "startedAt": 1782864000000,
-          "order": 2
+          "order": 5
         }
       ]
     },
@@ -3057,6 +3090,72 @@
         }
       ]
     },
+    "animeav1-mushoku-tensei-ii-isekai-ittara-honki-dasu": {
+      "anilistId": 146065,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 108465,
+          "title": "Mushoku Tensei: Isekai Ittara Honki Dasu",
+          "format": "TV",
+          "status": "",
+          "episodes": 11,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 1
+        },
+        {
+          "anilistId": 127720,
+          "title": "Mushoku Tensei: Isekai Ittara Honki Dasu Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2021,
+          "startedAt": 1633046400000,
+          "order": 2
+        },
+        {
+          "anilistId": 146065,
+          "title": "Mushoku Tensei II: Isekai Ittara Honki Dasu",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 3
+        },
+        {
+          "anilistId": 166873,
+          "title": "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 4
+        },
+        {
+          "anilistId": 178789,
+          "title": "Mushoku Tensei III: Isekai Ittara Honki Dasu",
+          "format": "TV",
+          "status": "",
+          "episodes": 14,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 5
+        }
+      ]
+    },
     "animeav1-temple": {
       "anilistId": 160447,
       "airingStatus": "",
@@ -3067,59 +3166,203 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": []
     },
-    "animeav1-kanojo-okarishimasu-3rd-season": {
-      "anilistId": 154745,
+    "anilist-166873": {
+      "anilistId": 166873,
       "airingStatus": "",
-      "season": "SUMMER",
-      "seasonYear": 2023,
+      "season": "SPRING",
+      "seasonYear": 2024,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [
         {
-          "anilistId": 124410,
-          "title": "Kanojo, Okarishimasu 2nd Season",
+          "anilistId": 108465,
+          "title": "Mushoku Tensei: Isekai Ittara Honki Dasu",
           "format": "TV",
           "status": "",
-          "episodes": 12,
-          "season": "SUMMER",
-          "seasonYear": 2022,
-          "startedAt": 1656633600000,
+          "episodes": 11,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
           "order": 1
         },
         {
-          "anilistId": 154745,
-          "title": "Kanojo, Okarishimasu 3rd Season",
+          "anilistId": 127720,
+          "title": "Mushoku Tensei: Isekai Ittara Honki Dasu Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2021,
+          "startedAt": 1633046400000,
+          "order": 2
+        },
+        {
+          "anilistId": 146065,
+          "title": "Mushoku Tensei II: Isekai Ittara Honki Dasu",
           "format": "TV",
           "status": "",
           "episodes": 12,
           "season": "SUMMER",
           "seasonYear": 2023,
           "startedAt": 1688169600000,
+          "order": 3
+        },
+        {
+          "anilistId": 166873,
+          "title": "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 4
+        },
+        {
+          "anilistId": 178789,
+          "title": "Mushoku Tensei III: Isekai Ittara Honki Dasu",
+          "format": "TV",
+          "status": "",
+          "episodes": 14,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 5
+        }
+      ]
+    },
+    "anilist-127720": {
+      "anilistId": 127720,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 108465,
+          "title": "Mushoku Tensei: Isekai Ittara Honki Dasu",
+          "format": "TV",
+          "status": "",
+          "episodes": 11,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 1
+        },
+        {
+          "anilistId": 127720,
+          "title": "Mushoku Tensei: Isekai Ittara Honki Dasu Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2021,
+          "startedAt": 1633046400000,
           "order": 2
         },
         {
-          "anilistId": 179344,
-          "title": "Kanojo, Okarishimasu 4th Season",
+          "anilistId": 146065,
+          "title": "Mushoku Tensei II: Isekai Ittara Honki Dasu",
           "format": "TV",
           "status": "",
           "episodes": 12,
           "season": "SUMMER",
-          "seasonYear": 2025,
-          "startedAt": 1751328000000,
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
           "order": 3
+        },
+        {
+          "anilistId": 166873,
+          "title": "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 4
+        },
+        {
+          "anilistId": 178789,
+          "title": "Mushoku Tensei III: Isekai Ittara Honki Dasu",
+          "format": "TV",
+          "status": "",
+          "episodes": 14,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 5
         }
       ]
     },
-    "animeav1-nanatsu-no-maken-ga-shihai-suru": {
-      "anilistId": 142598,
+    "anilist-108465": {
+      "anilistId": 108465,
       "airingStatus": "",
-      "season": "SUMMER",
-      "seasonYear": 2023,
-      "anilistEpisodeCount": 15,
+      "season": "WINTER",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 11,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
+      "franchiseSeasons": [
+        {
+          "anilistId": 108465,
+          "title": "Mushoku Tensei: Isekai Ittara Honki Dasu",
+          "format": "TV",
+          "status": "",
+          "episodes": 11,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 1
+        },
+        {
+          "anilistId": 127720,
+          "title": "Mushoku Tensei: Isekai Ittara Honki Dasu Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2021,
+          "startedAt": 1633046400000,
+          "order": 2
+        },
+        {
+          "anilistId": 146065,
+          "title": "Mushoku Tensei II: Isekai Ittara Honki Dasu",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 3
+        },
+        {
+          "anilistId": 166873,
+          "title": "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 4
+        },
+        {
+          "anilistId": 178789,
+          "title": "Mushoku Tensei III: Isekai Ittara Honki Dasu",
+          "format": "TV",
+          "status": "",
+          "episodes": 14,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 5
+        }
+      ]
     }
   }
 }
