@@ -120,6 +120,36 @@ check("and no airing instant it does not have", solo.nextAiringAt, null);
     s3.franchiseSeasons.map((x) => x.order), [1, 2, 3]);
 }
 
+/* ── 2c. A RUN THAT RESOLVES NOTHING MUST STILL LEAVE A FILE ───────────────
+   Run #111 (2026-09-06) failed exactly here. AniList 403s from the GitHub
+   Actions runner just as it does from Vercel and from a dev machine, so the bake
+   resolved nothing and wrote no file - and git-auto-commit-action, which lists
+   scraper/airing-map.json by name, died with
+     fatal: pathspec 'scraper/airing-map.json' did not match any files
+     Error: Invalid status code: 128
+   taking the whole catalogue commit down with it. */
+{
+  const emptyOut = path.join(tmp, "empty.json");
+  fs.writeFileSync(fixturePath, JSON.stringify([], null, 2));
+  execFileSync(process.execPath, [
+    path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--fixture", fixturePath, "--out", emptyOut, "--write"
+  ], { stdio: "pipe" });
+  check("a run that resolves nothing still leaves a file", fs.existsSync(emptyOut), true);
+  const empty = JSON.parse(fs.readFileSync(emptyOut, "utf8"));
+  check("and that file is a valid, empty map", [empty.count, Object.keys(empty.entries).length], [0, 0]);
+
+  // ...and it must never flatten a map that already has content.
+  const populated = { generatedAt: "2026-01-01T00:00:00.000Z", count: 2, entries: { a: { anilistId: 1 }, b: { anilistId: 2 } } };
+  fs.writeFileSync(emptyOut, JSON.stringify(populated, null, 2));
+  execFileSync(process.execPath, [
+    path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--fixture", fixturePath, "--out", emptyOut, "--write"
+  ], { stdio: "pipe" });
+  check("an existing map is never overwritten by an empty run",
+    JSON.parse(fs.readFileSync(emptyOut, "utf8")).count, 2);
+}
+
 /* ── 3. The client half ───────────────────────────────────────────────────── */
 const src = fs.readFileSync(path.join(ROOT, "client.js"), "utf8");
 const slice = (start, end) => {

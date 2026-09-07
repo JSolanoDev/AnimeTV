@@ -197,6 +197,25 @@ function entryFor(media, chain = []) {
   };
 }
 
+// The nightly job commits this path BY NAME. `git add` exits 128 on a pathspec
+// that matches nothing, so the first time AniList was unreachable the missing
+// file took down the entire commit step - discarding that run's anime_metadata
+// .json too, which is the catalogue itself. An empty map is a valid, supported
+// state (every surface behaves exactly as it did before it existed), so the file
+// must exist even when we resolved nothing. It is never used to overwrite a
+// populated map: this only ever creates one that is absent.
+function ensureMapExists() {
+  if (!WRITE) return;
+  try { fs.readFileSync(OUT, "utf8"); return; } catch { /* absent - create it */ }
+  try {
+    fs.mkdirSync(path.dirname(OUT), { recursive: true });
+    fs.writeFileSync(OUT, JSON.stringify({ generatedAt: new Date().toISOString(), count: 0, entries: {} }, null, 2), "utf8");
+    log(`wrote an empty ${path.relative(root, OUT)} so the commit step has a file to add`);
+  } catch (error) {
+    log(`could not create ${OUT}: ${error.message}`);
+  }
+}
+
 /* ── Main ──────────────────────────────────────────────────────────────────── */
 async function main() {
   let artwork;
@@ -204,6 +223,7 @@ async function main() {
     artwork = JSON.parse(fs.readFileSync(ARTWORK_MAP, "utf8"));
   } catch (error) {
     log(`cannot read artwork-map.json (${error.message}) - nothing to key on, leaving the map alone`);
+    ensureMapExists();
     return 0;
   }
   const entries = artwork?.entries || {};
@@ -253,6 +273,7 @@ async function main() {
 
   if (!byAnilistId.size) {
     log("resolved nothing - the existing map is left exactly as it is (this is not a build failure)");
+    ensureMapExists();
     return 0;
   }
 
