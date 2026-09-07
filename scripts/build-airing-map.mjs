@@ -234,6 +234,17 @@ const JIKAN_PAUSE_MS = 1100;
 // outward adds the seasons we do not carry. 1400 at ~1.1s is roughly 26 minutes,
 // which is a nightly job's business and nobody else's.
 const JIKAN_MAX_REQUESTS = 1400;
+// Jikan answers 504 ("failed to connect to MyAnimeList") in BURSTS - five ids in
+// a row measured 2026-09-07, then a 200 on the same ids minutes later. Run #113
+// abandoned the whole crawl after 1m7s because five consecutive failures were
+// treated as "the provider is down". They are not; they are weather. Retry each
+// id, and only give up when failures are sustained across many DIFFERENT ids.
+const JIKAN_RETRIES = 2;
+const JIKAN_GIVE_UP_AFTER = 25;
+// A wall-clock stop, because retries multiply the worst case past any request
+// count. The job's step timeout is 40 minutes; stop well inside it and keep
+// whatever was built rather than being killed with nothing.
+const JIKAN_DEADLINE_MS = 28 * 60 * 1000;
 const SEASONISH = new Set(["TV", "ONA"]);
 // Ordering inside a year: AniList sorts by air date and the offline database
 // only carries a season name, so map it back to the month the season starts.
@@ -341,6 +352,22 @@ function nodeFromDatabase(db, malId) {
   };
 }
 
+async function relationsWithRetry(malId, fixture) {
+  if (fixture) return parseRelationBlocks(fixture[String(malId)]);
+  for (let attempt = 0; attempt <= JIKAN_RETRIES; attempt += 1) {
+    try {
+      return await jikanRelations(malId);
+    } catch (error) {
+      if (attempt === JIKAN_RETRIES) {
+        log(`mal ${malId} failed ${attempt + 1}x: ${error.message}`);
+        return null;
+      }
+      await sleep(JIKAN_PAUSE_MS * (attempt + 2));
+    }
+  }
+  return null;
+}
+
 async function fetchViaJikan(targets) {
   const db = await loadOfflineIndex();
   log(`offline database indexed: ${db.size} entries`);
@@ -361,24 +388,24 @@ async function fetchViaJikan(targets) {
   log(`${withMal.length} rows with a MAL id, ${candidates.length} sit beside another TV/ONA entry`);
 
   const media = [];
+  const startedAt = Date.now();
   let requests = 0;
   let failures = 0;
-  while (queue.length && requests < JIKAN_MAX_REQUESTS) {
+  let missed = 0;
+  let stoppedBy = "";
+  while (queue.length) {
+    if (requests >= JIKAN_MAX_REQUESTS) { stoppedBy = "request budget"; break; }
+    if (!fixture && Date.now() - startedAt > JIKAN_DEADLINE_MS) { stoppedBy = "time budget"; break; }
     const malId = queue.shift();
     requests += 1;
-    let edges;
-    try {
-      edges = fixture ? parseRelationBlocks(fixture[String(malId)]) : await jikanRelations(malId);
-      failures = 0;
-    } catch (error) {
+    const edges = await relationsWithRetry(malId, fixture);
+    if (edges === null) {
       failures += 1;
-      log(`mal ${malId} failed: ${error.message}`);
-      // Jikan answers 504 ("failed to connect to MyAnimeList") in bursts. Back
-      // off, and give up entirely rather than grinding through hundreds of them.
-      if (failures >= 5) { log("five consecutive Jikan failures - abandoning the fallback"); break; }
-      if (!fixture) await sleep(JIKAN_PAUSE_MS * 3);
+      missed += 1;
+      if (failures >= JIKAN_GIVE_UP_AFTER) { stoppedBy = `${failures} consecutive failures`; break; }
       continue;
     }
+    failures = 0;
     const self = nodeFromDatabase(db, malId);
     if (self) {
       media.push({
@@ -399,7 +426,8 @@ async function fetchViaJikan(targets) {
     if (!fixture && queue.length) await sleep(JIKAN_PAUSE_MS);
   }
   // Never let a cap look like completeness.
-  if (queue.length) log(`request budget spent - ${queue.length} chain link(s) left unexplored`);
+  if (stoppedBy) log(`stopped by ${stoppedBy} - ${queue.length} chain link(s) left unexplored`);
+  if (missed) log(`${missed} id(s) could not be read even after retries`);
   log(`Jikan: ${requests} request(s), ${media.length} media shaped`);
   return media;
 }
