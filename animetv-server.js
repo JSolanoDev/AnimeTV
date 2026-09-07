@@ -2353,7 +2353,9 @@ function readScrapedRegularCatalogItems() {
             // What the SOURCE actually serves, measured at build time. An airing
             // show's planned total is not what is playable.
             ...(airingHit.sourceEpisodeCount ? { sourceEpisodeCount: airingHit.sourceEpisodeCount } : {}),
-            // The Weekly Schedule's only remaining input now AniList is gone.
+            // When the source last published an episode - the weekly slot, and the
+            // Weekly Schedule's primary input now AniList is gone.
+            ...(airingHit.lastEpisodeAt ? { lastEpisodeAt: airingHit.lastEpisodeAt } : {}),
             ...(airingHit.broadcastDay ? {
               broadcastDay: airingHit.broadcastDay,
               broadcastTime: airingHit.broadcastTime,
@@ -2450,6 +2452,7 @@ function readScrapedRegularCatalogItems() {
             seasonYear: item.seasonYear || airingHit.seasonYear || null,
             status: item.status || airingHit.airingStatus || (meta ? meta.airingStatus : "") || "",
             ...(airingHit.sourceEpisodeCount ? { sourceEpisodeCount: airingHit.sourceEpisodeCount } : {}),
+            ...(airingHit.lastEpisodeAt ? { lastEpisodeAt: airingHit.lastEpisodeAt } : {}),
             ...(airingHit.broadcastDay ? {
               broadcastDay: airingHit.broadcastDay,
               broadcastTime: airingHit.broadcastTime,

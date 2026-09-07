@@ -644,6 +644,92 @@ function ensureMapExists() {
   }
 }
 
+/* ── The source's own weekly schedule ──────────────────────────────────────
+   AnimeAV1 is a SvelteKit app, so every page has a serialised data endpoint
+   beside it. /horario/__data.json returns the whole airing schedule - 78 shows
+   - in ONE request, each with its slug, the number of its latest episode and
+   when that episode was published.
+
+   That single call replaces two expensive things at once:
+
+     - the episode-count probe, which binary-searched /media/<slug>/<n> at four
+       or five requests per show. Verified against hand measurements: Mushoku
+       Tensei III 11, Thunder 3 9, Mebius Dust 9, Hanaori-san 9 - all exact.
+     - the Jikan broadcast lookup, which needed one request per show and was
+       being throttled. The publish time of the latest episode IS the weekly
+       slot, in real UTC, with no timezone guessing at all.
+
+   It is also the right source on principle: this is the provider that actually
+   serves the episodes, so it cannot disagree with itself the way a metadata
+   provider can. */
+const ANIMEAV1_SCHEDULE = "https://animeav1.com/horario/__data.json";
+
+// SvelteKit serialises with devalue: a flat array where every value is either a
+// literal or an INDEX into that same array. Resolve indices back into objects.
+function resolveDevalue(flat, index, depth = 0) {
+  if (depth > 8 || typeof index !== "number") return null;
+  const value = flat[index];
+  if (value === null || value === undefined) return value;
+  if (Array.isArray(value)) return value.map((child) => resolveDevalue(flat, child, depth + 1));
+  if (typeof value === "object") {
+    const out = {};
+    for (const [key, child] of Object.entries(value)) out[key] = resolveDevalue(flat, child, depth + 1);
+    return out;
+  }
+  return value;
+}
+
+async function fetchAnimeAv1Schedule() {
+  const response = await fetch(ANIMEAV1_SCHEDULE, { headers: { Accept: "application/json" } });
+  if (!response.ok) throw new Error(`AnimeAV1 schedule HTTP ${response.status}`);
+  const payload = await response.json();
+  const node = (payload.nodes || []).find((entry) => entry && Array.isArray(entry.data) && entry.data.length > 50);
+  if (!node) throw new Error("no data node in the schedule payload");
+  const root = resolveDevalue(node.data, 0);
+  const media = Array.isArray(root?.media) ? root.media : [];
+  const bySlug = new Map();
+  for (const show of media) {
+    const slug = String(show?.slug || "").trim();
+    const number = Number(show?.latestEpisode?.number);
+    const airedAt = show?.latestEpisode?.createdAt;
+    if (!slug || !(number > 0)) continue;
+    bySlug.set(slug, {
+      episodes: number,
+      lastEpisodeAt: airedAt && Number.isFinite(Date.parse(airedAt)) ? new Date(airedAt).toISOString() : null
+    });
+  }
+  return bySlug;
+}
+
+async function applyAnimeAv1Schedule(entries, targets) {
+  let schedule;
+  try {
+    schedule = await fetchAnimeAv1Schedule();
+  } catch (error) {
+    log(`AnimeAV1 schedule unavailable: ${error.message}`);
+    return new Set();
+  }
+  log(`AnimeAV1 schedule: ${schedule.size} airing show(s) in one request`);
+  const covered = new Set();
+  for (const { rowId } of targets) {
+    const slug = /^animeav1-(.+)$/.exec(rowId)?.[1];
+    const hit = slug ? schedule.get(slug) : null;
+    if (!hit) continue;
+    if (!entries[rowId]) {
+      entries[rowId] = {
+        anilistId: null, airingStatus: "RELEASING", season: "", seasonYear: null,
+        anilistEpisodeCount: null, nextAiringAt: null, nextAiringEpisodeNumber: null,
+        franchiseSeasons: []
+      };
+    }
+    entries[rowId].sourceEpisodeCount = hit.episodes;
+    if (hit.lastEpisodeAt) entries[rowId].lastEpisodeAt = hit.lastEpisodeAt;
+    covered.add(rowId);
+  }
+  log(`${covered.size} row(s) took their episode count and airing slot from the source itself`);
+  return covered;
+}
+
 /* ── What the SOURCE actually serves ───────────────────────────────────────
    An airing show renders its PLANNED total, because that is all any metadata
    provider knows. The source serves only what has aired. Measured 2026-09-07
@@ -709,7 +795,7 @@ async function av1EpisodeCount(slug, plannedTotal) {
   return last;
 }
 
-async function addSourceEpisodeCounts(entries, db, targets = []) {
+async function addSourceEpisodeCounts(entries, db, targets = [], alreadyCovered = new Set()) {
   if (!db || !db.size) return 0;
   const byAniList = new Map();
   for (const entry of db.values()) if (entry.anilistId) byAniList.set(String(entry.anilistId), entry);
@@ -732,6 +818,8 @@ async function addSourceEpisodeCounts(entries, db, targets = []) {
     // shows are skipped - their planned total IS their real one.
     const recent = RECENT_YEARS.has(Number(known.year)) && SEASONISH.has(known.type);
     if (known.airing !== "ONGOING" && !recent) continue;
+    // The schedule already answered this one exactly, for free.
+    if (alreadyCovered.has(rowId)) continue;
     seen.add(rowId);
     airing.push({ rowId, slug, anilistId, planned: entries[rowId]?.anilistEpisodeCount || known.episodes });
   }
@@ -843,11 +931,19 @@ async function main() {
     if (shaped) { out.entries[rowId] = shaped; out.count += 1; }
   }
 
-  if (!FIXTURE && !JIKAN_FIXTURE && !NO_FETCH) {
+  if (!FIXTURE && !JIKAN_FIXTURE) {
     try {
-      const db = offlineIndexRef.value || await loadOfflineIndex();
-      offlineIndexRef.value = db;
-      await addSourceEpisodeCounts(out.entries, db, targets);
+      // One request to the provider that actually serves the episodes. Cheap
+      // enough that even --no-fetch runs it: skipping it would mean rebuilding
+      // the map without the only authoritative episode counts we have.
+      const covered = await applyAnimeAv1Schedule(out.entries, targets);
+      // The per-show probe is the expensive fallback for anything the schedule
+      // did not answer, so that one stays behind --no-fetch.
+      if (!NO_FETCH) {
+        const db = offlineIndexRef.value || await loadOfflineIndex();
+        offlineIndexRef.value = db;
+        await addSourceEpisodeCounts(out.entries, db, targets, covered);
+      }
       out.count = Object.keys(out.entries).length;
     } catch (error) {
       log(`source episode probe skipped: ${error.message}`);

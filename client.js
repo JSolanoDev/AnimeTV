@@ -549,7 +549,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=719`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=720`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -816,6 +816,17 @@ async function enrichCatalogAiringData(attempt = 0) {
       // baked broadcast slot and work out when it next airs. Measured before
       // this: 0 of 996 rows had an airing instant and all 996 carried day
       // "Local", so all seven schedule columns read "No new episodes".
+      // The source's own publish time first: a real UTC instant from the
+      // provider that serves the episodes, so there is no timezone to model and
+      // nothing to disagree with.
+      if (!Number(s.nextAiringAt) && it.lastEpisodeAt) {
+        const lastMs = Date.parse(it.lastEpisodeAt);
+        const weekly = nextWeeklyAiringFrom(lastMs);
+        if (weekly > 0) {
+          s.nextAiringAt = weekly;
+          s.lastEpisodeAt = it.lastEpisodeAt;
+        }
+      }
       if (!Number(s.nextAiringAt) && it.broadcastDay) {
         const slotMs = broadcastInstant(it.broadcastDay, it.broadcastTime, it.broadcastTimezone);
         if (slotMs > 0) s.nextAiringAt = slotMs;
@@ -3554,7 +3565,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=719";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=720";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -17298,7 +17309,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=719");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=720");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

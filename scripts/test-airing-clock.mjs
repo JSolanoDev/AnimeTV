@@ -15,6 +15,7 @@ vm.runInContext(src.slice(start, end), ctx, { filename: "js/utils.js extract" })
 const formatAiringClock = vm.runInContext("formatAiringClock", ctx);
 const formatAiringWeekday = vm.runInContext("formatAiringWeekday", ctx);
 const broadcastInstant = vm.runInContext("broadcastInstant", ctx);
+const nextWeeklyAiringFrom = vm.runInContext("nextWeeklyAiringFrom", ctx);
 
 const rows = [];
 const check = (name, got, want) => {
@@ -125,6 +126,39 @@ for (const [label, value] of [["undefined", undefined], ["null", null], ["a stri
   // than leaving it off the schedule entirely.
   check("a timezone we do not model yields nothing",
     broadcastInstant("Mondays", "00:00", "America/New_York"), 0);
+}
+
+/* -- the source publishes its own schedule ----------------------------------
+   AnimeAV1 is a SvelteKit app, so /horario/__data.json returns the whole airing
+   schedule in ONE request: 78 shows, each with its latest episode number and
+   when that episode was published. Verified against hand measurements - Mushoku
+   Tensei III 11, Thunder 3 9, Mebius Dust 9, Hanaori-san 9 - all exact, and it
+   also gives 10 for two shows whose planned total of 12 had a dead episode 12.
+
+   Anime airs weekly, so that publish instant IS the slot. It beats a broadcast
+   slot twice over: it is a real UTC instant with no timezone to model, and it
+   comes from the provider that actually serves the episodes. */
+{
+  const now = Date.UTC(2026, 8, 7, 12, 0);
+  const lastWeek = now - 6 * 86400000;
+  const next = nextWeeklyAiringFrom(lastWeek, now);
+  check("an episode last week implies one in the coming week", next > now, true);
+  check("exactly one week on from the last", next - lastWeek, 7 * 86400000);
+  check("and it keeps the same weekday",
+    new Date(next).getUTCDay(), new Date(lastWeek).getUTCDay());
+}
+{
+  const now = Date.UTC(2026, 8, 7, 12, 0);
+  // Aired 20 days ago and still weekly, so roll forward whole weeks.
+  const older = now - 20 * 86400000;
+  const next = nextWeeklyAiringFrom(older, now);
+  check("an older slot still rolls forward into the future", next > now, true);
+  check("in whole weeks", (next - older) % (7 * 86400000), 0);
+  // A show that stopped months ago must never be put back on the schedule.
+  check("a long-finished show is not resurrected",
+    nextWeeklyAiringFrom(now - 200 * 86400000, now), 0);
+  check("a missing instant yields nothing", nextWeeklyAiringFrom(null, now), 0);
+  check("a malformed instant yields nothing", nextWeeklyAiringFrom("soon", now), 0);
 }
 
 console.log(rows.join("\n"));

@@ -116,6 +116,8 @@ function normalizeExternalShow(item, source, index) {
     // How many episodes the SOURCE actually serves, probed at build time. Not a
     // metadata guess: an airing show's planned total is not what is playable.
     sourceEpisodeCount: item.sourceEpisodeCount || null,
+    // When the source last published an episode.
+    lastEpisodeAt: item.lastEpisodeAt || "",
     // The broadcast slot the Weekly Schedule is rebuilt from.
     broadcastDay: item.broadcastDay || "",
     broadcastTime: item.broadcastTime || "",

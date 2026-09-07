@@ -631,6 +631,23 @@ function broadcastInstant(day, time, timezone, now = Date.now()) {
   return candidate - JST_OFFSET_MS;
 }
 
+// When the SOURCE published a show's latest episode. Anime airs weekly, so
+// that instant IS the slot: step it forward a week at a time until it lands in
+// the future. Better than a broadcast slot in two ways - it is a real UTC
+// instant with no timezone to model, and it comes from the provider that
+// actually serves the episodes, so it cannot disagree with itself.
+function nextWeeklyAiringFrom(lastAiredMs, now = Date.now()) {
+  const last = Number(lastAiredMs);
+  if (!Number.isFinite(last) || last <= 0) return 0;
+  // Nothing older than ~8 weeks is a weekly slot any more; that is a show that
+  // stopped airing, and rolling it forward would put a finished series back on
+  // the schedule every week for ever.
+  if (now - last > 8 * 7 * DAY_MS) return 0;
+  let next = last;
+  while (next <= now) next += 7 * DAY_MS;
+  return next;
+}
+
 function formatAiringWeekday(date, weekday = "short") {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
   return new Intl.DateTimeFormat(undefined, { weekday }).format(date);
@@ -642,6 +659,7 @@ if (typeof module !== "undefined" && module.exports) {
     formatAiringClock,
     formatAiringWeekday,
   broadcastInstant,
+  nextWeeklyAiringFrom,
     currentAnimeSeason,
     isCurrentSeasonShow,
     carouselCurrencyTier,
