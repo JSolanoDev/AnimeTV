@@ -21,6 +21,10 @@ const check = (name, got, want) => {
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "airing-map-"));
 const fixturePath = path.join(tmp, "fixture.json");
 const outPath = path.join(tmp, "out.json");
+// Without this every one of these runs writes scraper/relations-cache.json in
+// the REPO - the suite's fixture edges ended up committed as production data
+// once already. Tests get their own file.
+const isolatedCache = path.join(tmp, "isolated-relations.json");
 
 const nowSec = Math.floor(Date.now() / 1000);
 fs.writeFileSync(fixturePath, JSON.stringify([{
@@ -42,6 +46,7 @@ fs.writeFileSync(fixturePath, JSON.stringify([{
 
 execFileSync(process.execPath, [
   path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--relations-cache", isolatedCache,
   "--fixture", fixturePath, "--out", outPath, "--write"
 ], { stdio: "pipe" });
 
@@ -66,6 +71,7 @@ fs.writeFileSync(fixturePath, JSON.stringify([{
 }], null, 2));
 execFileSync(process.execPath, [
   path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--relations-cache", isolatedCache,
   "--fixture", fixturePath, "--out", outPath, "--write"
 ], { stdio: "pipe" });
 const solo = Object.values(JSON.parse(fs.readFileSync(outPath, "utf8")).entries)[0];
@@ -103,6 +109,7 @@ check("and no airing instant it does not have", solo.nextAiringAt, null);
   ], null, 2));
   execFileSync(process.execPath, [
     path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--relations-cache", isolatedCache,
     "--fixture", fixturePath, "--out", outPath, "--write"
   ], { stdio: "pipe" });
   const built = JSON.parse(fs.readFileSync(outPath, "utf8"));
@@ -133,6 +140,7 @@ check("and no airing instant it does not have", solo.nextAiringAt, null);
   fs.writeFileSync(fixturePath, JSON.stringify([], null, 2));
   execFileSync(process.execPath, [
     path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--relations-cache", isolatedCache,
     "--fixture", fixturePath, "--out", emptyOut, "--write"
   ], { stdio: "pipe" });
   check("a run that resolves nothing still leaves a file", fs.existsSync(emptyOut), true);
@@ -144,6 +152,7 @@ check("and no airing instant it does not have", solo.nextAiringAt, null);
   fs.writeFileSync(emptyOut, JSON.stringify(populated, null, 2));
   execFileSync(process.execPath, [
     path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--relations-cache", isolatedCache,
     "--fixture", fixturePath, "--out", emptyOut, "--write"
   ], { stdio: "pipe" });
   check("an existing map is never overwritten by an empty run",
@@ -210,6 +219,7 @@ check("and no airing instant it does not have", solo.nextAiringAt, null);
 
   execFileSync(process.execPath, [
     path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--relations-cache", isolatedCache,
     "--artwork", artwork, "--offline-fixture", offline, "--jikan-fixture", jikan,
     "--out", chainOut, "--write"
   ], { stdio: "pipe" });
