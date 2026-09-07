@@ -1597,6 +1597,49 @@ const CATALOG_RESPONSE_TTL_MS = Math.max(
 let catalogResponseCache = null;   // { payload, ts }
 let catalogResponseInflight = null;
 
+// AnimeAV1 serves titles the nightly HTML scrape does not produce. Measured
+// 2026-09-07: the original Bleach (366 episodes) and Boruto were both absent
+// from anime_metadata.json while the source served them happily - only the
+// Thousand-Year Blood War arcs had been parsed. A show the SOURCE has must
+// never be unreachable here because a parser did not see it.
+//
+// So union the scrape with every slug we know of and synthesise a minimal row
+// for the remainder. Those rows carry a title and a slug and nothing else,
+// which is enough: artwork and episodes already resolve at runtime for any
+// sparse row, and the next successful scrape fills the metadata in. This is a
+// floor under catalogue coverage, not a replacement for scraping.
+async function animeAv1RowsMissingFromScrape(scraped = []) {
+  try {
+    const known = new Set(scraped.map((item) => animeAv1SlugOf(item)).filter(Boolean));
+    const catalog = await getAnimeAv1SlugCatalog();
+    const entries = Array.isArray(catalog?.items) ? catalog.items : [];
+    const added = [];
+    for (const entry of entries) {
+      const slug = cleanAnimeAv1Slug(entry?.slug || "");
+      if (!slug || known.has(slug)) continue;
+      known.add(slug);
+      added.push({
+        id: `animeav1-${slug}`,
+        title: cleanAnimeAv1Title(entry?.title || "") || slugToTitle(slug),
+        source: "AnimeAV1",
+        siteUrl: `${ANIMEAV1_BASE}/media/${slug}`,
+        animeAv1Slug: slug,
+        type: "TV",
+        genre: "anime",
+        genres: [],
+        status: "",
+        episodes: []
+      });
+    }
+    if (added.length) log("info", `AnimeAV1: ${added.length} slug(s) the scrape does not carry, added to the catalog`);
+    return added;
+  } catch (error) {
+    // Coverage is a bonus here; the catalogue must still be served without it.
+    log("warn", `AnimeAV1 slug union skipped: ${error.message}`);
+    return [];
+  }
+}
+
 async function buildCatalogPayload() {
   const [anilist, jikanAiring, jikanSeason, jikanPopular] = await Promise.allSettled([
     fetchAniListTrending(),
@@ -1608,6 +1651,7 @@ async function buildCatalogPayload() {
   const scrapedAnimeAv1 = readScrapedRegularCatalogItems();
   const items = [
     ...scrapedAnimeAv1,
+    ...await animeAv1RowsMissingFromScrape(scrapedAnimeAv1),
     ...(anilist.status === "fulfilled" ? anilist.value : []),
     ...(jikanAiring.status === "fulfilled" ? jikanAiring.value : []),
     ...(jikanSeason.status === "fulfilled" ? jikanSeason.value : []),

@@ -121,6 +121,64 @@ const av1 = (slug, title, extra = {}) => ({ id: `animeav1-${slug}`, title, sourc
   check("id-only rows still merge on their ids", merged.length, 1);
 }
 
+/* ── coverage floor: the source's slugs outrank the scraper's output ──────────
+   Measured 2026-09-07: the original Bleach (366 episodes) and Boruto were both
+   served by AnimeAV1 and both absent from anime_metadata.json - only the
+   Thousand-Year Blood War arcs had been parsed. A show the source HAS must not
+   be unreachable because a parser missed it. */
+{
+  const cov = vm.createContext({
+    Number, String, Array, Math, JSON, Boolean, Object, Set, Map, console,
+    ANIMEAV1_BASE: "https://animeav1.com",
+    log: () => {},
+    getAnimeAv1SlugCatalog: null
+  });
+  vm.runInContext([
+    slice("function animeAv1SlugOf(", "\nfunction catalogIdentitiesAreCompatible("),
+    slice("function cleanAnimeAv1Slug(", "\nfunction "),
+    slice("function cleanAnimeAv1Title(", "\nfunction "),
+    slice("function decodeHtmlEntities(", "\nfunction "),
+    slice("function stripTags(", "\nfunction "),
+    slice("function slugToTitle(", "\nfunction "),
+    slice("async function animeAv1RowsMissingFromScrape(", "\nasync function buildCatalogPayload(")
+  ].join("\n"), cov, { filename: "animetv-server.js coverage extract" });
+  const missingRows = vm.runInContext("animeAv1RowsMissingFromScrape", cov);
+  const setCatalog = (value) => { cov.getAnimeAv1SlugCatalog = value; };
+
+  const scraped = [
+    { id: "animeav1-bleach-sennen-kessen-hen", title: "Bleach: Sennen Kessen-hen" },
+    { id: "animeav1-one-piece", title: "One Piece" }
+  ];
+  setCatalog(async () => ({ items: [
+    { slug: "one-piece", title: "One Piece" },
+    { slug: "bleach-sennen-kessen-hen", title: "Bleach: Sennen Kessen-hen" },
+    { slug: "bleach", title: "Bleach" },
+    { slug: "boruto-naruto-next-generations", title: "Boruto: Naruto Next Generations" }
+  ] }));
+  const added = await missingRows(scraped);
+
+  check("only the slugs the scrape lacks are added", added.length, 2);
+  check("and they are the ones the source serves",
+    added.map((r) => r.id), ["animeav1-bleach", "animeav1-boruto-naruto-next-generations"]);
+  check("an added row keeps the slug that makes it playable", added[0].animeAv1Slug, "bleach");
+  check("and carries a real title", added[0].title, "Bleach");
+  check("a scraped slug is never duplicated",
+    added.some((r) => r.id === "animeav1-one-piece"), false);
+
+  // Together with the scrape, nothing the source serves is missing.
+  const union = [...scraped, ...added];
+  check("the union covers every slug the source has", union.length, 4);
+  check("and merging keeps all four", mergeShows(union).length, 4);
+
+  // The catalogue must still be served when the slug catalogue cannot be read.
+  setCatalog(async () => { throw new Error("upstream down"); });
+  check("an unreachable slug catalogue adds nothing and throws nothing",
+    (await missingRows(scraped)).length, 0);
+
+  setCatalog(async () => ({}));
+  check("a malformed slug catalogue is handled too", (await missingRows(scraped)).length, 0);
+}
+
 console.log(rows.join("\n"));
 const failed = rows.filter((r) => r.startsWith("FAIL")).length;
 console.log(failed ? `\n${failed} FAILED` : "\nall catalog-merge checks passed");
