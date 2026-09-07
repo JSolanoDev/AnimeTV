@@ -511,6 +511,25 @@ function resetCarouselIndexForFreshCatalog() {
 // and the full one ~1100, and the carousel pool is "recently aired that has
 // artwork" - in a 54-title catalogue that bar is met by titles from 1995, so the
 // bootstrap hero is both wrong and guaranteed to be replaced seconds later.
+// Every catalogue install rebuilds the show objects through mergeShows, and a
+// new object has none of the airing data the last enrichment attached. Home
+// installs the catalogue two or three times (bootstrap -> cached -> full), so
+// the day and time applied at 7s were being thrown away by the next install:
+// measured on production, 0 of 996 rows kept a day even though state.shows
+// carried lastEpisodeAt on 76 of them, and calling the enrichment by hand
+// immediately produced 74 days and 74 airing instants.
+//
+// Debounced, because three installs in a row must not mean three fetches.
+let _airingEnrichTimer = 0;
+function scheduleAiringEnrichment(delay = 1200) {
+  if (typeof window === "undefined") return;
+  if (_airingEnrichTimer) window.clearTimeout(_airingEnrichTimer);
+  _airingEnrichTimer = window.setTimeout(() => {
+    _airingEnrichTimer = 0;
+    enrichCatalogAiringData();
+  }, delay);
+}
+
 function replaceRegularCatalog(items = [], tier = "full") {
   const adultItems = state.shows.filter((item) =>
     typeof AdultMode !== "undefined" && AdultMode.isAdultContent(item)
@@ -538,6 +557,8 @@ function replaceRegularCatalog(items = [], tier = "full") {
       state.activeShow = twin;
     }
   }
+  // Re-apply the airing data this install just discarded.
+  scheduleAiringEnrichment();
   return state.shows;
 }
 
@@ -549,7 +570,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=720`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=721`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3565,7 +3586,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=720";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=721";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -17309,7 +17330,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=720");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=721");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
