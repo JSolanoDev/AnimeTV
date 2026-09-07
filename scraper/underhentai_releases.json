@@ -1,6 +1,6 @@
 {
   "source": "UnderHentai",
-  "generatedAt": "2026-09-07T04:14:12.443Z",
+  "generatedAt": "2026-09-07T11:22:11.152Z",
   "years": {
     "2012": [
       {
@@ -15579,7 +15579,7 @@
         "date": "2026-08-28",
         "poster": "https://static.underhentai.net/assets/Kokuhaku_04_rel.jpg",
         "catalogId": "adult-underhentai-kokuhaku",
-        "available": false
+        "available": true
       },
       {
         "id": "muchuu-no-tou-e2-2026-08-28",
@@ -15589,27 +15589,27 @@
         "date": "2026-08-28",
         "poster": "https://static.underhentai.net/assets/Muchuu_no_Tou_02_rel.jpg",
         "catalogId": "adult-underhentai-muchuu-no-tou",
-        "available": false
+        "available": true
       },
       {
-        "id": "pure-x-holic-junketsu-otome-to-kon-in-kankei-the-animation-e1-2026-08-28",
-        "slug": "pure-x-holic-junketsu-otome-to-kon-in-kankei-the-animation",
+        "id": "pure-x-holic-junketsu-otome-to-konin-kankei-the-animation-e1-2026-08-28",
+        "slug": "pure-x-holic-junketsu-otome-to-konin-kankei-the-animation",
         "title": "Pure x Holic: Junketsu Otome to Kon`in Kankei!? The Animation",
         "episode": 1,
         "date": "2026-08-28",
         "poster": "https://static.underhentai.net/assets/Pure_x_Holic_Junketsu_Otome_to_Konin_Kankei_The_Animation_01_rel.jpg",
-        "catalogId": "",
-        "available": false
+        "catalogId": "adult-underhentai-pure-x-holic-junketsu-otome-to-konin-kankei-the-animation",
+        "available": true
       },
       {
-        "id": "pure-x-holic-junketsu-otome-to-kon-in-kankei-the-animation-e2-2026-08-28",
-        "slug": "pure-x-holic-junketsu-otome-to-kon-in-kankei-the-animation",
+        "id": "pure-x-holic-junketsu-otome-to-konin-kankei-the-animation-e2-2026-08-28",
+        "slug": "pure-x-holic-junketsu-otome-to-konin-kankei-the-animation",
         "title": "Pure x Holic: Junketsu Otome to Kon`in Kankei!? The Animation",
         "episode": 2,
         "date": "2026-08-28",
         "poster": "https://static.underhentai.net/assets/Pure_x_Holic_Junketsu_Otome_to_Konin_Kankei_The_Animation_02_rel.jpg",
-        "catalogId": "",
-        "available": false
+        "catalogId": "adult-underhentai-pure-x-holic-junketsu-otome-to-konin-kankei-the-animation",
+        "available": true
       },
       {
         "id": "sare-tsuma-wa-ubawaretai-e1-2026-08-28",
@@ -15618,8 +15618,8 @@
         "episode": 1,
         "date": "2026-08-28",
         "poster": "https://static.underhentai.net/assets/Sare_Tsuma_wa_Ubawaretai_01_rel.jpg",
-        "catalogId": "",
-        "available": false
+        "catalogId": "adult-underhentai-sare-tsuma-wa-ubawaretai",
+        "available": true
       },
       {
         "id": "shoujo-ramune-e8-2026-09-04",
@@ -15838,7 +15838,7 @@
         "episode": 2,
         "date": "2026-11-27",
         "poster": "https://static.underhentai.net/assets/Sare_Tsuma_wa_Ubawaretai_02_rel.jpg",
-        "catalogId": "",
+        "catalogId": "adult-underhentai-sare-tsuma-wa-ubawaretai",
         "available": false
       }
     ]
