@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-09-07T02:07:26.603Z",
-  "count": 101,
+  "generatedAt": "2026-09-07T02:21:22.743Z",
+  "count": 165,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -504,17 +504,6 @@
           "order": 2
         },
         {
-          "anilistId": "mal-63857",
-          "title": "Tsue to Tsurugi no Wistoria Recap",
-          "format": "SPECIAL",
-          "status": "",
-          "episodes": 1,
-          "season": "SPRING",
-          "seasonYear": 2026,
-          "startedAt": 1775001600000,
-          "order": 3
-        },
-        {
           "anilistId": 213656,
           "title": "Tsue to Tsurugi no Wistoria Season 3",
           "format": "TV",
@@ -523,7 +512,7 @@
           "season": "UNDEFINED",
           "seasonYear": null,
           "startedAt": 0,
-          "order": 4
+          "order": 3
         }
       ]
     },
@@ -537,6 +526,39 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [
         {
+          "anilistId": 21355,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "SPRING",
+          "seasonYear": 2016,
+          "startedAt": 1459468800000,
+          "order": 1
+        },
+        {
+          "anilistId": 108632,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2020,
+          "startedAt": 1593561600000,
+          "order": 2
+        },
+        {
+          "anilistId": 119661,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 3
+        },
+        {
           "anilistId": 163134,
           "title": "Re:Zero kara Hajimeru Isekai Seikatsu 3rd Season",
           "format": "TV",
@@ -545,7 +567,7 @@
           "season": "FALL",
           "seasonYear": 2024,
           "startedAt": 1727740800000,
-          "order": 1
+          "order": 4
         },
         {
           "anilistId": 189046,
@@ -556,7 +578,7 @@
           "season": "SPRING",
           "seasonYear": 2026,
           "startedAt": 1775001600000,
-          "order": 2
+          "order": 5
         }
       ]
     },
@@ -733,30 +755,7 @@
       "anilistEpisodeCount": 11,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 117074,
-          "title": "Isekai Quartet Movie: Another World",
-          "format": "MOVIE",
-          "status": "",
-          "episodes": 1,
-          "season": "SPRING",
-          "seasonYear": 2022,
-          "startedAt": 1648771200000,
-          "order": 1
-        },
-        {
-          "anilistId": 194447,
-          "title": "Isekai Quartet 3",
-          "format": "TV",
-          "status": "",
-          "episodes": 11,
-          "season": "FALL",
-          "seasonYear": 2025,
-          "startedAt": 1759276800000,
-          "order": 2
-        }
-      ]
+      "franchiseSeasons": []
     },
     "animeav1-one-punch-man-3": {
       "anilistId": 153800,
@@ -768,6 +767,17 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [
         {
+          "anilistId": 21087,
+          "title": "One Punch Man",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2015,
+          "startedAt": 1443657600000,
+          "order": 1
+        },
+        {
           "anilistId": 97668,
           "title": "One Punch Man 2nd Season",
           "format": "TV",
@@ -776,7 +786,7 @@
           "season": "SPRING",
           "seasonYear": 2019,
           "startedAt": 1554076800000,
-          "order": 1
+          "order": 2
         },
         {
           "anilistId": 153800,
@@ -784,17 +794,6 @@
           "format": "TV",
           "status": "",
           "episodes": 12,
-          "season": "FALL",
-          "seasonYear": 2025,
-          "startedAt": 1759276800000,
-          "order": 2
-        },
-        {
-          "anilistId": "mal-62653",
-          "title": "One Punch Man 2nd Season: Ichigeki de Wakaru! Maji Furikaeri!",
-          "format": "SPECIAL",
-          "status": "",
-          "episodes": 1,
           "season": "FALL",
           "seasonYear": 2025,
           "startedAt": 1759276800000,
@@ -1015,17 +1014,6 @@
           "seasonYear": 2025,
           "startedAt": 1759276800000,
           "order": 2
-        },
-        {
-          "anilistId": "mal-63185",
-          "title": "Kingdom 6th Season (Zoku-hen)",
-          "format": "UNKNOWN",
-          "status": "",
-          "episodes": null,
-          "season": "UNDEFINED",
-          "seasonYear": null,
-          "startedAt": 0,
-          "order": 3
         }
       ]
     },
@@ -1171,17 +1159,6 @@
           "order": 2
         },
         {
-          "anilistId": "mal-57519",
-          "title": "Boku no Hero Academia: Memories",
-          "format": "SPECIAL",
-          "status": "",
-          "episodes": 4,
-          "season": "SPRING",
-          "seasonYear": 2024,
-          "startedAt": 1711929600000,
-          "order": 3
-        },
-        {
           "anilistId": 182896,
           "title": "Boku no Hero Academia: Final Season",
           "format": "TV",
@@ -1190,18 +1167,7 @@
           "season": "FALL",
           "seasonYear": 2025,
           "startedAt": 1759276800000,
-          "order": 4
-        },
-        {
-          "anilistId": "mal-63130",
-          "title": "Boku no Hero Academia: More",
-          "format": "SPECIAL",
-          "status": "",
-          "episodes": 1,
-          "season": "SPRING",
-          "seasonYear": 2026,
-          "startedAt": 1775001600000,
-          "order": 5
+          "order": 3
         }
       ]
     },
@@ -1215,6 +1181,17 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [
         {
+          "anilistId": 142838,
+          "title": "Spy x Family Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2022,
+          "startedAt": 1664582400000,
+          "order": 1
+        },
+        {
           "anilistId": 158927,
           "title": "Spy x Family Season 2",
           "format": "TV",
@@ -1223,7 +1200,7 @@
           "season": "FALL",
           "seasonYear": 2023,
           "startedAt": 1696118400000,
-          "order": 1
+          "order": 2
         },
         {
           "anilistId": 177937,
@@ -1234,7 +1211,7 @@
           "season": "FALL",
           "seasonYear": 2025,
           "startedAt": 1759276800000,
-          "order": 2
+          "order": 3
         }
       ]
     },
@@ -1868,6 +1845,50 @@
           "seasonYear": 2017,
           "startedAt": 1491004800000,
           "order": 2
+        },
+        {
+          "anilistId": 99147,
+          "title": "Shingeki no Kyojin Season 3",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2018,
+          "startedAt": 1530403200000,
+          "order": 3
+        },
+        {
+          "anilistId": 104578,
+          "title": "Shingeki no Kyojin Season 3 Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 10,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554076800000,
+          "order": 4
+        },
+        {
+          "anilistId": 110277,
+          "title": "Shingeki no Kyojin: The Final Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 16,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 5
+        },
+        {
+          "anilistId": 131681,
+          "title": "Shingeki no Kyojin: The Final Season Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2022,
+          "startedAt": 1640995200000,
+          "order": 6
         }
       ]
     },
@@ -1978,6 +1999,28 @@
           "seasonYear": 2014,
           "startedAt": 1396310400000,
           "order": 2
+        },
+        {
+          "anilistId": 99749,
+          "title": "Fairy Tail: Final Series",
+          "format": "TV",
+          "status": "",
+          "episodes": 51,
+          "season": "FALL",
+          "seasonYear": 2018,
+          "startedAt": 1538352000000,
+          "order": 3
+        },
+        {
+          "anilistId": 139095,
+          "title": "Fairy Tail: 100-nen Quest",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1719792000000,
+          "order": 4
         }
       ]
     },
@@ -2123,6 +2166,28 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [
         {
+          "anilistId": 6702,
+          "title": "Fairy Tail",
+          "format": "TV",
+          "status": "",
+          "episodes": 175,
+          "season": "FALL",
+          "seasonYear": 2009,
+          "startedAt": 1254355200000,
+          "order": 1
+        },
+        {
+          "anilistId": 20626,
+          "title": "Fairy Tail (2014)",
+          "format": "TV",
+          "status": "",
+          "episodes": 102,
+          "season": "SPRING",
+          "seasonYear": 2014,
+          "startedAt": 1396310400000,
+          "order": 2
+        },
+        {
           "anilistId": 99749,
           "title": "Fairy Tail: Final Series",
           "format": "TV",
@@ -2131,7 +2196,7 @@
           "season": "FALL",
           "seasonYear": 2018,
           "startedAt": 1538352000000,
-          "order": 1
+          "order": 3
         },
         {
           "anilistId": 139095,
@@ -2142,7 +2207,7 @@
           "season": "SUMMER",
           "seasonYear": 2024,
           "startedAt": 1719792000000,
-          "order": 2
+          "order": 4
         }
       ]
     },
@@ -2343,17 +2408,6 @@
           "order": 2
         },
         {
-          "anilistId": "mal-57519",
-          "title": "Boku no Hero Academia: Memories",
-          "format": "SPECIAL",
-          "status": "",
-          "episodes": 4,
-          "season": "SPRING",
-          "seasonYear": 2024,
-          "startedAt": 1711929600000,
-          "order": 3
-        },
-        {
           "anilistId": 182896,
           "title": "Boku no Hero Academia: Final Season",
           "format": "TV",
@@ -2362,18 +2416,7 @@
           "season": "FALL",
           "seasonYear": 2025,
           "startedAt": 1759276800000,
-          "order": 4
-        },
-        {
-          "anilistId": "mal-63130",
-          "title": "Boku no Hero Academia: More",
-          "format": "SPECIAL",
-          "status": "",
-          "episodes": 1,
-          "season": "SPRING",
-          "seasonYear": 2026,
-          "startedAt": 1775001600000,
-          "order": 5
+          "order": 3
         }
       ]
     },
@@ -2911,17 +2954,6 @@
           "seasonYear": 2023,
           "startedAt": 1696118400000,
           "order": 2
-        },
-        {
-          "anilistId": 171952,
-          "title": "Kage no Jitsuryokusha ni Naritakute! Movie: Zankyou-hen",
-          "format": "MOVIE",
-          "status": "",
-          "episodes": 1,
-          "season": "WINTER",
-          "seasonYear": 2027,
-          "startedAt": 1798761600000,
-          "order": 3
         }
       ]
     },
@@ -3166,6 +3198,1555 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": []
     },
+    "animeav1-kanojo-okarishimasu-3rd-season": {
+      "anilistId": 154745,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 124410,
+          "title": "Kanojo, Okarishimasu 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2022,
+          "startedAt": 1656633600000,
+          "order": 1
+        },
+        {
+          "anilistId": 154745,
+          "title": "Kanojo, Okarishimasu 3rd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 2
+        },
+        {
+          "anilistId": 179344,
+          "title": "Kanojo, Okarishimasu 4th Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2025,
+          "startedAt": 1751328000000,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-nanatsu-no-maken-ga-shihai-suru": {
+      "anilistId": 142598,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 15,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-jidou-hanbaiki-ni-umarekawatta-ore-wa-meikyuu-wo-samayou": {
+      "anilistId": 153360,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 153360,
+          "title": "Jidou Hanbaiki ni Umarekawatta Ore wa Meikyuu wo Samayou",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 1
+        },
+        {
+          "anilistId": 169440,
+          "title": "Jidou Hanbaiki ni Umarekawatta Ore wa Meikyuu wo Samayou 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2025,
+          "startedAt": 1751328000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-horimiya-piece": {
+      "anilistId": 163132,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-biao-ren": {
+      "anilistId": 122508,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 15,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 122508,
+          "title": "Biao Ren",
+          "format": "ONA",
+          "status": "",
+          "episodes": 15,
+          "season": "SPRING",
+          "seasonYear": 2023,
+          "startedAt": 1680307200000,
+          "order": 1
+        },
+        {
+          "anilistId": "mal-62241",
+          "title": "Biao Ren Er",
+          "format": "ONA",
+          "status": "",
+          "episodes": 8,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775001600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-niehime-to-kemono-no-ou": {
+      "anilistId": 128715,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 24,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-ousama-ranking-yuuki-no-takarabako": {
+      "anilistId": 153452,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 10,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-oshi-no-ko": {
+      "anilistId": 150672,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 11,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 150672,
+          "title": "[Oshi no Ko]",
+          "format": "TV",
+          "status": "",
+          "episodes": 11,
+          "season": "SPRING",
+          "seasonYear": 2023,
+          "startedAt": 1680307200000,
+          "order": 1
+        },
+        {
+          "anilistId": 166531,
+          "title": "[Oshi no Ko] 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1719792000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-boku-no-kokoro-no-yabai-yatsu": {
+      "anilistId": 153152,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 153152,
+          "title": "Boku no Kokoro no Yabai Yatsu",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2023,
+          "startedAt": 1680307200000,
+          "order": 1
+        },
+        {
+          "anilistId": 166216,
+          "title": "Boku no Kokoro no Yabai Yatsu 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1704067200000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-vinland-saga-season-2": {
+      "anilistId": 136430,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 24,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 101348,
+          "title": "Vinland Saga",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "SUMMER",
+          "seasonYear": 2019,
+          "startedAt": 1561939200000,
+          "order": 1
+        },
+        {
+          "anilistId": 136430,
+          "title": "Vinland Saga Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1672531200000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-saikyou-onmyouji-no-isekai-tenseiki": {
+      "anilistId": 144553,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-trigun-stampede": {
+      "anilistId": 151040,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 151040,
+          "title": "Trigun Stampede",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1672531200000,
+          "order": 1
+        },
+        {
+          "anilistId": 163144,
+          "title": "Trigun Stargaze",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1767225600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-bungou-stray-dogs-4th-season": {
+      "anilistId": 141249,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 103223,
+          "title": "Bungou Stray Dogs 3rd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554076800000,
+          "order": 1
+        },
+        {
+          "anilistId": 141249,
+          "title": "Bungou Stray Dogs 4th Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1672531200000,
+          "order": 2
+        },
+        {
+          "anilistId": 163263,
+          "title": "Bungou Stray Dogs 5th Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 11,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-arknights-reimei-zensou": {
+      "anilistId": 140660,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 8,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 140660,
+          "title": "Arknights: Prelude to Dawn",
+          "format": "TV",
+          "status": "",
+          "episodes": 8,
+          "season": "FALL",
+          "seasonYear": 2022,
+          "startedAt": 1664582400000,
+          "order": 1
+        },
+        {
+          "anilistId": 158895,
+          "title": "Arknights: Perish in Frost",
+          "format": "TV",
+          "status": "",
+          "episodes": 8,
+          "season": "FALL",
+          "seasonYear": 2023,
+          "startedAt": 1696118400000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-chainsaw-man": {
+      "anilistId": 127230,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-bleach-sennen-kessen-hen": {
+      "anilistId": 116674,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 269,
+          "title": "Bleach",
+          "format": "TV",
+          "status": "",
+          "episodes": 366,
+          "season": "FALL",
+          "seasonYear": 2004,
+          "startedAt": 1096588800000,
+          "order": 1
+        },
+        {
+          "anilistId": 116674,
+          "title": "Bleach: Sennen Kessen-hen",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2022,
+          "startedAt": 1664582400000,
+          "order": 2
+        },
+        {
+          "anilistId": 159322,
+          "title": "Bleach: Sennen Kessen-hen - Ketsubetsu-tan",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-mob-psycho-100-iii": {
+      "anilistId": 140439,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 101338,
+          "title": "Mob Psycho 100 II",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2019,
+          "startedAt": 1546300800000,
+          "order": 1
+        },
+        {
+          "anilistId": 140439,
+          "title": "Mob Psycho 100 III",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2022,
+          "startedAt": 1664582400000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-tensei-shitara-ken-deshita": {
+      "anilistId": 139587,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 139587,
+          "title": "Tensei shitara Ken deshita",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2022,
+          "startedAt": 1664582400000,
+          "order": 1
+        },
+        {
+          "anilistId": 159042,
+          "title": "Tensei shitara Ken deshita 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1790812800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-shinmai-renkinjutsushi-no-tenpo-keiei": {
+      "anilistId": 139369,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-kidou-senshi-gundam-suisei-no-majo": {
+      "anilistId": 139274,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 139274,
+          "title": "Kidou Senshi Gundam: Suisei no Majo",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2022,
+          "startedAt": 1664582400000,
+          "order": 1
+        },
+        {
+          "anilistId": 155158,
+          "title": "Kidou Senshi Gundam: Suisei no Majo Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2023,
+          "startedAt": 1680307200000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-akuyaku-reijou-nanode-last-boss-wo-kattemimashita": {
+      "anilistId": 139820,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-cyberpunk-edgerunners": {
+      "anilistId": 120377,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 10,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 120377,
+          "title": "Cyberpunk: Edgerunners",
+          "format": "ONA",
+          "status": "",
+          "episodes": 10,
+          "season": "SUMMER",
+          "seasonYear": 2022,
+          "startedAt": 1656633600000,
+          "order": 1
+        },
+        {
+          "anilistId": 195539,
+          "title": "Cyberpunk: Edgerunners 2",
+          "format": "ONA",
+          "status": "",
+          "episodes": 10,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1790812800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-mamahaha-no-tsurego-ga-motokano-datta": {
+      "anilistId": 136934,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-yoroi-shin-den-samurai-troopers-part-2": {
+      "anilistId": 209800,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 1,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 194318,
+          "title": "Yoroi Shin Den Samurai Troopers",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1767225600000,
+          "order": 1
+        },
+        {
+          "anilistId": 209800,
+          "title": "Yoroi Shin Den Samurai Troopers Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 1,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-yoroi-shin-den-samurai-troopers": {
+      "anilistId": 194318,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 194318,
+          "title": "Yoroi Shin Den Samurai Troopers",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1767225600000,
+          "order": 1
+        },
+        {
+          "anilistId": 209800,
+          "title": "Yoroi Shin Den Samurai Troopers Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 1,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-269": {
+      "anilistId": 269,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2004,
+      "anilistEpisodeCount": 366,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 269,
+          "title": "Bleach",
+          "format": "TV",
+          "status": "",
+          "episodes": 366,
+          "season": "FALL",
+          "seasonYear": 2004,
+          "startedAt": 1096588800000,
+          "order": 1
+        },
+        {
+          "anilistId": 116674,
+          "title": "Bleach: Sennen Kessen-hen",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2022,
+          "startedAt": 1664582400000,
+          "order": 2
+        },
+        {
+          "anilistId": 159322,
+          "title": "Bleach: Sennen Kessen-hen - Ketsubetsu-tan",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 3
+        }
+      ]
+    },
+    "anilist-97940": {
+      "anilistId": 97940,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2017,
+      "anilistEpisodeCount": 170,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 97940,
+          "title": "Black Clover",
+          "format": "TV",
+          "status": "",
+          "episodes": 170,
+          "season": "FALL",
+          "seasonYear": 2017,
+          "startedAt": 1506816000000,
+          "order": 1
+        },
+        {
+          "anilistId": 195604,
+          "title": "Black Clover 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1790812800000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-11061": {
+      "anilistId": 11061,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2011,
+      "anilistEpisodeCount": 148,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "anilist-20": {
+      "anilistId": 20,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2002,
+      "anilistEpisodeCount": 220,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 20,
+          "title": "Naruto",
+          "format": "TV",
+          "status": "",
+          "episodes": 220,
+          "season": "FALL",
+          "seasonYear": 2002,
+          "startedAt": 1033430400000,
+          "order": 1
+        },
+        {
+          "anilistId": 1735,
+          "title": "Naruto: Shippuuden",
+          "format": "TV",
+          "status": "",
+          "episodes": 500,
+          "season": "WINTER",
+          "seasonYear": 2007,
+          "startedAt": 1167609600000,
+          "order": 2
+        },
+        {
+          "anilistId": 97938,
+          "title": "Boruto: Naruto Next Generations",
+          "format": "TV",
+          "status": "",
+          "episodes": 293,
+          "season": "SPRING",
+          "seasonYear": 2017,
+          "startedAt": 1491004800000,
+          "order": 3
+        }
+      ]
+    },
+    "anilist-1735": {
+      "anilistId": 1735,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2007,
+      "anilistEpisodeCount": 500,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 20,
+          "title": "Naruto",
+          "format": "TV",
+          "status": "",
+          "episodes": 220,
+          "season": "FALL",
+          "seasonYear": 2002,
+          "startedAt": 1033430400000,
+          "order": 1
+        },
+        {
+          "anilistId": 1735,
+          "title": "Naruto: Shippuuden",
+          "format": "TV",
+          "status": "",
+          "episodes": 500,
+          "season": "WINTER",
+          "seasonYear": 2007,
+          "startedAt": 1167609600000,
+          "order": 2
+        },
+        {
+          "anilistId": 97938,
+          "title": "Boruto: Naruto Next Generations",
+          "format": "TV",
+          "status": "",
+          "episodes": 293,
+          "season": "SPRING",
+          "seasonYear": 2017,
+          "startedAt": 1491004800000,
+          "order": 3
+        }
+      ]
+    },
+    "anilist-5114": {
+      "anilistId": 5114,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2009,
+      "anilistEpisodeCount": 64,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "anilist-918": {
+      "anilistId": 918,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2006,
+      "anilistEpisodeCount": 201,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 918,
+          "title": "Gintama",
+          "format": "TV",
+          "status": "",
+          "episodes": 201,
+          "season": "SPRING",
+          "seasonYear": 2006,
+          "startedAt": 1143849600000,
+          "order": 1
+        },
+        {
+          "anilistId": 9969,
+          "title": "Gintama'",
+          "format": "TV",
+          "status": "",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2011,
+          "startedAt": 1301616000000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-21355": {
+      "anilistId": 21355,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2016,
+      "anilistEpisodeCount": 25,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 21355,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "SPRING",
+          "seasonYear": 2016,
+          "startedAt": 1459468800000,
+          "order": 1
+        },
+        {
+          "anilistId": 108632,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2020,
+          "startedAt": 1593561600000,
+          "order": 2
+        },
+        {
+          "anilistId": 119661,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 3
+        },
+        {
+          "anilistId": 163134,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 3rd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 16,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727740800000,
+          "order": 4
+        },
+        {
+          "anilistId": 189046,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 4th Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 19,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775001600000,
+          "order": 5
+        }
+      ]
+    },
+    "anilist-180745": {
+      "anilistId": 180745,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 16,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 146066,
+          "title": "Youkoso Jitsuryoku Shijou Shugi no Kyoushitsu e 3rd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1704067200000,
+          "order": 1
+        },
+        {
+          "anilistId": 180745,
+          "title": "Youkoso Jitsuryoku Shijou Shugi no Kyoushitsu e 4th Season: 2-nensei-hen 1 Gakki",
+          "format": "TV",
+          "status": "",
+          "episodes": 16,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775001600000,
+          "order": 2
+        },
+        {
+          "anilistId": 213477,
+          "title": "Youkoso Jitsuryoku Shijou Shugi no Kyoushitsu e 5th Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 1,
+          "season": "UNDEFINED",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 3
+        }
+      ]
+    },
+    "anilist-119661": {
+      "anilistId": 119661,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 21355,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "SPRING",
+          "seasonYear": 2016,
+          "startedAt": 1459468800000,
+          "order": 1
+        },
+        {
+          "anilistId": 108632,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2020,
+          "startedAt": 1593561600000,
+          "order": 2
+        },
+        {
+          "anilistId": 119661,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 3
+        },
+        {
+          "anilistId": 163134,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 3rd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 16,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727740800000,
+          "order": 4
+        },
+        {
+          "anilistId": 189046,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 4th Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 19,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775001600000,
+          "order": 5
+        }
+      ]
+    },
+    "anilist-110277": {
+      "anilistId": 110277,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 16,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 16498,
+          "title": "Shingeki no Kyojin",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "SPRING",
+          "seasonYear": 2013,
+          "startedAt": 1364774400000,
+          "order": 1
+        },
+        {
+          "anilistId": 20958,
+          "title": "Shingeki no Kyojin Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2017,
+          "startedAt": 1491004800000,
+          "order": 2
+        },
+        {
+          "anilistId": 99147,
+          "title": "Shingeki no Kyojin Season 3",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2018,
+          "startedAt": 1530403200000,
+          "order": 3
+        },
+        {
+          "anilistId": 104578,
+          "title": "Shingeki no Kyojin Season 3 Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 10,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554076800000,
+          "order": 4
+        },
+        {
+          "anilistId": 110277,
+          "title": "Shingeki no Kyojin: The Final Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 16,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 5
+        },
+        {
+          "anilistId": 131681,
+          "title": "Shingeki no Kyojin: The Final Season Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2022,
+          "startedAt": 1640995200000,
+          "order": 6
+        }
+      ]
+    },
+    "anilist-101280": {
+      "anilistId": 101280,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2018,
+      "anilistEpisodeCount": 24,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 101280,
+          "title": "Tensei shitara Slime Datta Ken",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "FALL",
+          "seasonYear": 2018,
+          "startedAt": 1538352000000,
+          "order": 1
+        },
+        {
+          "anilistId": 108511,
+          "title": "Tensei shitara Slime Datta Ken 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-113415": {
+      "anilistId": 113415,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2020,
+      "anilistEpisodeCount": 24,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 113415,
+          "title": "Jujutsu Kaisen",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "FALL",
+          "seasonYear": 2020,
+          "startedAt": 1601510400000,
+          "order": 1
+        },
+        {
+          "anilistId": 145064,
+          "title": "Jujutsu Kaisen 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 23,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-108632": {
+      "anilistId": 108632,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2020,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 21355,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "SPRING",
+          "seasonYear": 2016,
+          "startedAt": 1459468800000,
+          "order": 1
+        },
+        {
+          "anilistId": 108632,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2020,
+          "startedAt": 1593561600000,
+          "order": 2
+        },
+        {
+          "anilistId": 119661,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 2nd Season Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 3
+        },
+        {
+          "anilistId": 163134,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 3rd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 16,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727740800000,
+          "order": 4
+        },
+        {
+          "anilistId": 189046,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 4th Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 19,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775001600000,
+          "order": 5
+        }
+      ]
+    },
+    "anilist-21613": {
+      "anilistId": 21613,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2017,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "anilist-99147": {
+      "anilistId": 99147,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2018,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 16498,
+          "title": "Shingeki no Kyojin",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "SPRING",
+          "seasonYear": 2013,
+          "startedAt": 1364774400000,
+          "order": 1
+        },
+        {
+          "anilistId": 20958,
+          "title": "Shingeki no Kyojin Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2017,
+          "startedAt": 1491004800000,
+          "order": 2
+        },
+        {
+          "anilistId": 99147,
+          "title": "Shingeki no Kyojin Season 3",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2018,
+          "startedAt": 1530403200000,
+          "order": 3
+        },
+        {
+          "anilistId": 104578,
+          "title": "Shingeki no Kyojin Season 3 Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 10,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554076800000,
+          "order": 4
+        },
+        {
+          "anilistId": 110277,
+          "title": "Shingeki no Kyojin: The Final Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 16,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 5
+        },
+        {
+          "anilistId": 131681,
+          "title": "Shingeki no Kyojin: The Final Season Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2022,
+          "startedAt": 1640995200000,
+          "order": 6
+        }
+      ]
+    },
+    "anilist-20958": {
+      "anilistId": 20958,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2017,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 16498,
+          "title": "Shingeki no Kyojin",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "SPRING",
+          "seasonYear": 2013,
+          "startedAt": 1364774400000,
+          "order": 1
+        },
+        {
+          "anilistId": 20958,
+          "title": "Shingeki no Kyojin Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2017,
+          "startedAt": 1491004800000,
+          "order": 2
+        },
+        {
+          "anilistId": 99147,
+          "title": "Shingeki no Kyojin Season 3",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2018,
+          "startedAt": 1530403200000,
+          "order": 3
+        },
+        {
+          "anilistId": 104578,
+          "title": "Shingeki no Kyojin Season 3 Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 10,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554076800000,
+          "order": 4
+        },
+        {
+          "anilistId": 110277,
+          "title": "Shingeki no Kyojin: The Final Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 16,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 5
+        },
+        {
+          "anilistId": 131681,
+          "title": "Shingeki no Kyojin: The Final Season Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2022,
+          "startedAt": 1640995200000,
+          "order": 6
+        }
+      ]
+    },
+    "anilist-20605": {
+      "anilistId": 20605,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2014,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 20605,
+          "title": "Tokyo Ghoul",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2014,
+          "startedAt": 1404172800000,
+          "order": 1
+        },
+        {
+          "anilistId": 20850,
+          "title": "Tokyo Ghoul √A",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2015,
+          "startedAt": 1420070400000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-3588": {
+      "anilistId": 3588,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2008,
+      "anilistEpisodeCount": 51,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "anilist-813": {
+      "anilistId": 813,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 1989,
+      "anilistEpisodeCount": 291,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 223,
+          "title": "Dragon Ball",
+          "format": "TV",
+          "status": "",
+          "episodes": 153,
+          "season": "WINTER",
+          "seasonYear": 1986,
+          "startedAt": 504921600000,
+          "order": 1
+        },
+        {
+          "anilistId": 813,
+          "title": "Dragon Ball Z",
+          "format": "TV",
+          "status": "",
+          "episodes": 291,
+          "season": "SPRING",
+          "seasonYear": 1989,
+          "startedAt": 607392000000,
+          "order": 2
+        },
+        {
+          "anilistId": 225,
+          "title": "Dragon Ball GT",
+          "format": "TV",
+          "status": "",
+          "episodes": 64,
+          "season": "WINTER",
+          "seasonYear": 1996,
+          "startedAt": 820454400000,
+          "order": 3
+        },
+        {
+          "anilistId": 6033,
+          "title": "Dragon Ball Kai",
+          "format": "TV",
+          "status": "",
+          "episodes": 97,
+          "season": "SPRING",
+          "seasonYear": 2009,
+          "startedAt": 1238544000000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-171110": {
+      "anilistId": 171110,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 24,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 121176,
+          "title": "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen 3rd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 10,
+          "season": "SPRING",
+          "seasonYear": 2022,
+          "startedAt": 1648771200000,
+          "order": 1
+        },
+        {
+          "anilistId": 171110,
+          "title": "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen - Ryoushu no Youjo",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775001600000,
+          "order": 2
+        }
+      ]
+    },
     "anilist-166873": {
       "anilistId": 166873,
       "airingStatus": "",
@@ -3229,6 +4810,258 @@
           "seasonYear": 2026,
           "startedAt": 1782864000000,
           "order": 5
+        }
+      ]
+    },
+    "anilist-104578": {
+      "anilistId": 104578,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2019,
+      "anilistEpisodeCount": 10,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 16498,
+          "title": "Shingeki no Kyojin",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "SPRING",
+          "seasonYear": 2013,
+          "startedAt": 1364774400000,
+          "order": 1
+        },
+        {
+          "anilistId": 20958,
+          "title": "Shingeki no Kyojin Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2017,
+          "startedAt": 1491004800000,
+          "order": 2
+        },
+        {
+          "anilistId": 99147,
+          "title": "Shingeki no Kyojin Season 3",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2018,
+          "startedAt": 1530403200000,
+          "order": 3
+        },
+        {
+          "anilistId": 104578,
+          "title": "Shingeki no Kyojin Season 3 Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 10,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554076800000,
+          "order": 4
+        },
+        {
+          "anilistId": 110277,
+          "title": "Shingeki no Kyojin: The Final Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 16,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 5
+        },
+        {
+          "anilistId": 131681,
+          "title": "Shingeki no Kyojin: The Final Season Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2022,
+          "startedAt": 1640995200000,
+          "order": 6
+        }
+      ]
+    },
+    "anilist-101922": {
+      "anilistId": 101922,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2019,
+      "anilistEpisodeCount": 26,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 101922,
+          "title": "Kimetsu no Yaiba",
+          "format": "TV",
+          "status": "",
+          "episodes": 26,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554076800000,
+          "order": 1
+        },
+        {
+          "anilistId": 129874,
+          "title": "Kimetsu no Yaiba: Mugen Ressha-hen",
+          "format": "TV",
+          "status": "",
+          "episodes": 7,
+          "season": "FALL",
+          "seasonYear": 2021,
+          "startedAt": 1633046400000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-101348": {
+      "anilistId": 101348,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2019,
+      "anilistEpisodeCount": 24,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 101348,
+          "title": "Vinland Saga",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "SUMMER",
+          "seasonYear": 2019,
+          "startedAt": 1561939200000,
+          "order": 1
+        },
+        {
+          "anilistId": 136430,
+          "title": "Vinland Saga Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1672531200000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-142074": {
+      "anilistId": 142074,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 142074,
+          "title": "Otome Game Sekai wa Mob ni Kibishii Sekai desu",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2022,
+          "startedAt": 1648771200000,
+          "order": 1
+        },
+        {
+          "anilistId": 159309,
+          "title": "Otome Game Sekai wa Mob ni Kibishii Sekai desu 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-20464": {
+      "anilistId": 20464,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2014,
+      "anilistEpisodeCount": 25,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 20464,
+          "title": "Haikyuu!!",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "SPRING",
+          "seasonYear": 2014,
+          "startedAt": 1396310400000,
+          "order": 1
+        },
+        {
+          "anilistId": 20992,
+          "title": "Haikyuu!! Second Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "FALL",
+          "seasonYear": 2015,
+          "startedAt": 1443657600000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-141953": {
+      "anilistId": 141953,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 7,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "anilist-195604": {
+      "anilistId": 195604,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 97940,
+          "title": "Black Clover",
+          "format": "TV",
+          "status": "",
+          "episodes": 170,
+          "season": "FALL",
+          "seasonYear": 2017,
+          "startedAt": 1506816000000,
+          "order": 1
+        },
+        {
+          "anilistId": 195604,
+          "title": "Black Clover 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1790812800000,
+          "order": 2
         }
       ]
     },
@@ -3298,6 +5131,181 @@
         }
       ]
     },
+    "anilist-21804": {
+      "anilistId": 21804,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2016,
+      "anilistEpisodeCount": 120,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 21804,
+          "title": "Saiki Kusuo no Ψ-nan",
+          "format": "TV",
+          "status": "",
+          "episodes": 120,
+          "season": "SUMMER",
+          "seasonYear": 2016,
+          "startedAt": 1467331200000,
+          "order": 1
+        },
+        {
+          "anilistId": 98034,
+          "title": "Saiki Kusuo no Ψ-nan 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "WINTER",
+          "seasonYear": 2018,
+          "startedAt": 1514764800000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-21450": {
+      "anilistId": 21450,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2016,
+      "anilistEpisodeCount": 39,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 14719,
+          "title": "JoJo no Kimyou na Bouken (TV)",
+          "format": "TV",
+          "status": "",
+          "episodes": 26,
+          "season": "FALL",
+          "seasonYear": 2012,
+          "startedAt": 1349049600000,
+          "order": 1
+        },
+        {
+          "anilistId": 20474,
+          "title": "JoJo no Kimyou na Bouken Part 3: Stardust Crusaders",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "SPRING",
+          "seasonYear": 2014,
+          "startedAt": 1396310400000,
+          "order": 2
+        },
+        {
+          "anilistId": 20799,
+          "title": "JoJo no Kimyou na Bouken Part 3: Stardust Crusaders - Egypt-hen",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "WINTER",
+          "seasonYear": 2015,
+          "startedAt": 1420070400000,
+          "order": 3
+        },
+        {
+          "anilistId": 21450,
+          "title": "JoJo no Kimyou na Bouken Part 4: Diamond wa Kudakenai",
+          "format": "TV",
+          "status": "",
+          "episodes": 39,
+          "season": "SPRING",
+          "seasonYear": 2016,
+          "startedAt": 1459468800000,
+          "order": 4
+        },
+        {
+          "anilistId": 102883,
+          "title": "JoJo no Kimyou na Bouken Part 5: Ougon no Kaze",
+          "format": "TV",
+          "status": "",
+          "episodes": 39,
+          "season": "FALL",
+          "seasonYear": 2018,
+          "startedAt": 1538352000000,
+          "order": 5
+        },
+        {
+          "anilistId": 131942,
+          "title": "JoJo no Kimyou na Bouken Part 6: Stone Ocean",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2021,
+          "startedAt": 1633046400000,
+          "order": 6
+        }
+      ]
+    },
+    "anilist-235": {
+      "anilistId": 235,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 1996,
+      "anilistEpisodeCount": 1205,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "anilist-223": {
+      "anilistId": 223,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 1986,
+      "anilistEpisodeCount": 153,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 223,
+          "title": "Dragon Ball",
+          "format": "TV",
+          "status": "",
+          "episodes": 153,
+          "season": "WINTER",
+          "seasonYear": 1986,
+          "startedAt": 504921600000,
+          "order": 1
+        },
+        {
+          "anilistId": 813,
+          "title": "Dragon Ball Z",
+          "format": "TV",
+          "status": "",
+          "episodes": 291,
+          "season": "SPRING",
+          "seasonYear": 1989,
+          "startedAt": 607392000000,
+          "order": 2
+        },
+        {
+          "anilistId": 225,
+          "title": "Dragon Ball GT",
+          "format": "TV",
+          "status": "",
+          "episodes": 64,
+          "season": "WINTER",
+          "seasonYear": 1996,
+          "startedAt": 820454400000,
+          "order": 3
+        },
+        {
+          "anilistId": 6033,
+          "title": "Dragon Ball Kai",
+          "format": "TV",
+          "status": "",
+          "episodes": 97,
+          "season": "SPRING",
+          "seasonYear": 2009,
+          "startedAt": 1238544000000,
+          "order": 4
+        }
+      ]
+    },
     "anilist-108465": {
       "anilistId": 108465,
       "airingStatus": "",
@@ -3361,6 +5369,324 @@
           "seasonYear": 2026,
           "startedAt": 1782864000000,
           "order": 5
+        }
+      ]
+    },
+    "anilist-103572": {
+      "anilistId": 103572,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2019,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 103572,
+          "title": "5-toubun no Hanayome",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2019,
+          "startedAt": 1546300800000,
+          "order": 1
+        },
+        {
+          "anilistId": 109261,
+          "title": "5-toubun no Hanayome ∬",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-21087": {
+      "anilistId": 21087,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2015,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 21087,
+          "title": "One Punch Man",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2015,
+          "startedAt": 1443657600000,
+          "order": 1
+        },
+        {
+          "anilistId": 97668,
+          "title": "One Punch Man 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554076800000,
+          "order": 2
+        },
+        {
+          "anilistId": 153800,
+          "title": "One Punch Man 3",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 3
+        },
+        {
+          "anilistId": 204747,
+          "title": "One Punch Man 3 Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": null,
+          "season": "WINTER",
+          "seasonYear": 2027,
+          "startedAt": 1798761600000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-20920": {
+      "anilistId": 20920,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2015,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 20920,
+          "title": "Dungeon ni Deai wo Motomeru no wa Machigatteiru Darou ka",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "SPRING",
+          "seasonYear": 2015,
+          "startedAt": 1427846400000,
+          "order": 1
+        },
+        {
+          "anilistId": 101167,
+          "title": "Dungeon ni Deai wo Motomeru no wa Machigatteiru Darou ka II",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2019,
+          "startedAt": 1561939200000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-20474": {
+      "anilistId": 20474,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2014,
+      "anilistEpisodeCount": 24,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 14719,
+          "title": "JoJo no Kimyou na Bouken (TV)",
+          "format": "TV",
+          "status": "",
+          "episodes": 26,
+          "season": "FALL",
+          "seasonYear": 2012,
+          "startedAt": 1349049600000,
+          "order": 1
+        },
+        {
+          "anilistId": 20474,
+          "title": "JoJo no Kimyou na Bouken Part 3: Stardust Crusaders",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "SPRING",
+          "seasonYear": 2014,
+          "startedAt": 1396310400000,
+          "order": 2
+        },
+        {
+          "anilistId": 20799,
+          "title": "JoJo no Kimyou na Bouken Part 3: Stardust Crusaders - Egypt-hen",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "WINTER",
+          "seasonYear": 2015,
+          "startedAt": 1420070400000,
+          "order": 3
+        },
+        {
+          "anilistId": 21450,
+          "title": "JoJo no Kimyou na Bouken Part 4: Diamond wa Kudakenai",
+          "format": "TV",
+          "status": "",
+          "episodes": 39,
+          "season": "SPRING",
+          "seasonYear": 2016,
+          "startedAt": 1459468800000,
+          "order": 4
+        },
+        {
+          "anilistId": 102883,
+          "title": "JoJo no Kimyou na Bouken Part 5: Ougon no Kaze",
+          "format": "TV",
+          "status": "",
+          "episodes": 39,
+          "season": "FALL",
+          "seasonYear": 2018,
+          "startedAt": 1538352000000,
+          "order": 5
+        },
+        {
+          "anilistId": 131942,
+          "title": "JoJo no Kimyou na Bouken Part 6: Stone Ocean",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2021,
+          "startedAt": 1633046400000,
+          "order": 6
+        }
+      ]
+    },
+    "anilist-9253": {
+      "anilistId": 9253,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2011,
+      "anilistEpisodeCount": 24,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "anilist-2904": {
+      "anilistId": 2904,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2008,
+      "anilistEpisodeCount": 25,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 1575,
+          "title": "Code Geass: Hangyaku no Lelouch",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "FALL",
+          "seasonYear": 2006,
+          "startedAt": 1159660800000,
+          "order": 1
+        },
+        {
+          "anilistId": 2904,
+          "title": "Code Geass: Hangyaku no Lelouch R2",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "SPRING",
+          "seasonYear": 2008,
+          "startedAt": 1207008000000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-102883": {
+      "anilistId": 102883,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2018,
+      "anilistEpisodeCount": 39,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 14719,
+          "title": "JoJo no Kimyou na Bouken (TV)",
+          "format": "TV",
+          "status": "",
+          "episodes": 26,
+          "season": "FALL",
+          "seasonYear": 2012,
+          "startedAt": 1349049600000,
+          "order": 1
+        },
+        {
+          "anilistId": 20474,
+          "title": "JoJo no Kimyou na Bouken Part 3: Stardust Crusaders",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "SPRING",
+          "seasonYear": 2014,
+          "startedAt": 1396310400000,
+          "order": 2
+        },
+        {
+          "anilistId": 20799,
+          "title": "JoJo no Kimyou na Bouken Part 3: Stardust Crusaders - Egypt-hen",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "WINTER",
+          "seasonYear": 2015,
+          "startedAt": 1420070400000,
+          "order": 3
+        },
+        {
+          "anilistId": 21450,
+          "title": "JoJo no Kimyou na Bouken Part 4: Diamond wa Kudakenai",
+          "format": "TV",
+          "status": "",
+          "episodes": 39,
+          "season": "SPRING",
+          "seasonYear": 2016,
+          "startedAt": 1459468800000,
+          "order": 4
+        },
+        {
+          "anilistId": 102883,
+          "title": "JoJo no Kimyou na Bouken Part 5: Ougon no Kaze",
+          "format": "TV",
+          "status": "",
+          "episodes": 39,
+          "season": "FALL",
+          "seasonYear": 2018,
+          "startedAt": 1538352000000,
+          "order": 5
+        },
+        {
+          "anilistId": 131942,
+          "title": "JoJo no Kimyou na Bouken Part 6: Stone Ocean",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2021,
+          "startedAt": 1633046400000,
+          "order": 6
         }
       ]
     }
