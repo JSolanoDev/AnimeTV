@@ -4411,9 +4411,9 @@ function applyAniListExtras(show, data) {
     // key them by parsed episode number for reliable matching against our list.
     const byNum = { ...(show.streamingEpisodesByNum || {}) };
     data.episodes.forEach((e, index) => {
-      const m = /episode\s*(\d+)/i.exec(e.title || "");
-      const n = Number(e.episode || e.number || (m ? m[1] : index + 1));
-      if (n) {
+      const m = /episode\s*(\d+(?:\.\d+)?)/i.exec(e.title || "");
+      const n = parseEpisodeNumber(e.episode ?? e.number ?? (m ? m[1] : index + 1));
+      if (n !== null) {
         const existing = byNum[n] || {};
         byNum[n] = {
           ...e,
@@ -4435,7 +4435,7 @@ function mergeAiredEpisodeMetadata(show, metadata = []) {
   if (!show || show.adultSource || show.seasons?.length > 1) return;
   const season = show.seasons?.[0];
   const seasonNumber = Number(season?.season || show.seasonNumber || extractSeasonNumber(show.title, 1)) || 1;
-  const episodes = new Map((season?.episodes || show.episodes || []).map(episode => [Number(episode.episode || episode.number), episode]));
+  const episodes = new Map((season?.episodes || show.episodes || []).map(episode => [getCanonicalEpisodeNumber(episode), episode]));
   let latest = 0;
   // Entries get skipped for two very different reasons, and collapsing them is
   // what broke this. An entry dated in the FUTURE is genuinely unaired, so
@@ -4447,8 +4447,8 @@ function mergeAiredEpisodeMetadata(show, metadata = []) {
   let undated = 0;
   let counted = 0;
   for (const entry of metadata) {
-    const number = Number(entry.episode || entry.number);
-    if (!Number.isInteger(number) || number < 1) continue;
+    const number = getCanonicalEpisodeNumber(entry);
+    if (!Number.isFinite(number) || number < 0) continue;
     counted += 1;
     const aired = Date.parse(entry.aired || "");
     if (!Number.isFinite(aired)) { undated += 1; continue; }
@@ -4464,10 +4464,10 @@ function mergeAiredEpisodeMetadata(show, metadata = []) {
       malId: show.malId || null
     });
   }
-  if (!latest) return;
-  const merged = [...episodes.values()].sort((a, b) => Number(a.episode) - Number(b.episode));
+  const merged = [...episodes.values()].sort((a, b) => getCanonicalEpisodeNumber(a, 0) - getCanonicalEpisodeNumber(b, 0));
   show.episodes = merged;
   if (season) season.episodes = merged;
+  if (!latest) return;
   // Only authoritative when every entry could be dated - then anything above
   // `latest` was skipped for being in the future, which is exactly what the
   // clamp wants. With even one undated entry `latest` is a lower bound, and
@@ -4490,8 +4490,8 @@ function mergeAiredEpisodeMetadata(show, metadata = []) {
 // Strip a leading "Episode 12 - " / "12 - " so the row shows the real title only.
 function cleanEpisodeTitle(raw, num) {
   let t = String(raw || "").trim();
-  t = t.replace(/^(episode|ep|cap[ií]tulo|cap)\s*\d+\s*(?:[-:–|]\s*)?/i, "")
-       .replace(/^#?\d+\s*[-:–|]\s*/, "")
+  t = t.replace(/^(episode|ep|cap[ií]tulo|cap)\s*\d+(?:\.\d+)?\s*(?:[-:–|]\s*)?/i, "")
+       .replace(/^#?\d+(?:\.\d+)?\s*[-:–|]\s*/, "")
        .trim();
   return t || `Episode ${num}`;
 }
@@ -4626,11 +4626,11 @@ function episodePathForShow(show = {}, seasonNumber = 1, episodeNumber = 1, seas
   const router = appRouter();
   const ep = router?.episodeSlug
     ? router.episodeSlug(seasonNumber, episodeNumber, seasonPart)
-    : `s${seasonNumber || 1}-e${episodeNumber || 1}`;
+    : `s${seasonNumber ?? 1}-e${episodeNumber ?? 1}`;
   return `/watch/${encodeURIComponent(getShowSlug(show))}/${encodeURIComponent(ep)}`;
 }
 
-const FRANCHISE_ROUTE_CACHE_KEY = "zenkaitv-franchise-routes-v1";
+const FRANCHISE_ROUTE_CACHE_KEY = "zenkaitv-franchise-routes-v2";
 
 function readFranchiseRoutes() {
   try {
@@ -4649,7 +4649,7 @@ function rememberFranchiseRoutes(shows) {
   for (const show of shows) {
     if (!show.isFranchiseEntry || show.adultSource || !/^(anilist|jikan)-\d+$/.test(String(show.id))) continue;
     const stub = {};
-    for (const key of ["id", "anilistId", "malId", "title", "romajiTitle", "nativeTitle", "episode", "totalEpisodes", "latestAiredEp", "nextAiringEp", "nextAiringEpisodeNumber", "genre", "genres", "format", "status", "year", "source", "isFranchiseEntry", "image", "coverImageLarge", "banner", "highQualityBackground", "description", "colors", "score"]) {
+    for (const key of ["id", "anilistId", "malId", "catalogAnimeId", "providerAnimeId", "animeAv1Slug", "title", "romajiTitle", "nativeTitle", "providerBaseTitle", "episode", "totalEpisodes", "franchiseEpisodeCount", "latestAiredEp", "nextAiringEp", "nextAiringEpisodeNumber", "canonicalSeasonNumber", "canonicalSeasonPart", "providerEpisodeOffset", "normalizedSeasonTitle", "franchiseSeasons", "genre", "genres", "format", "status", "year", "source", "isFranchiseEntry", "image", "coverImageLarge", "banner", "highQualityBackground", "description", "colors", "score"]) {
       if (show[key] != null) stub[key] = show[key];
     }
     entries.delete(show.id);
@@ -4727,8 +4727,10 @@ function updateRouteMeta(routeInfo = {}, show = null, target = {}) {
 
   if (show) {
     const showTitle = getShowTitle(show);
-    const ep = Number(target.episodeNumber || state.activeEpisode?.episode?.episode || 0);
-    if (routeInfo.name === "watch" && ep) {
+    const ep = getCanonicalEpisodeNumber({
+      episode: target.episodeNumber ?? state.activeEpisode?.episode?.episode
+    });
+    if (routeInfo.name === "watch" && ep !== null) {
       title = `${showTitle} Episode ${ep} - ZenkaiTV`;
       description = `Watch ${showTitle} episode ${ep} on ZenkaiTV.`;
     } else {
@@ -6189,8 +6191,8 @@ function hasFastPreferredPlaybackSource(episode) {
 
 async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
   if (!show || !episode) return episode;
-  const episodeNumber = Number(episode.episode || episode.number || 1);
-  const lookupKey = `${normalizeTitle(show.title)}:s${seasonNumber}:e${episodeNumber}`;
+  const episodeNumber = getCanonicalEpisodeNumber(episode, 1);
+  const lookupKey = playbackLookupKey(show, episode, seasonNumber);
   if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) {
     const adultSources = Array.isArray(episode.sourceOptions) ? [...episode.sourceOptions] : [];
     episode.sourceOptions = adultSources;
@@ -6300,8 +6302,13 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
 
 function playbackLookupKey(show, episode, seasonNumber = 1) {
   if (!show || !episode) return "";
-  const episodeNumber = Number(episode.episode || episode.number || 1);
-  return `${normalizeTitle(show.title)}:s${seasonNumber}:e${episodeNumber}`;
+  const providerEpisodeId = getProviderEpisodeId(episode);
+  const canonical = canonicalEpisodeIdentity(episode, {
+    animeId: show.catalogAnimeId || show.id || show.anilistId || show.malId,
+    season: seasonNumber,
+    title: show.title
+  });
+  return `${show.animeAv1Slug || episode.providerAnimeSlug || normalizeTitle(show.title)}:${canonical}:p${providerEpisodeId ?? "unknown"}`;
 }
 
 function getKnownSourceServer(key) {
@@ -7993,8 +8000,9 @@ async function hydrateAniPubEpisodes(show) {
 function applyOpenTarget(show, target = {}) {
   const seasonNumber = Number(target.seasonNumber || extractSeasonNumber(show.title, 1));
   const seasonPart = target.seasonPart ? Number(target.seasonPart) : "";
-  const episodeNumber = Number(target.episodeNumber || show.episode);
-  const hasEpisodeTarget = Number.isFinite(episodeNumber) && episodeNumber > 0;
+  const rawEpisodeTarget = target.episodeNumber ?? show.episode;
+  const episodeNumber = parseEpisodeNumber(rawEpisodeTarget);
+  const hasEpisodeTarget = episodeNumber !== null && Number.isFinite(episodeNumber) && episodeNumber >= 0;
   const hasSeasonTarget = Number.isFinite(seasonNumber) && seasonNumber > 1;
   if (!hasEpisodeTarget && !hasSeasonTarget) return;
 
@@ -8012,10 +8020,12 @@ function applyOpenTarget(show, target = {}) {
   state.activeDetailTab = "episodes";
 
   if (!hasEpisodeTarget || !activeSeason?.episodes?.length) return;
-  const episodeIndex = activeSeason.episodes.findIndex((episode) => Number(episode.episode) === episodeNumber);
+  const episodeIndex = activeSeason.episodes.findIndex((episode) => getCanonicalEpisodeNumber(episode) === episodeNumber);
   const safeEpisodeIndex = episodeIndex >= 0
     ? episodeIndex
-    : Math.min(Math.max(episodeNumber - 1, 0), activeSeason.episodes.length - 1);
+    : Number.isInteger(episodeNumber) && episodeNumber >= 1
+      ? Math.min(Math.max(episodeNumber - 1, 0), activeSeason.episodes.length - 1)
+      : 0;
   const episode = activeSeason.episodes[safeEpisodeIndex];
   if (!episode) return;
   state.activeEpisode = { season: activeSeason, episode, seasonIndex, episodeIndex: safeEpisodeIndex };
@@ -8317,7 +8327,7 @@ function normalizeDisplayText(value = "") {
 
 function currentEpisodeNumberLabel(selected = state.activeEpisode) {
   if (!selected) return "Selected episode";
-  const episodeNumber = Number(selected.episode?.episode || selected.episode?.number || selected.episodeIndex + 1) || 1;
+  const episodeNumber = getCanonicalEpisodeNumber(selected.episode, selected.episodeIndex + 1);
   return `${selectedSeasonLabel(selected)} Episode ${episodeNumber}`;
 }
 
@@ -8330,7 +8340,7 @@ function currentEpisodeKicker(selected = state.activeEpisode) {
 function currentEpisodeTitle(selected = state.activeEpisode) {
   if (!selected) return getShowTitle(state.activeShow) || "Selected episode";
   const episode = selected.episode || {};
-  const episodeNumber = Number(episode.episode || episode.number || selected.episodeIndex + 1) || 1;
+  const episodeNumber = getCanonicalEpisodeNumber(episode, selected.episodeIndex + 1);
   const seasonNumber = Number(selected.season?.season || selected.season?.seasonNumber || episode.season || selected.seasonIndex + 1) || 1;
   const meta = episodeMetadataForNumber(state.activeShow || {}, episodeNumber, seasonNumber);
   const showKey = normalizeDisplayText(getShowTitle(state.activeShow) || "");
@@ -9006,7 +9016,7 @@ function capturedEpisodeFrames() {
 }
 
 function capturedEpisodeFrameKey(show = {}, seasonNumber = 1, episodeNumber = 1) {
-  return buildWatchKey(show, Number(seasonNumber) || 1, Number(episodeNumber) || 1);
+  return buildWatchKey(show, Number(seasonNumber) || 1, parseEpisodeNumber(episodeNumber, 1));
 }
 
 function getCapturedEpisodeFrame(show = {}, seasonNumber = 1, episodeNumber = 1) {
@@ -10003,11 +10013,11 @@ function getSelectedEpisodeSource(episode = {}) {
   const sources = getEpisodePlaybackSources(episode);
   if (!sources.length) return null;
   const failedSourceIds = episode._failedSourceIds;
-  const cleanAdultSource = sources.find((source) => (
-    isPreferredAdultSource(source) && !failedSourceIds?.has(source.id)
-  ));
+  const availableSources = sources.filter((source) => !failedSourceIds?.has(source.id));
+  if (!availableSources.length) return null;
+  const cleanAdultSource = availableSources.find(isPreferredAdultSource);
   if (episode.selectedSourceId && episode.selectedSourceId !== "auto") {
-    const selected = sources.find((source) => source.id === episode.selectedSourceId);
+    const selected = availableSources.find((source) => source.id === episode.selectedSourceId);
     if (
       selected
       && cleanAdultSource
@@ -10019,22 +10029,22 @@ function getSelectedEpisodeSource(episode = {}) {
       state.activeEpisodeUrl = "";
       return cleanAdultSource;
     }
-    return selected || sources[0];
+    return selected || availableSources[0];
   }
   const savedPreference = state.preferredSource;
   if (savedPreference && savedPreference !== "auto") {
-    const preferred = sources.find((source) => source.id === savedPreference);
+    const preferred = availableSources.find((source) => source.id === savedPreference);
     if (preferred && (!cleanAdultSource || isPreferredAdultSource(preferred))) {
       // Only honour the remembered server when it is at least as good as the
       // best one available for THIS episode. Otherwise one past manual pick
       // outranked AnimeAV1/HLS (preference score 0) on every anime forever,
       // so the top source was never the one that opened first.
-      if (sourcePreferenceScore(preferred) <= sourcePreferenceScore(sources[0])) {
+      if (sourcePreferenceScore(preferred) <= sourcePreferenceScore(availableSources[0])) {
         return preferred;
       }
     }
   }
-  return sources[0];
+  return availableSources[0];
 }
 
 function selectEpisodePlaybackSource(episode, sourceId) {
@@ -10099,16 +10109,16 @@ function getEpisodeNavigationTargets() {
   const season = seasons[seasonIndex];
   const episodes = season?.episodes || [];
   let episodeIndex = Number.isInteger(Number(selected.episodeIndex)) ? Number(selected.episodeIndex) : 0;
-  const selectedEpisodeNumber = Number(selected.episode?.episode || selected.episode?.number || episodeIndex + 1);
+  const selectedEpisodeNumber = getCanonicalEpisodeNumber(selected.episode, episodeIndex + 1);
   const indexedEpisode = episodes[episodeIndex];
-  const indexedEpisodeNumber = Number(indexedEpisode?.episode || indexedEpisode?.number || episodeIndex + 1);
+  const indexedEpisodeNumber = getCanonicalEpisodeNumber(indexedEpisode, episodeIndex + 1);
   if (!indexedEpisode || indexedEpisodeNumber !== selectedEpisodeNumber) {
     const selectedEpisodeId = String(selected.episode?.id || selected.episode?.episodeId || "");
     const resolvedEpisodeIndex = episodes.findIndex((candidate, index) => {
       if (candidate === selected.episode) return true;
       const candidateId = String(candidate?.id || candidate?.episodeId || "");
       if (selectedEpisodeId && candidateId === selectedEpisodeId) return true;
-      return Number(candidate?.episode || candidate?.number || index + 1) === selectedEpisodeNumber;
+      return getCanonicalEpisodeNumber(candidate, index + 1) === selectedEpisodeNumber;
     });
     if (resolvedEpisodeIndex >= 0) episodeIndex = resolvedEpisodeIndex;
   }
@@ -10526,7 +10536,7 @@ function renderSourcePickerInSidePanel() {
   const serverChecks = episode.serverChecks || {};
   const isPending = Boolean(episode.sourceOptionsPending);
   const show = state.activeShow;
-  const episodeNumber = Number(episode.episode || episode.number || 1) || 1;
+  const episodeNumber = getCanonicalEpisodeNumber(episode, 1);
   const epMeta = show?.streamingEpisodesByNum?.[episodeNumber] || null;
   const episodeTitle = epMeta?.title
     ? cleanEpisodeTitle(epMeta.title, episodeNumber)
@@ -10893,7 +10903,7 @@ function renderSourcePickerIn(frame) {
   const serverChecks = episode.serverChecks || {};
   const isPending = Boolean(episode.sourceOptionsPending);
   const show = state.activeShow;
-  const episodeNumber = Number(episode.episode || episode.number || 1) || 1;
+  const episodeNumber = getCanonicalEpisodeNumber(episode, 1);
   const epMeta = show?.streamingEpisodesByNum?.[episodeNumber] || null;
   const episodeTitle = epMeta?.title
     ? cleanEpisodeTitle(epMeta.title, episodeNumber)
@@ -11405,10 +11415,17 @@ function buildCastCandidateList() {
   const episode = state.activeEpisode?.episode;
   if (!episode || typeof getEpisodePlaybackSources !== "function") return [];
   const sources = getEpisodePlaybackSources(episode) || [];
+  const selected = typeof getSelectedEpisodeSource === "function"
+    ? getSelectedEpisodeSource(episode)
+    : null;
   const active = typeof isActivePlaybackSource === "function"
     ? sources.find((source) => isActivePlaybackSource(source, episode))
     : null;
-  const ordered = [active, ...sources.filter((source) => source !== active)].filter(Boolean);
+  const ordered = [
+    selected,
+    active,
+    ...sources.filter((source) => source !== selected && source !== active)
+  ].filter((source, index, list) => source && list.indexOf(source) === index);
   return ordered.map((source) => {
     const url = String(source.videoUrl || source.url || "");
     if (!url) return null;
@@ -11625,7 +11642,7 @@ function skipSegmentParam(segment) {
 // late update meant for an episode the viewer has already left.
 function episodeSkipKey(episode) {
   if (!episode) return "";
-  return String(episode.episodeKey || episode.id || episode.url || episode.episode || episode.number || "");
+  return String(episode.episodeKey || episode.id || episode.url || (episode.episode ?? episode.number ?? ""));
 }
 
 function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null) {
@@ -12503,7 +12520,7 @@ function selectEpisodeByPosition(seasonIndex, episodeIndex, shouldPlay = true) {
   state.activeEpisodeChunkIndex = Math.floor(episodeIndex / 100);
   if (state.activeShow) {
     const seasonNumber = season?.season || seasonIndex + 1 || 1;
-    const episodeNumber = episode?.episode || episodeIndex + 1 || 1;
+    const episodeNumber = getCanonicalEpisodeNumber(episode, episodeIndex + 1);
     // replace, not navigate: the show already owns one history entry. Pushing
     // one per episode meant Back had to walk through every episode the viewer
     // had clicked before it would leave the show. The URL still updates, so
@@ -12633,13 +12650,13 @@ function getAnimeTrackId(show = {}) {
 // internally for back-compat with previously saved data.
 function buildWatchKey(show, seasonNumber, episodeNumber) {
   if (!show) return "";
-  return `${getAnimeTrackId(show)}:s${seasonNumber || 1}:e${episodeNumber || 1}`;
+  return `${getAnimeTrackId(show)}:s${seasonNumber ?? 1}:e${episodeNumber ?? 1}`;
 }
 
 function getWatchKey(show = state.activeShow, episode = state.activeEpisode?.episode) {
   if (!show || !episode) return "";
-  const seasonNumber = episode.season || state.activeEpisode?.season?.season || (state.activeSeasonIndex + 1) || 1;
-  return buildWatchKey(show, seasonNumber, episode.episode || episode.number || 1);
+  const seasonNumber = episode.canonicalSeason ?? episode.season ?? state.activeEpisode?.season?.season ?? (state.activeSeasonIndex + 1) ?? 1;
+  return buildWatchKey(show, seasonNumber, getCanonicalEpisodeNumber(episode, 1));
 }
 
 function readStoredMap(key) {
@@ -12688,7 +12705,8 @@ function persistWatchMap() {
 function recordWatchProgress({ show, season, episode, positionSec, durationSec, episodeTitle, thumb, completed }) {
   if (!show) return;
   const seasonNumber = Number(season) || 1;
-  const episodeNumber = Number(episode) || 1;
+  const parsedEpisode = parseEpisodeNumber(episode);
+  const episodeNumber = parsedEpisode !== null ? parsedEpisode : 1;
   const key = buildWatchKey(show, seasonNumber, episodeNumber);
   if (!key) return;
   const map = getWatchMap();
@@ -12965,7 +12983,7 @@ function findShowForWatchEntry(entry) {
 }
 
 function resumeFromContinue(showId, key) {
-  const m = /:s(\d+):e(\d+)$/.exec(key || "");
+  const m = /:s(\d+):e(\d+(?:\.\d+)?)$/.exec(key || "");
   const seasonNumber = m ? Number(m[1]) : 1;
   const episodeNumber = m ? Number(m[2]) : 1;
   const entry = key ? getWatchMap()[key] : null;
@@ -13027,7 +13045,7 @@ window.ZenkaiTrackProgress = function (episodeKey, posMs, durMs, completed) {
       return;
     }
     // Fallback: reconstruct the show from the key (animeId:sN:eM).
-    const parts = /^(.+):s(\d+):e(\d+)$/.exec(String(episodeKey || ""));
+    const parts = /^(.+):s(\d+):e(\d+(?:\.\d+)?)$/.exec(String(episodeKey || ""));
     if (!parts) return;
     const animeId = parts[1];
     const show = state.shows.find((s) => getAnimeTrackId(s) === animeId);
@@ -13133,40 +13151,82 @@ function buildSeasonListFromBakedChain(show, showsMap) {
   if (chain.length < 2) return null;
 
   const currentAniListId = String(show.anilistId || resolved.selfAniListId || "");
-  const list = chain.map((entry, index) => {
-    const isCurrent = currentAniListId && String(entry.anilistId) === currentAniListId;
-    const matched = showsMap.get(String(entry.anilistId));
+  const normalized = typeof SeasonNormalization !== "undefined"
+    ? SeasonNormalization.normalizeFranchise(chain.map((entry) => ({ ...entry, mainline: true }))).groups
+    : chain.map((entry, index) => ({
+        id: `season-${index + 1}`,
+        title: `Season ${index + 1}`,
+        seasonNumber: index + 1,
+        partNumber: null,
+        type: "main",
+        yearStart: entry.seasonYear || null,
+        episodeCount: Number(entry.episodes) || 0,
+        items: [entry]
+      }));
+  const offsets = new Map();
+  const list = normalized.map((group, index) => {
+    const items = Array.isArray(group.items) ? group.items : [];
+    const seasonNumber = Number(group.seasonNumber) || index + 1;
+    const providerEpisodeOffset = offsets.get(seasonNumber) || 0;
+    offsets.set(seasonNumber, providerEpisodeOffset + (Number(group.episodeCount) || 0));
+    const currentItem = items.find((entry) => currentAniListId && String(entry.anilistId) === currentAniListId);
+    const matchedItem = items.find((entry) => showsMap.has(String(entry.anilistId)) || (entry.malId && showsMap.has(`mal-${entry.malId}`)));
+    const entry = currentItem || matchedItem || items[0] || {};
+    const isCurrent = Boolean(currentItem);
+    const matched = matchedItem
+      ? (showsMap.get(String(matchedItem.anilistId)) || showsMap.get(`mal-${matchedItem.malId}`))
+      : null;
     let episodes = [];
     if (isCurrent) {
       episodes = (getDetailSeasons(show) || []).flatMap((s) => s.episodes || []);
     } else if (matched) {
-      episodes = makePlaceholderEpisodes(matched, index + 1);
-    } else if (Number(entry.episodes) > 0) {
-      // Not in the catalogue: a locked row per episode, so the season is
-      // visible and honestly marked rather than silently missing.
-      episodes = Array.from({ length: Math.min(Number(entry.episodes), 500) }, (_, i) => ({
-        id: `chain-${entry.anilistId}-e${i + 1}`,
-        title: "Not available yet",
-        season: index + 1,
+      episodes = makePlaceholderEpisodes(matched, seasonNumber);
+    } else if (Number(group.episodeCount || entry.episodes) > 0 && String(entry.status || "").toUpperCase() !== "NOT_YET_RELEASED") {
+      // A related title can be absent from the four-page catalogue while its
+      // exact provider page still exists. Keep these as unresolved canonical
+      // episodes; the click path validates the relation-derived slug and only
+      // reports unavailable when that real lookup fails.
+      episodes = Array.from({ length: Math.min(Number(group.episodeCount || entry.episodes), 500) }, (_, i) => ({
+        id: `chain-${entry.anilistId}-s${seasonNumber}-e${i + 1}`,
+        title: "",
+        animeId: entry.anilistId || entry.malId || null,
+        anilistId: entry.anilistId || null,
+        malId: entry.malId || null,
+        canonicalSeason: seasonNumber,
+        canonicalEpisode: i + 1,
+        displayEpisodeNumber: i + 1,
+        sourceEpisodeNumber: providerEpisodeOffset + i + 1,
+        providerEpisodeId: providerEpisodeOffset + i + 1,
+        season: seasonNumber,
         episode: i + 1,
-        locked: true,
-        missing: true,
-        unavailable: true,
-        server: "Not in catalog"
+        needsResolve: true,
+        locked: false,
+        server: "AnimeAV1"
       }));
     }
+    episodes = episodes.map((episode, episodeIndex) => ({
+      ...episode,
+      canonicalSeason: seasonNumber,
+      canonicalEpisode: getCanonicalEpisodeNumber(episode, episodeIndex + 1),
+      displayEpisodeNumber: getCanonicalEpisodeNumber(episode, episodeIndex + 1),
+      sourceEpisodeNumber: episode.sourceEpisodeNumber ?? providerEpisodeOffset + episodeIndex + 1,
+      providerEpisodeId: episode.providerEpisodeId ?? providerEpisodeOffset + episodeIndex + 1,
+      providerAnimeId: episode.providerAnimeId || matched?.providerAnimeId || matched?.animeAv1Slug || null,
+      providerAnimeSlug: episode.providerAnimeSlug || matched?.animeAv1Slug || "",
+      season: seasonNumber
+    }));
     return {
       id: matched ? matched.id : `anilist-${entry.anilistId}`,
-      season: index + 1,
-      part: null,
-      type: "main",
-      title: entry.title || `Season ${index + 1}`,
+      season: seasonNumber,
+      part: group.partNumber || null,
+      type: group.type || "main",
+      title: group.title || entry.title || `Season ${seasonNumber}`,
       sourceTitle: isCurrent ? show.title : (matched?.title || entry.title || ""),
       image: isCurrent ? (show.image || "") : (matched?.image || show.image || ""),
       format: entry.format || "",
       formatBadge: "",
       status: entry.status || "",
-      year: entry.seasonYear || null,
+      year: group.yearStart || entry.seasonYear || null,
       anilistId: entry.anilistId,
       malId: matched?.malId || null,
       isCurrentShow: isCurrent,
@@ -13181,6 +13241,10 @@ function buildSeasonListFromBakedChain(show, showsMap) {
 }
 
 function getFranchiseSeasonList(show) {
+  // Materialize relation-backed entries before the map is built so every
+  // selector row has a deterministic navigation target, even when the source's
+  // paginated catalogue omitted that older cour.
+  ensureFranchiseShowsInCatalog(show);
   const showsMap = _buildShowsByAniListId();
 
   // ── The relations, baked at build time ───────────────────────────────────
@@ -13756,7 +13820,7 @@ function mergeTioAnimeSourcesIntoEpisode(show, episode, data, slug, epNum) {
 // ── AnimeAV1 source integration ──────────────────────────────────────────────
 
 const _animeAv1SlugCache = new Map();
-const _animeAv1MissCache = new Set();
+const _animeAv1MissCache = new Map();
 const _animeAv1EpisodeSourceCache = new Map();
 let _animeAv1SlugCatalogPromise = null;
 let _animeAv1SlugTitleMap = null;
@@ -13765,7 +13829,34 @@ const ANIMEAV1_SEARCH_TIMEOUT_MS = 4200;
 const ANIMEAV1_SOURCE_TIMEOUT_MS = 6500;
 
 function animeAv1SearchCandidates(show = {}) {
-  return tioAnimeSearchCandidates(show);
+  const candidates = [
+    show.title,
+    getShowTitle(show),
+    show.romajiTitle,
+    show.nativeTitle,
+    show.englishTitle,
+    show.sourceTitle,
+    // Only populated from an explicit PREQUEL/SEQUEL split-cour relation.
+    // It is not a fuzzy title fallback: it identifies the provider title that
+    // owns the absolute episode numbers for this cour.
+    show.providerBaseTitle,
+    ...(show.aliases || []),
+    ...(show.alternativeTitles || []),
+    ...(show.synonyms || [])
+  ];
+  const expanded = [];
+  candidates.filter(Boolean).forEach((title) => {
+    const clean = String(title).replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+    expanded.push(title, clean);
+    tioAnimeSeasonTitleVariants(title).forEach((variant) => expanded.push(variant));
+  });
+  const seen = new Set();
+  return expanded.filter((title) => {
+    const key = normalizeTitle(title);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 12);
 }
 
 function animeAv1SlugFromSearchPayload(data = {}) {
@@ -13780,12 +13871,15 @@ function animeAv1SlugFromSearchPayload(data = {}) {
 }
 
 async function fetchAnimeAv1SlugSearch(paramName, value, cacheKey) {
-  if (!value || _animeAv1MissCache.has(cacheKey)) return "";
+  const missedAt = _animeAv1MissCache.get(cacheKey) || 0;
+  if (!value || (missedAt && Date.now() - missedAt < 90 * 1000)) return "";
   if (_animeAv1SlugCache.has(cacheKey)) return _animeAv1SlugCache.get(cacheKey);
   const qs = `${paramName}=${encodeURIComponent(value)}`;
   const res = await fetchWithTimeout(`/api/animeav1/search?${qs}`, { cache: "no-store" }, ANIMEAV1_SEARCH_TIMEOUT_MS);
   if (!res.ok) {
-    _animeAv1MissCache.add(cacheKey);
+    // A title miss can be retried shortly after the daily source refresh. A
+    // transport/5xx failure is transient and is never cached as "not found".
+    if (res.status === 404) _animeAv1MissCache.set(cacheKey, Date.now());
     return "";
   }
   const data = await res.json();
@@ -13794,7 +13888,7 @@ async function fetchAnimeAv1SlugSearch(paramName, value, cacheKey) {
     _animeAv1SlugCache.set(cacheKey, slug);
     return slug;
   }
-  _animeAv1MissCache.add(cacheKey);
+  _animeAv1MissCache.set(cacheKey, Date.now());
   return "";
 }
 
@@ -13830,13 +13924,6 @@ function applyAnimeAv1SlugFromMap(show, slugMap = _animeAv1SlugTitleMap || {}) {
       show.animeAv1SlugSource = title;
       _animeAv1SlugCache.set(`t:${key}`, slug);
       return { slug, matchedTitle: title, key };
-    }
-    const strippedKey = normalizeTitle(stripSeasonFromTitle(title));
-    if (strippedKey && slugMap[strippedKey]) {
-      show.animeAv1Slug = slugMap[strippedKey];
-      show.animeAv1SlugSource = title;
-      _animeAv1SlugCache.set(`t:${strippedKey}`, show.animeAv1Slug);
-      return { slug: show.animeAv1Slug, matchedTitle: title, key: strippedKey };
     }
   }
   // Fallback: squashed matching (ignores minor hyphens/spaces differences)
@@ -13922,14 +14009,14 @@ async function hydrateAnimeAv1Slug(show, options = {}) {
 
 async function attachAnimeAv1Sources(show, episode) {
   if (!show || !episode) return;
-  if (!show.animeAv1Slug) await hydrateAnimeAv1Slug(show, { force: true });
-  const slug = show.animeAv1Slug;
+  if (!episode.providerAnimeSlug && !show.animeAv1Slug) await hydrateAnimeAv1Slug(show, { force: true });
+  const slug = episode.providerAnimeSlug || show.animeAv1Slug;
   if (!slug) {
     episode.animeAv1SourcesChecked = true;
     return;
   }
-  const epNum = episode.episode || episode.number;
-  if (!epNum) {
+  const epNum = getProviderEpisodeId(episode);
+  if (epNum === null || epNum === undefined || String(epNum).trim() === "") {
     episode.animeAv1SourcesChecked = true;
     return;
   }
@@ -13975,12 +14062,24 @@ function mergeAnimeAv1SourcesIntoEpisode(show, episode, data, slug, epNum) {
       const rank = direct ? 0 : embedProviderRank(s.provider);
       return {
         id:          `animeav1-${normalizeTitle(s.provider || "source")}-${simpleHash(`${slug}:${epNum}:${s.provider || index}:${url}`)}`,
+        originalSourceId: s.id || s.sourceId || null,
         label:       `AnimeAV1 - ${s.provider || `Source ${index + 1}`}${rank === 2 ? " (ads)" : ""}`,
+        provider:    s.provider || "AnimeAV1",
         type:        direct ? "direct" : "iframe",
         externalUrl: direct ? "" : url,
         videoUrl:    direct ? url : "",
         downloadUrl: "",
         streamResolver: null,
+        providerAnimeId: slug,
+        providerAnimeSlug: slug,
+        providerEpisodeId: data.providerEpisodeId ?? epNum,
+        mimeType:    s.mimeType || s.contentType || (direct && /\.m3u8(?:$|[?#])/i.test(url) ? "application/vnd.apple.mpegurl" : ""),
+        container:   s.container || (/\.m3u8(?:$|[?#])/i.test(url) ? "hls" : ""),
+        codec:       s.codec || s.codecs || "",
+        resolution:  s.resolution || s.quality || "",
+        bitrate:     s.bitrate ?? null,
+        headers:     s.headers || null,
+        referer:     s.referer || s.referrer || "",
         sourceRank:  rank,
         adWalled:    rank === 2,
       };
@@ -14244,17 +14343,43 @@ function mergeJKAnimeSourcesIntoEpisode(show, episode, data, slug, epNum) {
  */
 function ensureFranchiseShowsInCatalog(show) {
   const franchise = show.anilistFranchise;
-  if (!franchise) return;
+  const baked = bakedChainFor(show);
+  const bakedGroups = baked?.chain?.length && typeof SeasonNormalization !== "undefined"
+    ? SeasonNormalization.normalizeFranchise(baked.chain.map((entry) => ({ ...entry, mainline: true }))).groups
+    : [];
+  if (!franchise && !bakedGroups.length) return;
 
-  const allEntries = Array.isArray(franchise.groups)
-    ? franchise.groups.flatMap((group) => Array.isArray(group?.items) ? group.items : [])
+  const groups = Array.isArray(franchise?.groups) && franchise.groups.length
+    ? franchise.groups
+    : bakedGroups;
+  const groupOffsets = new Map();
+  const baseTitles = new Map();
+  const groupedEntries = groups.flatMap((group, groupIndex) => {
+    const items = Array.isArray(group?.items) ? group.items : [];
+    const seasonNumber = Number(group.seasonNumber) || groupIndex + 1;
+    const offset = groupOffsets.get(seasonNumber) || 0;
+    const groupEpisodeCount = Number(group.episodeCount) || items.reduce((sum, item) => sum + (Number(item.episodes || item.episodeCount) || 0), 0);
+    groupOffsets.set(seasonNumber, offset + groupEpisodeCount);
+    if (!baseTitles.has(seasonNumber) && items[0]?.title) baseTitles.set(seasonNumber, items[0].title);
+    return items.map((entry) => ({
+      ...entry,
+      canonicalSeasonNumber: seasonNumber,
+      canonicalSeasonPart: group.partNumber || null,
+      providerEpisodeOffset: offset,
+      providerBaseTitle: baseTitles.get(seasonNumber) || entry.title || "",
+      franchiseEpisodeCount: Number(entry.episodes || entry.episodeCount) || groupEpisodeCount || null,
+      normalizedSeasonTitle: group.title || `Season ${seasonNumber}`
+    }));
+  });
+  const allEntries = groupedEntries.length
+    ? groupedEntries
     : [
-        ...(Array.isArray(franchise.tvSeasons) ? franchise.tvSeasons : []),
-        ...(Array.isArray(franchise.movies) ? franchise.movies : []),
-        ...(Array.isArray(franchise.ovas) ? franchise.ovas : []),
-        ...(Array.isArray(franchise.onas) ? franchise.onas : []),
-        ...(Array.isArray(franchise.specials) ? franchise.specials : []),
-        ...(Array.isArray(franchise.recaps) ? franchise.recaps : [])
+        ...(Array.isArray(franchise?.tvSeasons) ? franchise.tvSeasons : []),
+        ...(Array.isArray(franchise?.movies) ? franchise.movies : []),
+        ...(Array.isArray(franchise?.ovas) ? franchise.ovas : []),
+        ...(Array.isArray(franchise?.onas) ? franchise.onas : []),
+        ...(Array.isArray(franchise?.specials) ? franchise.specials : []),
+        ...(Array.isArray(franchise?.recaps) ? franchise.recaps : [])
       ];
 
   const added = [];
@@ -14276,6 +14401,17 @@ function ensureFranchiseShowsInCatalog(show) {
     );
     if (existing) {
       existing.isFranchiseEntry = true;
+      existing.canonicalSeasonNumber = entry.canonicalSeasonNumber || existing.canonicalSeasonNumber || null;
+      existing.canonicalSeasonPart = entry.canonicalSeasonPart ?? existing.canonicalSeasonPart ?? null;
+      // A real source row owns its own local numbering. Only relation-only
+      // stubs borrow the base cour's combined provider slug and need an offset.
+      existing.providerEpisodeOffset = existing.animeAv1Slug ? 0 : (Number(entry.providerEpisodeOffset) || 0);
+      existing.providerBaseTitle = existing.animeAv1Slug
+        ? (existing.title || entry.title || "")
+        : (entry.providerBaseTitle || existing.providerBaseTitle || "");
+      existing.franchiseEpisodeCount = entry.franchiseEpisodeCount || existing.franchiseEpisodeCount || null;
+      existing.normalizedSeasonTitle = entry.normalizedSeasonTitle || existing.normalizedSeasonTitle || "";
+      if (baked?.chain?.length && !existing.franchiseSeasons) existing.franchiseSeasons = baked.chain;
       if (entry.image && !existing.image) existing.image = entry.image;
       if (entry.image && !existing.coverImageLarge) existing.coverImageLarge = entry.image;
       if (entry.banner && !existing.banner) existing.banner = entry.banner;
@@ -14305,6 +14441,13 @@ function ensureFranchiseShowsInCatalog(show) {
       year:         entry.seasonYear || "",
       source:       aniId ? "AniList" : "Jikan",
       isFranchiseEntry: true,
+      canonicalSeasonNumber: entry.canonicalSeasonNumber || null,
+      canonicalSeasonPart: entry.canonicalSeasonPart || null,
+      providerEpisodeOffset: Number(entry.providerEpisodeOffset) || 0,
+      providerBaseTitle: entry.providerBaseTitle || "",
+      franchiseEpisodeCount: entry.franchiseEpisodeCount || null,
+      normalizedSeasonTitle: entry.normalizedSeasonTitle || "",
+      franchiseSeasons: baked?.chain?.length ? baked.chain : null,
       image:        entry.image || show.image || "",
       coverImageLarge: entry.image || show.coverImageLarge || show.image || "",
       banner:       entry.banner || show.banner || "",
@@ -14348,9 +14491,21 @@ function getDetailSeasons(show) {
   if (sourceSeasons.length > 0) {
     return sourceSeasons.map((s, i) => ({
       ...s,
-      season: s.season || i + 1,
-      title: s.title || `Season ${s.season || i + 1}`,
-      episodes: clampSeasonEpisodes(repairEpisodeGaps(s.episodes || [], s.season || i + 1, seasonAiredFloor(show, s)), show, s)
+      season: sourceSeasons.length === 1
+        ? (show.canonicalSeasonNumber || s.season || i + 1)
+        : (s.season || i + 1),
+      part: sourceSeasons.length === 1
+        ? (show.canonicalSeasonPart ?? s.part ?? null)
+        : (s.part ?? null),
+      title: sourceSeasons.length === 1 && show.normalizedSeasonTitle
+        ? show.normalizedSeasonTitle
+        : (s.title || `Season ${s.season || i + 1}`),
+      episodes: clampSeasonEpisodes(repairEpisodeGaps(
+        s.episodes || [],
+        sourceSeasons.length === 1 ? (show.canonicalSeasonNumber || s.season || i + 1) : (s.season || i + 1),
+        seasonAiredFloor(show, s),
+        show
+      ), show, s)
     }));
   }
 
@@ -14359,14 +14514,14 @@ function getDetailSeasons(show) {
     const grouped = groupEpisodesBySeason(rawEpisodes);
     return grouped.map(s => ({
       ...s,
-      episodes: clampSeasonEpisodes(repairEpisodeGaps(s.episodes || [], s.season, seasonAiredFloor(show, s)), show, s)
+      episodes: clampSeasonEpisodes(repairEpisodeGaps(s.episodes || [], s.season, seasonAiredFloor(show, s), show), show, s)
     }));
   }
 
   // Fallback: Use SeasonNormalization title parsing to determine identity
   const parsed = SeasonNormalization.parseTitle(show.title || show.romajiTitle || "");
-  const seasonNumber = parsed.seasonNumber || extractSeasonNumber(show.title, 1);
-  const partNumber = parsed.partNumber;
+  const seasonNumber = show.canonicalSeasonNumber || parsed.seasonNumber || extractSeasonNumber(show.title, 1);
+  const partNumber = show.canonicalSeasonPart ?? parsed.partNumber;
 
   let title = "Episodes";
   if (parsed.isFinalChapters) title = "Final Chapters";
@@ -14394,14 +14549,25 @@ function makePlaceholderEpisodes(show, seasonNumber) {
   // no episode data at all was offered as a 12-part series: The Ribbon Hero is a
   // single 109-minute film, Pluto has 8 episodes and Kimi ni Todoke 3rd Season 5.
   // AniList's own count now ships with the catalogue, so use it before guessing.
-  const declared = Number(show.anilistEpisodeCount);
+  const declared = Number(show.franchiseEpisodeCount || show.anilistEpisodeCount);
   const guess = Number.isFinite(declared) && declared > 0 ? declared : 12;
   const count = Number.isFinite(knownCount) && knownCount > 0 ? knownCount : guess;
   // Cap high enough for long-running shounen (Naruto 220, Bleach 366,
   // One Piece 1100+) so their episode lists are never truncated.
   // These are aired episodes — playable on click (servers resolve then), so we
   // mark them resolvable rather than "Not available".
+  const providerEpisodeOffset = Number(show.providerEpisodeOffset) || 0;
   return Array.from({ length: Math.min(count, 2000) }, (_, index) => ({
+    id: `${show.id || show.anilistId || show.malId || "anime"}-s${seasonNumber}-e${index + 1}`,
+    catalogAnimeId: show.catalogAnimeId || show.id || null,
+    providerAnimeId: show.providerAnimeId || show.animeAv1Slug || show.id || null,
+    providerAnimeSlug: show.animeAv1Slug || "",
+    providerEpisodeId: providerEpisodeOffset + index + 1,
+    sourceEpisodeNumber: providerEpisodeOffset + index + 1,
+    canonicalSeason: seasonNumber,
+    canonicalEpisode: index + 1,
+    absoluteEpisode: providerEpisodeOffset + index + 1,
+    displayEpisodeNumber: index + 1,
     season: seasonNumber,
     episode: index + 1,
     title: "",
@@ -14450,7 +14616,9 @@ function getSeasonEpisodeLimit(show = {}, season = {}) {
   const displayedEpisode = Number(season.episode || show.episode || 0);
   const numericShowEpisodes = Number(show.episodes);
   const plannedTotal = Number(
-    season.totalEpisodes
+    season.franchiseEpisodeCount
+    || show.franchiseEpisodeCount
+    || season.totalEpisodes
     || season.episodesCount
     || show.totalEpisodes
     || show.episodeCount
@@ -14524,7 +14692,7 @@ function clampSeasonEpisodes(episodes = [], show = {}, season = {}) {
     // applied at every limit: data beats metadata. Locked episodes - the ones
     // that genuinely have not dropped - are still held back by the limit.
     if (!episode.locked) return true;
-    return Number(episode.episode || episode.number || 0) <= limit;
+    return getCanonicalEpisodeNumber(episode, 0) <= limit;
   });
 }
 
@@ -14535,7 +14703,7 @@ function validateEpisodeIntegrity(show) {
   episodes.forEach((episode) => {
     const season = Number(episode.season || 1);
     if (!numbersBySeason.has(season)) numbersBySeason.set(season, []);
-    const number = Number(episode.episode || episode.number);
+    const number = getCanonicalEpisodeNumber(episode);
     if (Number.isFinite(number) && number > 0) numbersBySeason.get(season).push(number);
   });
   const missing = [];
@@ -14555,12 +14723,12 @@ function validateEpisodeIntegrity(show) {
 // aired - which is what "it is not showing the total amount of episodes"
 // looks like. The episodes it adds are marked missing/locked, so the app says
 // "Not available yet" rather than pretending it can play them.
-function repairEpisodeGaps(episodes = [], seasonNumber = 1, knownAired = 0) {
+function repairEpisodeGaps(episodes = [], seasonNumber = 1, knownAired = 0, show = {}) {
   const normalizedSeason = Number(seasonNumber) || 1;
   const byNumber = new Map();
   episodes.filter(Boolean).forEach((episode) => {
-    const number = Number(episode.episode || episode.number);
-    if (!Number.isFinite(number) || number < 1) return;
+    const number = getCanonicalEpisodeNumber(episode);
+    if (!Number.isFinite(number) || number < 0) return;
     const existing = byNumber.get(number);
     byNumber.set(number, {
       ...existing,
@@ -14575,29 +14743,47 @@ function repairEpisodeGaps(episodes = [], seasonNumber = 1, knownAired = 0) {
         ]
       }),
       episode: number,
+      canonicalEpisode: episode.canonicalEpisode ?? number,
+      canonicalSeason: normalizedSeason,
       season: normalizedSeason
     });
   });
+  // Episode 0 and decimal specials are valid identities but are not integer gaps.
+  // Keep them ordered alongside the main run without coercing either value.
+  const specialEpisodes = [...byNumber.entries()]
+    .filter(([number]) => number === 0 || !Number.isInteger(number))
+    .map(([, episode]) => episode);
+  specialEpisodes.forEach((episode) => byNumber.delete(getCanonicalEpisodeNumber(episode)));
   // 2000 is a sanity ceiling, not a product rule: a corrupt total must not be
   // able to allocate an unbounded list. The longest real season here is One
   // Piece's ~1177, so nothing legitimate comes close to it.
   const floor = Math.min(Math.max(0, Math.floor(Number(knownAired) || 0)), 2000);
   const maxEpisode = Math.max(0, floor, ...byNumber.keys());
-  if (!maxEpisode) return [];
-  return Array.from({ length: maxEpisode }, (_, index) => {
+  if (!maxEpisode) return specialEpisodes.sort((a, b) => getCanonicalEpisodeNumber(a, 0) - getCanonicalEpisodeNumber(b, 0));
+  const repaired = Array.from({ length: maxEpisode }, (_, index) => {
     const episode = index + 1;
     if (!byNumber.has(episode)) console.warn(`Missing episode ${episode} detected`);
+    const providerEpisodeOffset = Number(show.providerEpisodeOffset) || 0;
     return byNumber.get(episode) || {
       id: `missing-s${seasonNumber}-e${episode}`,
       title: "Not available yet",
       season: normalizedSeason,
       episode,
-      locked: true,
-      missing: true,
-      unavailable: true,
-      server: "Missing from source"
+      canonicalSeason: normalizedSeason,
+      canonicalEpisode: episode,
+      displayEpisodeNumber: episode,
+      sourceEpisodeNumber: providerEpisodeOffset + episode,
+      providerEpisodeId: providerEpisodeOffset + episode,
+      providerAnimeId: show.providerAnimeId || show.animeAv1Slug || show.id || null,
+      providerAnimeSlug: show.animeAv1Slug || "",
+      needsResolve: Boolean(show.animeAv1Slug || show.providerBaseTitle),
+      locked: !(show.animeAv1Slug || show.providerBaseTitle),
+      missing: !(show.animeAv1Slug || show.providerBaseTitle),
+      unavailable: !(show.animeAv1Slug || show.providerBaseTitle),
+      server: show.animeAv1Slug || show.providerBaseTitle ? "AnimeAV1" : "Missing from source"
     };
   });
+  return [...specialEpisodes, ...repaired].sort((a, b) => getCanonicalEpisodeNumber(a, 0) - getCanonicalEpisodeNumber(b, 0));
 }
 
 async function playActiveShow(options = {}) {
@@ -14777,7 +14963,7 @@ async function playActiveShow(options = {}) {
     // saved position and report progress back into localStorage.
     const ae = state.activeEpisode || {};
     const seasonNum = ae.season?.season || (ae.seasonIndex + 1) || (state.activeSeasonIndex + 1) || 1;
-    const epNum = ae.episode?.episode || ae.episode?.number || (ae.episodeIndex + 1) || 1;
+    const epNum = getCanonicalEpisodeNumber(ae.episode, ae.episodeIndex + 1);
     const epKey = buildWatchKey(show, seasonNum, epNum);
     const startMs = (getResumePosition(ae.episode) || 0) * 1000;
     _nativePlayContext = {
@@ -15049,7 +15235,7 @@ function playEpisodeByPosition(seasonIndex, episodeIndex) {
     episode._failedSourceIds.clear();
   }
   const seasonNumber = season?.season || seasonIndex + 1 || 1;
-  const episodeNumber = episode?.episode || episodeIndex + 1 || 1;
+  const episodeNumber = getCanonicalEpisodeNumber(episode, episodeIndex + 1);
   // replace, not navigate: the show already owns one history entry. Pushing
   // one per episode meant Back had to walk through every episode the viewer
   // had clicked before it would leave the show. The URL still updates, so
@@ -15363,7 +15549,7 @@ function renderEmbeddedAniPubPlayer(show, externalUrl) {
   if (selected && episode) {
     const seasonObj = selected.season || {};
     const seasonNumber = episode.season || seasonObj.season || (state.activeSeasonIndex + 1) || 1;
-    const episodeNumber = episode.episode || episode.number || 1;
+    const episodeNumber = getCanonicalEpisodeNumber(episode, 1);
     const key = buildWatchKey(show, seasonNumber, episodeNumber);
     const map = getWatchMap();
     if (!map[key]) {

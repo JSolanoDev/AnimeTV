@@ -32,6 +32,19 @@ function context(fetchWithTimeout = async () => ({ ok: false })) {
     appRouter: () => null,
     ROUTE_SLUG_ALIASES: {},
     getShowKey: show => String(show.id),
+    bakedChainFor: () => null,
+    parseEpisodeNumber: (value, fallback = null) => {
+      if (typeof value === "number" && Number.isFinite(value) && value >= 0) return value;
+      const match = String(value ?? "").match(/\d+(?:\.\d+)?/);
+      return match ? Number(match[0]) : fallback;
+    },
+    getCanonicalEpisodeNumber: (episode = {}, fallback = null) => {
+      for (const value of [episode.canonicalEpisode, episode.episode, episode.number, episode.episodeNumber]) {
+        if (typeof value === "number" && Number.isFinite(value) && value >= 0) return value;
+        if (/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(String(value ?? ""))) return Number(value);
+      }
+      return fallback;
+    },
     groupEpisodesBySeason: episodes => [{ season: 1, episodes }],
     repairEpisodeGaps: episodes => episodes,
     // getDetailSeasons asks how many episodes a season is known to have so the

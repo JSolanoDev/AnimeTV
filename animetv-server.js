@@ -155,7 +155,7 @@ let veoHentaiDetailsSnapshot = null;
 const ANIMEAV1_BASE = "https://animeav1.com";
 const ANIMEAV1_SLUG_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
 const ANIMEAV1_CACHE_TTL_MS = 1000 * 60 * 30;
-const ANIMEAV1_MISS_CACHE_TTL_MS = 1000 * 60 * 8;
+const ANIMEAV1_MISS_CACHE_TTL_MS = 1000 * 90;
 const ANIMEAV1_CATALOG_PAGES = Math.max(1, Math.min(12, Number(process.env.ANIMEAV1_CATALOG_PAGES || 4)));
 const ANIMEAV1_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
@@ -7656,12 +7656,12 @@ function parseAnimeAv1Latest(html = "", limit = 40) {
   let m;
   while ((m = re.exec(html)) && out.length < limit) {
     const block = m[1];
-    const link = block.match(/href="\/media\/([^"\/]+)\/(\d+)"/);
+    const link = block.match(/href="\/media\/([^"\/]+)\/(\d+(?:\.\d+)?)"/);
     if (!link) continue;                                   // not an episode card
     const slug = cleanAnimeAv1Slug(link[1]);
     if (!slug || seen.has(slug)) continue;
     const sr = block.match(/<span class="sr-only">\s*Ver\s+([\s\S]*?)<\/span>/i);
-    const epBadge = block.match(/Episodio\s*<span[^>]*>\s*(\d+)\s*<\/span>/i);
+    const epBadge = block.match(/Episodio\s*<span[^>]*>\s*(\d+(?:\.\d+)?)\s*<\/span>/i);
     const img = block.match(/<img[^>]+src="([^"]+)"/i);
     const episode = Number(epBadge?.[1] || link[2] || 0);
     let title = decodeHtmlEntities((sr?.[1] || "").trim());
@@ -7758,13 +7758,13 @@ async function handleAnimeAv1Sources(url, response) {
   }
 
   const safeSlug = cleanAnimeAv1Slug(slug);
-  const epNum = Number(String(episode || "").match(/\d+/)?.[0] || 0);
-  if (!safeSlug || !epNum) {
-    sendJson(response, { ok: false, error: "slug and numeric episode are required.", sources: [] }, 400);
+  const providerEpisodeId = cleanAnimeAv1EpisodeId(episode);
+  if (!safeSlug || providerEpisodeId === "") {
+    sendJson(response, { ok: false, error: "slug and a non-negative numeric episode are required.", sources: [] }, 400);
     return;
   }
 
-  const cacheKey = `${safeSlug}:${epNum}:${variant}`;
+  const cacheKey = `${safeSlug}:${providerEpisodeId}:${variant}`;
   const cached = animeAv1SourceCache.get(cacheKey);
   const cachedTtl = cached?.data?.ok ? ANIMEAV1_CACHE_TTL_MS : ANIMEAV1_MISS_CACHE_TTL_MS;
   if (cached && Date.now() - cached.ts < cachedTtl) {
@@ -7773,7 +7773,7 @@ async function handleAnimeAv1Sources(url, response) {
   }
 
   try {
-    const data = await fetchAnimeAv1EpisodeSourcesDirect(safeSlug, epNum, variant);
+    const data = await fetchAnimeAv1EpisodeSourcesDirect(safeSlug, providerEpisodeId, variant);
     animeAv1SourceCache.set(cacheKey, { data, ts: Date.now() });
     sendJson(response, data, data.ok ? 200 : 404);
   } catch (error) {
@@ -7784,7 +7784,8 @@ async function handleAnimeAv1Sources(url, response) {
       error: "AnimeAV1 sources unavailable.",
       detail: error.message,
       slug: safeSlug,
-      episode: epNum,
+      episode: Number(providerEpisodeId),
+      providerEpisodeId,
       sources: [],
       downloads: []
     };
@@ -7807,7 +7808,7 @@ async function getAnimeAv1SlugCatalog({ force = false, pages = ANIMEAV1_CATALOG_
 }
 
 async function buildAnimeAv1SlugCatalog({ pages = ANIMEAV1_CATALOG_PAGES, force = false } = {}) {
-  const cacheKey = "animeav1-slug-catalog";
+  const cacheKey = "animeav1-slug-catalog-v2";
   if (!force && !HOSTED_RUNTIME && !animeAv1SlugCatalogMemory) {
     const persisted = readPersistentCache(cacheKey, ANIMEAV1_SLUG_CACHE_TTL_MS);
     if (persisted?.ok) {
@@ -7819,6 +7820,7 @@ async function buildAnimeAv1SlugCatalog({ pages = ANIMEAV1_CATALOG_PAGES, force 
 
   const bySlug = new Map();
   const byTitle = {};
+  const ambiguousTitleKeys = new Set();
   const addItem = (item, source = "catalog") => {
     const slug = cleanAnimeAv1Slug(item?.slug || "");
     if (!slug || bySlug.has(slug)) return;
@@ -7830,7 +7832,13 @@ async function buildAnimeAv1SlugCatalog({ pages = ANIMEAV1_CATALOG_PAGES, force 
       source
     });
     animeAv1SlugTitleKeys(title, slug).forEach((key) => {
-      if (key && !byTitle[key]) byTitle[key] = slug;
+      if (!key || ambiguousTitleKeys.has(key)) return;
+      if (byTitle[key] && byTitle[key] !== slug) {
+        delete byTitle[key];
+        ambiguousTitleKeys.add(key);
+        return;
+      }
+      byTitle[key] = slug;
     });
   };
 
@@ -7860,7 +7868,8 @@ async function buildAnimeAv1SlugCatalog({ pages = ANIMEAV1_CATALOG_PAGES, force 
     source: "AnimeAV1 Catalog",
     count: bySlug.size,
     items: [...bySlug.values()],
-    byTitle
+    byTitle,
+    ambiguousTitleCount: ambiguousTitleKeys.size
   };
   animeAv1SlugCatalogMemory = payload;
   animeAv1SlugCatalogMemoryAt = Date.now();
@@ -7954,6 +7963,7 @@ function animeAv1SearchCandidates(show = {}) {
     show.englishTitle,
     show.nativeTitle,
     show.sourceTitle,
+    show.providerBaseTitle,
     ...(show.aliases || []),
     ...(show.alternativeTitles || []),
     ...(show.synonyms || [])
@@ -7961,7 +7971,6 @@ function animeAv1SearchCandidates(show = {}) {
   const expanded = [];
   candidates.filter(Boolean).forEach((title) => {
     expanded.push(title);
-    expanded.push(stripSeasonWordsForSlugLookup(title));
     seasonTitleVariants(title).forEach((variant) => expanded.push(variant));
   });
   const seen = new Set();
@@ -8007,18 +8016,10 @@ async function validateAnimeAv1Slug(slug) {
 
 async function fetchAnimeAv1EpisodeSourcesDirect(slug, episode, variant = "SUB") {
   const safeSlug = cleanAnimeAv1Slug(slug);
-  let epNum = Number(episode || 0);
-  let episodeUrl = `${ANIMEAV1_BASE}/media/${encodeURIComponent(safeSlug)}/${encodeURIComponent(epNum)}`;
-  let upstream = await fetchWithTimeout(episodeUrl, { headers: ANIMEAV1_HEADERS }, HOSTED_RUNTIME ? 7000 : 10000).catch(() => null);
-
-  if ((!upstream || !upstream.ok) && epNum === 1) {
-    const fallbackUrl = `${ANIMEAV1_BASE}/media/${encodeURIComponent(safeSlug)}/0`;
-    const fallbackUpstream = await fetchWithTimeout(fallbackUrl, { headers: ANIMEAV1_HEADERS }, HOSTED_RUNTIME ? 7000 : 10000).catch(() => null);
-    if (fallbackUpstream && fallbackUpstream.ok) {
-      upstream = fallbackUpstream;
-      episodeUrl = fallbackUrl;
-    }
-  }
+  const providerEpisodeId = cleanAnimeAv1EpisodeId(episode);
+  if (!safeSlug || providerEpisodeId === "") throw new Error("Invalid AnimeAV1 episode identity.");
+  const episodeUrl = `${ANIMEAV1_BASE}/media/${encodeURIComponent(safeSlug)}/${encodeURIComponent(providerEpisodeId)}`;
+  const upstream = await fetchWithTimeout(episodeUrl, { headers: ANIMEAV1_HEADERS }, HOSTED_RUNTIME ? 7000 : 10000).catch(() => null);
 
   if (!upstream || !upstream.ok) {
     throw new Error(`AnimeAV1 episode page returned HTTP ${upstream ? upstream.status : "Failed"}.`);
@@ -8039,7 +8040,8 @@ async function fetchAnimeAv1EpisodeSourcesDirect(slug, episode, variant = "SUB")
     ok: normalizedSources.length > 0,
     source: "AnimeAV1 Direct",
     slug: safeSlug,
-    episode: epNum,
+    episode: Number(providerEpisodeId),
+    providerEpisodeId,
     episodeUrl,
     variant: selectedVariant,
     variants: Object.keys(allSources),
@@ -8084,7 +8086,12 @@ function normalizeAnimeAv1SourceList(items = [], siteUrl = "", options = {}) {
       if (!url || seen.has(url)) return null;
       seen.add(url);
       const direct = Boolean(zillaMatch) || /\.(m3u8|mp4|webm|m4v)(?:$|[?#])/i.test(url);
+      const isHls = Boolean(zillaMatch) || /\.m3u8(?:$|[?#])/i.test(url);
+      const extension = url.match(/\.(mp4|webm|m4v)(?:$|[?#])/i)?.[1]?.toLowerCase() || "";
       return {
+        ...item,
+        id: item.id || `animeav1-${slugifyAnimeAv1Title(provider) || "source"}-${index + 1}`,
+        originalSourceId: item.originalSourceId || item.sourceId || item.id || null,
         provider,
         url,
         type: direct && !options.downloads ? "direct" : "iframe",
@@ -8094,7 +8101,14 @@ function normalizeAnimeAv1SourceList(items = [], siteUrl = "", options = {}) {
         externalType: "iframe",
         siteUrl,
         language: "es",
-        quality: provider
+        quality: item.quality || provider,
+        mimeType: item.mimeType || item.contentType || (isHls ? "application/vnd.apple.mpegurl" : extension === "mp4" || extension === "m4v" ? "video/mp4" : extension === "webm" ? "video/webm" : ""),
+        container: item.container || (isHls ? "hls" : extension),
+        codec: item.codec || item.codecs || "",
+        resolution: item.resolution || "",
+        bitrate: item.bitrate ?? null,
+        headers: item.headers || null,
+        referer: item.referer || item.referrer || siteUrl || ""
       };
     })
     .filter((item) => item && (options.downloads || item.type === "direct"));
@@ -8132,9 +8146,7 @@ function readAnimeAv1SlugsFromScrapedMetadata() {
 function animeAv1SlugTitleKeys(title = "", slug = "") {
   const rawKeys = [
     title,
-    stripSeasonWordsForSlugLookup(title),
     slugToTitle(slug),
-    stripSeasonWordsForSlugLookup(slugToTitle(slug)),
     ...seasonTitleVariants(title),
     ...seasonTitleVariants(slugToTitle(slug))
   ];
@@ -8175,6 +8187,11 @@ function cleanAnimeAv1Slug(value = "") {
     .replace(/[^a-z0-9-]/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+function cleanAnimeAv1EpisodeId(value = "") {
+  const raw = String(value ?? "").trim();
+  return /^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(raw) ? raw : "";
 }
 
 function slugifyAnimeAv1Title(value = "") {

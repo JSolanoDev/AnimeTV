@@ -48,15 +48,15 @@
   }
 
   function episodeSlug(seasonNumber, episodeNumber, seasonPart) {
-    const season = String(seasonNumber || 1).replace(/^s/i, "");
+    const season = String(seasonNumber ?? 1).replace(/^s/i, "");
     const part = seasonPart ? `-part-${String(seasonPart).replace(/^part-?/i, "")}` : "";
-    const episode = String(episodeNumber || 1).replace(/^e/i, "");
+    const episode = String(episodeNumber ?? 1).replace(/^e/i, "");
     return `s${season}${part}-e${episode}`;
   }
 
   function parseEpisodeSlug(value) {
     const raw = String(value || "").toLowerCase();
-    const match = raw.match(/^s(\d+)(?:-part-?(\d+))?-e(\d+)$/);
+    const match = raw.match(/^s(\d+)(?:-part-?(\d+))?-e(\d+(?:\.\d+)?)$/);
     if (match) {
       return {
         seasonNumber: Number(match[1]),
@@ -64,7 +64,7 @@
         episodeNumber: Number(match[3])
       };
     }
-    const justEpisode = raw.match(/^(?:episode-|ep-|e)?(\d+)$/);
+    const justEpisode = raw.match(/^(?:episode-|ep-|e)?(\d+(?:\.\d+)?)$/);
     return justEpisode ? { seasonNumber: 1, seasonPart: "", episodeNumber: Number(justEpisode[1]) } : null;
   }
 
@@ -122,7 +122,12 @@
 
     m = clean.match(/^\/anime\/([^/]+)\/episode\/([^/]+)$/);
     if (m) {
-      const parsed = parseEpisodeSlug(safeDecode(m[2])) || { seasonNumber: 1, episodeNumber: Number(safeDecode(m[2])) || 1 };
+      const rawEpisode = safeDecode(m[2]);
+      const numericEpisode = Number(rawEpisode);
+      const parsed = parseEpisodeSlug(rawEpisode) || {
+        seasonNumber: 1,
+        episodeNumber: Number.isFinite(numericEpisode) && numericEpisode >= 0 ? numericEpisode : 1
+      };
       return {
         name: "anime-episode",
         appRoute: "home",
@@ -136,7 +141,12 @@
 
     m = clean.match(/^\/watch\/([^/]+)\/([^/]+)$/);
     if (m) {
-      const parsed = parseEpisodeSlug(safeDecode(m[2])) || { seasonNumber: 1, episodeNumber: Number(safeDecode(m[2])) || 1 };
+      const rawEpisode = safeDecode(m[2]);
+      const numericEpisode = Number(rawEpisode);
+      const parsed = parseEpisodeSlug(rawEpisode) || {
+        seasonNumber: 1,
+        episodeNumber: Number.isFinite(numericEpisode) && numericEpisode >= 0 ? numericEpisode : 1
+      };
       return {
         name: "watch",
         appRoute: "home",
