@@ -1,0 +1,48 @@
+{
+  "generatedAt": "2026-09-07T01:33:48.060Z",
+  "count": 5,
+  "edges": {
+    "39535": [
+      {
+        "relationType": "SEQUEL",
+        "malId": 45576
+      }
+    ],
+    "45576": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 39535
+      },
+      {
+        "relationType": "SEQUEL",
+        "malId": 51179
+      }
+    ],
+    "51179": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 45576
+      },
+      {
+        "relationType": "SEQUEL",
+        "malId": 55888
+      }
+    ],
+    "55888": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 51179
+      },
+      {
+        "relationType": "SEQUEL",
+        "malId": 59193
+      }
+    ],
+    "59193": [
+      {
+        "relationType": "PREQUEL",
+        "malId": 55888
+      }
+    ]
+  }
+}

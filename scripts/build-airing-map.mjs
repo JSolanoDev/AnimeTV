@@ -24,6 +24,12 @@ import path from "node:path";
 const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 let ARTWORK_MAP = path.join(root, "scraper", "artwork-map.json");
 let OUT = path.join(root, "scraper", "airing-map.json");
+// Typed relation edges, learned one night at a time. Jikan cannot be crawled in
+// a single run from a GitHub runner: run #114 spent its whole 28-minute budget
+// to resolve 99 of 599 rows, because most ids answer 504 and burn three retries
+// each. Throwing that away every night means the map never fills in. Keeping it
+// means each run only pays for ids it has never seen, and the graph converges.
+let RELATIONS_CACHE = path.join(root, "scraper", "relations-cache.json");
 const ANILIST = "https://graphql.anilist.co";
 
 const args = process.argv.slice(2);
@@ -39,11 +45,13 @@ if (OUT_OVERRIDE) OUT = path.resolve(OUT_OVERRIDE);
 const OFFLINE_FIXTURE = argOf("--offline-fixture", "");
 const JIKAN_FIXTURE = argOf("--jikan-fixture", "");
 const ARTWORK_OVERRIDE = argOf("--artwork", "");
+const RELATIONS_OVERRIDE = argOf("--relations-cache", "");
 // A run driven entirely by fixtures must not touch the network - otherwise the
 // test suite depends on AniList being reachable, which is the very thing that
 // is broken.
 const SKIP_ANILIST = Boolean(JIKAN_FIXTURE);
 if (ARTWORK_OVERRIDE) ARTWORK_MAP = path.resolve(ARTWORK_OVERRIDE);
+if (RELATIONS_OVERRIDE) RELATIONS_CACHE = path.resolve(RELATIONS_OVERRIDE);
 
 // AniList allows 90 requests/minute. 25 ids per request keeps a 1000-row
 // catalogue inside ~40 requests, and the pause keeps a comfortable margin.
@@ -352,8 +360,41 @@ function nodeFromDatabase(db, malId) {
   };
 }
 
+function loadRelationsCache() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(RELATIONS_CACHE, "utf8"));
+    const edges = new Map();
+    for (const [malId, entry] of Object.entries(raw?.edges || {})) {
+      if (Array.isArray(entry)) edges.set(Number(malId), entry);
+    }
+    return edges;
+  } catch {
+    return new Map();
+  }
+}
+
+function saveRelationsCache(edges) {
+  if (!WRITE) return;
+  const out = { generatedAt: new Date().toISOString(), count: edges.size, edges: {} };
+  for (const [malId, list] of [...edges.entries()].sort((a, b) => a[0] - b[0])) out.edges[malId] = list;
+  try {
+    fs.mkdirSync(path.dirname(RELATIONS_CACHE), { recursive: true });
+    fs.writeFileSync(RELATIONS_CACHE, JSON.stringify(out, null, 2), "utf8");
+    log(`relation cache: ${edges.size} id(s) known`);
+  } catch (error) {
+    log(`could not write the relation cache: ${error.message}`);
+  }
+}
+
 async function relationsWithRetry(malId, fixture) {
-  if (fixture) return parseRelationBlocks(fixture[String(malId)]);
+  if (fixture) {
+    // A key that is ABSENT models an id Jikan could not answer for - a 504, which
+    // is the common case. An explicitly empty array models a real answer with no
+    // relations. The difference matters: the first must never be cached as fact.
+    return Object.prototype.hasOwnProperty.call(fixture, String(malId))
+      ? parseRelationBlocks(fixture[String(malId)])
+      : null;
+  }
   for (let attempt = 0; attempt <= JIKAN_RETRIES; attempt += 1) {
     try {
       return await jikanRelations(malId);
@@ -387,25 +428,39 @@ async function fetchViaJikan(targets) {
   const queued = new Set(seeds);
   log(`${withMal.length} rows with a MAL id, ${candidates.length} sit beside another TV/ONA entry`);
 
+  // The cache is real even under a fixture: only the NETWORK is stubbed, so a
+  // test can prove that what one run learns the next run reuses.
+  const cache = loadRelationsCache();
+  const cachedAtStart = cache.size;
   const media = [];
   const startedAt = Date.now();
   let requests = 0;
   let failures = 0;
   let missed = 0;
+  let reused = 0;
   let stoppedBy = "";
   while (queue.length) {
-    if (requests >= JIKAN_MAX_REQUESTS) { stoppedBy = "request budget"; break; }
-    if (!fixture && Date.now() - startedAt > JIKAN_DEADLINE_MS) { stoppedBy = "time budget"; break; }
     const malId = queue.shift();
-    requests += 1;
-    const edges = await relationsWithRetry(malId, fixture);
-    if (edges === null) {
-      failures += 1;
-      missed += 1;
-      if (failures >= JIKAN_GIVE_UP_AFTER) { stoppedBy = `${failures} consecutive failures`; break; }
-      continue;
+    let edges = cache.get(malId);
+    if (edges) {
+      // Learned on an earlier night. Free, so it never touches either budget -
+      // which is what lets the component keep expanding after the network work
+      // has stopped.
+      reused += 1;
+    } else {
+      if (requests >= JIKAN_MAX_REQUESTS) { stoppedBy = "request budget"; break; }
+      if (!fixture && Date.now() - startedAt > JIKAN_DEADLINE_MS) { stoppedBy = "time budget"; break; }
+      requests += 1;
+      edges = await relationsWithRetry(malId, fixture);
+      if (edges === null) {
+        failures += 1;
+        missed += 1;
+        if (failures >= JIKAN_GIVE_UP_AFTER) { stoppedBy = `${failures} consecutive failures`; break; }
+        continue;
+      }
+      failures = 0;
+      cache.set(malId, edges);
     }
-    failures = 0;
     const self = nodeFromDatabase(db, malId);
     if (self) {
       media.push({
@@ -425,10 +480,38 @@ async function fetchViaJikan(targets) {
     }
     if (!fixture && queue.length) await sleep(JIKAN_PAUSE_MS);
   }
+  // The budgets stop NETWORK work, not the walk. Anything still queued that we
+  // already know is free to expand, so drain it - otherwise a chain sits half
+  // built purely because the clock ran out on an unrelated id.
+  while (queue.length) {
+    const malId = queue.shift();
+    const edges = cache.get(malId);
+    if (!edges) continue;
+    reused += 1;
+    const self = nodeFromDatabase(db, malId);
+    if (self) {
+      media.push({
+        ...self,
+        relations: {
+          edges: edges
+            .map((edge) => { const node = nodeFromDatabase(db, edge.malId); return node ? { relationType: edge.relationType, node } : null; })
+            .filter(Boolean)
+        }
+      });
+    }
+    for (const edge of edges) {
+      if (queued.has(edge.malId)) continue;
+      if (!SEASONISH.has(db.get(edge.malId)?.type || "")) continue;
+      queued.add(edge.malId);
+      queue.push(edge.malId);
+    }
+  }
+
+  saveRelationsCache(cache);
   // Never let a cap look like completeness.
-  if (stoppedBy) log(`stopped by ${stoppedBy} - ${queue.length} chain link(s) left unexplored`);
+  if (stoppedBy) log(`stopped by ${stoppedBy}`);
   if (missed) log(`${missed} id(s) could not be read even after retries`);
-  log(`Jikan: ${requests} request(s), ${media.length} media shaped`);
+  log(`Jikan: ${requests} new request(s), ${reused} reused from cache (${cachedAtStart} known before this run), ${media.length} media shaped`);
   return media;
 }
 
@@ -441,6 +524,14 @@ async function fetchViaJikan(targets) {
 // populated map: this only ever creates one that is absent.
 function ensureMapExists() {
   if (!WRITE) return;
+  // Same pathspec hazard as the map itself: the commit step lists this file by
+  // name, and `git add` exits 128 on a pathspec that matches nothing.
+  try { fs.readFileSync(RELATIONS_CACHE, "utf8"); } catch {
+    try {
+      fs.mkdirSync(path.dirname(RELATIONS_CACHE), { recursive: true });
+      fs.writeFileSync(RELATIONS_CACHE, JSON.stringify({ generatedAt: new Date().toISOString(), count: 0, edges: {} }, null, 2), "utf8");
+    } catch { /* reported below if the map write also fails */ }
+  }
   try { fs.readFileSync(OUT, "utf8"); return; } catch { /* absent - create it */ }
   try {
     fs.mkdirSync(path.dirname(OUT), { recursive: true });

@@ -187,6 +187,7 @@ jobs:
             scraper/anime_metadata.previous.json
             scraper/anime_metadata.csv
             scraper/airing-map.json
+            scraper/relations-cache.json
             scraper/underhentai_catalog.json
             scraper/underhentai_details.json
             android/app/src/main/assets/scraper/underhentai_catalog.json
@@ -216,6 +217,7 @@ jobs:
             scraper/anime_metadata.previous.json
             scraper/anime_metadata.csv
             scraper/airing-map.json
+            scraper/relations-cache.json
             scraper/underhentai_catalog.json
             scraper/underhentai_details.json
           retention-days: 7

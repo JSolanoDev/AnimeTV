@@ -232,6 +232,58 @@ check("and no airing instant it does not have", solo.nextAiringAt, null);
   check("numbering starts at the true first season", s3.franchiseSeasons.map((x) => x.order), [1, 2, 3, 4, 5]);
 }
 
+/* ── 2e. THE CHAIN MUST CONVERGE ACROSS RUNS ──────────────────────────────
+   Jikan cannot be crawled in one pass from a GitHub runner. Run #114 spent its
+   entire 28-minute budget resolving 99 of 599 rows, because most ids answer 504
+   and burn three retries each - and MAL id 55888 (Mushoku Tensei II Part 2, the
+   link between season 3 and everything before it) answers 504 every time.
+   Production got a two-entry chain out of that.
+
+   So what a run learns has to survive it. Here the first pass can only read the
+   two ids nearest the opened show; the second pass reads the rest and must
+   reuse - not refetch - what the first one already knew. */
+{
+  const cachePath = path.join(tmp, "relations.json");
+  const chainOut = path.join(tmp, "converge.json");
+  const offline = path.join(tmp, "offline.jsonl");
+  const artwork = path.join(tmp, "artwork.json");
+  const anime = (mal) => ({ mal_id: mal, type: "anime", name: String(mal) });
+  const runBake = (jikanPath) => execFileSync(process.execPath, [
+    path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--artwork", artwork, "--offline-fixture", offline, "--jikan-fixture", jikanPath,
+    "--relations-cache", cachePath, "--out", chainOut, "--write"
+  ], { stdio: "pipe" }).toString();
+
+  // Night one: only the opened show and its immediate neighbour answer.
+  const night1 = path.join(tmp, "jikan1.json");
+  fs.writeFileSync(night1, JSON.stringify({
+    59193: [{ relation: "Prequel", entry: [anime(55888)] }],
+    55888: [{ relation: "Prequel", entry: [anime(51179)] }, { relation: "Sequel", entry: [anime(59193)] }]
+  }));
+  runBake(night1);
+  const after1 = JSON.parse(fs.readFileSync(chainOut, "utf8"));
+  const chain1 = Object.values(after1.entries).find((e) => e.anilistId === 178789).franchiseSeasons;
+  check("night one gets only as far as it could read", chain1.map((x) => x.anilistId), [146065, 166873, 178789]);
+  check("and what it learned is written down", JSON.parse(fs.readFileSync(cachePath, "utf8")).count, 2);
+
+  // Night two: the rest of the chain answers. The first two ids must be REUSED.
+  const night2 = path.join(tmp, "jikan2.json");
+  fs.writeFileSync(night2, JSON.stringify({
+    51179: [{ relation: "Prequel", entry: [anime(45576)] }, { relation: "Sequel", entry: [anime(55888)] }],
+    45576: [{ relation: "Prequel", entry: [anime(39535)] }, { relation: "Sequel", entry: [anime(51179)] }],
+    39535: [{ relation: "Sequel", entry: [anime(45576)] }]
+  }));
+  const log2 = runBake(night2);
+  const after2 = JSON.parse(fs.readFileSync(chainOut, "utf8"));
+  const chain2 = Object.values(after2.entries).find((e) => e.anilistId === 178789).franchiseSeasons;
+
+  check("night two completes the franchise", chain2.map((x) => x.anilistId), [108465, 127720, 146065, 166873, 178789]);
+  check("season 1 is finally there", chain2[0].anilistId, 108465);
+  check("in release order", chain2.map((x) => x.seasonYear), [2021, 2021, 2023, 2024, 2026]);
+  check("night one's ids were reused, not refetched", /reused from cache/.test(log2) && /2 known before this run/.test(log2), true);
+  check("the cache now holds every link", JSON.parse(fs.readFileSync(cachePath, "utf8")).count, 5);
+}
+
 /* ── 3. The client half ───────────────────────────────────────────────────── */
 const src = fs.readFileSync(path.join(ROOT, "client.js"), "utf8");
 const slice = (start, end) => {
