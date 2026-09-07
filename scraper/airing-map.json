@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-09-07T02:32:49.654Z",
-  "count": 166,
+  "generatedAt": "2026-09-07T05:13:04.321Z",
+  "count": 347,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -10,7 +10,8 @@
       "anilistEpisodeCount": 1168,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1177
     },
     "animeav1-bleach-sennen-kessen-hen-kashin-tan": {
       "anilistId": 185874,
@@ -43,7 +44,8 @@
           "startedAt": 1782864000000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 7
     },
     "animeav1-nige-jouzu-no-wakagimi-2nd-season": {
       "anilistId": 182616,
@@ -76,7 +78,8 @@
           "startedAt": 1782864000000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 8
     },
     "animeav1-katainaka-no-ossan-kensei-ni-naru-ii": {
       "anilistId": 194829,
@@ -109,7 +112,8 @@
           "startedAt": 1782864000000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 9
     },
     "animeav1-otome-game-sekai-wa-mob-ni-kibishii-sekai-desu-2": {
       "anilistId": 159309,
@@ -142,7 +146,8 @@
           "startedAt": 1782864000000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 9
     },
     "animeav1-clevatess-ii-majuu-no-ou-to-itsuwari-no-yuusha-denshou": {
       "anilistId": 198946,
@@ -175,7 +180,8 @@
           "startedAt": 1782864000000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 9
     },
     "animeav1-grand-blue-season-3": {
       "anilistId": 199111,
@@ -219,7 +225,8 @@
           "startedAt": 1782864000000,
           "order": 3
         }
-      ]
+      ],
+      "sourceEpisodeCount": 9
     },
     "animeav1-azur-lane-bisoku-zenshin-ni": {
       "anilistId": 169080,
@@ -252,7 +259,8 @@
           "startedAt": 1782864000000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 10
     },
     "animeav1-mushoku-tensei-iii-isekai-ittara-honki-dasu": {
       "anilistId": 178789,
@@ -318,7 +326,8 @@
           "startedAt": 1782864000000,
           "order": 5
         }
-      ]
+      ],
+      "sourceEpisodeCount": 11
     },
     "animeav1-gaikotsu-kishi-sama-tadaima-isekai-e-odekakechuu-ii": {
       "anilistId": 185542,
@@ -351,7 +360,8 @@
           "startedAt": 1782864000000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 9
     },
     "animeav1-seihantai-na-kimi-to-boku-2nd-season": {
       "anilistId": 210031,
@@ -384,7 +394,8 @@
           "startedAt": 1782864000000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 10
     },
     "animeav1-yani-neko": {
       "anilistId": 207141,
@@ -394,7 +405,8 @@
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
     },
     "animeav1-bang-dream-yumemita": {
       "anilistId": 198376,
@@ -404,7 +416,8 @@
       "anilistEpisodeCount": 3,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
     },
     "animeav1-hanazakari-no-kimitachi-e-2nd-season": {
       "anilistId": 209669,
@@ -437,7 +450,8 @@
           "startedAt": 1782864000000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 11
     },
     "animeav1-bungou-stray-dogs-wan-2": {
       "anilistId": 201667,
@@ -470,7 +484,8 @@
           "startedAt": 1782864000000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 10
     },
     "animeav1-tsue-to-tsurugi-no-wistoria-season-2": {
       "anilistId": 182300,
@@ -514,7 +529,8 @@
           "startedAt": 0,
           "order": 3
         }
-      ]
+      ],
+      "sourceEpisodeCount": 12
     },
     "animeav1-rezero-kara-hajimeru-isekai-seikatsu-4th-season": {
       "anilistId": 189046,
@@ -580,7 +596,8 @@
           "startedAt": 1775001600000,
           "order": 5
         }
-      ]
+      ],
+      "sourceEpisodeCount": 15
     },
     "animeav1-steel-ball-run-jojo-no-kimyou-na-bouken": {
       "anilistId": 190327,
@@ -613,7 +630,8 @@
           "startedAt": 1767225600000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 1
     },
     "animeav1-seihantai-na-kimi-to-boku": {
       "anilistId": 184951,
@@ -646,7 +664,8 @@
           "startedAt": 1782864000000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 12
     },
     "animeav1-hell-mode-yarikomizuki-no-gamer-wa-hai-settei-no-isekai-de-musou-suru": {
       "anilistId": 185262,
@@ -679,7 +698,8 @@
           "startedAt": 1782864000000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 12
     },
     "animeav1-mayonaka-heart-tune": {
       "anilistId": 187942,
@@ -712,7 +732,8 @@
           "startedAt": 0,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 12
     },
     "animeav1-hanazakari-no-kimitachi-e": {
       "anilistId": 177580,
@@ -745,7 +766,8 @@
           "startedAt": 1782864000000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 12
     },
     "animeav1-isekai-quartet-3": {
       "anilistId": 194447,
@@ -755,7 +777,8 @@
       "anilistEpisodeCount": 11,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 11
     },
     "animeav1-one-punch-man-3": {
       "anilistId": 153800,
@@ -810,7 +833,8 @@
           "startedAt": 1798761600000,
           "order": 4
         }
-      ]
+      ],
+      "sourceEpisodeCount": 12
     },
     "animeav1-tondemo-skill-de-isekai-hourou-meshi-2": {
       "anilistId": 170577,
@@ -843,7 +867,8 @@
           "startedAt": 1759276800000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 12
     },
     "animeav1-chitose-kun-wa-ramune-bin-no-naka": {
       "anilistId": 180082,
@@ -876,7 +901,8 @@
           "startedAt": 1767225600000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 13
     },
     "animeav1-3-nen-z-gumi-ginpachi-sensei": {
       "anilistId": 162890,
@@ -886,7 +912,8 @@
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
     },
     "animeav1-sawaranaide-kotesashi-kun": {
       "anilistId": 187331,
@@ -896,7 +923,8 @@
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
     },
     "animeav1-nageki-no-bourei-wa-intai-shitai-part-2": {
       "anilistId": 185801,
@@ -929,7 +957,8 @@
           "startedAt": 1759276800000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 11
     },
     "animeav1-kikaijikake-no-marie": {
       "anilistId": 179992,
@@ -939,7 +968,8 @@
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
     },
     "animeav1-digimon-beatbreak": {
       "anilistId": 188388,
@@ -949,7 +979,8 @@
       "anilistEpisodeCount": 36,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 46
     },
     "animeav1-uma-musume-cinderella-gray-part-2": {
       "anilistId": 195240,
@@ -982,7 +1013,8 @@
           "startedAt": 1759276800000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 10
     },
     "animeav1-kingdom-6th-season": {
       "anilistId": 190840,
@@ -1015,7 +1047,8 @@
           "startedAt": 1759276800000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 13
     },
     "animeav1-ranma-2024-2nd-season": {
       "anilistId": 185731,
@@ -1059,7 +1092,8 @@
           "startedAt": 1790812800000,
           "order": 3
         }
-      ]
+      ],
+      "sourceEpisodeCount": 12
     },
     "animeav1-fumetsu-no-anata-e-season-3": {
       "anilistId": 162669,
@@ -1092,7 +1126,8 @@
           "startedAt": 1759276800000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 22
     },
     "animeav1-yasei-no-last-boss-ga-arawareta": {
       "anilistId": 180523,
@@ -1125,7 +1160,8 @@
           "startedAt": 0,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 12
     },
     "animeav1-boku-no-hero-academia-final-season": {
       "anilistId": 182896,
@@ -1169,7 +1205,8 @@
           "startedAt": 1759276800000,
           "order": 3
         }
-      ]
+      ],
+      "sourceEpisodeCount": 11
     },
     "animeav1-spy-x-family-season-3": {
       "anilistId": 177937,
@@ -1224,7 +1261,8 @@
           "startedAt": 1759276800000,
           "order": 4
         }
-      ]
+      ],
+      "sourceEpisodeCount": 13
     },
     "animeav1-kekkon-yubiwa-monogatari-ii": {
       "anilistId": 176298,
@@ -1257,7 +1295,8 @@
           "startedAt": 1759276800000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 13
     },
     "animeav1-kakuriyo-no-yadomeshi-ni": {
       "anilistId": 100500,
@@ -5788,6 +5827,1997 @@
           "order": 6
         }
       ]
+    },
+    "animeav1-sousou-no-frieren-2nd-season": {
+      "anilistId": 182255,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-shiguang-dailiren-iii": {
+      "anilistId": 191832,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 5
+    },
+    "animeav1-boku-no-hero-academia-i-am-a-hero-too": {
+      "anilistId": 211711,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1
+    },
+    "animeav1-futsutsuka-na-akujo-dewa-gozaimasu-ga-suuguu-chouso-torikae-den": {
+      "anilistId": 188139,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-super-no-ura-de-yani-suu-futari": {
+      "anilistId": 196187,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-hanaori-san-wa-tensei-shitemo-kenka-ga-shitai": {
+      "anilistId": 199066,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-dogulwang": {
+      "anilistId": 184356,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-thunder-3": {
+      "anilistId": 207254,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-ibitte-konai-gibo-to-gishi": {
+      "anilistId": 196356,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-youjo-senki-ii": {
+      "anilistId": 135865,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-sora-wa-akai-kawa-no-hotori": {
+      "anilistId": 207809,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-tefuda-ga-oome-no-victoria": {
+      "anilistId": 198709,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-kimi-ga-shinu-made-koi-wo-shitai": {
+      "anilistId": 187260,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-koukaku-kidoutai-tv": {
+      "anilistId": 177699,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-tai-ari-deshita-ojousama-wa-kakutou-game-nante-shinai": {
+      "anilistId": 128757,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-koko-wa-ore-ni-makasete-saki-ni-ike-to-itte-kara-10-nen-ga-tattara-densetsu-ni-natteita": {
+      "anilistId": 199748,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-saikyou-degarashi-ouji-no-anyaku-teii-arasoi": {
+      "anilistId": 169582,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-tenkou-saki-no-seiso-karen-na-bishoujo-ga-mukashi-danshi-to-omotte-issho-ni-asonda-osananajimi-datta-ken": {
+      "anilistId": 169583,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-sayonara-lara": {
+      "anilistId": 177637,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-suterare-seijo-no-isekai-gohan-tabi-kakure-skill-de-camping-car-wo-shoukan-shimashita": {
+      "anilistId": 209504,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-buchigire-reijou-wa-houfuku-wo-chikaimashita-madousho-no-chikara-de-sokoku-wo-tatakitsubushimasu": {
+      "anilistId": 199408,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-toumei-na-yoru-ni-kakeru-kimi-to-me-ni-mienai-koi-wo-shita": {
+      "anilistId": 202269,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha": {
+      "anilistId": 198409,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-mahou-shoujo-lyrical-nanoha-exceeds-gun-blaze-vengeance": {
+      "anilistId": 185875,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-grow-up-show-himawari-no-circus-dan": {
+      "anilistId": 196017,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-oni-no-hanayome": {
+      "anilistId": 194219,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-tetsunabe-no-jan": {
+      "anilistId": 204060,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu": {
+      "anilistId": 208225,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-lets-go-kaiki-gumi": {
+      "anilistId": 200230,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-kabushikigaisha-magi-lumiere-2nd-season": {
+      "anilistId": 185692,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-uchi-no-otouto-domo-ga-sumimasen": {
+      "anilistId": 203490,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-neko-to-ryuu": {
+      "anilistId": 186863,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 11
+    },
+    "animeav1-hell-mode-yarikomizuki-no-gamer-wa-hai-settei-no-isekai-de-musou-suru-2nd-season": {
+      "anilistId": 209983,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-tenmaku-no-jaadugar": {
+      "anilistId": 190569,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 11
+    },
+    "animeav1-black-torch": {
+      "anilistId": 187538,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-iwamoto-senpai-no-suisen": {
+      "anilistId": 206249,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-bai-ri-cheng-wang": {
+      "anilistId": 213484,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 22
+    },
+    "animeav1-otome-kaijuu-carameliser": {
+      "anilistId": 204466,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-kore-kaite-shine": {
+      "anilistId": 188525,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-tsuihou-sareta-tensei-juukishi-wa-game-chishiki-de-musou-suru": {
+      "anilistId": 180136,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-reiwa-no-dara-san": {
+      "anilistId": 203880,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-rakudai-kenja-no-gakuin-musou-nidome-no-tensei-s-rank-cheat-majutsushi-boukenroku": {
+      "anilistId": 208044,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 11
+    },
+    "animeav1-lv999-no-murabito": {
+      "anilistId": 197715,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 11
+    },
+    "animeav1-heroine-seijo-iie-all-works-maid-desu-hokori": {
+      "anilistId": 192800,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 11
+    },
+    "animeav1-mujikaku-seijo-wa-kyou-mo-muishiki-ni-chikara-wo-tare-nagasu": {
+      "anilistId": 196219,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 10
+    },
+    "animeav1-super-no-ura-de-yani-suu-futari-mini": {
+      "anilistId": 196187,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-aishiteru-game-wo-owarasetai": {
+      "anilistId": 194393,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-dandelion": {
+      "anilistId": 208352,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 7
+    },
+    "animeav1-ichijouma-mankitsugurashi": {
+      "anilistId": 195734,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 11
+    },
+    "animeav1-kuroneko-to-majo-no-kyoushitsu": {
+      "anilistId": 196974,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 22
+    },
+    "animeav1-yozakura-san-chi-no-daisakusen-2nd-season": {
+      "anilistId": 182578,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-yowayowa-sensei": {
+      "anilistId": 185211,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-hokuto-no-ken-fist-of-the-north-star": {
+      "anilistId": 169228,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 14
+    },
+    "animeav1-kanojo-okarishimasu-5th-season": {
+      "anilistId": 199029,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-kamiina-botan-yoeru-sugata-wa-yuri-no-hana": {
+      "anilistId": 187869,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-kill-ao": {
+      "anilistId": 198113,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-awajima-hyakkei": {
+      "anilistId": 177501,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-kami-no-shizuku": {
+      "anilistId": 202508,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 22
+    },
+    "animeav1-kujima-utaeba-ie-hororo": {
+      "anilistId": 177508,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-himekishi-wa-barbaroi-no-yome": {
+      "anilistId": 182483,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-megami-isekai-tensei-nani-ni-naritai-desu-ka-ore-yuusha-no-rokkotsu-de": {
+      "anilistId": 206951,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-hidarikiki-no-eren": {
+      "anilistId": 158036,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-tadaima-ojamasaremasu": {
+      "anilistId": 202985,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-otaku-ni-yasashii-gal-wa-inai": {
+      "anilistId": 199588,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-hyakki-yakoushou": {
+      "anilistId": 207675,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-liar-game": {
+      "anilistId": 197754,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 22
+    },
+    "animeav1-class-de-2-banme-ni-kawaii-onnanoko-to-tomodachi-ni-natta": {
+      "anilistId": 169580,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-replica-datte-koi-wo-suru": {
+      "anilistId": 186744,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-nippon-sangoku": {
+      "anilistId": 206914,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-marriagetoxin": {
+      "anilistId": 199547,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-higeki-no-genkyou-to-naru-saikyou-gedou-last-boss-joou-wa-tami-no-tame-ni-tsukushimasu-season-2": {
+      "anilistId": 195268,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-ghost-concert-missing-songs": {
+      "anilistId": 201090,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-ponkotsu-fuuki-iin-to-skirt-take-ga-futekisetsu-na-jk-no-hanashi": {
+      "anilistId": 189987,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-tongari-boushi-no-atelier": {
+      "anilistId": 147105,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-jishou-akuyaku-reijou-na-konyakusha-no-kansatsu-kiroku": {
+      "anilistId": 192808,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-ingoku-danchi": {
+      "anilistId": 206166,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-niwatori-fighter": {
+      "anilistId": 179813,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-marika-chan-no-koukando-wa-bukkowareteiru": {
+      "anilistId": 202523,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 8
+    },
+    "animeav1-isekai-nonbiri-nouka-2": {
+      "anilistId": 197824,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-maid-san-wa-taberu-dake": {
+      "anilistId": 197868,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-needy-girl-overdose": {
+      "anilistId": 202102,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-diamond-no-ace-act-ii-second-season": {
+      "anilistId": 177634,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-kanan-sama-wa-akumade-choroi": {
+      "anilistId": 190704,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-kami-no-niwatsuki-kusunoki-tei": {
+      "anilistId": 196029,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-mairimashita-iruma-kun-4th-season": {
+      "anilistId": 184492,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 21
+    },
+    "animeav1-yomi-no-tsugai": {
+      "anilistId": 195600,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 22
+    },
+    "animeav1-mao": {
+      "anilistId": 196012,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 23
+    },
+    "animeav1-saikyou-no-shokugyou-wa-yuusha-demo-kenja-demo-naku-kanteishi-kari-rashii-desu-yo": {
+      "anilistId": 200769,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-akane-banashi": {
+      "anilistId": 196935,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-otonari-no-tenshi-sama-ni-itsunomanika-dame-ningen-ni-sareteita-ken-2": {
+      "anilistId": 170019,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-haibara-kun-no-tsuyokute-seishun-new-game": {
+      "anilistId": 195333,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-snowball-earth": {
+      "anilistId": 196144,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-tensei-shitara-slime-datta-ken-4th-season": {
+      "anilistId": 182205,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 21
+    },
+    "animeav1-reincarnation-no-kaben": {
+      "anilistId": 179950,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-kirio-fanclub": {
+      "anilistId": 181284,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-mata-korosarete-shimatta-no-desu-ne-tantei-sama": {
+      "anilistId": 202381,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-dr-stone-science-future-part-3": {
+      "anilistId": 199221,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-mamonogurai-no-boukensha-ore-dake-mamono-wo-kuratte-tsuyoku-naru": {
+      "anilistId": 210234,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-ganbare-nakamura-kun": {
+      "anilistId": 180228,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-nigashita-sakana-wa-ookikatta-ga-tsuriageta-sakana-ga-ookisugita-ken": {
+      "anilistId": 201817,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-koori-no-jouheki": {
+      "anilistId": 186497,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 14
+    },
+    "animeav1-jidou-hanbaiki-ni-umarekawatta-ore-wa-meikyuu-wo-samayou-3rd-season": {
+      "anilistId": 198939,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-dorohedoro-season-2": {
+      "anilistId": 173172,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 11
+    },
+    "animeav1-saikyou-no-ousama-nidome-no-jinsei-wa-nani-wo-suru-season-2": {
+      "anilistId": 194317,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-shunkashuutou-daikousha-haru-no-mai": {
+      "anilistId": 190143,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 14
+    },
+    "animeav1-beastars-final-season-part-2": {
+      "anilistId": 187267,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-baki-dou": {
+      "anilistId": 176509,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 25
+    },
+    "animeav1-fangkai-nage-nuwu": {
+      "anilistId": 137662,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 8
+    },
+    "animeav1-medalist-2nd-season": {
+      "anilistId": 189275,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 9
+    },
+    "animeav1-chou-kaguya-hime": {
+      "anilistId": 201903,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1
+    },
+    "animeav1-prism-rondo": {
+      "anilistId": 202955,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 20
+    },
+    "animeav1-oshi-no-ko-3rd-season": {
+      "anilistId": 182587,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 11
+    },
+    "animeav1-yami-shibai-16": {
+      "anilistId": 203939,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-himesama-goumon-no-jikan-desu-2nd-season": {
+      "anilistId": 176370,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-jingai-kyoushitsu-no-ningengirai-kyoushi": {
+      "anilistId": 198374,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-uruwashi-no-yoi-no-tsuki": {
+      "anilistId": 192507,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-yuusha-no-kuzu": {
+      "anilistId": 187989,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 24
+    },
+    "animeav1-jigokuraku-2nd-season": {
+      "anilistId": 166613,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-kaya-chan-wa-kowakunai": {
+      "anilistId": 183660,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-akuyaku-reijou-wa-ringoku-no-outaishi-ni-dekiai-sareru": {
+      "anilistId": 195518,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-hikuidori-ushuu-boro-tobi-gumi": {
+      "anilistId": 187062,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-okiraku-ryoushu-no-tanoshii-ryouchi-bouei-seisankei-majutsu-de-na-mo-naki-mura-wo-saikyou-no-jousai-toshi-ni": {
+      "anilistId": 191205,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-dead-account": {
+      "anilistId": 187901,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-dark-moon-tsuki-no-saidan": {
+      "anilistId": 181443,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-enen-no-shouboutai-san-no-shou-part-2": {
+      "anilistId": 179062,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-trigun-stargaze": {
+      "anilistId": 163144,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-tensei-shitara-dragon-no-tamago-datta": {
+      "anilistId": 187941,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-omae-gotoki-ga-maou-ni-kateru-to-omouna-to-yuusha-party-wo-tsuihou-sareta-node-outo-de-kimama-ni-kurashitai": {
+      "anilistId": 191718,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-douse-koishite-shimaunda-2nd-season": {
+      "anilistId": 189137,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-jujutsu-kaisen-shimetsu-kaiyuu-zenpen": {
+      "anilistId": 172463,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-champignon-no-majo": {
+      "anilistId": 185514,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-toumei-otoko-to-ningen-onna-sonouchi-fuufu-ni-naru-futari": {
+      "anilistId": 185039,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-eris-no-seihai": {
+      "anilistId": 183270,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-mato-seihei-no-slave-2": {
+      "anilistId": 176276,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-kizoku-tensei-megumareta-umare-kara-saikyou-no-chikara-wo-eru": {
+      "anilistId": 185993,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-arne-no-jikenbo": {
+      "anilistId": 183984,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-odayaka-kizoku-no-kyuuka-no-susume": {
+      "anilistId": 182771,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-jigoku-sensei-nube-2025-part-2": {
+      "anilistId": 191967,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-29-sai-dokushin-chuuken-boukensha-no-nichijou": {
+      "anilistId": 192261,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-darwin-jihen": {
+      "anilistId": 177679,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-shibou-yuugi-de-meshi-wo-kuu": {
+      "anilistId": 180746,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-maou-no-musume-wa-yasashisugiru": {
+      "anilistId": 194742,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-yuusha-party-ni-kawaii-ko-ga-ita-node-kokuhaku-shitemita": {
+      "anilistId": 195515,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-isekai-no-sata-wa-shachiku-shidai": {
+      "anilistId": 183661,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-osananajimi-to-wa-love-comedy-ni-naranai": {
+      "anilistId": 189565,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-golden-kamuy-saishuushou": {
+      "anilistId": 166521,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-kirei-ni-shitemoraemasu-ka": {
+      "anilistId": 194028,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-goumon-baito-kun-no-nichijou": {
+      "anilistId": 197731,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-vigilante-boku-no-hero-academia-illegals-2nd-season": {
+      "anilistId": 195322,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-yuusha-party-wo-oidasareta-kiyoubinbou": {
+      "anilistId": 187264,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-mf-ghost-3rd-season": {
+      "anilistId": 185753,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-ikoku-nikki": {
+      "anilistId": 177385,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-majutsushi-kunon-wa-mieteiru": {
+      "anilistId": 186333,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-tamon-kun-ima-docchi": {
+      "anilistId": 178005,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-yuusha-kei-ni-shosu-choubatsu-yuusha-9004-tai-keimu-kiroku": {
+      "anilistId": 167152,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-fatestrange-fake": {
+      "anilistId": 166617,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-yi-ren-zhi-xia-6": {
+      "anilistId": 198749,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 26
+    },
+    "animeav1-xian-wang-de-richang-shenghuo-5": {
+      "anilistId": 185857,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-ao-no-miburo-serizawa-ansatsu-hen": {
+      "anilistId": 189258,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 14
+    },
+    "animeav1-shuumatsu-no-walkure-iii": {
+      "anilistId": 187921,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 15
+    },
+    "animeav1-fujimoto-tatsuki-17-26": {
+      "anilistId": 198188,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 8
+    },
+    "animeav1-cengjing-you-yongshi": {
+      "anilistId": 199430,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-disney-twisted-wonderland-the-animation-episode-of-heartslabyul": {
+      "anilistId": 140291,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 8
+    },
+    "animeav1-kimi-to-koete-koi-ni-naru": {
+      "anilistId": 186161,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-gnosia": {
+      "anilistId": 185116,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 21
+    },
+    "animeav1-chanto-suenai-kyuuketsuki-chan": {
+      "anilistId": 186524,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-tensei-akujo-no-kuro-rekishi": {
+      "anilistId": 174914,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-ninja-to-gokudou": {
+      "anilistId": 186914,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-wandance": {
+      "anilistId": 180436,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-sozai-saishuka-no-isekai-ryokouki": {
+      "anilistId": 187663,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-ansatsusha-de-aru-ore-no-status-ga-yuusha-yori-mo-akiraka-ni-tsuyoi-no-da-ga": {
+      "anilistId": 186794,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-debu-to-love-to-ayamachi-to": {
+      "anilistId": 170936,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-egao-no-taenai-shokuba-desu": {
+      "anilistId": 173523,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-tomodachi-no-imouto-ga-ore-ni-dake-uzai": {
+      "anilistId": 129195,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-si-vis-the-sound-of-heroes": {
+      "anilistId": 196553,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 24
+    },
+    "animeav1-toujima-tanzaburou-wa-kamen-rider-ni-naritai": {
+      "anilistId": 187464,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 24
+    },
+    "animeav1-alma-chan-wa-kazoku-ni-naritai": {
+      "anilistId": 186190,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 11
+    },
+    "animeav1-chichi-wa-eiyuu-haha-wa-seirei-musume-no-watashi-wa-tenseisha": {
+      "anilistId": 173692,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-saigo-ni-hitotsu-dake-onegai-shitemo-yoroshii-deshou-ka": {
+      "anilistId": 181447,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13
+    },
+    "animeav1-mikata-ga-yowasugite-hojo-mahou-ni-tesshiteita-kyuutei-mahoushi-tsuihou-sarete-saikyou-wo-mezashimasu": {
+      "anilistId": 188487,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
+    },
+    "animeav1-sanda": {
+      "anilistId": 179302,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12
     }
   }
 }

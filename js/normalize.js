@@ -96,6 +96,9 @@ function normalizeExternalShow(item, source, index) {
     englishTitle: item.englishTitle || "",
     // Placeholder-episode count only - see makePlaceholderEpisodes in client.js.
     anilistEpisodeCount: item.anilistEpisodeCount || null,
+    // How many episodes the SOURCE actually serves, probed at build time. Not a
+    // metadata guess: an airing show's planned total is not what is playable.
+    sourceEpisodeCount: item.sourceEpisodeCount || null,
     studios: Array.isArray(item.studios) ? item.studios : [],
     // Artwork that came from the catalogue is curated: build-artwork-map.mjs picks
     // TMDB's primary backdrop and poster for the matched show. A later runtime

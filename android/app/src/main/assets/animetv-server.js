@@ -1602,6 +1602,49 @@ const CATALOG_RESPONSE_TTL_MS = Math.max(
 let catalogResponseCache = null;   // { payload, ts }
 let catalogResponseInflight = null;
 
+// AnimeAV1 serves titles the nightly HTML scrape does not produce. Measured
+// 2026-09-07: the original Bleach (366 episodes) and Boruto were both absent
+// from anime_metadata.json while the source served them happily - only the
+// Thousand-Year Blood War arcs had been parsed. A show the SOURCE has must
+// never be unreachable here because a parser did not see it.
+//
+// So union the scrape with every slug we know of and synthesise a minimal row
+// for the remainder. Those rows carry a title and a slug and nothing else,
+// which is enough: artwork and episodes already resolve at runtime for any
+// sparse row, and the next successful scrape fills the metadata in. This is a
+// floor under catalogue coverage, not a replacement for scraping.
+async function animeAv1RowsMissingFromScrape(scraped = []) {
+  try {
+    const known = new Set(scraped.map((item) => animeAv1SlugOf(item)).filter(Boolean));
+    const catalog = await getAnimeAv1SlugCatalog();
+    const entries = Array.isArray(catalog?.items) ? catalog.items : [];
+    const added = [];
+    for (const entry of entries) {
+      const slug = cleanAnimeAv1Slug(entry?.slug || "");
+      if (!slug || known.has(slug)) continue;
+      known.add(slug);
+      added.push({
+        id: `animeav1-${slug}`,
+        title: cleanAnimeAv1Title(entry?.title || "") || slugToTitle(slug),
+        source: "AnimeAV1",
+        siteUrl: `${ANIMEAV1_BASE}/media/${slug}`,
+        animeAv1Slug: slug,
+        type: "TV",
+        genre: "anime",
+        genres: [],
+        status: "",
+        episodes: []
+      });
+    }
+    if (added.length) log("info", `AnimeAV1: ${added.length} slug(s) the scrape does not carry, added to the catalog`);
+    return added;
+  } catch (error) {
+    // Coverage is a bonus here; the catalogue must still be served without it.
+    log("warn", `AnimeAV1 slug union skipped: ${error.message}`);
+    return [];
+  }
+}
+
 async function buildCatalogPayload() {
   const [anilist, jikanAiring, jikanSeason, jikanPopular] = await Promise.allSettled([
     fetchAniListTrending(),
@@ -1613,6 +1656,7 @@ async function buildCatalogPayload() {
   const scrapedAnimeAv1 = readScrapedRegularCatalogItems();
   const items = [
     ...scrapedAnimeAv1,
+    ...await animeAv1RowsMissingFromScrape(scrapedAnimeAv1),
     ...(anilist.status === "fulfilled" ? anilist.value : []),
     ...(jikanAiring.status === "fulfilled" ? jikanAiring.value : []),
     ...(jikanSeason.status === "fulfilled" ? jikanSeason.value : []),
@@ -2301,6 +2345,9 @@ function readScrapedRegularCatalogItems() {
             season: item.season || airingHit.season || "",
             seasonYear: item.seasonYear || airingHit.seasonYear || null,
             status: item.status || airingHit.airingStatus || "",
+            // What the SOURCE actually serves, measured at build time. An airing
+            // show's planned total is not what is playable.
+            ...(airingHit.sourceEpisodeCount ? { sourceEpisodeCount: airingHit.sourceEpisodeCount } : {}),
             ...(airingHit.franchiseSeasons && airingHit.franchiseSeasons.length
               ? { franchiseSeasons: airingHit.franchiseSeasons } : {})
           } : item;
@@ -2391,6 +2438,7 @@ function readScrapedRegularCatalogItems() {
             season: item.season || airingHit.season || "",
             seasonYear: item.seasonYear || airingHit.seasonYear || null,
             status: item.status || airingHit.airingStatus || (meta ? meta.airingStatus : "") || "",
+            ...(airingHit.sourceEpisodeCount ? { sourceEpisodeCount: airingHit.sourceEpisodeCount } : {}),
             franchiseSeasons: airingHit.franchiseSeasons && airingHit.franchiseSeasons.length
               ? airingHit.franchiseSeasons
               : undefined
@@ -8749,10 +8797,31 @@ function mergeCatalogShow(current, show) {
   };
 }
 
+// The AnimeAV1 slug is the only identity that is OURS: it is what the source
+// serves episodes under, so a row that loses it stops being playable.
+function animeAv1SlugOf(show) {
+  const direct = String(show?.animeAv1Slug || show?._av1Slug || "").trim();
+  if (direct) return direct;
+  const match = /^animeav1-(.+)$/.exec(String(show?.id || ""));
+  return match ? match[1] : "";
+}
+
 function catalogIdentitiesAreCompatible(left, right) {
   if (!left || !right) return true;
   if (left.anilistId && right.anilistId && String(left.anilistId) !== String(right.anilistId)) return false;
   if (left.malId && right.malId && String(left.malId) !== String(right.malId)) return false;
+  // Two DIFFERENT AnimeAV1 entries are two different shows, whatever identity a
+  // matcher proposed for them. artwork-map.json currently hands one AniList id
+  // to two slugs in eight cases - "Nukitashi the Animation" and "Nukitashi the
+  // Animation Specials" are both 174188 - and merging on that guess deleted the
+  // base series from the catalogue outright, leaving only the specials
+  // reachable. Six shows were unplayable this way.
+  //
+  // An id can be wrong; the slug cannot, because it is the key the source
+  // itself serves under. So the slug wins.
+  const leftSlug = animeAv1SlugOf(left);
+  const rightSlug = animeAv1SlugOf(right);
+  if (leftSlug && rightSlug && leftSlug !== rightSlug) return false;
   return true;
 }
 
@@ -8802,13 +8871,20 @@ function mergeShows(items) {
 
   const unique = new Map();
   [...new Set(byKey.values())].forEach((show) => {
-    const identity = show.anilistId
-      ? `anilist-${show.anilistId}`
-      : show.malId
-        ? `mal-${show.malId}`
-        : show.id
-          ? `id-${show.id}`
-          : `title-${normalizeTitle(show.title)}-${show.year || ""}-${show.format || ""}`;
+    // Key on the AnimeAV1 slug FIRST where there is one. Keying on anilistId
+    // re-collapsed exactly what the compatibility check above kept apart: two
+    // slugs sharing one guessed id came back through here as a single row.
+    // Rows that already merged carry one slug, so this never splits them.
+    const slug = animeAv1SlugOf(show);
+    const identity = slug
+      ? `av1-${slug}`
+      : show.anilistId
+        ? `anilist-${show.anilistId}`
+        : show.malId
+          ? `mal-${show.malId}`
+          : show.id
+            ? `id-${show.id}`
+            : `title-${normalizeTitle(show.title)}-${show.year || ""}-${show.format || ""}`;
     unique.set(identity, mergeCatalogShow(unique.get(identity), show));
   });
   return [...unique.values()];

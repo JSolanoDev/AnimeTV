@@ -2345,6 +2345,9 @@ function readScrapedRegularCatalogItems() {
             season: item.season || airingHit.season || "",
             seasonYear: item.seasonYear || airingHit.seasonYear || null,
             status: item.status || airingHit.airingStatus || "",
+            // What the SOURCE actually serves, measured at build time. An airing
+            // show's planned total is not what is playable.
+            ...(airingHit.sourceEpisodeCount ? { sourceEpisodeCount: airingHit.sourceEpisodeCount } : {}),
             ...(airingHit.franchiseSeasons && airingHit.franchiseSeasons.length
               ? { franchiseSeasons: airingHit.franchiseSeasons } : {})
           } : item;
@@ -2435,6 +2438,7 @@ function readScrapedRegularCatalogItems() {
             season: item.season || airingHit.season || "",
             seasonYear: item.seasonYear || airingHit.seasonYear || null,
             status: item.status || airingHit.airingStatus || (meta ? meta.airingStatus : "") || "",
+            ...(airingHit.sourceEpisodeCount ? { sourceEpisodeCount: airingHit.sourceEpisodeCount } : {}),
             franchiseSeasons: airingHit.franchiseSeasons && airingHit.franchiseSeasons.length
               ? airingHit.franchiseSeasons
               : undefined

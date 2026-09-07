@@ -191,6 +191,53 @@ check("nextAiring still caps a mid-air season",
   check("an unknown total still trusts a fully dated feed", show.latestAiredEp, 9);
 }
 
+
+/* -- what the SOURCE serves beats what metadata planned ----------------------
+   Measured on production 2026-09-07 by binary-searching AnimeAV1, which answers
+   200 for an episode it serves and 404 for one it does not:
+
+     Mushoku Tensei III   app showed 14   source served 11
+     Hanaori-san          app showed 12   source served  9
+     Mebius Dust          app showed 12   source served  9
+     Thunder 3            app showed 12   source served  9
+     Smoking Behind...    app showed 12   source served 12   (correct)
+     Frieren 2nd Season   app showed 10   source served 10   (correct)
+
+   Every currently-airing show carried exactly three rows that cannot play,
+   because a metadata provider only knows the PLANNED total. */
+{
+  const show = { title: "Mushoku Tensei III", status: "RELEASING", totalEpisodes: 14, anilistEpisodeCount: 14, sourceEpisodeCount: 11 };
+  check("the source outranks every metadata guess", getSeasonEpisodeLimit(show, {}), 11);
+}
+{
+  // ...including a latestAiredEp that disagrees.
+  const show = { title: "Disagreeing", status: "RELEASING", totalEpisodes: 12, latestAiredEp: 4, sourceEpisodeCount: 9 };
+  check("and outranks a stale latestAiredEp", getSeasonEpisodeLimit(show, {}), 9);
+}
+{
+  // A season-level count wins over the show-level one.
+  const show = { title: "Show", status: "RELEASING", sourceEpisodeCount: 9 };
+  check("a season's own count is preferred", getSeasonEpisodeLimit(show, { sourceEpisodeCount: 12 }), 12);
+}
+{
+  // Never applies to a movie, which is capped before anything else is read.
+  const show = { title: "Film", format: "MOVIE", status: "RELEASING", sourceEpisodeCount: 7 };
+  check("a movie is still one", getSeasonEpisodeLimit(show, {}), 1);
+}
+{
+  // Absent - which is every finished show - behaves exactly as before.
+  const show = { title: "Finished", status: "FINISHED", totalEpisodes: 24 };
+  check("without a source count nothing changes", getSeasonEpisodeLimit(show, {}), 24);
+  const airing = { title: "Airing", status: "RELEASING", latestAiredEp: 11 };
+  check("and an airing show still uses its aired count", getSeasonEpisodeLimit(airing, {}), 11);
+}
+{
+  // A source count can never delete an episode we actually hold and can play.
+  const show = { title: "Holds more", status: "RELEASING", sourceEpisodeCount: 9 };
+  const held = [10, 11, 12].map((n) => ({ episode: n }));
+  check("unlocked episodes survive a lower source count", clampSeasonEpisodes(held, show, {}).length, 3);
+}
+
 console.log(rows.join("\n"));
 const failed = rows.filter((r) => r.startsWith("FAIL")).length;
 console.log(failed ? `\n${failed} FAILED` : "\nall episode-clamp checks passed");

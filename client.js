@@ -549,7 +549,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=714`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=715`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3542,7 +3542,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=714";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=715";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -14419,6 +14419,19 @@ function getSeasonEpisodeLimit(show = {}, season = {}) {
   const format = String(season.format || show.format || "").toUpperCase();
   if (format === "MOVIE") return 1;
 
+  // The SOURCE is the authority on what can actually be played, and everything
+  // below this line is metadata's opinion about it. An airing show renders its
+  // PLANNED total because that is all a metadata provider knows; measured on
+  // production, every currently-airing show carried exactly three rows that
+  // 404 - Mushoku Tensei III offered 14 where AnimeAV1 serves 11, Mebius Dust
+  // and Thunder 3 offered 12 where it serves 9.
+  //
+  // sourceEpisodeCount is probed against the source itself at build time, so it
+  // is a measurement rather than a guess and outranks the rest. It is only ever
+  // baked for airing shows - a finished season's planned total IS its real one.
+  const servedBySource = Number(season.sourceEpisodeCount || show.sourceEpisodeCount || 0);
+  if (Number.isFinite(servedBySource) && servedBySource > 0) return servedBySource;
+
   const latestAired = Number(
     season.latestAiredEp
     || season.latestAiredEpisode
@@ -17076,7 +17089,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=714");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=715");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

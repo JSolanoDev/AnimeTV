@@ -306,6 +306,7 @@ function indexOfflineDatabase(text) {
       episodes: Number(row.episodes) || null,
       year: row.animeSeason?.year || null,
       season: String(row.animeSeason?.season || "").toUpperCase(),
+      airing: String(row.status || "").toUpperCase(),
       related
     });
   }
@@ -438,7 +439,8 @@ async function relationsOnce(malId, fixture) {
 }
 
 async function fetchViaJikan(targets) {
-  const db = await loadOfflineIndex();
+  const db = offlineIndexRef.value || await loadOfflineIndex();
+  offlineIndexRef.value = db;
   log(`offline database indexed: ${db.size} entries`);
 
   const fixture = JIKAN_FIXTURE ? JSON.parse(fs.readFileSync(JIKAN_FIXTURE, "utf8")) : null;
@@ -592,6 +594,126 @@ function ensureMapExists() {
   }
 }
 
+/* ── What the SOURCE actually serves ───────────────────────────────────────
+   An airing show renders its PLANNED total, because that is all any metadata
+   provider knows. The source serves only what has aired. Measured 2026-09-07
+   against production: Mushoku Tensei III offered 14 episodes and AnimeAV1 served
+   11; Hanaori-san 12 vs 9; Mebius Dust 12 vs 9; Thunder 3 12 vs 9. Every
+   currently-airing show carried exactly three rows that cannot play. Finished
+   shows were correct.
+
+   AnimeAV1 answers 200 for an episode it serves and 404 for one it does not, so
+   a binary search pins the real number in about four requests. Only airing shows
+   need it - a finished show's planned total IS its real total - which keeps this
+   to roughly 70 shows a night rather than a thousand. */
+const offlineIndexRef = { value: null };
+const ANIMEAV1_MEDIA = "https://animeav1.com/media";
+const AV1_PROBE_PAUSE_MS = 700;
+const AV1_PROBE_MAX_SHOWS = 220;
+const THIS_YEAR = new Date().getUTCFullYear();
+const RECENT_YEARS = new Set([THIS_YEAR, THIS_YEAR - 1]);
+
+// true = serves it, false = definitely does not (404), null = we do not know.
+// Collapsing the third case into "does not" is how a transient failure silently
+// lowers a show's episode count: measured, this baked 10 for a show AnimeAV1
+// serves 12 episodes of, which would have hidden two playable episodes.
+async function av1ServesEpisode(slug, episode) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const response = await fetch(`${ANIMEAV1_MEDIA}/${slug}/${episode}`, { headers: { Accept: "text/html" } });
+      if (response.status === 404) return false;
+      if (response.ok) return true;
+    } catch { /* fall through to the retry, then to "unknown" */ }
+    if (attempt === 0) await sleep(AV1_PROBE_PAUSE_MS * 2);
+  }
+  return null;
+}
+
+async function av1EpisodeCount(slug, plannedTotal) {
+  // Find a ceiling the source definitely does NOT serve, by doubling. Starting
+  // from the planned total and adding a fixed margin is not safe: a ceiling is
+  // an assumption, and this one was wrong - a "Mini" series whose metadata said
+  // 6 episodes had the search capped at 10 while AnimeAV1 serves 12, so the
+  // probe reported 10 and would have hidden two playable episodes.
+  let hi = Math.max(1, Number(plannedTotal) || 12);
+  for (let doublings = 0; doublings < 7; doublings += 1) {
+    const beyond = await av1ServesEpisode(slug, hi + 1);
+    if (beyond === null) return 0;
+    if (!beyond) break;
+    hi = hi * 2;
+    await sleep(AV1_PROBE_PAUSE_MS);
+  }
+
+  let lo = 1;
+  let last = 0;
+  while (lo <= hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    const serves = await av1ServesEpisode(slug, mid);
+    // A count that is too LOW hides episodes that actually play, and silence is
+    // not a 404. Abandon this show rather than conclude a lower bound from it -
+    // no count at all simply leaves the previous behaviour in place.
+    if (serves === null) return 0;
+    if (serves) { last = mid; lo = mid + 1; } else { hi = mid - 1; }
+    await sleep(AV1_PROBE_PAUSE_MS);
+  }
+  return last;
+}
+
+async function addSourceEpisodeCounts(entries, db, targets = []) {
+  if (!db || !db.size) return 0;
+  const byAniList = new Map();
+  for (const entry of db.values()) if (entry.anilistId) byAniList.set(String(entry.anilistId), entry);
+
+  // Walk the CATALOGUE, not just the rows that happen to have a season chain.
+  // A source episode count has nothing to do with relations, and scoping this to
+  // entries meant only 4 of the catalogue's ~70 airing shows were ever probed.
+  const airing = [];
+  const seen = new Set();
+  for (const { rowId, anilistId } of targets) {
+    if (seen.has(rowId)) continue;
+    const slug = /^animeav1-(.+)$/.exec(rowId)?.[1];
+    if (!slug) continue;
+    const known = byAniList.get(String(anilistId));
+    if (!known) continue;
+    // ONGOING is the offline database's word for "currently airing", but the
+    // snapshot is weekly: it named 19 shows where the catalogue considers 71 to
+    // be airing. A season that started since the snapshot is exactly the case
+    // this probe exists for, so include recent TV runs as well. Finished older
+    // shows are skipped - their planned total IS their real one.
+    const recent = RECENT_YEARS.has(Number(known.year)) && SEASONISH.has(known.type);
+    if (known.airing !== "ONGOING" && !recent) continue;
+    seen.add(rowId);
+    airing.push({ rowId, slug, anilistId, planned: entries[rowId]?.anilistEpisodeCount || known.episodes });
+  }
+
+  const wanted = airing.slice(0, AV1_PROBE_MAX_SHOWS);
+  log(`${airing.length} airing row(s); probing ${wanted.length} for what the source actually serves`);
+  let probed = 0;
+  for (const { rowId, slug, anilistId, planned } of wanted) {
+    const count = await av1EpisodeCount(slug, planned);
+    if (count <= 0) continue;
+    // A show with no chain still deserves a correct episode count, so give it a
+    // row rather than dropping the measurement on the floor.
+    if (!entries[rowId]) {
+      entries[rowId] = {
+        anilistId: Number(anilistId) || null,
+        airingStatus: "RELEASING",
+        season: "",
+        seasonYear: null,
+        anilistEpisodeCount: null,
+        nextAiringAt: null,
+        nextAiringEpisodeNumber: null,
+        franchiseSeasons: []
+      };
+    }
+    entries[rowId].sourceEpisodeCount = count;
+    probed += 1;
+  }
+  if (airing.length > wanted.length) log(`${airing.length - wanted.length} airing row(s) left unprobed by the cap`);
+  log(`source episode counts written for ${probed} show(s)`);
+  return probed;
+}
+
 /* ── Main ──────────────────────────────────────────────────────────────────── */
 async function main() {
   let artwork;
@@ -620,6 +742,7 @@ async function main() {
   // Every media we manage to fetch, kept whole - the chains are computed from
   // the union of their edges once the whole set is in hand, not per-media.
   const fetched = [];
+  // Kept so the source-episode probe can reuse it without a second download.
 
   if (FIXTURE) {
     // Offline path, so the shaping can be exercised without the network.
@@ -668,6 +791,17 @@ async function main() {
   for (const { rowId, anilistId } of targets) {
     const shaped = byAnilistId.get(anilistId);
     if (shaped) { out.entries[rowId] = shaped; out.count += 1; }
+  }
+
+  if (!FIXTURE && !JIKAN_FIXTURE) {
+    try {
+      const db = offlineIndexRef.value || await loadOfflineIndex();
+      offlineIndexRef.value = db;
+      await addSourceEpisodeCounts(out.entries, db, targets);
+      out.count = Object.keys(out.entries).length;
+    } catch (error) {
+      log(`source episode probe skipped: ${error.message}`);
+    }
   }
 
   const withAiring = Object.values(out.entries).filter((e) => e.nextAiringAt).length;
