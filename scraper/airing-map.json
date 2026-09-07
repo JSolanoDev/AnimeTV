@@ -1,5 +1,3125 @@
 {
-  "generatedAt": "2026-09-07T00:09:20.670Z",
-  "count": 0,
-  "entries": {}
+  "generatedAt": "2026-09-07T01:25:33.602Z",
+  "count": 99,
+  "entries": {
+    "animeav1-one-piece": {
+      "anilistId": 21,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 1999,
+      "anilistEpisodeCount": 1168,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-bleach-sennen-kessen-hen-kashin-tan": {
+      "anilistId": 185874,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 169755,
+          "title": "Bleach: Sennen Kessen-hen - Soukoku-tan",
+          "format": "TV",
+          "status": "",
+          "episodes": 14,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727740800000,
+          "order": 1
+        },
+        {
+          "anilistId": 185874,
+          "title": "Bleach: Sennen Kessen-hen - Kashin-tan",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-nige-jouzu-no-wakagimi-2nd-season": {
+      "anilistId": 182616,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 162896,
+          "title": "Nige Jouzu no Wakagimi",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1719792000000,
+          "order": 1
+        },
+        {
+          "anilistId": 182616,
+          "title": "Nige Jouzu no Wakagimi 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-katainaka-no-ossan-kensei-ni-naru-ii": {
+      "anilistId": 194829,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 179955,
+          "title": "Katainaka no Ossan, Kensei ni Naru",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2025,
+          "startedAt": 1743465600000,
+          "order": 1
+        },
+        {
+          "anilistId": 194829,
+          "title": "Katainaka no Ossan, Kensei ni Naru II",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-otome-game-sekai-wa-mob-ni-kibishii-sekai-desu-2": {
+      "anilistId": 159309,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 142074,
+          "title": "Otome Game Sekai wa Mob ni Kibishii Sekai desu",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2022,
+          "startedAt": 1648771200000,
+          "order": 1
+        },
+        {
+          "anilistId": 159309,
+          "title": "Otome Game Sekai wa Mob ni Kibishii Sekai desu 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-clevatess-ii-majuu-no-ou-to-itsuwari-no-yuusha-denshou": {
+      "anilistId": 198946,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 178869,
+          "title": "Clevatess: Majuu no Ou to Akago to Shikabane no Yuusha",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2025,
+          "startedAt": 1751328000000,
+          "order": 1
+        },
+        {
+          "anilistId": 198946,
+          "title": "Clevatess II: Majuu no Ou to Itsuwari no Yuusha Denshou",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-grand-blue-season-3": {
+      "anilistId": 199111,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 100922,
+          "title": "Grand Blue",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2018,
+          "startedAt": 1530403200000,
+          "order": 1
+        },
+        {
+          "anilistId": 182309,
+          "title": "Grand Blue Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2025,
+          "startedAt": 1751328000000,
+          "order": 2
+        },
+        {
+          "anilistId": 199111,
+          "title": "Grand Blue Season 3",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-azur-lane-bisoku-zenshin-ni": {
+      "anilistId": 169080,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 114473,
+          "title": "Azur Lane: Bisoku Zenshin!",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 1
+        },
+        {
+          "anilistId": 169080,
+          "title": "Azur Lane: Bisoku Zenshin! Ni!!",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-mushoku-tensei-iii-isekai-ittara-honki-dasu": {
+      "anilistId": 178789,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 14,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 166873,
+          "title": "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 1
+        },
+        {
+          "anilistId": 178789,
+          "title": "Mushoku Tensei III: Isekai Ittara Honki Dasu",
+          "format": "TV",
+          "status": "",
+          "episodes": 14,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-gaikotsu-kishi-sama-tadaima-isekai-e-odekakechuu-ii": {
+      "anilistId": 185542,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 132474,
+          "title": "Gaikotsu Kishi-sama, Tadaima Isekai e Odekakechuu",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2022,
+          "startedAt": 1648771200000,
+          "order": 1
+        },
+        {
+          "anilistId": 185542,
+          "title": "Gaikotsu Kishi-sama, Tadaima Isekai e Odekakechuu II",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-seihantai-na-kimi-to-boku-2nd-season": {
+      "anilistId": 210031,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 184951,
+          "title": "Seihantai na Kimi to Boku",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1767225600000,
+          "order": 1
+        },
+        {
+          "anilistId": 210031,
+          "title": "Seihantai na Kimi to Boku 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-yani-neko": {
+      "anilistId": 207141,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-bang-dream-yumemita": {
+      "anilistId": 198376,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 3,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-hanazakari-no-kimitachi-e-2nd-season": {
+      "anilistId": 209669,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 177580,
+          "title": "Hanazakari no Kimitachi e",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1767225600000,
+          "order": 1
+        },
+        {
+          "anilistId": 209669,
+          "title": "Hanazakari no Kimitachi e 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-bungou-stray-dogs-wan-2": {
+      "anilistId": 201667,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 120150,
+          "title": "Bungou Stray Dogs Wan!",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 1
+        },
+        {
+          "anilistId": 201667,
+          "title": "Bungou Stray Dogs Wan! 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-tsue-to-tsurugi-no-wistoria-season-2": {
+      "anilistId": 182300,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 174576,
+          "title": "Tsue to Tsurugi no Wistoria",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1719792000000,
+          "order": 1
+        },
+        {
+          "anilistId": 182300,
+          "title": "Tsue to Tsurugi no Wistoria Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775001600000,
+          "order": 2
+        },
+        {
+          "anilistId": "mal-63857",
+          "title": "Tsue to Tsurugi no Wistoria Recap",
+          "format": "SPECIAL",
+          "status": "",
+          "episodes": 1,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775001600000,
+          "order": 3
+        },
+        {
+          "anilistId": 213656,
+          "title": "Tsue to Tsurugi no Wistoria Season 3",
+          "format": "TV",
+          "status": "",
+          "episodes": 1,
+          "season": "UNDEFINED",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 4
+        }
+      ]
+    },
+    "animeav1-rezero-kara-hajimeru-isekai-seikatsu-4th-season": {
+      "anilistId": 189046,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 19,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 163134,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 3rd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 16,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727740800000,
+          "order": 1
+        },
+        {
+          "anilistId": 189046,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 4th Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 19,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775001600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-steel-ball-run-jojo-no-kimyou-na-bouken": {
+      "anilistId": 190327,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 1,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": "mal-53273",
+          "title": "JoJo no Kimyou na Bouken Part 6: Stone Ocean Part 3",
+          "format": "ONA",
+          "status": "",
+          "episodes": 14,
+          "season": "FALL",
+          "seasonYear": 2022,
+          "startedAt": 1664582400000,
+          "order": 1
+        },
+        {
+          "anilistId": 190327,
+          "title": "Steel Ball Run: JoJo no Kimyou na Bouken",
+          "format": "ONA",
+          "status": "",
+          "episodes": 1,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1767225600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-seihantai-na-kimi-to-boku": {
+      "anilistId": 184951,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 184951,
+          "title": "Seihantai na Kimi to Boku",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1767225600000,
+          "order": 1
+        },
+        {
+          "anilistId": 210031,
+          "title": "Seihantai na Kimi to Boku 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-hell-mode-yarikomizuki-no-gamer-wa-hai-settei-no-isekai-de-musou-suru": {
+      "anilistId": 185262,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 185262,
+          "title": "Hell Mode: Yarikomizuki no Gamer wa Hai Settei no Isekai de Musou suru",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1767225600000,
+          "order": 1
+        },
+        {
+          "anilistId": 209983,
+          "title": "Hell Mode: Yarikomizuki no Gamer wa Hai Settei no Isekai de Musou suru 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 1,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-mayonaka-heart-tune": {
+      "anilistId": 187942,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 187942,
+          "title": "Mayonaka Heart Tune",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1767225600000,
+          "order": 1
+        },
+        {
+          "anilistId": 209762,
+          "title": "Mayonaka Heart Tune 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": null,
+          "season": "UNDEFINED",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-hanazakari-no-kimitachi-e": {
+      "anilistId": 177580,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 177580,
+          "title": "Hanazakari no Kimitachi e",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1767225600000,
+          "order": 1
+        },
+        {
+          "anilistId": 209669,
+          "title": "Hanazakari no Kimitachi e 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-isekai-quartet-3": {
+      "anilistId": 194447,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 11,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 117074,
+          "title": "Isekai Quartet Movie: Another World",
+          "format": "MOVIE",
+          "status": "",
+          "episodes": 1,
+          "season": "SPRING",
+          "seasonYear": 2022,
+          "startedAt": 1648771200000,
+          "order": 1
+        },
+        {
+          "anilistId": 194447,
+          "title": "Isekai Quartet 3",
+          "format": "TV",
+          "status": "",
+          "episodes": 11,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-one-punch-man-3": {
+      "anilistId": 153800,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 97668,
+          "title": "One Punch Man 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554076800000,
+          "order": 1
+        },
+        {
+          "anilistId": 153800,
+          "title": "One Punch Man 3",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 2
+        },
+        {
+          "anilistId": "mal-62653",
+          "title": "One Punch Man 2nd Season: Ichigeki de Wakaru! Maji Furikaeri!",
+          "format": "SPECIAL",
+          "status": "",
+          "episodes": 1,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 3
+        },
+        {
+          "anilistId": 204747,
+          "title": "One Punch Man 3 Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": null,
+          "season": "WINTER",
+          "seasonYear": 2027,
+          "startedAt": 1798761600000,
+          "order": 4
+        }
+      ]
+    },
+    "animeav1-tondemo-skill-de-isekai-hourou-meshi-2": {
+      "anilistId": 170577,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 156067,
+          "title": "Tondemo Skill de Isekai Hourou Meshi",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1672531200000,
+          "order": 1
+        },
+        {
+          "anilistId": 170577,
+          "title": "Tondemo Skill de Isekai Hourou Meshi 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-chitose-kun-wa-ramune-bin-no-naka": {
+      "anilistId": 180082,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 180082,
+          "title": "Chitose-kun wa Ramune Bin no Naka",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 1
+        },
+        {
+          "anilistId": 198727,
+          "title": "Chitose-kun wa Ramune Bin no Naka Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": null,
+          "season": "UNDEFINED",
+          "seasonYear": 2026,
+          "startedAt": 1767225600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-3-nen-z-gumi-ginpachi-sensei": {
+      "anilistId": 162890,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-sawaranaide-kotesashi-kun": {
+      "anilistId": 187331,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-nageki-no-bourei-wa-intai-shitai-part-2": {
+      "anilistId": 185801,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 11,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 175019,
+          "title": "Nageki no Bourei wa Intai shitai",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727740800000,
+          "order": 1
+        },
+        {
+          "anilistId": 185801,
+          "title": "Nageki no Bourei wa Intai shitai Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 11,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-kikaijikake-no-marie": {
+      "anilistId": 179992,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-digimon-beatbreak": {
+      "anilistId": 188388,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 36,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-uma-musume-cinderella-gray-part-2": {
+      "anilistId": 195240,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 10,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 180516,
+          "title": "Uma Musume: Cinderella Gray",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "SPRING",
+          "seasonYear": 2025,
+          "startedAt": 1743465600000,
+          "order": 1
+        },
+        {
+          "anilistId": 195240,
+          "title": "Uma Musume: Cinderella Gray Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 10,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-kingdom-6th-season": {
+      "anilistId": 190840,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 155227,
+          "title": "Kingdom 5th Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1704067200000,
+          "order": 1
+        },
+        {
+          "anilistId": 190840,
+          "title": "Kingdom 6th Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 2
+        },
+        {
+          "anilistId": "mal-63185",
+          "title": "Kingdom 6th Season (Zoku-hen)",
+          "format": "UNKNOWN",
+          "status": "",
+          "episodes": null,
+          "season": "UNDEFINED",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-ranma-2024-2nd-season": {
+      "anilistId": 185731,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 178533,
+          "title": "Ranma ½ (2024)",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727740800000,
+          "order": 1
+        },
+        {
+          "anilistId": 185731,
+          "title": "Ranma ½ (2024) 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 2
+        },
+        {
+          "anilistId": 209872,
+          "title": "Ranma ½ (2024) 3rd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": null,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1790812800000,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-fumetsu-no-anata-e-season-3": {
+      "anilistId": 162669,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 22,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 138565,
+          "title": "Fumetsu no Anata e Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 20,
+          "season": "FALL",
+          "seasonYear": 2022,
+          "startedAt": 1664582400000,
+          "order": 1
+        },
+        {
+          "anilistId": 162669,
+          "title": "Fumetsu no Anata e Season 3",
+          "format": "TV",
+          "status": "",
+          "episodes": 22,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-yasei-no-last-boss-ga-arawareta": {
+      "anilistId": 180523,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 180523,
+          "title": "Yasei no Last Boss ga Arawareta!",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 1
+        },
+        {
+          "anilistId": 204389,
+          "title": "Yasei no Last Boss ga Arawareta! 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "UNDEFINED",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-boku-no-hero-academia-final-season": {
+      "anilistId": 182896,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 11,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 139630,
+          "title": "Boku no Hero Academia 6th Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "FALL",
+          "seasonYear": 2022,
+          "startedAt": 1664582400000,
+          "order": 1
+        },
+        {
+          "anilistId": 163139,
+          "title": "Boku no Hero Academia 7th Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 21,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 2
+        },
+        {
+          "anilistId": "mal-57519",
+          "title": "Boku no Hero Academia: Memories",
+          "format": "SPECIAL",
+          "status": "",
+          "episodes": 4,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 3
+        },
+        {
+          "anilistId": 182896,
+          "title": "Boku no Hero Academia: Final Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 11,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 4
+        },
+        {
+          "anilistId": "mal-63130",
+          "title": "Boku no Hero Academia: More",
+          "format": "SPECIAL",
+          "status": "",
+          "episodes": 1,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775001600000,
+          "order": 5
+        }
+      ]
+    },
+    "animeav1-spy-x-family-season-3": {
+      "anilistId": 177937,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 158927,
+          "title": "Spy x Family Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2023,
+          "startedAt": 1696118400000,
+          "order": 1
+        },
+        {
+          "anilistId": 177937,
+          "title": "Spy x Family Season 3",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-kekkon-yubiwa-monogatari-ii": {
+      "anilistId": 176298,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 160389,
+          "title": "Kekkon Yubiwa Monogatari",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1704067200000,
+          "order": 1
+        },
+        {
+          "anilistId": 176298,
+          "title": "Kekkon Yubiwa Monogatari II",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-kakuriyo-no-yadomeshi-ni": {
+      "anilistId": 100500,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2018,
+      "anilistEpisodeCount": 26,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 100500,
+          "title": "Kakuriyo no Yadomeshi",
+          "format": "TV",
+          "status": "",
+          "episodes": 26,
+          "season": "SPRING",
+          "seasonYear": 2018,
+          "startedAt": 1522540800000,
+          "order": 1
+        },
+        {
+          "anilistId": 177271,
+          "title": "Kakuriyo no Yadomeshi Ni",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-taiyou-yori-mo-mabushii-hoshi": {
+      "anilistId": 186621,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 186621,
+          "title": "Taiyou yori mo Mabushii Hoshi",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 1
+        },
+        {
+          "anilistId": 204286,
+          "title": "Taiyou yori mo Mabushii Hoshi 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "UNDEFINED",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-kimi-to-idol-precure-movie-omatase-kimi-ni-todokeru-kirakki-live": {
+      "anilistId": 185073,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 49,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-yuusha-party-wo-tsuihou-sareta-shiromadoushi-s-rank-boukensha-ni-hirowareru-kono-shiromadoushi-ga-kikakugai-sugiru": {
+      "anilistId": 179885,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-grand-blue-season-2": {
+      "anilistId": 182309,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 100922,
+          "title": "Grand Blue",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2018,
+          "startedAt": 1530403200000,
+          "order": 1
+        },
+        {
+          "anilistId": 182309,
+          "title": "Grand Blue Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2025,
+          "startedAt": 1751328000000,
+          "order": 2
+        },
+        {
+          "anilistId": 199111,
+          "title": "Grand Blue Season 3",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-hikaru-ga-shinda-natsu": {
+      "anilistId": 177689,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 177689,
+          "title": "Hikaru ga Shinda Natsu",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2025,
+          "startedAt": 1751328000000,
+          "order": 1
+        },
+        {
+          "anilistId": 199342,
+          "title": "Hikaru ga Shinda Natsu 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "UNDEFINED",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-busu-ni-hanataba-wo": {
+      "anilistId": 156395,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-clevatess-majuu-no-ou-to-akago-to-shikabane-no-yuusha": {
+      "anilistId": 178869,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 178869,
+          "title": "Clevatess: Majuu no Ou to Akago to Shikabane no Yuusha",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2025,
+          "startedAt": 1751328000000,
+          "order": 1
+        },
+        {
+          "anilistId": 198946,
+          "title": "Clevatess II: Majuu no Ou to Itsuwari no Yuusha Denshou",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-jigoku-sensei-nube-2025": {
+      "anilistId": 179678,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 179678,
+          "title": "Jigoku Sensei Nube (2025)",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2025,
+          "startedAt": 1751328000000,
+          "order": 1
+        },
+        {
+          "anilistId": 191967,
+          "title": "Jigoku Sensei Nube (2025) Part 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1767225600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-aharen-san-wa-hakarenai-season-2": {
+      "anilistId": 179979,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 137281,
+          "title": "Aharen-san wa Hakarenai",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2022,
+          "startedAt": 1648771200000,
+          "order": 1
+        },
+        {
+          "anilistId": 179979,
+          "title": "Aharen-san wa Hakarenai Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2025,
+          "startedAt": 1743465600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-vigilante-boku-no-hero-academia-illegals": {
+      "anilistId": 185736,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 185736,
+          "title": "Vigilante: Boku no Hero Academia Illegals",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "SPRING",
+          "seasonYear": 2025,
+          "startedAt": 1743465600000,
+          "order": 1
+        },
+        {
+          "anilistId": 195322,
+          "title": "Vigilante: Boku no Hero Academia Illegals 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1767225600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-to-be-hero-x": {
+      "anilistId": 156092,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 24,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-katainaka-no-ossan-kensei-ni-naru": {
+      "anilistId": 179955,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 179955,
+          "title": "Katainaka no Ossan, Kensei ni Naru",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2025,
+          "startedAt": 1743465600000,
+          "order": 1
+        },
+        {
+          "anilistId": 194829,
+          "title": "Katainaka no Ossan, Kensei ni Naru II",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-anne-shirley": {
+      "anilistId": 184639,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 24,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-isshun-de-chiryou-shiteita-noni-yakutatazu-to-tsuihou-sareta-tensai-chiyushi-yami-healer-toshite-tanoshiku-ikiru": {
+      "anilistId": 175872,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 175872,
+          "title": "Isshun de Chiryou shiteita noni Yakutatazu to Tsuihou sareta Tensai Chiyushi, Yami Healer toshite Tanoshiku Ikiru",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2025,
+          "startedAt": 1743465600000,
+          "order": 1
+        },
+        {
+          "anilistId": 205432,
+          "title": "Isshun de Chiryou shiteita noni Yakutatazu to Tsuihou sareta Tensai Chiyushi, Yami Healer toshite Tanoshiku Ikiru 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 1,
+          "season": "UNDEFINED",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-saikyou-no-ousama-nidome-no-jinsei-wa-nani-wo-suru": {
+      "anilistId": 183161,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 183161,
+          "title": "Saikyou no Ousama, Nidome no Jinsei wa Nani wo Suru?",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2025,
+          "startedAt": 1743465600000,
+          "order": 1
+        },
+        {
+          "anilistId": 194317,
+          "title": "Saikyou no Ousama, Nidome no Jinsei wa Nani wo Suru? Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775001600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-kusuriya-no-hitorigoto-2nd-season": {
+      "anilistId": 176301,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 24,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 161645,
+          "title": "Kusuriya no Hitorigoto",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "FALL",
+          "seasonYear": 2023,
+          "startedAt": 1696118400000,
+          "order": 1
+        },
+        {
+          "anilistId": 176301,
+          "title": "Kusuriya no Hitorigoto 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "WINTER",
+          "seasonYear": 2025,
+          "startedAt": 1735689600000,
+          "order": 2
+        },
+        {
+          "anilistId": 195516,
+          "title": "Kusuriya no Hitorigoto 3rd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 1,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1790812800000,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-douse-koishite-shimaunda": {
+      "anilistId": 175409,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 175409,
+          "title": "Douse, Koishite Shimaunda.",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2025,
+          "startedAt": 1735689600000,
+          "order": 1
+        },
+        {
+          "anilistId": 189137,
+          "title": "Douse, Koishite Shimaunda. 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1767225600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-ore-dake-level-up-na-ken-season-2": {
+      "anilistId": 176496,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 151807,
+          "title": "Ore dake Level Up na Ken",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1704067200000,
+          "order": 1
+        },
+        {
+          "anilistId": 176496,
+          "title": "Ore dake Level Up na Ken Season 2: Arise from the Shadow",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2025,
+          "startedAt": 1735689600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-medalist": {
+      "anilistId": 165171,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 165171,
+          "title": "Medalist",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2025,
+          "startedAt": 1735689600000,
+          "order": 1
+        },
+        {
+          "anilistId": 189275,
+          "title": "Medalist 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 9,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1767225600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-shingeki-no-kyojin-movie-kanketsu-hen-the-last-attack": {
+      "anilistId": 16498,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2013,
+      "anilistEpisodeCount": 25,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 16498,
+          "title": "Shingeki no Kyojin",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "SPRING",
+          "seasonYear": 2013,
+          "startedAt": 1364774400000,
+          "order": 1
+        },
+        {
+          "anilistId": 20958,
+          "title": "Shingeki no Kyojin Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2017,
+          "startedAt": 1491004800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-seirei-gensouki-2": {
+      "anilistId": 141182,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 126546,
+          "title": "Seirei Gensouki",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2021,
+          "startedAt": 1625097600000,
+          "order": 1
+        },
+        {
+          "anilistId": 141182,
+          "title": "Seirei Gensouki 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727740800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-ranma-2024": {
+      "anilistId": 178533,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 178533,
+          "title": "Ranma ½ (2024)",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727740800000,
+          "order": 1
+        },
+        {
+          "anilistId": 185731,
+          "title": "Ranma ½ (2024) 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 2
+        },
+        {
+          "anilistId": 209872,
+          "title": "Ranma ½ (2024) 3rd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": null,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1790812800000,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-fairy-tail-100-nen-quest-kanwa-lucys-diary": {
+      "anilistId": 6702,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2009,
+      "anilistEpisodeCount": 175,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 6702,
+          "title": "Fairy Tail",
+          "format": "TV",
+          "status": "",
+          "episodes": 175,
+          "season": "FALL",
+          "seasonYear": 2009,
+          "startedAt": 1254355200000,
+          "order": 1
+        },
+        {
+          "anilistId": 20626,
+          "title": "Fairy Tail (2014)",
+          "format": "TV",
+          "status": "",
+          "episodes": 102,
+          "season": "SPRING",
+          "seasonYear": 2014,
+          "startedAt": 1396310400000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-ao-no-hako": {
+      "anilistId": 170942,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 25,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 170942,
+          "title": "Ao no Hako",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727740800000,
+          "order": 1
+        },
+        {
+          "anilistId": 189123,
+          "title": "Ao no Hako Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1790812800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-kimi-ni-todoke-3rd-season": {
+      "anilistId": 168872,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 5,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 9656,
+          "title": "Kimi ni Todoke 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2011,
+          "startedAt": 1293840000000,
+          "order": 1
+        },
+        {
+          "anilistId": 168872,
+          "title": "Kimi ni Todoke 3rd Season",
+          "format": "ONA",
+          "status": "",
+          "episodes": 5,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1719792000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-make-heroine-ga-oosugiru": {
+      "anilistId": 171457,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 171457,
+          "title": "Make Heroine ga Oosugiru!",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1719792000000,
+          "order": 1
+        },
+        {
+          "anilistId": 189796,
+          "title": "Make Heroine ga Oosugiru! 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "UNDEFINED",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-shoushimin-series": {
+      "anilistId": 173295,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 10,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 173295,
+          "title": "Shoushimin Series",
+          "format": "TV",
+          "status": "",
+          "episodes": 10,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1719792000000,
+          "order": 1
+        },
+        {
+          "anilistId": 181182,
+          "title": "Shoushimin Series 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2025,
+          "startedAt": 1743465600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-fairy-tail-100-nen-quest": {
+      "anilistId": 139095,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 25,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 99749,
+          "title": "Fairy Tail: Final Series",
+          "format": "TV",
+          "status": "",
+          "episodes": 51,
+          "season": "FALL",
+          "seasonYear": 2018,
+          "startedAt": 1538352000000,
+          "order": 1
+        },
+        {
+          "anilistId": 139095,
+          "title": "Fairy Tail: 100-nen Quest",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1719792000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-nige-jouzu-no-wakagimi": {
+      "anilistId": 162896,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 162896,
+          "title": "Nige Jouzu no Wakagimi",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1719792000000,
+          "order": 1
+        },
+        {
+          "anilistId": 182616,
+          "title": "Nige Jouzu no Wakagimi 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-megami-no-cafe-terrace-2nd-season": {
+      "anilistId": 166477,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 154412,
+          "title": "Megami no Café Terrace",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2023,
+          "startedAt": 1680307200000,
+          "order": 1
+        },
+        {
+          "anilistId": 166477,
+          "title": "Megami no Café Terrace 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1719792000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-ramen-akaneko": {
+      "anilistId": 170998,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 170998,
+          "title": "Ramen Akaneko",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1719792000000,
+          "order": 1
+        },
+        {
+          "anilistId": 185699,
+          "title": "Ramen Akaneko 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2027,
+          "startedAt": 1798761600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-tokidoki-bosotto-russia-go-de-dereru-tonari-no-alya-san": {
+      "anilistId": 162804,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 162804,
+          "title": "Tokidoki Bosotto Russia-go de Dereru Tonari no Alya-san",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1719792000000,
+          "order": 1
+        },
+        {
+          "anilistId": 181641,
+          "title": "Tokidoki Bosotto Russia-go de Dereru Tonari no Alya-san Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2027,
+          "startedAt": 1798761600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-dead-dead-demons-dededede-destruction-ona": {
+      "anilistId": 177697,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 17,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 177697,
+          "title": "Dead Dead Demons Dededede Destruction (ONA)",
+          "format": "ONA",
+          "status": "",
+          "episodes": 17,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 1
+        },
+        {
+          "anilistId": "mal-58920",
+          "title": "Dead Dead Demons Dededede Destruction (ONA) Episode 0",
+          "format": "ONA",
+          "status": "",
+          "episodes": 1,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-boku-no-hero-academia-7th-season": {
+      "anilistId": 163139,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 21,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 139630,
+          "title": "Boku no Hero Academia 6th Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "FALL",
+          "seasonYear": 2022,
+          "startedAt": 1664582400000,
+          "order": 1
+        },
+        {
+          "anilistId": 163139,
+          "title": "Boku no Hero Academia 7th Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 21,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 2
+        },
+        {
+          "anilistId": "mal-57519",
+          "title": "Boku no Hero Academia: Memories",
+          "format": "SPECIAL",
+          "status": "",
+          "episodes": 4,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 3
+        },
+        {
+          "anilistId": 182896,
+          "title": "Boku no Hero Academia: Final Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 11,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 4
+        },
+        {
+          "anilistId": "mal-63130",
+          "title": "Boku no Hero Academia: More",
+          "format": "SPECIAL",
+          "status": "",
+          "episodes": 1,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775001600000,
+          "order": 5
+        }
+      ]
+    },
+    "animeav1-tp-bon": {
+      "anilistId": 169930,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 169930,
+          "title": "T.P BON",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 1
+        },
+        {
+          "anilistId": "mal-59274",
+          "title": "T.P BON Season 2",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1719792000000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-tensei-kizoku-kantei-skill-de-nariagaru": {
+      "anilistId": 164702,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 164702,
+          "title": "Tensei Kizoku, Kantei Skill de Nariagaru",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 1
+        },
+        {
+          "anilistId": 178434,
+          "title": "Tensei Kizoku, Kantei Skill de Nariagaru 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727740800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-sentai-daishikkaku": {
+      "anilistId": 158417,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 158417,
+          "title": "Sentai Daishikkaku",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 1
+        },
+        {
+          "anilistId": 178781,
+          "title": "Sentai Daishikkaku 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2025,
+          "startedAt": 1743465600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-boku-no-hero-academia-memories": {
+      "anilistId": 21459,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2016,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 21459,
+          "title": "Boku no Hero Academia",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "SPRING",
+          "seasonYear": 2016,
+          "startedAt": 1459468800000,
+          "order": 1
+        },
+        {
+          "anilistId": 21856,
+          "title": "Boku no Hero Academia 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "SPRING",
+          "seasonYear": 2017,
+          "startedAt": 1491004800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-wind-breaker": {
+      "anilistId": 163270,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 163270,
+          "title": "Wind Breaker",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 1
+        },
+        {
+          "anilistId": 178680,
+          "title": "Wind Breaker Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2025,
+          "startedAt": 1743465600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-remonster": {
+      "anilistId": 169417,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 169417,
+          "title": "Re:Monster",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 1
+        },
+        {
+          "anilistId": 199217,
+          "title": "Re:Monster 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "UNDEFINED",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-yuru-camp-season-3": {
+      "anilistId": 155908,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 104459,
+          "title": "Yuru Camp△ Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609459200000,
+          "order": 1
+        },
+        {
+          "anilistId": 155908,
+          "title": "Yuru Camp△ Season 3",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 2
+        },
+        {
+          "anilistId": 184072,
+          "title": "Yuru Camp△ Season 4",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2027,
+          "startedAt": 1798761600000,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-saijaku-tamer-wa-gomi-hiroi-no-tabi-wo-hajimemashita": {
+      "anilistId": 156891,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 156891,
+          "title": "Saijaku Tamer wa Gomi Hiroi no Tabi wo Hajimemashita.",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1704067200000,
+          "order": 1
+        },
+        {
+          "anilistId": 203855,
+          "title": "Saijaku Tamer wa Gomi Hiroi no Tabi wo Hajimemashita. 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "UNDEFINED",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-30-sai-made-doutei-dato-mahoutsukai-ni-nareru-rashii": {
+      "anilistId": 167087,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-himesama-goumon-no-jikan-desu": {
+      "anilistId": 166522,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 166522,
+          "title": "Himesama \"Goumon\" no Jikan desu",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1704067200000,
+          "order": 1
+        },
+        {
+          "anilistId": 176370,
+          "title": "Himesama \"Goumon\" no Jikan desu 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1767225600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-ore-dake-level-up-na-ken": {
+      "anilistId": 151807,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 151807,
+          "title": "Ore dake Level Up na Ken",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1704067200000,
+          "order": 1
+        },
+        {
+          "anilistId": 176496,
+          "title": "Ore dake Level Up na Ken Season 2: Arise from the Shadow",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2025,
+          "startedAt": 1735689600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-yubisaki-to-renren": {
+      "anilistId": 166794,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-dungeon-meshi": {
+      "anilistId": 153518,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 24,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 153518,
+          "title": "Dungeon Meshi",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1704067200000,
+          "order": 1
+        },
+        {
+          "anilistId": 178031,
+          "title": "Dungeon Meshi 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 1,
+          "season": "UNDEFINED",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-kusuriya-no-hitorigoto": {
+      "anilistId": 161645,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 24,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 161645,
+          "title": "Kusuriya no Hitorigoto",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "FALL",
+          "seasonYear": 2023,
+          "startedAt": 1696118400000,
+          "order": 1
+        },
+        {
+          "anilistId": 176301,
+          "title": "Kusuriya no Hitorigoto 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 24,
+          "season": "WINTER",
+          "seasonYear": 2025,
+          "startedAt": 1735689600000,
+          "order": 2
+        },
+        {
+          "anilistId": 195516,
+          "title": "Kusuriya no Hitorigoto 3rd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 1,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1790812800000,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-hyakkano": {
+      "anilistId": 162694,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 162694,
+          "title": "Kimi no Koto ga Daidaidaidaidaisuki na 100-nin no Kanojo",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2023,
+          "startedAt": 1696118400000,
+          "order": 1
+        },
+        {
+          "anilistId": 172258,
+          "title": "Kimi no Koto ga Daidaidaidaidaisuki na 100-nin no Kanojo 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2025,
+          "startedAt": 1735689600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-kikansha-no-mahou-wa-tokubetsu-desu": {
+      "anilistId": 163142,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 163142,
+          "title": "Kikansha no Mahou wa Tokubetsu desu",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2023,
+          "startedAt": 1696118400000,
+          "order": 1
+        },
+        {
+          "anilistId": 172192,
+          "title": "Kikansha no Mahou wa Tokubetsu desu 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1790812800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-kage-no-jitsuryokusha-ni-naritakute-2nd-season": {
+      "anilistId": 161964,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 130298,
+          "title": "Kage no Jitsuryokusha ni Naritakute!",
+          "format": "TV",
+          "status": "",
+          "episodes": 20,
+          "season": "FALL",
+          "seasonYear": 2022,
+          "startedAt": 1664582400000,
+          "order": 1
+        },
+        {
+          "anilistId": 161964,
+          "title": "Kage no Jitsuryokusha ni Naritakute! 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2023,
+          "startedAt": 1696118400000,
+          "order": 2
+        },
+        {
+          "anilistId": 171952,
+          "title": "Kage no Jitsuryokusha ni Naritakute! Movie: Zankyou-hen",
+          "format": "MOVIE",
+          "status": "",
+          "episodes": 1,
+          "season": "WINTER",
+          "seasonYear": 2027,
+          "startedAt": 1798761600000,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-mf-ghost": {
+      "anilistId": 143327,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 143327,
+          "title": "MF Ghost",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2023,
+          "startedAt": 1696118400000,
+          "order": 1
+        },
+        {
+          "anilistId": 171642,
+          "title": "MF Ghost 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727740800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-kamonohashi-ron-no-kindan-suiri": {
+      "anilistId": 158926,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 158926,
+          "title": "Kamonohashi Ron no Kindan Suiri",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2023,
+          "startedAt": 1696118400000,
+          "order": 1
+        },
+        {
+          "anilistId": 172355,
+          "title": "Kamonohashi Ron no Kindan Suiri 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727740800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-sousou-no-frieren": {
+      "anilistId": 154587,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 28,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 154587,
+          "title": "Sousou no Frieren",
+          "format": "TV",
+          "status": "",
+          "episodes": 28,
+          "season": "FALL",
+          "seasonYear": 2023,
+          "startedAt": 1696118400000,
+          "order": 1
+        },
+        {
+          "anilistId": 182255,
+          "title": "Sousou no Frieren 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 10,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1767225600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-spy-kyoushitsu-2nd-season": {
+      "anilistId": 163542,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 146323,
+          "title": "Spy Kyoushitsu",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1672531200000,
+          "order": 1
+        },
+        {
+          "anilistId": 163542,
+          "title": "Spy Kyoushitsu 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-dark-gathering": {
+      "anilistId": 152802,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 25,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 152802,
+          "title": "Dark Gathering",
+          "format": "TV",
+          "status": "",
+          "episodes": 25,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 1
+        },
+        {
+          "anilistId": 201388,
+          "title": "Dark Gathering 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "UNDEFINED",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-temple": {
+      "anilistId": 160447,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-kanojo-okarishimasu-3rd-season": {
+      "anilistId": 154745,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 124410,
+          "title": "Kanojo, Okarishimasu 2nd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2022,
+          "startedAt": 1656633600000,
+          "order": 1
+        },
+        {
+          "anilistId": 154745,
+          "title": "Kanojo, Okarishimasu 3rd Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 2
+        },
+        {
+          "anilistId": 179344,
+          "title": "Kanojo, Okarishimasu 4th Season",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2025,
+          "startedAt": 1751328000000,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-nanatsu-no-maken-ga-shihai-suru": {
+      "anilistId": 142598,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 15,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    }
+  }
 }
