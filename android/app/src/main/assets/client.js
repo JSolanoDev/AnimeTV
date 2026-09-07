@@ -549,7 +549,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=713`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=714`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3542,7 +3542,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=713";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=714";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -13181,17 +13181,31 @@ function buildSeasonListFromBakedChain(show, showsMap) {
 }
 
 function getFranchiseSeasonList(show) {
-  // ── AniList-powered franchise (most accurate) ────────────────────────────
+  const showsMap = _buildShowsByAniListId();
+
+  // ── The relations, baked at build time ───────────────────────────────────
+  const baked = buildSeasonListFromBakedChain(show, showsMap);
+
+  // ── The same relations, resolved live ────────────────────────────────────
+  // This used to run FIRST and win unconditionally, which was right while
+  // AniList answered. It is not any more: the live traversal falls back to
+  // Jikan, whose relation nodes are shallow, and it stops at whatever it could
+  // expand on THIS page load. For Mushoku Tensei that is two entries labelled
+  // "Season 3 Part 1" and "Season 3 Part 2" - the second being season 2
+  // mislabelled - and they were overriding a baked chain holding all five
+  // seasons in release order.
+  //
+  // Neither source is authoritative on its own, so prefer whichever actually
+  // describes more of the franchise. The live one still wins when it is
+  // genuinely richer: AniList recovering, or a season that aired since the
+  // last bake.
   if (show.anilistFranchise) {
-    const showsMap = _buildShowsByAniListId();
-    const list = buildSeasonListFromAniListFranchise(
+    const live = buildSeasonListFromAniListFranchise(
       show, showsMap, getDetailSeasons, makePlaceholderEpisodes
     );
-    if (list && list.length > 0) return list;
+    if (live && live.length > (baked ? baked.length : 0)) return live;
   }
 
-  // ── The same relations, baked at build time ──────────────────────────────
-  const baked = buildSeasonListFromBakedChain(show, _buildShowsByAniListId());
   if (baked && baked.length > 1) return baked;
 
   // ── No relation-based franchise available ────────────────────────────────
@@ -17062,7 +17076,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=713");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=714");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

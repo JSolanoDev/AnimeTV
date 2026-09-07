@@ -308,9 +308,15 @@ const ctx = vm.createContext({
   Number, String, Array, Math, JSON, Boolean, Object,
   catalogShows: () => catalog,
   getDetailSeasons: (show) => [{ season: 1, episodes: (show.episodes || []).slice() }],
+  _buildShowsByAniListId: () => new Map(),
+  // Swapped per-case below to stand in for whatever the live traversal returned.
+  buildSeasonListFromAniListFranchise: () => null,
   makePlaceholderEpisodes: (show, n) => Array.from({ length: Number(show.anilistEpisodeCount || 3) }, (_, i) => ({ episode: i + 1, season: n }))
 });
-vm.runInContext(slice("function bakedChainFor(", "\nfunction getFranchiseSeasonList("), ctx, { filename: "client.js extract" });
+vm.runInContext([
+  slice("function bakedChainFor(", "\nfunction getFranchiseSeasonList("),
+  slice("function getFranchiseSeasonList(", "\n// ── TioAnime source integration")
+].join("\n"), ctx, { filename: "client.js extract" });
 const bakedChainFor = vm.runInContext("bakedChainFor", ctx);
 const buildSeasonListFromBakedChain = vm.runInContext("buildSeasonListFromBakedChain", ctx);
 
@@ -345,6 +351,37 @@ check("filled episodes are locked, not pretend-playable", list[0].episodes.every
 catalog = [{ id: "x", anilistId: 5, franchiseSeasons: [{ anilistId: 5, title: "Only", episodes: 12, order: 1 }] }];
 check("a one-link chain is not a season list", buildSeasonListFromBakedChain({ id: "x", anilistId: 5 }, new Map()), null);
 check("no chain at all is not a season list", buildSeasonListFromBakedChain({ id: "nope" }, new Map()), null);
+
+/* ── which source wins ────────────────────────────────────────────────────
+   getFranchiseSeasonList used to return the LIVE franchise first and
+   unconditionally. That was right while AniList answered. It does not any
+   more: the live traversal falls back to Jikan, whose relation nodes are
+   shallow, and it stops at whatever it could expand on that page load. For
+   Mushoku Tensei that is two entries - "Season 3 Part 1" and "Season 3 Part
+   2", the second being season 2 mislabelled - and they were overriding a baked
+   chain holding all five seasons in order. Reported from production with a
+   screenshot of exactly those two tabs. */
+{
+  const getFranchiseSeasonList = vm.runInContext("getFranchiseSeasonList", ctx);
+  const setLive = (value) => { ctx.buildSeasonListFromAniListFranchise = () => value; };
+
+  catalog = [catalogRow];
+  const opened = { id: "animeav1-mt3", anilistId: 178789, title: "Mushoku Tensei III", episodes: [{ episode: 1 }], anilistFranchise: {} };
+
+  setLive([{ season: 3, title: "Season 3 Part 1" }, { season: 3, title: "Season 3 Part 2" }]);
+  const withDegradedLive = getFranchiseSeasonList(opened);
+  check("a degraded live franchise never beats a fuller baked chain", withDegradedLive.length, 3);
+  check("and the baked labels are the ones shown",
+    withDegradedLive.map((x) => x.title), ["Mushoku Tensei", "Mushoku Tensei II", "Mushoku Tensei III"]);
+
+  // The live source still wins when it genuinely knows more - AniList coming
+  // back, or a season that aired after the last bake.
+  setLive([{ season: 1 }, { season: 2 }, { season: 3 }, { season: 4 }]);
+  check("a richer live franchise is still preferred", getFranchiseSeasonList(opened).length, 4);
+
+  setLive(null);
+  check("no live franchise at all falls through to the baked chain", getFranchiseSeasonList(opened).length, 3);
+}
 
 fs.rmSync(tmp, { recursive: true, force: true });
 
