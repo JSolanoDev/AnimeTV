@@ -79,8 +79,9 @@ const fallbackShows = [
   videoUrl: ""
 }));
 
-// Regular anime uses AnimeAV1 exclusively. Adult playback stays isolated behind
-// the UnderHentai adapter and its resolved providers.
+// AnimeAV1 is the regular catalog's primary source. JKAnime and TioAnime are
+// queried only after a confirmed AnimeAV1 miss. Adult playback stays isolated
+// behind the UnderHentai adapter and its resolved providers.
 const KNOWN_SOURCE_SERVERS = [
   {
     key: "underhentai",
@@ -110,6 +111,24 @@ const KNOWN_SOURCE_SERVERS = [
       (s.id || "").includes("animeav1") ||
       (s.label || "").toLowerCase().includes("animeav1") ||
       (s.externalUrl || s.videoUrl || "").includes("animeav1.com")
+  },
+  {
+    key: "jkanime",
+    label: "JKAnime Backup",
+    desc: "Backup source used only when AnimeAV1 has no episode",
+    match: (s) =>
+      (s.id || "").includes("jkanime") ||
+      (s.label || "").toLowerCase().includes("jkanime") ||
+      (s.siteUrl || "").includes("jkanime.net")
+  },
+  {
+    key: "tioanime",
+    label: "TioAnime Backup",
+    desc: "Last regular-anime backup after an AnimeAV1 miss",
+    match: (s) =>
+      (s.id || "").includes("tioanime") ||
+      (s.label || "").toLowerCase().includes("tioanime") ||
+      (s.siteUrl || "").includes("tioanime.com")
   }
 ];
 
@@ -124,6 +143,20 @@ const PLAYBACK_SCRAPERS = [
     // ever passed because unknown /api paths used to answer 200 with the SPA
     // shell, so the button reported "online" whatever the scraper was doing.
     health: "/api/animeav1/health"
+  },
+  {
+    id: "jkanime",
+    name: "JKAnime Backup",
+    desc: "Backup embeds requested only when AnimeAV1 has no source.",
+    endpoint: "/api/jkanime/sources",
+    health: "/api/jkanime/health"
+  },
+  {
+    id: "tioanime",
+    name: "TioAnime Backup",
+    desc: "Final backup embeds requested only after an AnimeAV1 miss.",
+    endpoint: "/api/tioanime/sources",
+    health: "/api/tioanime/health"
   }
 ];
 
@@ -644,7 +677,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=760`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=762`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3746,7 +3779,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=760";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=762";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -6595,16 +6628,20 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
     episode.sourceOptions = normalizeEpisodeSourceOptions(episode);
     episode.sourceOptionsChecked = lookupKey;
     episode.animeAv1SourcesChecked = true;
+    episode.playbackSourceLookupComplete = true;
     episode.serverChecks = {
       underhentai: episode.sourceOptions.length ? "found" : "notfound"
     };
     episode.locked = !episode.sourceOptions.length;
     return episode;
   }
-  if (episode.sourceOptionsChecked === lookupKey && episode.animeAv1SourcesChecked) return episode;
+  if (episode.sourceOptionsChecked === lookupKey && episode.playbackSourceLookupComplete) return episode;
 
-  // Drop stale sources left in cached episode metadata by retired providers.
-  episode.sourceOptions = normalizeEpisodeSourceOptions(episode).filter(isAnimeAv1Source);
+  // Keep only the three regular providers. This also prevents adult or retired
+  // source metadata from crossing into the regular player after cache merges.
+  episode.sourceOptions = normalizeEpisodeSourceOptions(episode).filter((source) => (
+    isAnimeAv1Source(source) || isJKAnimeSource(source) || isTioAnimeSource(source)
+  ));
 
   // Initialize per-server status tracking (undefined = still pending; "found" / "notfound")
   episode.serverChecks = {};
@@ -6634,27 +6671,73 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
     refreshPicker();
   };
 
-  // Respect the user's per-scraper enable toggles (Sources tab).
-  const lookups = [];
-  const preferredLookups = [];
-  const addLookup = (key, label, task, preferred = false) => {
+  // Respect the user's per-scraper enable toggles (Sources tab). Task factories
+  // keep fallback network requests dormant until the primary lookup has ended.
+  const runLookup = (key, label, taskFactory) => {
     const def = getKnownSourceServer(key);
-    const lookup = Promise.resolve(task)
+    return Promise.resolve()
+      .then(taskFactory)
       .catch((error) => {
         console.warn(`${label} source lookup failed:`, error);
         return null;
       })
       .then(() => updateServerCheck(key, def.match));
-    lookups.push(lookup);
-    if (preferred) preferredLookups.push(lookup);
-    return lookup;
   };
 
+  let primaryLookup;
   if (isScraperEnabled("animeav1")) {
-    addLookup("animeav1", "AnimeAV1 scraper", attachAnimeAv1Sources(show, episode), true);
-  } else { episode.animeAv1SourcesChecked = true; episode.serverChecks.animeav1 = "notfound"; }
+    primaryLookup = runLookup("animeav1", "AnimeAV1 scraper", () => attachAnimeAv1Sources(show, episode));
+  } else {
+    episode.animeAv1SourcesChecked = true;
+    episode.serverChecks.animeav1 = "notfound";
+    primaryLookup = Promise.resolve();
+  }
 
-  const completeBackgroundLookup = Promise.allSettled(lookups)
+  const fallbackLookup = primaryLookup.then(async () => {
+    const animeAv1Ready = getEpisodePlaybackSources(episode).some(isAnimeAv1Source);
+    if (animeAv1Ready) {
+      episode.jkAnimeSourcesChecked = true;
+      episode.tioAnimeSourcesChecked = true;
+      return;
+    }
+
+    // A catalogued fallback is an exact canonical-episode -> provider-episode
+    // mapping verified in scraper/regular-source-fallbacks.json. Use only that
+    // provider for this release: a fuzzy lookup for an OVA can otherwise land on
+    // Episode 1 of its parent TV series, which is playable but factually wrong.
+    const verifiedFallback = getVerifiedFallbackSourceEpisode(show, episode);
+    if (verifiedFallback) {
+      episode.jkAnimeSourcesChecked = true;
+      episode.tioAnimeSourcesChecked = true;
+      episode.serverChecks.jkanime = "notfound";
+      episode.serverChecks.tioanime = "notfound";
+      if (verifiedFallback.providerKey === "jkanime" && isScraperEnabled("jkanime")) {
+        episode.jkAnimeSourcesChecked = false;
+        await runLookup("jkanime", "Verified JKAnime backup", () => attachJKAnimeSources(show, episode));
+      } else if (verifiedFallback.providerKey === "tioanime" && isScraperEnabled("tioanime")) {
+        episode.tioAnimeSourcesChecked = false;
+        await runLookup("tioanime", "Verified TioAnime backup", () => attachTioAnimeSources(show, episode));
+      }
+      return;
+    }
+
+    const fallbacks = [];
+    if (isScraperEnabled("jkanime")) {
+      fallbacks.push(runLookup("jkanime", "JKAnime backup", () => attachJKAnimeSources(show, episode)));
+    } else {
+      episode.jkAnimeSourcesChecked = true;
+      episode.serverChecks.jkanime = "notfound";
+    }
+    if (isScraperEnabled("tioanime")) {
+      fallbacks.push(runLookup("tioanime", "TioAnime backup", () => attachTioAnimeSources(show, episode)));
+    } else {
+      episode.tioAnimeSourcesChecked = true;
+      episode.serverChecks.tioanime = "notfound";
+    }
+    await Promise.allSettled(fallbacks);
+  });
+
+  const completeBackgroundLookup = fallbackLookup
     .then(() => {
       // Ensure unresolved servers are marked not-found after every source has had a chance.
       for (const def of KNOWN_SOURCE_SERVERS) {
@@ -6662,6 +6745,7 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
       }
       episode.sourceOptions = normalizeEpisodeSourceOptions(episode);
       episode.sourceOptionsChecked = lookupKey;
+      episode.playbackSourceLookupComplete = true;
       if (episode.sourceOptions.length > beforeCount) {
         console.info(`Loaded ${episode.sourceOptions.length} playback server option(s) for ${show.title} episode ${episodeNumber}.`);
       }
@@ -6679,9 +6763,8 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
     });
   sourceOptionsBackgroundLookups.set(lookupKey, completeBackgroundLookup);
 
-  const fastLane = preferredLookups.length ? preferredLookups : lookups;
   await Promise.race([
-    Promise.allSettled(fastLane),
+    primaryLookup,
     wait(SOURCE_FAST_FIRST_PASS_MS)
   ]);
   if (!hasFastPreferredPlaybackSource(episode) && !getEpisodePlaybackSources(episode).length) {
@@ -6698,7 +6781,7 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
 
 function playbackLookupKey(show, episode, seasonNumber = 1) {
   if (!show || !episode) return "";
-  const providerEpisodeId = getProviderEpisodeId(episode);
+  const providerEpisodeId = getInventoryProviderEpisodeId(show, episode);
   const canonical = canonicalEpisodeIdentity(episode, {
     animeId: show.catalogAnimeId || show.id || show.anilistId || show.malId,
     season: seasonNumber,
@@ -6726,7 +6809,7 @@ function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options 
     });
   };
   if (!lookupKey) return Promise.resolve(episode);
-  if (episode.sourceOptionsChecked === lookupKey && episode.animeAv1SourcesChecked) {
+  if (episode.sourceOptionsChecked === lookupKey && episode.playbackSourceLookupComplete) {
     return withAutoReplay(Promise.resolve(episode));
   }
   if (sourceOptionsBackgroundLookups.has(lookupKey)) {
@@ -9687,9 +9770,11 @@ function episodeThumb(episode = {}, season = {}, show = {}, repeatedImages = new
   const capturedFrame = episode._capturedFrame || getCapturedEpisodeFrame(show, seasonNum || 1, episodeNum);
   let ownImage = hqImage(episode.image || episode.thumbnail || episode.still || episode.snapshot || "");
   const isAdultShow = show.adultSource || (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show));
-  const isMovie = /^(movie|film)$/i.test(String(show.format || show.type || season.format || ""));
+  const isStandaloneRelease = /^(movie|film|ova|ona|special)$/i.test(String(show.format || show.type || season.format || ""));
   const fallbackArtwork = getWatchPosterArtwork(show, season);
-  if (isMovie && !isAdultShow) return capturedFrame || getWatchBackdropArtwork(show, season) || fallbackArtwork;
+  if (isStandaloneRelease && !isAdultShow) {
+    return capturedFrame || ownImage || getWatchBackdropArtwork(show, season) || fallbackArtwork;
+  }
   if (!isAdultShow && isAdultImageUrl(ownImage)) ownImage = "";
   const comparable = comparableImageUrl(ownImage);
   const showLevelArt = new Set([
@@ -10522,6 +10607,9 @@ function promoteResolvedEpisodeSource(resolved) {
     if (resolved.sourceOptionsChecked) target.sourceOptionsChecked = resolved.sourceOptionsChecked;
     if (resolved.serverChecks && !target.serverChecks) target.serverChecks = resolved.serverChecks;
     if (resolved.animeAv1SourcesChecked) target.animeAv1SourcesChecked = true;
+    if (resolved.jkAnimeSourcesChecked) target.jkAnimeSourcesChecked = true;
+    if (resolved.tioAnimeSourcesChecked) target.tioAnimeSourcesChecked = true;
+    if (resolved.playbackSourceLookupComplete) target.playbackSourceLookupComplete = true;
     if (resolved.locked === false) target.locked = false;
     target.sourceOptionsPending = false;
   }
@@ -10549,8 +10637,12 @@ function promoteResolvedEpisodeSource(resolved) {
   if (!target.selectedSourceId) target.selectedSourceId = selected.id;
   if (selected.videoUrl) target.videoUrl = selected.videoUrl;
   const url = getEpisodeUrl(target);
-  // An iframe/resolver source has no direct URL; those mount through their own
-  // path, so only take over when there is a real URL to hand the player.
+  // A late fallback is commonly an iframe. Re-enter the normal playback path
+  // once so it can resolve or mount that source after the quick pass returned.
+  if (!url && (selected.type === "iframe" || selected.type === "resolver" || selected.streamResolver)) {
+    Promise.resolve(playActiveShow({ allowSourceLookup: false })).catch(() => {});
+    return true;
+  }
   if (!url) return false;
   state.activeEpisodeUrl = url;
   // allowSourceLookup:false - the lookup that triggered this has just finished;
@@ -14490,13 +14582,23 @@ async function hydrateTioAnimeSlug(show, options = {}) {
  */
 async function attachTioAnimeSources(show, episode) {
   if (!show || !episode) return;
-  if (!show.tioAnimeSlug) await hydrateTioAnimeSlug(show, { force: true });
-  const slug = show.tioAnimeSlug;
+  const verifiedFallback = getVerifiedFallbackSourceEpisode(show, episode, "tioanime");
+  if (!verifiedFallback && !show.tioAnimeSlug) await hydrateTioAnimeSlug(show, { force: true });
+  // AnimeAV1 and TioAnime commonly use the same title slug. The authoritative
+  // source slug is a safe last candidate when TioAnime's directory snapshot has
+  // not indexed a new movie or OVA yet (The Ribbon Hero is one such release).
+  const slug = verifiedFallback?.providerAnimeSlug
+    || show.tioAnimeSlug
+    || animeAv1CatalogSlugForShow(show);
+  if (slug && !show.tioAnimeSlug) {
+    show.tioAnimeSlug = slug;
+    show.tioAnimeSlugSource = verifiedFallback ? "verified-release-fallback" : "animeav1-slug-fallback";
+  }
   if (!slug) {
     episode.tioAnimeSourcesChecked = true;
     return;
   }
-  const epNum = episode.episode || episode.number;
+  const epNum = verifiedFallback?.providerEpisodeId ?? episode.episode ?? episode.number;
   if (!epNum) {
     episode.tioAnimeSourcesChecked = true;
     return;
@@ -14785,7 +14887,7 @@ async function attachAnimeAv1Sources(show, episode) {
     episode.animeAv1SourcesChecked = true;
     return;
   }
-  const epNum = getProviderEpisodeId(episode);
+  const epNum = getInventoryProviderEpisodeId(show, episode);
   if (epNum === null || epNum === undefined || String(epNum).trim() === "") {
     episode.animeAv1SourcesChecked = true;
     return;
@@ -15035,13 +15137,18 @@ async function hydrateJKAnimeSlug(show, options = {}) {
 
 async function attachJKAnimeSources(show, episode) {
   if (!show || !episode) return;
-  if (!show.jkAnimeSlug) await hydrateJKAnimeSlug(show, { force: true });
-  const slug = show.jkAnimeSlug;
+  const verifiedFallback = getVerifiedFallbackSourceEpisode(show, episode, "jkanime");
+  if (!verifiedFallback && !show.jkAnimeSlug) await hydrateJKAnimeSlug(show, { force: true });
+  const slug = verifiedFallback?.providerAnimeSlug || show.jkAnimeSlug;
+  if (slug && !show.jkAnimeSlug) {
+    show.jkAnimeSlug = slug;
+    show.jkAnimeSlugSource = "verified-release-fallback";
+  }
   if (!slug) {
     episode.jkAnimeSourcesChecked = true;
     return;
   }
-  const epNum = episode.episode || episode.number;
+  const epNum = verifiedFallback?.providerEpisodeId ?? episode.episode ?? episode.number;
   if (!epNum) {
     episode.jkAnimeSourcesChecked = true;
     return;
@@ -15082,7 +15189,10 @@ function mergeJKAnimeSourcesIntoEpisode(show, episode, data, slug, epNum) {
     .filter(s => (s.url || s.videoUrl || s.externalUrl) && !existing.has(s.url || s.videoUrl || s.externalUrl))
     .map((s, index) => {
       const url = s.videoUrl || s.externalUrl || s.url || "";
-      const direct = s.type === "direct" || /\.(m3u8|mp4|webm|m4v)(?:$|[?#])/i.test(url);
+      // Embed routes can end in a filename-like `.mp4` even though the response
+      // is still an HTML player (Streamtape /e/... is the common case).
+      const embedRoute = /\/(?:e|embed)(?:\/|$)/i.test(new URL(url, location.origin).pathname);
+      const direct = !embedRoute && (s.type === "direct" || /\.(m3u8|mp4|webm|m4v)(?:$|[?#])/i.test(url));
       const rank = direct ? 0 : embedProviderRank(s.provider);
       return {
         id: `jkanime-${normalizeTitle(s.provider || "source")}-${simpleHash(`${slug}:${epNum}:${s.provider || index}:${url}`)}`,
@@ -15433,6 +15543,10 @@ function getDetailSeasons(show) {
 function makePlaceholderEpisodes(show, seasonNumber) {
   const knownCount = getSeasonEpisodeLimit(show);
   if (knownCount === 0) return [];
+  const releaseFormat = /^(?:MOVIE|OVA|ONA|SPECIAL)$/i.test(String(show.format || show.type || ""));
+  const releaseThumbnail = releaseFormat
+    ? (show.tmdbBackdrop || show.highQualityBackground || show.banner || show.tmdbPoster || show.image || show.poster || "")
+    : "";
   const sourceEpisodeIds = Array.isArray(show.sourceEpisodeIds)
     ? [...new Set(show.sourceEpisodeIds.map(Number).filter((number) => Number.isFinite(number) && number >= 0))]
       .sort((a, b) => a - b)
@@ -15455,6 +15569,7 @@ function makePlaceholderEpisodes(show, seasonNumber) {
         season: seasonNumber,
         episode: displayEpisode,
         title: "",
+        thumbnail: releaseThumbnail,
         needsResolve: true,
         animeId: show.anilistId ?? show.id ?? null,
         anilistId: show.anilistId ?? null,
@@ -15489,6 +15604,7 @@ function makePlaceholderEpisodes(show, seasonNumber) {
     season: seasonNumber,
     episode: index + 1,
     title: "",
+    thumbnail: releaseThumbnail,
     needsResolve: true,
     // Stable provenance so totals never combine across different anime IDs.
     animeId: show.anilistId ?? show.id ?? null,
@@ -15501,6 +15617,19 @@ function makePlaceholderEpisodes(show, seasonNumber) {
 function getSeasonEpisodeLimit(show = {}, season = {}) {
   const status = String(season.status || season.anilistStatus || show.anilistStatus || show.status || "").toUpperCase();
   const format = String(season.format || show.format || "").toUpperCase();
+  const fallbackCount = Number(
+    season.fallbackPlayableEpisodeCount
+    ?? show.fallbackPlayableEpisodeCount
+    ?? 0
+  );
+  if (
+    (season.sourceFallbackVerified === true || show.sourceFallbackVerified === true)
+    && (season.fallbackInventoryChecked === true || show.fallbackInventoryChecked === true)
+    && Number.isInteger(fallbackCount)
+    && fallbackCount > 0
+  ) {
+    return fallbackCount;
+  }
   if (season.sourceInventoryChecked || show.sourceInventoryChecked) {
     const inventoryCount = Number(season.sourceEpisodeCount ?? show.sourceEpisodeCount ?? 0);
     return Number.isFinite(inventoryCount) && inventoryCount >= 0 ? inventoryCount : 0;
@@ -15758,8 +15887,7 @@ async function playActiveShow(options = {}) {
     && activeEpisode
     && (
       activeEpisode.sourceOptionsChecked !== activeLookupKey
-      || !activeEpisode.tioAnimeSourcesChecked
-      || !activeEpisode.animeAv1SourcesChecked
+      || !activeEpisode.playbackSourceLookupComplete
     )
   ) {
     // Keep playback in this call. If we have nothing playable yet, wait below
@@ -18213,7 +18341,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=760");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=762");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

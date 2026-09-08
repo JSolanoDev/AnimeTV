@@ -38,7 +38,10 @@ const code = [
   slice("function catalogMetadataRank(", "\nfunction ")
 ].join("\n");
 
-const ctx = vm.createContext({ Number, String, Array, Math, JSON, Boolean, Object, Set, Map, console });
+const ctx = vm.createContext({
+  Number, String, Array, Math, JSON, Boolean, Object, Set, Map, console,
+  hasVerifiedRegularSourceFallback: (item = {}) => item.sourceFallbackVerified === true
+});
 vm.runInContext(code, ctx, { filename: "animetv-server.js extract" });
 const mergeShows = vm.runInContext("mergeShows", ctx);
 

@@ -41,6 +41,7 @@ function normalizationContext() {
     normalizeEpisodeSourceOptions, groupEpisodesBySeason, mergeEpisodes,
     mergeShows, mergeSeasons,
     parseEpisodeNumber, getCanonicalEpisodeNumber, getProviderEpisodeId,
+    getInventoryProviderEpisodeId, getVerifiedFallbackSourceEpisode,
     canonicalEpisodeIdentity
   };`, sandbox);
   return sandbox;
@@ -114,6 +115,71 @@ function searchContext(shows, query) {
   );
   sandbox.sourceSearchMatches = sourceSearchMatches;
   return sandbox;
+}
+
+function playbackFallbackContext({ primaryFound }) {
+  const calls = [];
+  let resolveCompleted;
+  const completed = new Promise((resolve) => { resolveCompleted = resolve; });
+  const sourceOptionsBackgroundLookups = new Map();
+  const sourceMatches = {
+    animeav1: (source) => source.provider === "AnimeAV1",
+    jkanime: (source) => source.provider === "JKAnime",
+    tioanime: (source) => source.provider === "TioAnime",
+    underhentai: () => false
+  };
+  const sandbox = vm.createContext({
+    console: { info() {}, warn() {} },
+    Date,
+    SOURCE_FAST_FIRST_PASS_MS: 0,
+    SOURCE_FAST_SECOND_PASS_MS: 0,
+    AdultMode: { isAdultContent: () => false },
+    episodeList: null,
+    document: { querySelector: () => null },
+    sourceOptionsBackgroundLookups,
+    getCanonicalEpisodeNumber: () => 1,
+    playbackLookupKey: () => "lookup",
+    getVerifiedFallbackSourceEpisode: (show) => show.verifiedFallbackKey
+      ? { providerKey: show.verifiedFallbackKey, providerAnimeSlug: "verified", providerEpisodeId: 13 }
+      : null,
+    normalizeEpisodeSourceOptions: (episode) => episode.sourceOptions || [],
+    getEpisodePlaybackSources: (episode) => episode.sourceOptions || [],
+    isAnimeAv1Source: sourceMatches.animeav1,
+    isJKAnimeSource: sourceMatches.jkanime,
+    isTioAnimeSource: sourceMatches.tioanime,
+    isHlsSource: () => true,
+    sourcePreferenceScore: () => 0,
+    getKnownSourceServer: (key) => ({ match: sourceMatches[key] || (() => false) }),
+    isScraperEnabled: () => true,
+    renderSourcePickerIn() {},
+    renderSourcePickerInSidePanel() {},
+    refreshFocusables() {},
+    promoteResolvedEpisodeSource: () => resolveCompleted(),
+    wait: () => Promise.resolve(),
+    attachAnimeAv1Sources: async (_show, episode) => {
+      calls.push("animeav1:start");
+      await Promise.resolve();
+      if (primaryFound) episode.sourceOptions = [{ id: "primary", provider: "AnimeAV1" }];
+      episode.animeAv1SourcesChecked = true;
+      calls.push("animeav1:end");
+    },
+    attachJKAnimeSources: async (_show, episode) => {
+      calls.push("jkanime");
+      episode.sourceOptions = [...(episode.sourceOptions || []), { id: "jk", provider: "JKAnime" }];
+      episode.jkAnimeSourcesChecked = true;
+    },
+    attachTioAnimeSources: async (_show, episode) => {
+      calls.push("tioanime");
+      episode.sourceOptions = [...(episode.sourceOptions || []), { id: "tio", provider: "TioAnime" }];
+      episode.tioAnimeSourcesChecked = true;
+    },
+    KNOWN_SOURCE_SERVERS: Object.entries(sourceMatches).map(([key, match]) => ({ key, match }))
+  });
+  vm.runInContext(
+    section(clientSource, "function hasFastPreferredPlaybackSource(", "function playbackLookupKey("),
+    sandbox
+  );
+  return { sandbox, calls, completed };
 }
 
 test("1. single-season episode selection retains canonical identity", () => {
@@ -207,6 +273,125 @@ test("7. episode zero is a valid identity", () => {
   assert.equal(pipeline.getProviderEpisodeId(episode), 0);
 });
 
+test("7b. metadata merging preserves a movie's verified provider episode zero", () => {
+  const { pipeline } = normalizationContext();
+  const provider = pipeline.normalizeExternalShow({
+    id: "animeav1-the-ribbon-hero",
+    title: "The Ribbon Hero",
+    anilistId: 211308,
+    malId: 64012,
+    format: "MOVIE",
+    sourceEpisodeIds: [0],
+    sourceEpisodeCount: 1,
+    sourcePlayableEpisodeCount: 1,
+    sourceInventoryChecked: true,
+    sourceInventoryCheckedAt: "2026-09-08T05:28:00.580Z"
+  }, { id: "animeav1", name: "AnimeAV1", provider: "AnimeAV1" }, 0);
+  const metadata = pipeline.normalizeExternalShow({
+    id: "anilist-211308",
+    title: "THE RIBBON HERO",
+    anilistId: 211308,
+    malId: 64012,
+    format: "MOVIE",
+    score: 67
+  }, { id: "anilist", name: "AniList", provider: "AniList" }, 1);
+
+  for (const rows of [[provider, metadata], [metadata, provider]]) {
+    const [merged] = pipeline.mergeShows(rows);
+    assert.deepEqual(Array.from(merged.sourceEpisodeIds), [0]);
+    assert.equal(merged.sourceInventoryChecked, true);
+    assert.equal(merged.sourcePlayableEpisodeCount, 1);
+    assert.equal(
+      pipeline.getInventoryProviderEpisodeId(merged, { canonicalEpisode: 1, providerEpisodeId: 1 }),
+      0
+    );
+  }
+});
+
+test("7bb. a verified standalone fallback builds Episode 1 but requests provider episode 13", () => {
+  const { pipeline } = normalizationContext();
+  const show = pipeline.normalizeExternalShow({
+    id: "animeav1-deadman-wonderland-akai-knife-tsukai",
+    title: "Deadman Wonderland: Akai Knife Tsukai",
+    type: "OVA",
+    sourceInventoryChecked: true,
+    sourceEpisodeIds: [],
+    sourcePlayableEpisodeCount: 0,
+    fallbackProvider: "TioAnime",
+    fallbackProviderKey: "tioanime",
+    fallbackProviderAnimeSlug: "deadman-wonderland",
+    fallbackEpisodeMap: { "1": 13 },
+    fallbackEpisodeIds: [1],
+    fallbackPlayableEpisodeCount: 1,
+    fallbackInventoryChecked: true,
+    sourceFallbackVerified: true
+  }, { id: "animeav1", name: "AnimeAV1", provider: "AnimeAV1" }, 0);
+  assert.equal(show.seasons.length, 1);
+  assert.equal(show.seasons[0].episodes.length, 1);
+  assert.equal(show.seasons[0].episodes[0].canonicalEpisode, 1);
+  const fallback = pipeline.getVerifiedFallbackSourceEpisode(show, show.seasons[0].episodes[0]);
+  assert.equal(fallback.provider, "TioAnime");
+  assert.equal(fallback.providerKey, "tioanime");
+  assert.equal(fallback.providerAnimeSlug, "deadman-wonderland");
+  assert.equal(fallback.providerEpisodeId, 13);
+  assert.equal(fallback.canonicalEpisode, 1);
+  assert.equal(fallback.siteUrl, "");
+});
+
+test("7bc. a verified fallback survives the detail-view inventory clamp", () => {
+  const sandbox = vm.createContext({});
+  vm.runInContext(
+    section(clientSource, "function getSeasonEpisodeLimit(", "function clampSeasonEpisodes("),
+    sandbox
+  );
+  assert.equal(sandbox.getSeasonEpisodeLimit({
+    type: "OVA",
+    sourceInventoryChecked: true,
+    sourceEpisodeCount: 0,
+    sourcePlayableEpisodeCount: 0,
+    sourceFallbackVerified: true,
+    fallbackInventoryChecked: true,
+    fallbackPlayableEpisodeCount: 1
+  }), 1);
+});
+
+test("7c. regular backups stay dormant when AnimeAV1 resolves", async () => {
+  const { sandbox, calls, completed } = playbackFallbackContext({ primaryFound: true });
+  const episode = { sourceOptions: [] };
+  await sandbox.attachPlaybackSourceOptions({ title: "Primary title" }, episode, 1);
+  await completed;
+  assert.deepEqual(calls, ["animeav1:start", "animeav1:end"]);
+  assert.equal(episode.playbackSourceLookupComplete, true);
+  assert.equal(episode.sourceOptions[0].provider, "AnimeAV1");
+});
+
+test("7d. regular backups run only after a confirmed AnimeAV1 miss", async () => {
+  const { sandbox, calls, completed } = playbackFallbackContext({ primaryFound: false });
+  const episode = { sourceOptions: [] };
+  await sandbox.attachPlaybackSourceOptions({ title: "Missing primary title" }, episode, 1);
+  await completed;
+  const primaryEnd = calls.indexOf("animeav1:end");
+  assert.ok(primaryEnd >= 0);
+  assert.ok(calls.indexOf("jkanime") > primaryEnd);
+  assert.ok(calls.indexOf("tioanime") > primaryEnd);
+  assert.deepEqual(new Set(episode.sourceOptions.map((source) => source.provider)), new Set(["JKAnime", "TioAnime"]));
+  assert.equal(episode.playbackSourceLookupComplete, true);
+});
+
+test("7e. a verified OVA fallback cannot be replaced by a fuzzy parent-series match", async () => {
+  const { sandbox, calls, completed } = playbackFallbackContext({ primaryFound: false });
+  const episode = { sourceOptions: [] };
+  await sandbox.attachPlaybackSourceOptions({
+    title: "Deadman Wonderland: Akai Knife Tsukai",
+    verifiedFallbackKey: "tioanime"
+  }, episode, 1);
+  await completed;
+  assert.deepEqual(calls, ["animeav1:start", "animeav1:end", "tioanime"]);
+  assert.equal(episode.sourceOptions.length, 1);
+  assert.equal(episode.sourceOptions[0].provider, "TioAnime");
+  assert.equal(episode.playbackSourceLookupComplete, true);
+});
+
 test("8. missing episode numbers are explicitly position-derived", () => {
   const { pipeline } = normalizationContext();
   const episodes = pipeline.normalizeEpisodes({ episodes: [{ title: "Pilot" }, { title: "Second" }] });
@@ -269,6 +454,12 @@ test("12. HLS sources retain manifest MIME and container", () => {
   assert.equal(source.videoUrl, "https://video.test/master.m3u8");
   assert.equal(source.mimeType, "application/vnd.apple.mpegurl");
   assert.equal(source.container, "hls");
+});
+
+test("12b. both regular backup providers remain identifiable after normalization", () => {
+  assert.equal(sourceClassification.isJKAnimeSource({ id: "jkanime-ribbon-1", provider: "Streamwish" }), true);
+  assert.equal(sourceClassification.isTioAnimeSource({ id: "tioanime-ribbon-1", provider: "YourUpload" }), true);
+  assert.equal(sourceClassification.isTioAnimeSource({ id: "underhentai-ribbon-1" }), false);
 });
 
 test("13. AV1 remains available but ranks behind supported H264 when unsupported", () => {

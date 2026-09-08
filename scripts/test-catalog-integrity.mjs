@@ -126,6 +126,21 @@ test("a relation season without identity-specific artwork is rejected", () => {
   assert.match(result.errors.join("\n"), /season identity 987 has no canonical metadata/);
 });
 
+test("standalone releases cannot ship without poster and background fallbacks", () => {
+  const catalog = { items: [row("release", { format: "OVA", image: "", poster: "" })] };
+  const result = auditCatalogIntegrity({
+    catalog,
+    previous: catalog,
+    artwork: { entries: { "animeav1-release": { anilistId: 101 } } },
+    airing: { entries: {} },
+    skipTimes: { count: 0, entries: {} },
+    minimumArtworkRatio: 0
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join("\n"), /OVA has no poster or episode thumbnail fallback/);
+  assert.match(result.errors.join("\n"), /OVA has no detail background fallback/);
+});
+
 test("a catastrophic scrape shrink is rejected", () => {
   const result = auditCatalogIntegrity({
     catalog: { items: [row("alpha")] },
@@ -179,6 +194,41 @@ test("a catalog row cannot publish guessed provider episodes", () => {
   assert.match(result.errors.join("\n"), /playable count does not match/);
 });
 
+test("a verified fallback restores an otherwise quarantined OVA", () => {
+  const unavailable = row("deadman-ova", {
+    title: "Deadman Wonderland: Akai Knife Tsukai",
+    type: "OVA",
+    sourceEpisodeIds: [],
+    sourceEpisodeCount: 0,
+    sourcePlayableEpisodeCount: 0,
+    episodes: []
+  });
+  const result = auditCatalogIntegrity({
+    catalog: { items: [unavailable] },
+    previous: { items: [unavailable] },
+    artwork: art(["deadman-ova"]),
+    airing: { entries: {} },
+    skipTimes: { count: 0, entries: {} },
+    fallbacks: {
+      entries: {
+        "animeav1-deadman-ova": {
+          provider: "TioAnime",
+          providerAnimeSlug: "deadman-wonderland",
+          episodeMap: { "1": 13 },
+          siteUrl: "https://tioanime.com/ver/deadman-wonderland-13",
+          verified: true,
+          verifiedAt: "2026-09-08T18:45:00.000Z"
+        }
+      }
+    }
+  });
+  assert.equal(result.ok, true, result.errors.join("\n"));
+  assert.equal(result.metrics.regularTitles, 1);
+  assert.equal(result.metrics.quarantinedUnavailableTitles, 0);
+  assert.equal(result.metrics.verifiedFallbackRows, 1);
+  assert.equal(result.metrics.sourcePlayableEpisodes, 1);
+});
+
 test("last-known-good restore preserves the rejected scrape", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "zenkai-catalog-"));
   const current = path.join(dir, "current.json");
@@ -211,7 +261,10 @@ test("a title without a TMDB backdrop keeps its identity and metadata", () => {
         meta: { year: 2026, episodes: 1, format: "OVA", description: "Metadata survives." }
       }
     }),
-    readAiringMap: () => null
+    readAiringMap: () => null,
+    animeAv1SlugOf: (item) => String(item?.id || "").replace(/^animeav1-/, ""),
+    applyRegularSourceFallback: (item) => item,
+    hasVerifiedRegularSourceFallback: () => false
   });
   vm.runInContext(source.slice(start, end), context, { filename: "animetv-server.js catalog extract" });
   const [merged] = vm.runInContext("readScrapedRegularCatalogItems()", context);
@@ -251,7 +304,10 @@ test("a sparse direct artwork row inherits rich art from the same exact identity
         meta: { episodes: 220, year: 2002 }
       }
     }),
-    readAiringMap: () => null
+    readAiringMap: () => null,
+    animeAv1SlugOf: (item) => String(item?.id || "").replace(/^animeav1-/, ""),
+    applyRegularSourceFallback: (item) => item,
+    hasVerifiedRegularSourceFallback: () => false
   });
   vm.runInContext(source.slice(start, end), context, { filename: "animetv-server.js catalog extract" });
   const [merged] = vm.runInContext("readScrapedRegularCatalogItems()", context);
@@ -340,7 +396,10 @@ test("a related season receives its own poster, background, and metadata", () =>
           { anilistId: 303, title: "Example Season 3", order: 2 }
         ]
       }
-    })
+    }),
+    animeAv1SlugOf: (item) => String(item?.id || "").replace(/^animeav1-/, ""),
+    applyRegularSourceFallback: (item) => item,
+    hasVerifiedRegularSourceFallback: () => false
   });
   vm.runInContext(source.slice(start, end), context, { filename: "animetv-server.js catalog extract" });
   const [merged] = vm.runInContext("readScrapedRegularCatalogItems()", context);

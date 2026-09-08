@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "entries": {
+    "animeav1-deadman-wonderland-akai-knife-tsukai": {
+      "title": "Deadman Wonderland: Akai Knife Tsukai",
+      "provider": "TioAnime",
+      "providerAnimeSlug": "deadman-wonderland",
+      "episodeMap": {
+        "1": 13
+      },
+      "siteUrl": "https://tioanime.com/ver/deadman-wonderland-13",
+      "verified": true,
+      "verifiedAt": "2026-09-08T18:45:00.000Z"
+    }
+  }
+}

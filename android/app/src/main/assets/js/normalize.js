@@ -132,6 +132,23 @@ function normalizeExternalShow(item, source, index) {
       ? item.sourceEpisodeIds.map(Number).filter((number) => Number.isFinite(number) && number >= 0)
       : null,
     sourceInventoryChecked: Boolean(item.sourceInventoryChecked),
+    // A provider listing may exist while its episode route is gone. The server
+    // only emits these fields from the versioned, verified fallback registry;
+    // keep the canonical display number separate from the fallback provider id.
+    fallbackProvider: item.fallbackProvider || "",
+    fallbackProviderKey: item.fallbackProviderKey || "",
+    fallbackProviderAnimeSlug: item.fallbackProviderAnimeSlug || "",
+    fallbackEpisodeMap: item.fallbackEpisodeMap && typeof item.fallbackEpisodeMap === "object"
+      ? { ...item.fallbackEpisodeMap }
+      : null,
+    fallbackEpisodeIds: Array.isArray(item.fallbackEpisodeIds)
+      ? item.fallbackEpisodeIds.map(Number).filter((number) => Number.isInteger(number) && number > 0)
+      : null,
+    fallbackPlayableEpisodeCount: item.fallbackPlayableEpisodeCount ?? null,
+    fallbackInventoryChecked: Boolean(item.fallbackInventoryChecked),
+    fallbackInventoryCheckedAt: item.fallbackInventoryCheckedAt || "",
+    fallbackSiteUrl: item.fallbackSiteUrl || "",
+    sourceFallbackVerified: Boolean(item.sourceFallbackVerified),
     // When the source last published an episode.
     lastEpisodeAt: item.lastEpisodeAt || "",
     // The broadcast slot the Weekly Schedule is rebuilt from.
@@ -205,7 +222,15 @@ function normalizeSeasons(item) {
   // episode buttons even before a playback source is resolved.
   const totalEps = Math.min(
     2000,
-    Math.max(0, Number(item.episode || item.episodeNumber || item.latestEpisode || item.total_episodes || item.episodeCount || 0))
+    Math.max(0, Number(
+      item.episode
+      || item.episodeNumber
+      || item.latestEpisode
+      || item.total_episodes
+      || item.episodeCount
+      || item.fallbackPlayableEpisodeCount
+      || 0
+    ))
   );
   if (totalEps > 0) {
     const seasonNumber = canonicalSeasonNumber(
@@ -312,6 +337,52 @@ function getProviderEpisodeId(episode = {}, fallback = null) {
   if (original !== null) return original;
   const canonical = getCanonicalEpisodeNumber(episode);
   return canonical !== null ? canonical : fallback;
+}
+
+// AnimeAV1 publishes some one-part movies and specials at provider episode 0
+// while the app presents them as Episode 1. The verified source inventory is
+// authoritative when a later catalog merge or route rebuild has replaced that
+// zero with the display number.
+function getInventoryProviderEpisodeId(show = {}, episode = {}, fallback = null) {
+  const candidate = getProviderEpisodeId(episode, fallback);
+  if (!show?.sourceInventoryChecked || !Array.isArray(show.sourceEpisodeIds)) return candidate;
+  const ids = [...new Set(show.sourceEpisodeIds
+    .map(Number)
+    .filter((number) => Number.isFinite(number) && number >= 0))]
+    .sort((a, b) => a - b);
+  if (ids.some((number) => String(number) === String(candidate))) return candidate;
+  const canonical = getCanonicalEpisodeNumber(episode, fallback);
+  if (ids.length === 1 && ids[0] === 0 && Number(canonical) === 1) return 0;
+  return candidate;
+}
+
+function getVerifiedFallbackSourceEpisode(show = {}, episode = {}, requestedProvider = "") {
+  if (!show?.sourceFallbackVerified || !show?.fallbackInventoryChecked) return null;
+  const episodeMap = show.fallbackEpisodeMap;
+  if (!episodeMap || typeof episodeMap !== "object") return null;
+  const canonicalEpisode = getCanonicalEpisodeNumber(episode);
+  if (!Number.isInteger(canonicalEpisode) || canonicalEpisode <= 0) return null;
+  if (!Object.prototype.hasOwnProperty.call(episodeMap, String(canonicalEpisode))) return null;
+  const providerEpisodeId = Number(episodeMap[String(canonicalEpisode)]);
+  if (!Number.isFinite(providerEpisodeId) || providerEpisodeId < 0) return null;
+  const provider = String(show.fallbackProvider || "").trim();
+  const providerKey = String(show.fallbackProviderKey || provider)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  const requestedKey = String(requestedProvider || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  if (requestedKey && providerKey !== requestedKey) return null;
+  const providerAnimeSlug = String(show.fallbackProviderAnimeSlug || "").trim();
+  if (!providerKey || !providerAnimeSlug) return null;
+  return {
+    provider,
+    providerKey,
+    providerAnimeSlug,
+    providerEpisodeId,
+    canonicalEpisode,
+    siteUrl: show.fallbackSiteUrl || ""
+  };
 }
 
 function canonicalEpisodeIdentity(episode = {}, context = {}) {
@@ -766,6 +837,24 @@ function mergeClientCatalogShow(current, show) {
   if (!current) return { ...show, source: mergeCatalogSourceLabels(show?.source) };
   if (!show) return current;
   const preferred = catalogMetadataRank(show) > catalogMetadataRank(current) ? show : current;
+  // A metadata row intentionally has no provider inventory. It must not erase
+  // the checked AnimeAV1 row when both identities collapse into one show. This
+  // is especially important for movies, whose only real provider id is often 0.
+  const inventoryOwner = show.sourceInventoryChecked === true
+    ? show
+    : current.sourceInventoryChecked === true
+      ? current
+      : null;
+  const fallbackOwner = show.sourceFallbackVerified === true
+    ? show
+    : current.sourceFallbackVerified === true
+      ? current
+      : null;
+  const sourceEpisodeIds = inventoryOwner
+    ? (Array.isArray(inventoryOwner.sourceEpisodeIds) ? [...inventoryOwner.sourceEpisodeIds] : [])
+    : (Array.isArray(show.sourceEpisodeIds)
+        ? [...show.sourceEpisodeIds]
+        : Array.isArray(current.sourceEpisodeIds) ? [...current.sourceEpisodeIds] : null);
   const currentChain = Array.isArray(current.franchiseSeasons) ? current.franchiseSeasons : [];
   const incomingChain = Array.isArray(show.franchiseSeasons) ? show.franchiseSeasons : [];
   const franchiseSeasons = incomingChain.length > currentChain.length ? incomingChain : currentChain;
@@ -805,7 +894,52 @@ function mergeClientCatalogShow(current, show) {
     franchiseEpisodeCount: show.franchiseEpisodeCount ?? current.franchiseEpisodeCount ?? null,
     normalizedSeasonTitle: show.normalizedSeasonTitle || current.normalizedSeasonTitle || "",
     franchiseSeasons: franchiseSeasons.length ? franchiseSeasons : null,
-    sourceEpisodeCount: Number(show.sourceEpisodeCount) || Number(current.sourceEpisodeCount) || null,
+    sourceEpisodeCount: inventoryOwner
+      ? (inventoryOwner.sourceEpisodeCount ?? inventoryOwner.sourcePlayableEpisodeCount ?? sourceEpisodeIds.length)
+      : (show.sourceEpisodeCount ?? current.sourceEpisodeCount ?? null),
+    sourcePlayableEpisodeCount: inventoryOwner
+      ? (inventoryOwner.sourcePlayableEpisodeCount ?? sourceEpisodeIds.length)
+      : (show.sourcePlayableEpisodeCount ?? current.sourcePlayableEpisodeCount ?? null),
+    sourceEpisodeIds,
+    sourceInventoryChecked: Boolean(inventoryOwner),
+    sourceInventoryCheckedAt: inventoryOwner?.sourceInventoryCheckedAt
+      || show.sourceInventoryCheckedAt
+      || current.sourceInventoryCheckedAt
+      || "",
+    sourceDeclaredEpisodeCount: inventoryOwner
+      ? (inventoryOwner.sourceDeclaredEpisodeCount ?? null)
+      : (show.sourceDeclaredEpisodeCount ?? current.sourceDeclaredEpisodeCount ?? null),
+    fallbackProvider: fallbackOwner?.fallbackProvider
+      || show.fallbackProvider
+      || current.fallbackProvider
+      || "",
+    fallbackProviderKey: fallbackOwner?.fallbackProviderKey
+      || show.fallbackProviderKey
+      || current.fallbackProviderKey
+      || "",
+    fallbackProviderAnimeSlug: fallbackOwner?.fallbackProviderAnimeSlug
+      || show.fallbackProviderAnimeSlug
+      || current.fallbackProviderAnimeSlug
+      || "",
+    fallbackEpisodeMap: fallbackOwner?.fallbackEpisodeMap
+      ? { ...fallbackOwner.fallbackEpisodeMap }
+      : (show.fallbackEpisodeMap || current.fallbackEpisodeMap || null),
+    fallbackEpisodeIds: fallbackOwner?.fallbackEpisodeIds
+      ? [...fallbackOwner.fallbackEpisodeIds]
+      : (show.fallbackEpisodeIds || current.fallbackEpisodeIds || null),
+    fallbackPlayableEpisodeCount: fallbackOwner
+      ? (fallbackOwner.fallbackPlayableEpisodeCount ?? fallbackOwner.fallbackEpisodeIds?.length ?? 0)
+      : (show.fallbackPlayableEpisodeCount ?? current.fallbackPlayableEpisodeCount ?? null),
+    fallbackInventoryChecked: Boolean(fallbackOwner),
+    fallbackInventoryCheckedAt: fallbackOwner?.fallbackInventoryCheckedAt
+      || show.fallbackInventoryCheckedAt
+      || current.fallbackInventoryCheckedAt
+      || "",
+    fallbackSiteUrl: fallbackOwner?.fallbackSiteUrl
+      || show.fallbackSiteUrl
+      || current.fallbackSiteUrl
+      || "",
+    sourceFallbackVerified: Boolean(fallbackOwner),
     images: {
       ...(current.images || {}),
       ...(show.images || {})

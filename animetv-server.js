@@ -111,6 +111,7 @@ const VEOHENTAI_CATALOG_FILE = resolveScraperFile("veohentai_catalog.json");
 const VEOHENTAI_DETAILS_FILE = resolveScraperFile("veohentai_details.json");
 const HENTAILA_CATALOG_FILE = resolveScraperFile("hentaila_catalog.json");
 const HENTAILA_DETAILS_FILE = resolveScraperFile("hentaila_details.json");
+const REGULAR_SOURCE_FALLBACKS_FILE = resolveScraperFile("regular-source-fallbacks.json");
 const UNDERHENTAI_CACHE_TTL_MS = 1000 * 60 * 30;
 const UNDERHENTAI_LIVE_CATALOG_ENABLED = String(process.env.UNDERHENTAI_LIVE_CATALOG || "").trim() === "1";
 const HENTAIOCEAN_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
@@ -1533,6 +1534,9 @@ module.exports.parseHentaiOceanEmbedData = parseHentaiOceanEmbedData;
 module.exports.hentaiOceanDirectCandidates = hentaiOceanDirectCandidates;
 module.exports.animeAv1CachedSourceStatus = animeAv1CachedSourceStatus;
 module.exports.shouldCacheAnimeAv1SourceStatus = shouldCacheAnimeAv1SourceStatus;
+module.exports.applyRegularSourceFallback = applyRegularSourceFallback;
+module.exports.hasVerifiedRegularSourceFallback = hasVerifiedRegularSourceFallback;
+module.exports.resolvedEmbedPlaybackUrl = resolvedEmbedPlaybackUrl;
 
 async function handleDailyRefresh(url, response) {
   const force = url.searchParams.get("force") === "1";
@@ -1717,12 +1721,16 @@ async function buildCatalogPayload() {
 
   const merged = mergeShows(items).filter((item) => {
     // AniList/Jikan enrich source-backed rows, but cannot create a card by
-    // themselves: without AnimeAV1's exact slug and inventory the Play button
-    // has nowhere valid to go. Newly posted provider rows join as soon as their
-    // real episode ids are visible, rather than appearing early but broken.
+    // themselves. A row normally needs AnimeAV1's exact playable inventory;
+    // the only exception is a versioned, episode-by-episode fallback mapping
+    // that was independently verified against another provider. This keeps a
+    // dead listing out while allowing a real OVA/movie fallback into the app.
     return Boolean(animeAv1SlugOf(item))
       && item.sourceInventoryChecked === true
-      && Number(item.sourcePlayableEpisodeCount || 0) > 0;
+      && (
+        Number(item.sourcePlayableEpisodeCount || 0) > 0
+        || hasVerifiedRegularSourceFallback(item)
+      );
   });
   return {
     ok: true,
@@ -2531,6 +2539,70 @@ function enrichFranchiseSeasonEntries(entries, artwork, artworkIndex, parentArtw
   });
 }
 
+let regularSourceFallbackSnapshot = null;
+
+function readRegularSourceFallbacks() {
+  if (regularSourceFallbackSnapshot) return regularSourceFallbackSnapshot;
+  try {
+    const payload = JSON.parse(fs.readFileSync(REGULAR_SOURCE_FALLBACKS_FILE, "utf8"));
+    regularSourceFallbackSnapshot = payload?.entries && typeof payload.entries === "object"
+      ? payload.entries
+      : {};
+  } catch {
+    regularSourceFallbackSnapshot = {};
+  }
+  return regularSourceFallbackSnapshot;
+}
+
+function applyRegularSourceFallback(item = {}, fallbackEntries = readRegularSourceFallbacks()) {
+  const slug = animeAv1SlugOf(item);
+  const entry = fallbackEntries?.entries?.[item.id]
+    || fallbackEntries?.entries?.[slug]
+    || fallbackEntries?.[item.id]
+    || fallbackEntries?.[slug]
+    || null;
+  if (!entry || entry.verified !== true) return item;
+
+  const provider = String(entry.provider || "").trim();
+  const providerKey = provider.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (!providerKey || !["tioanime", "jkanime"].includes(providerKey)) return item;
+  const providerAnimeSlug = String(entry.providerAnimeSlug || "").trim().replace(/^\/+|\/+$/g, "");
+  const episodeMap = Object.fromEntries(Object.entries(entry.episodeMap || {})
+    .map(([canonical, providerEpisode]) => [Number(canonical), Number(providerEpisode)])
+    .filter(([canonical, providerEpisode]) => (
+      Number.isInteger(canonical) && canonical > 0
+      && Number.isFinite(providerEpisode) && providerEpisode >= 0
+    ))
+    .sort(([left], [right]) => left - right));
+  const fallbackEpisodeIds = Object.keys(episodeMap).map(Number);
+  if (!providerAnimeSlug || !fallbackEpisodeIds.length) return item;
+
+  return {
+    ...item,
+    fallbackProvider: provider,
+    fallbackProviderKey: providerKey,
+    fallbackProviderAnimeSlug: providerAnimeSlug,
+    fallbackEpisodeMap: episodeMap,
+    fallbackEpisodeIds,
+    fallbackPlayableEpisodeCount: fallbackEpisodeIds.length,
+    fallbackInventoryChecked: true,
+    fallbackInventoryCheckedAt: entry.verifiedAt || "",
+    fallbackSiteUrl: entry.siteUrl || "",
+    sourceFallbackVerified: true,
+    episode: Number(item.episode) > 0 ? item.episode : fallbackEpisodeIds.length
+  };
+}
+
+function hasVerifiedRegularSourceFallback(item = {}) {
+  const episodeMap = item?.fallbackEpisodeMap;
+  return item?.sourceFallbackVerified === true
+    && item?.fallbackInventoryChecked === true
+    && Boolean(item?.fallbackProviderAnimeSlug)
+    && episodeMap && typeof episodeMap === "object"
+    && Object.keys(episodeMap).length > 0
+    && Number(item?.fallbackPlayableEpisodeCount || 0) === Object.keys(episodeMap).length;
+}
+
 function readScrapedRegularCatalogItems() {
   const paths = [
     path.join(root, "scraper", "anime_metadata.json"),
@@ -2539,12 +2611,14 @@ function readScrapedRegularCatalogItems() {
   for (const filePath of paths) {
     try {
       const payload = JSON.parse(fs.readFileSync(filePath, "utf8"));
-      const items = (Array.isArray(payload.items) ? payload.items : []).filter((item) => {
+      const items = (Array.isArray(payload.items) ? payload.items : [])
+        .map((item) => applyRegularSourceFallback(item))
+        .filter((item) => {
         const isAnimeAv1 = String(item.source || "").toLowerCase().includes("animeav1")
           || String(item.siteUrl || "").includes("animeav1.com/media/");
         const confirmedEmpty = item.sourceInventoryChecked === true
           && Number(item.sourcePlayableEpisodeCount || 0) <= 0;
-        return isAnimeAv1 && !confirmedEmpty;
+        return isAnimeAv1 && (!confirmedEmpty || hasVerifiedRegularSourceFallback(item));
       });
       if (!items.length) continue;
       // Ship the pre-resolved artwork with the row. Without this the client has to
@@ -7068,7 +7142,15 @@ async function fetchJKAnimeEpisodeSourcesDirect(slug, episode) {
       sources: []
     };
   }
-  const isDirect = (u) => /\.(m3u8|mp4|webm|m4v)(?:$|[?#])/i.test(String(u || ""));
+  const isDirect = (value) => {
+    const url = String(value || "");
+    if (!/\.(m3u8|mp4|webm|m4v)(?:$|[?#])/i.test(url)) return false;
+    try {
+      return !/\/(?:e|embed)(?:\/|$)/i.test(new URL(url).pathname);
+    } catch {
+      return false;
+    }
+  };
   const seen = new Set();
   const sources = record.embeds
     .map((embed, index) => {
@@ -7848,6 +7930,22 @@ function extractStreamFromEmbed(html) {
   if (got) return got;
   return null;
 }
+
+function resolvedEmbedPlaybackUrl(streamUrl = "", embedUrl = "") {
+  try {
+    const embedHost = new URL(embedUrl).hostname.toLowerCase();
+    // YourUpload's vidcache CDN rejects media requests unless the player page
+    // is the Referer. Returning the raw signed MP4 makes the custom player fail
+    // immediately even though the embed resolver succeeded.
+    if (/(?:^|\.)yourupload\.com$/i.test(embedHost)) {
+      return sourceProxyPath(streamUrl, embedHost);
+    }
+  } catch {
+    // Other resolved hosts retain the existing direct-stream behavior.
+  }
+  return streamUrl;
+}
+
 async function handleResolveEmbed(reqUrl, response) {
   const target = reqUrl.searchParams.get("url");
   const customReferer = reqUrl.searchParams.get("referer") || "";
@@ -7877,7 +7975,7 @@ async function handleResolveEmbed(reqUrl, response) {
     if (!stream) { sendJson(response, { ok: false, error: "No playable stream found in this embed." }); return; }
     sendJson(response, {
       ok: true,
-      url: stream.url,
+      url: resolvedEmbedPlaybackUrl(stream.url, target),
       type: stream.type,
       referer
     }, 200, { "Cache-Control": "public, max-age=120" });
@@ -9187,6 +9285,7 @@ function mergeCatalogShow(current, show) {
   if (!current) return { ...show, source: mergeSourceLabels(show?.source) };
   if (!show) return current;
   const preferred = catalogMetadataRank(show) > catalogMetadataRank(current) ? show : current;
+  const fallbackOwner = [show, current].find(hasVerifiedRegularSourceFallback) || null;
   const epA = Number(current.latestAiredEp || current.episode);
   const epB = Number(show.latestAiredEp || show.episode);
   const mergedEpisode = epA && epB ? Math.min(epA, epB) : (epA || epB || current.episode || show.episode);
@@ -9218,6 +9317,22 @@ function mergeCatalogShow(current, show) {
     banner: preferred.banner || current.banner || show.banner || "",
     description: preferred.description || current.description || show.description || "",
     siteUrl: animeAv1Page?.siteUrl || show.siteUrl || current.siteUrl || "",
+    fallbackProvider: fallbackOwner?.fallbackProvider || show.fallbackProvider || current.fallbackProvider || "",
+    fallbackProviderKey: fallbackOwner?.fallbackProviderKey || show.fallbackProviderKey || current.fallbackProviderKey || "",
+    fallbackProviderAnimeSlug: fallbackOwner?.fallbackProviderAnimeSlug || show.fallbackProviderAnimeSlug || current.fallbackProviderAnimeSlug || "",
+    fallbackEpisodeMap: fallbackOwner?.fallbackEpisodeMap || show.fallbackEpisodeMap || current.fallbackEpisodeMap || null,
+    fallbackEpisodeIds: fallbackOwner?.fallbackEpisodeIds || show.fallbackEpisodeIds || current.fallbackEpisodeIds || null,
+    fallbackPlayableEpisodeCount: fallbackOwner?.fallbackPlayableEpisodeCount
+      || show.fallbackPlayableEpisodeCount
+      || current.fallbackPlayableEpisodeCount
+      || 0,
+    fallbackInventoryChecked: Boolean(fallbackOwner),
+    fallbackInventoryCheckedAt: fallbackOwner?.fallbackInventoryCheckedAt
+      || show.fallbackInventoryCheckedAt
+      || current.fallbackInventoryCheckedAt
+      || "",
+    fallbackSiteUrl: fallbackOwner?.fallbackSiteUrl || show.fallbackSiteUrl || current.fallbackSiteUrl || "",
+    sourceFallbackVerified: Boolean(fallbackOwner),
     source: mergeSourceLabels(current.source, show.source)
   };
 }

@@ -236,8 +236,10 @@ jobs:
         run: node scripts/build-artwork-map.mjs --base https://zenkaitv.com --concurrency 2
         timeout-minutes: 18
 
-      - name: Sync regular artwork to Android
-        run: cp scraper/artwork-map.json android/app/src/main/assets/scraper/artwork-map.json
+      - name: Sync regular catalog assets to Android
+        run: |
+          cp scraper/artwork-map.json android/app/src/main/assets/scraper/artwork-map.json
+          cp scraper/regular-source-fallbacks.json android/app/src/main/assets/scraper/regular-source-fallbacks.json
 
       - name: Refresh opening and ending skip times
         run: >-
@@ -287,6 +289,7 @@ jobs:
             scraper/airing-map.json
             scraper/aniskip-map.json
             scraper/relations-cache.json
+            scraper/regular-source-fallbacks.json
             scraper/underhentai_catalog.json
             scraper/underhentai_details.json
             scraper/underhentai_releases.json
@@ -295,6 +298,7 @@ jobs:
             android/app/src/main/assets/scraper/underhentai_releases.json
             android/app/src/main/assets/scraper/artwork-map.json
             android/app/src/main/assets/scraper/aniskip-map.json
+            android/app/src/main/assets/scraper/regular-source-fallbacks.json
           commit_user_name: "github-actions[bot]"
           commit_user_email: "github-actions[bot]@users.noreply.github.com"
 
@@ -324,6 +328,7 @@ jobs:
             scraper/airing-map.json
             scraper/aniskip-map.json
             scraper/relations-cache.json
+            scraper/regular-source-fallbacks.json
             scraper/underhentai_catalog.json
             scraper/underhentai_details.json
             artifacts/catalog-integrity-report.json

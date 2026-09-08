@@ -77,6 +77,11 @@ function isJKAnimeSource(source = {}) {
   return text.includes("jkanime") || Boolean(knownSourceServer("jkanime")?.match(source));
 }
 
+function isTioAnimeSource(source = {}) {
+  const text = sourceIdentityText(source);
+  return text.includes("tioanime") || Boolean(knownSourceServer("tioanime")?.match(source));
+}
+
 function isHlsSource(source = {}) {
   const url = (source.videoUrl || source.externalUrl || "").toLowerCase();
   const text = sourceIdentityText(source);
@@ -134,13 +139,11 @@ function getPrimarySourceFilterOptions(show = null) {
   return PRIMARY_SOURCE_FILTERS.map(({ value, label }) => ({ value, label }));
 }
 
-// Provider group for source ordering: preferred scrapers on top, then AniPub,
+// Provider group for source ordering: AnimeAV1 and its regular backups first,
 // then anything else.
 function _sourceGroupPriority(source = {}) {
-  const text = sourceIdentityText(source);
   if (isAnimeAv1Source(source) || isJKAnimeSource(source)) return 0;
-  if (text.includes("tioanime")) return 1;
-  if (KNOWN_SOURCE_SERVERS.find(d => d.key === "anipub")?.match(source)) return 1;
+  if (isTioAnimeSource(source)) return 1;
   return 2;
 }
 
@@ -170,10 +173,10 @@ function sourcePreferenceScore(source = {}) {
 
   // ── AnimeAV1 first (most reliable) — HLS is the very top pick ────────────
   if (isAnimeAv1 && isHls)              return 0 + compatibilityPenalty; // AnimeAV1 — HLS  (best)
-  if (isJKAnime && isMp4)               return 1 + compatibilityPenalty; // JKAnime — MP4Upload
-  if (isAnimeAv1 && isDirect)           return 2 + compatibilityPenalty; // AnimeAV1 — other direct
-  if (isAnimeAv1 && (isMega || isMp4))  return 3 + compatibilityPenalty; // AnimeAV1 — Mega / MP4Upload
-  if (isAnimeAv1 && !isAdWalled)        return 4 + compatibilityPenalty; // AnimeAV1 — other ad-free embed
+  if (isAnimeAv1 && isDirect)           return 1 + compatibilityPenalty; // AnimeAV1 — other direct
+  if (isAnimeAv1 && (isMega || isMp4))  return 2 + compatibilityPenalty; // AnimeAV1 — Mega / MP4Upload
+  if (isAnimeAv1 && !isAdWalled)        return 3 + compatibilityPenalty; // AnimeAV1 — other ad-free embed
+  if (isJKAnime && isMp4)               return 4 + compatibilityPenalty; // JKAnime — MP4Upload fallback
   // ── Then the other dependable, ad-free servers ─────────────────────────
   if (isHls || isDirect)               return 5 + compatibilityPenalty; // any other direct / HLS stream
   if (isMega || isMp4)                 return 6 + compatibilityPenalty; // Mega / MP4Upload (TioAnime etc.)
@@ -223,7 +226,13 @@ function isActivePlaybackSource(source = {}, episode = {}) {
 function getEpisodePlaybackSources(episode = {}) {
   return orderSourceOptions(normalizeEpisodeSourceOptions(episode).filter((source) => (
     !isBlockedPlaybackSource(source)
-    && (isAnimeAv1Source(source) || isAdultFallbackSource(source) || isActivePlaybackSource(source, episode))
+    && (
+      isAnimeAv1Source(source)
+      || isJKAnimeSource(source)
+      || isTioAnimeSource(source)
+      || isAdultFallbackSource(source)
+      || isActivePlaybackSource(source, episode)
+    )
   )));
 }
 
@@ -237,6 +246,7 @@ if (typeof module !== "undefined" && module.exports) {
     isHentaiOceanSource,
     isAnimeAv1Source,
     isJKAnimeSource,
+    isTioAnimeSource,
     isHlsSource,
     isMp4UploadSource,
     declaredVideoCodec,

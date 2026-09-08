@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { requiresEmbedResolution, resolutionFailureStatus } from "./source-probe-policy.mjs";
 
 const require = createRequire(import.meta.url);
 const { normalizeTitle } = require("../js/utils.js");
@@ -16,6 +17,12 @@ const episodesPerTitle = Math.max(1, Math.min(5, Number(args["episodes-per-title
 const concurrency = Math.max(1, Math.min(16, Number(args.concurrency || 6)));
 const titleLimit = args.limit ? Math.max(1, Number(args.limit)) : Infinity;
 const probeMedia = args["probe-media"] !== "false";
+const allEpisodes = args["all-episodes"] === "true";
+const failOnUnusable = args["fail-on-unusable"] === "true";
+const requestedFormats = new Set(String(args.formats || "")
+  .split(",")
+  .map((value) => value.trim().toUpperCase())
+  .filter(Boolean));
 const requestTimeoutMs = Math.max(2500, Number(args.timeout || 12000));
 const retryAttempts = Math.max(1, Math.min(4, Number(args.retries || 3)));
 const startedAt = new Date();
@@ -95,11 +102,43 @@ function authoritativeSlug(item = {}) {
     .trim().toLowerCase();
 }
 
+function applyVerifiedFallback(item = {}, fallbackEntries = {}) {
+  const entry = fallbackEntries[item.id] || fallbackEntries[authoritativeSlug(item)] || null;
+  if (!entry || entry.verified !== true) return item;
+  const episodeMap = Object.fromEntries(Object.entries(entry.episodeMap || {})
+    .map(([canonical, providerEpisode]) => [Number(canonical), Number(providerEpisode)])
+    .filter(([canonical, providerEpisode]) => (
+      Number.isInteger(canonical) && canonical > 0
+      && Number.isFinite(providerEpisode) && providerEpisode >= 0
+    )));
+  const fallbackEpisodeIds = Object.keys(episodeMap).map(Number).sort((a, b) => a - b);
+  const providerKey = String(entry.provider || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (!fallbackEpisodeIds.length || !entry.providerAnimeSlug || !["tioanime", "jkanime"].includes(providerKey)) return item;
+  return {
+    ...item,
+    fallbackProvider: entry.provider,
+    fallbackProviderKey: providerKey,
+    fallbackProviderAnimeSlug: entry.providerAnimeSlug,
+    fallbackEpisodeMap: episodeMap,
+    fallbackEpisodeIds,
+    fallbackPlayableEpisodeCount: fallbackEpisodeIds.length,
+    fallbackInventoryChecked: true,
+    sourceFallbackVerified: true
+  };
+}
+
+function hasVerifiedFallback(item = {}) {
+  return item.sourceFallbackVerified === true
+    && item.fallbackInventoryChecked === true
+    && Boolean(item.fallbackProviderAnimeSlug)
+    && Number(item.fallbackPlayableEpisodeCount || 0) > 0;
+}
+
 function isActiveAnimeAv1CatalogItem(item = {}) {
   const isAnimeAv1 = /animeav1/i.test(String(item.source || item.id || item.siteUrl || ""));
   const confirmedUnavailable = item.sourceInventoryChecked === true
     && Number(item.sourcePlayableEpisodeCount || 0) <= 0;
-  return isAnimeAv1 && !confirmedUnavailable;
+  return isAnimeAv1 && (!confirmedUnavailable || hasVerifiedFallback(item));
 }
 
 function episodeNumber(item = {}) {
@@ -111,7 +150,10 @@ function episodeNumber(item = {}) {
 }
 
 function catalogEpisodeLimit(item = {}) {
-  if (item.sourceInventoryChecked) return Number(item.sourcePlayableEpisodeCount || item.sourceEpisodeIds?.length || 0);
+  if (item.sourceInventoryChecked && Number(item.sourcePlayableEpisodeCount || 0) > 0) {
+    return Number(item.sourcePlayableEpisodeCount || item.sourceEpisodeIds?.length || 0);
+  }
+  if (hasVerifiedFallback(item)) return Number(item.fallbackPlayableEpisodeCount || item.fallbackEpisodeIds?.length || 0);
   const format = String(item.format || item.type || "").toUpperCase();
   if (format === "MOVIE") return 1;
   const servedBySource = Number(item.sourceEpisodeCount || 0);
@@ -128,15 +170,25 @@ function catalogEpisodeLimit(item = {}) {
 }
 
 function sampledEpisodeNumbers(item = {}) {
-  if (item.sourceInventoryChecked && Array.isArray(item.sourceEpisodeIds)) {
+  if (item.sourceInventoryChecked && Array.isArray(item.sourceEpisodeIds) && item.sourceEpisodeIds.length) {
     const ids = [...new Set(item.sourceEpisodeIds.map(Number).filter((number) => Number.isFinite(number) && number >= 0))]
       .sort((a, b) => a - b);
     if (!ids.length) return [];
     const soleZero = ids.length === 1 && ids[0] === 0;
     const display = ids.map((number) => soleZero ? 1 : number);
+    if (allEpisodes) return [...new Set(display)];
     const candidates = [display[0]];
     if (episodesPerTitle >= 3) candidates.push(display[Math.floor((display.length - 1) / 2)]);
     if (episodesPerTitle >= 2) candidates.push(display.at(-1));
+    return [...new Set(candidates)];
+  }
+  if (hasVerifiedFallback(item) && Array.isArray(item.fallbackEpisodeIds)) {
+    const ids = [...new Set(item.fallbackEpisodeIds.map(Number).filter((number) => Number.isInteger(number) && number > 0))]
+      .sort((a, b) => a - b);
+    if (allEpisodes) return ids;
+    const candidates = [ids[0]];
+    if (episodesPerTitle >= 3) candidates.push(ids[Math.floor((ids.length - 1) / 2)]);
+    if (episodesPerTitle >= 2) candidates.push(ids.at(-1));
     return [...new Set(candidates)];
   }
   const sourceNumbers = (Array.isArray(item.episodes) ? item.episodes : []).map(episodeNumber).filter(Number.isFinite);
@@ -144,6 +196,7 @@ function sampledEpisodeNumbers(item = {}) {
   const limit = catalogEpisodeLimit(item);
   const candidates = [];
   if (limit && limit > 0) {
+    if (allEpisodes) return Array.from({ length: limit }, (_, index) => index + 1);
     candidates.push(1);
     if (episodesPerTitle >= 3) candidates.push(Math.max(1, Math.ceil(limit / 2)));
     if (episodesPerTitle >= 2) candidates.push(limit);
@@ -159,6 +212,10 @@ function sampledEpisodeNumbers(item = {}) {
 }
 
 function providerEpisodeNumber(item = {}, displayedEpisodeNumber) {
+  if (hasVerifiedFallback(item)) {
+    const mapped = Number(item.fallbackEpisodeMap?.[String(displayedEpisodeNumber)]);
+    if (Number.isFinite(mapped) && mapped >= 0) return mapped;
+  }
   const ids = Array.isArray(item.sourceEpisodeIds)
     ? item.sourceEpisodeIds.map(Number).filter((number) => Number.isFinite(number) && number >= 0)
     : [];
@@ -179,6 +236,7 @@ function safeUrl(value = "") {
 function failureCode(status, detail = "") {
   if (status === 403) return "SOURCE_403";
   if (status === 404) return "SOURCE_404";
+  if (status === 429) return "SOURCE_RATE_LIMIT";
   if (status === 408 || /timeout|abort/i.test(detail)) return "SOURCE_TIMEOUT";
   return "NO_SOURCE";
 }
@@ -201,13 +259,45 @@ async function fetchJson(url, timeoutMs = requestTimeoutMs) {
 }
 
 async function validateMediaSource(source = {}) {
-  const rawUrl = source.videoUrl || source.url || "";
+  let candidate = { ...source };
+  let rawUrl = candidate.videoUrl || candidate.url || "";
   if (!rawUrl) return { usable: false, failure: "NO_SOURCE", httpStatus: null, manifestType: "" };
+  if (requiresEmbedResolution(candidate)) {
+    try {
+      const resolveUrl = new URL("/api/resolve", baseUrl);
+      resolveUrl.searchParams.set("url", rawUrl);
+      const resolvedResponse = await fetchWithDeadline(resolveUrl);
+      const resolved = await resolvedResponse.json().catch(() => null);
+      if (!resolvedResponse.ok || !resolved?.ok || !resolved.url) {
+        return {
+          usable: false,
+          failure: failureCode(resolvedResponse.status, resolved?.error || "Embed did not resolve"),
+          httpStatus: resolvedResponse.status,
+          manifestType: "embed"
+        };
+      }
+      rawUrl = resolved.url;
+      candidate = {
+        ...candidate,
+        type: "direct",
+        videoUrl: rawUrl,
+        container: resolved.type === "hls" ? "hls" : candidate.container,
+        mimeType: resolved.type === "hls" ? "application/x-mpegURL" : candidate.mimeType
+      };
+    } catch (error) {
+      return { usable: false, failure: failureCode(408, error.message), httpStatus: null, manifestType: "embed", detail: error.message };
+    }
+  }
   const url = new URL(rawUrl, baseUrl).toString();
-  const hls = source.container === "hls"
-    || /mpegurl/i.test(source.mimeType || source.contentType || "")
-    || /\.m3u8(?:$|[?#])/i.test(url)
-    || /\/api\/(?:source|stream)/.test(new URL(url).pathname);
+  const parsedUrl = new URL(url);
+  const proxiedUpstream = /\/api\/(?:source|stream)/.test(parsedUrl.pathname)
+    ? parsedUrl.searchParams.get("url") || ""
+    : "";
+  const mediaIdentity = proxiedUpstream || url;
+  const hls = candidate.container === "hls"
+    || /mpegurl/i.test(candidate.mimeType || candidate.contentType || "")
+    || /\.m3u8(?:$|[?#])/i.test(mediaIdentity)
+    || /\/m3u8\/[a-f0-9]{16,}(?:$|[?#/])/i.test(mediaIdentity);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), requestTimeoutMs);
   try {
@@ -261,7 +351,7 @@ const sourceResolutionCache = new Map();
 const mediaValidationCache = new Map();
 
 function isTransientResolutionFailure(result = {}) {
-  const status = Number(result.resolverStatus ?? result.httpStatus ?? result.media?.httpStatus);
+  const status = resolutionFailureStatus(result);
   return result.failure === "SOURCE_TIMEOUT"
     || !Number.isFinite(status)
     || status === 408
@@ -269,11 +359,17 @@ function isTransientResolutionFailure(result = {}) {
     || status >= 500;
 }
 
-async function resolveEpisodeCached(slug, providerEpisodeId) {
-  const key = `${slug}:${providerEpisodeId}`;
+async function resolveEpisodeCached(providerKey, slug, providerEpisodeId) {
+  const key = `${providerKey}:${slug}:${providerEpisodeId}`;
   if (!sourceResolutionCache.has(key)) {
     sourceResolutionCache.set(key, (async () => {
-      const url = `${baseUrl}/api/animeav1/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(providerEpisodeId)}&variant=SUB`;
+      const route = providerKey === "tioanime"
+        ? "/api/tioanime/sources"
+        : providerKey === "jkanime"
+          ? "/api/jkanime/sources"
+          : "/api/animeav1/sources";
+      const variant = providerKey === "animeav1" ? "&variant=SUB" : "";
+      const url = `${baseUrl}${route}?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(providerEpisodeId)}${variant}`;
       try {
         const response = await fetchWithDeadline(url);
         const payload = await response.json().catch(() => null);
@@ -337,12 +433,12 @@ async function resolveEpisodeCached(slug, providerEpisodeId) {
   return sourceResolutionCache.get(key);
 }
 
-async function resolveEpisode(slug, providerEpisodeId) {
-  const key = `${slug}:${providerEpisodeId}`;
+async function resolveEpisode(providerKey, slug, providerEpisodeId) {
+  const key = `${providerKey}:${slug}:${providerEpisodeId}`;
   let result = null;
   for (let attempt = 1; attempt <= retryAttempts; attempt += 1) {
     if (attempt > 1) sourceResolutionCache.delete(key);
-    result = await resolveEpisodeCached(slug, providerEpisodeId);
+    result = await resolveEpisodeCached(providerKey, slug, providerEpisodeId);
     if (result?.usable || !isTransientResolutionFailure(result) || attempt === retryAttempts) break;
     await new Promise((resolve) => setTimeout(resolve, 180 * attempt));
   }
@@ -440,10 +536,6 @@ function summarize(records, phase) {
 
 const metadataPath = fileURLToPath(new URL("../scraper/anime_metadata.json", import.meta.url));
 const metadataPayload = JSON.parse(await readFile(metadataPath, "utf8"));
-const slugItems = (Array.isArray(metadataPayload.items) ? metadataPayload.items : [])
-  .filter(isActiveAnimeAv1CatalogItem)
-  .map((item) => ({ slug: authoritativeSlug(item), title: item.title || item.name || "" }))
-  .filter((item) => item.slug && item.title);
 async function readOptionalSnapshot(relativePath) {
   try {
     return JSON.parse(await readFile(fileURLToPath(new URL(relativePath, import.meta.url)), "utf8"));
@@ -451,11 +543,18 @@ async function readOptionalSnapshot(relativePath) {
     return {};
   }
 }
-const [airingPayload, artworkPayload] = await Promise.all([
+const [airingPayload, artworkPayload, fallbackPayload] = await Promise.all([
   readOptionalSnapshot("../scraper/airing-map.json"),
-  readOptionalSnapshot("../scraper/artwork-map.json")
+  readOptionalSnapshot("../scraper/artwork-map.json"),
+  readOptionalSnapshot("../scraper/regular-source-fallbacks.json")
 ]);
-const catalog = (Array.isArray(metadataPayload.items) ? metadataPayload.items : [])
+const catalogWithFallbacks = (Array.isArray(metadataPayload.items) ? metadataPayload.items : [])
+  .map((item) => applyVerifiedFallback(item, fallbackPayload.entries || {}));
+const slugItems = catalogWithFallbacks
+  .filter(isActiveAnimeAv1CatalogItem)
+  .map((item) => ({ slug: authoritativeSlug(item), title: item.title || item.name || "" }))
+  .filter((item) => item.slug && item.title);
+const catalog = catalogWithFallbacks
   .filter(isActiveAnimeAv1CatalogItem)
   .map((item) => {
     const airing = airingPayload.entries?.[item.id] || {};
@@ -465,6 +564,10 @@ const catalog = (Array.isArray(metadataPayload.items) ? metadataPayload.items : 
       ...item,
       anilistId: item.anilistId || artwork.anilistId || null,
       malId: item.malId || artwork.malId || null,
+      tmdbPoster: item.tmdbPoster || artwork.tmdbPoster || "",
+      tmdbBackdrop: item.tmdbBackdrop || artwork.tmdbBackdrop || "",
+      coverImageLarge: item.coverImageLarge || artwork.anilistCover || artwork.metadataCover || "",
+      highQualityBackground: item.highQualityBackground || artwork.anilistBanner || "",
       // The provider's own media type and measured episode count outrank
       // enrichment metadata, matching normalizeExternalShow/getSeasonEpisodeLimit.
       format: item.format || item.type || metadata.format || "",
@@ -476,6 +579,7 @@ const catalog = (Array.isArray(metadataPayload.items) ? metadataPayload.items : 
       franchiseSeasons: item.franchiseSeasons || airing.franchiseSeasons || null
     };
   })
+  .filter((item) => !requestedFormats.size || requestedFormats.has(String(item.format || item.type || "").toUpperCase()))
   .slice(0, titleLimit);
 const legacyByTitle = new Map();
 slugItems.forEach((item) => {
@@ -487,6 +591,10 @@ slugItems.forEach((item) => {
 const tasks = catalog.flatMap((item) => sampledEpisodeNumbers(item).map((number) => ({ item, number })));
 const records = await mapConcurrent(tasks, async ({ item, number }) => {
   const expectedSlug = authoritativeSlug(item);
+  const usesVerifiedFallback = hasVerifiedFallback(item)
+    && Number(item.sourcePlayableEpisodeCount || 0) <= 0;
+  const targetProviderKey = usesVerifiedFallback ? item.fallbackProviderKey : "animeav1";
+  const targetSlug = usesVerifiedFallback ? item.fallbackProviderAnimeSlug : expectedSlug;
   const legacyCatalogSlug = legacyByTitle.get(normalizeTitle(item.title || "")) || "";
   // A map miss was not automatically broken in the previous client: it fell
   // through to the slower AniList ID/title search. Model that conservatively as
@@ -494,11 +602,11 @@ const records = await mapConcurrent(tasks, async ({ item, number }) => {
   // a proven old mapping defect.
   const legacySlug = legacyCatalogSlug || expectedSlug;
   const providerNumber = providerEpisodeNumber(item, number);
-  const afterResolution = expectedSlug ? await resolveEpisode(expectedSlug, providerNumber) : {
+  const afterResolution = targetSlug ? await resolveEpisode(targetProviderKey, targetSlug, providerNumber) : {
     resolverOk: false, resolverStatus: null, sourceCount: 0, sourceTypes: [], usable: false, failure: "BAD_NORMALIZATION", providerEpisodeId: number
   };
-  const beforeResolution = legacySlug && legacySlug !== expectedSlug
-    ? await resolveEpisode(legacySlug, providerNumber)
+  const beforeResolution = !usesVerifiedFallback && legacySlug && legacySlug !== expectedSlug
+    ? await resolveEpisode("animeav1", legacySlug, providerNumber)
     : afterResolution;
   const internalEpisode = (item.episodes || []).find((episode) => episodeNumber(episode) === number);
   return {
@@ -509,17 +617,17 @@ const records = await mapConcurrent(tasks, async ({ item, number }) => {
     season: Number(item.seasonNumber) || 1,
     displayedEpisodeNumber: number,
     internalEpisodeId: internalEpisode?.id || `${item.id}-s${Number(item.seasonNumber) || 1}-e${number}`,
-    provider: "AnimeAV1",
+    provider: usesVerifiedFallback ? item.fallbackProvider : "AnimeAV1",
     providerEpisodeId: providerNumber,
-    expectedSlug,
+    expectedSlug: targetSlug,
     legacySlug,
     legacyCatalogSlug,
     before: {
-      correctMapping: Boolean(legacySlug && legacySlug === expectedSlug),
+      correctMapping: usesVerifiedFallback || Boolean(legacySlug && legacySlug === expectedSlug),
       resolution: beforeResolution
     },
     after: {
-      correctMapping: Boolean(expectedSlug),
+      correctMapping: Boolean(targetSlug),
       resolution: afterResolution
     }
   };
@@ -546,14 +654,33 @@ const sourceGapCount = catalog.reduce((total, item) => {
 const report = {
   generatedAt: new Date().toISOString(),
   baseUrl,
-  configuration: { episodesPerTitle, concurrency, probeMedia, requestTimeoutMs, retryAttempts },
+  configuration: {
+    episodesPerTitle,
+    allEpisodes,
+    formats: [...requestedFormats],
+    concurrency,
+    probeMedia,
+    requestTimeoutMs,
+    retryAttempts,
+    failOnUnusable
+  },
   catalog: {
     animeTested: catalog.length,
     seasonsRepresented: new Set(catalog.map((item) => `${item.anilistId || item.id}:${Number(item.seasonNumber) || 1}`)).size,
     logicalEpisodesRepresented: catalog.reduce((sum, item) => sum + (catalogEpisodeLimit(item) || 0), 0),
     episodeSamplesTested: records.length,
     rawDuplicateEpisodes,
-    sourceMetadataGaps: sourceGapCount
+    sourceMetadataGaps: sourceGapCount,
+    titlesWithPoster: catalog.filter((item) => Boolean(item.tmdbPoster || item.coverImageLarge || item.poster || item.image)).length,
+    titlesWithBackground: catalog.filter((item) => Boolean(
+      item.tmdbBackdrop
+      || item.highQualityBackground
+      || item.banner
+      || item.tmdbPoster
+      || item.coverImageLarge
+      || item.poster
+      || item.image
+    )).length
   },
   before: summarize(records, "before"),
   after: summarize(records, "after"),
@@ -574,3 +701,7 @@ process.stdout.write(`${JSON.stringify({
   after: report.after,
   relations: report.relations
 }, null, 2)}\n`);
+
+if (failOnUnusable && report.after.confirmedUsable !== records.length) {
+  process.exitCode = 1;
+}

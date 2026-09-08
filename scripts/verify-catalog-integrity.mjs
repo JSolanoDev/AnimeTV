@@ -39,12 +39,28 @@ function validSegment(segment) {
   return Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end > start;
 }
 
+function verifiedFallbackFor(item = {}, fallbackEntries = {}) {
+  const entry = fallbackEntries[item.id] || fallbackEntries[sourceSlug(item)] || null;
+  if (!entry || entry.verified !== true) return null;
+  const providerKey = String(entry.provider || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const providerAnimeSlug = String(entry.providerAnimeSlug || "").trim();
+  const episodeMap = Object.fromEntries(Object.entries(entry.episodeMap || {})
+    .map(([canonical, providerEpisode]) => [Number(canonical), Number(providerEpisode)])
+    .filter(([canonical, providerEpisode]) => (
+      Number.isInteger(canonical) && canonical > 0
+      && Number.isFinite(providerEpisode) && providerEpisode >= 0
+    )));
+  if (!providerAnimeSlug || !["tioanime", "jkanime"].includes(providerKey) || !Object.keys(episodeMap).length) return null;
+  return { ...entry, providerKey, providerAnimeSlug, episodeMap };
+}
+
 export function auditCatalogIntegrity({
   catalog,
   previous = null,
   artwork = null,
   airing = null,
   skipTimes = null,
+  fallbacks = null,
   minimumRetainedRatio = 0.9,
   minimumIdentityRatio = 0.9,
   minimumArtworkRatio = 0.95
@@ -52,8 +68,10 @@ export function auditCatalogIntegrity({
   const errors = [];
   const warnings = [];
   const allItems = Array.isArray(catalog?.items) ? catalog.items : [];
+  const fallbackEntries = entriesOf(fallbacks);
   const isConfirmedUnavailable = (item) => item?.sourceInventoryChecked === true
-    && Number(item?.sourcePlayableEpisodeCount || 0) <= 0;
+    && Number(item?.sourcePlayableEpisodeCount || 0) <= 0
+    && !verifiedFallbackFor(item, fallbackEntries);
   const items = allItems.filter((item) => !isConfirmedUnavailable(item));
   const unavailableItems = allItems.filter(isConfirmedUnavailable);
   const oldItems = (Array.isArray(previous?.items) ? previous.items : []).filter((item) => !isConfirmedUnavailable(item));
@@ -62,10 +80,25 @@ export function auditCatalogIntegrity({
   const skipEntries = entriesOf(skipTimes);
   const ambiguousMalIds = Array.isArray(skipTimes?.ambiguousMalIds) ? skipTimes.ambiguousMalIds : [];
 
+  for (const [key, entry] of Object.entries(fallbackEntries)) {
+    if (entry?.verified !== true) continue;
+    const target = allItems.find((item) => item?.id === key || sourceSlug(item) === key);
+    if (!target) errors.push(`verified source fallback ${key} has no catalog row`);
+    else if (!verifiedFallbackFor(target, fallbackEntries)) errors.push(`verified source fallback ${key} is malformed`);
+  }
+
   if (!items.length) errors.push("regular catalog has no titles");
   if (unavailableItems.length) {
     warnings.push(`${unavailableItems.length} provider listing(s) are quarantined because they publish no episode routes`);
   }
+  unavailableItems.forEach((item) => {
+    const art = artEntries[item?.id] || {};
+    const format = String(item?.format || item?.type || art?.meta?.format || "").toUpperCase();
+    const status = String(item?.status || art?.meta?.airingStatus || "").toUpperCase();
+    if (["MOVIE", "OVA", "ONA", "SPECIAL"].includes(format) && status !== "NOT_YET_RELEASED") {
+      errors.push(`${item?.id || item?.title} ${format} has neither a provider episode nor a verified fallback`);
+    }
+  });
   if (oldItems.length && items.length < Math.ceil(oldItems.length * minimumRetainedRatio)) {
     errors.push(`regular catalog shrank from ${oldItems.length} to ${items.length} titles`);
   }
@@ -81,7 +114,11 @@ export function auditCatalogIntegrity({
   let playableEpisodeRoutes = 0;
   let inventoryCheckedRows = 0;
   let inventoryPlayableRows = 0;
+  let verifiedFallbackRows = 0;
   let sourcePlayableEpisodes = 0;
+  let standaloneReleases = 0;
+  let standaloneReleasePosters = 0;
+  let standaloneReleaseBackgrounds = 0;
 
   for (const item of items) {
     const id = String(item?.id || "").trim();
@@ -98,12 +135,15 @@ export function auditCatalogIntegrity({
     if (item?.poster || item?.image || item?.cover || item?.thumbnail) sourceArtwork += 1;
     else errors.push(`catalog row ${id || title} has no source artwork`);
 
-    const sourceIds = Array.isArray(item?.sourceEpisodeIds)
+    const primarySourceIds = Array.isArray(item?.sourceEpisodeIds)
       ? item.sourceEpisodeIds.map(Number)
       : [];
+    const fallback = primarySourceIds.length ? null : verifiedFallbackFor(item, fallbackEntries);
+    const fallbackIds = fallback ? Object.keys(fallback.episodeMap).map(Number) : [];
+    const sourceIds = primarySourceIds.length ? primarySourceIds : fallbackIds;
     const validSourceIds = sourceIds.every((number) => Number.isFinite(number) && number >= 0);
     const uniqueSourceIds = new Set(sourceIds.map(String));
-    if (item?.sourceInventoryChecked === true) inventoryCheckedRows += 1;
+    if (item?.sourceInventoryChecked === true && (primarySourceIds.length || fallback)) inventoryCheckedRows += 1;
     else errors.push(`${id || title} has no verified provider episode inventory`);
     if (!sourceIds.length || !validSourceIds || uniqueSourceIds.size !== sourceIds.length) {
       errors.push(`${id || title} has an invalid provider episode id inventory`);
@@ -111,13 +151,18 @@ export function auditCatalogIntegrity({
       inventoryPlayableRows += 1;
       sourcePlayableEpisodes += sourceIds.length;
     }
-    if (Number(item?.sourcePlayableEpisodeCount) !== sourceIds.length) {
+    if (fallback) verifiedFallbackRows += 1;
+    const declaredPlayableCount = fallback
+      ? Object.keys(fallback.episodeMap).length
+      : Number(item?.sourcePlayableEpisodeCount);
+    if (declaredPlayableCount !== sourceIds.length) {
       errors.push(`${id || title} provider playable count does not match its episode id inventory`);
     }
-    const sourceEpisodeCount = Number(item?.sourceEpisodeCount);
+    const sourceEpisodeCount = fallback ? fallbackIds.length : Number(item?.sourceEpisodeCount);
     if (!Number.isFinite(sourceEpisodeCount) || sourceEpisodeCount < 1) {
       errors.push(`${id || title} has an invalid provider episode count`);
     }
+    if (fallback) playableEpisodeRoutes += fallbackIds.length;
 
     const art = artEntries[id] || {};
     if (finitePositive(item?.malId || art.malId || art.meta?.malId)
@@ -131,6 +176,29 @@ export function auditCatalogIntegrity({
     // Count the source the UI really renders, while reporting wide coverage as
     // a separate metric so a fallback can never masquerade as a backdrop.
     if (hasWideBackground || hasPoster) highQualityBackgrounds += 1;
+
+    const format = String(item?.format || item?.type || "").toUpperCase();
+    if (["MOVIE", "OVA", "ONA", "SPECIAL"].includes(format)) {
+      standaloneReleases += 1;
+      const releasePoster = art.tmdbPoster
+        || art.anilistCover
+        || art.metadataCover
+        || item?.tmdbPoster
+        || item?.coverImageLarge
+        || item?.poster
+        || item?.image
+        || "";
+      const releaseBackground = art.tmdbBackdrop
+        || art.anilistBanner
+        || item?.tmdbBackdrop
+        || item?.highQualityBackground
+        || item?.banner
+        || releasePoster;
+      if (releasePoster) standaloneReleasePosters += 1;
+      else errors.push(`${id || title} ${format} has no poster or episode thumbnail fallback`);
+      if (releaseBackground) standaloneReleaseBackgrounds += 1;
+      else errors.push(`${id || title} ${format} has no detail background fallback`);
+    }
 
     const seenEpisodes = new Set();
     for (const [index, episode] of (Array.isArray(item?.episodes) ? item.episodes : []).entries()) {
@@ -262,7 +330,11 @@ export function auditCatalogIntegrity({
       providerPlaybackRoutes: playableEpisodeRoutes,
       inventoryCheckedRows,
       inventoryPlayableRows,
+      verifiedFallbackRows,
       sourcePlayableEpisodes,
+      standaloneReleases,
+      standaloneReleasePosters,
+      standaloneReleaseBackgrounds,
       seasonChainRows: chainRows,
       uniqueSeasonIdentities: seasonIdentities.size,
       seasonIdentityPosters,
@@ -320,6 +392,7 @@ async function main() {
   const artworkPath = path.resolve(argOf(args, "--artwork", path.join(ROOT, "scraper", "artwork-map.json")));
   const airingPath = path.resolve(argOf(args, "--airing", path.join(ROOT, "scraper", "airing-map.json")));
   const skipPath = path.resolve(argOf(args, "--skip-times", path.join(ROOT, "scraper", "aniskip-map.json")));
+  const fallbackPath = path.resolve(argOf(args, "--fallbacks", path.join(ROOT, "scraper", "regular-source-fallbacks.json")));
   const rejectedPath = path.resolve(argOf(args, "--rejected", path.join(ROOT, "scraper", "anime_metadata.rejected.json")));
   const reportPath = argOf(args, "--report", "");
 
@@ -328,7 +401,8 @@ async function main() {
     previous: readJson(previousPath, true),
     artwork: readJson(artworkPath),
     airing: readJson(airingPath),
-    skipTimes: readJson(skipPath)
+    skipTimes: readJson(skipPath),
+    fallbacks: readJson(fallbackPath, true)
   });
 
   console.log(JSON.stringify(report.metrics, null, 2));

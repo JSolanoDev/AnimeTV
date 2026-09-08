@@ -12,11 +12,15 @@ import {
   parseAnimeAv1PageMetadata,
   preserveVerifiedEpisodeRange
 } from "./build-animeav1-inventory.mjs";
+import { requiresEmbedResolution, resolutionFailureStatus } from "./source-probe-policy.mjs";
 
 const require = createRequire(import.meta.url);
 const {
   animeAv1CachedSourceStatus,
-  shouldCacheAnimeAv1SourceStatus
+  shouldCacheAnimeAv1SourceStatus,
+  applyRegularSourceFallback,
+  hasVerifiedRegularSourceFallback,
+  resolvedEmbedPlaybackUrl
 } = require("../animetv-server.js");
 
 test("movie episode zero maps to one playable catalog item", () => {
@@ -57,6 +61,38 @@ test("AnimeAV1 player links normalize to directly probeable HLS URLs", () => {
   assert.deepEqual(parseAnimeAv1DirectMediaUrls(html), [
     "https://player.zilla-networks.com/m3u8/0123456789abcdef0123456789abcdef"
   ]);
+});
+
+test("direct AnimeAV1 HLS is not mistaken for an unresolved iframe", () => {
+  assert.equal(requiresEmbedResolution({
+    type: "direct",
+    externalType: "iframe",
+    videoUrl: "/api/source?url=https%3A%2F%2Fplayer.zilla-networks.com%2Fm3u8%2Fexample",
+    container: "hls"
+  }), false);
+  assert.equal(requiresEmbedResolution({
+    type: "iframe",
+    externalType: "iframe",
+    videoUrl: "https://www.yourupload.com/embed/example"
+  }), true);
+});
+
+test("media probe failures take precedence over a successful resolver response", () => {
+  assert.equal(resolutionFailureStatus({
+    resolverStatus: 200,
+    media: { usable: false, httpStatus: 502 }
+  }), 502);
+});
+
+test("YourUpload embed streams retain their required media referer", () => {
+  const result = resolvedEmbedPlaybackUrl(
+    "https://vidcache.net:8161/example/video.mp4",
+    "https://www.yourupload.com/embed/example"
+  );
+  assert.match(result, /^\/api\/source\?/);
+  const params = new URLSearchParams(result.split("?")[1]);
+  assert.equal(params.get("url"), "https://vidcache.net:8161/example/video.mp4");
+  assert.equal(params.get("refererHost"), "www.yourupload.com");
 });
 
 test("exact slug routes cannot absorb episode links from a related title", () => {
@@ -149,6 +185,30 @@ test("a listing with no published routes is explicitly unavailable", () => {
   assert.equal(item.sourcePlayableEpisodeCount, 0);
   assert.equal(item.sourceInventoryChecked, true);
   assert.match(item.sourceInventoryUnavailableReason, /inventory missing/);
+});
+
+test("verified fallback mapping keeps canonical and provider episode ids separate", () => {
+  const item = applyRegularSourceFallback({
+    id: "animeav1-deadman-wonderland-akai-knife-tsukai",
+    title: "Deadman Wonderland: Akai Knife Tsukai",
+    source: "AnimeAV1",
+    sourceInventoryChecked: true,
+    sourceEpisodeIds: [],
+    sourcePlayableEpisodeCount: 0
+  }, {
+    "animeav1-deadman-wonderland-akai-knife-tsukai": {
+      provider: "TioAnime",
+      providerAnimeSlug: "deadman-wonderland",
+      episodeMap: { "1": 13 },
+      verified: true,
+      verifiedAt: "2026-09-08T18:45:00.000Z"
+    }
+  });
+  assert.equal(hasVerifiedRegularSourceFallback(item), true);
+  assert.deepEqual(item.fallbackEpisodeIds, [1]);
+  assert.deepEqual(item.fallbackEpisodeMap, { 1: 13 });
+  assert.equal(item.episode, 1);
+  assert.equal(item.sourcePlayableEpisodeCount, 0);
 });
 
 test("provider page metadata supplies identity, date, runtime, and type", () => {
