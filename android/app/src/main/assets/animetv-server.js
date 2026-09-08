@@ -162,6 +162,12 @@ const ANIMEAV1_BASE = "https://animeav1.com";
 const ANIMEAV1_SLUG_CACHE_TTL_MS = 1000 * 60 * 10;
 const ANIMEAV1_CACHE_TTL_MS = 1000 * 60 * 30;
 const ANIMEAV1_MISS_CACHE_TTL_MS = 1000 * 90;
+const ANIMEAV1_SOURCE_SUCCESS_CACHE_HEADERS = {
+  // Successful source maps already live in memory for 30 minutes. A much
+  // shorter shared-cache window lets Vercel and the browser reuse that same
+  // immutable episode lookup without making newly rotated links linger.
+  "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
+};
 const ANIMEAV1_CATALOG_PAGES = Math.max(1, Math.min(12, Number(process.env.ANIMEAV1_CATALOG_PAGES || 4)));
 const ANIMEAV1_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
@@ -182,6 +188,7 @@ let tioAnimeSlugCatalogMemory = null;
 let tioAnimeSlugCatalogMemoryAt = 0;
 let tioAnimeSlugCatalogPromise = null;
 const animeAv1SourceCache = new Map(); // "slug:ep:variant" -> { data, ts }
+const animeAv1SourceInflight = new Map(); // coalesce concurrent cold lookups
 const animeAv1SlugSearchCache = new Map(); // normalized query -> { data, ts }
 const animeAv1CatalogSearchCache = new Map(); // normalized query -> { data, ts }
 let animeAv1LatestCache = null;          // [{ slug, episode, title, image }]
@@ -1535,6 +1542,7 @@ module.exports.parseHentaiOceanEmbedData = parseHentaiOceanEmbedData;
 module.exports.hentaiOceanDirectCandidates = hentaiOceanDirectCandidates;
 module.exports.animeAv1CachedSourceStatus = animeAv1CachedSourceStatus;
 module.exports.shouldCacheAnimeAv1SourceStatus = shouldCacheAnimeAv1SourceStatus;
+module.exports.animeAv1SourceResponseHeaders = animeAv1SourceResponseHeaders;
 module.exports.applyRegularSourceFallback = applyRegularSourceFallback;
 module.exports.hasVerifiedRegularSourceFallback = hasVerifiedRegularSourceFallback;
 module.exports.resolvedEmbedPlaybackUrl = resolvedEmbedPlaybackUrl;
@@ -8221,15 +8229,27 @@ async function handleAnimeAv1Sources(url, response) {
   const cached = animeAv1SourceCache.get(cacheKey);
   const cachedTtl = cached?.data?.ok ? ANIMEAV1_CACHE_TTL_MS : ANIMEAV1_MISS_CACHE_TTL_MS;
   if (cached && Date.now() - cached.ts < cachedTtl) {
-    sendJson(response, cached.data, animeAv1CachedSourceStatus(cached));
+    const status = animeAv1CachedSourceStatus(cached);
+    sendJson(response, cached.data, status, animeAv1SourceResponseHeaders(status));
     return;
   }
 
   try {
-    const data = await fetchAnimeAv1EpisodeSourcesDirect(safeSlug, providerEpisodeId, variant);
-    const status = data.ok ? 200 : 404;
-    animeAv1SourceCache.set(cacheKey, { data, status, ts: Date.now() });
-    sendJson(response, data, status);
+    let lookup = animeAv1SourceInflight.get(cacheKey);
+    if (!lookup) {
+      lookup = fetchAnimeAv1EpisodeSourcesDirect(safeSlug, providerEpisodeId, variant)
+        .then((data) => {
+          const status = data.ok ? 200 : 404;
+          animeAv1SourceCache.set(cacheKey, { data, status, ts: Date.now() });
+          return { data, status };
+        })
+        .finally(() => {
+          animeAv1SourceInflight.delete(cacheKey);
+        });
+      animeAv1SourceInflight.set(cacheKey, lookup);
+    }
+    const { data, status } = await lookup;
+    sendJson(response, data, status, animeAv1SourceResponseHeaders(status));
   } catch (error) {
     const status = /HTTP 404|not found/i.test(error.message) ? 404 : 503;
     const data = {
@@ -8248,7 +8268,7 @@ async function handleAnimeAv1Sources(url, response) {
     if (shouldCacheAnimeAv1SourceStatus(status)) {
       animeAv1SourceCache.set(cacheKey, { data, status, ts: Date.now() });
     }
-    sendJson(response, data, status);
+    sendJson(response, data, status, animeAv1SourceResponseHeaders(status));
   }
 }
 
@@ -8260,6 +8280,12 @@ function animeAv1CachedSourceStatus(entry = {}) {
 
 function shouldCacheAnimeAv1SourceStatus(status) {
   return Number(status) === 200 || Number(status) === 404;
+}
+
+function animeAv1SourceResponseHeaders(status) {
+  return Number(status) === 200
+    ? ANIMEAV1_SOURCE_SUCCESS_CACHE_HEADERS
+    : { "Cache-Control": "no-store, max-age=0" };
 }
 
 async function getAnimeAv1SlugCatalog({ force = false, pages = ANIMEAV1_CATALOG_PAGES } = {}) {

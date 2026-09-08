@@ -1,4 +1,4 @@
-const CACHE_NAME = "zenkaitv-v763";
+const CACHE_NAME = "zenkaitv-v764";
 const ADULT_CATALOG_CACHE = "zenkaitv-adult-catalog-v1";
 // Remote artwork lives in its OWN cache that survives version bumps. It used
 // to share CACHE_NAME, so every deploy wiped every poster and the app
@@ -18,7 +18,11 @@ const SHELL_ASSETS = [
   versioned("./logo-mark-128.webp"),
   versioned("./logo-round-192.webp"),
   versioned("./logo-wordmark-480.webp"),
-  versioned("./hero-backdrop-placeholder.webp")
+  versioned("./hero-backdrop-placeholder.webp"),
+  // These are needed only after an episode is opened, but caching the existing
+  // files during shell installation removes two first-play network round trips.
+  versioned("./player/player.css"),
+  versioned("./player/player.js")
 ];
 
 // Caches only the shell assets that are not already stored, one at a time, and

@@ -182,6 +182,39 @@ function playbackFallbackContext({ primaryFound }) {
   return { sandbox, calls, completed };
 }
 
+function animeAv1SourceContext() {
+  let fetchCount = 0;
+  let releaseFetch;
+  const gate = new Promise((resolve) => { releaseFetch = resolve; });
+  const sandbox = vm.createContext({
+    console: { warn() {} },
+    _animeAv1EpisodeSourceCache: new Map(),
+    _animeAv1EpisodeSourceInflight: new Map(),
+    ANIMEAV1_SOURCE_TIMEOUT_MS: 6500,
+    getInventoryProviderEpisodeId: (_show, episode) => episode.providerEpisodeId,
+    hydrateAnimeAv1Slug: async () => {},
+    fetchWithTimeout: async () => {
+      fetchCount += 1;
+      await gate;
+      return {
+        ok: true,
+        json: async () => ({
+          ok: true,
+          sources: [{ provider: "HLS", url: "/api/source?url=example" }]
+        })
+      };
+    },
+    mergeAnimeAv1SourcesIntoEpisode: (_show, episode, data) => {
+      episode.sourceOptions = data.sources;
+    }
+  });
+  vm.runInContext(
+    section(clientSource, "async function attachAnimeAv1Sources(", "function mergeAnimeAv1SourcesIntoEpisode("),
+    sandbox
+  );
+  return { sandbox, releaseFetch, getFetchCount: () => fetchCount };
+}
+
 test("1. single-season episode selection retains canonical identity", () => {
   const { pipeline } = normalizationContext();
   const seasons = pipeline.normalizeSeasons({
@@ -744,6 +777,24 @@ test("21. an episode-row click reaches source scheduling with canonical season i
   assert.equal(scheduled.canonicalSeason, 2);
   assert.equal(scheduled.options.autoReplay, true);
   assert.equal(sandbox.location.pathname, "/watch/show/s2-part-1-e3");
+});
+
+test("AnimeAV1 source warmup coalesces concurrent requests for one episode", async () => {
+  const { sandbox, releaseFetch, getFetchCount } = animeAv1SourceContext();
+  const show = { animeAv1Slug: "example" };
+  const first = { providerEpisodeId: 3 };
+  const second = { providerEpisodeId: 3 };
+  const lookups = [
+    sandbox.attachAnimeAv1Sources(show, first),
+    sandbox.attachAnimeAv1Sources(show, second)
+  ];
+  await Promise.resolve();
+  assert.equal(getFetchCount(), 1);
+  releaseFetch();
+  await Promise.all(lookups);
+  assert.equal(first.sourceOptions.length, 1);
+  assert.equal(second.sourceOptions.length, 1);
+  assert.equal(sandbox._animeAv1EpisodeSourceInflight.size, 0);
 });
 
 test("22. catalog dedupe cannot erase a baked franchise chain", () => {

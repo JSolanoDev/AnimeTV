@@ -15,14 +15,41 @@ import {
 import { requiresEmbedResolution, resolutionFailureStatus } from "./source-probe-policy.mjs";
 
 const require = createRequire(import.meta.url);
+const server = require("../animetv-server.js");
 const {
   animeAv1CachedSourceStatus,
+  animeAv1SourceResponseHeaders,
   shouldCacheAnimeAv1SourceStatus,
   applyRegularSourceFallback,
   applyAnimeAv1LatestInventory,
   hasVerifiedRegularSourceFallback,
   resolvedEmbedPlaybackUrl
-} = require("../animetv-server.js");
+} = server;
+
+function requestServer(pathname, forwardedFor = "127.0.0.90") {
+  return new Promise((resolve, reject) => {
+    const response = {
+      headersSent: false,
+      writeHead(status, headers) {
+        this.status = status;
+        this.headers = headers;
+        this.headersSent = true;
+      },
+      end(body = "") {
+        resolve({ status: this.status, headers: this.headers, body: String(body) });
+      }
+    };
+    try {
+      server({
+        method: "GET",
+        url: pathname,
+        headers: { host: "localhost", "x-forwarded-for": forwardedFor }
+      }, response);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
 
 test("movie episode zero maps to one playable catalog item", () => {
   const parsed = parseAnimeAv1EpisodeInventory(
@@ -160,6 +187,46 @@ test("transient AnimeAV1 failures are never cached as missing episodes", () => {
   assert.equal(shouldCacheAnimeAv1SourceStatus(503), false);
   assert.equal(animeAv1CachedSourceStatus({ status: 503, data: { ok: false } }), 503);
   assert.equal(animeAv1CachedSourceStatus({ data: { ok: false } }), 404);
+});
+
+test("only successful AnimeAV1 source maps are shared through HTTP caches", () => {
+  assert.match(animeAv1SourceResponseHeaders(200)["Cache-Control"], /public/);
+  assert.match(animeAv1SourceResponseHeaders(200)["Cache-Control"], /s-maxage=300/);
+  assert.equal(animeAv1SourceResponseHeaders(404)["Cache-Control"], "no-store, max-age=0");
+  assert.equal(animeAv1SourceResponseHeaders(503)["Cache-Control"], "no-store, max-age=0");
+});
+
+test("concurrent cold AnimeAV1 requests share one provider fetch", async () => {
+  const originalFetch = globalThis.fetch;
+  let providerFetches = 0;
+  let releaseProvider;
+  const providerGate = new Promise((resolve) => { releaseProvider = resolve; });
+  globalThis.fetch = async (input, init) => {
+    if (String(input).includes("animeav1.com/media/coalesce-fixture/7")) {
+      providerFetches += 1;
+      await providerGate;
+      return new Response(
+        'embeds:{SUB:[{server:"HLS",url:"https://player.zilla-networks.com/play/0123456789abcdef0123456789abcdef"}]},downloads:{}',
+        { status: 200, headers: { "Content-Type": "text/html" } }
+      );
+    }
+    return originalFetch(input, init);
+  };
+
+  try {
+    const endpoint = "/api/animeav1/sources?slug=coalesce-fixture&episode=7&variant=SUB";
+    const first = requestServer(endpoint, "127.0.0.91");
+    const second = requestServer(endpoint, "127.0.0.92");
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(providerFetches, 1);
+    releaseProvider();
+    const responses = await Promise.all([first, second]);
+    assert.deepEqual(responses.map((response) => response.status), [200, 200]);
+    assert.ok(responses.every((response) => /s-maxage=300/.test(response.headers["Cache-Control"])));
+  } finally {
+    globalThis.fetch = originalFetch;
+    releaseProvider?.();
+  }
 });
 
 test("inventory fields are applied without replacing catalog identity", () => {

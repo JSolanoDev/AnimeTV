@@ -9,6 +9,7 @@ const src = fs.readFileSync(ROOT + "/client.js", "utf8");
 const appCss = fs.readFileSync(ROOT + "/styles.css", "utf8");
 const playerCss = fs.readFileSync(ROOT + "/player/player.css", "utf8");
 const playerJs = fs.readFileSync(ROOT + "/player/player.js", "utf8");
+const serviceWorker = fs.readFileSync(ROOT + "/service-worker.js", "utf8");
 
 const start = src.indexOf("const PLAYER_POSTER_MAX_LENGTH");
 if (start < 0) { console.error("MISS PLAYER_POSTER_MAX_LENGTH"); process.exit(1); }
@@ -72,6 +73,8 @@ check("source resolution uses the current player loader without provider copy",
   /class="ztv-stream-loader"[\s\S]*?Loading stream\.\.\.[\s\S]*?:\s*`<div class="play-symbol"/.test(src), true);
 check("source resolution loader stays compact and quick",
   /\.ztv-stream-loader-mark\s*>\s*span[\s\S]*?animation:\s*ztv-stream-loader-spin\s+0\.82s/.test(appCss), true);
+check("the service worker pre-caches first-play app assets",
+  /versioned\("\.\/player\/player\.css"\)[\s\S]*?versioned\("\.\/player\/player\.js"\)/.test(serviceWorker), true);
 
 /* ---- a realistic URL stays well under the header limit ---- */
 {

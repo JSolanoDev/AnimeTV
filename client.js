@@ -682,7 +682,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=763`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=764`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3914,7 +3914,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=763";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=764";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -8159,6 +8159,22 @@ async function openShow(id, target = {}) {
   requestAnimationFrame(() => {
     if (state.activeOpenToken !== openToken) return; // user already closed/navigated
     applyOpenTarget(show, target);
+    // A /watch deep link already names the exact episode. Start its primary
+    // source lookup while artwork and franchise metadata hydrate so those waits
+    // overlap instead of running back-to-back. Limit this fast path to an
+    // existing provider slug: fuzzy title matching and all fallback behavior
+    // stay in the normal, fully hydrated playback pipeline below.
+    const targetEpisode = state.activeEpisode?.episode;
+    const isAdultShow = typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show);
+    if (
+      target.playIntent
+      && targetEpisode
+      && !isAdultShow
+      && isScraperEnabled("animeav1")
+      && (targetEpisode.providerAnimeSlug || show.animeAv1Slug)
+    ) {
+      Promise.resolve(attachAnimeAv1Sources(show, targetEpisode)).catch(() => {});
+    }
     renderEpisodeList(show);
     resetEpisodePanelScroll();
     refreshFocusables();
@@ -14829,6 +14845,7 @@ function mergeTioAnimeSourcesIntoEpisode(show, episode, data, slug, epNum) {
 const _animeAv1SlugCache = new Map();
 const _animeAv1MissCache = new Map();
 const _animeAv1EpisodeSourceCache = new Map();
+const _animeAv1EpisodeSourceInflight = new Map();
 let _animeAv1SlugCatalogPromise = null;
 let _animeAv1SlugTitleMap = null;
 let _animeAv1WarmStarted = false;
@@ -15035,16 +15052,24 @@ async function attachAnimeAv1Sources(show, episode) {
     return;
   }
   try {
-    const res = await fetchWithTimeout(
-      `/api/animeav1/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}&variant=SUB`,
-      { cache: "no-store" }, ANIMEAV1_SOURCE_TIMEOUT_MS
-    );
-    if (!res.ok) {
-      episode.animeAv1SourcesChecked = true;
-      return;
+    let lookup = _animeAv1EpisodeSourceInflight.get(cacheKey);
+    if (!lookup) {
+      lookup = fetchWithTimeout(
+        `/api/animeav1/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}&variant=SUB`,
+        { cache: "default" }, ANIMEAV1_SOURCE_TIMEOUT_MS
+      )
+        .then(async (res) => {
+          if (!res.ok) return null;
+          const data = await res.json();
+          return data.ok && Array.isArray(data.sources) ? data : null;
+        })
+        .finally(() => {
+          _animeAv1EpisodeSourceInflight.delete(cacheKey);
+        });
+      _animeAv1EpisodeSourceInflight.set(cacheKey, lookup);
     }
-    const data = await res.json();
-    if (!data.ok || !Array.isArray(data.sources)) {
+    const data = await lookup;
+    if (!data) {
       episode.animeAv1SourcesChecked = true;
       return;
     }
@@ -18476,7 +18501,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=763");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=764");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
