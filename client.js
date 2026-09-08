@@ -644,7 +644,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=759`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=760`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3746,7 +3746,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=759";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=760";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -13775,46 +13775,53 @@ function _buildShowsByAniListId() {
 // had the chain while state.activeShow had none. Match on AniList id first,
 // then on the id suffix, so either object finds it.
 function bakedChainFor(show) {
-  if (Array.isArray(show.franchiseSeasons) && show.franchiseSeasons.length) {
-    return {
-      chain: show.franchiseSeasons,
-      selfAniListId: show.anilistId || null,
-      selfMalId: show.malId || null
-    };
-  }
   const shows = typeof catalogShows === "function" ? catalogShows() : [];
   const hasChain = (s) => Array.isArray(s.franchiseSeasons) && s.franchiseSeasons.length;
-  if (show.anilistId) {
-    const byAniList = shows.find((s) => hasChain(s) && String(s.anilistId) === String(show.anilistId));
-    if (byAniList) {
-      return {
-        chain: byAniList.franchiseSeasons,
-        selfAniListId: show.anilistId,
-        selfMalId: show.malId || byAniList.malId || null
-      };
-    }
-  }
-  if (show.malId) {
-    const byMal = shows.find((s) => hasChain(s) && String(s.malId) === String(show.malId));
-    if (byMal) {
-      return {
-        chain: byMal.franchiseSeasons,
-        selfAniListId: show.anilistId || byMal.anilistId || null,
-        selfMalId: show.malId
-      };
-    }
-  }
+  const identity = (value = {}) => {
+    const anilistId = String(value.anilistId || "");
+    const surrogateMalId = (anilistId.match(/^mal-(\d+)$/i) || [])[1] || "";
+    return { anilistId, malId: String(value.malId || surrogateMalId || "") };
+  };
+  const showIdentity = identity(show);
+  const sameIdentity = (left = {}, right = showIdentity) => {
+    const candidate = identity(left);
+    return Boolean(
+      (right.anilistId && candidate.anilistId && right.anilistId === candidate.anilistId)
+      || (right.malId && candidate.malId && right.malId === candidate.malId)
+    );
+  };
   const rawId = String(show.id || "");
-  if (!rawId) return null;
-  const bySuffix = shows.find((s) => hasChain(s) && (String(s.id || "").endsWith(rawId) || rawId.endsWith(String(s.id || ""))));
-  // The matched row is the same show, so ITS provider-neutral identity identifies
-  // which link of the chain we are on. New MAL-only rows deliberately have no
-  // numeric AniList id and must not silently fall back to the first season.
-  return bySuffix ? {
-    chain: bySuffix.franchiseSeasons,
-    selfAniListId: bySuffix.anilistId || null,
-    selfMalId: bySuffix.malId || null
-  } : null;
+  const sameSourceRow = (candidate = {}) => {
+    if (sameIdentity(candidate)) return true;
+    const candidateId = String(candidate.id || "");
+    return Boolean(rawId && candidateId && (candidateId.endsWith(rawId) || rawId.endsWith(candidateId)));
+  };
+
+  // Different rows in the same franchise can carry different snapshots. For
+  // example, the original Bleach row can have only itself while a newer TYBW
+  // row carries all five releases. A direct return of the one-entry snapshot
+  // made the other 403 episodes disappear depending on which route was opened.
+  // Consider exact rows and chains that explicitly contain this title, then
+  // retain the richest verified relation snapshot.
+  let best = hasChain(show) ? { row: show, chain: show.franchiseSeasons } : null;
+  for (const candidate of shows) {
+    if (!hasChain(candidate)) continue;
+    const containsShow = candidate.franchiseSeasons.some((entry) => sameIdentity(entry));
+    if (!sameSourceRow(candidate) && !containsShow) continue;
+    if (!best || candidate.franchiseSeasons.length > best.chain.length) {
+      best = { row: candidate, chain: candidate.franchiseSeasons };
+    }
+  }
+  if (!best) return null;
+
+  const currentEntry = best.chain.find((entry) => sameIdentity(entry));
+  const currentRow = currentEntry || (sameSourceRow(best.row) ? best.row : show);
+  const currentIdentity = identity(currentRow);
+  return {
+    chain: best.chain,
+    selfAniListId: show.anilistId || currentRow.anilistId || null,
+    selfMalId: show.malId || currentRow.malId || currentIdentity.malId || null
+  };
 }
 
 // ensureFranchiseShowsInCatalog() materialises a row for every franchise entry
@@ -18206,7 +18213,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=759");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=760");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

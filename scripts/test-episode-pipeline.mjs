@@ -760,7 +760,6 @@ test("related-season direct URLs rebuild from relations and reject corrupt route
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   const sandbox = vm.createContext({
     state,
-    getShowKey: (show = {}) => show.id || show.slug || "show",
     Date,
     Map,
     ROUTE_SLUG_ALIASES: {},

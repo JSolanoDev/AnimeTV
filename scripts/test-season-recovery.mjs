@@ -55,6 +55,7 @@ function context(fetchWithTimeout = async () => ({ ok: false })) {
     normalizeEpisodeSourceOptions: () => [],
     getEpisodeUrl: episode => episode.videoUrl || ""
   });
+  sandbox.catalogShows = () => sandbox.state.shows;
   vm.runInContext(metadataSource, sandbox);
   vm.runInContext(section(clientSource, "function getShowSlug(", "function ensureNotFoundSection("), sandbox);
   vm.runInContext(section(clientSource, "function bakedChainFor(", "function getFranchiseSeasonList("), sandbox);
@@ -112,6 +113,40 @@ test("a bare number in a standalone title is not invented as a season", () => {
   });
   assert.equal(explicit.season, 3);
   assert.equal(explicit.title, "Season 3");
+});
+
+test("the richest relation carrier preserves every Bleach season on a direct visit", () => {
+  const c = context();
+  const chain = [
+    { anilistId: 269, malId: 269, title: "Bleach", episodes: 366 },
+    { anilistId: 116674, malId: 41467, title: "Bleach: Sennen Kessen-hen", episodes: 13 },
+    { anilistId: 159322, malId: 53998, title: "Bleach: Sennen Kessen-hen - Ketsubetsu-tan", episodes: 13 },
+    { anilistId: 169755, malId: 56784, title: "Bleach: Sennen Kessen-hen - Soukoku-tan", episodes: 14 },
+    { anilistId: 182379, malId: 60217, title: "Bleach: Sennen Kessen-hen - Kashin-tan", episodes: 7 }
+  ];
+  const base = {
+    id: "animeav1-bleach",
+    anilistId: 269,
+    malId: 269,
+    franchiseSeasons: [chain[0]]
+  };
+  const carrier = {
+    id: "animeav1-bleach-sennen-kessen-hen-kashin-tan",
+    anilistId: 182379,
+    malId: 60217,
+    franchiseSeasons: chain
+  };
+  const unrelated = {
+    id: "animeav1-unrelated",
+    anilistId: 999,
+    franchiseSeasons: Array.from({ length: 8 }, (_, index) => ({ anilistId: 900 + index }))
+  };
+  c.state.shows = [base, carrier, unrelated];
+  const resolved = c.bakedChainFor(base);
+  assert.equal(resolved.chain.length, 5);
+  assert.deepEqual(Array.from(resolved.chain, entry => entry.episodes), [366, 13, 13, 14, 7]);
+  assert.equal(resolved.selfAniListId, 269);
+  assert.equal(resolved.selfMalId, 269);
 });
 
 test("one absolute provider inventory is partitioned across released franchise seasons", () => {
@@ -228,6 +263,22 @@ test("season metadata requests cannot exhaust the playback API budget", () => {
   assert.equal(c.checkRateLimit({}, new URL("https://example.test/api/animeav1/sources")).allowed, true);
   for (let i = 0; i < 110; i++) c.checkRateLimit({}, new URL("https://example.test/api/tmdb/season"));
   assert.equal(c.checkRateLimit({}, new URL("https://example.test/api/tmdb/season")).allowed, false);
+});
+
+test("catalog responses vary by both CORS origin and compression", () => {
+  const c = vm.createContext({
+    JSON,
+    SECURITY_HEADERS: {},
+    corsHeaders: () => ({ "Access-Control-Allow-Origin": "*", "Vary": "Origin" })
+  });
+  vm.runInContext(section(serverSource, "function sendJson(", "function sendCorsPreflight("), c);
+  let captured = null;
+  c.sendJson({
+    writeHead: (status, headers) => { captured = { status, headers }; },
+    end() {}
+  }, { ok: true }, 200, { "Vary": "Accept-Encoding" });
+  assert.equal(captured.status, 200);
+  assert.equal(captured.headers.Vary, "Origin, Accept-Encoding");
 });
 
 test("Jikan fallback ignores adaptations, manga and unrelated spin-offs", () => {

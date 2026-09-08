@@ -84,3 +84,16 @@ if (failed) {
   process.exit(1);
 }
 console.log(`  PASS  ${FILE} keys are all supported by Vercel`);
+
+const catalogHeaderEntry = (config.headers || []).find((entry) => entry.source === "/api/catalog");
+const catalogHeaders = new Map((catalogHeaderEntry?.headers || []).map((entry) => [entry.key.toLowerCase(), entry.value]));
+const catalogCacheControl = catalogHeaders.get("cache-control") || "";
+if (!/\bs-maxage=\d+\b/.test(catalogCacheControl) || !/\bstale-while-revalidate=\d+\b/.test(catalogCacheControl)) {
+  console.log("  FAIL  /api/catalog must use shared CDN caching with stale-while-revalidate");
+  process.exit(1);
+}
+if ((catalogHeaders.get("vary") || "").toLowerCase() !== "accept-encoding") {
+  console.log("  FAIL  /api/catalog must vary cached responses by Accept-Encoding");
+  process.exit(1);
+}
+console.log("  PASS  /api/catalog has shared compression-aware CDN caching");

@@ -1620,6 +1620,10 @@ const CATALOG_RESPONSE_TTL_MS = Math.max(
   60000,
   Number(process.env.CATALOG_RESPONSE_TTL_MS || 10 * 60 * 1000)
 );
+const CATALOG_RESPONSE_CACHE_HEADERS = Object.freeze({
+  "Cache-Control": "public, max-age=300, s-maxage=600, stale-while-revalidate=86400",
+  "Vary": "Accept-Encoding"
+});
 let catalogResponseCache = null;   // { payload, ts }
 let catalogResponseInflight = null;
 
@@ -1731,7 +1735,7 @@ async function buildCatalogPayload() {
 async function handleCatalog(response) {
   const now = Date.now();
   if (catalogResponseCache && now - catalogResponseCache.ts < CATALOG_RESPONSE_TTL_MS) {
-    sendJson(response, { ...catalogResponseCache.payload, cached: true });
+    sendJson(response, { ...catalogResponseCache.payload, cached: true }, 200, CATALOG_RESPONSE_CACHE_HEADERS);
     return;
   }
 
@@ -1742,12 +1746,12 @@ async function handleCatalog(response) {
         .finally(() => { catalogResponseInflight = null; });
     }
     const payload = await catalogResponseInflight;
-    sendJson(response, payload);
+    sendJson(response, payload, 200, CATALOG_RESPONSE_CACHE_HEADERS);
   } catch (error) {
     log("warn", "Catalog build failed", { error: error.message });
     if (catalogResponseCache) {
       // Stale beats broken: keep the homepage populated through an outage.
-      sendJson(response, { ...catalogResponseCache.payload, cached: true, stale: true });
+      sendJson(response, { ...catalogResponseCache.payload, cached: true, stale: true }, 200, CATALOG_RESPONSE_CACHE_HEADERS);
       return;
     }
     sendJson(response, { ok: false, error: "Metadata APIs unavailable" }, 502);
@@ -11207,6 +11211,13 @@ async function handleUnderHentaiStream(url, response) {
 }
 
 function sendJson(response, payload, status = 200, extraHeaders = {}) {
+  const cors = corsHeaders();
+  const vary = [...new Set(
+    [cors.Vary, extraHeaders.Vary]
+      .flatMap((value) => String(value || "").split(","))
+      .map((value) => value.trim())
+      .filter(Boolean)
+  )].join(", ");
   response.writeHead(status, {
     ...SECURITY_HEADERS,
     // Default to never caching an API response, but let a caller that knows
@@ -11216,7 +11227,8 @@ function sendJson(response, payload, status = 200, extraHeaders = {}) {
     "Cache-Control": "no-store, max-age=0",
     ...extraHeaders,
     "Content-Type": "application/json; charset=utf-8",
-    ...corsHeaders()
+    ...cors,
+    ...(vary ? { "Vary": vary } : {})
   });
   response.end(JSON.stringify(payload));
 }
