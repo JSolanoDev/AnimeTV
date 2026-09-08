@@ -19,6 +19,7 @@ const {
   animeAv1CachedSourceStatus,
   shouldCacheAnimeAv1SourceStatus,
   applyRegularSourceFallback,
+  applyAnimeAv1LatestInventory,
   hasVerifiedRegularSourceFallback,
   resolvedEmbedPlaybackUrl
 } = require("../animetv-server.js");
@@ -169,6 +170,64 @@ test("inventory fields are applied without replacing catalog identity", () => {
   assert.equal(item.title, "Example");
   assert.deepEqual(item.sourceEpisodeIds, [0]);
   assert.equal(item.sourceInventoryChecked, true);
+});
+
+test("latest feed advances the exact catalog slug before the daily inventory build", () => {
+  const [updated, unrelated] = applyAnimeAv1LatestInventory([
+    {
+      id: "animeav1-current-show",
+      title: "Current Show",
+      animeAv1Slug: "current-show",
+      sourceEpisodeIds: Array.from({ length: 9 }, (_, index) => index + 1),
+      sourceEpisodeCount: 9,
+      sourcePlayableEpisodeCount: 9,
+      sourceInventoryChecked: true
+    },
+    {
+      id: "animeav1-current-show-special",
+      title: "Current Show Special",
+      animeAv1Slug: "current-show-special",
+      sourceEpisodeIds: [1],
+      sourceEpisodeCount: 1,
+      sourcePlayableEpisodeCount: 1,
+      sourceInventoryChecked: true
+    }
+  ], [{ slug: "current-show", title: "Current Show", episode: 10 }], "2026-09-08T20:00:00.000Z");
+
+  assert.deepEqual(updated.sourceEpisodeIds, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  assert.equal(updated.sourceEpisodeCount, 10);
+  assert.equal(updated.sourcePlayableEpisodeCount, 10);
+  assert.equal(updated.latestAiredEp, 10);
+  assert.deepEqual(unrelated.sourceEpisodeIds, [1]);
+});
+
+test("latest feed records an exact non-contiguous provider id without inventing gaps", () => {
+  const [updated] = applyAnimeAv1LatestInventory([{
+    id: "animeav1-gapped-show",
+    animeAv1Slug: "gapped-show",
+    sourceEpisodeIds: [1, 2, 3],
+    sourceEpisodeCount: 3,
+    sourcePlayableEpisodeCount: 3,
+    sourceInventoryChecked: true
+  }], [{ slug: "gapped-show", title: "Gapped Show", episode: 6 }]);
+
+  assert.deepEqual(updated.sourceEpisodeIds, [1, 2, 3, 6]);
+  assert.equal(updated.sourceEpisodeCount, 6);
+  assert.equal(updated.sourcePlayableEpisodeCount, 4);
+});
+
+test("latest movie route zero remains provider zero while displaying episode one", () => {
+  const [movie] = applyAnimeAv1LatestInventory([], [{
+    slug: "example-movie",
+    title: "Example Movie",
+    image: "movie.jpg",
+    episode: 0
+  }], "2026-09-08T20:00:00.000Z");
+
+  assert.equal(movie.episode, 1);
+  assert.equal(movie.format, "MOVIE");
+  assert.deepEqual(movie.sourceEpisodeIds, [0]);
+  assert.equal(movie.sourceEpisodeCount, 1);
 });
 
 test("provider route casing survives inventory lookup", () => {

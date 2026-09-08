@@ -186,6 +186,7 @@ const animeAv1SlugSearchCache = new Map(); // normalized query -> { data, ts }
 const animeAv1CatalogSearchCache = new Map(); // normalized query -> { data, ts }
 let animeAv1LatestCache = null;          // [{ slug, episode, title, image }]
 let animeAv1LatestCacheAt = 0;
+let animeAv1LatestInflight = null;
 const ANIMEAV1_LATEST_TTL_MS = 1000 * 60 * 5; // homepage "├Ültimos Episodios" ΓÇö 5 min
 let animeAv1SlugCatalogMemory = null;
 let animeAv1SlugCatalogMemoryAt = 0;
@@ -1537,6 +1538,7 @@ module.exports.shouldCacheAnimeAv1SourceStatus = shouldCacheAnimeAv1SourceStatus
 module.exports.applyRegularSourceFallback = applyRegularSourceFallback;
 module.exports.hasVerifiedRegularSourceFallback = hasVerifiedRegularSourceFallback;
 module.exports.resolvedEmbedPlaybackUrl = resolvedEmbedPlaybackUrl;
+module.exports.applyAnimeAv1LatestInventory = applyAnimeAv1LatestInventory;
 
 async function handleDailyRefresh(url, response) {
   const force = url.searchParams.get("force") === "1";
@@ -1697,18 +1699,116 @@ async function animeAv1RowsMissingFromScrape(scraped = []) {
   }
 }
 
+// The homepage feed is the provider's quickest release signal. The durable
+// inventory is rebuilt daily, so merge each observed route into its exact slug
+// without fabricating any IDs between the old tail and the new episode. This
+// also admits a brand-new homepage title before the next A-Z crawl reaches it.
+function applyAnimeAv1LatestInventory(items = [], latestItems = [], observedAt = new Date().toISOString()) {
+  const latestBySlug = new Map();
+  for (const latest of Array.isArray(latestItems) ? latestItems : []) {
+    const slug = cleanAnimeAv1Slug(latest?.slug || "");
+    const providerEpisodeId = Number(latest?.episode);
+    if (!slug || !Number.isFinite(providerEpisodeId) || providerEpisodeId < 0) continue;
+    const current = latestBySlug.get(slug);
+    if (!current || providerEpisodeId > Number(current.episode)) {
+      latestBySlug.set(slug, { ...latest, slug, episode: providerEpisodeId });
+    }
+  }
+
+  const seen = new Set();
+  const merged = (Array.isArray(items) ? items : []).map((item) => {
+    const slug = cleanAnimeAv1Slug(animeAv1SlugOf(item));
+    const latest = latestBySlug.get(slug);
+    if (!slug || !latest) return item;
+    seen.add(slug);
+
+    const providerEpisodeId = Number(latest.episode);
+    const displayEpisode = providerEpisodeId === 0 ? 1 : providerEpisodeId;
+    const sourceEpisodeIds = [...new Set([
+      ...(Array.isArray(item.sourceEpisodeIds) ? item.sourceEpisodeIds : [])
+        .map(Number)
+        .filter((number) => Number.isFinite(number) && number >= 0),
+      providerEpisodeId
+    ])].sort((a, b) => a - b);
+    const latestProviderDisplay = sourceEpisodeIds.reduce(
+      (maximum, number) => Math.max(maximum, number === 0 ? 1 : number),
+      0
+    );
+    const sourceEpisodeCount = Math.max(
+      Number(item.sourceEpisodeCount) || 0,
+      latestProviderDisplay,
+      displayEpisode
+    );
+    return {
+      ...item,
+      episode: Math.max(Number(item.episode) || 0, displayEpisode),
+      latestAiredEp: sourceEpisodeCount,
+      nextAiringEpisodeNumber: Math.max(Number(item.nextAiringEpisodeNumber) || 0, displayEpisode + 1),
+      sourceEpisodeIds,
+      sourceEpisodeCount,
+      sourcePlayableEpisodeCount: Math.max(
+        Number(item.sourcePlayableEpisodeCount) || 0,
+        sourceEpisodeIds.length
+      ),
+      sourceInventoryChecked: true,
+      sourceInventoryCheckedAt: observedAt,
+      sourceUnavailableEpisodeIds: Array.isArray(item.sourceUnavailableEpisodeIds)
+        ? item.sourceUnavailableEpisodeIds
+          .map(Number)
+          .filter((number) => Number.isFinite(number) && number >= 0 && number !== providerEpisodeId)
+        : item.sourceUnavailableEpisodeIds
+    };
+  });
+
+  for (const [slug, latest] of latestBySlug) {
+    if (seen.has(slug)) continue;
+    const providerEpisodeId = Number(latest.episode);
+    const displayEpisode = providerEpisodeId === 0 ? 1 : providerEpisodeId;
+    merged.push({
+      id: `animeav1-${slug}`,
+      title: cleanAnimeAv1Title(latest.title || "") || slugToTitle(slug),
+      image: latest.image || "",
+      banner: "",
+      source: "AnimeAV1",
+      siteUrl: `${ANIMEAV1_BASE}/media/${slug}`,
+      animeAv1Slug: slug,
+      type: providerEpisodeId === 0 ? "MOVIE" : "TV",
+      format: providerEpisodeId === 0 ? "MOVIE" : "TV",
+      genre: "anime",
+      genres: [],
+      status: providerEpisodeId === 0 ? "FINISHED" : "RELEASING",
+      episode: displayEpisode,
+      latestAiredEp: displayEpisode,
+      nextAiringEpisodeNumber: displayEpisode + 1,
+      sourceEpisodeIds: [providerEpisodeId],
+      sourceEpisodeCount: displayEpisode,
+      sourcePlayableEpisodeCount: 1,
+      sourceInventoryChecked: true,
+      sourceInventoryCheckedAt: observedAt,
+      episodes: []
+    });
+  }
+
+  return merged;
+}
+
 async function buildCatalogPayload() {
-  const [anilist, jikanAiring, jikanSeason, jikanPopular] = await Promise.allSettled([
+  const [anilist, jikanAiring, jikanSeason, jikanPopular, animeAv1Latest] = await Promise.allSettled([
     fetchAniListTrending(),
     fetchJikanPages(JIKAN_TOP_ENDPOINT, "Jikan Airing", 2),
     fetchJikanPages(JIKAN_SEASON_ENDPOINT, "Jikan Season", 2),
-    fetchJikanPages(JIKAN_POPULAR_ENDPOINT, "Jikan Popular", 2)
+    fetchJikanPages(JIKAN_POPULAR_ENDPOINT, "Jikan Popular", 2),
+    fetchAnimeAv1LatestEpisodes()
   ]);
 
   const scrapedAnimeAv1 = readScrapedRegularCatalogItems();
-  const items = [
+  const latestItems = animeAv1Latest.status === "fulfilled" ? animeAv1Latest.value : [];
+  const sourceItems = applyAnimeAv1LatestInventory([
     ...scrapedAnimeAv1,
-    ...await animeAv1RowsMissingFromScrape(scrapedAnimeAv1),
+    ...await animeAv1RowsMissingFromScrape(scrapedAnimeAv1)
+  ], latestItems);
+  const items = [
+    ...sourceItems,
     ...(anilist.status === "fulfilled" ? anilist.value : []),
     ...(jikanAiring.status === "fulfilled" ? jikanAiring.value : []),
     ...(jikanSeason.status === "fulfilled" ? jikanSeason.value : []),
@@ -1719,7 +1819,7 @@ async function buildCatalogPayload() {
   // previously good catalog.
   if (!items.length) throw new Error("All metadata upstreams returned nothing");
 
-  const merged = mergeShows(items).filter((item) => {
+  const merged = applyAnimeAv1LatestInventory(mergeShows(items), latestItems).filter((item) => {
     // AniList/Jikan enrich source-backed rows, but cannot create a card by
     // themselves. A row normally needs AnimeAV1's exact playable inventory;
     // the only exception is a versioned, episode-by-episode fallback mapping
@@ -8015,15 +8115,30 @@ async function fetchAnimeAv1LatestEpisodes() {
   if (animeAv1LatestCache && Date.now() - animeAv1LatestCacheAt < ANIMEAV1_LATEST_TTL_MS) {
     return animeAv1LatestCache;
   }
-  const upstream = await fetchWithTimeout(`${ANIMEAV1_BASE}/`, { headers: ANIMEAV1_HEADERS }, HOSTED_RUNTIME ? 7000 : 10000);
-  if (!upstream.ok) throw new Error(`AnimeAV1 homepage returned HTTP ${upstream.status}.`);
-  const html = await upstream.text();
-  const items = parseAnimeAv1Latest(html);
-  if (items.length) {
-    animeAv1LatestCache = items;
-    animeAv1LatestCacheAt = Date.now();
-  }
-  return items;
+  if (animeAv1LatestInflight) return animeAv1LatestInflight;
+  animeAv1LatestInflight = (async () => {
+    const previousSignature = JSON.stringify(
+      (animeAv1LatestCache || []).map((item) => [cleanAnimeAv1Slug(item.slug), Number(item.episode)])
+    );
+    const upstream = await fetchWithTimeout(`${ANIMEAV1_BASE}/`, { headers: ANIMEAV1_HEADERS }, HOSTED_RUNTIME ? 7000 : 10000);
+    if (!upstream.ok) throw new Error(`AnimeAV1 homepage returned HTTP ${upstream.status}.`);
+    const html = await upstream.text();
+    const items = parseAnimeAv1Latest(html);
+    if (items.length) {
+      const nextSignature = JSON.stringify(
+        items.map((item) => [cleanAnimeAv1Slug(item.slug), Number(item.episode)])
+      );
+      animeAv1LatestCache = items;
+      animeAv1LatestCacheAt = Date.now();
+      // The next catalog request must include the newly observed route instead
+      // of serving an otherwise-valid ten-minute in-memory response.
+      if (nextSignature !== previousSignature) catalogResponseCache = null;
+    }
+    return items;
+  })().finally(() => {
+    animeAv1LatestInflight = null;
+  });
+  return animeAv1LatestInflight;
 }
 
 async function handleAnimeAv1Latest(response) {

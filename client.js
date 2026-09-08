@@ -592,6 +592,11 @@ function replaceRegularCatalog(items = [], tier = "full") {
   );
   state.catalogTier = tier;
   state.shows = mergeShows([...items, ...adultItems], Infinity);
+  // The lightweight latest feed refreshes every five minutes, while the full
+  // catalog can still be yesterday's build. Re-apply those exact provider
+  // observations after every catalog replacement so a newly posted card opens
+  // a title object that already contains the same episode.
+  reconcileAnimeAv1LatestInventory(state.av1Latest, state.shows);
   // mergeShows returns NEW objects. Leaving state.activeShow pointing at the old
   // one splits an open show in two: enrichment lands on whichever copy it was
   // handed, so the watch page and the card grid disagree - one has the TMDB
@@ -677,7 +682,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=762`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=763`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2606,6 +2611,124 @@ function animeAv1CatalogSlugForShow(show = {}) {
   return String(show.animeAv1Slug || show._av1Slug || idSlug).trim().toLowerCase();
 }
 
+function animeAv1LatestEpisodeIdentity(item = {}) {
+  const providerEpisodeId = Number(item.episode);
+  if (!Number.isFinite(providerEpisodeId) || providerEpisodeId < 0) return null;
+  return {
+    providerEpisodeId,
+    // AnimeAV1 uses route /0 for some one-part movies and specials. The app
+    // presents that single release as Episode 1 while retaining provider id 0.
+    displayEpisode: providerEpisodeId === 0 ? 1 : providerEpisodeId
+  };
+}
+
+function animeAv1LatestTitleMatches(show = {}, item = {}) {
+  const latestKey = av1Key(item.title);
+  if (!latestKey) return false;
+  return [getShowTitle(show), show.title, show.romajiTitle, show.nativeTitle, ...(show.aliases || [])]
+    .filter(Boolean)
+    .some((title) => av1Key(title) === latestKey);
+}
+
+function applyAnimeAv1LatestEpisodeToShow(show, item, observedAt = Date.now()) {
+  const identity = animeAv1LatestEpisodeIdentity(item);
+  if (!show || !identity) return false;
+
+  const { providerEpisodeId, displayEpisode } = identity;
+  const previousIds = Array.isArray(show.sourceEpisodeIds) ? show.sourceEpisodeIds : [];
+  const sourceEpisodeIds = [...new Set([
+    ...previousIds.map(Number).filter((number) => Number.isFinite(number) && number >= 0),
+    providerEpisodeId
+  ])].sort((a, b) => a - b);
+  const latestProviderDisplay = sourceEpisodeIds.reduce(
+    (latest, number) => Math.max(latest, number === 0 ? 1 : number),
+    0
+  );
+  const sourceEpisodeCount = Math.max(
+    Number(show.sourceEpisodeCount) || 0,
+    latestProviderDisplay,
+    displayEpisode
+  );
+  const sourcePlayableEpisodeCount = Math.max(
+    Number(show.sourcePlayableEpisodeCount) || 0,
+    sourceEpisodeIds.length
+  );
+  const previousSignature = JSON.stringify([
+    show.sourceEpisodeIds,
+    show.sourceEpisodeCount,
+    show.sourcePlayableEpisodeCount,
+    show.latestAiredEp,
+    show.sourceInventoryChecked
+  ]);
+  const checkedAt = new Date(Number(observedAt) || Date.now()).toISOString();
+
+  show.sourceEpisodeIds = sourceEpisodeIds;
+  show.sourceEpisodeCount = sourceEpisodeCount;
+  show.sourcePlayableEpisodeCount = sourcePlayableEpisodeCount;
+  show.sourceInventoryChecked = true;
+  show.sourceInventoryCheckedAt = checkedAt;
+  show.latestAiredEp = sourceEpisodeCount;
+  show.episode = Math.max(Number(show.episode) || 0, displayEpisode);
+  show.nextAiringEpisodeNumber = Math.max(
+    Number(show.nextAiringEpisodeNumber) || 0,
+    displayEpisode + 1
+  );
+
+  if (Array.isArray(show.sourceUnavailableEpisodeIds)) {
+    show.sourceUnavailableEpisodeIds = show.sourceUnavailableEpisodeIds
+      .map(Number)
+      .filter((number) => Number.isFinite(number) && number >= 0 && number !== providerEpisodeId);
+  }
+
+  // A normalized catalog row ordinarily owns one provider season. Keep that
+  // nested ceiling in step too; getSeasonEpisodeLimit deliberately lets a
+  // season-level inventory override the show-level value when one is present.
+  if (Array.isArray(show.seasons) && show.seasons.length === 1) {
+    const season = show.seasons[0];
+    season.sourceEpisodeIds = [...sourceEpisodeIds];
+    season.sourceEpisodeCount = sourceEpisodeCount;
+    season.sourcePlayableEpisodeCount = sourcePlayableEpisodeCount;
+    season.sourceInventoryChecked = true;
+    season.sourceInventoryCheckedAt = checkedAt;
+  }
+
+  const nextSignature = JSON.stringify([
+    show.sourceEpisodeIds,
+    show.sourceEpisodeCount,
+    show.sourcePlayableEpisodeCount,
+    show.latestAiredEp,
+    show.sourceInventoryChecked
+  ]);
+  return previousSignature !== nextSignature;
+}
+
+function reconcileAnimeAv1LatestInventory(latestItems = [], shows = state.shows || []) {
+  if (!Array.isArray(latestItems) || !latestItems.length || !Array.isArray(shows)) return 0;
+  const bySlug = new Map();
+  shows.forEach((show) => {
+    const slug = animeAv1CatalogSlugForShow(show);
+    if (!slug) return;
+    if (!bySlug.has(slug)) bySlug.set(slug, []);
+    bySlug.get(slug).push(show);
+  });
+
+  let changed = 0;
+  latestItems.forEach((item) => {
+    const slug = String(item?.slug || "").trim().toLowerCase();
+    const candidates = bySlug.get(slug) || [];
+    if (!candidates.length || !animeAv1LatestEpisodeIdentity(item)) return;
+
+    // A provider page can be shared by separately modeled cours. Update one
+    // canonical row only: prefer the row whose own title matches the latest
+    // card, then the source-backed inventory row used by the card index.
+    const show = candidates.find((candidate) => animeAv1LatestTitleMatches(candidate, item))
+      || candidates.find((candidate) => candidate.sourceInventoryChecked)
+      || candidates[0];
+    if (applyAnimeAv1LatestEpisodeToShow(show, item, state.av1LatestAt || Date.now())) changed += 1;
+  });
+  return changed;
+}
+
 function queueLiveSearch(query) {
   const q = normalizeSearchText(query);
   if (q.length < 3) return;
@@ -2936,15 +3059,17 @@ function buildCatalogKeyIndex() {
 
 function makeAv1OnlyShow(item) {
   const sourceImage = item.image || "";
+  const identity = animeAv1LatestEpisodeIdentity(item) || { providerEpisodeId: 1, displayEpisode: 1 };
+  const { providerEpisodeId, displayEpisode } = identity;
   return {
     id: `animeav1-${item.slug}`,
     title: item.title,
     romajiTitle: item.title,
     image: animeAv1ArtworkVariant(sourceImage, "poster") || sourceImage,
     banner: animeAv1ArtworkVariant(sourceImage, "backdrop") || "",
-    episode: item.episode,
-    latestAiredEp: item.episode,
-    nextAiringEpisodeNumber: (Number(item.episode) || 0) + 1,
+    episode: displayEpisode,
+    latestAiredEp: displayEpisode,
+    nextAiringEpisodeNumber: displayEpisode + 1,
     status: "RELEASING",
     source: "AnimeAV1",
     genre: "",
@@ -2952,8 +3077,13 @@ function makeAv1OnlyShow(item) {
     colors: ["#8a5cff", "#211942"],
     description: "",
     animeAv1Slug: item.slug,
+    sourceEpisodeIds: [providerEpisodeId],
+    sourceEpisodeCount: displayEpisode,
+    sourcePlayableEpisodeCount: 1,
+    sourceInventoryChecked: true,
     _av1Slug: item.slug,
-    _av1Episode: item.episode
+    _av1Episode: displayEpisode,
+    _av1ProviderEpisode: providerEpisodeId
   };
 }
 
@@ -2978,17 +3108,20 @@ function buildAnimeAv1ReleaseCards(limit = HOME_CARD_LIMIT, { applyUiFilters = t
 
   for (const item of av1) {
     const match = idx.get(av1Key(item.title)) || idx.get(av1Key(item.slug));
+    const identity = animeAv1LatestEpisodeIdentity(item) || { providerEpisodeId: 1, displayEpisode: 1 };
+    const { providerEpisodeId, displayEpisode } = identity;
     let card;
     if (match) {
       // Reuse the rich catalog card but show AnimeAV1's episode number + open target.
       card = {
         ...match,
-        episode: item.episode,
-        latestAiredEp: item.episode,
-        nextAiringEpisodeNumber: (Number(item.episode) || 0) + 1,
+        episode: displayEpisode,
+        latestAiredEp: displayEpisode,
+        nextAiringEpisodeNumber: displayEpisode + 1,
         status: match.status || "RELEASING",
         _av1Slug: item.slug,
-        _av1Episode: item.episode
+        _av1Episode: displayEpisode,
+        _av1ProviderEpisode: providerEpisodeId
       };
     } else {
       card = registerAv1Show(makeAv1OnlyShow(item));
@@ -3047,6 +3180,7 @@ async function loadAnimeAv1Latest(force = false) {
       if (cached) {
         state.av1Latest = JSON.parse(cached);
         state.av1LatestAt = Number(cachedAt) || 0;
+        reconcileAnimeAv1LatestInventory(state.av1Latest, state.shows);
         // Paint immediately with cached data. Deeper metadata hydration is
         // delayed by scheduleVisibleMetadataWarm so it cannot compete with
         // the hero and first visible row during Speed Index measurement.
@@ -3071,6 +3205,7 @@ async function loadAnimeAv1Latest(force = false) {
       const isChanged = JSON.stringify(state.av1Latest) !== JSON.stringify(json.items);
       state.av1Latest = json.items;
       state.av1LatestAt = Date.now();
+      reconcileAnimeAv1LatestInventory(state.av1Latest, state.shows);
 
       // Save to cache
       localStorage.setItem("zenkaitv-av1-latest-cache", JSON.stringify(json.items));
@@ -3779,7 +3914,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=762";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=763";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -18341,7 +18476,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=762");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=763");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

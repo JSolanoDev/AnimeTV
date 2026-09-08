@@ -172,6 +172,7 @@ test("catalog replacement enriches the live detail object instead of orphaning i
     state,
     AdultMode: { isAdultContent: () => false },
     mergeShows: (items) => items.map((item) => ({ ...item })),
+    reconcileAnimeAv1LatestInventory() {},
     scheduleAiringEnrichment() {},
     window: { requestAnimationFrame: (callback) => callback() },
     overlay: { hidden: true }
@@ -215,6 +216,7 @@ test("full catalog arrival rebinds a colliding sequel slug to its relation ident
     state,
     AdultMode: { isAdultContent: () => false },
     mergeShows: (items) => items.map((item) => ({ ...item })),
+    reconcileAnimeAv1LatestInventory() {},
     scheduleAiringEnrichment() {},
     window: { requestAnimationFrame: (callback) => callback() },
     overlay: { hidden: false },
@@ -279,6 +281,50 @@ test("latest cards use observed source episode counts instead of a TV fallback",
   assert.equal(c.cardEpisodeNumber(airing), 9);
   assert.equal(c.cardEpisodeLabel(airing), "EP 9");
   assert.equal(c.cardEpisodeLabel({ status: "RELEASING" }), "EP TBA");
+});
+
+test("latest feed reconciles the episode into the canonical show and season", () => {
+  const state = { av1LatestAt: Date.parse("2026-09-08T20:00:00.000Z") };
+  const c = vm.createContext({
+    state,
+    Date,
+    getShowTitle: (show = {}) => show.title || "",
+    av1Key: (value) => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "")
+  });
+  vm.runInContext(
+    section(client, "function animeAv1CatalogSlugForShow(", "function queueLiveSearch("),
+    c
+  );
+
+  const show = {
+    id: "animeav1-current-show",
+    title: "Current Show",
+    animeAv1Slug: "current-show",
+    sourceEpisodeIds: Array.from({ length: 9 }, (_, index) => index + 1),
+    sourceEpisodeCount: 9,
+    sourcePlayableEpisodeCount: 9,
+    sourceInventoryChecked: true,
+    latestAiredEp: 9,
+    seasons: [{ season: 1, sourceEpisodeCount: 9, episodes: [] }]
+  };
+  const similarlyNamed = {
+    id: "animeav1-current-show-special",
+    title: "Current Show Special",
+    animeAv1Slug: "current-show-special",
+    sourceEpisodeIds: [1],
+    sourceEpisodeCount: 1,
+    sourcePlayableEpisodeCount: 1,
+    sourceInventoryChecked: true
+  };
+
+  assert.equal(c.reconcileAnimeAv1LatestInventory([
+    { slug: "current-show", title: "Current Show", episode: 10 }
+  ], [show, similarlyNamed]), 1);
+  assert.deepEqual([...show.sourceEpisodeIds], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  assert.equal(show.sourceEpisodeCount, 10);
+  assert.equal(show.latestAiredEp, 10);
+  assert.equal(show.seasons[0].sourceEpisodeCount, 10);
+  assert.deepEqual([...similarlyNamed.sourceEpisodeIds], [1]);
 });
 
 test("published source episodes override only stale future status metadata", () => {
