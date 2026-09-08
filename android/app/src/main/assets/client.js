@@ -682,7 +682,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=765`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=767`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3926,7 +3926,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=765";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=767";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4099,6 +4099,14 @@ function renderCarousel() {
   carouselOpen.dataset.openShow = String(show.id || "");
   carouselOpen.dataset.openSeason = String(target.seasonNumber || "");
   carouselOpen.dataset.openEpisode = String(target.episodeNumber || "");
+  const providerSlug = String(show._av1Slug || show.animeAv1Slug || "").trim();
+  if (providerSlug) carouselOpen.dataset.openProviderSlug = providerSlug;
+  else delete carouselOpen.dataset.openProviderSlug;
+  if (show._av1ProviderEpisode !== undefined && show._av1ProviderEpisode !== null) {
+    carouselOpen.dataset.openProviderEpisode = String(show._av1ProviderEpisode);
+  } else {
+    delete carouselOpen.dataset.openProviderEpisode;
+  }
   carouselStage.dataset.openShow = String(show.id || "");
   // Commit the clickable title only after its text, artwork and episode target
   // have all been painted. This exact object remains the click target even if an
@@ -5405,6 +5413,11 @@ function cardTemplate(show, index = 0) {
   const artStyle = `--thumb-a: ${colors[0]}; --thumb-b: ${colors[1]}; --episode-hue: ${showHue}`;
   const meta = cardMeta(show, isFavorite);
   const target = getCardTarget(show);
+  const sourceIntentSlug = String(show._av1Slug || show.animeAv1Slug || "").trim();
+  const sourceIntentEpisode = show._av1ProviderEpisode;
+  const sourceIntentAttrs = sourceIntentSlug
+    ? ` data-open-provider-slug="${escapeHtml(sourceIntentSlug)}"${sourceIntentEpisode !== undefined && sourceIntentEpisode !== null ? ` data-open-provider-episode="${escapeHtml(String(sourceIntentEpisode))}"` : ""}`
+    : "";
   const posterCandidates = getCardPosterCandidates(show);
   const deliveredCandidates = [...new Set(posterCandidates.flatMap((url) => {
     const delivered = imageDeliveryUrl(url, 400, 90);
@@ -5455,7 +5468,7 @@ function cardTemplate(show, index = 0) {
         </span>
       `;
   return `
-    <a class="show-card focusable" href="${escapeHtml(animePathForShow(show))}" style="--card-index: ${index}" data-open-show="${escapeHtml(show.id)}" data-open-season="${target.seasonNumber}" data-open-episode="${target.episodeNumber}" aria-label="Open ${title}">
+    <a class="show-card focusable" href="${escapeHtml(animePathForShow(show))}" style="--card-index: ${index}" data-open-show="${escapeHtml(show.id)}" data-open-season="${target.seasonNumber}" data-open-episode="${target.episodeNumber}"${sourceIntentAttrs} aria-label="Open ${title}">
       <span class="thumb-art" style="${artStyle}" data-artwork-title="${title}">
         ${image}
         <span class="episode-pill">${cardEpisodeLabel(show)}</span>
@@ -15074,6 +15087,53 @@ async function hydrateAnimeAv1Slug(show, options = {}) {
   return show;
 }
 
+let _playerShellPrefetched = false;
+
+function prefetchPlayerShell() {
+  if (_playerShellPrefetched) return;
+  _playerShellPrefetched = true;
+  const version = PLAYER_SHELL_VERSION ? `?v=${encodeURIComponent(PLAYER_SHELL_VERSION)}` : "";
+  ["/player/player.html", "/player/player.css", "/player/player.js"].forEach((path) => {
+    const link = document.createElement("link");
+    link.rel = "prefetch";
+    link.href = `${path}${version}`;
+    document.head.appendChild(link);
+  });
+}
+
+function warmAnimeAv1PlaybackIntent(show, target = {}) {
+  prefetchPlayerShell();
+  if (!show || !isScraperEnabled("animeav1")) return Promise.resolve(null);
+  if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) return Promise.resolve(null);
+
+  const episodeNumber = parseEpisodeNumber(target.episodeNumber);
+  const providerAnimeSlug = String(
+    target.providerAnimeSlug || show.animeAv1Slug || show._av1Slug || ""
+  ).trim();
+  if (episodeNumber === null || !providerAnimeSlug) return Promise.resolve(null);
+
+  const rawProviderEpisodeId = target.providerEpisodeId;
+  const providerEpisodeId = rawProviderEpisodeId !== undefined
+    && rawProviderEpisodeId !== null
+    && String(rawProviderEpisodeId).trim() !== ""
+    ? rawProviderEpisodeId
+    : episodeNumber;
+  const probeEpisode = {
+    canonicalEpisode: episodeNumber,
+    episode: episodeNumber,
+    providerEpisodeId,
+    providerAnimeSlug,
+    sourceOptions: []
+  };
+
+  // The real episode consumes the same cached payload when playback starts.
+  // This detached probe avoids mutating the episode list merely because a card
+  // received hover/focus, while the shared in-flight map also dedupes a quick click.
+  return Promise.resolve(attachAnimeAv1Sources(show, probeEpisode))
+    .then(() => probeEpisode)
+    .catch(() => null);
+}
+
 async function attachAnimeAv1Sources(show, episode) {
   if (!show || !episode) return;
   if (!episode.providerAnimeSlug && !show.animeAv1Slug) await hydrateAnimeAv1Slug(show, { force: true });
@@ -17121,11 +17181,16 @@ async function copyExternalUrl(externalUrl) {
   }
 }
 
-// Hover/focus prefetch for a card: warm the backdrop into cache and kick off
-// metadata hydration once, so opening the show feels instant.
-function preloadOpenShow(id) {
-  const show = state.shows.find((entry) => String(entry.id) === String(id));
+// Hover/focus prefetch for a card: warm the backdrop, player shell, exact source,
+// and metadata once so the later Play click does not begin with serial waits.
+function preloadOpenShow(id, target = {}) {
+  const wantedId = String(id);
+  const show = state.shows.find((entry) => String(entry.id) === wantedId)
+    || state.av1Shows?.get(wantedId)
+    || state.addonSections.flatMap((section) => section.items || [])
+      .find((entry) => String(entry.id) === wantedId);
   if (!show) return;
+  warmAnimeAv1PlaybackIntent(show, target);
   const preloadArtwork = () => {
     const knownBackdrop = getCarouselArtwork(show) || getWatchBackdropArtwork(show);
     if (!knownBackdrop) return;
@@ -17177,9 +17242,16 @@ function wireOpenButtons() {
     const button = buttonFrom(event);
     if (!button) return;
     const id = button.dataset.openShow;
-    if (id === _lastPreloadHoverId) return;
-    _lastPreloadHoverId = id;
-    preloadOpenShow(id);
+    const target = {
+      seasonNumber: button.dataset.openSeason,
+      episodeNumber: button.dataset.openEpisode,
+      providerAnimeSlug: button.dataset.openProviderSlug,
+      providerEpisodeId: button.dataset.openProviderEpisode
+    };
+    const preloadKey = `${id}:${target.seasonNumber || ""}:${target.episodeNumber || ""}:${target.providerEpisodeId || ""}`;
+    if (preloadKey === _lastPreloadHoverId) return;
+    _lastPreloadHoverId = preloadKey;
+    preloadOpenShow(id, target);
   };
   document.addEventListener("pointerover", onHover, { passive: true });
   // Phones do not hover. Start the same canonical preload on touch/pen press so
@@ -17543,6 +17615,7 @@ fakePlay.addEventListener("click", () => {
   const frame = document.querySelector("#videoFrame");
   const show = state.activeShow;
   if (frame && show && ep) {
+    state.playIntent = true;
     const { seasonNumber, seasonPart } = selectedSeasonIdentity(show, ep);
     const episodeNumber = ep.episode?.episode || ep.episodeIndex + 1 || 1;
     // replace, not navigate: the show already owns one history entry. Pushing
@@ -18545,7 +18618,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=765");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=767");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

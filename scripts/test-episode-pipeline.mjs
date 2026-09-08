@@ -184,17 +184,31 @@ function playbackFallbackContext({ primaryFound }) {
 
 function animeAv1SourceContext() {
   let fetchCount = 0;
+  let lastFetchUrl = "";
   let releaseFetch;
+  const prefetched = [];
   const gate = new Promise((resolve) => { releaseFetch = resolve; });
   const sandbox = vm.createContext({
     console: { warn() {} },
+    document: {
+      createElement: () => ({}),
+      head: { appendChild: (node) => prefetched.push(node.href) }
+    },
+    PLAYER_SHELL_VERSION: "765",
     _animeAv1EpisodeSourceCache: new Map(),
     _animeAv1EpisodeSourceInflight: new Map(),
     ANIMEAV1_SOURCE_TIMEOUT_MS: 6500,
+    AdultMode: { isAdultContent: () => false },
+    isScraperEnabled: () => true,
+    parseEpisodeNumber: (value) => {
+      const number = Number(value);
+      return value !== "" && Number.isFinite(number) && number >= 0 ? number : null;
+    },
     getInventoryProviderEpisodeId: (_show, episode) => episode.providerEpisodeId,
     hydrateAnimeAv1Slug: async () => {},
-    fetchWithTimeout: async () => {
+    fetchWithTimeout: async (url) => {
       fetchCount += 1;
+      lastFetchUrl = url;
       await gate;
       return {
         ok: true,
@@ -209,10 +223,16 @@ function animeAv1SourceContext() {
     }
   });
   vm.runInContext(
-    section(clientSource, "async function attachAnimeAv1Sources(", "function mergeAnimeAv1SourcesIntoEpisode("),
+    section(clientSource, "let _playerShellPrefetched", "function mergeAnimeAv1SourcesIntoEpisode("),
     sandbox
   );
-  return { sandbox, releaseFetch, getFetchCount: () => fetchCount };
+  return {
+    sandbox,
+    releaseFetch,
+    prefetched,
+    getFetchCount: () => fetchCount,
+    getLastFetchUrl: () => lastFetchUrl
+  };
 }
 
 test("1. single-season episode selection retains canonical identity", () => {
@@ -795,6 +815,45 @@ test("AnimeAV1 source warmup coalesces concurrent requests for one episode", asy
   assert.equal(first.sourceOptions.length, 1);
   assert.equal(second.sourceOptions.length, 1);
   assert.equal(sandbox._animeAv1EpisodeSourceInflight.size, 0);
+});
+
+test("AnimeAV1 card intent warms the exact provider episode for later playback", async () => {
+  const { sandbox, releaseFetch, prefetched, getFetchCount, getLastFetchUrl } = animeAv1SourceContext();
+  const show = { animeAv1Slug: "movie-example" };
+  const warmup = sandbox.warmAnimeAv1PlaybackIntent(show, {
+    episodeNumber: "1",
+    providerAnimeSlug: "movie-example",
+    providerEpisodeId: "0"
+  });
+  await Promise.resolve();
+  assert.equal(getFetchCount(), 1);
+  assert.match(getLastFetchUrl(), /episode=0/);
+  releaseFetch();
+  await warmup;
+
+  const playbackEpisode = { providerEpisodeId: 0 };
+  await sandbox.attachAnimeAv1Sources(show, playbackEpisode);
+  assert.equal(getFetchCount(), 1, "playback should reuse the intent-warmed response");
+  assert.equal(playbackEpisode.sourceOptions.length, 1);
+  assert.deepEqual(
+    prefetched,
+    [
+      "/player/player.html?v=765",
+      "/player/player.css?v=765",
+      "/player/player.js?v=765"
+    ]
+  );
+});
+
+test("the main Play action marks intent before scheduling source resolution", () => {
+  const handler = section(
+    clientSource,
+    'fakePlay.addEventListener("click",',
+    'castButton?.addEventListener("click",'
+  );
+  const intentAt = handler.indexOf("state.playIntent = true;");
+  const scheduleAt = handler.indexOf("schedulePlaybackSourceOptions(");
+  assert.ok(intentAt >= 0 && scheduleAt > intentAt);
 });
 
 test("22. catalog dedupe cannot erase a baked franchise chain", () => {
