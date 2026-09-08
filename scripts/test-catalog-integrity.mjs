@@ -12,6 +12,10 @@ const row = (id, extra = {}) => ({
   title: id.replace(/-/g, " "),
   image: `https://images.test/${id}.jpg`,
   siteUrl: `https://animeav1.com/media/${id}`,
+  sourceEpisodeIds: [1],
+  sourceEpisodeCount: 1,
+  sourcePlayableEpisodeCount: 1,
+  sourceInventoryChecked: true,
   episodes: [{ season: 1, episode: 1, title: "Episode 1", siteUrl: `https://animeav1.com/media/${id}/1` }],
   ...extra
 });
@@ -154,6 +158,25 @@ test("duplicate canonical episodes and malformed season order are rejected", () 
   assert.match(result.errors.join("\n"), /order is not contiguous/);
   assert.match(result.errors.join("\n"), /not in release order/);
   assert.match(result.errors.join("\n"), /invalid opening interval/);
+});
+
+test("a catalog row cannot publish guessed provider episodes", () => {
+  const catalog = { items: [row("alpha", {
+    sourceEpisodeIds: [1, 2],
+    sourceEpisodeCount: 12,
+    sourcePlayableEpisodeCount: 12,
+    sourceInventoryChecked: false
+  })] };
+  const result = auditCatalogIntegrity({
+    catalog,
+    previous: catalog,
+    artwork: art(["alpha"]),
+    airing: { entries: {} },
+    skipTimes: { count: 0, entries: {} }
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join("\n"), /no verified provider episode inventory/);
+  assert.match(result.errors.join("\n"), /playable count does not match/);
 });
 
 test("last-known-good restore preserves the rejected scrape", () => {

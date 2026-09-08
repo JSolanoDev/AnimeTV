@@ -22,6 +22,7 @@ import readline from "node:readline";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 const MAP = path.join(root, "scraper", "artwork-map.json");
+const CATALOG = path.join(root, "scraper", "anime_metadata.json");
 
 const args = process.argv.slice(2);
 const argOf = (n, d) => { const i = args.indexOf(n); return i >= 0 && args[i + 1] ? args[i + 1] : d; };
@@ -108,6 +109,17 @@ console.log(`database indexed: ${byAni.size} by AniList id, ${byMal.size} by MAL
 
 const raw = JSON.parse(fs.readFileSync(MAP, "utf8"));
 const entries = raw.entries || {};
+const catalogItems = JSON.parse(fs.readFileSync(CATALOG, "utf8")).items || [];
+let sourceIdentitySeeds = 0;
+for (const item of catalogItems) {
+  const malId = Number(item?.malId || 0) || null;
+  if (!malId || !item?.id) continue;
+  const entry = entries[item.id] || (entries[item.id] = {});
+  if (!entry.anilistId && !entry.malId) {
+    entry.malId = malId;
+    sourceIdentitySeeds += 1;
+  }
+}
 const keys = Object.keys(entries);
 
 let filledMeta = 0, filledMal = 0, filledGenres = 0, filledCovers = 0, noHit = 0;
@@ -129,6 +141,7 @@ for (const k of keys) {
 }
 
 console.log(`entries              : ${keys.length}`);
+console.log(`source MAL ids seeded: ${sourceIdentitySeeds}`);
 console.log(`metadata filled      : ${filledMeta}`);
 console.log(`malId backfilled     : ${filledMal}`);
 console.log(`cover fallback filled: ${filledCovers}`);

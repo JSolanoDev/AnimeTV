@@ -75,6 +75,9 @@ jobs:
       - name: Install Python dependencies
         run: pip install -r scraper/requirements.txt
 
+      - name: Test AnimeAV1 catalog discovery
+        run: python -m unittest discover -s scraper -p 'test_*.py'
+
       # ── 4. Build scraper arguments ─────────────────────────────────────────
       - name: Build scraper arguments
         id: args
@@ -146,6 +149,10 @@ jobs:
               sys.exit(0)
           print("Validation OK — ready to commit.")
           PYEOF
+
+      - name: Refresh exact playable episode inventory
+        run: npm run catalog:inventory
+        timeout-minutes: 18
 
       # New catalogue rows do not carry MAL/AniList ids. Resolve them against a
       # versioned offline database first, then let the resumable artwork builder

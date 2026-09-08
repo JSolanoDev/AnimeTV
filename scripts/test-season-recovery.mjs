@@ -57,6 +57,7 @@ function context(fetchWithTimeout = async () => ({ ok: false })) {
   });
   vm.runInContext(metadataSource, sandbox);
   vm.runInContext(section(clientSource, "function getShowSlug(", "function ensureNotFoundSection("), sandbox);
+  vm.runInContext(section(clientSource, "function bakedChainFor(", "function getFranchiseSeasonList("), sandbox);
   vm.runInContext(section(clientSource, "function ensureFranchiseShowsInCatalog(", "function validateEpisodeIntegrity("), sandbox);
   vm.runInContext(section(clientSource, "function mergeAiredEpisodeMetadata(", "// Strip a leading"), sandbox);
   vm.runInContext(section(clientSource, "function requiresSeasonScopedEpisodeMetadata(", "function applyAniListExtras("), sandbox);
@@ -75,6 +76,75 @@ test("deep links match the exact season rather than a newer title prefix", () =>
   assert.equal(c.findShowBySlugOrId("shiguang-dailiren"), null);
   c.state.addonSections = [{ items: [base] }];
   assert.equal(c.findShowBySlugOrId("shiguang-dailiren"), base);
+});
+
+test("a bare number in a standalone title is not invented as a season", () => {
+  const c = context();
+  const [normalizedThunder] = SeasonNormalization.normalizeFranchise([{
+    anilistId: 207254,
+    title: "Thunder 3",
+    format: "TV",
+    seasonYear: 2026
+  }]).groups;
+  assert.equal(normalizedThunder.seasonNumber, 1);
+  assert.equal(normalizedThunder.title, "Season 1");
+
+  const [normalizedExplicit] = SeasonNormalization.normalizeFranchise([{
+    title: "Example Season 3",
+    format: "TV"
+  }]).groups;
+  assert.equal(normalizedExplicit.seasonNumber, 3);
+  assert.equal(normalizedExplicit.title, "Season 3");
+
+  const [thunder] = c.getDetailSeasons({
+    id: "animeav1-thunder-3",
+    title: "Thunder 3",
+    sourceEpisodeCount: 9
+  });
+  assert.equal(thunder.season, 1);
+  assert.equal(thunder.title, "Episodes");
+  assert.equal(thunder.episodes.length, 9);
+
+  const [explicit] = c.getDetailSeasons({
+    id: "animeav1-example-season-3",
+    title: "Example Season 3",
+    sourceEpisodeCount: 1
+  });
+  assert.equal(explicit.season, 3);
+  assert.equal(explicit.title, "Season 3");
+});
+
+test("one absolute provider inventory is partitioned across released franchise seasons", () => {
+  const c = context();
+  const show = {
+    id: "animeav1-kinnikuman-kanpeki-choujin-shiso-hen",
+    animeAv1Slug: "kinnikuman-kanpeki-choujin-shiso-hen",
+    anilistId: 162796,
+    malId: 54730,
+    title: "Kinnikuman: Kanpeki Choujin Shiso-hen",
+    sourceInventoryChecked: true,
+    sourceEpisodeIds: Array.from({ length: 23 }, (_, index) => index),
+    sourceEpisodeCount: 22,
+    sourcePlayableEpisodeCount: 23,
+    franchiseSeasons: []
+  };
+  const chain = [
+    { anilistId: 162796, malId: 54730, title: show.title, episodes: 11, seasonYear: 2024, startedAt: 1, order: 1 },
+    { anilistId: 181886, malId: 59914, title: `${show.title} Season 2`, episodes: 11, seasonYear: 2025, startedAt: 2, order: 2 },
+    { anilistId: 196893, malId: 62206, title: `${show.title} Season 3`, episodes: 12, status: "NOT_YET_RELEASED", startedAt: 3, order: 3 }
+  ];
+  show.franchiseSeasons = chain;
+  const showsMap = new Map([[String(show.anilistId), show], [`mal-${show.malId}`, show]]);
+  c.fixtureShow = show;
+  c.fixtureShowsMap = showsMap;
+  const seasons = vm.runInContext("buildSeasonListFromBakedChain(fixtureShow, fixtureShowsMap)", c);
+  assert.equal(seasons.length, 3);
+  assert.deepEqual(Array.from(seasons[0].episodes, (episode) => episode.canonicalEpisode), [0, ...Array.from({ length: 11 }, (_, index) => index + 1)]);
+  assert.deepEqual(Array.from(seasons[1].episodes, (episode) => episode.canonicalEpisode), Array.from({ length: 11 }, (_, index) => index + 1));
+  assert.deepEqual(Array.from(seasons[1].episodes, (episode) => episode.providerEpisodeId), Array.from({ length: 11 }, (_, index) => index + 12));
+  assert.equal(seasons[1].playable, true);
+  assert.equal(seasons[2].episodes.length, 0);
+  assert.equal(seasons[2].playable, false);
 });
 
 test("related seasons missing from the main catalog retain their identity across reloads", () => {

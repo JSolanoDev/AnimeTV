@@ -93,7 +93,10 @@ await new Promise((resolve) => {
       anilistId: idFrom(o.sources, "anilist.co", /anilist\.co\/anime\/(\d+)/),
       malId: idFrom(o.sources, "myanimelist.net", /myanimelist\.net\/anime\/(\d+)/)
     };
-    if (!entry.anilistId && !entry.malId) return;
+    // Some legitimate recuts are indexed only by Kitsu/LiveChart. Keep those
+    // exact-title rows as artwork/metadata fallbacks even though they cannot
+    // establish a MAL/AniList identity.
+    if (!entry.anilistId && !entry.malId && !entry.picture) return;
     if (entry.anilistId) byAniList.set(Number(entry.anilistId), entry);
     if (entry.malId) byMal.set(Number(entry.malId), entry);
     for (const name of [o.title, ...(o.synonyms || [])]) {
@@ -115,17 +118,50 @@ console.log(`database: ${dbCount} entries, ${byBase.size} distinct base titles`)
 // ── The rows that still need an identity ───────────────────────────────────────
 const raw = JSON.parse(fs.readFileSync(MAP, "utf8"));
 const entries = raw.entries || {};
+const ov = JSON.parse(fs.readFileSync(OVERRIDES, "utf8"));
+const isTmdbOnlyOverride = (id) => Object.prototype.hasOwnProperty.call(ov.overrides || {}, id)
+  && !Number(ov.overrides[id]);
 const scraped = (JSON.parse(fs.readFileSync(SRC, "utf8")).items || [])
   .filter((i) => String(i.source || "").toLowerCase().includes("animeav1")
     || String(i.siteUrl || "").includes("animeav1.com/media/"));
 const titleOf = new Map(scraped.map((s) => [s.id, s.title]));
 
 const rowOf = new Map(scraped.map((s) => [s.id, s]));
+// AnimeAV1 embeds the exact MAL id on each title page. The episode-inventory
+// pass copies it onto the catalog row, making it stronger than any title-based
+// guess below. Seed (or repair) the artwork identity before selecting fuzzy
+// targets so a localized title can never inherit another season's artwork.
+let sourceIdentitySeeds = 0;
+let sourceIdentityRepairs = 0;
+for (const row of scraped) {
+  const sourceMalId = Number(row.malId || 0) || null;
+  if (!sourceMalId) continue;
+  const exact = byMal.get(sourceMalId) || null;
+  const mapped = entries[row.id] || (entries[row.id] = {});
+  const mismatch = (mapped.malId && Number(mapped.malId) !== sourceMalId)
+    || (exact?.anilistId && mapped.anilistId && Number(mapped.anilistId) !== Number(exact.anilistId));
+  if (mismatch) {
+    for (const key of [
+      "tmdbId", "tmdbBackdrop", "tmdbPoster", "anilistBanner", "anilistCover",
+      "bestScore", "bestName", "confidence", "matchedName", "season"
+    ]) delete mapped[key];
+    mapped.status = "identity-repaired";
+    sourceIdentityRepairs += 1;
+  }
+  if (!mapped.malId && !mapped.anilistId) sourceIdentitySeeds += 1;
+  mapped.malId = sourceMalId;
+  if (exact?.anilistId) {
+    mapped.anilistId = exact.anilistId;
+    ov.overrides[row.id] = exact.anilistId;
+  }
+  if (exact?.picture) mapped.metadataCover = exact.picture;
+}
+console.log(`source MAL identities: ${sourceIdentitySeeds} seeded, ${sourceIdentityRepairs} repaired`);
 // Start from the fresh scrape, not only keys already present in artwork-map.
 // Otherwise a title posted today can never enter the identity pipeline: it has
 // no map key yet, so yesterday's implementation silently skipped it forever.
 const targets = scraped
-  .filter((row) => !entries[row.id]?.anilistId && !entries[row.id]?.malId)
+  .filter((row) => !isTmdbOnlyOverride(row.id) && !entries[row.id]?.anilistId && !entries[row.id]?.malId)
   .map((row) => ({ slug: row.id, title: row.title || "", year: row.year || null }))
   .filter((t) => t.title);
 console.log(`rows with no identity at all: ${targets.length}`);
@@ -144,7 +180,10 @@ for (const row of scraped) {
   const candidate = chooseExactIdentityRepair({
     title: row.title,
     current,
-    candidates: byExact.get(normalizeOfflineTitle(row.title)) || []
+    // Artwork-only rows may fill a blank card, but must never erase a stable
+    // identity that was already established by MAL/AniList.
+    candidates: (byExact.get(normalizeOfflineTitle(row.title)) || [])
+      .filter((entry) => entry.anilistId || entry.malId)
   });
   if (!candidate) continue;
   repairs.push({
@@ -256,7 +295,6 @@ if (!WRITE) { console.log("\n(dry run - pass --write to apply)"); process.exit(0
 // ── Apply ──────────────────────────────────────────────────────────────────────
 // Ids go into the override file so a future build-artwork-map run reuses them, and
 // straight into the map so the fix lands without waiting for AniList to come back.
-const ov = JSON.parse(fs.readFileSync(OVERRIDES, "utf8"));
 const AOD_STATUS = { FINISHED: "FINISHED", ONGOING: "RELEASING", UPCOMING: "NOT_YET_RELEASED" };
 const metadataFromOffline = (entry) => ({
   malId: entry.malId || null,
@@ -313,6 +351,7 @@ for (const r of repairs) {
 }
 let seasonHints = 0;
 let identityTitleSets = 0;
+let metadataHydrated = 0;
 for (const row of scraped) {
   const entry = entries[row.id];
   if (!entry) continue;
@@ -320,6 +359,13 @@ for (const row of scraped) {
     || ((entry.malId || entry.meta?.malId) && byMal.get(Number(entry.malId || entry.meta?.malId)))
     || null;
   const seasonNumber = explicitOfflineSeasonNumber(identity || {});
+  if (identity && (!entry.meta || Number(entry.anilistId || 0) === Number(identity.anilistId || 0))) {
+    const nextMeta = metadataFromOffline(identity);
+    if (!entry.meta || entry.meta._via === "offline-db") entry.meta = nextMeta;
+    if (!entry.malId && identity.malId) entry.malId = identity.malId;
+    if (!entry.metadataCover && identity.picture) entry.metadataCover = identity.picture;
+    metadataHydrated += 1;
+  }
   if (seasonNumber && Number(entry.canonicalSeasonNumber) !== seasonNumber) {
     entry.canonicalSeasonNumber = seasonNumber;
     seasonHints++;
@@ -333,4 +379,4 @@ for (const row of scraped) {
 fs.writeFileSync(OVERRIDES, JSON.stringify(ov, null, 2));
 raw.entries = entries;
 fs.writeFileSync(MAP, JSON.stringify(raw, null, 2));
-console.log(`\napplied ${applied} new identities, repaired ${repaired} stale identities, refreshed ${seasonHints} season hints, and indexed ${identityTitleSets} title sets`);
+console.log(`\napplied ${applied} new identities, repaired ${repaired} stale identities, hydrated ${metadataHydrated} metadata rows, refreshed ${seasonHints} season hints, and indexed ${identityTitleSets} title sets`);

@@ -126,7 +126,12 @@ function normalizeExternalShow(item, source, index) {
     anilistEpisodeCount: item.anilistEpisodeCount || null,
     // How many episodes the SOURCE actually serves, probed at build time. Not a
     // metadata guess: an airing show's planned total is not what is playable.
-    sourceEpisodeCount: item.sourceEpisodeCount || null,
+    sourceEpisodeCount: item.sourceEpisodeCount ?? null,
+    sourcePlayableEpisodeCount: item.sourcePlayableEpisodeCount ?? null,
+    sourceEpisodeIds: Array.isArray(item.sourceEpisodeIds)
+      ? item.sourceEpisodeIds.map(Number).filter((number) => Number.isFinite(number) && number >= 0)
+      : null,
+    sourceInventoryChecked: Boolean(item.sourceInventoryChecked),
     // When the source last published an episode.
     lastEpisodeAt: item.lastEpisodeAt || "",
     // The broadcast slot the Weekly Schedule is rebuilt from.
@@ -564,6 +569,7 @@ function comparePlaybackSources(a = {}, b = {}) {
 function playbackSourceRank(source = {}) {
   const endpoint = `${source.streamResolver?.endpoint || ""} ${source.videoUrl || ""} ${source.externalUrl || ""}`.toLowerCase();
   const label = `${source.id || ""} ${source.label || ""} ${source.streamResolver?.type || ""} ${endpoint}`.toLowerCase();
+  if (label.includes("hentaiocean") || label.includes("hentai ocean")) return 95;
   if (label.includes("veohentai") || label.includes("hentaiplayer") || label.includes("1hanime")) return 1;
   if (label.includes("hentaila")) return 2;
   if (label.includes("underhentai")) return 3;

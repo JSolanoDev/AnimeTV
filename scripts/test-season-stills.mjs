@@ -112,6 +112,24 @@ checkNoThrow("undefined show resolves", () => ensure(undefined, 1));
   }
 }
 
+// TMDB inserts the Bridon arc as physical Season 3, so Link Click's canonical
+// third season must select physical Season 4 rather than the live-action show or
+// Bridon's episode art.
+{
+  const tmdbShow = { seasons: [
+    { season_number: 1, episode_count: 11, name: "Link Click", air_date: "2021-04-30" },
+    { season_number: 2, episode_count: 12, name: "Link Click 2", air_date: "2023-07-14" },
+    { season_number: 3, episode_count: 6, name: "Bridon Arc", air_date: "2024-12-27" },
+    { season_number: 4, episode_count: 12, name: "Link Click 3", air_date: "2026-08-14" }
+  ] };
+  const result = ImageResolver.pickTmdbSeason({
+    title: "Shiguang Dailiren III",
+    englishTitle: "Link Click Season 3",
+    canonicalSeasonNumber: 3
+  }, tmdbShow);
+  check("Link Click app Season 3 maps past Bridon to TMDB Season 4", result.season?.season_number, 4);
+}
+
 {
   const unsafe = ImageResolver.pickTmdbSeason({
     title: "Unrelated Earlier Series",

@@ -6,6 +6,8 @@ import vm from "node:vm";
 
 const ROOT = process.argv[2] || ".";
 const src = fs.readFileSync(ROOT + "/client.js", "utf8");
+const appCss = fs.readFileSync(ROOT + "/styles.css", "utf8");
+const playerCss = fs.readFileSync(ROOT + "/player/player.css", "utf8");
 
 const start = src.indexOf("const PLAYER_POSTER_MAX_LENGTH");
 if (start < 0) { console.error("MISS PLAYER_POSTER_MAX_LENGTH"); process.exit(1); }
@@ -51,6 +53,18 @@ check("buildPlayerUrl routes the poster through the guard",
   /const posterParam = playerPosterParam\(options\.poster\);\s*\r?\n\s*if \(posterParam\) playerUrl\.searchParams\.set\("poster", posterParam\);/.test(src), true);
 check("no unguarded poster assignment remains",
   /searchParams\.set\("poster", options\.poster\)/.test(src), false);
+check("mobile playback stacks the player before episodes",
+  /body\.player-cinema-open \.watch-overlay\.cinematic \.watch-stage\s*\{\s*display:\s*none;/.test(appCss), true);
+check("mobile Latest Episodes does not force a blank viewport",
+  /#latest\.is-last-band\s*\{\s*min-height:\s*0;\s*justify-content:\s*flex-start;/.test(appCss), true);
+check("compact player labels obey both corner insets",
+  /\.ztv-floating-label\s*\{[\s\S]*?width:\s*auto;/.test(playerCss), true);
+check("narrow controls reserve room for fullscreen",
+  /@media \(max-width:\s*560px\)[\s\S]*?\.art-control-rewind-10,[\s\S]*?display:\s*none\s*!important;/.test(playerCss), true);
+check("source resolution uses the current player loader without provider copy",
+  /class="ztv-stream-loader"[\s\S]*?Loading stream\.\.\.[\s\S]*?:\s*`<div class="play-symbol"/.test(src), true);
+check("source resolution loader stays compact and quick",
+  /\.ztv-stream-loader-mark\s*>\s*span[\s\S]*?animation:\s*ztv-stream-loader-spin\s+0\.82s/.test(appCss), true);
 
 /* ---- a realistic URL stays well under the header limit ---- */
 {

@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-09-07T22:46:23.477Z",
-  "count": 915,
+  "generatedAt": "2026-09-08T01:50:12.565Z",
+  "count": 938,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -50,6 +50,52 @@
         }
       ],
       "sourceEpisodeCount": 10
+    },
+    "animeav1-shiguang-dailiren-iii": {
+      "anilistId": 191832,
+      "airingStatus": "RELEASING",
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 126403,
+          "title": "Shiguang Dailiren",
+          "format": "ONA",
+          "status": "",
+          "episodes": 11,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617235200000,
+          "order": 1
+        },
+        {
+          "anilistId": 136484,
+          "title": "Shiguang Dailiren II",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 2
+        },
+        {
+          "anilistId": 191832,
+          "title": "Shiguang Dailiren III",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 3
+        }
+      ],
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-09-04T03:23:23.489Z"
     },
     "animeav1-bleach-sennen-kessen-hen-kashin-tan": {
       "anilistId": 185874,
@@ -2031,6 +2077,62 @@
         }
       ],
       "sourceEpisodeCount": 12
+    },
+    "animeav1-shuumatsu-no-walkure-iii": {
+      "anilistId": 187921,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 15,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 127399,
+          "title": "Shuumatsu no Walküre",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617235200000,
+          "order": 1
+        },
+        {
+          "anilistId": 138056,
+          "title": "Shuumatsu no Walküre II",
+          "format": "ONA",
+          "status": "",
+          "episodes": 10,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1672531200000,
+          "order": 2
+        },
+        {
+          "anilistId": 165356,
+          "title": "Shuumatsu no Walküre II Part 2",
+          "format": "ONA",
+          "status": "",
+          "episodes": 5,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 3
+        },
+        {
+          "anilistId": 187921,
+          "title": "Shuumatsu no Walküre III",
+          "format": "ONA",
+          "status": "",
+          "episodes": 15,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 4
+        }
+      ],
+      "sourceEpisodeCount": 15
     },
     "animeav1-isekai-quartet-3": {
       "anilistId": 194447,
@@ -4777,6 +4879,39 @@
         }
       ]
     },
+    "animeav1-sword-art-online-alternative-gun-gale-online-ii": {
+      "anilistId": 167141,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 100183,
+          "title": "Sword Art Online Alternative: Gun Gale Online",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2018,
+          "startedAt": 1522540800000,
+          "order": 1
+        },
+        {
+          "anilistId": 167141,
+          "title": "Sword Art Online Alternative: Gun Gale Online II",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727740800000,
+          "order": 2
+        }
+      ]
+    },
     "animeav1-kabushikigaisha-magi-lumiere": {
       "anilistId": 171025,
       "airingStatus": "",
@@ -5181,6 +5316,50 @@
           "seasonYear": null,
           "startedAt": 0,
           "order": 2
+        }
+      ]
+    },
+    "animeav1-kinnikuman-kanpeki-choujin-shiso-hen": {
+      "anilistId": 162796,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 11,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 162796,
+          "title": "Kinnikuman: Kanpeki Choujin Shiso-hen",
+          "format": "TV",
+          "status": "",
+          "episodes": 11,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1719792000000,
+          "order": 1
+        },
+        {
+          "anilistId": 181886,
+          "title": "Kinnikuman: Kanpeki Choujin Shiso-hen Season 2",
+          "format": "TV",
+          "status": "",
+          "episodes": 11,
+          "season": "WINTER",
+          "seasonYear": 2025,
+          "startedAt": 1735689600000,
+          "order": 2
+        },
+        {
+          "anilistId": 196893,
+          "title": "Kinnikuman: Kanpeki Choujin Shiso-hen Season 3",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "UNDEFINED",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 3
         }
       ]
     },
@@ -6646,6 +6825,39 @@
         }
       ]
     },
+    "animeav1-kekkon-yubiwa-monogatari": {
+      "anilistId": 160389,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 160389,
+          "title": "Kekkon Yubiwa Monogatari",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1704067200000,
+          "order": 1
+        },
+        {
+          "anilistId": 176298,
+          "title": "Kekkon Yubiwa Monogatari II",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 2
+        }
+      ]
+    },
     "animeav1-yubisaki-to-renren": {
       "anilistId": 166794,
       "airingStatus": "",
@@ -7665,6 +7877,50 @@
           "seasonYear": 2023,
           "startedAt": 1688169600000,
           "order": 2
+        }
+      ]
+    },
+    "animeav1-shiguang-dailiren-ii": {
+      "anilistId": 136484,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 126403,
+          "title": "Shiguang Dailiren",
+          "format": "ONA",
+          "status": "",
+          "episodes": 11,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617235200000,
+          "order": 1
+        },
+        {
+          "anilistId": 136484,
+          "title": "Shiguang Dailiren II",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 2
+        },
+        {
+          "anilistId": 191832,
+          "title": "Shiguang Dailiren III",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 3
         }
       ]
     },
@@ -8949,6 +9205,39 @@
         }
       ]
     },
+    "animeav1-hyouken-no-majutsushi-ga-sekai-wo-suberu": {
+      "anilistId": 148116,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 148116,
+          "title": "Hyouken no Majutsushi ga Sekai wo Suberu",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1672531200000,
+          "order": 1
+        },
+        {
+          "anilistId": 212503,
+          "title": "Hyouken no Majutsushi ga Sekai wo Suberu II",
+          "format": "TV",
+          "status": "",
+          "episodes": null,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1790812800000,
+          "order": 2
+        }
+      ]
+    },
     "animeav1-spy-kyoushitsu": {
       "anilistId": 146323,
       "airingStatus": "",
@@ -10085,6 +10374,39 @@
           "season": "SPRING",
           "seasonYear": 2023,
           "startedAt": 1680307200000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-jashin-chan-dropkick-x": {
+      "anilistId": 124641,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 107294,
+          "title": "Jashin-chan Dropkick'",
+          "format": "TV",
+          "status": "",
+          "episodes": 11,
+          "season": "SPRING",
+          "seasonYear": 2020,
+          "startedAt": 1585699200000,
+          "order": 1
+        },
+        {
+          "anilistId": 124641,
+          "title": "Jashin-chan Dropkick X",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2022,
+          "startedAt": 1656633600000,
           "order": 2
         }
       ]
@@ -11994,6 +12316,50 @@
         }
       ]
     },
+    "anilist-21507": {
+      "anilistId": 21507,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2016,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 21507,
+          "title": "Mob Psycho 100",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2016,
+          "startedAt": 1467331200000,
+          "order": 1
+        },
+        {
+          "anilistId": 101338,
+          "title": "Mob Psycho 100 II",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2019,
+          "startedAt": 1546300800000,
+          "order": 2
+        },
+        {
+          "anilistId": 140439,
+          "title": "Mob Psycho 100 III",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2022,
+          "startedAt": 1664582400000,
+          "order": 3
+        }
+      ]
+    },
     "anilist-21450": {
       "anilistId": 21450,
       "airingStatus": "",
@@ -12697,6 +13063,17 @@
           "seasonYear": 2019,
           "startedAt": 1561939200000,
           "order": 2
+        },
+        {
+          "anilistId": 112124,
+          "title": "Dungeon ni Deai wo Motomeru no wa Machigatteiru Darou ka III",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2020,
+          "startedAt": 1601510400000,
+          "order": 3
         }
       ]
     },
@@ -16032,6 +16409,39 @@
         }
       ],
       "sourceEpisodeCount": 13
+    },
+    "anilist-160389": {
+      "anilistId": 160389,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 160389,
+          "title": "Kekkon Yubiwa Monogatari",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1704067200000,
+          "order": 1
+        },
+        {
+          "anilistId": 176298,
+          "title": "Kekkon Yubiwa Monogatari II",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 2
+        }
+      ]
     },
     "anilist-176298": {
       "anilistId": 176298,
@@ -20630,6 +21040,50 @@
           "seasonYear": 2021,
           "startedAt": 1609459200000,
           "order": 2
+        }
+      ]
+    },
+    "anilist-101167": {
+      "anilistId": 101167,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2019,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 20920,
+          "title": "Dungeon ni Deai wo Motomeru no wa Machigatteiru Darou ka",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "SPRING",
+          "seasonYear": 2015,
+          "startedAt": 1427846400000,
+          "order": 1
+        },
+        {
+          "anilistId": 101167,
+          "title": "Dungeon ni Deai wo Motomeru no wa Machigatteiru Darou ka II",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2019,
+          "startedAt": 1561939200000,
+          "order": 2
+        },
+        {
+          "anilistId": 112124,
+          "title": "Dungeon ni Deai wo Motomeru no wa Machigatteiru Darou ka III",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2020,
+          "startedAt": 1601510400000,
+          "order": 3
         }
       ]
     },
@@ -29060,17 +29514,602 @@
         }
       ]
     },
-    "animeav1-shiguang-dailiren-iii": {
-      "anilistId": null,
+    "anilist-126403": {
+      "anilistId": 126403,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 11,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 126403,
+          "title": "Shiguang Dailiren",
+          "format": "ONA",
+          "status": "",
+          "episodes": 11,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617235200000,
+          "order": 1
+        },
+        {
+          "anilistId": 136484,
+          "title": "Shiguang Dailiren II",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 2
+        },
+        {
+          "anilistId": 191832,
+          "title": "Shiguang Dailiren III",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 3
+        }
+      ]
+    },
+    "anilist-136484": {
+      "anilistId": 136484,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 126403,
+          "title": "Shiguang Dailiren",
+          "format": "ONA",
+          "status": "",
+          "episodes": 11,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617235200000,
+          "order": 1
+        },
+        {
+          "anilistId": 136484,
+          "title": "Shiguang Dailiren II",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 2
+        },
+        {
+          "anilistId": 191832,
+          "title": "Shiguang Dailiren III",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 3
+        }
+      ]
+    },
+    "anilist-191832": {
+      "anilistId": 191832,
       "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
+      "season": "SUMMER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 126403,
+          "title": "Shiguang Dailiren",
+          "format": "ONA",
+          "status": "",
+          "episodes": 11,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617235200000,
+          "order": 1
+        },
+        {
+          "anilistId": 136484,
+          "title": "Shiguang Dailiren II",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 2
+        },
+        {
+          "anilistId": 191832,
+          "title": "Shiguang Dailiren III",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2026,
+          "startedAt": 1782864000000,
+          "order": 3
+        }
+      ],
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-09-04T03:23:23.489Z"
+    },
+    "anilist-127399": {
+      "anilistId": 127399,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 127399,
+          "title": "Shuumatsu no Walküre",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617235200000,
+          "order": 1
+        },
+        {
+          "anilistId": 138056,
+          "title": "Shuumatsu no Walküre II",
+          "format": "ONA",
+          "status": "",
+          "episodes": 10,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1672531200000,
+          "order": 2
+        },
+        {
+          "anilistId": 165356,
+          "title": "Shuumatsu no Walküre II Part 2",
+          "format": "ONA",
+          "status": "",
+          "episodes": 5,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 3
+        },
+        {
+          "anilistId": 187921,
+          "title": "Shuumatsu no Walküre III",
+          "format": "ONA",
+          "status": "",
+          "episodes": 15,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-138056": {
+      "anilistId": 138056,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 10,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 127399,
+          "title": "Shuumatsu no Walküre",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617235200000,
+          "order": 1
+        },
+        {
+          "anilistId": 138056,
+          "title": "Shuumatsu no Walküre II",
+          "format": "ONA",
+          "status": "",
+          "episodes": 10,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1672531200000,
+          "order": 2
+        },
+        {
+          "anilistId": 165356,
+          "title": "Shuumatsu no Walküre II Part 2",
+          "format": "ONA",
+          "status": "",
+          "episodes": 5,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 3
+        },
+        {
+          "anilistId": 187921,
+          "title": "Shuumatsu no Walküre III",
+          "format": "ONA",
+          "status": "",
+          "episodes": 15,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-165356": {
+      "anilistId": 165356,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 5,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 127399,
+          "title": "Shuumatsu no Walküre",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617235200000,
+          "order": 1
+        },
+        {
+          "anilistId": 138056,
+          "title": "Shuumatsu no Walküre II",
+          "format": "ONA",
+          "status": "",
+          "episodes": 10,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1672531200000,
+          "order": 2
+        },
+        {
+          "anilistId": 165356,
+          "title": "Shuumatsu no Walküre II Part 2",
+          "format": "ONA",
+          "status": "",
+          "episodes": 5,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 3
+        },
+        {
+          "anilistId": 187921,
+          "title": "Shuumatsu no Walküre III",
+          "format": "ONA",
+          "status": "",
+          "episodes": 15,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-187921": {
+      "anilistId": 187921,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 15,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 127399,
+          "title": "Shuumatsu no Walküre",
+          "format": "ONA",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617235200000,
+          "order": 1
+        },
+        {
+          "anilistId": 138056,
+          "title": "Shuumatsu no Walküre II",
+          "format": "ONA",
+          "status": "",
+          "episodes": 10,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1672531200000,
+          "order": 2
+        },
+        {
+          "anilistId": 165356,
+          "title": "Shuumatsu no Walküre II Part 2",
+          "format": "ONA",
+          "status": "",
+          "episodes": 5,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688169600000,
+          "order": 3
+        },
+        {
+          "anilistId": 187921,
+          "title": "Shuumatsu no Walküre III",
+          "format": "ONA",
+          "status": "",
+          "episodes": 15,
+          "season": "FALL",
+          "seasonYear": 2025,
+          "startedAt": 1759276800000,
+          "order": 4
+        }
+      ],
+      "sourceEpisodeCount": 15
+    },
+    "anilist-100183": {
+      "anilistId": 100183,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2018,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 100183,
+          "title": "Sword Art Online Alternative: Gun Gale Online",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2018,
+          "startedAt": 1522540800000,
+          "order": 1
+        },
+        {
+          "anilistId": 167141,
+          "title": "Sword Art Online Alternative: Gun Gale Online II",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727740800000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-167141": {
+      "anilistId": 167141,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 100183,
+          "title": "Sword Art Online Alternative: Gun Gale Online",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2018,
+          "startedAt": 1522540800000,
+          "order": 1
+        },
+        {
+          "anilistId": 167141,
+          "title": "Sword Art Online Alternative: Gun Gale Online II",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727740800000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-148116": {
+      "anilistId": 148116,
+      "airingStatus": "",
+      "season": "WINTER",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 148116,
+          "title": "Hyouken no Majutsushi ga Sekai wo Suberu",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1672531200000,
+          "order": 1
+        },
+        {
+          "anilistId": 212503,
+          "title": "Hyouken no Majutsushi ga Sekai wo Suberu II",
+          "format": "TV",
+          "status": "",
+          "episodes": null,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1790812800000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-212503": {
+      "anilistId": 212503,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2026,
       "anilistEpisodeCount": null,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-09-04T03:23:23.489Z"
+      "franchiseSeasons": [
+        {
+          "anilistId": 148116,
+          "title": "Hyouken no Majutsushi ga Sekai wo Suberu",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1672531200000,
+          "order": 1
+        },
+        {
+          "anilistId": 212503,
+          "title": "Hyouken no Majutsushi ga Sekai wo Suberu II",
+          "format": "TV",
+          "status": "",
+          "episodes": null,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1790812800000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-107294": {
+      "anilistId": 107294,
+      "airingStatus": "",
+      "season": "SPRING",
+      "seasonYear": 2020,
+      "anilistEpisodeCount": 11,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 107294,
+          "title": "Jashin-chan Dropkick'",
+          "format": "TV",
+          "status": "",
+          "episodes": 11,
+          "season": "SPRING",
+          "seasonYear": 2020,
+          "startedAt": 1585699200000,
+          "order": 1
+        },
+        {
+          "anilistId": 124641,
+          "title": "Jashin-chan Dropkick X",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2022,
+          "startedAt": 1656633600000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-124641": {
+      "anilistId": 124641,
+      "airingStatus": "",
+      "season": "SUMMER",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 107294,
+          "title": "Jashin-chan Dropkick'",
+          "format": "TV",
+          "status": "",
+          "episodes": 11,
+          "season": "SPRING",
+          "seasonYear": 2020,
+          "startedAt": 1585699200000,
+          "order": 1
+        },
+        {
+          "anilistId": 124641,
+          "title": "Jashin-chan Dropkick X",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2022,
+          "startedAt": 1656633600000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-112124": {
+      "anilistId": 112124,
+      "airingStatus": "",
+      "season": "FALL",
+      "seasonYear": 2020,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 20920,
+          "title": "Dungeon ni Deai wo Motomeru no wa Machigatteiru Darou ka",
+          "format": "TV",
+          "status": "",
+          "episodes": 13,
+          "season": "SPRING",
+          "seasonYear": 2015,
+          "startedAt": 1427846400000,
+          "order": 1
+        },
+        {
+          "anilistId": 101167,
+          "title": "Dungeon ni Deai wo Motomeru no wa Machigatteiru Darou ka II",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2019,
+          "startedAt": 1561939200000,
+          "order": 2
+        },
+        {
+          "anilistId": 112124,
+          "title": "Dungeon ni Deai wo Motomeru no wa Machigatteiru Darou ka III",
+          "format": "TV",
+          "status": "",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2020,
+          "startedAt": 1601510400000,
+          "order": 3
+        }
+      ]
     },
     "animeav1-futsutsuka-na-akujo-dewa-gozaimasu-ga-suuguu-chouso-torikae-den": {
       "anilistId": null,
@@ -30674,17 +31713,6 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 14
-    },
-    "animeav1-shuumatsu-no-walkure-iii": {
-      "anilistId": 187921,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 15
     },
     "animeav1-fujimoto-tatsuki-17-26": {
       "anilistId": 198188,

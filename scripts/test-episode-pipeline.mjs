@@ -95,6 +95,25 @@ function navigationContext(seasons, selected) {
   return sandbox;
 }
 
+function searchContext(shows, query) {
+  const sourceSearchMatches = new Map();
+  const sandbox = vm.createContext({
+    state: { shows, search: query },
+    getShowTitle: (show = {}) => show.englishTitle || show.title || "",
+    _animeAv1CatalogSearchMatches: sourceSearchMatches,
+    animeAv1CatalogSlugForShow: (show = {}) => {
+      const idSlug = String(show.id || "").match(/^animeav1-(.+)$/i)?.[1] || "";
+      return String(show.animeAv1Slug || show._av1Slug || idSlug).trim().toLowerCase();
+    }
+  });
+  vm.runInContext(
+    section(clientSource, "function normalizeSearchText(", "// ── Live AniList search"),
+    sandbox
+  );
+  sandbox.sourceSearchMatches = sourceSearchMatches;
+  return sandbox;
+}
+
 test("1. single-season episode selection retains canonical identity", () => {
   const { pipeline } = normalizationContext();
   const seasons = pipeline.normalizeSeasons({
@@ -262,6 +281,44 @@ test("13. AV1 remains available but ranks behind supported H264 when unsupported
     if (previous === undefined) delete globalThis.MediaSource;
     else globalThis.MediaSource = previous;
   }
+});
+
+test("6b. catalog search tolerates a one-letter title typo without dropping another token", () => {
+  const liarGame = { title: "Liar Game", aliases: ["LIAR GAME"] };
+  const unrelated = { title: "Darling in the Franxx" };
+  const context = searchContext([liarGame, unrelated], "lier game");
+  assert.equal(context.matchesShowSearch(liarGame), true);
+  assert.equal(context.matchesShowSearch(unrelated), false);
+  context.state.search = "liar game";
+  assert.equal(context.matchesShowSearch(liarGame), true);
+});
+
+test("6c. AnimeAV1 source results expand matches beyond visible local titles", () => {
+  const sourceOnlyMatch = { id: "animeav1-dragon-ball-daima", title: "Daima" };
+  const context = searchContext([sourceOnlyMatch], "Dragon Ball");
+  context.sourceSearchMatches.set("dragon ball", new Set(["dragon-ball-daima"]));
+  assert.equal(context.matchesShowSearch(sourceOnlyMatch), true);
+});
+
+test("13b. Hentai Ocean remains behind the UnderHentai primary source", () => {
+  const underHentai = {
+    id: "underhentai-release",
+    label: "UnderHentai",
+    type: "resolver",
+    streamResolver: { type: "underhentai", endpoint: "/api/adult/underhentai/stream?episode=1" }
+  };
+  const hentaiOcean = {
+    id: "hentaiocean-av01-sample-1",
+    label: "Hentai Ocean AV1",
+    provider: "Hentai Ocean",
+    type: "direct",
+    videoUrl: "/api/source?url=https%3A%2F%2Fw2.hentaiocean.com%2Fvideo%2Fsample.mp4",
+    codec: "av01"
+  };
+  assert.ok(
+    sourceClassification.sourcePreferenceScore(underHentai) < sourceClassification.sourcePreferenceScore(hentaiOcean),
+    "secondary direct media must not displace the primary resolver"
+  );
 });
 
 test("14. next episode follows 12 to 12.5 instead of adding one", () => {
@@ -723,4 +780,59 @@ test("related-season direct URLs rebuild from relations and reject corrupt route
   const resolved = sandbox.findShowBySlugOrId("mushoku-tensei-ii-isekai-ittara-honki-dasu-part-2");
   assert.equal(resolved.id, "anilist-166873");
   assert.equal(resolved.anilistId, 166873);
+});
+
+test("stale Continue Watching seasons reconcile against authoritative catalog seasons", () => {
+  const thunder = {
+    id: "animeav1-thunder-3",
+    anilistId: 207254,
+    malId: 62805,
+    title: "Thunder 3",
+    image: "https://images.test/thunder-3-poster.jpg",
+    seasonNumber: 1,
+    seasons: [{
+      season: 1,
+      episodes: [{ episode: 1, title: "SMALL THREE", thumbnail: "https://images.test/thunder-3-e1.jpg" }]
+    }]
+  };
+  const state = { shows: [thunder] };
+  const sandbox = vm.createContext({
+    state,
+    Date,
+    findShowForWatchEntry: () => thunder,
+    parseEpisodeNumber: (value, fallback = null) => Number.isFinite(Number(value)) ? Number(value) : fallback,
+    buildWatchKey: (show, season, episode) => `${show.id}:s${season}:e${episode}`,
+    getDetailSeasons: (show) => show.seasons,
+    getCanonicalEpisodeNumber: (episode, fallback = null) => Number(episode?.episode ?? fallback),
+    getAnimeTrackId: (show) => show.id,
+    getShowTitle: (show) => show.title,
+    episodeThumb: (episode) => episode.thumbnail,
+    sanitizeWatchEntry() {}
+  });
+  vm.runInContext(
+    section(clientSource, "function authoritativeWatchSeason(", "function getContinueWatchingList("),
+    sandbox
+  );
+
+  const map = {
+    "animeav1-thunder-3:s3:e1": {
+      episodeKey: "animeav1-thunder-3:s3:e1",
+      showId: "animeav1-thunder-3",
+      title: "Thunder 3",
+      season: 3,
+      episode: 1,
+      progress: 42,
+      lastWatchedAt: 10
+    }
+  };
+  assert.equal(sandbox.reconcileWatchMapSeasons(map), true);
+  assert.equal(map["animeav1-thunder-3:s3:e1"], undefined);
+  assert.equal(map["animeav1-thunder-3:s1:e1"].season, 1);
+  assert.equal(map["animeav1-thunder-3:s1:e1"].progress, 42);
+  assert.equal(map["animeav1-thunder-3:s1:e1"].episodeTitle, "SMALL THREE");
+  assert.equal(map["animeav1-thunder-3:s1:e1"].thumb, "https://images.test/thunder-3-e1.jpg");
+  assert.equal(
+    sandbox.authoritativeWatchSeason({ seasons: [{ season: 1 }, { season: 2 }] }, 3),
+    3
+  );
 });

@@ -462,6 +462,15 @@ class HentaiOceanAdultSourceAdapter extends AdultSourceAdapter {
       adultDetailsLoaded: true
     };
   }
+
+  async resolveStream(id, episode) {
+    void id;
+    const episodeSlug = typeof episode === "object"
+      ? String(episode.slug || "")
+      : String(episode || "");
+    if (!episodeSlug) return null;
+    return this._request("/stream", { episode: episodeSlug });
+  }
 }
 
 class CompositeAdultSourceAdapter extends AdultSourceAdapter {

@@ -1418,10 +1418,18 @@ def _animeav1_discover_catalog_url(homepage_html: str) -> Optional[str]:
 def _animeav1_catalog_page_count(html: str) -> int:
     pages = {
         int(value) for value in re.findall(
-            r'(?:/catalogo)?\?page=(\d+)', html or "", re.IGNORECASE
+            r'(?:[?&]|&amp;)page=(\d+)', html or "", re.IGNORECASE
         ) if int(value) > 0
     }
     return min(ANIMEAV1_MAX_CATALOG_PAGES, max(pages or {1}))
+
+
+def _animeav1_catalog_partition_urls(catalog_url: str) -> list[str]:
+    separator = "&" if "?" in catalog_url else "?"
+    return [
+        f"{catalog_url}{separator}letter={'%23' if letter == '#' else letter}"
+        for letter in ["#", *list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")]
+    ]
 
 
 def _animeav1_paginate_catalog(catalog_base_url: str, catalog_pages: int,
@@ -1501,12 +1509,29 @@ def fetch_catalog_animeav1(catalog_pages: int = 0) -> list:
             html_found = True
             log.info("[AnimeAV1] homepage → +%d  (total %d)", n, len(results))
 
-        # Discover and paginate the catalog URL from nav links
+        # AnimeAV1 caps its unfiltered directory at the newest 1,000 rows even
+        # though its searchable catalogue is much larger. Its A-Z partitions do
+        # expose the complete database (and each one has independent paging), so
+        # an unlimited crawl must walk those partitions instead of the capped
+        # default list. For example, "Dragon Ball" currently returns 60 source
+        # rows while the unfiltered crawl contains only the two newest entries.
         cat_url = _animeav1_discover_catalog_url(homepage_html)
         if cat_url:
             log.info("[AnimeAV1] Discovered catalog URL: %s", cat_url)
-            ok = _animeav1_paginate_catalog(cat_url, catalog_pages, _add)
-            html_found = html_found or ok
+            if catalog_pages <= 0:
+                partitions = _animeav1_catalog_partition_urls(cat_url)
+                successful = 0
+                for partition_url in partitions:
+                    if _animeav1_paginate_catalog(partition_url, 0, _add):
+                        successful += 1
+                html_found = html_found or successful > 0
+                log.info(
+                    "[AnimeAV1] complete A-Z crawl: %d/%d partitions, %d unique anime",
+                    successful, len(partitions), len(results),
+                )
+            else:
+                ok = _animeav1_paginate_catalog(cat_url, catalog_pages, _add)
+                html_found = html_found or ok
         else:
             log.info("[AnimeAV1] No catalog URL discovered in homepage nav")
 
@@ -1923,7 +1948,7 @@ def save_csv(items: list) -> None:
     fields = ["id", "title", "type", "status", "year", "season",
               "genre", "rating", "totalEpisodes", "source", "siteUrl"]
     with open(OUTPUT_CSV, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
+        w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore", lineterminator="\n")
         w.writeheader()
         w.writerows(items)
     log.info("[save] Wrote %s", OUTPUT_CSV.name)
@@ -1931,7 +1956,7 @@ def save_csv(items: list) -> None:
 
 def load_previous_catalog() -> Optional[dict]:
     """Load the previous catalog if it exists and is non-empty."""
-    for path in (PREV_JSON, OUTPUT_JSON):
+    for path in (OUTPUT_JSON, PREV_JSON):
         if path.exists():
             try:
                 with open(path, encoding="utf-8") as f:
@@ -1943,6 +1968,65 @@ def load_previous_catalog() -> Optional[dict]:
             except Exception:
                 pass
     return None
+
+
+def _animeav1_item_slug(item: dict) -> str:
+    direct = clean(item.get("_slug") or item.get("animeAv1Slug") or "")
+    if direct:
+        return direct.lower()
+    site_match = re.search(r"/media/([^/?#]+)", str(item.get("siteUrl") or ""), re.IGNORECASE)
+    if site_match:
+        return site_match.group(1).lower()
+    id_match = re.match(r"^animeav1-(.+)$", str(item.get("id") or ""), re.IGNORECASE)
+    return id_match.group(1).lower() if id_match else ""
+
+
+def preserve_previous_animeav1_metadata(fresh_items: list, previous_catalog: Optional[dict]) -> list:
+    """Keep enriched fields and recover rows when a partition temporarily fails."""
+    previous_items = (previous_catalog or {}).get("items") or []
+    previous_by_slug = {
+        _animeav1_item_slug(item): item
+        for item in previous_items
+        if _animeav1_item_slug(item)
+    }
+    if not previous_by_slug:
+        return fresh_items
+
+    source_truth = {"id", "title", "source", "siteUrl", "type", "lastScrapedAt", "_slug", "_base"}
+    merged = []
+    seen = set()
+    for fresh in fresh_items:
+        slug = _animeav1_item_slug(fresh)
+        previous = previous_by_slug.get(slug)
+        if previous:
+            row = {**fresh, **previous}
+            for key in source_truth:
+                value = fresh.get(key)
+                if value not in (None, ""):
+                    row[key] = value
+        else:
+            row = dict(fresh)
+        if slug:
+            row["_slug"] = slug
+            seen.add(slug)
+        merged.append(row)
+
+    # A complete source crawl should grow or stay level. If it shrinks, retain
+    # yesterday's missing rows so one failed letter/page cannot erase a section
+    # of the library; a later healthy run naturally replaces them.
+    if len(fresh_items) < len(previous_by_slug):
+        recovered = 0
+        for slug, previous in previous_by_slug.items():
+            if slug in seen:
+                continue
+            row = dict(previous)
+            row["_slug"] = slug
+            merged.append(row)
+            recovered += 1
+        if recovered:
+            log.warning("[AnimeAV1] Recovered %d rows from the previous catalog", recovered)
+
+    return _dedup(merged, "_slug")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2012,6 +2096,8 @@ def run(
         all_items.extend(items)
 
     all_items = _dedup(all_items, "_slug")
+    if site_keys == ["animeav1"] and sources_used == ["AnimeAV1"]:
+        all_items = preserve_previous_animeav1_metadata(all_items, load_previous_catalog())
     log.info("Phase 1 complete: %d unique anime from primary sites (%s)",
              len(all_items), ", ".join(sources_used) or "none")
 

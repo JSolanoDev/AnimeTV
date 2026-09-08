@@ -849,11 +849,45 @@ body.ztv-chrome-hidden .ztv-corner-toggle svg {
   font-size: 0.78rem;
   white-space: nowrap;
   overflow: hidden;
-  width: fit-content;
+  width: auto;
   max-width: none;
   opacity: 0.62;
   pointer-events: none;
   transition: opacity 160ms ease;
+}
+
+/* Keep the compact episode label inside the space between the two corner
+   controls. With width:fit-content an unusually long title ignored the right
+   inset, covered the lock button and made the player feel oversized. */
+@media (max-width: 1024px) {
+  .ztv-floating-label {
+    font-size: clamp(0.68rem, 1.8vw, 0.78rem);
+  }
+
+  .ztv-title-block h1 {
+    font-size: clamp(0.82rem, 2.2vw, 1.05rem);
+    white-space: nowrap;
+    display: block;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Narrow embedded players cannot hold both ten-second controls plus transport,
+   time, Cast, overflow and fullscreen. Preserve the essential controls and the
+   fullscreen button; double-tap/seek-bar still provide precise seeking. */
+@media (max-width: 560px) {
+  .art-control-rewind-10,
+  .art-control-forward-10 {
+    display: none !important;
+  }
+
+  .art-controls-left {
+    min-width: 0 !important;
+  }
+
+  .art-controls-right {
+    flex: 0 0 auto !important;
+  }
 }
 
 .ztv-floating-label[hidden] {

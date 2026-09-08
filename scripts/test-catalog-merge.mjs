@@ -130,8 +130,12 @@ const av1 = (slug, title, extra = {}) => ({ id: `animeav1-${slug}`, title, sourc
   const cov = vm.createContext({
     Number, String, Array, Math, JSON, Boolean, Object, Set, Map, console,
     ANIMEAV1_BASE: "https://animeav1.com",
+    ANIMEAV1_HEADERS: {},
+    HOSTED_RUNTIME: false,
     log: () => {},
-    getAnimeAv1SlugCatalog: null
+    getAnimeAv1SlugCatalog: null,
+    fetchWithTimeout: async () => ({ ok: false }),
+    mapLimit: async (items, _limit, mapper) => Promise.all(items.map(mapper))
   });
   vm.runInContext([
     slice("function animeAv1SlugOf(", "\nfunction catalogIdentitiesAreCompatible("),

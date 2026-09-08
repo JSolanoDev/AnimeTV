@@ -51,14 +51,21 @@ export function auditCatalogIntegrity({
 } = {}) {
   const errors = [];
   const warnings = [];
-  const items = Array.isArray(catalog?.items) ? catalog.items : [];
-  const oldItems = Array.isArray(previous?.items) ? previous.items : [];
+  const allItems = Array.isArray(catalog?.items) ? catalog.items : [];
+  const isConfirmedUnavailable = (item) => item?.sourceInventoryChecked === true
+    && Number(item?.sourcePlayableEpisodeCount || 0) <= 0;
+  const items = allItems.filter((item) => !isConfirmedUnavailable(item));
+  const unavailableItems = allItems.filter(isConfirmedUnavailable);
+  const oldItems = (Array.isArray(previous?.items) ? previous.items : []).filter((item) => !isConfirmedUnavailable(item));
   const artEntries = entriesOf(artwork);
   const airingEntries = entriesOf(airing);
   const skipEntries = entriesOf(skipTimes);
   const ambiguousMalIds = Array.isArray(skipTimes?.ambiguousMalIds) ? skipTimes.ambiguousMalIds : [];
 
   if (!items.length) errors.push("regular catalog has no titles");
+  if (unavailableItems.length) {
+    warnings.push(`${unavailableItems.length} provider listing(s) are quarantined because they publish no episode routes`);
+  }
   if (oldItems.length && items.length < Math.ceil(oldItems.length * minimumRetainedRatio)) {
     errors.push(`regular catalog shrank from ${oldItems.length} to ${items.length} titles`);
   }
@@ -72,6 +79,9 @@ export function auditCatalogIntegrity({
   let wideBackgrounds = 0;
   let episodeRows = 0;
   let playableEpisodeRoutes = 0;
+  let inventoryCheckedRows = 0;
+  let inventoryPlayableRows = 0;
+  let sourcePlayableEpisodes = 0;
 
   for (const item of items) {
     const id = String(item?.id || "").trim();
@@ -87,6 +97,27 @@ export function auditCatalogIntegrity({
 
     if (item?.poster || item?.image || item?.cover || item?.thumbnail) sourceArtwork += 1;
     else errors.push(`catalog row ${id || title} has no source artwork`);
+
+    const sourceIds = Array.isArray(item?.sourceEpisodeIds)
+      ? item.sourceEpisodeIds.map(Number)
+      : [];
+    const validSourceIds = sourceIds.every((number) => Number.isFinite(number) && number >= 0);
+    const uniqueSourceIds = new Set(sourceIds.map(String));
+    if (item?.sourceInventoryChecked === true) inventoryCheckedRows += 1;
+    else errors.push(`${id || title} has no verified provider episode inventory`);
+    if (!sourceIds.length || !validSourceIds || uniqueSourceIds.size !== sourceIds.length) {
+      errors.push(`${id || title} has an invalid provider episode id inventory`);
+    } else {
+      inventoryPlayableRows += 1;
+      sourcePlayableEpisodes += sourceIds.length;
+    }
+    if (Number(item?.sourcePlayableEpisodeCount) !== sourceIds.length) {
+      errors.push(`${id || title} provider playable count does not match its episode id inventory`);
+    }
+    const sourceEpisodeCount = Number(item?.sourceEpisodeCount);
+    if (!Number.isFinite(sourceEpisodeCount) || sourceEpisodeCount < 1) {
+      errors.push(`${id || title} has an invalid provider episode count`);
+    }
 
     const art = artEntries[id] || {};
     if (finitePositive(item?.malId || art.malId || art.meta?.malId)
@@ -218,7 +249,9 @@ export function auditCatalogIntegrity({
     errors,
     warnings,
     metrics: {
+      catalogRows: allItems.length,
       regularTitles: items.length,
+      quarantinedUnavailableTitles: unavailableItems.length,
       previousTitles: oldItems.length,
       sourceArtwork,
       metadataIdentities: identityRows,
@@ -227,6 +260,9 @@ export function auditCatalogIntegrity({
       wideBackgrounds,
       embeddedEpisodeRows: episodeRows,
       providerPlaybackRoutes: playableEpisodeRoutes,
+      inventoryCheckedRows,
+      inventoryPlayableRows,
+      sourcePlayableEpisodes,
       seasonChainRows: chainRows,
       uniqueSeasonIdentities: seasonIdentities.size,
       seasonIdentityPosters,

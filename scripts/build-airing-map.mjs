@@ -409,6 +409,11 @@ function strictOfflineSeasonBase(value = "") {
     .replace(/\b(?:season|temporada)\s*\d+\b/g, " ")
     .replace(/\b\d+(?:st|nd|rd|th)\s+season\b/g, " ")
     .replace(/\b(?:part|cour)\s*\d+\b/g, " ")
+    // Chinese ONA sequels frequently use a bare Roman numeral rather than the
+    // word "Season". Keep this suffix rule narrow and anchored so unrelated
+    // words are untouched: Shiguang Dailiren / II / III become one strict
+    // family, while the named Bridon/Yingdu arc remains a separate extra.
+    .replace(/\s+(?:i{1,3}|iv|vi{0,3}|ix|x)\s*$/g, " ")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 }

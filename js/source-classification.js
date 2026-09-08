@@ -62,6 +62,11 @@ function isAdultFallbackSource(source = {}) {
   return Boolean(knownSourceServer("underhentai")?.match(source));
 }
 
+function isHentaiOceanSource(source = {}) {
+  return sourceIdentityText(source).includes("hentaiocean")
+    || sourceIdentityText(source).includes("hentai ocean");
+}
+
 function isAnimeAv1Source(source = {}) {
   const text = sourceIdentityText(source);
   return text.includes("animeav1") || Boolean(knownSourceServer("animeav1")?.match(source));
@@ -156,6 +161,10 @@ function sourcePreferenceScore(source = {}) {
   const compatibilityPenalty = browserSupportsDeclaredCodec(source) === false ? 50 : 0;
 
   // Adult catalog: use a resolved direct stream before an in-page provider.
+  // Hentai Ocean is deliberately the final provider: its direct AV1/H.264 files
+  // are useful when UnderHentai has no release, but it must never displace the
+  // ad-free primary catalog merely because its resolver finished first.
+  if (isHentaiOceanSource(source))       return 40 + compatibilityPenalty;
   if (isPreferredAdultSource(source))    return 0 + compatibilityPenalty;
   if (identity.includes("hentaila"))     return 1 + compatibilityPenalty;
 
@@ -225,6 +234,7 @@ if (typeof module !== "undefined" && module.exports) {
     isBlockedPlaybackSource,
     isPreferredAdultSource,
     isAdultFallbackSource,
+    isHentaiOceanSource,
     isAnimeAv1Source,
     isJKAnimeSource,
     isHlsSource,

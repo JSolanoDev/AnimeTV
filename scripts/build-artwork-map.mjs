@@ -56,6 +56,26 @@ const ONLY_IDS = new Set(String(argOf("--ids", ""))
 // viewport width - never up.
 const TMDB_IMG = "https://image.tmdb.org/t/p/original";
 const TMDB_ID_OVERRIDES = new Map([
+  // Western animation carried by AnimeAV1 has no MAL/AniList identity.
+  ["animeav1-castlevania", 71024],
+  // Recuts are separate AnimeAV1 titles but metadata providers often fold them
+  // into the original series. Pin their exact visual carriers.
+  ["animeav1-psycho-pass-new-edit-version", 327222],
+  ["animeav1-rezero-kara-hajimeru-isekai-seikatsu-shin-henshuu-ban", 65942],
+  // Link Click's English title collides exactly with a 2026 live-action series.
+  // Pin both source-backed and relation-only identities to the animated show.
+  ["animeav1-shiguang-dailiren-ii", 123542],
+  ["animeav1-shiguang-dailiren-yingdu-pian", 123542],
+  ["animeav1-shiguang-dailiren-iii", 123542],
+  // Current adaptations whose names collide with older series.
+  ["animeav1-catseye", 286691],
+  ["animeav1-kinnikuman-kanpeki-choujin-shiso-hen", 236000],
+  ["animeav1-devil-may-cry-2025", 235930],
+  ["animeav1-devil-may-cry-2026", 235930],
+  ["anilist-126403", 123542],
+  ["anilist-136484", 123542],
+  ["anilist-170166", 123542],
+  ["anilist-191832", 123542],
   // TMDB uses a completely unrelated English localization for this title, so
   // fuzzy scoring correctly refuses it unless the identity is pinned.
   ["animeav1-aru-asa-dummy-head-mic-ni-natteita-ore-kun-no-jinsei", 205961],
@@ -65,6 +85,22 @@ const TMDB_ID_OVERRIDES = new Map([
   // providerEpisodeOffset.
   ["mal-50953", 156898],
   ["mal-51366", 156898]
+]);
+// TMDB stores Bridon as Season 3, which shifts the animated third season to
+// physical Season 4. These values select artwork only; canonical app numbering
+// remains Link Click Seasons 1, 2, and 3.
+const TMDB_SEASON_OVERRIDES = new Map([
+  ["animeav1-shiguang-dailiren-ii", 2],
+  ["animeav1-shiguang-dailiren-yingdu-pian", 3],
+  ["animeav1-shiguang-dailiren-iii", 4],
+  ["animeav1-catseye", 1],
+  ["animeav1-kinnikuman-kanpeki-choujin-shiso-hen", 1],
+  ["animeav1-devil-may-cry-2025", 1],
+  ["animeav1-devil-may-cry-2026", 2],
+  ["anilist-126403", 1],
+  ["anilist-136484", 2],
+  ["anilist-170166", 3],
+  ["anilist-191832", 4]
 ]);
 
 const norm = (s) => String(s || "")
@@ -303,13 +339,19 @@ function anilistSeasonAgrees(media, scrapedTitle) {
   return names.some((n) => seasonNumberOf(n) === want);
 }
 
+function anilistYearAgrees(media, scrapedTitle) {
+  const explicitYear = Number(String(scrapedTitle || "").match(/\b((?:19|20)\d{2})\b/)?.[1] || 0);
+  const mediaYear = Number(media?.seasonYear || media?.startDate?.year || 0);
+  return !explicitYear || !mediaYear || explicitYear === mediaYear;
+}
+
 async function anilistSearch(title) {
   let loose = null;
   let seasonMiss = null;
   for (const variant of anilistVariants(title)) {
     const media = await anilistDirect(variant);
     if (!media) continue;
-    if (!anilistSeasonAgrees(media, title)) {
+    if (!anilistSeasonAgrees(media, title) || !anilistYearAgrees(media, title)) {
       if (!seasonMiss) seasonMiss = { media, variant };
       continue;
     }
@@ -325,17 +367,22 @@ async function anilistSearch(title) {
 
 async function resolveOne(item, existing = null) {
   const title = item.title || "";
+  const hasOverride = Object.prototype.hasOwnProperty.call(ANILIST_OVERRIDES, item.id);
   const overrideId = ANILIST_OVERRIDES[item.id];
-  if (overrideId) console.log(`  override: ${item.id} -> AniList ${overrideId}`);
-  const knownAniListId = Number(overrideId || item.anilistId || existing?.anilistId || 0) || null;
-  const trustedOfflineRepair = existing?.status === "identity-repaired";
+  if (hasOverride) console.log(`  override: ${item.id} -> ${overrideId ? `AniList ${overrideId}` : "TMDB-only identity"}`);
+  const knownAniListId = hasOverride
+    ? (Number(overrideId) || null)
+    : (Number(item.anilistId || existing?.anilistId || 0) || null);
+  const existingMatchesOverride = !hasOverride
+    || String(existing?.anilistId || "") === String(knownAniListId || "");
+  const trustedOfflineRepair = existingMatchesOverride && existing?.status === "identity-repaired";
   const fetchedMedia = knownAniListId
     ? await anilistById(knownAniListId)
-    : (trustedOfflineRepair ? null : await anilistSearch(title));
+    : (hasOverride || trustedOfflineRepair ? null : await anilistSearch(title));
   // The offline identity pass can establish the correct AniList/MAL row even
   // while AniList's API is unavailable. Keep using that trusted identity and its
   // titles to resolve TMDB instead of replacing it with "anilist-failed".
-  const fallbackMedia = existing && (existing.anilistId || existing.malId)
+  const fallbackMedia = existingMatchesOverride && existing && (existing.anilistId || existing.malId)
     ? {
         id: Number(existing.anilistId) || null,
         idMal: Number(existing.malId || existing.meta?.malId) || null,
@@ -362,12 +409,17 @@ async function resolveOne(item, existing = null) {
     anilistBanner: media.bannerImage || existing?.anilistBanner || "",
     anilistCover: media.coverImage?.extraLarge || media.coverImage?.large || existing?.anilistCover || "",
     metadataCover: existing?.metadataCover || ""
+  } : hasOverride ? {
+    // Explicit values clear a previously merged, wrong identity. The worker
+    // preserves unrelated fields by spreading the old record first.
+    anilistId: knownAniListId,
+    malId: null,
+    anilistBanner: "",
+    anilistCover: "",
+    metadataCover: "",
+    meta: null,
+    identityTitles: []
   } : {};
-
-  // AniList is the identity we trust; without it a romaji-only TMDB search
-  // matches the wrong franchise as often as the right one. Leave it for a re-run
-  // (the map is resumable and only retries entries that are not "ok").
-  if (!media) return { status: "anilist-failed" };
 
   // 2. TMDB - search on the strongest titles we now have. TMDB indexes anime as
   // ONE series per franchise, titled in English, with no season suffix, so the
@@ -378,19 +430,28 @@ async function resolveOne(item, existing = null) {
   if (pinnedTmdbId) {
     const details = await getJson(`${BASE}/api/tmdb/tv?id=${pinnedTmdbId}`);
     const show = details?.show;
-    if (show?.backdrop_path || show?.poster_path) {
+    const pinnedSeason = Number(TMDB_SEASON_OVERRIDES.get(item.id) || wantSeason);
+    const seasonEntry = (show?.seasons || []).find((entry) => Number(entry.season_number) === pinnedSeason);
+    const posterPath = seasonEntry?.poster_path || show?.poster_path || "";
+    if (show?.backdrop_path || posterPath) {
       return {
         status: show.backdrop_path ? "ok" : "poster-only",
         ...identityArtwork,
         tmdbId: pinnedTmdbId,
         tmdbBackdrop: show.backdrop_path ? `${TMDB_IMG}${show.backdrop_path}` : "",
-        tmdbPoster: show.poster_path ? `${TMDB_IMG}${show.poster_path}` : "",
+        tmdbPoster: posterPath ? `${TMDB_IMG}${posterPath}` : "",
         confidence: 100,
         matchedName: show.name || show.original_name || "pinned TMDB series",
-        season: wantSeason
+        season: pinnedSeason
       };
     }
   }
+
+  // Unpinned TMDB searches require an AniList identity. Without it a romaji-only
+  // search matches the wrong franchise as often as the right one. An explicitly
+  // pinned TMDB-only title, such as Netflix's Devil May Cry, has already returned
+  // above and deliberately does not inherit an unrelated anime database row.
+  if (!media) return { status: "anilist-failed" };
 
   const queries = [...new Set([
     stripSeasonSuffix(media.title?.english),
@@ -491,7 +552,9 @@ async function main() {
     || String(i.siteUrl || "").includes("animeav1.com/media/"));
 
   let map = {};
-  if (fs.existsSync(OUT) && !FORCE) {
+  // --force means re-resolve the selected rows, not discard every other row in
+  // the resumable map. This makes a targeted identity repair safe to run.
+  if (fs.existsSync(OUT)) {
     try { map = JSON.parse(fs.readFileSync(OUT, "utf8")).entries || {}; } catch { map = {}; }
   }
 

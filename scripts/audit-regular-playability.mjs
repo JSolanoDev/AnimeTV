@@ -17,6 +17,7 @@ const concurrency = Math.max(1, Math.min(16, Number(args.concurrency || 6)));
 const titleLimit = args.limit ? Math.max(1, Number(args.limit)) : Infinity;
 const probeMedia = args["probe-media"] !== "false";
 const requestTimeoutMs = Math.max(2500, Number(args.timeout || 12000));
+const retryAttempts = Math.max(1, Math.min(4, Number(args.retries || 3)));
 const startedAt = new Date();
 
 function stripSeasonWords(title = "") {
@@ -94,6 +95,13 @@ function authoritativeSlug(item = {}) {
     .trim().toLowerCase();
 }
 
+function isActiveAnimeAv1CatalogItem(item = {}) {
+  const isAnimeAv1 = /animeav1/i.test(String(item.source || item.id || item.siteUrl || ""));
+  const confirmedUnavailable = item.sourceInventoryChecked === true
+    && Number(item.sourcePlayableEpisodeCount || 0) <= 0;
+  return isAnimeAv1 && !confirmedUnavailable;
+}
+
 function episodeNumber(item = {}) {
   for (const value of [item.canonicalEpisode, item.episode, item.number, item.episodeNumber]) {
     const number = Number(value);
@@ -103,6 +111,7 @@ function episodeNumber(item = {}) {
 }
 
 function catalogEpisodeLimit(item = {}) {
+  if (item.sourceInventoryChecked) return Number(item.sourcePlayableEpisodeCount || item.sourceEpisodeIds?.length || 0);
   const format = String(item.format || item.type || "").toUpperCase();
   if (format === "MOVIE") return 1;
   const servedBySource = Number(item.sourceEpisodeCount || 0);
@@ -119,6 +128,17 @@ function catalogEpisodeLimit(item = {}) {
 }
 
 function sampledEpisodeNumbers(item = {}) {
+  if (item.sourceInventoryChecked && Array.isArray(item.sourceEpisodeIds)) {
+    const ids = [...new Set(item.sourceEpisodeIds.map(Number).filter((number) => Number.isFinite(number) && number >= 0))]
+      .sort((a, b) => a - b);
+    if (!ids.length) return [];
+    const soleZero = ids.length === 1 && ids[0] === 0;
+    const display = ids.map((number) => soleZero ? 1 : number);
+    const candidates = [display[0]];
+    if (episodesPerTitle >= 3) candidates.push(display[Math.floor((display.length - 1) / 2)]);
+    if (episodesPerTitle >= 2) candidates.push(display.at(-1));
+    return [...new Set(candidates)];
+  }
   const sourceNumbers = (Array.isArray(item.episodes) ? item.episodes : []).map(episodeNumber).filter(Number.isFinite);
   const specials = sourceNumbers.filter((number) => number === 0 || !Number.isInteger(number));
   const limit = catalogEpisodeLimit(item);
@@ -136,6 +156,15 @@ function sampledEpisodeNumbers(item = {}) {
   }
   specials.slice(0, 2).forEach((number) => candidates.push(number));
   return [...new Set(candidates)].slice(0, episodesPerTitle + 2);
+}
+
+function providerEpisodeNumber(item = {}, displayedEpisodeNumber) {
+  const ids = Array.isArray(item.sourceEpisodeIds)
+    ? item.sourceEpisodeIds.map(Number).filter((number) => Number.isFinite(number) && number >= 0)
+    : [];
+  if (ids.length === 1 && ids[0] === 0 && Number(displayedEpisodeNumber) === 1) return 0;
+  if (ids.includes(Number(displayedEpisodeNumber))) return Number(displayedEpisodeNumber);
+  return Number(item.providerEpisodeOffset || 0) + Number(displayedEpisodeNumber);
 }
 
 function safeUrl(value = "") {
@@ -231,7 +260,16 @@ async function validateMediaSource(source = {}) {
 const sourceResolutionCache = new Map();
 const mediaValidationCache = new Map();
 
-async function resolveEpisode(slug, providerEpisodeId) {
+function isTransientResolutionFailure(result = {}) {
+  const status = Number(result.resolverStatus ?? result.httpStatus ?? result.media?.httpStatus);
+  return result.failure === "SOURCE_TIMEOUT"
+    || !Number.isFinite(status)
+    || status === 408
+    || status === 429
+    || status >= 500;
+}
+
+async function resolveEpisodeCached(slug, providerEpisodeId) {
   const key = `${slug}:${providerEpisodeId}`;
   if (!sourceResolutionCache.has(key)) {
     sourceResolutionCache.set(key, (async () => {
@@ -266,6 +304,7 @@ async function resolveEpisode(slug, providerEpisodeId) {
               media = result;
               break;
             }
+            if (isTransientResolutionFailure(result)) mediaValidationCache.delete(mediaKey);
             media = result;
           }
         }
@@ -296,6 +335,18 @@ async function resolveEpisode(slug, providerEpisodeId) {
     })());
   }
   return sourceResolutionCache.get(key);
+}
+
+async function resolveEpisode(slug, providerEpisodeId) {
+  const key = `${slug}:${providerEpisodeId}`;
+  let result = null;
+  for (let attempt = 1; attempt <= retryAttempts; attempt += 1) {
+    if (attempt > 1) sourceResolutionCache.delete(key);
+    result = await resolveEpisodeCached(slug, providerEpisodeId);
+    if (result?.usable || !isTransientResolutionFailure(result) || attempt === retryAttempts) break;
+    await new Promise((resolve) => setTimeout(resolve, 180 * attempt));
+  }
+  return result;
 }
 
 async function mapConcurrent(items, worker, size = concurrency) {
@@ -390,7 +441,7 @@ function summarize(records, phase) {
 const metadataPath = fileURLToPath(new URL("../scraper/anime_metadata.json", import.meta.url));
 const metadataPayload = JSON.parse(await readFile(metadataPath, "utf8"));
 const slugItems = (Array.isArray(metadataPayload.items) ? metadataPayload.items : [])
-  .filter((item) => /animeav1/i.test(String(item.source || item.id || item.siteUrl || "")))
+  .filter(isActiveAnimeAv1CatalogItem)
   .map((item) => ({ slug: authoritativeSlug(item), title: item.title || item.name || "" }))
   .filter((item) => item.slug && item.title);
 async function readOptionalSnapshot(relativePath) {
@@ -405,7 +456,7 @@ const [airingPayload, artworkPayload] = await Promise.all([
   readOptionalSnapshot("../scraper/artwork-map.json")
 ]);
 const catalog = (Array.isArray(metadataPayload.items) ? metadataPayload.items : [])
-  .filter((item) => /animeav1/i.test(String(item.source || item.id || item.siteUrl || "")))
+  .filter(isActiveAnimeAv1CatalogItem)
   .map((item) => {
     const airing = airingPayload.entries?.[item.id] || {};
     const artwork = artworkPayload.entries?.[item.id] || {};
@@ -442,11 +493,12 @@ const records = await mapConcurrent(tasks, async ({ item, number }) => {
   // recovering the authoritative row. Only a non-empty, different map slug is
   // a proven old mapping defect.
   const legacySlug = legacyCatalogSlug || expectedSlug;
-  const afterResolution = expectedSlug ? await resolveEpisode(expectedSlug, number) : {
+  const providerNumber = providerEpisodeNumber(item, number);
+  const afterResolution = expectedSlug ? await resolveEpisode(expectedSlug, providerNumber) : {
     resolverOk: false, resolverStatus: null, sourceCount: 0, sourceTypes: [], usable: false, failure: "BAD_NORMALIZATION", providerEpisodeId: number
   };
   const beforeResolution = legacySlug && legacySlug !== expectedSlug
-    ? await resolveEpisode(legacySlug, number)
+    ? await resolveEpisode(legacySlug, providerNumber)
     : afterResolution;
   const internalEpisode = (item.episodes || []).find((episode) => episodeNumber(episode) === number);
   return {
@@ -458,7 +510,7 @@ const records = await mapConcurrent(tasks, async ({ item, number }) => {
     displayedEpisodeNumber: number,
     internalEpisodeId: internalEpisode?.id || `${item.id}-s${Number(item.seasonNumber) || 1}-e${number}`,
     provider: "AnimeAV1",
-    providerEpisodeId: number,
+    providerEpisodeId: providerNumber,
     expectedSlug,
     legacySlug,
     legacyCatalogSlug,
@@ -494,7 +546,7 @@ const sourceGapCount = catalog.reduce((total, item) => {
 const report = {
   generatedAt: new Date().toISOString(),
   baseUrl,
-  configuration: { episodesPerTitle, concurrency, probeMedia, requestTimeoutMs },
+  configuration: { episodesPerTitle, concurrency, probeMedia, requestTimeoutMs, retryAttempts },
   catalog: {
     animeTested: catalog.length,
     seasonsRepresented: new Set(catalog.map((item) => `${item.anilistId || item.id}:${Number(item.seasonNumber) || 1}`)).size,

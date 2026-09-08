@@ -437,6 +437,47 @@ check("and no airing instant it does not have", solo.nextAiringAt, null);
     finalArc.franchiseSeasons.some((item) => item.anilistId === 999), false);
 }
 
+/* ── 2h. ROMAN-NUMERAL ONA SEASONS RECOVER WITHOUT JIKAN ───────────────── */
+{
+  const offline = path.join(tmp, "roman-ona-offline.jsonl");
+  const jikan = path.join(tmp, "roman-ona-jikan.json");
+  const artwork = path.join(tmp, "roman-ona-artwork.json");
+  const cache = path.join(tmp, "roman-ona-relations.json");
+  const output = path.join(tmp, "roman-ona-output.json");
+  const dbRow = (mal, ani, title, episodes, year, related = []) => JSON.stringify({
+    sources: [`https://anilist.co/anime/${ani}`, `https://myanimelist.net/anime/${mal}`],
+    title, type: "ONA", episodes, animeSeason: { season: "SUMMER", year },
+    relatedAnime: related.map((id) => `https://myanimelist.net/anime/${id}`)
+  });
+  fs.writeFileSync(offline, [
+    dbRow(44074, 126403, "Shiguang Dailiren", 11, 2021, [49413]),
+    dbRow(49413, 136484, "Shiguang Dailiren II", 12, 2023, [44074, 56752, 61607]),
+    dbRow(56752, 170166, "Shiguang Dailiren: Yingdu Pian", 6, 2024, [49413, 61607]),
+    dbRow(61607, 191832, "Shiguang Dailiren III", 12, 2026, [49413, 56752])
+  ].join("\n") + "\n");
+  fs.writeFileSync(jikan, "{}");
+  fs.writeFileSync(artwork, JSON.stringify({ entries: {
+    "animeav1-shiguang-dailiren-ii": { anilistId: 136484, malId: 49413, canonicalSeasonNumber: 2 },
+    "animeav1-shiguang-dailiren-iii": { anilistId: 191832, malId: 61607, canonicalSeasonNumber: 3 }
+  } }));
+  fs.writeFileSync(cache, JSON.stringify({ edges: {} }));
+
+  execFileSync(process.execPath, [
+    path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--artwork", artwork, "--offline-fixture", offline, "--jikan-fixture", jikan,
+    "--relations-cache", cache, "--out", output, "--no-fetch", "--write"
+  ], { stdio: "pipe" });
+
+  const built = JSON.parse(fs.readFileSync(output, "utf8")).entries;
+  const seasonThree = built["animeav1-shiguang-dailiren-iii"];
+  check("Link Click recovers Seasons 1-3 from Roman-numeral ONA titles",
+    seasonThree.franchiseSeasons.map((item) => item.anilistId), [126403, 136484, 191832]);
+  check("Link Click keeps Bridon out of the numbered season chain",
+    seasonThree.franchiseSeasons.some((item) => item.anilistId === 170166), false);
+  check("Link Click season counts stay attached to the correct identities",
+    seasonThree.franchiseSeasons.map((item) => item.episodes), [11, 12, 12]);
+}
+
 /* ── 3. The client half ───────────────────────────────────────────────────── */
 const src = fs.readFileSync(path.join(ROOT, "client.js"), "utf8");
 const slice = (start, end) => {

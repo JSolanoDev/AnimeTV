@@ -148,6 +148,15 @@ const SeasonNormalization = (function() {
 
     // Title parsing
     const parsed = parseTitle(title);
+    const declaredSeason = Number(entry.canonicalSeasonNumber ?? entry.seasonNumber);
+    if (Number.isInteger(declaredSeason) && declaredSeason > 0) {
+      parsed.seasonNumber = declaredSeason;
+    } else if (isStandalone && !hasExplicitSeasonMarker(title)) {
+      // A trailing number is not proof of a sequel when there is no relation
+      // chain to support it: Thunder 3 and 86 are names, not Season 3/86. Keep
+      // explicit "Season 3" titles and catalog-declared identities intact.
+      parsed.seasonNumber = null;
+    }
 
     // Classification
     let type = TYPE_MAIN;
@@ -191,6 +200,11 @@ const SeasonNormalization = (function() {
       yearStart,
       episodeCount
     };
+  }
+
+  function hasExplicitSeasonMarker(title) {
+    const text = String(title || "");
+    return /(?:\bseason\s*(?:\d+|iv|iii|ii|v|vi|vii|viii|ix|x)\b|\b\d+(?:st|nd|rd|th)\s+season\b|\b(?:second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\s+season\b|\bs\d+\b|第\s*\d+\s*[季期]|\d+\s*[季期])/i.test(text);
   }
 
   // Everything the title carries beyond the franchise's base name. An empty
@@ -348,11 +362,12 @@ const SeasonNormalization = (function() {
     // Check if it should be merged into the last main group if it aired very close? 
     // No, better to keep it as a new "Season" if it's a separate entry in AniList SEQUEL chain.
     
-    // For a single-entry anime, we use "Episodes" or "Season 1"
+    // A single-entry anime is still Season 1. Keeping that label explicit makes
+    // the selector, watch route and saved progress use the same vocabulary.
     const isOnlyMain = !existingGroups.some(g => g.type === TYPE_MAIN);
     if (isOnlyMain) {
        if (isStandalone) {
-         return { groupId: 'season-1', groupTitle: 'Episodes', seasonNumber: 1, groupType: TYPE_MAIN };
+         return { groupId: 'season-1', groupTitle: 'Season 1', seasonNumber: 1, groupType: TYPE_MAIN };
        }
        return { groupId: 'season-1', groupTitle: 'Season 1', seasonNumber: 1, groupType: TYPE_MAIN };
     }

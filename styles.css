@@ -5977,14 +5977,63 @@ body.player-cinema-open .close-button {
   background: linear-gradient(135deg, #22d7ff, #f2bb46);
 }
 
-/* The episode panel now shows the app's own loader mark instead of a spinning play
-   triangle, so the whole app has ONE loading visual. Smaller than the full-screen
-   one because it sits inside a panel, not a viewport. */
-.ztv-inline-loader.ztv-inline-loader {
-  width: 4.2rem;
-  height: 4.2rem;
-  border-radius: 1.2rem;
-  margin-bottom: 0.35rem;
+/* Match the lightweight loader inside the current player while a source URL is
+   resolving. Provider diagnostics stay out of this transient visual state. */
+.ztv-stream-loader {
+  display: grid;
+  justify-items: center;
+  gap: 0.8rem;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.ztv-stream-loader > strong {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ztv-stream-loader-mark {
+  position: relative;
+  width: 3.6rem;
+  height: 3.6rem;
+}
+
+.ztv-stream-loader-mark::after {
+  content: "Z";
+  position: absolute;
+  inset: 0.68rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #ffffff;
+  background: rgba(17, 20, 34, 0.9);
+  font-size: 0.9rem;
+  font-weight: 950;
+  box-shadow: 0 0 1.6rem rgba(139, 92, 246, 0.36);
+}
+
+.ztv-stream-loader-mark > span {
+  position: absolute;
+  inset: 0;
+  border: 0.18rem solid transparent;
+  border-top-color: #8a5cff;
+  border-right-color: #30cde8;
+  border-radius: 50%;
+  animation: ztv-stream-loader-spin 0.82s linear infinite;
+}
+
+.ztv-stream-loader-mark > span + span {
+  inset: 0.42rem;
+  border-top-color: #f01f60;
+  border-right-color: transparent;
+  animation-duration: 1.12s;
+  animation-direction: reverse;
+}
+
+@keyframes ztv-stream-loader-spin {
+  to { transform: rotate(360deg); }
 }
 
 .episode-video-empty.is-loading .play-symbol {
@@ -10417,22 +10466,24 @@ body.is-tv .topbar-auth {
   transform: scale(0.96);
 }
 
-/* Continue watching Clear All button */
+/* Continue watching history action */
 .clear-continue-btn {
   margin-left: auto;
-  padding: 0.4rem 0.8rem;
-  border: 0;
-  border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(240, 241, 250, 0.6);
+  min-height: 2rem;
+  padding: 0.32rem 0.7rem;
+  border: 0.08rem solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.4rem;
+  background: rgba(8, 11, 22, 0.46);
+  color: rgba(226, 230, 244, 0.72);
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease, transform 100ms ease;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease, transform 100ms ease;
 }
 .clear-continue-btn:is(:hover, :focus-visible, .is-tv-focused) {
-  color: #ff4a4a;
-  background: rgba(255, 74, 74, 0.15);
+  color: #fff;
+  border-color: color-mix(in srgb, var(--cyan) 48%, transparent);
+  background: color-mix(in srgb, var(--cyan) 12%, rgba(8, 11, 22, 0.72));
   outline: none;
 }
 .clear-continue-btn:active {
@@ -12448,6 +12499,32 @@ body.player-cinema-open .watch-overlay .close-button {
   padding-bottom: 0.35rem;
 }
 
+/* At the end of Home, Latest Episodes becomes the final screen instead of a
+   short shelf with part of the previous band still hanging above it. Its
+   content may grow beyond one viewport, so this is a floor rather than a fixed
+   height and normal vertical scrolling remains intact. */
+body[data-route="home"] #latest.is-last-band {
+  display: flex;
+  min-height: calc(100dvh - 0.5rem);
+  flex-direction: column;
+  justify-content: center;
+  padding-top: clamp(1.25rem, 3.5vh, 3rem);
+  padding-bottom: clamp(1rem, 2.5vh, 2.25rem);
+}
+
+/* The full-screen final band is useful on desktop, where two complete rows fill
+   it. On a phone the rail is much shorter and vertical centering manufactured
+   large empty areas above and below the heading. Keep the final band compact
+   there and let the fixed bottom navigation follow it immediately. */
+@media (max-width: 760px) {
+  body[data-route="home"] #latest.is-last-band {
+    min-height: 0;
+    justify-content: flex-start;
+    padding-top: 0.85rem;
+    padding-bottom: 0.5rem;
+  }
+}
+
 main {
   padding-bottom: 0.5rem;
 }
@@ -12473,6 +12550,83 @@ main {
   .vidstream-player.is-cinema {
     z-index: 2;
   }
+}
+
+/* Once playback starts on a phone or portrait tablet, the video becomes the
+   page header and the episode browser follows it. The large metadata hero is
+   still shown before an episode is selected, but it no longer sits between the
+   viewer and the playing episode. */
+@media (max-width: 860px) {
+  body.player-cinema-open .watch-overlay.cinematic .watch-panel {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transform: none;
+  }
+
+  body.player-cinema-open .watch-overlay.cinematic .watch-stage {
+    display: none;
+  }
+
+  body.player-cinema-open .watch-overlay.cinematic .watch-side {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: 0 0.7rem 1rem;
+    border: 0;
+    border-radius: 0;
+    background: rgba(8, 9, 18, 0.76);
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  body.player-cinema-open .watch-overlay .watch-side .video-frame {
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    width: auto;
+    height: auto;
+    margin-inline: -0.7rem;
+    padding: 0;
+    background: #000 !important;
+  }
+
+  body.player-cinema-open .vidstream-player.is-cinema {
+    position: relative;
+    inset: auto;
+    z-index: 2;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+  }
+
+  body.player-cinema-open .watch-overlay .watch-side .episode-list {
+    margin-top: 0.45rem;
+    padding-top: 0.45rem;
+    border-top: 0;
+  }
+
+  body.player-cinema-open .close-button,
+  body.player-cinema-open .watch-overlay .close-button {
+    position: fixed;
+    top: 0.65rem;
+    left: 0.65rem;
+    z-index: 90;
+    display: grid !important;
+  }
+}
+
+/* A touch more separation keeps the next rail's rounded poster corners from
+   peeking into the initial Home viewport as a clipped sliver. */
+#continueWatching .section-heading,
+#continueWatchingAdult .section-heading {
+  margin-bottom: 1.55rem;
 }
 
 /* ── A way out of the show, on a phone ───────────────────────────────────────

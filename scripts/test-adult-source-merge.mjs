@@ -9,6 +9,10 @@ const {
   HentaiOceanAdultSourceAdapter,
   CompositeAdultSourceAdapter
 } = require("../js/adult-source-adapter.js");
+const {
+  parseHentaiOceanEmbedData,
+  hentaiOceanDirectCandidates
+} = require("../animetv-server.js");
 
 const underHentai = new UnderHentaiAdultSourceAdapter();
 const hentaiOcean = new HentaiOceanAdultSourceAdapter();
@@ -48,7 +52,11 @@ assert.equal(merged[1].adultSource, "Hentai Ocean", "unmatched titles should rem
 assert.deepEqual(merged.map((item) => item.sourceOrder), [0, 1], "the merged catalog should have stable progressive-render order");
 
 const underResolver = { id: "under-release", type: "resolver", streamResolver: { endpoint: "/under" } };
-const oceanFallback = { id: "ocean-fallback", type: "iframe", externalUrl: "https://hentaiocean.com/embed/sample-1" };
+const oceanFallback = {
+  id: "ocean-fallback",
+  type: "resolver",
+  streamResolver: { type: "hentaiocean", endpoint: "/api/adult/hentaiocean/stream?episode=sample-1" }
+};
 const mergedDetails = composite._mergeDetailPlayback({
   screenshots: ["https://static.underhentai.net/thumbs/sample.jpg"],
   episodes: [{ number: 1, sourceOptions: [underResolver], screenshots: ["https://static.underhentai.net/thumbs/sample.jpg"] }],
@@ -64,6 +72,26 @@ assert.deepEqual(
 );
 assert.equal(mergedDetails.episodes[0].screenshots.length, 2, "episode galleries should merge exact secondary storyboards");
 assert.equal(mergedDetails.seasons[0].episodes[0], mergedDetails.episodes[0], "season rows should use the merged playable episode");
+
+const oceanResolverAdapter = new HentaiOceanAdultSourceAdapter();
+oceanResolverAdapter._request = async (path, params) => ({ path, params, ok: true });
+const oceanResolved = await oceanResolverAdapter.resolveStream("hentaiocean:sample", { slug: "sample-1" });
+assert.equal(oceanResolved.path, "/stream", "Hentai Ocean playback should resolve through the native-player endpoint");
+assert.equal(oceanResolved.params.episode, "sample-1", "the resolver must retain the exact provider episode id");
+
+const oceanEmbedData = parseHentaiOceanEmbedData(`
+  <script>
+    var jsondata = {"info":[{"description":"brace } inside text"}],"mirrors":[{"mirrorurl":"https://w2.hentaiocean.com/play?vid=Sample%20Episode.mp4"}]};
+  </script>
+`);
+assert.equal(oceanEmbedData.mirrors.length, 1, "the mirror list should be parsed without executing source scripts");
+const oceanDirect = hentaiOceanDirectCandidates(oceanEmbedData.mirrors, "sample-1");
+assert.deepEqual(
+  oceanDirect.map((source) => source.codec),
+  ["av01", "avc1"],
+  "the ad page should become native AV1 playback with an H.264 Chromecast fallback"
+);
+assert.ok(oceanDirect.every((source) => source.type === "direct" && source.mimeType === "video/mp4"));
 
 const duplicateEpisodeAdapter = new UnderHentaiAdultSourceAdapter();
 duplicateEpisodeAdapter._request = async () => ({
