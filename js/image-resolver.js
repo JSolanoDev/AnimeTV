@@ -20,12 +20,14 @@ const ImageResolver = (function () {
   "use strict";
 
   const TMDB_IMG_BASE = "https://image.tmdb.org/t/p";
-  const MATCH_CACHE_PREFIX = "zenkaitv:tmdb-match:v17:";
+  const MATCH_CACHE_PREFIX = "zenkaitv:tmdb-match:v18:";
   const MATCH_CACHE_TTL_MS = 1000 * 60 * 60 * 24; // Refresh airing episode stills daily.
-  // v6 records the TMDB season that produced each app-season cache entry. A
+  // Each record includes the TMDB season that produced its app-season entry. A
   // transient mapping made app S3 cache TMDB S1 under the old key, so every
   // later visit faithfully replayed the wrong episode titles and stills.
-  const SEASON_ART_CACHE_PREFIX = "zenkaitv:tmdb-season-art:v7:";
+  // v8 also invalidates pre-canonical-identity entries after the MAL-only and
+  // aggregate-season fixes, so users do not wait a day for corrected metadata.
+  const SEASON_ART_CACHE_PREFIX = "zenkaitv:tmdb-season-art:v8:";
   const SEASON_ART_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
   const FAILED_CACHE_KEY = "zenkaitv:img-failed:v1";
   const FAILED_CACHE_MAX = 400;
@@ -255,7 +257,6 @@ const ImageResolver = (function () {
   function pickTmdbSeason(anime, tmdbShow) {
     const real = (tmdbShow.seasons || []).filter((s) => Number(s.season_number) > 0 && Number(s.episode_count) > 0);
     if (!real.length) return { season: null, reason: "no numbered TMDB seasons" };
-    if (real.length === 1) return { season: real[0], reason: "only one TMDB season" };
 
     const titleToParse = anime.title || anime.romajiTitle || anime.englishTitle || "";
     const lowerTitle = (typeof titleToParse === "string" ? titleToParse : JSON.stringify(titleToParse)).toLowerCase();
@@ -271,6 +272,28 @@ const ImageResolver = (function () {
       const s = real.find((x) => x.name.toLowerCase().includes("adopted daughter of an archduke"));
       if (s) return { season: s, reason: "Honzuki Ryoushu no Youjo mapping" };
     }
+    // TMDB combines the first three AniList entries of Honzuki into its Season 1.
+    // They still need distinct app seasons so the year/count scoper below can
+    // select episodes 1-14, 15-26 and 27-36 respectively.
+    if (lowerTitle.includes("honzuki no gekokujou") || lowerTitle.includes("ascendance of a bookworm")) {
+      const s = real.find((x) => x.name.toLowerCase().includes("ascendance of a bookworm"))
+        || real.find((x) => Number(x.season_number) === 1);
+      if (s) return { season: s, reason: "Honzuki aggregate Season 1 mapping" };
+    }
+
+    if (anime.tmdbFranchiseFallback) {
+      const requestedSeason = Number(anime.seasonNumber || anime.canonicalSeasonNumber || 0);
+      const carrierSeason = Number(anime.tmdbFranchiseCarrierSeason || 0);
+      const exact = requestedSeason
+        ? real.find((season) => Number(season.season_number) === requestedSeason)
+        : null;
+      if (exact && carrierSeason && real.some((season) => Number(season.season_number) === carrierSeason)) {
+        return { season: exact, reason: "verified franchise-series season" };
+      }
+      return { season: null, reason: "inherited TMDB series does not contain this season" };
+    }
+
+    if (real.length === 1) return { season: real[0], reason: "only one TMDB season" };
 
     const animeTitles = [
       anime.title?.english, anime.title?.romaji, anime.title?.native,
@@ -466,6 +489,7 @@ const ImageResolver = (function () {
     { tmdb: 273467, names: ["Himekishi wa Barbaroi no Yome", "Hime Kishi wa Barbaroi no Yome", "The Warrior Princess and the Barbaric King"] },
     { tmdb: 283905, names: ["Kamiina Botan, Yoeru Sugata wa Yuri no Hana", "Botan Kamiina Fully Blossoms When Drunk"] },
     { tmdb: 304820, names: ["Nigashita Sakana wa Ookikatta ga Tsuriageta Sakana ga Ookisugita Ken", "Always a Catch!"] },
+    { tmdb: 205961, names: ["Aru Asa Dummy Head Mic ni Natteita Ore-kun no Jinsei", "My Life After I Became a Dummy Head Mic One Morning"] },
     { tmdb: 96316,  names: ["Kanojo, Okarishimasu 5th Season", "Kanojo, Okarishimasu", "Kanojo Okarishimasu", "Rent-a-Girlfriend"] },
     // Original Bleach (2004, 366 eps) — fuzzy search may drift to wrong entries;
     // pin to the same TMDB show (#30984) that already carries seasons 1-16 plus TYBW.
@@ -708,6 +732,12 @@ const ImageResolver = (function () {
       // can't match by title. Checked alongside the cache so the pin always wins,
       // but a cache entry that already agrees with the pin is reused.
       const overrideId = lookupTmdbOverride(anime);
+      // The build-time artwork audit resolves this id against the exact
+      // AniList/MAL identity. Reusing it avoids a second fuzzy title search and
+      // is essential for Japanese-only relation rows whose TMDB series uses an
+      // unrelated English name.
+      const bakedTmdbId = Number(anime.tmdbId || 0) || null;
+      const trustedTmdbId = overrideId || bakedTmdbId;
 
       // Cached winning match? (reuse only when it doesn't contradict the override)
       const cached = readMatchCache(anilistId);
@@ -730,16 +760,16 @@ const ImageResolver = (function () {
       const incompleteArcs = continuous && expectedEpisodes > 100 &&
         Object.keys(cached?.episodesByNum || {}).length < expectedEpisodes;
       const cachedStale = cached && !isMovie && (cachedStillCount === 0 || incompleteArcs);
-      if (cached && !cachedStale && (!overrideId || Number(cached.tmdbId) === Number(overrideId))) {
+      if (cached && !cachedStale && (!trustedTmdbId || Number(cached.tmdbId) === Number(trustedTmdbId))) {
         applyResolvedMatch(anime, cached);
         anime._tmdbResolved = true;
         debug(`cache hit for ${anilistId} → TMDB ${cached.tmdbId} (confidence ${cached.confidence})`);
         return anime;
       }
 
-      if (overrideId) {
-        debug(`override: pinning TMDB #${overrideId} for ${anilistId} ("${anime.romajiTitle || anime.title || ""}")`);
-        const resolved = await buildResolvedFromTmdbId(anime, overrideId, 100);
+      if (trustedTmdbId) {
+        debug(`${overrideId ? "override" : "build map"}: pinning TMDB #${trustedTmdbId} for ${anilistId} ("${anime.romajiTitle || anime.title || ""}")`);
+        const resolved = await buildResolvedFromTmdbId(anime, trustedTmdbId, 100);
         applyResolvedMatch(anime, resolved);
         anime._tmdbResolved = true;
         // Don't cache a transient failure (no art came back) — retry next open.
@@ -1195,7 +1225,14 @@ const ImageResolver = (function () {
         ));
         let scopedEpisodes = eps;
         if (targetYear && eps.length > Math.max(12, expectedCount || 12)) {
-          let start = eps.findIndex((episode) => yearOf(episode.air_date) === targetYear);
+          // Split cours can air in the same calendar year, so year alone points
+          // both parts at episode 1. Relation normalization already computed the
+          // exact provider offset; use it before the year fallback.
+          const providerOffset = Math.max(0, Number(
+            appSeasonMeta?.providerEpisodeOffset ?? anime.providerEpisodeOffset ?? 0
+          ) || 0);
+          let start = providerOffset > 0 && providerOffset < eps.length ? providerOffset : -1;
+          if (start < 0) start = eps.findIndex((episode) => yearOf(episode.air_date) === targetYear);
           if (start < 0) {
             start = eps.findIndex((episode) => {
               const airedYear = yearOf(episode.air_date);

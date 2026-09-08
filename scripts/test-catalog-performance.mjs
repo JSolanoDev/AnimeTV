@@ -176,12 +176,154 @@ test("catalog replacement enriches the live detail object instead of orphaning i
     window: { requestAnimationFrame: (callback) => callback() },
     overlay: { hidden: true }
   });
-  vm.runInContext(section(client, "function replaceRegularCatalog(", "function regularCatalogSnapshot("), c);
+  vm.runInContext(section(client, "function catalogShowsShareIdentity(", "function regularCatalogSnapshot("), c);
   c.replaceRegularCatalog([fresh], "full");
   assert.equal(state.activeShow, open);
   assert.equal(state.shows[0], open);
   assert.equal(open.franchiseSeasons.length, 2);
   assert.equal(state.catalogTier, "full");
+});
+
+test("full catalog arrival rebinds a colliding sequel slug to its relation identity", () => {
+  const requestedSlug = "example-season-two-part-two";
+  const open = {
+    id: "animeav1-lightweight",
+    anilistId: 100,
+    animeAv1Slug: "example-season-two",
+    title: "Example Season Two",
+    romajiTitle: "Example Season Two Part Two"
+  };
+  const carrier = {
+    id: "animeav1-example-season-two",
+    title: "Example Season Two",
+    franchiseSeasons: [{ anilistId: 200, malId: 300, title: "Example Season Two Part Two" }]
+  };
+  const state = {
+    shows: [open],
+    activeShow: open,
+    activeEpisode: null,
+    playIntent: false,
+    catalogTier: "cached",
+    addonSections: [],
+    av1Shows: new Map(),
+    currentRouteInfo: { name: "anime", params: { animeId: requestedSlug }, target: {} }
+  };
+  let reopened = null;
+  const slugify = (value) => String(value || "").toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const c = vm.createContext({
+    state,
+    AdultMode: { isAdultContent: () => false },
+    mergeShows: (items) => items.map((item) => ({ ...item })),
+    scheduleAiringEnrichment() {},
+    window: { requestAnimationFrame: (callback) => callback() },
+    overlay: { hidden: false },
+    ROUTE_SLUG_ALIASES: {},
+    getShowSlug: (show = {}) => slugify(show.slug || show.routeSlug || show.romajiTitle || show.title || show.id),
+    getShowKey: (show = {}) => String(show.id || ""),
+    ensureFranchiseShowsInCatalog: (source) => {
+      const related = source.franchiseSeasons[0];
+      state.shows.push({
+        id: `anilist-${related.anilistId}`,
+        anilistId: related.anilistId,
+        malId: related.malId,
+        animeAv1Slug: "example-season-two",
+        title: related.title,
+        isFranchiseEntry: true
+      });
+    },
+    updateRouteMeta() {},
+    openShow: (id, target) => { reopened = { id, target }; }
+  });
+  vm.runInContext(section(client, "function findShowBySlugOrId(", "function ensureNotFoundSection("), c);
+  vm.runInContext(section(client, "function catalogShowsShareIdentity(", "function regularCatalogSnapshot("), c);
+  c.replaceRegularCatalog([open, carrier], "full");
+  assert.equal(state.activeShow.id, "anilist-200");
+  assert.equal(reopened.id, "anilist-200");
+  assert.equal(reopened.target.skipHistory, true);
+});
+
+test("a shared provider slug never merges two canonical cours", () => {
+  const c = vm.createContext({});
+  vm.runInContext(
+    section(client, "function catalogShowsShareIdentity(", "function replaceRegularCatalog("),
+    c
+  );
+  const partOne = {
+    id: "anilist-100",
+    anilistId: 100,
+    malId: 150,
+    animeAv1Slug: "one-provider-page"
+  };
+  const partTwo = {
+    id: "anilist-200",
+    anilistId: 200,
+    malId: 250,
+    animeAv1Slug: "one-provider-page"
+  };
+  assert.equal(c.catalogShowsShareIdentity(partOne, partTwo), false);
+  assert.equal(c.catalogShowsShareIdentity(partOne, { ...partOne }), true);
+  assert.equal(c.catalogShowsShareIdentity(
+    { id: "source-a", animeAv1Slug: "one-provider-page" },
+    { id: "source-b", animeAv1Slug: "one-provider-page" }
+  ), true);
+});
+
+test("latest cards use observed source episode counts instead of a TV fallback", () => {
+  const c = vm.createContext({});
+  vm.runInContext(
+    section(client, "function cardEpisodeNumber(", "function getCardTarget("),
+    c
+  );
+  const airing = { status: "RELEASING", sourceEpisodeCount: 9, totalEpisodes: 12 };
+  assert.equal(c.cardEpisodeNumber(airing), 9);
+  assert.equal(c.cardEpisodeLabel(airing), "EP 9");
+  assert.equal(c.cardEpisodeLabel({ status: "RELEASING" }), "EP TBA");
+});
+
+test("published source episodes override only stale future status metadata", () => {
+  const c = vm.createContext({ Date });
+  vm.runInContext(
+    section(client, "function effectiveShowStatus(", "function matchesLibraryAdvancedFilters("),
+    c
+  );
+  assert.equal(c.effectiveShowStatus({ status: "NOT_YET_RELEASED", sourceEpisodeCount: 3 }), "RELEASING");
+  assert.equal(c.effectiveShowStatus({ status: "UPCOMING", lastEpisodeAt: "2026-09-01T00:00:00Z" }), "RELEASING");
+  assert.equal(c.effectiveShowStatus({ status: "NOT_YET_RELEASED" }), "NOT_YET_RELEASED");
+  assert.equal(c.effectiveShowStatus({ status: "FINISHED", sourceEpisodeCount: 12 }), "FINISHED");
+});
+
+test("relation-only seasons inherit a marked TMDB franchise id", () => {
+  const c = vm.createContext({});
+  vm.runInContext(
+    section(server, "function buildArtworkIdentityIndex(", "function readScrapedRegularCatalogItems("),
+    c
+  );
+  const artwork = {
+    "anilist-108268": {
+      anilistId: 108268,
+      malId: 39468,
+      metadataCover: "season-one.jpg",
+      canonicalSeasonNumber: 1,
+      meta: { year: 2019, episodes: 14 }
+    },
+    "anilist-171110": {
+      anilistId: 171110,
+      malId: 57466,
+      tmdbId: 91768,
+      canonicalSeasonNumber: 4
+    }
+  };
+  const [older] = c.enrichFranchiseSeasonEntries(
+    [{ anilistId: 108268, title: "Honzuki no Gekokujou", episodes: 14 }],
+    artwork,
+    c.buildArtworkIdentityIndex(artwork),
+    artwork["anilist-171110"]
+  );
+  assert.equal(older.tmdbId, 91768);
+  assert.equal(older.tmdbFranchiseFallback, true);
+  assert.equal(older.tmdbFranchiseCarrierSeason, 4);
+  assert.equal(older.image, "season-one.jpg");
 });
 
 test("late episode metadata cannot cross from one canonical season into another", () => {

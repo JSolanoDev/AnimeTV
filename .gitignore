@@ -31,4 +31,5 @@ Thumbs.db
 # Exclude the episode cache and Python bytecode only.
 scraper/.episode_cache/
 scraper/__pycache__/
+scraper/anime_metadata.rejected.json
 scratch/

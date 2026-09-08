@@ -530,6 +530,27 @@ function scheduleAiringEnrichment(delay = 1200) {
   }, delay);
 }
 
+// A provider page can carry several split cours. Its slug identifies where the
+// video comes from, not which AniList/MAL season the UI is showing. Never let a
+// shared playback slug collapse two canonical season identities during a late
+// bootstrap -> full-catalog replacement.
+function catalogShowsShareIdentity(left, right) {
+  if (!left || !right) return false;
+  if (left.id && right.id && String(left.id) === String(right.id)) return true;
+
+  const leftAni = left.anilistId ? String(left.anilistId) : "";
+  const rightAni = right.anilistId ? String(right.anilistId) : "";
+  if (leftAni && rightAni) return leftAni === rightAni;
+
+  const leftMal = left.malId ? String(left.malId) : "";
+  const rightMal = right.malId ? String(right.malId) : "";
+  if (leftMal && rightMal) return leftMal === rightMal;
+
+  const leftSlug = String(left.animeAv1Slug || "");
+  const rightSlug = String(right.animeAv1Slug || "");
+  return Boolean(leftSlug && rightSlug && leftSlug === rightSlug);
+}
+
 function replaceRegularCatalog(items = [], tier = "full") {
   const adultItems = state.shows.filter((item) =>
     typeof AdultMode !== "undefined" && AdultMode.isAdultContent(item)
@@ -544,14 +565,28 @@ function replaceRegularCatalog(items = [], tier = "full") {
   // activeShow had tmdbBackdrop, its catalogue twin did not.
   // Deep links hit this every time, because the catalogue is replaced two or three
   // times (bootstrap -> cached -> full) while the show is already open.
-  const open = state.activeShow;
+  let open = state.activeShow;
+  const routeInfo = state.currentRouteInfo || {};
+  const routeAnimeId = routeInfo.params?.animeId || "";
+  if (open && routeAnimeId && ["anime", "anime-seasons", "anime-season", "anime-episode", "watch"].includes(routeInfo.name)) {
+    const routed = findShowBySlugOrId(routeAnimeId);
+    const sameIdentity = routed && catalogShowsShareIdentity(routed, open);
+    if (routed && !sameIdentity) {
+      // A lightweight cached row can satisfy a sequel slug through an alternate
+      // title before the full relation graph arrives. Once the full catalog is
+      // installed, rebind the still-open clean URL to its exact relation identity.
+      state.activeShow = routed;
+      open = routed;
+      const target = { ...(routeInfo.target || {}), skipHistory: true };
+      window.requestAnimationFrame(() => {
+        if (state.currentRouteInfo?.params?.animeId !== routeAnimeId || state.activeShow !== routed) return;
+        updateRouteMeta(state.currentRouteInfo, routed, target);
+        openShow(routed.id, target);
+      });
+    }
+  }
   if (open) {
-    const twin = state.shows.find((s) =>
-      String(s.id) === String(open.id)
-      || Boolean(open.anilistId && s.anilistId && String(s.anilistId) === String(open.anilistId))
-      || Boolean(open.malId && s.malId && String(s.malId) === String(open.malId))
-      || Boolean(open.animeAv1Slug && s.animeAv1Slug && String(s.animeAv1Slug) === String(open.animeAv1Slug))
-    );
+    const twin = state.shows.find((s) => catalogShowsShareIdentity(s, open));
     if (twin && twin !== open) {
       // Keep the fresh catalogue values, carry over anything only the open copy
       // has resolved (tmdbBackdrop, episodes, franchise, ...).
@@ -607,7 +642,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=744`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=752`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -1722,8 +1757,25 @@ function showYear(show) {
   return match ? Number(match[0]) : 0;
 }
 
+function effectiveShowStatus(show = {}) {
+  const status = String(show.status || show.airingStatus || show.anilistStatus || "");
+  const key = status.toUpperCase();
+  const sourceEpisodeCount = Number(show.sourceEpisodeCount || show.playableEpisodeCount || 0);
+  const lastEpisodeAt = Date.parse(show.lastEpisodeAt || "");
+  const hasPublishedEpisode = (Number.isFinite(sourceEpisodeCount) && sourceEpisodeCount > 0)
+    || (Number.isFinite(lastEpisodeAt) && lastEpisodeAt <= Date.now());
+
+  // AniList/MAL can lag behind a provider at a season premiere. Once the daily
+  // source probe has observed a published episode, a future-status flag is
+  // stale by definition. Do not infer anything for a title with no source proof.
+  if (hasPublishedEpisode && (key === "NOT_YET_RELEASED" || key === "UPCOMING")) {
+    return "RELEASING";
+  }
+  return status;
+}
+
 function showStatusKey(show) {
-  const status = String(show?.status || show?.airingStatus || show?.anilistStatus || "").toLowerCase();
+  const status = effectiveShowStatus(show).toLowerCase();
   if (/not_yet|upcoming|not yet|soon/.test(status)) return "upcoming";
   if (/releasing|airing|ongoing|currently/.test(status)) return "airing";
   if (/finished|complete|ended|cancelled/.test(status)) return "finished";
@@ -3104,8 +3156,11 @@ async function warmSeasonArtwork(show, seasonIndex = 0, options = {}) {
     enrichTmdbImages(show);
   }
 
-  const needsSeasonScopedArt = seasons.length > 1 || Boolean(show.isFranchiseEntry);
-  if (needsSeasonScopedArt && show.tmdbId && typeof ImageResolver !== "undefined" && ImageResolver.ensureSeasonStills) {
+  // Every verified TMDB identity gets season-scoped metadata. A sequel can be a
+  // single catalogue row while still mapping to TMDB Season 2/3/4, so gating this
+  // on a locally assembled multi-season list silently sent those rows through the
+  // flat Season 1 path and produced the wrong titles, dates, and thumbnails.
+  if (show.tmdbId && typeof ImageResolver !== "undefined" && ImageResolver.ensureSeasonStills) {
     await ImageResolver.ensureSeasonStills(show, seasonNumber, season);
     seasons = getDetailSeasons(show);
     season = seasons[index] || seasons[0] || season;
@@ -3626,7 +3681,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=744";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=752";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4354,6 +4409,7 @@ function applyCanonicalAnimeMetadata(show, payload = {}) {
       show.genre = show.genres[0] || show.genre;
     }
   }
+  show.status = effectiveShowStatus(show);
   return true;
 }
 
@@ -4792,16 +4848,24 @@ function episodePathForShow(show = {}, seasonNumber = 1, episodeNumber = 1, seas
   return `/watch/${encodeURIComponent(getShowSlug(show))}/${encodeURIComponent(ep)}`;
 }
 
-const FRANCHISE_ROUTE_CACHE_KEY = "zenkaitv-franchise-routes-v2";
+const FRANCHISE_ROUTE_CACHE_KEY = "zenkaitv-franchise-routes-v3";
 
 function readFranchiseRoutes() {
   try {
     const entries = JSON.parse(localStorage.getItem(FRANCHISE_ROUTE_CACHE_KEY) || "[]");
-    return Array.isArray(entries) ? entries.filter(entry =>
-      entry?.show?.isFranchiseEntry && !entry.show.adultSource &&
-      /^(anilist|jikan)-\d+$/.test(String(entry.show.id)) &&
-      Date.now() - Number(entry.savedAt) < 30 * 86400000
-    ).slice(-64) : [];
+    return Array.isArray(entries) ? entries.filter((entry) => {
+      const show = entry?.show;
+      const identity = /^(anilist|jikan)-(\d+)$/.exec(String(show?.id || ""));
+      if (!show?.isFranchiseEntry || show.adultSource || !identity) return false;
+      // The id is the durable route identity. Reject caches produced by the old
+      // merge bug where an `anilist-166873` row could carry another season's
+      // AniList id, poster and description. The baked relation chain below can
+      // reconstruct a clean row, so a corrupt convenience cache is never trusted.
+      const identityMatches = identity[1] === "anilist"
+        ? String(show.anilistId || "") === identity[2]
+        : String(show.malId || "") === identity[2];
+      return identityMatches && Date.now() - Number(entry.savedAt) < 30 * 86400000;
+    }).slice(-64) : [];
   } catch { return []; }
 }
 
@@ -4811,7 +4875,7 @@ function rememberFranchiseRoutes(shows) {
   for (const show of shows) {
     if (!show.isFranchiseEntry || show.adultSource || !/^(anilist|jikan)-\d+$/.test(String(show.id))) continue;
     const stub = {};
-    for (const key of ["id", "anilistId", "malId", "catalogAnimeId", "providerAnimeId", "animeAv1Slug", "title", "romajiTitle", "nativeTitle", "providerBaseTitle", "episode", "totalEpisodes", "franchiseEpisodeCount", "latestAiredEp", "nextAiringEp", "nextAiringEpisodeNumber", "canonicalSeasonNumber", "canonicalSeasonPart", "providerEpisodeOffset", "normalizedSeasonTitle", "franchiseSeasons", "genre", "genres", "format", "status", "year", "source", "isFranchiseEntry", "image", "coverImageLarge", "banner", "highQualityBackground", "description", "colors", "score"]) {
+    for (const key of ["id", "anilistId", "malId", "tmdbId", "tmdbFranchiseFallback", "tmdbFranchiseCarrierSeason", "catalogAnimeId", "providerAnimeId", "animeAv1Slug", "title", "romajiTitle", "nativeTitle", "providerBaseTitle", "episode", "totalEpisodes", "franchiseEpisodeCount", "latestAiredEp", "nextAiringEp", "nextAiringEpisodeNumber", "canonicalSeasonNumber", "canonicalSeasonPart", "providerEpisodeOffset", "normalizedSeasonTitle", "franchiseSeasons", "genre", "genres", "format", "status", "year", "source", "isFranchiseEntry", "image", "coverImageLarge", "banner", "highQualityBackground", "description", "colors", "score"]) {
       if (show[key] != null) stub[key] = show[key];
     }
     entries.delete(show.id);
@@ -4824,18 +4888,51 @@ function findShowBySlugOrId(value) {
   const wanted = String(value || "");
   const wantedSlug = getShowSlug({ title: wanted, slug: wanted });
   const acceptedSlugs = new Set([wanted, wantedSlug, ...(ROUTE_SLUG_ALIASES[wantedSlug] || [])].filter(Boolean));
+  const exactIdentity = (entry) => Boolean(entry) && (
+    String(entry.id) === wanted || getShowKey(entry) === wanted
+  );
   const matches = (entry) => {
     if (!entry) return false;
     const entrySlug = getShowSlug(entry);
-    return String(entry.id) === wanted ||
-      getShowKey(entry) === wanted ||
-      acceptedSlugs.has(entrySlug);
+    return exactIdentity(entry) || acceptedSlugs.has(entrySlug);
   };
-  let show = state.shows.find(matches);
+  // Explicit ids are unambiguous and retain backwards compatibility with old
+  // bookmarked routes. A title slug is weaker and is resolved against the
+  // relationship graph below before it may select a catalog row.
+  let show = state.shows.find(exactIdentity);
+  if (show) return show;
+  show = (state.addonSections || []).flatMap((section) => section.items || []).find(exactIdentity);
+  if (show) return show;
+  if (state.av1Shows?.has(wanted)) return state.av1Shows.get(wanted);
+  // A clean direct URL can point at a related season/cour that is not one of the
+  // provider's current catalog rows. Rebuild that exact relation-backed row from
+  // a catalog chain before consulting localStorage. This makes refresh and shared
+  // URLs deterministic even in a fresh browser, and removes correctness from the
+  // 30-day route cache's responsibilities.
+  let matchingRelation = null;
+  const relationCarrier = state.shows.find((entry) => {
+    if (!Array.isArray(entry?.franchiseSeasons)) return false;
+    matchingRelation = entry.franchiseSeasons.find((related) => acceptedSlugs.has(getShowSlug(related))) || null;
+    return Boolean(matchingRelation);
+  });
+  if (relationCarrier) {
+    ensureFranchiseShowsInCatalog(relationCarrier);
+    const rawAniListId = String(matchingRelation?.anilistId || "");
+    const surrogateMalId = (rawAniListId.match(/^mal-(\d+)$/i) || [])[1] || "";
+    const aniListId = /^\d+$/.test(rawAniListId) ? rawAniListId : "";
+    const malId = String(matchingRelation?.malId || surrogateMalId || "");
+    show = state.shows.find((entry) =>
+      (aniListId && String(entry?.anilistId || "") === aniListId)
+      || (malId && String(entry?.malId || "") === malId)
+      || (aniListId && String(entry?.id || "") === `anilist-${aniListId}`)
+      || (malId && String(entry?.id || "") === `jikan-${malId}`)
+    );
+    if (show) return show;
+  }
+  show = state.shows.find(matches);
   if (show) return show;
   show = (state.addonSections || []).flatMap((section) => section.items || []).find(matches);
   if (show) return show;
-  if (state.av1Shows?.has(wanted)) return state.av1Shows.get(wanted);
   for (const entry of state.av1Shows?.values?.() || []) {
     if (matches(entry)) return entry;
   }
@@ -5052,13 +5149,32 @@ function cardEpisodeNumber(show = {}) {
   const airing = status.includes("RELEASING") || status.includes("CURRENTLY AIRING") || status === "AIRING";
   const latest = Number(show.latestAiredEp || show.latestAiredEpisode || 0);
   const next   = Number(show.nextAiringEpisodeNumber || show.nextAiringEp || 0);
-  const total  = Number(show.totalEpisodes || show.episodeCount || show.episodesCount || 0);
+  const source = Number(
+    show.sourceEpisodeCount
+    || show.playableEpisodeCount
+    || show.franchiseEpisodeCount
+    || (Array.isArray(show.episodes) ? show.episodes.length : 0)
+    || 0
+  );
+  const total  = Number(
+    show.totalEpisodes
+    || show.anilistEpisodeCount
+    || show.episodeCount
+    || show.episodesCount
+    || 0
+  );
   const ep     = Number(show.episode);
   if (airing) {
     if (Number.isFinite(latest) && latest > 0) return latest;
     if (Number.isFinite(next) && next > 1) return next - 1;
-    return 0; // aired count unknown — don't show the planned total
+    // Prefer the provider routes observed by the daily source probe. This is a
+    // current episode count, while totalEpisodes can still be a planned value.
+    if (Number.isFinite(source) && source > 0) return source;
+    if (Number.isFinite(ep) && ep > 0) return ep;
+    if (Number.isFinite(total) && total > 0) return total;
+    return 0;
   }
+  if (Number.isFinite(source) && source > 0) return source;
   if (Number.isFinite(total) && total > 0) return total;
   if (Number.isFinite(ep) && ep > 0) return ep;
   if (Number.isFinite(latest) && latest > 0) return latest;
@@ -5067,7 +5183,7 @@ function cardEpisodeNumber(show = {}) {
 
 function cardEpisodeLabel(show = {}) {
   const n = cardEpisodeNumber(show);
-  return n > 0 ? `EP ${n}` : "TV";
+  return n > 0 ? `EP ${n}` : "EP TBA";
 }
 
 function getCardTarget(show) {
@@ -5084,7 +5200,7 @@ function cardMeta(show, isFavorite = false) {
   if (show.score) pieces.push(`${show.score}%`);
   if (isAdultCatalogShow(show) && show.year) pieces.push(String(show.year));
   const epLabel = cardEpisodeLabel(show);
-  if (epLabel !== "TV") pieces.push(epLabel);
+  pieces.push(epLabel);
   if (isFavorite) pieces.push("FAVORITE");
   return pieces.join(" | ");
 }
@@ -8762,7 +8878,7 @@ function renderDetailMeta(show) {
     const fmt = detailFormatLabel(show.format);
     const year = show.year ? String(show.year) : "";
     const dur = Number(show.duration) ? `${show.duration} min` : "";
-    const status = detailStatusLabel(show.status);
+    const status = detailStatusLabel(effectiveShowStatus(show));
     [fmt, year, dur, status].filter(Boolean).forEach((txt) => {
       chips.push(`<span class="watch-meta-chip">${escapeHtml(txt)}</span>`);
     });
@@ -9575,11 +9691,10 @@ function renderEpisodeList(show) {
 
   const episodes = activeSeason?.episodes || [];
   const activeSeasonNum = Number(activeSeason?.season) || state.activeSeasonIndex + 1;
-  // For shows presented as one entry with several seasons (each numbered 1..N),
-  // load the TMDB stills for THIS season so they don't collide with Season 1's.
-  // Gated to genuinely multi-season shows so single-list absolute shows
-  // (Naruto/Bleach) keep using the proven flat/lazy path untouched.
-  if ((seasons.length > 1 || show.isFranchiseEntry) && show.tmdbId &&
+  // Always scope TMDB metadata to the canonical season. Some sequels exist as a
+  // single local row (for example a Season 4 title), so list length cannot tell us
+  // whether Season 1 is the correct provider season.
+  if (show.tmdbId &&
       typeof ImageResolver !== "undefined" && ImageResolver.ensureSeasonStills) {
     ImageResolver.ensureSeasonStills(show, activeSeasonNum, activeSeason);
   }
@@ -11878,25 +11993,56 @@ console.log("[Cast] debug bridge installed", window.location.href);
 // per playback. Keyed by MAL id, so it is independent of which streaming source
 // is selected - switching source keeps the same timestamps.
 const _skipTimesByMal = new Map();
+const _skipTimesPromisesByMal = new Map();
+const _skipTimesCheckedEpisodes = new Set();
 
 function skipTimesCacheKey(show) {
   const mal = Number(show?.malId || 0);
   return Number.isFinite(mal) && mal > 0 ? mal : 0;
 }
 
-async function warmSkipTimes(show) {
+async function warmSkipTimes(show, episode = null) {
   const mal = skipTimesCacheKey(show);
   // No MAL id means no lookup at all - we never guess one from the title.
-  if (!mal || _skipTimesByMal.has(mal)) return;
-  _skipTimesByMal.set(mal, {});   // claim it so parallel opens do not double-fetch
-  try {
-    const response = await fetchWithTimeout(`/api/skip-times?malId=${mal}`, {}, 4000);
-    const payload = await response.json();
-    _skipTimesByMal.set(mal, payload && typeof payload.episodes === "object" ? payload.episodes : {});
-  } catch (error) {
-    // Absent timestamps are a normal outcome; the buttons just stay hidden.
-    _skipTimesByMal.set(mal, {});
+  if (!mal) return {};
+  const number = Number(episode?.canonicalEpisode ?? episode?.episode ?? episode?.number ?? 0);
+  const exactEpisode = Number.isInteger(number) && number > 0 ? number : 0;
+  const requestKey = `${mal}:${exactEpisode || "all"}`;
+  const checkedKey = exactEpisode ? `${mal}:${exactEpisode}` : "";
+  if (checkedKey && _skipTimesCheckedEpisodes.has(checkedKey)) return _skipTimesByMal.get(mal) || {};
+  if (!exactEpisode && _skipTimesByMal.has(mal)) return _skipTimesByMal.get(mal);
+  if (_skipTimesPromisesByMal.has(requestKey)) return _skipTimesPromisesByMal.get(requestKey);
+
+  // Let the whole-map preload finish first. If it contains this episode there is
+  // no reason to ask the server for the exact live fallback too.
+  const allRequest = _skipTimesPromisesByMal.get(`${mal}:all`);
+  if (exactEpisode && allRequest) {
+    await allRequest;
+    if (_skipTimesByMal.get(mal)?.[String(exactEpisode)]) return _skipTimesByMal.get(mal);
+    if (_skipTimesPromisesByMal.has(requestKey)) return _skipTimesPromisesByMal.get(requestKey);
   }
+
+  const request = (async () => {
+    try {
+      const query = new URLSearchParams({ malId: String(mal) });
+      if (exactEpisode) query.set("episode", String(exactEpisode));
+      const response = await fetchWithTimeout(`/api/skip-times?${query.toString()}`, {}, exactEpisode ? 7500 : 4000);
+      const payload = await response.json();
+      const episodes = payload && typeof payload.episodes === "object" ? payload.episodes : {};
+      const merged = { ...(_skipTimesByMal.get(mal) || {}), ...episodes };
+      _skipTimesByMal.set(mal, merged);
+      return merged;
+    } catch (error) {
+      // Absent timestamps are a normal outcome; the buttons just stay hidden.
+      if (!_skipTimesByMal.has(mal)) _skipTimesByMal.set(mal, {});
+      return _skipTimesByMal.get(mal);
+    } finally {
+      if (checkedKey) _skipTimesCheckedEpisodes.add(checkedKey);
+      _skipTimesPromisesByMal.delete(requestKey);
+    }
+  })();
+  _skipTimesPromisesByMal.set(requestKey, request);
+  return request;
 }
 
 // episode.intro / episode.outro win when a provider ever supplies them; the
@@ -11928,6 +12074,17 @@ function skipSegmentParam(segment) {
 function episodeSkipKey(episode) {
   if (!episode) return "";
   return String(episode.episodeKey || episode.id || episode.url || (episode.episode ?? episode.number ?? ""));
+}
+
+function episodeSkipSegmentsPayload(show, episode) {
+  const payload = { episodeKey: episodeSkipKey(episode) };
+  for (const segmentName of PLAYER_SKIP_SEGMENTS) {
+    const segment = resolveEpisodeSkipSegment(show, episode, segmentName);
+    if (skipSegmentParam(segment)) {
+      payload[segmentName] = { start: Number(segment.start), end: Number(segment.end) };
+    }
+  }
+  return payload;
 }
 
 function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null) {
@@ -12095,6 +12252,7 @@ function createApkPlayerController(iframe, options = {}) {
     if (command === "ready" || command === "loadedmetadata") {
       emit("loadedmetadata");
       syncNextEpisodeState();
+      postApkPlayerCommand(iframe, "segments", options.skipSegments?.() || {});
       postApkPlayerCommand(iframe, "scale", playerFitScaleValue());
       postApkPlayerCommand(iframe, "quality", Number(state.uiPreferences.playerQuality || 0));
       postApkPlayerCommand(iframe, "audiolang", getLanguagePreferences().audio || "");
@@ -12140,6 +12298,7 @@ function createApkPlayerController(iframe, options = {}) {
   controller.destroy = () => window.removeEventListener("message", onMessage);
   iframe.addEventListener("load", () => {
     syncNextEpisodeState();
+    postApkPlayerCommand(iframe, "segments", options.skipSegments?.() || {});
     postApkPlayerCommand(iframe, "scale", playerFitScaleValue());
     postApkPlayerCommand(iframe, "quality", Number(state.uiPreferences.playerQuality || 0));
     postApkPlayerCommand(iframe, "audiolang", getLanguagePreferences().audio || "");
@@ -13426,20 +13585,45 @@ function _buildShowsByAniListId() {
 // then on the id suffix, so either object finds it.
 function bakedChainFor(show) {
   if (Array.isArray(show.franchiseSeasons) && show.franchiseSeasons.length) {
-    return { chain: show.franchiseSeasons, selfAniListId: show.anilistId || null };
+    return {
+      chain: show.franchiseSeasons,
+      selfAniListId: show.anilistId || null,
+      selfMalId: show.malId || null
+    };
   }
   const shows = typeof catalogShows === "function" ? catalogShows() : [];
   const hasChain = (s) => Array.isArray(s.franchiseSeasons) && s.franchiseSeasons.length;
   if (show.anilistId) {
     const byAniList = shows.find((s) => hasChain(s) && String(s.anilistId) === String(show.anilistId));
-    if (byAniList) return { chain: byAniList.franchiseSeasons, selfAniListId: show.anilistId };
+    if (byAniList) {
+      return {
+        chain: byAniList.franchiseSeasons,
+        selfAniListId: show.anilistId,
+        selfMalId: show.malId || byAniList.malId || null
+      };
+    }
+  }
+  if (show.malId) {
+    const byMal = shows.find((s) => hasChain(s) && String(s.malId) === String(show.malId));
+    if (byMal) {
+      return {
+        chain: byMal.franchiseSeasons,
+        selfAniListId: show.anilistId || byMal.anilistId || null,
+        selfMalId: show.malId
+      };
+    }
   }
   const rawId = String(show.id || "");
   if (!rawId) return null;
   const bySuffix = shows.find((s) => hasChain(s) && (String(s.id || "").endsWith(rawId) || rawId.endsWith(String(s.id || ""))));
-  // The matched row is the same show, so ITS AniList id identifies which link
-  // of the chain we are on - the opened object often has no anilistId of its own.
-  return bySuffix ? { chain: bySuffix.franchiseSeasons, selfAniListId: bySuffix.anilistId || null } : null;
+  // The matched row is the same show, so ITS provider-neutral identity identifies
+  // which link of the chain we are on. New MAL-only rows deliberately have no
+  // numeric AniList id and must not silently fall back to the first season.
+  return bySuffix ? {
+    chain: bySuffix.franchiseSeasons,
+    selfAniListId: bySuffix.anilistId || null,
+    selfMalId: bySuffix.malId || null
+  } : null;
 }
 
 // ensureFranchiseShowsInCatalog() materialises a row for every franchise entry
@@ -13459,6 +13643,8 @@ function buildSeasonListFromBakedChain(show, showsMap) {
   if (chain.length < 2) return null;
 
   const currentAniListId = String(show.anilistId || resolved.selfAniListId || "");
+  const surrogateCurrentMalId = (currentAniListId.match(/^mal-(\d+)$/i) || [])[1] || "";
+  const currentMalId = String(show.malId || resolved.selfMalId || surrogateCurrentMalId || "");
   const normalized = typeof SeasonNormalization !== "undefined"
     ? SeasonNormalization.normalizeFranchise(chain.map((entry) => ({ ...entry, mainline: true }))).groups
     : chain.map((entry, index) => ({
@@ -13477,9 +13663,18 @@ function buildSeasonListFromBakedChain(show, showsMap) {
     const seasonNumber = Number(group.seasonNumber) || index + 1;
     const providerEpisodeOffset = offsets.get(seasonNumber) || 0;
     offsets.set(seasonNumber, providerEpisodeOffset + (Number(group.episodeCount) || 0));
-    const currentItem = items.find((entry) => currentAniListId && String(entry.anilistId) === currentAniListId);
+    const currentItem = items.find((entry) => {
+      const entryAniListId = String(entry.anilistId || "");
+      const surrogateEntryMalId = (entryAniListId.match(/^mal-(\d+)$/i) || [])[1] || "";
+      const entryMalId = String(entry.malId || surrogateEntryMalId || "");
+      return Boolean(
+        (currentAniListId && entryAniListId === currentAniListId)
+        || (currentMalId && entryMalId === currentMalId)
+      );
+    });
     const matchedItem = items.find((entry) => showsMap.has(String(entry.anilistId)) || (entry.malId && showsMap.has(`mal-${entry.malId}`)));
     const entry = currentItem || matchedItem || items[0] || {};
+    const selectedSurrogateMalId = (String(entry.anilistId || "").match(/^mal-(\d+)$/i) || [])[1] || "";
     const isCurrent = Boolean(currentItem);
     const matched = matchedItem
       ? (showsMap.get(String(matchedItem.anilistId)) || showsMap.get(`mal-${matchedItem.malId}`))
@@ -13536,7 +13731,7 @@ function buildSeasonListFromBakedChain(show, showsMap) {
       status: entry.status || "",
       year: group.yearStart || entry.seasonYear || null,
       anilistId: entry.anilistId,
-      malId: matched?.malId || null,
+      malId: matched?.malId || entry.malId || selectedSurrogateMalId || null,
       isCurrentShow: isCurrent,
       relatedShowId: isCurrent ? null : (matched ? matched.id : null),
       episodes,
@@ -14698,11 +14893,25 @@ function ensureFranchiseShowsInCatalog(show) {
         ...(Array.isArray(franchise?.recaps) ? franchise.recaps : [])
       ];
 
+  const carrierEntry = groupedEntries.find((entry) => {
+    const rawAniListId = String(entry?.anilistId || "");
+    const surrogateMalId = (rawAniListId.match(/^mal-(\d+)$/i) || [])[1] || "";
+    return Boolean(
+      (show.anilistId && /^\d+$/.test(rawAniListId) && String(show.anilistId) === rawAniListId)
+      || (show.malId && String(show.malId) === String(entry?.malId || surrogateMalId || ""))
+    );
+  });
+  const franchiseTmdbCarrierSeason = Number(
+    carrierEntry?.canonicalSeasonNumber || show.canonicalSeasonNumber || 0
+  ) || null;
+
   const added = [];
   const seenEntries = new Set();
   for (const entry of allEntries) {
-    const aniId   = String(entry.anilistId || "");
-    const malId = String(entry.malId || "");
+    const rawAniListId = String(entry.anilistId || "");
+    const surrogateMalId = (rawAniListId.match(/^mal-(\d+)$/i) || [])[1] || "";
+    const aniId = /^\d+$/.test(rawAniListId) ? rawAniListId : "";
+    const malId = String(entry.malId || surrogateMalId || "");
     const extraId = String(entry.extraAnilistId || "");
     const identity = franchiseEntryKey(entry);
     if (!identity || seenEntries.has(identity)) continue;
@@ -14728,7 +14937,18 @@ function ensureFranchiseShowsInCatalog(show) {
     const identityTargets = [...new Set([existing, isOpenEntry ? show : null].filter(Boolean))];
     if (identityTargets.length) {
       for (const target of identityTargets) {
+        const syntheticTarget = isSyntheticFranchiseRow(target);
         target.isFranchiseEntry = true;
+        // A relation-backed stub must keep the identity of that exact relation.
+        // It may have been materialized from a sibling row before the complete
+        // chain arrived, so authoritative relation data also replaces stale fields.
+        if (syntheticTarget) {
+          target.anilistId = aniId ? Number(aniId) : null;
+          target.malId = entry.malId || null;
+          target.tmdbId = entry.tmdbId || null;
+          target.tmdbFranchiseFallback = Boolean(entry.tmdbFranchiseFallback);
+          target.tmdbFranchiseCarrierSeason = entry.tmdbFranchiseCarrierSeason || franchiseTmdbCarrierSeason;
+        }
         target.canonicalSeasonNumber = entry.canonicalSeasonNumber || target.canonicalSeasonNumber || null;
         // `null` is meaningful here: the relation normalizer is explicitly
         // saying this season is not a split cour. Nullish fallback preserved a
@@ -14739,19 +14959,30 @@ function ensureFranchiseShowsInCatalog(show) {
           : (target.canonicalSeasonPart ?? null);
         // A real source row owns its own local numbering. Only relation-only
         // stubs borrow the base cour's combined provider slug and need an offset.
-        target.providerEpisodeOffset = target.animeAv1Slug ? 0 : (Number(entry.providerEpisodeOffset) || 0);
-        target.providerBaseTitle = target.animeAv1Slug
-          ? (target.title || entry.title || "")
-          : (entry.providerBaseTitle || target.providerBaseTitle || "");
+        target.providerEpisodeOffset = syntheticTarget
+          ? (Number(entry.providerEpisodeOffset) || 0)
+          : 0;
+        target.providerBaseTitle = syntheticTarget
+          ? (entry.providerBaseTitle || target.providerBaseTitle || "")
+          : (target.title || entry.title || "");
         target.franchiseEpisodeCount = entry.franchiseEpisodeCount || target.franchiseEpisodeCount || null;
         target.normalizedSeasonTitle = entry.normalizedSeasonTitle || target.normalizedSeasonTitle || "";
         if (baked?.chain?.length && !target.franchiseSeasons) target.franchiseSeasons = baked.chain;
-        if (entry.image && !target.image) target.image = entry.image;
-        if (entry.image && !target.coverImageLarge) target.coverImageLarge = entry.image;
-        if (entry.banner && !target.banner) target.banner = entry.banner;
-        if (entry.banner && !target.highQualityBackground) target.highQualityBackground = entry.banner;
-        if (entry.description && (!target.description || target.description.length < 60)) target.description = cleanDescription(entry.description);
-        if (entry.genres?.length && !target.genres?.length) target.genres = entry.genres;
+        if (entry.image && (syntheticTarget || !target.image)) target.image = entry.image;
+        if (entry.image && (syntheticTarget || !target.coverImageLarge)) target.coverImageLarge = entry.image;
+        if (entry.banner && (syntheticTarget || !target.banner)) target.banner = entry.banner;
+        if (entry.banner && (syntheticTarget || !target.highQualityBackground)) target.highQualityBackground = entry.banner;
+        if (entry.description && (syntheticTarget || !target.description || target.description.length < 60)) {
+          target.description = cleanDescription(entry.description);
+        }
+        if (entry.genres?.length && (syntheticTarget || !target.genres?.length)) target.genres = entry.genres;
+        if (syntheticTarget && entry.title) target.title = entry.title;
+        if (syntheticTarget && entry.romajiTitle) target.romajiTitle = entry.romajiTitle;
+        if (syntheticTarget && entry.englishTitle) target.englishTitle = entry.englishTitle;
+        if (syntheticTarget && entry.format) target.format = entry.format;
+        if (syntheticTarget && entry.status) target.status = entry.status;
+        if (syntheticTarget && entry.seasonYear) target.year = entry.seasonYear;
+        if (syntheticTarget && entry.score != null) target.score = entry.score;
       }
       continue;
     }
@@ -14761,6 +14992,9 @@ function ensureFranchiseShowsInCatalog(show) {
       id:           syntheticId,
       anilistId:    aniId ? Number(aniId) : null,
       malId:        entry.malId || null,
+      tmdbId:       entry.tmdbId || null,
+      tmdbFranchiseFallback: Boolean(entry.tmdbFranchiseFallback),
+      tmdbFranchiseCarrierSeason: entry.tmdbFranchiseCarrierSeason || franchiseTmdbCarrierSeason,
       title:        entry.title || syntheticId,
       romajiTitle:  entry.romajiTitle || "",
       nativeTitle:  entry.nativeTitle || "",
@@ -14769,8 +15003,8 @@ function ensureFranchiseShowsInCatalog(show) {
       latestAiredEp: entry.latestAiredEp || null,
       nextAiringEp: entry.nextAiringEp || null,
       nextAiringEpisodeNumber: entry.nextAiringEp || null,
-      genre:        show.genre || "anime",
-      genres:       entry.genres?.length ? entry.genres : (show.genres || []),
+      genre:        entry.genres?.[0] || "anime",
+      genres:       entry.genres?.length ? entry.genres : [],
       format:       entry.format || "",
       status:       entry.status || "",
       year:         entry.seasonYear || "",
@@ -14783,11 +15017,11 @@ function ensureFranchiseShowsInCatalog(show) {
       franchiseEpisodeCount: entry.franchiseEpisodeCount || null,
       normalizedSeasonTitle: entry.normalizedSeasonTitle || "",
       franchiseSeasons: baked?.chain?.length ? baked.chain : null,
-      image:        entry.image || show.image || "",
-      coverImageLarge: entry.image || show.coverImageLarge || show.image || "",
-      banner:       entry.banner || show.banner || "",
+      image:        entry.image || "",
+      coverImageLarge: entry.image || "",
+      banner:       entry.banner || "",
       highQualityBackground: entry.banner || "",
-      description:  entry.description || show.description || "",
+      description:  entry.description || "",
       videoUrl:     "",
       seasons:      [],
       episodes:     [],
@@ -15386,6 +15620,9 @@ async function attemptResolveEmbed(embedUrl, siteReferer = "") {
 
 function renderDirectVideoPlayer(frame, url, episode) {
   warmPlayableStream(url, { timeoutMs: 2000 });
+  const skipShow = state.activeShow;
+  const skipShowKey = String(skipShow?.id || getShowKey(skipShow || {}));
+  const skipEpisodeKey = episodeSkipKey(episode);
   const tracks = normalizeSubtitleTracks(episode);
   const preferences = getLanguagePreferences();
   const preferredTrack = tracks.find((track) => normalizeLanguagePreference(track.language || track.label) === preferences.subtitles);
@@ -15430,6 +15667,7 @@ function renderDirectVideoPlayer(frame, url, episode) {
   const iframe = frame.querySelector("#animePlayerFrame");
   const player = useApkPlayer
     ? createApkPlayerController(iframe, {
+        skipSegments: () => episodeSkipSegmentsPayload(skipShow, episode),
         onBack: exitPlayerToSources,
         hasNext: () => Boolean(getEpisodeNavigationTargets().next),
         onNext: () => {
@@ -15446,7 +15684,19 @@ function renderDirectVideoPlayer(frame, url, episode) {
           saveCapturedEpisodeFrame(state.activeShow || {}, seasonNumber, episode, frameData?.dataUrl || "");
         }
       })
-    : frame.querySelector("#animePlayer");
+      : frame.querySelector("#animePlayer");
+
+  if (useApkPlayer) {
+    // Opening an episode can beat the one small /api/skip-times request. Deliver
+    // the result to the already-mounted iframe as well as encoding cached values
+    // in its URL, so the buttons work on the first click without delaying video.
+    Promise.resolve(warmSkipTimes(skipShow, episode)).then(() => {
+      const activeShowKey = String(state.activeShow?.id || getShowKey(state.activeShow || {}));
+      if (activeShowKey !== skipShowKey || episodeSkipKey(state.activeEpisode?.episode) !== skipEpisodeKey) return;
+      const liveFrame = frame.querySelector("#animePlayerFrame");
+      postApkPlayerCommand(liveFrame, "segments", episodeSkipSegmentsPayload(skipShow, episode));
+    }).catch(() => {});
+  }
   if (iframe && player?.isApkPlayer) iframe._zenkaiPlayerController = player;
   // Apply the saved default volume (factory default is 10% so it's not jarring)
   if (player) {
@@ -17643,7 +17893,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=744");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=752");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

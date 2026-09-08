@@ -153,7 +153,11 @@ const luluStreamDirectCache = new Map();
 let underHentaiDetailsSnapshot = null;
 let veoHentaiDetailsSnapshot = null;
 const ANIMEAV1_BASE = "https://animeav1.com";
-const ANIMEAV1_SLUG_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
+// The durable catalogue is rebuilt daily, while this lightweight provider-slug
+// overlay closes the gap between that build and a newly posted title. Keep it in
+// step with the 10-minute /api/catalog cache so a source release does not wait
+// half a day to become discoverable.
+const ANIMEAV1_SLUG_CACHE_TTL_MS = 1000 * 60 * 10;
 const ANIMEAV1_CACHE_TTL_MS = 1000 * 60 * 30;
 const ANIMEAV1_MISS_CACHE_TTL_MS = 1000 * 90;
 const ANIMEAV1_CATALOG_PAGES = Math.max(1, Math.min(12, Number(process.env.ANIMEAV1_CATALOG_PAGES || 4)));
@@ -695,15 +699,10 @@ function handleRequest(request, response) {
   }
 
   if (url.pathname === "/api/skip-times") {
-    const payload = skipTimesForMalId(url.searchParams.get("malId"));
-    const body = JSON.stringify({ ok: true, episodes: payload });
-    response.writeHead(200, {
-      ...SECURITY_HEADERS,
-      ...corsHeaders(),
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "public, max-age=3600"
+    handleSkipTimes(url, response).catch((error) => {
+      log("warn", `Skip-time lookup failed: ${error.message}`);
+      if (!response.headersSent) sendJson(response, { ok: false, error: "Skip times unavailable" }, 502);
     });
-    response.end(body);
     return;
   }
 
@@ -1517,6 +1516,7 @@ module.exports = handleRequest;
 module.exports.handleRequest = handleRequest;
 module.exports.startLocalServer = startLocalServer;
 module.exports.mergeShows = mergeShows;
+module.exports.normalizeAniSkipResults = normalizeAniSkipResults;
 
 async function handleDailyRefresh(url, response) {
   const force = url.searchParams.get("force") === "1";
@@ -2258,13 +2258,18 @@ function readTioAnimeSlugsFromScrapedMetadata() {
 // episode, NOT to a streaming provider - switching source keeps the same values.
 // Read once per process, same as the artwork map.
 let _skipTimesCache;
+let _skipTimesAmbiguousMalIds = new Set();
 function readSkipTimesMap() {
   if (_skipTimesCache !== undefined) return _skipTimesCache;
   try {
     const raw = JSON.parse(fs.readFileSync(path.join(root, "scraper", "aniskip-map.json"), "utf8"));
     _skipTimesCache = raw && typeof raw.entries === "object" ? raw.entries : {};
+    _skipTimesAmbiguousMalIds = new Set(
+      (Array.isArray(raw?.ambiguousMalIds) ? raw.ambiguousMalIds : []).map(Number).filter((id) => id > 0)
+    );
   } catch (error) {
     _skipTimesCache = {}; // optional file - absent just means no timestamps yet
+    _skipTimesAmbiguousMalIds = new Set();
   }
   return _skipTimesCache;
 }
@@ -2287,6 +2292,70 @@ function skipTimesForMalId(malId) {
     out[episode] = record;
   }
   return out;
+}
+
+const liveSkipTimesCache = new Map();
+const LIVE_SKIP_TIMES_TTL_MS = 1000 * 60 * 60 * 6;
+
+function normalizeAniSkipResults(body) {
+  if (!body || body.found !== true || !Array.isArray(body.results)) return {};
+  const output = {};
+  for (const row of body.results) {
+    const kind = String(row?.skipType || "").toLowerCase();
+    const name = kind === "op" ? "intro" : kind === "ed" ? "outro" : "";
+    if (!name || output[name]) continue;
+    const start = Number(row?.interval?.startTime);
+    const end = Number(row?.interval?.endTime);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start) continue;
+    output[name] = { start, end };
+  }
+  return output;
+}
+
+async function liveSkipTimesForEpisode(malId, episode) {
+  const key = `${malId}:${episode}`;
+  const cached = liveSkipTimesCache.get(key);
+  if (cached && Date.now() - cached.checkedAt < LIVE_SKIP_TIMES_TTL_MS) return cached.value;
+  let value = {};
+  try {
+    const endpoint = `https://api.aniskip.com/v2/skip-times/${malId}/${episode}?types=op&types=ed&episodeLength=0`;
+    const upstream = await fetchWithTimeout(endpoint, { headers: { Accept: "application/json" } }, 6500);
+    if (upstream.ok) value = normalizeAniSkipResults(await upstream.json());
+  } catch {
+    // Missing/community-unmapped timings are normal. Playback must never wait or
+    // fail because a convenience control has no metadata.
+  }
+  liveSkipTimesCache.set(key, { value, checkedAt: Date.now() });
+  return value;
+}
+
+async function handleSkipTimes(url, response) {
+  const malId = Number(url.searchParams.get("malId"));
+  const episode = Number(url.searchParams.get("episode"));
+  const validMal = Number.isInteger(malId) && malId > 0;
+  const validEpisode = Number.isInteger(episode) && episode > 0;
+  const allBaked = validMal ? skipTimesForMalId(malId) : {};
+  const identityAmbiguous = validMal && _skipTimesAmbiguousMalIds.has(malId);
+  const episodes = identityAmbiguous
+    ? {}
+    : validEpisode && allBaked[String(episode)]
+      ? { [String(episode)]: allBaked[String(episode)] }
+      : validEpisode ? {} : allBaked;
+  let liveChecked = false;
+  if (validMal && validEpisode && !identityAmbiguous && !episodes[String(episode)]) {
+    const live = await liveSkipTimesForEpisode(malId, episode);
+    if (Object.keys(live).length) episodes[String(episode)] = live;
+    liveChecked = true;
+  }
+  sendJson(response, {
+    ok: true,
+    episodes,
+    liveChecked,
+    identityAmbiguous,
+    requestedEpisode: validEpisode ? episode : null
+  }, 200, {
+    "Cache-Control": "public, max-age=3600"
+  });
 }
 
 let _artworkMapCache;
@@ -2317,6 +2386,81 @@ function readAiringMap() {
   return _airingMapCache;
 }
 
+function buildArtworkIdentityIndex(artwork) {
+  const byAniList = new Map();
+  const byMal = new Map();
+  const quality = (entry) => [
+    entry?.metadataCover || entry?.anilistCover || entry?.tmdbPoster,
+    entry?.anilistBanner || entry?.tmdbBackdrop,
+    entry?.meta
+  ].filter(Boolean).length;
+  const keepBest = (map, key, entry) => {
+    if (!key) return;
+    const current = map.get(key);
+    if (!current || quality(entry) > quality(current)) map.set(key, entry);
+  };
+  for (const entry of Object.values(artwork || {})) {
+    if (!entry || typeof entry !== "object") continue;
+    keepBest(byAniList, String(entry.anilistId || ""), entry);
+    keepBest(byMal, String(entry.malId || entry.meta?.malId || ""), entry);
+  }
+  return { byAniList, byMal };
+}
+
+function enrichFranchiseSeasonEntries(entries, artwork, artworkIndex, parentArtwork = null) {
+  if (!Array.isArray(entries) || !entries.length) return entries;
+  const index = artworkIndex || buildArtworkIdentityIndex(artwork);
+  const parentTmdbId = Number(parentArtwork?.tmdbId || 0) || null;
+  const parentSeasonNumber = Number(parentArtwork?.canonicalSeasonNumber || parentArtwork?.season || 0) || null;
+  return entries.map((entry) => {
+    if (!entry || typeof entry !== "object") return entry;
+    const rawAniListId = String(entry.anilistId || "");
+    const surrogateMalId = (rawAniListId.match(/^mal-(\d+)$/i) || [])[1] || "";
+    const aniListId = /^\d+$/.test(rawAniListId) ? rawAniListId : "";
+    const malId = String(entry.malId || surrogateMalId || "");
+    const art = (aniListId && artwork?.[`anilist-${aniListId}`])
+      || (malId && artwork?.[`mal-${malId}`])
+      || (aniListId && index.byAniList.get(aniListId))
+      || (malId && index.byMal.get(malId))
+      || null;
+    const indexedArt = (aniListId && index.byAniList.get(aniListId))
+      || (malId && index.byMal.get(malId))
+      || null;
+    if (!art && !parentTmdbId) return entry;
+    const meta = art?.meta || {};
+    const ownTmdbId = Number(entry.tmdbId || art?.tmdbId || indexedArt?.tmdbId || 0) || null;
+    const tmdbId = ownTmdbId || parentTmdbId;
+    const image = entry.image || art?.metadataCover || art?.anilistCover || art?.tmdbPoster || "";
+    const banner = entry.banner || art?.anilistBanner || art?.tmdbBackdrop || "";
+    return {
+      ...entry,
+      canonicalSeasonNumber: entry.canonicalSeasonNumber || art?.canonicalSeasonNumber || indexedArt?.canonicalSeasonNumber || undefined,
+      malId: entry.malId || art?.malId || meta.malId || (surrogateMalId ? Number(surrogateMalId) : null),
+      tmdbId,
+      // Relation-only seasons frequently have an exact AniList/MAL poster but no
+      // standalone TMDB match because TMDB stores the entire franchise as one
+      // series. Carry the verified parent series as a marked fallback. The
+      // client only consumes it when that series contains the requested season
+      // (or an explicit aggregate-season mapping), so a separately catalogued
+      // sequel cannot borrow the wrong episode titles.
+      tmdbFranchiseFallback: Boolean(!ownTmdbId && parentTmdbId),
+      tmdbFranchiseCarrierSeason: !ownTmdbId && parentTmdbId ? parentSeasonNumber : null,
+      image,
+      banner,
+      description: entry.description || meta.description || "",
+      genres: entry.genres?.length ? entry.genres : (meta.genres || []),
+      score: entry.score ?? meta.score ?? null,
+      duration: entry.duration ?? meta.duration ?? null,
+      episodes: entry.episodes ?? meta.episodes ?? null,
+      format: entry.format || meta.format || "",
+      status: entry.status || meta.airingStatus || "",
+      seasonYear: entry.seasonYear || meta.year || null,
+      englishTitle: entry.englishTitle || meta.englishTitle || "",
+      romajiTitle: entry.romajiTitle || meta.romajiTitle || ""
+    };
+  });
+}
+
 function readScrapedRegularCatalogItems() {
   const paths = [
     path.join(root, "scraper", "anime_metadata.json"),
@@ -2337,51 +2481,39 @@ function readScrapedRegularCatalogItems() {
       const artwork = readArtworkMap();
       const airing = readAiringMap();
       if (!artwork && !airing) return items;
+      const artworkIndex = buildArtworkIdentityIndex(artwork);
       return items.map((item) => {
         const hit = artwork ? artwork[item.id] : null;
         // The airing map is keyed by the same row id, and is independent of the
         // artwork one: a row with no artwork entry can still have a schedule.
         const airingHit = airing ? airing[item.id] : null;
-        if (!hit || hit.status !== "ok") {
-          return airingHit ? {
-            ...item,
-            nextAiringAt: item.nextAiringAt ?? airingHit.nextAiringAt ?? null,
-            nextAiringEpisodeNumber: item.nextAiringEpisodeNumber ?? airingHit.nextAiringEpisodeNumber ?? null,
-            season: item.season || airingHit.season || "",
-            seasonYear: item.seasonYear || airingHit.seasonYear || null,
-            status: item.status || airingHit.airingStatus || "",
-            // What the SOURCE actually serves, measured at build time. An airing
-            // show's planned total is not what is playable.
-            ...(airingHit.sourceEpisodeCount ? { sourceEpisodeCount: airingHit.sourceEpisodeCount } : {}),
-            // When the source last published an episode - the weekly slot, and the
-            // Weekly Schedule's primary input now AniList is gone.
-            ...(airingHit.lastEpisodeAt ? { lastEpisodeAt: airingHit.lastEpisodeAt } : {}),
-            ...(airingHit.broadcastDay ? {
-              broadcastDay: airingHit.broadcastDay,
-              broadcastTime: airingHit.broadcastTime,
-              broadcastTimezone: airingHit.broadcastTimezone
-            } : {}),
-            ...(airingHit.franchiseSeasons && airingHit.franchiseSeasons.length
-              ? { franchiseSeasons: airingHit.franchiseSeasons } : {})
-          } : item;
-        }
+        if (!hit && !airingHit) return item;
+        const artHit = hit || {};
         // Metadata resolved once by scripts/add-artwork-metadata.mjs. Measured on
         // 2026-09-02, ZERO of 1079 catalogue rows were fully populated - year on 15
         // rows, duration and format on none - because artwork had been moved to
         // build time but metadata was left on the per-title runtime chain, which
         // only runs for a show once it is enriched. Same fix, same place.
-        const meta = hit.meta || null;
+        const meta = artHit.meta || null;
         return {
           ...item,
-          anilistId: item.anilistId || hit.anilistId || null,
-          malId: item.malId || hit.malId || null,
-          tmdbId: hit.tmdbId || null,
-          tmdbBackdrop: hit.tmdbBackdrop || "",
+          // Identity and metadata are valid even when TMDB has no match. The old
+          // status === "ok" gate discarded these fields for films and specials,
+          // which then broke their season and AniSkip lookups too.
+          anilistId: item.anilistId || artHit.anilistId || null,
+          malId: item.malId || artHit.malId || meta?.malId || null,
+          tmdbId: item.tmdbId || artHit.tmdbId || null,
+          tmdbBackdrop: item.tmdbBackdrop || artHit.tmdbBackdrop || "",
           // 2000x3000 key art. Shipped for the same reason as the backdrop: the
           // alternative is an AnimeAV1 cover at 225x350 or an AniList one at 460x690,
           // both of which are visibly soft on a card grid at 2x density.
-          tmdbPoster: hit.tmdbPoster || "",
-          banner: item.banner || hit.anilistBanner || "",
+          tmdbPoster: item.tmdbPoster || artHit.tmdbPoster || "",
+          coverImageLarge: item.coverImageLarge || artHit.anilistCover || artHit.metadataCover || "",
+          banner: item.banner || artHit.anilistBanner || "",
+          // Build-time identity repair also determines the canonical TMDB season.
+          // Forward it even when no airing relation row exists; otherwise a
+          // standalone sequel such as Honzuki Season 4 is hydrated as Season 1.
+          canonicalSeasonNumber: item.canonicalSeasonNumber || artHit.canonicalSeasonNumber || undefined,
           // The row's own value always wins; this only fills gaps. normalize.js
           // already reads every one of these off the catalogue item, so nothing
           // client-side has to change for them to render.
@@ -2424,6 +2556,7 @@ function readScrapedRegularCatalogItems() {
             // transliteration, so without this there was no English name anywhere
             // in the row and the CN/KR/TW rule had nothing to prefer.
             englishTitle: item.englishTitle || meta.englishTitle || "",
+            romajiTitle: item.romajiTitle || meta.romajiTitle || "",
             // AniList gives 4-7 canonical English genres. The scraper gives at most
             // one, in Spanish ("Aventura"), on 63 of 1000 rows, and the genre
             // filters are built against the English names.
@@ -2459,7 +2592,7 @@ function readScrapedRegularCatalogItems() {
               broadcastTimezone: airingHit.broadcastTimezone
             } : {}),
             franchiseSeasons: airingHit.franchiseSeasons && airingHit.franchiseSeasons.length
-              ? airingHit.franchiseSeasons
+              ? enrichFranchiseSeasonEntries(airingHit.franchiseSeasons, artwork, artworkIndex, artHit)
               : undefined
           } : {})
         };

@@ -2014,7 +2014,7 @@ body:not([data-route="home"]) .section-heading h2 {
 
 .schedule-list {
   display: grid;
-  grid-template-columns: repeat(7, minmax(12.5rem, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 0.85rem;
   align-items: start;
   overflow: visible;
@@ -6337,6 +6337,32 @@ body.player-cinema-open .close-button {
     overflow: visible;
   }
 
+  /* Keep long localized episode names inside the phone panel. The desktop
+     7rem thumbnail plus intrinsic text width could push the second grid track
+     past the viewport before line clamping was applied. */
+  .watch-overlay .watch-side .ep-row {
+    grid-template-columns: clamp(5.6rem, 29vw, 6.75rem) minmax(0, 1fr);
+    gap: 0.65rem;
+    padding: 0.4rem 0.15rem;
+    overflow: hidden;
+  }
+  .watch-overlay .watch-side .ep-row-body {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .watch-overlay .watch-side .ep-row-title {
+    width: 100%;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .watch-overlay .watch-side .ep-row-meta {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .watch-info {
     overflow-y: visible;
     padding: 0.5rem 0.5rem 1rem 0.5rem;
@@ -8657,6 +8683,25 @@ body.reduce-motion .watch-stage-body { animation: none; }
     flex-direction: column;
     min-height: 0;
   }
+
+  /* Adult details keep Gallery/Episodes, but at compact widths the selector is
+     part of the panel surface instead of a detached dark rectangle. */
+  .watch-side #episodeList.is-adult-detail .detail-tabs.detail-tabs-2 {
+    gap: 0.25rem;
+    margin-bottom: 0.7rem;
+    padding: 0.28rem;
+    border: 0.06rem solid rgba(255, 255, 255, 0.09);
+    border-radius: 0.78rem;
+    background: rgba(11, 13, 25, 0.48);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+    -webkit-backdrop-filter: blur(14px) saturate(1.08);
+    backdrop-filter: blur(14px) saturate(1.08);
+  }
+
+  .watch-side #episodeList.is-adult-detail .detail-tab {
+    min-height: 2.7rem;
+    border-radius: 0.58rem;
+  }
 }
 
 .watch-side .detail-tabs.detail-tabs-2 {
@@ -8914,6 +8959,34 @@ body.has-embedded-player .watch-side {
   }
   .watch-overlay.cinematic .watch-title { font-size: clamp(1.7rem, 7vw, 2.6rem); }
   .watch-summary { -webkit-line-clamp: 2; }
+}
+
+/* Small tablets keep the cinematic hero and episode browser in one viewport.
+   The generic <=860px stack used a `1fr auto` grid while .watch-stage still
+   owned 100dvh, which squeezed the second row to roughly 26px at 820px wide.
+   Phones use the flattened scrolling layout below; this split is specifically
+   for the tablet band between those two designs. */
+@media (min-width: 761px) and (max-width: 860px) {
+  .watch-overlay.cinematic .watch-panel {
+    grid-template-rows: minmax(0, 54dvh) minmax(0, 46dvh);
+    overflow: hidden;
+  }
+  .watch-overlay.cinematic .watch-stage {
+    height: 54dvh;
+    min-height: 0;
+    padding: 3.2rem 1.4rem 1.2rem;
+  }
+  .watch-overlay.cinematic .watch-side {
+    height: 46dvh;
+    min-height: 0;
+    max-height: 46dvh;
+    margin: 0;
+    overflow: hidden;
+  }
+  .watch-overlay.cinematic .watch-side .episode-list {
+    height: 100%;
+    min-height: 0;
+  }
 }
 
 /* ── TV remote focus: clear ring + lift on the cinematic controls ─────────── */
@@ -11290,6 +11363,27 @@ body.is-tv .topbar-auth {
     max-height: none;
     overflow: visible;
   }
+  .watch-overlay .watch-side .episode-list,
+  .watch-overlay .watch-side .detail-pane.is-active,
+  .watch-overlay .watch-side .ep-rows,
+  .watch-overlay .watch-side .ep-row {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .watch-overlay .watch-side .ep-row {
+    grid-template-columns: minmax(0, clamp(5.6rem, 29vw, 6.75rem)) minmax(0, 1fr);
+  }
+  .watch-overlay .watch-side .ep-thumb,
+  .watch-overlay .watch-side .ep-row-body,
+  .watch-overlay .watch-side .ep-row-title {
+    min-width: 0;
+  }
+  .watch-overlay .watch-side .ep-row-title {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
   /* Phones skip the pre-playback placeholder entirely. #videoFrame renders a
      .watch-ready-state before an episode is chosen: a SECOND copy of the poster
      that is already at the top of the page, a source badge, the line "N episodes
@@ -11318,6 +11412,20 @@ body.is-tv .topbar-auth {
     background: #0f1224;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
+  }
+
+  /* Carry the adult segmented control to both edges of the phone panel. The
+     translucent sticky band now shares the detail surface and its inset with
+     episode rows, instead of reading as a black box nested inside another box. */
+  .watch-overlay .watch-side #episodeList.is-adult-detail .detail-tabs.detail-tabs-2 {
+    margin: 0 -0.7rem 0.65rem;
+    padding: 0.42rem 0.7rem;
+    border-width: 0.06rem 0;
+    border-radius: 0;
+    background: rgba(13, 15, 29, 0.9);
+    box-shadow: 0 0.45rem 1.1rem rgba(0, 0, 0, 0.22);
+    -webkit-backdrop-filter: blur(16px) saturate(1.08);
+    backdrop-filter: blur(16px) saturate(1.08);
   }
 
   /* Pin Back to the viewport so it stays reachable while the panel scrolls

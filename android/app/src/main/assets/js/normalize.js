@@ -114,6 +114,8 @@ function normalizeExternalShow(item, source, index) {
     // and getCardPosterCandidates, both of which rank it above the scraped cover.
     tmdbPoster: item.tmdbPoster || "",
     tmdbId: item.tmdbId || null,
+    tmdbFranchiseFallback: Boolean(item.tmdbFranchiseFallback),
+    tmdbFranchiseCarrierSeason: item.tmdbFranchiseCarrierSeason || null,
     // Shipped by /api/catalog from the build-time metadata map. countryOfOrigin
     // drives the CN/KR/TW English-title rule in getShowTitle(); studios feeds the
     // "Studio: ..." row on the detail page. Both were previously dropped here and

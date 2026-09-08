@@ -30,6 +30,10 @@ const WRITE = args.includes("--write");
 if (!DB || !fs.existsSync(DB)) { console.error("pass --db <anime-offline-database.jsonl>"); process.exit(1); }
 
 const idFrom = (s, host, re) => { for (const u of s || []) if (u.includes(host)) { const m = u.match(re); if (m) return Number(m[1]); } return null; };
+const largeMetadataPicture = (value) => String(value || "").replace(
+  /^(https:\/\/cdn\.myanimelist\.net\/images\/[^?#]+?)(l)?(\.[a-z]+)$/i,
+  "$1l$3"
+);
 
 // The database status vocabulary is FINISHED / ONGOING / UPCOMING. The client reads
 // AniList's, and getSeasonEpisodeLimit() keys off these exact strings to decide how
@@ -90,6 +94,7 @@ await new Promise((res) => {
       airingStatus: STATUS[String(o.status || "").toUpperCase()] || "",
       country: "",
       studio: (o.studios || [])[0] || "",
+      picture: largeMetadataPicture(o.picture),
       englishTitle: "",
       romajiTitle: o.title || "",
       _via: "offline-db"
@@ -105,7 +110,7 @@ const raw = JSON.parse(fs.readFileSync(MAP, "utf8"));
 const entries = raw.entries || {};
 const keys = Object.keys(entries);
 
-let filledMeta = 0, filledMal = 0, filledGenres = 0, noHit = 0;
+let filledMeta = 0, filledMal = 0, filledGenres = 0, filledCovers = 0, noHit = 0;
 for (const k of keys) {
   const e = entries[k];
   if (!e) continue;
@@ -114,6 +119,7 @@ for (const k of keys) {
   // Backfill the MAL id wherever only the AniList id was known - that is the route
   // add-artwork-metadata.mjs needs when AniList is unavailable.
   if (!e.malId && hit.malId) { e.malId = hit.malId; filledMal++; }
+  if (hit.picture && e.metadataCover !== hit.picture) { e.metadataCover = hit.picture; filledCovers++; }
   if (!e.meta) { e.meta = { ...hit }; filledMeta++; continue; }
   // Genres only, and only when the row has none. AniList and Jikan both give better
   // genres than tag-intersection does, so this never overwrites an existing list -
@@ -125,6 +131,7 @@ for (const k of keys) {
 console.log(`entries              : ${keys.length}`);
 console.log(`metadata filled      : ${filledMeta}`);
 console.log(`malId backfilled     : ${filledMal}`);
+console.log(`cover fallback filled: ${filledCovers}`);
 console.log(`genres filled        : ${filledGenres}`);
 console.log(`still without meta   : ${keys.filter((k) => !entries[k].meta).length} (${noHit} had no database hit)`);
 

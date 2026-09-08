@@ -48,11 +48,24 @@ const BASE = String(argOf("--base", "https://zenkaitv.com")).replace(/\/$/, "");
 const LIMIT = Number(argOf("--limit", "0")) || 0;
 const FORCE = args.includes("--force");
 const CONCURRENCY = Number(argOf("--concurrency", "4")) || 4;
+const ONLY_IDS = new Set(String(argOf("--ids", ""))
+  .split(",").map((value) => value.trim()).filter(Boolean));
 
 // TMDB's own w1280 is 1280x720; "original" is whatever the uploader gave (often
 // 1920x1080 or 3840x2160). Store original and let /api/image resize down to the
 // viewport width - never up.
 const TMDB_IMG = "https://image.tmdb.org/t/p/original";
+const TMDB_ID_OVERRIDES = new Map([
+  // TMDB uses a completely unrelated English localization for this title, so
+  // fuzzy scoring correctly refuses it unless the identity is pinned.
+  ["animeav1-aru-asa-dummy-head-mic-ni-natteita-ore-kun-no-jinsei", 205961],
+  // TMDB uses an English localization while the offline identity database has
+  // only the Japanese title. Both MAL rows are split cours of this one TMDB
+  // season, so pinning the shared series is exact and lets the client scope by
+  // providerEpisodeOffset.
+  ["mal-50953", 156898],
+  ["mal-51366", 156898]
+]);
 
 const norm = (s) => String(s || "")
   .toLowerCase()
@@ -310,14 +323,46 @@ async function anilistSearch(title) {
   return null;
 }
 
-async function resolveOne(item) {
+async function resolveOne(item, existing = null) {
   const title = item.title || "";
   const overrideId = ANILIST_OVERRIDES[item.id];
   if (overrideId) console.log(`  override: ${item.id} -> AniList ${overrideId}`);
-  const media = overrideId ? await anilistById(overrideId) : await anilistSearch(title);
+  const knownAniListId = Number(overrideId || item.anilistId || existing?.anilistId || 0) || null;
+  const trustedOfflineRepair = existing?.status === "identity-repaired";
+  const fetchedMedia = knownAniListId
+    ? await anilistById(knownAniListId)
+    : (trustedOfflineRepair ? null : await anilistSearch(title));
+  // The offline identity pass can establish the correct AniList/MAL row even
+  // while AniList's API is unavailable. Keep using that trusted identity and its
+  // titles to resolve TMDB instead of replacing it with "anilist-failed".
+  const fallbackMedia = existing && (existing.anilistId || existing.malId)
+    ? {
+        id: Number(existing.anilistId) || null,
+        idMal: Number(existing.malId || existing.meta?.malId) || null,
+        seasonYear: existing.meta?.year || item.year || null,
+        format: existing.meta?.format || item.type || "",
+        title: {
+          romaji: existing.meta?.romajiTitle || title,
+          english: existing.meta?.englishTitle || "",
+          native: ""
+        },
+        synonyms: existing.identityTitles || [],
+        bannerImage: existing.anilistBanner || "",
+        coverImage: { extraLarge: existing.anilistCover || "", large: existing.anilistCover || "" }
+      }
+    : null;
+  const media = fetchedMedia || fallbackMedia;
   const aniTitles = media ? [media.title?.romaji, media.title?.english, media.title?.native, ...(media.synonyms || [])] : [title];
   const year = media?.seasonYear || media?.startDate?.year || item.year || null;
-  const wantSeason = seasonNumberOf(media?.title?.romaji || title);
+  const wantSeason = Number(existing?.canonicalSeasonNumber)
+    || seasonNumberOf(media?.title?.romaji || title);
+  const identityArtwork = media ? {
+    anilistId: media.id || existing?.anilistId || null,
+    malId: media.idMal || existing?.malId || existing?.meta?.malId || null,
+    anilistBanner: media.bannerImage || existing?.anilistBanner || "",
+    anilistCover: media.coverImage?.extraLarge || media.coverImage?.large || existing?.anilistCover || "",
+    metadataCover: existing?.metadataCover || ""
+  } : {};
 
   // AniList is the identity we trust; without it a romaji-only TMDB search
   // matches the wrong franchise as often as the right one. Leave it for a re-run
@@ -329,11 +374,30 @@ async function resolveOne(item) {
   // season-stripped english title is by far the best query. Every query is also
   // retried without the year: for a later season AniList reports 2026 while the
   // TMDB series first aired years earlier, and the year filter returns nothing.
+  const pinnedTmdbId = TMDB_ID_OVERRIDES.get(item.id);
+  if (pinnedTmdbId) {
+    const details = await getJson(`${BASE}/api/tmdb/tv?id=${pinnedTmdbId}`);
+    const show = details?.show;
+    if (show?.backdrop_path || show?.poster_path) {
+      return {
+        status: show.backdrop_path ? "ok" : "poster-only",
+        ...identityArtwork,
+        tmdbId: pinnedTmdbId,
+        tmdbBackdrop: show.backdrop_path ? `${TMDB_IMG}${show.backdrop_path}` : "",
+        tmdbPoster: show.poster_path ? `${TMDB_IMG}${show.poster_path}` : "",
+        confidence: 100,
+        matchedName: show.name || show.original_name || "pinned TMDB series",
+        season: wantSeason
+      };
+    }
+  }
+
   const queries = [...new Set([
     stripSeasonSuffix(media.title?.english),
     media.title?.english,
     stripSeasonSuffix(media.title?.romaji),
     media.title?.romaji,
+    ...(media.synonyms || []).slice(0, 6).flatMap((name) => [stripSeasonSuffix(name), name]),
     stripSeasonSuffix(title),
     title
   ].filter(Boolean))];
@@ -341,38 +405,62 @@ async function resolveOne(item) {
   const candidates = [];
   // Films live in a separate TMDB index; /search/tv returns nothing for them.
   const isFilm = /movie|film|pelicula/i.test(`${item.type || ""} ${media.format || ""} ${title}`);
-  const typeParam = isFilm ? "&type=movie" : "";
-  for (const q of queries.slice(0, 4)) {
-    for (const withYear of (year ? [true, false] : [false])) {
-      const payload = await getJson(`${BASE}/api/tmdb/search?q=${encodeURIComponent(q)}${typeParam}${withYear ? `&year=${year}` : ""}`);
-      if (payload && payload.configured === false) throw new Error("TMDB not configured on the server");
-      for (const r of payload?.results || []) {
-        if (seen.has(r.id)) continue;
-        seen.add(r.id);
-        candidates.push(r);
+  const looksLikeFeature = isFilm || (
+    Number(existing?.meta?.episodes || 0) === 1
+    && Number(existing?.meta?.duration || 0) >= 40
+  );
+  // Several streaming features are catalogued as ONA/OVA by AniList. Searching
+  // only TMDB's TV index left them with no background even though the same title
+  // exists in the movie index. Try the likely index first and retain the strict
+  // title score below, so this expands coverage without weakening identity.
+  const typeParams = looksLikeFeature ? ["&type=movie", ""] : [""];
+  queryLoop: for (const q of queries.slice(0, 4)) {
+    for (const typeParam of typeParams) {
+      for (const withYear of (year ? [true, false] : [false])) {
+        const payload = await getJson(`${BASE}/api/tmdb/search?q=${encodeURIComponent(q)}${typeParam}${withYear ? `&year=${year}` : ""}`);
+        if (payload && payload.configured === false) throw new Error("TMDB not configured on the server");
+        for (const r of payload?.results || []) {
+          const candidateKey = `${r.media_type || (typeParam ? "movie" : "tv")}:${r.id}`;
+          if (seen.has(candidateKey)) continue;
+          seen.add(candidateKey);
+          candidates.push(r);
+        }
+        if (candidates.length) break;
       }
-      if (candidates.length) break;
+      if (candidates.some((c) => titleScore(aniTitles, [c.name, c.original_name]) >= 95)) break queryLoop;
     }
-    if (candidates.some((c) => titleScore(aniTitles, [c.name, c.original_name]) >= 95)) break;
   }
-  if (!candidates.length) return { status: "no-tmdb-candidates", anilistId: media?.id || null, malId: media?.idMal || null };
+  if (!candidates.length) return { status: "no-tmdb-candidates", ...identityArtwork };
 
   const scored = candidates
     .map((c) => {
-      let score = titleScore(aniTitles, [c.name, c.original_name]);
+      const titleConfidence = titleScore(aniTitles, [c.name, c.original_name]);
+      let score = titleConfidence;
       const cy = Number(String(c.first_air_date || "").slice(0, 4)) || null;
       // Only for a first season: seasons 2+ live under the season-1 series entry,
       // so their AniList year is legitimately years after first_air_date.
       if (wantSeason === 1 && year && cy) score += Math.abs(cy - year) <= 1 ? 6 : -14;
       if (!c.backdrop_path) score -= 40; // a match with no backdrop is useless here
-      return { c, score };
+      return { c, score, titleConfidence };
     })
     .sort((a, b) => b.score - a.score);
 
-  const best = scored[0];
+  const pinned = pinnedTmdbId ? scored.find(({ c }) => Number(c.id) === pinnedTmdbId) : null;
+  const best = pinned ? { ...pinned, score: 100, titleConfidence: 100 } : scored[0];
+  if (best && best.titleConfidence >= 78 && !best.c.backdrop_path && best.c.poster_path) {
+    return {
+      status: "poster-only",
+      ...identityArtwork,
+      tmdbId: best.c.id,
+      tmdbPoster: `${TMDB_IMG}${best.c.poster_path}`,
+      confidence: best.titleConfidence,
+      matchedName: best.c.name,
+      season: wantSeason
+    };
+  }
   // Deliberately strict: a wrong backdrop is worse than the strip we already show.
   if (!best || best.score < 78 || !best.c.backdrop_path) {
-    return { status: "rejected", anilistId: media?.id || null, malId: media?.idMal || null, bestScore: best?.score ?? 0, bestName: best?.c?.name || "" };
+    return { status: "rejected", ...identityArtwork, bestScore: best?.score ?? 0, bestName: best?.c?.name || "" };
   }
 
   // 3. Prefer the season-specific backdrop when the title is a later season.
@@ -386,15 +474,13 @@ async function resolveOne(item) {
 
   return {
     status: "ok",
-    anilistId: media?.id || null,
-    malId: media?.idMal || null,
+    ...identityArtwork,
     tmdbId: best.c.id,
     tmdbBackdrop: `${TMDB_IMG}${backdrop}`,
+    tmdbPoster: best.c.poster_path ? `${TMDB_IMG}${best.c.poster_path}` : "",
     confidence: best.score,
     matchedName: best.c.name,
     season: wantSeason,
-    anilistBanner: media?.bannerImage || "",
-    anilistCover: media?.coverImage?.extraLarge || media?.coverImage?.large || ""
   };
 }
 
@@ -403,14 +489,41 @@ async function main() {
   let items = (payload.items || []).filter((i) =>
     String(i.source || "").toLowerCase().includes("animeav1")
     || String(i.siteUrl || "").includes("animeav1.com/media/"));
-  if (LIMIT) items = items.slice(0, LIMIT);
 
   let map = {};
   if (fs.existsSync(OUT) && !FORCE) {
     try { map = JSON.parse(fs.readFileSync(OUT, "utf8")).entries || {}; } catch { map = {}; }
   }
 
-  const todo = items.filter((i) => FORCE || !map[i.id] || map[i.id].status !== "ok");
+  // Relation-only seasons use stable `anilist-<id>` / `mal-<id>` rows. Include
+  // them in the same resolver as source-backed catalog rows so a newly learned
+  // sequel gets its own artwork on the same nightly run that discovers it.
+  const itemIds = new Set(items.map((item) => item.id));
+  for (const [id, entry] of Object.entries(map)) {
+    if (itemIds.has(id) || !/^(?:anilist|mal)-\d+$/.test(id)) continue;
+    const title = entry?.meta?.romajiTitle || entry?.meta?.englishTitle || "";
+    if (!title) continue;
+    items.push({
+      id,
+      title,
+      type: entry.meta?.format || "",
+      year: entry.meta?.year || null,
+      anilistId: entry.anilistId || null,
+      malId: entry.malId || entry.meta?.malId || null
+    });
+  }
+  let todo = items.filter((i) =>
+    (!ONLY_IDS.size || ONLY_IDS.has(i.id))
+    && (FORCE || !map[i.id] || map[i.id].status !== "ok")
+  );
+  // Identity corrections must be rebuilt before ordinary rejected artwork
+  // retries. This also makes a bounded nightly/manual run repair stale seasons
+  // immediately instead of spending its whole budget on older misses first.
+  todo.sort((a, b) =>
+    Number(map[b.id]?.status === "identity-repaired")
+    - Number(map[a.id]?.status === "identity-repaired")
+  );
+  if (LIMIT) todo = todo.slice(0, LIMIT);
   console.log(`${items.length} scraped titles, ${items.length - todo.length} already resolved, ${todo.length} to do`);
 
   let done = 0, ok = 0, rejected = 0, none = 0;
@@ -419,8 +532,11 @@ async function main() {
     while (cursor < todo.length) {
       const item = todo[cursor++];
       try {
-        const result = await resolveOne(item);
-        map[item.id] = result;
+        const existing = map[item.id] || null;
+        const result = await resolveOne(item, existing);
+        // A retry updates artwork status without throwing away identity or
+        // metadata established by the offline/Jikan passes.
+        map[item.id] = existing ? { ...existing, ...result } : result;
         if (result.status === "ok") ok++;
         else if (result.status === "rejected") rejected++;
         else none++;

@@ -393,6 +393,99 @@ function nodeFromDatabase(db, malId) {
   };
 }
 
+// Jikan can spend an entire run returning 504 for the older links behind a
+// newly published sequel. The offline database's relation list is untyped, so
+// it is not safe as a general graph. It is safe for one narrow recovery case:
+// both nodes are TV/ONA entries and their titles become exactly equal after
+// removing only explicit season/part markers. This closes chains such as
+// "Honzuki", "Honzuki 2nd Season", and "Honzuki 3rd Season" without turning
+// similarly named films, specials, recaps, or spin-offs into seasons.
+function strictOfflineSeasonBase(value = "") {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[’'`]/g, "")
+    .replace(/\b(?:season|temporada)\s*\d+\b/g, " ")
+    .replace(/\b\d+(?:st|nd|rd|th)\s+season\b/g, " ")
+    .replace(/\b(?:part|cour)\s*\d+\b/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function strictOfflineFranchiseStem(value = "") {
+  // Preserve the shared work name while dropping a named arc suffix such as
+  // " - Ketsubetsu-tan". Colons remain part of the stem because they commonly
+  // separate the franchise name from its overall series subtitle.
+  return strictOfflineSeasonBase(String(value || "").split(/\s+[\-–—]\s+/)[0]);
+}
+
+function isStrictOfflineSeasonSibling(left, right, seasonHintsByMal = new Map()) {
+  if (!left || !right || !SEASONISH.has(left.type) || !SEASONISH.has(right.type)) return false;
+  const leftBase = strictOfflineSeasonBase(left.title);
+  const rightBase = strictOfflineSeasonBase(right.title);
+  if (leftBase.length >= 12 && leftBase === rightBase) return true;
+
+  // Named arcs do not contain a numeric season marker. Recover only the narrow
+  // case where the exact catalogue identity already established adjacent
+  // canonical seasons and the offline database says the two TV/ONA rows are
+  // related. This joins Bleach TYBW's named cours without admitting recaps,
+  // specials, or a merely similar spin-off into the mainline chain.
+  const leftSeason = Number(seasonHintsByMal.get(Number(left.malId)) || 0);
+  const rightSeason = Number(seasonHintsByMal.get(Number(right.malId)) || 0);
+  if (!leftSeason || !rightSeason || Math.abs(leftSeason - rightSeason) !== 1) return false;
+  const leftStem = strictOfflineFranchiseStem(left.title);
+  const rightStem = strictOfflineFranchiseStem(right.title);
+  return leftStem.length >= 12 && leftStem === rightStem;
+}
+
+function buildStrictOfflineSeasonMedia(db, seedMalIds, typedCache, seasonHintsByMal = new Map()) {
+  const queue = [...new Set(seedMalIds.map(Number).filter((id) => id > 0))];
+  const queued = new Set(queue);
+  const media = [];
+
+  while (queue.length) {
+    const malId = queue.shift();
+    const current = db.get(malId);
+    if (!current || !SEASONISH.has(current.type)) continue;
+
+    const typed = (typedCache.get(malId) || []).filter((edge) =>
+      edge?.malId && SEASONISH.has(db.get(Number(edge.malId))?.type || "")
+    );
+    const inferred = (current.related || [])
+      .map(Number)
+      .filter((relatedId) => relatedId > 0 && isStrictOfflineSeasonSibling(current, db.get(relatedId), seasonHintsByMal))
+      .map((relatedId) => ({ relationType: "SEQUEL", malId: relatedId }));
+    const edges = [...typed, ...inferred].filter((edge, index, list) =>
+      list.findIndex((candidate) => Number(candidate.malId) === Number(edge.malId)) === index
+    );
+    if (!edges.length) continue;
+
+    const self = nodeFromDatabase(db, malId);
+    if (self) {
+      media.push({
+        ...self,
+        relations: {
+          edges: edges
+            .map((edge) => {
+              const node = nodeFromDatabase(db, edge.malId);
+              return node ? { relationType: edge.relationType, node } : null;
+            })
+            .filter(Boolean)
+        }
+      });
+    }
+
+    for (const edge of edges) {
+      const relatedId = Number(edge.malId);
+      if (queued.has(relatedId)) continue;
+      queued.add(relatedId);
+      queue.push(relatedId);
+    }
+  }
+  return media;
+}
+
 // malId -> { day, time, timezone } for shows that are actually airing. A day
 // and a time never go stale the way a computed instant does, so the client works
 // out the next occurrence itself.
@@ -476,7 +569,7 @@ async function relationsOnce(malId, fixture) {
   }
 }
 
-async function fetchViaJikan(targets) {
+async function fetchViaJikan(targets, seasonHintsByMal = new Map()) {
   const db = offlineIndexRef.value || await loadOfflineIndex();
   offlineIndexRef.value = db;
   log(`offline database indexed: ${db.size} entries`);
@@ -610,6 +703,11 @@ async function fetchViaJikan(targets) {
   }
 
   saveRelationsCache(cache);
+  const recovered = buildStrictOfflineSeasonMedia(db, withMal.map((target) => target.malId), cache, seasonHintsByMal);
+  if (recovered.length) {
+    media.push(...recovered);
+    log(`offline strict-title recovery shaped ${recovered.length} season node(s)`);
+  }
   // Never let a cap look like completeness.
   if (stoppedBy) log(`stopped by ${stoppedBy}`);
   if (missed) log(`${missed} id(s) could not be read even after retries`);
@@ -805,11 +903,11 @@ async function addSourceEpisodeCounts(entries, db, targets = [], alreadyCovered 
   // entries meant only 4 of the catalogue's ~70 airing shows were ever probed.
   const airing = [];
   const seen = new Set();
-  for (const { rowId, anilistId } of targets) {
+  for (const { rowId, anilistId, malId, identityId } of targets) {
     if (seen.has(rowId)) continue;
     const slug = /^animeav1-(.+)$/.exec(rowId)?.[1];
     if (!slug) continue;
-    const known = byAniList.get(String(anilistId));
+    const known = byAniList.get(String(anilistId)) || (malId ? db.get(Number(malId)) : null);
     if (!known) continue;
     // ONGOING is the offline database's word for "currently airing", but the
     // snapshot is weekly: it named 19 shows where the catalogue considers 71 to
@@ -821,20 +919,20 @@ async function addSourceEpisodeCounts(entries, db, targets = [], alreadyCovered 
     // The schedule already answered this one exactly, for free.
     if (alreadyCovered.has(rowId)) continue;
     seen.add(rowId);
-    airing.push({ rowId, slug, anilistId, planned: entries[rowId]?.anilistEpisodeCount || known.episodes });
+    airing.push({ rowId, slug, anilistId, malId, identityId, planned: entries[rowId]?.anilistEpisodeCount || known.episodes });
   }
 
   const wanted = airing.slice(0, AV1_PROBE_MAX_SHOWS);
   log(`${airing.length} airing row(s); probing ${wanted.length} for what the source actually serves`);
   let probed = 0;
-  for (const { rowId, slug, anilistId, planned } of wanted) {
+  for (const { rowId, slug, anilistId, malId, identityId, planned } of wanted) {
     const count = await av1EpisodeCount(slug, planned);
     if (count <= 0) continue;
     // A show with no chain still deserves a correct episode count, so give it a
     // row rather than dropping the measurement on the floor.
     if (!entries[rowId]) {
       entries[rowId] = {
-        anilistId: Number(anilistId) || null,
+        anilistId: Number(anilistId) || identityId || (malId ? `mal-${malId}` : null),
         airingStatus: "RELEASING",
         season: "",
         seasonYear: null,
@@ -852,6 +950,54 @@ async function addSourceEpisodeCounts(entries, db, targets = [], alreadyCovered 
   return probed;
 }
 
+function mergePreviousAiringObservations(out, targets) {
+  let previous;
+  try {
+    previous = JSON.parse(fs.readFileSync(OUT, "utf8"));
+  } catch {
+    return 0;
+  }
+
+  const targetByRow = new Map(targets.map((target) => [target.rowId, target]));
+  const additiveFields = [
+    "anilistEpisodeCount", "sourceEpisodeCount", "lastEpisodeAt",
+    "nextAiringAt", "nextAiringEpisodeNumber", "broadcastDay",
+    "broadcastTime", "broadcastTimezone", "season", "seasonYear",
+    "airingStatus"
+  ];
+  let restored = 0;
+
+  for (const [rowId, older] of Object.entries(previous?.entries || {})) {
+    const target = targetByRow.get(rowId);
+    if (!target || !older || typeof older !== "object") continue;
+    const sameIdentity = !older.anilistId || String(older.anilistId) === String(target.identityId);
+    if (!sameIdentity) continue;
+
+    if (!out.entries[rowId]) {
+      out.entries[rowId] = older;
+      restored += 1;
+      continue;
+    }
+
+    const current = out.entries[rowId];
+    for (const field of additiveFields) {
+      if ((current[field] === null || current[field] === undefined || current[field] === "")
+          && older[field] !== null && older[field] !== undefined && older[field] !== "") {
+        current[field] = older[field];
+        restored += 1;
+      }
+    }
+    const currentChain = Array.isArray(current.franchiseSeasons) ? current.franchiseSeasons : [];
+    const olderChain = Array.isArray(older.franchiseSeasons) ? older.franchiseSeasons : [];
+    if (olderChain.length > currentChain.length) {
+      current.franchiseSeasons = olderChain;
+      restored += 1;
+    }
+  }
+  out.count = Object.keys(out.entries).length;
+  return restored;
+}
+
 /* ── Main ──────────────────────────────────────────────────────────────────── */
 async function main() {
   let artwork;
@@ -863,18 +1009,35 @@ async function main() {
     return 0;
   }
   const entries = artwork?.entries || {};
+  const seasonHintsByMal = new Map();
+  for (const entry of Object.values(entries)) {
+    const malId = Number(entry?.malId || entry?.meta?.malId || 0);
+    const seasonNumber = Number(entry?.canonicalSeasonNumber || 0);
+    if (malId > 0 && seasonNumber > 0) seasonHintsByMal.set(malId, seasonNumber);
+  }
 
   // rowId -> anilistId, for every row whose identity is already resolved.
   const targets = [];
   for (const [rowId, entry] of Object.entries(entries)) {
     const anilistId = Number(entry?.anilistId || 0);
+    const malId = Number(entry?.malId || entry?.meta?.malId || 0) || null;
     // malId is carried for the Jikan fallback - artwork-map already resolves it
     // for 1079 of 1085 rows, so no second identity pass is needed.
-    if (anilistId > 0) targets.push({ rowId, anilistId, malId: Number(entry?.malId || 0) || null });
+    // A newly announced title can exist in MAL before AniList. Those rows used
+    // to be dropped here altogether, so they got neither their season chain nor
+    // the source episode count even though both were available downstream.
+    if (anilistId > 0 || malId) {
+      targets.push({
+        rowId,
+        anilistId: anilistId > 0 ? anilistId : null,
+        malId,
+        identityId: anilistId > 0 ? String(anilistId) : `mal-${malId}`
+      });
+    }
   }
-  const ids = [...new Set(targets.map((t) => t.anilistId))];
+  const ids = [...new Set(targets.map((t) => t.anilistId).filter((id) => id > 0))];
   const wanted = LIMIT ? ids.slice(0, LIMIT) : ids;
-  log(`${Object.keys(entries).length} catalogue rows, ${targets.length} with an AniList id, ${wanted.length} to fetch`);
+  log(`${Object.keys(entries).length} catalogue rows, ${targets.length} with a stable AniList/MAL identity, ${wanted.length} AniList ids to fetch`);
 
   const byAnilistId = new Map();
   // Every media we manage to fetch, kept whole - the chains are computed from
@@ -910,14 +1073,14 @@ async function main() {
   if (!fetched.length && !FIXTURE) {
     log("AniList resolved nothing - falling back to Jikan relations + the offline database");
     try {
-      fetched.push(...await fetchViaJikan(targets));
+      fetched.push(...await fetchViaJikan(targets, seasonHintsByMal));
     } catch (error) {
       log(`fallback unavailable: ${error.message} - leaving the map alone`);
     }
   }
 
   const chains = buildChains(fetched);
-  for (const media of fetched) byAnilistId.set(media.id, entryFor(media, chains.get(media.id) || []));
+  for (const media of fetched) byAnilistId.set(String(media.id), entryFor(media, chains.get(media.id) || []));
 
   if (!byAnilistId.size) {
     log("resolved nothing - the existing map is left exactly as it is (this is not a build failure)");
@@ -926,8 +1089,8 @@ async function main() {
   }
 
   const out = { generatedAt: new Date().toISOString(), count: 0, entries: {} };
-  for (const { rowId, anilistId } of targets) {
-    const shaped = byAnilistId.get(anilistId);
+  for (const { rowId, identityId } of targets) {
+    const shaped = byAnilistId.get(identityId);
     if (shaped) { out.entries[rowId] = shaped; out.count += 1; }
   }
 
@@ -949,6 +1112,11 @@ async function main() {
       log(`source episode probe skipped: ${error.message}`);
     }
   }
+
+  const restoredObservations = (!FIXTURE && !JIKAN_FIXTURE)
+    ? mergePreviousAiringObservations(out, targets)
+    : 0;
+  if (restoredObservations) log(`restored ${restoredObservations} last-known-good airing observation(s)`);
 
   // Attach the broadcast slot to every row we know one for. This is what puts
   // shows back on the Weekly Schedule: measured before this, 0 of 996 catalogue

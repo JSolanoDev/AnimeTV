@@ -21,12 +21,18 @@ const check = (name, got, want) => {
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "airing-map-"));
 const fixturePath = path.join(tmp, "fixture.json");
 const outPath = path.join(tmp, "out.json");
+const fixtureArtwork = path.join(tmp, "fixture-artwork.json");
 // Without this every one of these runs writes scraper/relations-cache.json in
 // the REPO - the suite's fixture edges ended up committed as production data
 // once already. Tests get their own file.
 const isolatedCache = path.join(tmp, "isolated-relations.json");
 
 const nowSec = Math.floor(Date.now() / 1000);
+fs.writeFileSync(fixtureArtwork, JSON.stringify({ entries: {
+  "fixture-current": { anilistId: 178789, malId: 59193 },
+  "fixture-previous": { anilistId: 146065, malId: 51179 },
+  "fixture-standalone": { anilistId: 1, malId: 1 }
+} }));
 fs.writeFileSync(fixturePath, JSON.stringify([{
   id: 178789,
   title: { romaji: "Mushoku Tensei III", userPreferred: "Mushoku Tensei: Jobless Reincarnation Season 3" },
@@ -46,6 +52,7 @@ fs.writeFileSync(fixturePath, JSON.stringify([{
 
 execFileSync(process.execPath, [
   path.join(ROOT, "scripts", "build-airing-map.mjs"),
+  "--artwork", fixtureArtwork,
     "--relations-cache", isolatedCache,
   "--fixture", fixturePath, "--out", outPath, "--write"
 ], { stdio: "pipe" });
@@ -71,12 +78,58 @@ fs.writeFileSync(fixturePath, JSON.stringify([{
 }], null, 2));
 execFileSync(process.execPath, [
   path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--artwork", fixtureArtwork,
     "--relations-cache", isolatedCache,
   "--fixture", fixturePath, "--out", outPath, "--write"
 ], { stdio: "pipe" });
 const solo = Object.values(JSON.parse(fs.readFileSync(outPath, "utf8")).entries)[0];
 check("a standalone show carries no chain", solo.franchiseSeasons, []);
 check("and no airing instant it does not have", solo.nextAiringAt, null);
+
+/* ── 2a. MAL-ONLY NEW TITLES STILL GET THEIR CHAIN ──────────────────────── */
+{
+  const offline = path.join(tmp, "mal-only-offline.jsonl");
+  const jikan = path.join(tmp, "mal-only-jikan.json");
+  const artwork = path.join(tmp, "mal-only-artwork.json");
+  const output = path.join(tmp, "mal-only-output.json");
+  const cache = path.join(tmp, "mal-only-relations.json");
+  const dbRow = (mal, ani, title, year, related = []) => JSON.stringify({
+    sources: [
+      ...(ani ? [`https://anilist.co/anime/${ani}`] : []),
+      `https://myanimelist.net/anime/${mal}`
+    ],
+    title, type: "TV", episodes: 12, animeSeason: { season: "SPRING", year },
+    relatedAnime: related.map((id) => `https://myanimelist.net/anime/${id}`)
+  });
+  fs.writeFileSync(offline, [
+    dbRow(100, 1000, "Example Romance", 2023, [200]),
+    dbRow(200, 2000, "Example Romance 2nd Season", 2025, [100, 300]),
+    dbRow(300, null, "Example Romance 3rd Season", 2026, [200])
+  ].join("\n") + "\n");
+  fs.writeFileSync(jikan, JSON.stringify({
+    100: [{ relation: "Sequel", entry: [{ mal_id: 200, type: "anime", name: "Season 2" }] }],
+    200: [
+      { relation: "Prequel", entry: [{ mal_id: 100, type: "anime", name: "Season 1" }] },
+      { relation: "Sequel", entry: [{ mal_id: 300, type: "anime", name: "Season 3" }] }
+    ],
+    300: [{ relation: "Prequel", entry: [{ mal_id: 200, type: "anime", name: "Season 2" }] }]
+  }));
+  fs.writeFileSync(artwork, JSON.stringify({ entries: {
+    "animeav1-example-romance": { anilistId: 1000, malId: 100 },
+    "animeav1-example-romance-3rd-season": { anilistId: null, malId: 300 }
+  } }));
+
+  execFileSync(process.execPath, [
+    path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--artwork", artwork, "--offline-fixture", offline, "--jikan-fixture", jikan,
+    "--relations-cache", cache, "--out", output, "--write"
+  ], { stdio: "pipe" });
+
+  const malOnly = JSON.parse(fs.readFileSync(output, "utf8")).entries["animeav1-example-romance-3rd-season"];
+  check("a MAL-only catalogue row is not dropped", Boolean(malOnly), true);
+  check("a MAL-only catalogue row receives the complete chain",
+    malOnly.franchiseSeasons.map((item) => item.anilistId), [1000, 2000, "mal-300"]);
+}
 
 /* ── 2b. THE MULTI-HOP CASE ────────────────────────────────────────────────
    SEQUEL/PREQUEL edges are a linked list. Mushoku Tensei S3's own edges name
@@ -109,6 +162,7 @@ check("and no airing instant it does not have", solo.nextAiringAt, null);
   ], null, 2));
   execFileSync(process.execPath, [
     path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--artwork", fixtureArtwork,
     "--relations-cache", isolatedCache,
     "--fixture", fixturePath, "--out", outPath, "--write"
   ], { stdio: "pipe" });
@@ -140,6 +194,7 @@ check("and no airing instant it does not have", solo.nextAiringAt, null);
   fs.writeFileSync(fixturePath, JSON.stringify([], null, 2));
   execFileSync(process.execPath, [
     path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--artwork", fixtureArtwork,
     "--relations-cache", isolatedCache,
     "--fixture", fixturePath, "--out", emptyOut, "--write"
   ], { stdio: "pipe" });
@@ -152,6 +207,7 @@ check("and no airing instant it does not have", solo.nextAiringAt, null);
   fs.writeFileSync(emptyOut, JSON.stringify(populated, null, 2));
   execFileSync(process.execPath, [
     path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--artwork", fixtureArtwork,
     "--relations-cache", isolatedCache,
     "--fixture", fixturePath, "--out", emptyOut, "--write"
   ], { stdio: "pipe" });
@@ -294,6 +350,93 @@ check("and no airing instant it does not have", solo.nextAiringAt, null);
   check("the cache now holds every link", JSON.parse(fs.readFileSync(cachePath, "utf8")).count, 5);
 }
 
+/* ── 2f. STRICT OFFLINE RECOVERY BEHIND A TYPED EDGE ──────────────────────
+   A current sequel can have one cached typed PREQUEL while Jikan returns 504
+   for every older node. Exact series-title siblings in the offline database
+   may close that older part of the chain; a merely related TV title may not. */
+{
+  const offline = path.join(tmp, "strict-offline.jsonl");
+  const jikan = path.join(tmp, "strict-jikan.json");
+  const artwork = path.join(tmp, "strict-artwork.json");
+  const cache = path.join(tmp, "strict-relations.json");
+  const output = path.join(tmp, "strict-output.json");
+  const dbRow = (mal, ani, title, type, episodes, year, related = []) => JSON.stringify({
+    sources: [`https://anilist.co/anime/${ani}`, `https://myanimelist.net/anime/${mal}`],
+    title, type, episodes, animeSeason: { season: "SPRING", year },
+    relatedAnime: related.map((id) => `https://myanimelist.net/anime/${id}`)
+  });
+  fs.writeFileSync(offline, [
+    dbRow(39468, 108268, "Example Library", "TV", 14, 2019, [40815, 99999]),
+    dbRow(40815, 113693, "Example Library 2nd Season", "TV", 12, 2020, [39468, 42429]),
+    dbRow(42429, 121176, "Example Library 3rd Season", "TV", 10, 2022, [40815, 57466]),
+    dbRow(57466, 171110, "Example Library: Adopted Daughter", "TV", 24, 2026, [42429]),
+    dbRow(99999, 199999, "Example Library Side Story", "TV", 12, 2021, [39468])
+  ].join("\n") + "\n");
+  fs.writeFileSync(jikan, "{}");
+  fs.writeFileSync(artwork, JSON.stringify({ entries: {
+    "animeav1-example-library-adopted-daughter": { anilistId: 171110, malId: 57466 }
+  } }));
+  fs.writeFileSync(cache, JSON.stringify({ edges: {
+    57466: [{ relationType: "PREQUEL", malId: 42429 }]
+  } }));
+
+  execFileSync(process.execPath, [
+    path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--artwork", artwork, "--offline-fixture", offline, "--jikan-fixture", jikan,
+    "--relations-cache", cache, "--out", output, "--no-fetch", "--write"
+  ], { stdio: "pipe" });
+
+  const current = Object.values(JSON.parse(fs.readFileSync(output, "utf8")).entries)[0];
+  check("strict offline recovery completes older seasons behind a typed edge",
+    current.franchiseSeasons.map((item) => item.anilistId), [108268, 113693, 121176, 171110]);
+  check("strict offline recovery rejects a related TV side story",
+    current.franchiseSeasons.some((item) => item.anilistId === 199999), false);
+}
+
+/* ── 2g. NAMED ARCS USE ADJACENT CANONICAL HINTS ───────────────────────── */
+{
+  const offline = path.join(tmp, "named-arcs-offline.jsonl");
+  const jikan = path.join(tmp, "named-arcs-jikan.json");
+  const artwork = path.join(tmp, "named-arcs-artwork.json");
+  const cache = path.join(tmp, "named-arcs-relations.json");
+  const output = path.join(tmp, "named-arcs-output.json");
+  const dbRow = (mal, ani, title, year, related = []) => JSON.stringify({
+    sources: [`https://anilist.co/anime/${ani}`, `https://myanimelist.net/anime/${mal}`],
+    title, type: "TV", episodes: 12, animeSeason: { season: "FALL", year },
+    relatedAnime: related.map((id) => `https://myanimelist.net/anime/${id}`)
+  });
+  fs.writeFileSync(offline, [
+    dbRow(10, 100, "Example Great War", 2022, [20, 99]),
+    dbRow(20, 200, "Example Great War - Separation Arc", 2023, [10, 30]),
+    dbRow(30, 300, "Example Great War - Conflict Arc", 2024, [20, 40]),
+    dbRow(40, 400, "Example Great War - Final Arc", 2026, [30]),
+    dbRow(99, 999, "Example Great War - Side Story", 2023, [10])
+  ].join("\n") + "\n");
+  fs.writeFileSync(jikan, "{}");
+  fs.writeFileSync(artwork, JSON.stringify({ entries: {
+    "animeav1-example-war": { anilistId: 100, malId: 10, canonicalSeasonNumber: 1 },
+    "animeav1-example-war-separation": { anilistId: 200, malId: 20, canonicalSeasonNumber: 2 },
+    "animeav1-example-war-conflict": { anilistId: 300, malId: 30, canonicalSeasonNumber: 3 },
+    "animeav1-example-war-final": { anilistId: 400, malId: 40 },
+    "anilist-999": { anilistId: 999, malId: 99 }
+  } }));
+  fs.writeFileSync(cache, JSON.stringify({ edges: {
+    40: [{ relationType: "PREQUEL", malId: 30 }]
+  } }));
+
+  execFileSync(process.execPath, [
+    path.join(ROOT, "scripts", "build-airing-map.mjs"),
+    "--artwork", artwork, "--offline-fixture", offline, "--jikan-fixture", jikan,
+    "--relations-cache", cache, "--out", output, "--no-fetch", "--write"
+  ], { stdio: "pipe" });
+
+  const finalArc = JSON.parse(fs.readFileSync(output, "utf8")).entries["animeav1-example-war-final"];
+  check("adjacent canonical hints join named mainline arcs",
+    finalArc.franchiseSeasons.map((item) => item.anilistId), [100, 200, 300, 400]);
+  check("a named TV side story without a canonical hint remains excluded",
+    finalArc.franchiseSeasons.some((item) => item.anilistId === 999), false);
+}
+
 /* ── 3. The client half ───────────────────────────────────────────────────── */
 const src = fs.readFileSync(path.join(ROOT, "client.js"), "utf8");
 const slice = (start, end) => {
@@ -369,6 +512,33 @@ check("filled episodes are unresolved, not pretend-playable",
   list[0].episodes.every((e) => e.needsResolve === true), true);
 check("and none of them carries a video URL",
   list[0].episodes.some((e) => e.videoUrl || e.url), false);
+
+// Some newly published rows are available from MAL/Jikan before AniList has a
+// matching identity. Their relation entries use a stable "mal-<id>" surrogate;
+// opening one must select that exact season instead of defaulting to Season 1.
+const malChain = [
+  { anilistId: 111, malId: 11, title: "Example Season 1", episodes: 12, seasonYear: 2023, order: 1 },
+  { anilistId: "mal-62811", malId: 62811, title: "Example Season 3", episodes: 10, seasonYear: 2026, order: 2 }
+];
+const malCatalogRow = {
+  id: "source-animetv-api-animeav1-example-s3",
+  malId: 62811,
+  title: "Example Season 3",
+  franchiseSeasons: malChain
+};
+catalog = [malCatalogRow];
+const malOpened = {
+  id: "animeav1-example-s3",
+  malId: 62811,
+  title: "Example Season 3",
+  episodes: [{ episode: 1 }, { episode: 2 }]
+};
+check("a MAL-only opened object resolves the baked chain", bakedChainFor(malOpened).chain.length, 2);
+check("and inherits the matched row's MAL id", bakedChainFor(malOpened).selfMalId, 62811);
+const malList = buildSeasonListFromBakedChain(malOpened, new Map());
+check("a MAL-only chain selects exactly one current season", malList.filter((s) => s.isCurrentShow).length, 1);
+check("the MAL-only current season is the opened entry", malList.find((s) => s.isCurrentShow).malId, 62811);
+check("the MAL-only current season keeps its real episodes", malList.find((s) => s.isCurrentShow).episodes.length, 2);
 
 // A single-entry chain says nothing the normal path does not.
 catalog = [{ id: "x", anilistId: 5, franchiseSeasons: [{ anilistId: 5, title: "Only", episodes: 12, order: 1 }] }];

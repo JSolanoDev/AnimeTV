@@ -20,6 +20,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import readline from "node:readline";
+import {
+  chooseExactIdentityRepair,
+  explicitOfflineSeasonNumber,
+  normalizeOfflineTitle,
+  offlineIdentityKey
+} from "./lib/offline-identity.mjs";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 const MAP = path.join(root, "scraper", "artwork-map.json");
@@ -55,9 +61,16 @@ const idFrom = (sources, host, re) => {
   for (const u of sources || []) if (u.includes(host)) { const m = u.match(re); if (m) return Number(m[1]); }
   return null;
 };
+const largeMetadataPicture = (value) => String(value || "").replace(
+  /^(https:\/\/cdn\.myanimelist\.net\/images\/[^?#]+?)(l)?(\.[a-z]+)$/i,
+  "$1l$3"
+);
 
 // ── Load the database ──────────────────────────────────────────────────────────
 const byBase = new Map();   // season-stripped base title -> [entry]
+const byExact = new Map();
+const byAniList = new Map();
+const byMal = new Map();
 let dbCount = 0;
 await new Promise((resolve) => {
   const rl = readline.createInterface({ input: fs.createReadStream(DB) });
@@ -76,17 +89,23 @@ await new Promise((resolve) => {
       duration: o.duration ? (o.duration.unit === "SECONDS" ? Math.round(o.duration.value / 60) : o.duration.value) : null,
       score: o.score?.arithmeticMean ?? null,
       studios: o.studios || [],
-      picture: o.picture || "",
+      picture: largeMetadataPicture(o.picture),
       anilistId: idFrom(o.sources, "anilist.co", /anilist\.co\/anime\/(\d+)/),
       malId: idFrom(o.sources, "myanimelist.net", /myanimelist\.net\/anime\/(\d+)/)
     };
     if (!entry.anilistId && !entry.malId) return;
+    if (entry.anilistId) byAniList.set(Number(entry.anilistId), entry);
+    if (entry.malId) byMal.set(Number(entry.malId), entry);
     for (const name of [o.title, ...(o.synonyms || [])]) {
       const b = baseTitle(name);
       if (!b) continue;
       if (!byBase.has(b)) byBase.set(b, []);
       const list = byBase.get(b);
       if (!list.includes(entry)) list.push(entry);
+      const exact = normalizeOfflineTitle(name);
+      if (!byExact.has(exact)) byExact.set(exact, []);
+      const exactList = byExact.get(exact);
+      if (!exactList.includes(entry)) exactList.push(entry);
     }
   });
   rl.on("close", resolve);
@@ -102,11 +121,40 @@ const scraped = (JSON.parse(fs.readFileSync(SRC, "utf8")).items || [])
 const titleOf = new Map(scraped.map((s) => [s.id, s.title]));
 
 const rowOf = new Map(scraped.map((s) => [s.id, s]));
-const targets = Object.keys(entries)
-  .filter((k) => !entries[k].anilistId && !entries[k].malId)
-  .map((k) => ({ slug: k, title: titleOf.get(k) || "", year: rowOf.get(k)?.year || null }))
+// Start from the fresh scrape, not only keys already present in artwork-map.
+// Otherwise a title posted today can never enter the identity pipeline: it has
+// no map key yet, so yesterday's implementation silently skipped it forever.
+const targets = scraped
+  .filter((row) => !entries[row.id]?.anilistId && !entries[row.id]?.malId)
+  .map((row) => ({ slug: row.id, title: row.title || "", year: row.year || null }))
   .filter((t) => t.title);
 console.log(`rows with no identity at all: ${targets.length}`);
+
+// A successful lookup can still be the wrong season or special. The artwork
+// builder used to skip every status:"ok" entry forever, so one loose live-search
+// result became permanent. Compare each existing identity with exact titles and
+// synonyms from the versioned offline database on every daily refresh.
+const repairs = [];
+for (const row of scraped) {
+  const mapped = entries[row.id];
+  if (!mapped?.anilistId && !mapped?.malId && !mapped?.meta?.malId) continue;
+  const current = (mapped.anilistId && byAniList.get(Number(mapped.anilistId)))
+    || ((mapped.malId || mapped.meta?.malId) && byMal.get(Number(mapped.malId || mapped.meta?.malId)))
+    || null;
+  const candidate = chooseExactIdentityRepair({
+    title: row.title,
+    current,
+    candidates: byExact.get(normalizeOfflineTitle(row.title)) || []
+  });
+  if (!candidate) continue;
+  repairs.push({
+    slug: row.id,
+    title: row.title,
+    current,
+    entry: candidate
+  });
+}
+console.log(`stale exact-title identities to repair: ${repairs.length}`);
 
 // ── Match ──────────────────────────────────────────────────────────────────────
 // The season number must agree. That is the single biggest source of wrong matches
@@ -192,6 +240,10 @@ console.log("\n--- resolved ---");
 for (const r of resolved) {
   console.log(`  ${String(r.score).padStart(3)}  ${r.title.slice(0, 44).padEnd(44)} -> ${String(r.entry.title).slice(0, 40).padEnd(40)} AL=${r.entry.anilistId} MAL=${r.entry.malId} ${r.entry.type} ${r.entry.episodes}ep ${r.entry.year || "-"}`);
 }
+console.log("\n--- stale identities repaired by exact title ---");
+for (const r of repairs) {
+  console.log(`  ${r.title.slice(0, 52).padEnd(52)} ${offlineIdentityKey(r.current || {}) || "unknown"} -> ${offlineIdentityKey(r.entry)}`);
+}
 console.log("\n--- below the bar (NOT applied) ---");
 for (const r of rejected.slice(0, 40)) {
   console.log(`  ${String(r.score).padStart(3)}  ${r.title.slice(0, 44).padEnd(44)} -> ${String(r.entry?.title || "-").slice(0, 40)}`);
@@ -206,6 +258,25 @@ if (!WRITE) { console.log("\n(dry run - pass --write to apply)"); process.exit(0
 // straight into the map so the fix lands without waiting for AniList to come back.
 const ov = JSON.parse(fs.readFileSync(OVERRIDES, "utf8"));
 const AOD_STATUS = { FINISHED: "FINISHED", ONGOING: "RELEASING", UPCOMING: "NOT_YET_RELEASED" };
+const metadataFromOffline = (entry) => ({
+  malId: entry.malId || null,
+  year: entry.year || null,
+  // The database scores 1-10; this app renders "${score}%" on a 0-100 scale.
+  score: typeof entry.score === "number" ? Math.round(entry.score * 10) : null,
+  genres: [],                 // the db has tags, not genres - too noisy to map
+  description: "",            // not carried by the database
+  duration: entry.duration || null,
+  episodes: entry.episodes ?? null,
+  format: entry.type || "",
+  // Mapped explicitly: getSeasonEpisodeLimit() keys off these exact strings and
+  // a wrong value empties the episode list (see v627/v628).
+  airingStatus: AOD_STATUS[String(entry.status || "").toUpperCase()] || "",
+  country: "",
+  studio: (entry.studios || [])[0] || "",
+  englishTitle: "",
+  romajiTitle: entry.title || "",
+  _via: "offline-db"
+});
 let applied = 0;
 for (const r of resolved) {
   const e = r.entry;
@@ -213,30 +284,53 @@ for (const r of resolved) {
   const entry = entries[r.slug] || (entries[r.slug] = { status: "offline-db" });
   entry.anilistId = e.anilistId || entry.anilistId || null;
   entry.malId = e.malId || entry.malId || null;
-  if (!entry.meta) {
-    entry.meta = {
-      malId: e.malId || null,
-      year: e.year || null,
-      // The database scores 1-10; this app renders "${score}%" on a 0-100 scale.
-      score: typeof e.score === "number" ? Math.round(e.score * 10) : null,
-      genres: [],                 // the db has tags, not genres - too noisy to map
-      description: "",            // not carried by the database
-      duration: e.duration || null,
-      episodes: e.episodes ?? null,
-      format: e.type || "",
-      // Mapped explicitly: getSeasonEpisodeLimit() keys off these exact strings and
-      // a wrong value empties the episode list (see v627/v628).
-      airingStatus: AOD_STATUS[String(e.status || "").toUpperCase()] || "",
-      country: "",
-      studio: (e.studios || [])[0] || "",
-      englishTitle: "",
-      romajiTitle: e.title || "",
-      _via: "offline-db"
-    };
-  }
+  entry.metadataCover = entry.metadataCover || e.picture || "";
+  if (!entry.meta) entry.meta = metadataFromOffline(e);
   applied++;
+}
+
+let repaired = 0;
+for (const r of repairs) {
+  const e = r.entry;
+  const entry = entries[r.slug] || (entries[r.slug] = {});
+  // Every visual and metadata field below belonged to the stale identity. Keep
+  // none of it under the corrected id; the artwork builder will refill it, and
+  // the exact offline cover remains a usable fail-safe if a live API is down.
+  for (const key of [
+    "tmdbId", "tmdbBackdrop", "tmdbPoster", "anilistBanner", "anilistCover",
+    "bestScore", "bestName", "confidence", "matchedName", "season"
+  ]) delete entry[key];
+  entry.status = "identity-repaired";
+  entry.anilistId = e.anilistId || null;
+  entry.malId = e.malId || null;
+  entry.metadataCover = e.picture || "";
+  entry.meta = metadataFromOffline(e);
+  entry.canonicalSeasonNumber = explicitOfflineSeasonNumber(e);
+  entry.identityTitles = [e.title, ...(e.synonyms || [])].filter(Boolean).slice(0, 12);
+  if (e.anilistId) ov.overrides[r.slug] = e.anilistId;
+  else delete ov.overrides[r.slug];
+  repaired++;
+}
+let seasonHints = 0;
+let identityTitleSets = 0;
+for (const row of scraped) {
+  const entry = entries[row.id];
+  if (!entry) continue;
+  const identity = (entry.anilistId && byAniList.get(Number(entry.anilistId)))
+    || ((entry.malId || entry.meta?.malId) && byMal.get(Number(entry.malId || entry.meta?.malId)))
+    || null;
+  const seasonNumber = explicitOfflineSeasonNumber(identity || {});
+  if (seasonNumber && Number(entry.canonicalSeasonNumber) !== seasonNumber) {
+    entry.canonicalSeasonNumber = seasonNumber;
+    seasonHints++;
+  }
+  const identityTitles = [identity?.title, ...(identity?.synonyms || [])].filter(Boolean).slice(0, 12);
+  if (identityTitles.length && JSON.stringify(entry.identityTitles || []) !== JSON.stringify(identityTitles)) {
+    entry.identityTitles = identityTitles;
+    identityTitleSets++;
+  }
 }
 fs.writeFileSync(OVERRIDES, JSON.stringify(ov, null, 2));
 raw.entries = entries;
 fs.writeFileSync(MAP, JSON.stringify(raw, null, 2));
-console.log(`\napplied ${applied} identities to the map and the override file`);
+console.log(`\napplied ${applied} new identities, repaired ${repaired} stale identities, refreshed ${seasonHints} season hints, and indexed ${identityTitleSets} title sets`);

@@ -94,6 +94,63 @@ for (const [label, value] of shapes) {
 checkNoThrow("show without tmdbId resolves", () => ensure({ id: 6 }, 1));
 checkNoThrow("undefined show resolves", () => ensure(undefined, 1));
 
+// TMDB models Honzuki's first 36 episodes as one season while AniList models
+// them as three. The exact app season must still select the right TMDB bucket.
+{
+  const tmdbShow = { seasons: [
+    { season_number: 1, episode_count: 36, name: "Ascendance of a Bookworm", air_date: "2019-10-03" },
+    { season_number: 2, episode_count: 24, name: "Adopted Daughter of an Archduke", air_date: "2026-04-03" }
+  ] };
+  for (const [title, seasonNumber, expectedTmdbSeason] of [
+    ["Honzuki no Gekokujou", 1, 1],
+    ["Honzuki no Gekokujou 2nd Season", 2, 1],
+    ["Honzuki no Gekokujou 3rd Season", 3, 1],
+    ["Honzuki no Gekokujou: Ryoushu no Youjo", 4, 2]
+  ]) {
+    const result = ImageResolver.pickTmdbSeason({ title, canonicalSeasonNumber: seasonNumber }, tmdbShow);
+    check(`${title} maps to its real TMDB season`, result.season?.season_number, expectedTmdbSeason);
+  }
+}
+
+{
+  const unsafe = ImageResolver.pickTmdbSeason({
+    title: "Unrelated Earlier Series",
+    canonicalSeasonNumber: 1,
+    tmdbFranchiseFallback: true,
+    tmdbFranchiseCarrierSeason: 4
+  }, { seasons: [{ season_number: 1, episode_count: 12, name: "Separate Sequel" }] });
+  check("an inherited id cannot borrow a separately catalogued sequel", unsafe.season, null);
+}
+
+// Same-year split cours cannot be scoped by release year. The baked provider
+// offset is authoritative and must select the second half of the TMDB season.
+{
+  const anime = {
+    id: "same-year-part-two",
+    anilistId: 127720,
+    tmdbId: 94664,
+    title: "Mushoku Tensei Part 2",
+    year: 2021,
+    isFranchiseEntry: true,
+    providerEpisodeOffset: 11,
+    totalEpisodes: 12,
+    tmdbSeasons: [{ season_number: 1, episode_count: 23, name: "Season 1", air_date: "2021-01-01" }]
+  };
+  ctx.fetch = async (url) => ({
+    ok: true,
+    json: async () => ({ season: { poster_path: null, episodes: Array.from({ length: 23 }, (_, index) => ({
+      episode_number: index + 1,
+      name: `Absolute ${index + 1}`,
+      overview: "",
+      air_date: "2021-01-01",
+      still_path: `/episode-${index + 1}.jpg`
+    })) } })
+  });
+  await ensure(anime, 1, { season: 1, year: 2021, episodeCount: 12, providerEpisodeOffset: 11 });
+  check("same-year Part 2 starts after the provider offset", anime.tmdbEpisodesBySeasonNum[1][1].title, "Absolute 12");
+  check("same-year Part 2 keeps exactly its own episode count", Object.keys(anime.tmdbEpisodesBySeasonNum[1]).length, 12);
+}
+
 // A cache row is only reusable when it came from the TMDB season the current
 // mapping selects. This is the regression behind Season 3 displaying Season 1
 // episode names after a reload.
@@ -110,7 +167,7 @@ checkNoThrow("undefined show resolves", () => ensure(undefined, 1));
       { season_number: 3, episode_count: 12, name: "Season 3", air_date: "2026-01-01" }
     ]
   };
-  const cacheKey = "zenkaitv:tmdb-season-art:v7:178789:s3";
+  const cacheKey = "zenkaitv:tmdb-season-art:v8:178789:s3";
   store.set(cacheKey, JSON.stringify({
     savedAt: Date.now(),
     data: {

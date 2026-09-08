@@ -32,6 +32,7 @@ function context(fetchWithTimeout = async () => ({ ok: false })) {
     appRouter: () => null,
     ROUTE_SLUG_ALIASES: {},
     getShowKey: show => String(show.id),
+    isSyntheticFranchiseRow: row => /^(anilist|jikan)-\d+$/.test(String(row?.id || "")),
     bakedChainFor: () => null,
     parseEpisodeNumber: (value, fallback = null) => {
       if (typeof value === "number" && Number.isFinite(value) && value >= 0) return value;
@@ -92,7 +93,7 @@ test("related seasons missing from the main catalog retain their identity across
 test("season clicks restore related entries removed by a background catalog refresh", () => {
   const c = context();
   const show = { id: "current", anilistId: 2, title: "Example Season 2", anilistFranchise: { groups: [
-    { items: [{ anilistId: 1, malId: 11, title: "Example", episodes: 12, status: "FINISHED" }] },
+    { items: [{ anilistId: 1, malId: 11, tmdbId: 99, tmdbFranchiseFallback: true, title: "Example", episodes: 12, status: "FINISHED" }] },
     { items: [{ anilistId: 2, malId: 22, title: "Example Season 2", episodes: 12, status: "FINISHED" }] }
   ] } };
   c.state.shows = [show];
@@ -102,6 +103,9 @@ test("season clicks restore related entries removed by a background catalog refr
   const result = c.getLiveNav();
   assert.equal(result.list[0].relatedShowId, "anilist-1");
   assert.equal(c.state.shows.length, 2);
+  assert.equal(c.state.shows.find(entry => entry.id === "anilist-1").tmdbId, 99);
+  assert.equal(c.state.shows.find(entry => entry.id === "anilist-1").tmdbFranchiseFallback, true);
+  assert.equal(c.state.shows.find(entry => entry.id === "anilist-1").tmdbFranchiseCarrierSeason, 2);
   c.getLiveNav();
   assert.equal(c.state.shows.length, 2);
 });

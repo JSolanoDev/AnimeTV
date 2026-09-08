@@ -565,7 +565,18 @@ test("Mushoku Tensei relation chain is ordered into three canonical seasons", ()
     { anilistId: 108465, malId: 39535, title: "Mushoku Tensei: Isekai Ittara Honki Dasu", format: "TV", seasonYear: 2021, episodes: 11, status: "FINISHED" },
     { anilistId: 127720, malId: 45576, title: "Mushoku Tensei: Isekai Ittara Honki Dasu Part 2", format: "TV", seasonYear: 2021, episodes: 12, status: "FINISHED" },
     { anilistId: 146065, malId: 51179, title: "Mushoku Tensei II: Isekai Ittara Honki Dasu", format: "TV", seasonYear: 2023, episodes: 12, status: "FINISHED" },
-    { anilistId: 166873, malId: 55888, title: "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2", format: "TV", seasonYear: 2024, episodes: 12, status: "FINISHED" },
+    {
+      anilistId: 166873,
+      malId: 55888,
+      title: "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2",
+      format: "TV",
+      seasonYear: 2024,
+      episodes: 12,
+      status: "FINISHED",
+      image: "https://images.test/season-two-part-two-poster.jpg",
+      banner: "https://images.test/season-two-part-two-background.jpg",
+      description: "Season two part two description."
+    },
     { anilistId: 178789, malId: 59284, title: "Mushoku Tensei III: Isekai Ittara Honki Dasu", format: "TV", seasonYear: 2026, episodes: 14, status: "RELEASING" }
   ];
   const current = {
@@ -619,6 +630,13 @@ test("Mushoku Tensei relation chain is ordered into three canonical seasons", ()
   assert.equal(current.canonicalSeasonNumber, 3);
   assert.equal(catalogTwin.canonicalSeasonPart, null);
   assert.equal(current.canonicalSeasonPart, null);
+  const relatedSeason = state.shows.find((entry) => entry.id === "anilist-166873");
+  assert.equal(relatedSeason.anilistId, 166873);
+  assert.equal(relatedSeason.malId, 55888);
+  assert.equal(relatedSeason.image, "https://images.test/season-two-part-two-poster.jpg");
+  assert.equal(relatedSeason.banner, "https://images.test/season-two-part-two-background.jpg");
+  assert.equal(relatedSeason.description, "Season two part two description.");
+  assert.notEqual(relatedSeason.image, current.image);
   assert.equal(canonicalDetailSeason.season, 3);
   assert.equal(canonicalDetailSeason.part, null);
   assert.deepEqual(
@@ -645,4 +663,64 @@ test("Mushoku Tensei relation chain is ordered into three canonical seasons", ()
   assert.equal(list[1].episodes[0].providerEpisodeId, 12);
   assert.equal(list[3].episodes[0].providerEpisodeId, 13);
   assert.equal(list[4].episodes[0].providerEpisodeId, 1);
+});
+
+test("related-season direct URLs rebuild from relations and reject corrupt route caches", () => {
+  const stale = [{
+    savedAt: Date.now(),
+    show: {
+      id: "anilist-166873",
+      anilistId: 178789,
+      title: "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2",
+      isFranchiseEntry: true
+    }
+  }];
+  const state = {
+    shows: [
+      {
+        id: "animeav1-colliding-lightweight-row",
+        anilistId: 146065,
+        title: "Mushoku Tensei II: Isekai Ittara Honki Dasu",
+        romajiTitle: "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2"
+      },
+      {
+        id: "animeav1-mushoku-tensei-ii-isekai-ittara-honki-dasu",
+        title: "Mushoku Tensei II: Isekai Ittara Honki Dasu",
+        franchiseSeasons: [{
+          anilistId: 166873,
+          title: "Mushoku Tensei II: Isekai Ittara Honki Dasu Part 2"
+        }]
+      }
+    ],
+    addonSections: [],
+    av1Shows: new Map()
+  };
+  const slugify = (value) => String(value || "").toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const sandbox = vm.createContext({
+    state,
+    Date,
+    Map,
+    ROUTE_SLUG_ALIASES: {},
+    localStorage: { getItem: () => JSON.stringify(stale), setItem() {} },
+    getShowSlug: (show = {}) => slugify(show.slug || show.title || show.id),
+    getShowKey: (show = {}) => String(show.id || ""),
+    ensureFranchiseShowsInCatalog: (carrier) => {
+      const related = carrier.franchiseSeasons[0];
+      if (!state.shows.some((show) => show.anilistId === related.anilistId)) {
+        state.shows.push({
+          id: `anilist-${related.anilistId}`,
+          anilistId: related.anilistId,
+          title: related.title,
+          isFranchiseEntry: true
+        });
+      }
+    }
+  });
+  vm.runInContext(section(clientSource, "const FRANCHISE_ROUTE_CACHE_KEY", "function ensureNotFoundSection("), sandbox);
+
+  assert.equal(sandbox.readFranchiseRoutes().length, 0);
+  const resolved = sandbox.findShowBySlugOrId("mushoku-tensei-ii-isekai-ittara-honki-dasu-part-2");
+  assert.equal(resolved.id, "anilist-166873");
+  assert.equal(resolved.anilistId, 166873);
 });

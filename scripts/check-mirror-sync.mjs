@@ -20,9 +20,12 @@ const ANDROID = "android/app/src/main/assets";
 const ALLOWED_DIVERGENCE = {};
 
 const mirrored = [
-  "client.js", "index.html", "service-worker.js", "styles.css",
+  "client.js", "animetv-server.js", "index.html", "service-worker.js", "styles.css",
   "manifest.webmanifest", "offline.html", "update-manager.js",
-  ...(existsSync("js") ? readdirSync("js").filter((f) => f.endsWith(".js")).map((f) => `js/${f}`) : [])
+  ...(existsSync("js") ? readdirSync("js").filter((f) => f.endsWith(".js")).map((f) => `js/${f}`) : []),
+  ...(existsSync("player") ? readdirSync("player").filter((f) => /\.(?:js|css|html)$/.test(f)).map((f) => `player/${f}`) : []),
+  "scraper/artwork-map.json",
+  "scraper/aniskip-map.json"
 ];
 
 let failed = 0;

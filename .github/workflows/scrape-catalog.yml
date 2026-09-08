@@ -147,6 +147,52 @@ jobs:
           print("Validation OK — ready to commit.")
           PYEOF
 
+      # New catalogue rows do not carry MAL/AniList ids. Resolve them against a
+      # versioned offline database first, then let the resumable artwork builder
+      # add season-specific TMDB imagery. Every step preserves yesterday's map
+      # when an upstream is unavailable; the integrity gate below checks the
+      # resulting coverage before anything can be committed.
+      - name: Download offline anime identity database
+        continue-on-error: true
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          (async () => {
+            const headers = { Accept: 'application/vnd.github+json', 'User-Agent': 'ZenkaiTV-catalog-workflow' };
+            const release = await fetch('https://api.github.com/repos/manami-project/anime-offline-database/releases/latest', { headers });
+            if (!release.ok) throw new Error(`release metadata HTTP ${release.status}`);
+            const body = await release.json();
+            const asset = (body.assets || []).find((entry) => entry.name === 'anime-offline-database.jsonl');
+            if (!asset) throw new Error('offline database asset is missing');
+            const download = await fetch(asset.browser_download_url, { headers });
+            if (!download.ok) throw new Error(`offline database HTTP ${download.status}`);
+            const output = path.join(process.env.RUNNER_TEMP, 'anime-offline-database.jsonl');
+            fs.writeFileSync(output, Buffer.from(await download.arrayBuffer()));
+            console.log(`wrote ${output}`);
+          })().catch((error) => { console.error(error.message); process.exit(1); });
+          NODE
+
+      - name: Resolve new regular catalog identities
+        continue-on-error: true
+        run: |
+          if [ -f "$RUNNER_TEMP/anime-offline-database.jsonl" ]; then
+            node scripts/resolve-from-offline-db.mjs --db "$RUNNER_TEMP/anime-offline-database.jsonl" --write
+            node scripts/fill-meta-from-offline-db.mjs --db "$RUNNER_TEMP/anime-offline-database.jsonl" --write
+          else
+            echo "Offline identity database unavailable; keeping the previous identity map."
+          fi
+
+      - name: Refresh high-quality regular artwork
+        continue-on-error: true
+        run: node scripts/build-artwork-map.mjs --base https://zenkaitv.com --concurrency 2
+        timeout-minutes: 18
+
+      - name: Refresh regular title metadata
+        continue-on-error: true
+        run: node scripts/add-artwork-metadata.mjs
+        timeout-minutes: 12
+
       # graphql.anilist.co answers 403 to Vercel, to the browser AND to this
       # runner - run #111 finished this step in 3 seconds, where ~40 batched
       # requests at a 1200ms pause cannot finish inside a minute. The idea that
@@ -164,6 +210,35 @@ jobs:
         timeout-minutes: 40
         continue-on-error: true
 
+      - name: Seed related season artwork identities
+        continue-on-error: true
+        run: |
+          if [ -f "$RUNNER_TEMP/anime-offline-database.jsonl" ]; then
+            node scripts/seed-anilist-rows.mjs --db "$RUNNER_TEMP/anime-offline-database.jsonl" --airing scraper/airing-map.json --write
+            node scripts/fill-meta-from-offline-db.mjs --db "$RUNNER_TEMP/anime-offline-database.jsonl" --write
+          else
+            echo "Offline identity database unavailable; keeping existing related-season artwork."
+          fi
+
+      - name: Refresh high-quality related season artwork
+        continue-on-error: true
+        run: node scripts/build-artwork-map.mjs --base https://zenkaitv.com --concurrency 2
+        timeout-minutes: 18
+
+      - name: Sync regular artwork to Android
+        run: cp scraper/artwork-map.json android/app/src/main/assets/scraper/artwork-map.json
+
+      - name: Refresh opening and ending skip times
+        run: >-
+          node scripts/build-aniskip-map.mjs
+          --catalog scraper/anime_metadata.json
+          --max-episodes 2000
+          --max-lookups 1200
+          --concurrency 4
+          --recheck-days 7
+        timeout-minutes: 18
+        continue-on-error: true
+
       - name: Refresh Adult Mode catalog
         run: npm run adult:catalog
         env:
@@ -176,6 +251,16 @@ jobs:
       - name: Validate Adult Mode catalog
         run: npm run adult:verify && npm run test:releases
 
+      - name: Validate regular catalog, playback identity, and seasons
+        run: |
+          npm run catalog:verify -- --restore-on-failure --report artifacts/catalog-integrity-report.json
+          npm run test:catalog
+          npm run test:pipeline
+          npm run test:seasons
+          node scripts/test-airing-map.mjs .
+          node scripts/test-season-stills.mjs .
+          node scripts/test-image-delivery.mjs
+
       # ── 7. Commit updated catalog ──────────────────────────────────────────
       - name: Commit updated catalog
         id: commit-catalog
@@ -186,7 +271,10 @@ jobs:
             scraper/anime_metadata.json
             scraper/anime_metadata.previous.json
             scraper/anime_metadata.csv
+            scraper/anilist-id-overrides.json
+            scraper/artwork-map.json
             scraper/airing-map.json
+            scraper/aniskip-map.json
             scraper/relations-cache.json
             scraper/underhentai_catalog.json
             scraper/underhentai_details.json
@@ -194,6 +282,8 @@ jobs:
             android/app/src/main/assets/scraper/underhentai_catalog.json
             android/app/src/main/assets/scraper/underhentai_details.json
             android/app/src/main/assets/scraper/underhentai_releases.json
+            android/app/src/main/assets/scraper/artwork-map.json
+            android/app/src/main/assets/scraper/aniskip-map.json
           commit_user_name: "github-actions[bot]"
           commit_user_email: "github-actions[bot]@users.noreply.github.com"
 
@@ -218,9 +308,13 @@ jobs:
             scraper/anime_metadata.json
             scraper/anime_metadata.previous.json
             scraper/anime_metadata.csv
+            scraper/anime_metadata.rejected.json
+            scraper/artwork-map.json
             scraper/airing-map.json
+            scraper/aniskip-map.json
             scraper/relations-cache.json
             scraper/underhentai_catalog.json
             scraper/underhentai_details.json
+            artifacts/catalog-integrity-report.json
           retention-days: 7
           if-no-files-found: warn
