@@ -205,3 +205,12 @@ test("loading feedback respects the app's reduced-motion preference", () => {
   const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
   assert.match(css, /body\.reduce-motion \.library-auto-loader-track > span\s*\{[^}]*animation: none/);
 });
+
+test("the anime detail view has visible, reduced-motion-safe hydration feedback", () => {
+  const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+  assert.match(html, /id="watchDetailProgress"[^>]*role="status"[^>]*hidden/);
+  assert.match(css, /\.watch-detail-progress > span:first-child[\s\S]*?watch-detail-progress-slide/);
+  assert.match(css, /\.watch-overlay\.is-hydrating-details \.watch-summary:empty::after/);
+  assert.match(css, /body\.reduce-motion \.watch-detail-progress[\s\S]*?animation: none/);
+});

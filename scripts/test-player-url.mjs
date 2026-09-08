@@ -9,6 +9,7 @@ const src = fs.readFileSync(ROOT + "/client.js", "utf8");
 const appCss = fs.readFileSync(ROOT + "/styles.css", "utf8");
 const playerCss = fs.readFileSync(ROOT + "/player/player.css", "utf8");
 const playerJs = fs.readFileSync(ROOT + "/player/player.js", "utf8");
+const playerHtml = fs.readFileSync(ROOT + "/player/player.html", "utf8");
 const serviceWorker = fs.readFileSync(ROOT + "/service-worker.js", "utf8");
 
 const start = src.indexOf("const PLAYER_POSTER_MAX_LENGTH");
@@ -74,7 +75,13 @@ check("source resolution uses the current player loader without provider copy",
 check("source resolution loader stays compact and quick",
   /\.ztv-stream-loader-mark\s*>\s*span[\s\S]*?animation:\s*ztv-stream-loader-spin\s+0\.82s/.test(appCss), true);
 check("the service worker pre-caches first-play app assets",
-  /versioned\("\.\/player\/player\.css"\)[\s\S]*?versioned\("\.\/player\/player\.js"\)/.test(serviceWorker), true);
+  /versioned\("\.\/player\/player\.html"\)[\s\S]*?versioned\("\.\/player\/player\.css"\)[\s\S]*?versioned\("\.\/player\/player\.js"\)/.test(serviceWorker), true);
+check("versioned player navigations use the cached shell document",
+  /url\.pathname === "\/player\/player\.html"[\s\S]*?cache\.match\(shellKey\)/.test(serviceWorker), true);
+check("player libraries warm while the anime detail page is open",
+  /function prefetchPlayerShell\(\)[\s\S]*?artplayer\/dist\/artplayer\.js[\s\S]*?hls\.js@1\.6\.16/.test(src), true);
+check("direct files do not wait for the HLS library script",
+  /<script async src="https:\/\/cdn\.jsdelivr\.net\/npm\/hls\.js@1\.6\.16/.test(playerHtml), true);
 
 /* ---- a realistic URL stays well under the header limit ---- */
 {

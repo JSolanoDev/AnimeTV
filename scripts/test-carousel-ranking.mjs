@@ -95,6 +95,11 @@ check("single item survives", sortCarouselCurrency([A], NOW, () => null).map((s)
   check("release carousel is sourced from the AnimeAV1 feed", /buildAnimeAv1ReleaseCards/.test(releasePool), true);
   check("renderCarousel consumes only the release pool", /recentReleaseCarouselShows\(8\)/.test(render), true);
   check("latest feed starts promptly after first paint", /function scheduleAnimeAv1LatestLoad\(delayMs = 450\)/.test(client), true);
+  const indicators = between("function renderCarouselIndicators(", "function scheduleCarouselIndicatorHydration(");
+  check("slide selection keeps the existing indicator image nodes", /if \(_carouselDotsHtml !== dotsHtml\)/.test(indicators), true);
+  check("selection is updated as a class instead of rebuilt into HTML", /classList\.toggle\("is-selected", selected\)/.test(indicators), true);
+  check("the carousel warms only its immediate next slide", /state\.carouselIndex \+ 1/.test(render) && !/off <= 3/.test(render), true);
+  check("carousel TMDB hydration suppresses unrelated detail renders", /enrichTmdbImages\(next, \{ refresh: false \}\)/.test(render), true);
 }
 
 console.log(rows.join("\n"));

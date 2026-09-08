@@ -8434,6 +8434,7 @@ body.watch-detail-open {
   overflow: hidden;
 }
 .watch-stage-body {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
@@ -8446,6 +8447,84 @@ body.watch-detail-open {
   to   { opacity: 1; transform: none; }
 }
 body.reduce-motion .watch-stage-body { animation: none; }
+
+/* Detail hydration stays out of the layout: a thin rail at the viewport edge
+   shows that richer metadata is still arriving, while empty metadata fields use
+   the same calm sheen as poster placeholders. Fast, already-complete opens hide
+   this before its short reveal delay, so cached titles never flash a loader. */
+.watch-detail-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 140;
+  height: 0.18rem;
+  overflow: hidden;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.06);
+  opacity: 0;
+  animation: watch-detail-progress-reveal 120ms ease 140ms forwards;
+}
+
+.watch-detail-progress > span:first-child {
+  display: block;
+  width: 34%;
+  height: 100%;
+  border-radius: 999rem;
+  background: linear-gradient(90deg, transparent, #8a5cff 44%, #30cde8 58%, transparent);
+  box-shadow: 0 0 0.8rem rgba(48, 205, 232, 0.45);
+  animation: watch-detail-progress-slide 1.05s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.watch-overlay.is-hydrating-details .watch-meta-row:empty,
+.watch-overlay.is-hydrating-details .watch-summary:empty {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  border-radius: 999rem;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.watch-overlay.is-hydrating-details .watch-meta-row:empty {
+  width: min(18rem, 72vw);
+  height: 0.78rem;
+}
+
+.watch-overlay.is-hydrating-details .watch-summary:empty {
+  width: min(34rem, 86vw);
+  height: 2.4rem;
+  border-radius: 0.35rem;
+}
+
+.watch-overlay.is-hydrating-details .watch-meta-row:empty::after,
+.watch-overlay.is-hydrating-details .watch-summary:empty::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 18%, rgba(255, 255, 255, 0.14) 48%, transparent 78%);
+  transform: translateX(-100%);
+  animation: watch-detail-sheen 1.25s ease-in-out infinite;
+}
+
+@keyframes watch-detail-progress-reveal {
+  to { opacity: 1; }
+}
+
+@keyframes watch-detail-progress-slide {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(300%); }
+}
+
+@keyframes watch-detail-sheen {
+  to { transform: translateX(100%); }
+}
+
+body.reduce-motion .watch-detail-progress,
+body.reduce-motion .watch-detail-progress > span:first-child,
+body.reduce-motion .watch-overlay.is-hydrating-details .watch-meta-row:empty::after,
+body.reduce-motion .watch-overlay.is-hydrating-details .watch-summary:empty::after {
+  animation: none;
+}
+
+body.reduce-motion .watch-detail-progress { opacity: 1; }
 
 .watch-logo {
   max-width: min(28rem, 70%);

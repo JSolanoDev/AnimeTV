@@ -164,6 +164,50 @@ test("direct anime and watch routes bypass the deferred homepage catalog path", 
   assert.match(loadSource, /state\.route === "home" && !isDirectDetailRoute/);
 });
 
+test("the AnimeAV1 catalog join index is reused until the catalog changes", () => {
+  let titleReads = 0;
+  const state = {
+    shows: [
+      { id: "animeav1-alpha", title: "Alpha", aliases: [] },
+      { id: "beta", title: "Beta", aliases: ["Beta Two"] }
+    ]
+  };
+  const c = vm.createContext({
+    state,
+    normalizeSearchText: (value) => String(value || "").toLowerCase(),
+    getShowTitle: (show) => { titleReads += 1; return show.title; }
+  });
+  vm.runInContext(section(client, "function av1Key(", "function makeAv1OnlyShow("), c);
+
+  const first = c.buildCatalogKeyIndex();
+  const firstReads = titleReads;
+  const second = c.buildCatalogKeyIndex();
+  assert.equal(second, first);
+  assert.equal(titleReads, firstReads);
+
+  state.shows = [...state.shows, { id: "gamma", title: "Gamma", aliases: [] }];
+  const third = c.buildCatalogKeyIndex();
+  assert.notEqual(third, first);
+  assert.ok(titleReads > firstReads);
+});
+
+test("anime metadata paints the AniList result before the Jikan request settles", () => {
+  const hydrate = section(client, "async function hydrateCanonicalAnimeMetadata(", "// Non-blocking TMDB image enrichment.");
+  const earlyApply = hydrate.indexOf("applyCanonicalAnimeMetadata(show, { media, jikan: null })");
+  const jikanFetch = hydrate.indexOf("/api/jikan/full?id=");
+  assert.ok(earlyApply >= 0);
+  assert.ok(jikanFetch > earlyApply);
+  assert.match(hydrate, /options\.onProgress\?\.\(show\)/);
+});
+
+test("open-detail provider completions are coalesced into one render frame", () => {
+  const hydrate = section(client, "async function hydrateOpenShowDetails(", "async function hydrateAnime1vEpisodes(");
+  assert.match(hydrate, /let refreshQueued = false/);
+  assert.match(hydrate, /if \(refreshQueued[^)]*\) return/);
+  assert.match(hydrate, /window\.requestAnimationFrame/);
+  assert.match(hydrate, /hydrateExtras: false/);
+});
+
 test("anime details paint before franchise and episode-list work", async () => {
   const calls = [];
   const animationFrames = [];
@@ -204,6 +248,8 @@ test("anime details paint before franchise and episode-list work", async () => {
     getShowKey: (value) => value.id,
     warmSkipTimes() {},
     updateRouteMeta() {},
+    setWatchDetailLoading() {},
+    watchDetailsReady: () => true,
     pauseVisibleMetadataWarm() {},
     warmAnimeAv1PlaybackIntent() { calls.push("warm-source"); return Promise.resolve(); },
     resetVideoFrame(value) { calls.push(value?.length ? "full-frame" : "opening-frame"); },
@@ -223,6 +269,7 @@ test("anime details paint before franchise and episode-list work", async () => {
     },
     isScraperEnabled: () => true,
     attachAnimeAv1Sources() { calls.push("attach-source"); return Promise.resolve(); },
+    warmTopEpisodeSources() { calls.push("warm-stream"); },
     renderEpisodeList(_show, options) {
       calls.push(options?.seasons === seasons ? "render-shared-seasons" : "render-rebuilt-seasons");
     },

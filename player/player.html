@@ -7,15 +7,18 @@
   <title>ZenkaiTV Player</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="/player/player.css?v=768">
-  <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js"></script>
+  <link rel="stylesheet" href="/player/player.css?v=769">
   <script defer src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
+  <!-- HLS downloads in parallel but no longer blocks player.js from starting.
+       waitForLibraries() already gates HLS streams until this is ready, while
+       direct MP4/WebM episodes can initialize as soon as ArtPlayer arrives. -->
+  <script async src="https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js"></script>
   <!-- Chromecast is driven directly by the Google Cast Web Sender framework in
        player.js. The artplayer plugin used to do this, but it assigned
        window.__onGCastApiAvailable at CLICK time and loaded the SDK then too, so
        cast state was unknowable until after the first press and every failure
        collapsed into one opaque callback. -->
-  <script defer src="/player/player.js?v=768"></script>
+  <script defer src="/player/player.js?v=769"></script>
 </head>
 <body>
   <main class="ztv-player-page">

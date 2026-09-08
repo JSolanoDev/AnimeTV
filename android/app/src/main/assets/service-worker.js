@@ -1,4 +1,4 @@
-const CACHE_NAME = "zenkaitv-v768";
+const CACHE_NAME = "zenkaitv-v769";
 const ADULT_CATALOG_CACHE = "zenkaitv-adult-catalog-v1";
 // Remote artwork lives in its OWN cache that survives version bumps. It used
 // to share CACHE_NAME, so every deploy wiped every poster and the app
@@ -20,7 +20,9 @@ const SHELL_ASSETS = [
   versioned("./logo-wordmark-480.webp"),
   versioned("./hero-backdrop-placeholder.webp"),
   // These are needed only after an episode is opened, but caching the existing
-  // files during shell installation removes two first-play network round trips.
+  // files during shell installation removes the player document plus two asset
+  // round trips from first-play startup.
+  versioned("./player/player.html"),
   versioned("./player/player.css"),
   versioned("./player/player.js")
 ];
@@ -88,6 +90,32 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   const url = new URL(event.request.url);
+
+  // The player document is immutable for one asset generation, but iframe loads
+  // are navigation requests and therefore used to miss the versioned cache-first
+  // branch below. Serve the canonical cached HTML for every source/title query;
+  // location.search remains the requested URL, so player.js still receives the
+  // correct episode while the document itself opens without a network wait.
+  if (
+    event.request.mode === "navigate"
+    && url.origin === self.location.origin
+    && url.pathname === "/player/player.html"
+    && url.searchParams.get("v") === ASSET_VERSION
+  ) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then((cache) => {
+        const shellKey = versioned("./player/player.html");
+        return cache.match(shellKey).then((cached) => {
+          if (cached) return cached;
+          return fetch(shellKey).then((response) => {
+            if (response.ok) cache.put(shellKey, response.clone());
+            return response;
+          });
+        });
+      }).catch(() => fetch(event.request))
+    );
+    return;
+  }
 
   // Navigation requests: network-first, offline fallback
   if (event.request.mode === "navigate") {

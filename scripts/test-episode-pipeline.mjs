@@ -754,6 +754,7 @@ test("20. a resolved URL mounts after the first episode-row click", async () => 
 
 test("21. an episode-row click reaches source scheduling with canonical season identity", () => {
   let scheduled = null;
+  let loadingFeedback = null;
   const episode = { id: "show-s2-e3", episode: 3, canonicalEpisode: 3 };
   const season = { season: 2, part: 1, episodes: [episode] };
   const state = {
@@ -783,6 +784,10 @@ test("21. an episode-row click reaches source scheduling with canonical season i
     },
     stopActivePlayback() {},
     getWatchBackdropArtwork: () => "",
+    currentEpisodeLabel: () => "Season 2 Part 1 Episode 3",
+    renderPlayerPopupMessage: (_frame, label, message) => {
+      loadingFeedback = { label, message };
+    },
     schedulePlaybackSourceOptions: (_show, value, canonicalSeason, options) => {
       scheduled = { value, canonicalSeason, options };
     },
@@ -797,6 +802,7 @@ test("21. an episode-row click reaches source scheduling with canonical season i
   assert.equal(scheduled.canonicalSeason, 2);
   assert.equal(scheduled.options.autoReplay, true);
   assert.equal(sandbox.location.pathname, "/watch/show/s2-part-1-e3");
+  assert.deepEqual(loadingFeedback, { label: "Season 2 Part 1 Episode 3", message: "" });
 });
 
 test("AnimeAV1 source warmup coalesces concurrent requests for one episode", async () => {
@@ -840,7 +846,9 @@ test("AnimeAV1 card intent warms the exact provider episode for later playback",
     [
       "/player/player.html?v=765",
       "/player/player.css?v=765",
-      "/player/player.js?v=765"
+      "/player/player.js?v=765",
+      "https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js",
+      "https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js"
     ]
   );
 });

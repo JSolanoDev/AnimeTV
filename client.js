@@ -265,6 +265,7 @@ const libraryAutoLoader = document.querySelector("#libraryAutoLoader");
 const libraryAutoLoaderStatus = document.querySelector("#libraryAutoLoaderStatus");
 const sidebarToggle = document.querySelector("#sidebarToggle");
 const overlay = document.querySelector("#watchOverlay");
+const watchDetailProgress = document.querySelector("#watchDetailProgress");
 const closeOverlay = document.querySelector("#closeOverlay");
 const favoriteButton = document.querySelector("#favoriteButton");
 const fakePlay = document.querySelector("#fakePlay");
@@ -372,6 +373,25 @@ function hideAppLoader() {
   if (!appLoader) return;
   appLoader.classList.add("is-hidden");
   window.setTimeout(() => appLoader.remove(), 260);
+}
+
+function setWatchDetailLoading(loading, openToken = state.activeOpenToken) {
+  if (!overlay) return;
+  if (!loading && openToken && state.activeOpenToken !== openToken) return;
+  const active = Boolean(loading);
+  overlay.classList.toggle("is-hydrating-details", active);
+  overlay.setAttribute("aria-busy", active ? "true" : "false");
+  if (watchDetailProgress) watchDetailProgress.hidden = !active;
+}
+
+function watchDetailsReady(show, seasons = []) {
+  if (!show) return false;
+  const hasMetadata = Boolean(
+    String(show.description || "").trim()
+    && (show.year || show.format || show.score || show.status || show.genres?.length || show.genre)
+  );
+  const hasEpisodes = (Array.isArray(seasons) ? seasons : []).some((season) => season?.episodes?.length);
+  return hasMetadata && hasEpisodes;
 }
 
 function applySidebarState() {
@@ -682,7 +702,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=768`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=769`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3047,7 +3067,15 @@ function av1Key(value) {
   return normalizeSearchText(String(value || "")).replace(/[^a-z0-9]+/g, "");
 }
 
+let _catalogKeyIndex = null;
+let _catalogKeyIndexShows = null;
+
 function buildCatalogKeyIndex() {
+  // render() can ask both the hero and Latest Episodes for the same join. With
+  // 4,000+ titles, rebuilding this map for every carousel tick was one of the
+  // largest avoidable main-thread costs. Catalog installs and metadata merges
+  // replace state.shows, which naturally invalidates this reference cache.
+  if (_catalogKeyIndex && _catalogKeyIndexShows === state.shows) return _catalogKeyIndex;
   const idx = new Map();
   for (const show of state.shows) {
     [getShowTitle(show), show.title, show.romajiTitle, show.nativeTitle, ...(show.aliases || [])]
@@ -3066,6 +3094,8 @@ function buildCatalogKeyIndex() {
     const av1Slug = String(show.id || "").match(/animeav1-(.+)$/)?.[1] || show._av1Slug || "";
     if (av1Slug) { const k = av1Key(av1Slug); if (k && !idx.has(k)) idx.set(k, show); }
   }
+  _catalogKeyIndex = idx;
+  _catalogKeyIndexShows = state.shows;
   return idx;
 }
 
@@ -3459,9 +3489,9 @@ async function warmSeasonArtwork(show, seasonIndex = 0, options = {}) {
   return show;
 }
 
-function scheduleSeasonArtworkWarm(show, activeIndex = 0) {
+function scheduleSeasonArtworkWarm(show, activeIndex = 0, knownSeasons = null) {
   if (!show) return;
-  const seasons = getDetailSeasons(show);
+  const seasons = Array.isArray(knownSeasons) ? knownSeasons : getDetailSeasons(show);
   if (!seasons.length) return;
   const current = Math.max(0, Math.min(Number(activeIndex || 0), seasons.length - 1));
   const key = `${show.id || show.anilistId || show.title}:${show.tmdbId || "pending"}:${show.isFranchiseEntry ? "franchise" : "standard"}:${seasons.length}:${current}`;
@@ -3926,7 +3956,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=768";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=769";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -3979,26 +4009,25 @@ function renderCarousel() {
   const resolving = !hiResArt && !show._tmdbResolved && !show._carouselResolveTried && typeof enrichTmdbImages === "function";
   if (resolving) {
     show._carouselResolveTried = true;
-    enrichTmdbImages(show).then(() => {
+    enrichTmdbImages(show, { refresh: false }).then(() => {
       if (state.route === "home" && String(items[state.carouselIndex]?.id || "") === String(show.id)) {
         _carouselPaintedId = null; // force a repaint now that the backdrop resolved
         renderCarousel();
       }
     }).catch(() => {});
   }
-  // Warm the next few slides' TMDB backdrops in the background, and PRELOAD the
-  // immediate next slide's hero image, so auto-advance shows it instantly instead
-  // of fetching on change. Deduped/cheap: the resolver no-ops on resolved shows.
+  // Warm only the immediate next slide and preload its hero image. It has the
+  // full seven-second dwell of the current slide to finish; warming three future
+  // shows at once only competed with the visible image and video intent requests.
   const preloadHeroImage = (s) => {
     const a = s && hqImage(String(s.tmdbBackdrop || s.highQualityBackground || "").trim());
     if (a) preloadCinematicBackdrop(a, false);
   };
   if (typeof enrichTmdbImages === "function" && items.length > 1) {
-    for (let off = 1; off <= 3; off++) {
-      const next = items[(state.carouselIndex + off) % items.length];
-      if (!next || String(next.id) === String(show.id)) continue;
-      if (next._tmdbResolved) { if (off === 1) preloadHeroImage(next); continue; }
-      enrichTmdbImages(next).then(() => { if (off === 1) preloadHeroImage(next); }).catch(() => {});
+    const next = items[(state.carouselIndex + 1) % items.length];
+    if (next && String(next.id) !== String(show.id)) {
+      if (next._tmdbResolved) preloadHeroImage(next);
+      else enrichTmdbImages(next, { refresh: false }).then(() => preloadHeroImage(next)).catch(() => {});
     }
   }
   const hasLandscapeBanner = Boolean(hiResArt || show.banner || show.backdrop || show.heroImage || show.wideImage || show.landscapeImage);
@@ -4119,26 +4148,32 @@ let _carouselDotsHtml = null;
 function renderCarouselIndicators(items) {
   if (!carouselIndicators) return;
   const dotsHtml = items.slice(0, 8).map((show, index) => `
-    <button class="carousel-dot focusable ${index === state.carouselIndex ? "is-selected" : ""}" data-carousel-index="${index}" aria-label="Show ${escapeHtml(getShowTitle(show))}">
+    <button class="carousel-dot focusable" data-carousel-index="${index}" aria-label="Show ${escapeHtml(getShowTitle(show))}">
       ${_carouselIndicatorImagesReady && carouselArtworkOrPoster(show) ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(carouselArtworkOrPoster(show), 180, 72))}" alt="" width="180" height="101" loading="lazy" decoding="async" fetchpriority="low">` : "<span></span>"}
     </button>
   `).join("");
 
-  // Selection state lives in the markup, so a real selection change still busts
-  // this. Identical markup means the same 8 <img> nodes survive untouched.
-  if (_carouselDotsHtml === dotsHtml) return;
-  _carouselDotsHtml = dotsHtml;
-  carouselIndicators.innerHTML = dotsHtml;
-
-  carouselIndicators.querySelectorAll("[data-carousel-index]").forEach((button) => {
-    button.addEventListener("click", (event) => {
-      event.stopPropagation();
-      state.carouselIndex = Number(button.dataset.carouselIndex);
-      carouselStage.classList.add("is-changing");
-      window.setTimeout(() => carouselStage.classList.remove("is-changing"), 420);
-      renderCarousel();
-      restartCarouselTimer();
+  // The lineup/artwork controls DOM identity; selection is a class update. This
+  // keeps all eight decoded thumbnail nodes alive during every auto-advance.
+  if (_carouselDotsHtml !== dotsHtml) {
+    _carouselDotsHtml = dotsHtml;
+    carouselIndicators.innerHTML = dotsHtml;
+    carouselIndicators.querySelectorAll("[data-carousel-index]").forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        state.carouselIndex = Number(button.dataset.carouselIndex);
+        carouselStage.classList.add("is-changing");
+        window.setTimeout(() => carouselStage.classList.remove("is-changing"), 420);
+        renderCarousel();
+        restartCarouselTimer();
+      });
     });
+  }
+  carouselIndicators.querySelectorAll("[data-carousel-index]").forEach((button) => {
+    const selected = Number(button.dataset.carouselIndex) === state.carouselIndex;
+    button.classList.toggle("is-selected", selected);
+    if (selected) button.setAttribute("aria-current", "true");
+    else button.removeAttribute("aria-current");
   });
   if (!_carouselIndicatorImagesReady) scheduleCarouselIndicatorHydration();
 }
@@ -4674,8 +4709,11 @@ function applyCanonicalAnimeMetadata(show, payload = {}) {
   return true;
 }
 
-async function hydrateCanonicalAnimeMetadata(show) {
+async function hydrateCanonicalAnimeMetadata(show, options = {}) {
   if (!show || show._canonicalMetadataLoaded) return show;
+  const reportProgress = () => {
+    try { options.onProgress?.(show); } catch { /* rendering progress is optional */ }
+  };
   // Waiting out the backoff from a previous empty result - see the tail of this
   // function.
   if (show._canonicalMetadataNextTry && Date.now() < show._canonicalMetadataNextTry) return show;
@@ -4686,6 +4724,7 @@ async function hydrateCanonicalAnimeMetadata(show) {
   if (cached) {
     if (applyCanonicalAnimeMetadata(show, cached)) {
       show._canonicalMetadataLoaded = true;
+      reportProgress();
       return show;
     }
     // A response cached before the route object gained its stable ids belongs to
@@ -4714,6 +4753,12 @@ async function hydrateCanonicalAnimeMetadata(show) {
     media = candidates[0]?.score >= 65 ? candidates[0].entry : null;
     if (media && !show.anilistId) {
       show.anilistMatchScore = candidates[0].score;
+    }
+    // AniList already carries the title, synopsis, genres, score, date and main
+    // artwork. Paint that useful result immediately instead of holding all of it
+    // behind the slower Jikan full-details request below.
+    if (media && applyCanonicalAnimeMetadata(show, { media, jikan: null })) {
+      reportProgress();
     }
   } catch { /* Jikan remains available below. */ }
 
@@ -4756,6 +4801,7 @@ async function hydrateCanonicalAnimeMetadata(show) {
     writeAnimeMetadataCache(cacheKey, data);
     show._canonicalMetadataLoaded = true;
     show._canonicalMetadataFails = 0;
+    reportProgress();
   } else {
     // NOTHING came back - AniList cooling down after its own rate limit, the
     // MyAnimeList outage behind Jikan, or a timeout. Marking the show loaded here
@@ -4770,25 +4816,25 @@ async function hydrateCanonicalAnimeMetadata(show) {
     else show._canonicalMetadataNextTry = Date.now() + 15000 * show._canonicalMetadataFails;
   }
   state.shows = state.shows.map((entry) => entry.id === show.id ? show : entry);
-  // Enrich with TMDB episode stills / season posters / backdrops in the
-  // background; refresh the open detail view once the artwork lands.
-  enrichTmdbImages(show);
   return show;
 }
 
 // Non-blocking TMDB image enrichment. Falls through silently when TMDB is not
 // configured or no confident match exists (the priority chains keep using
 // AniList artwork in that case).
-function enrichTmdbImages(show) {
+function enrichTmdbImages(show, options = {}) {
   if (typeof ImageResolver === "undefined" || !show) return Promise.resolve(show);
   return Promise.resolve(ImageResolver.hydrateTmdbImages(show)).then((enriched) => {
     if (!enriched || !enriched.tmdbId) return;
     applyTmdbEpisodeMetadata(show);
     state.shows = state.shows.map((entry) => entry.id === show.id ? show : entry);
-    scheduleSeasonArtworkWarm(show, state.activeShow?.id === show.id ? state.activeSeasonIndex : 0);
-    if (state.activeShow?.id === show.id && !overlay?.hidden) {
-      syncWatchHeading(show);
-      renderEpisodeList(show);
+    if (options.refresh !== false) {
+      scheduleSeasonArtworkWarm(show, state.activeShow?.id === show.id ? state.activeSeasonIndex : 0);
+      if (state.activeShow?.id === show.id && !overlay?.hidden) {
+        const seasons = getDetailSeasons(show);
+        syncWatchHeading(show, null, seasons);
+        renderEpisodeList(show, { seasons, franchiseReady: true });
+      }
     }
     return show;
   }).catch(() => show);
@@ -8168,6 +8214,7 @@ async function openShow(id, target = {}) {
   const openToken = `${show.id || getShowKey(show)}:${Date.now()}`;
   state.activeOpenToken = openToken;
   updateRouteMeta(state.currentRouteInfo || {}, show, target);
+  setWatchDetailLoading(true, openToken);
 
   // ── Stop warming the rest of the catalogue while a show is open ──────────
   // The warm fires ~80 requests across two workers, and a browser only opens
@@ -8241,16 +8288,22 @@ async function openShow(id, target = {}) {
       const targetEpisode = state.activeEpisode?.episode;
       const isAdultShow = typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show);
       if (
-        target.playIntent
-        && targetEpisode
+        targetEpisode
         && !isAdultShow
         && isScraperEnabled("animeav1")
         && (targetEpisode.providerAnimeSlug || show.animeAv1Slug)
       ) {
-        Promise.resolve(attachAnimeAv1Sources(show, targetEpisode)).catch(() => {});
+        Promise.resolve(attachAnimeAv1Sources(show, targetEpisode))
+          .then(() => warmTopEpisodeSources(targetEpisode, 1))
+          .catch(() => {});
       }
 
-      renderEpisodeList(show, { seasons: detailSeasons, franchiseReady: !isAdultShow });
+      renderEpisodeList(show, {
+        seasons: detailSeasons,
+        franchiseReady: !isAdultShow,
+        hydrateExtras: false
+      });
+      if (watchDetailsReady(show, detailSeasons)) setWatchDetailLoading(false, openToken);
       resetEpisodePanelScroll();
       refreshFocusables();
 
@@ -8259,7 +8312,7 @@ async function openShow(id, target = {}) {
         const background = getWatchBackdropArtwork(show, activeSeason);
         if (poster) preloadArtworkImage(poster, 640, 90, true);
         if (background && background !== poster) preloadCinematicBackdrop(background, true);
-        scheduleSeasonArtworkWarm(show, state.activeSeasonIndex);
+        scheduleSeasonArtworkWarm(show, state.activeSeasonIndex, detailSeasons);
       } catch { /* non-fatal */ }
 
       hydrateOpenShowDetails(show, target, openToken);
@@ -8273,9 +8326,12 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
       await hydrateAdultShowDetails(show);
       if (state.activeOpenToken !== openToken || state.activeShow?.id !== show.id) return;
       if (!state.activeEpisode) applyOpenTarget(show, target);
+      const adultSeasons = getDetailSeasons(show);
       // Don't rebuild the episode list out from under an open source picker.
-      if (!episodeList?.querySelector(".side-source-picker")) renderEpisodeList(show);
-      syncWatchHeading(show);
+      if (!episodeList?.querySelector(".side-source-picker")) {
+        renderEpisodeList(show, { seasons: adultSeasons, hydrateExtras: false });
+      }
+      syncWatchHeading(show, null, adultSeasons);
       const descriptionNode = document.querySelector("#watchDescription");
       if (descriptionNode) descriptionNode.textContent = show.description || "";
       if (state.activeEpisode && target.playIntent) {
@@ -8288,9 +8344,9 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
         // Keep the episode list up rather than swapping it for the source picker -
         // see selectEpisodeByPosition. Servers stay reachable from the Servers
         // button under the player.
-        if (frame) renderEpisodeList(show);
+        if (frame) renderEpisodeList(show, { seasons: adultSeasons, hydrateExtras: false });
       } else {
-        resetVideoFrame();
+        resetVideoFrame(adultSeasons);
       }
       refreshFocusables();
       return;
@@ -8299,46 +8355,126 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
     // native episode endpoint, run ALL source hydrators in parallel so the
     // episode list fills in from whichever provider matches the title fastest.
     const isNativeSource = isAniPubShow(show) || isJimovShow(show);
-    // Refresh the season dropdown / episode list the moment new season data lands,
-    // instead of waiting for the slowest hydrator below to settle (which made the
-    // Seasons control look broken for several seconds after opening a show).
-    const refreshSeasonsIfActive = () => {
+    // Several providers can settle in the same task. Collapse those completions
+    // into one frame so a long episode list is never rebuilt four times in a row.
+    let refreshQueued = false;
+    const refreshSeasonsNow = () => {
       if (state.activeOpenToken !== openToken || state.activeShow?.id !== show.id) return;
-      // Don't clobber the source picker if the user has already selected an episode
-      // and the side-panel source picker is currently visible.
-      if (episodeList?.querySelector(".side-source-picker")) return;
       try {
-        ensureFranchiseShowsInCatalog(show);
-        scheduleFranchiseArtworkWarm(show);
-        scheduleSeasonArtworkWarm(show, state.activeSeasonIndex);
-        syncWatchHeading(show);
+        const seasons = getDetailSeasons(show);
+        syncWatchHeading(show, null, seasons);
         const descriptionNode = document.querySelector("#watchDescription");
         if (descriptionNode) descriptionNode.textContent = show.description || "";
-        renderEpisodeList(show);
+        // Don't clobber the source picker if the user has already selected an
+        // episode. The left-side metadata can still update independently.
+        if (!episodeList?.querySelector(".side-source-picker")) {
+          renderEpisodeList(show, {
+            seasons,
+            franchiseReady: true,
+            hydrateExtras: false
+          });
+        }
+        if (watchDetailsReady(show, seasons)) setWatchDetailLoading(false, openToken);
         refreshFocusables();
       } catch (error) { /* non-fatal */ }
     };
-    const canonicalMetadata = Promise.resolve(hydrateCanonicalAnimeMetadata(show)).then(refreshSeasonsIfActive);
+    const refreshSeasonsIfActive = () => {
+      if (refreshQueued || state.activeOpenToken !== openToken || state.activeShow?.id !== show.id) return;
+      refreshQueued = true;
+      const schedule = window.requestAnimationFrame || ((callback) => window.setTimeout(callback, 0));
+      schedule(() => {
+        if (!refreshQueued) return;
+        refreshQueued = false;
+        refreshSeasonsNow();
+      });
+    };
+
+    // Metadata identity becomes usable as soon as AniList returns, not after the
+    // slower Jikan enrichment finishes. Franchise, episode-title and TMDB work can
+    // start from that point and run concurrently.
+    let identityResolved = false;
+    let resolveIdentity;
+    const identityReady = new Promise((resolve) => { resolveIdentity = resolve; });
+    const revealIdentity = () => {
+      if (identityResolved) return;
+      if (!show.anilistId && !show.malId) return;
+      identityResolved = true;
+      resolveIdentity(show);
+    };
+    revealIdentity();
+
+    const canonicalMetadata = Promise.resolve(hydrateCanonicalAnimeMetadata(show, {
+      onProgress: () => {
+        revealIdentity();
+        refreshSeasonsIfActive();
+      }
+    })).catch(() => show).then(() => {
+      if (!identityResolved) {
+        identityResolved = true;
+        resolveIdentity(show);
+      }
+      refreshSeasonsIfActive();
+      return show;
+    });
+
+    const aniPubEpisodes = Promise.resolve(
+      isAniPubShow(show) ? hydrateAniPubEpisodes(show) : show
+    ).then((value) => { refreshSeasonsIfActive(); return value; });
+    const jimovEpisodes = Promise.resolve(
+      isJimovShow(show) ? hydrateJimovEpisodes(show) : show
+    ).then((value) => { refreshSeasonsIfActive(); return value; });
+    const addonSources = Promise.resolve(
+      !isNativeSource ? enrichShowFromAllSources(show) : show
+    ).then((value) => { refreshSeasonsIfActive(); return value; });
+
+    const franchise = identityReady
+      .then(() => hydrateShowAniListFranchise(show))
+      .then((value) => {
+        ensureFranchiseShowsInCatalog(show);
+        refreshSeasonsIfActive();
+        return value;
+      });
+    show._extrasTried = true;
+    const extras = identityReady
+      .then(() => fetchAniListShowExtras(show))
+      .then((value) => { refreshSeasonsIfActive(); return value; });
+    const tmdb = identityReady
+      .then(() => enrichTmdbImages(show, { refresh: false }))
+      .then((value) => { refreshSeasonsIfActive(); return value; });
+    const animeAv1 = Promise.resolve(hydrateAnimeAv1Slug(show)).then(async (value) => {
+      if (
+        state.activeOpenToken === openToken
+        && state.activeShow?.id === show.id
+        && state.activeEpisode?.episode
+        && isScraperEnabled("animeav1")
+      ) {
+        await attachAnimeAv1Sources(show, state.activeEpisode.episode);
+        warmTopEpisodeSources(state.activeEpisode.episode, 1);
+      }
+      return value;
+    });
+
     await Promise.allSettled([
-      isAniPubShow(show)  ? hydrateAniPubEpisodes(show)  : Promise.resolve(show),
-      isJimovShow(show)   ? hydrateJimovEpisodes(show)   : Promise.resolve(show),
-      // For scrapled/metadata-only shows, fan out title search to all sources
-      (!isNativeSource ? Promise.resolve(enrichShowFromAllSources(show)) : Promise.resolve(show)).then(refreshSeasonsIfActive),
-      canonicalMetadata.then(() => hydrateShowAniListFranchise(show)).then(refreshSeasonsIfActive),
-      canonicalMetadata.then(() => fetchAniListShowExtras(show)).then(refreshSeasonsIfActive),
-      canonicalMetadata.then(() => enrichTmdbImages(show)).then(refreshSeasonsIfActive),
-      hydrateAnimeAv1Slug(show)
+      aniPubEpisodes,
+      jimovEpisodes,
+      addonSources,
+      canonicalMetadata,
+      franchise,
+      extras,
+      tmdb,
+      animeAv1
     ]);
     if (state.activeOpenToken !== openToken || state.activeShow?.id !== show.id) return;
     // Ensure every franchise entry (movies, OVAs, related seasons) has a minimal
     // show object in state.shows so openShow() can navigate to them on click.
     ensureFranchiseShowsInCatalog(show);
     scheduleFranchiseArtworkWarm(show);
-    scheduleSeasonArtworkWarm(show, state.activeSeasonIndex);
+    const hydratedSeasons = getDetailSeasons(show);
+    scheduleSeasonArtworkWarm(show, state.activeSeasonIndex, hydratedSeasons);
     // Only re-apply the open target if no episode was selected yet (e.g. episodes
     // weren't loaded at openShow time). Skip if the user already navigated manually.
     if (!state.activeEpisode) {
-      applyOpenTarget(show, target);
+      applyOpenTarget(show, target, hydratedSeasons);
     }
     if (state.activeEpisode?.episode) {
       const { seasonNumber } = selectedSeasonIdentity(show, state.activeEpisode);
@@ -8349,10 +8485,17 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
     // (Play / episode click), DON'T rebuild the episode list — it lives inside
     // #episodeList and rebuilding would close the picker mid-load and bounce them
     // back to the episode list. The picker refreshes itself as new sources land.
-    if (!episodeList?.querySelector(".side-source-picker")) renderEpisodeList(show);
-    syncWatchHeading(show);
+    refreshQueued = false;
+    if (!episodeList?.querySelector(".side-source-picker")) {
+      renderEpisodeList(show, {
+        seasons: hydratedSeasons,
+        franchiseReady: true,
+        hydrateExtras: false
+      });
+    }
+    syncWatchHeading(show, null, hydratedSeasons);
     const descriptionNode = document.querySelector("#watchDescription");
-    if (descriptionNode) descriptionNode.textContent = show.description;
+    if (descriptionNode) descriptionNode.textContent = show.description || "";
     setFavoriteButtonState(isFavoriteShow(show));
     // Pre-fetch sources in the background so they're ready, but only OPEN the
     // source picker when the user explicitly intends to play (Play button or an
@@ -8369,13 +8512,21 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
           // Keep the episode list up rather than swapping it for the source picker -
           // see selectEpisodeByPosition. Servers stay reachable from the Servers
           // button under the player.
-          renderEpisodeList(show);
+          renderEpisodeList(show, {
+            seasons: hydratedSeasons,
+            franchiseReady: true,
+            hydrateExtras: false
+          });
         }
       }
     }
     refreshFocusables();
   } catch (error) {
     console.warn("Anime details continued without remote episode hydration:", error);
+  } finally {
+    if (state.activeOpenToken === openToken && state.activeShow?.id === show.id) {
+      setWatchDetailLoading(false, openToken);
+    }
   }
 }
 
@@ -8768,6 +8919,7 @@ function closeShow() {
   stopActivePlayback();
   document.body.classList.remove("player-cinema-open");
   document.body.classList.remove("has-embedded-player");
+  setWatchDetailLoading(false, state.activeOpenToken);
   overlay.classList.add("is-closing");
   setTimeout(() => {
     overlay.hidden = true;
@@ -10125,7 +10277,7 @@ function renderEpisodeList(show, options = {}) {
   // anilistId is known (for scraped shows it arrives after source enrichment).
   const isAdultSourceShow = typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show);
   if (!isAdultSourceShow && !options.franchiseReady) ensureFranchiseShowsInCatalog(show);
-  if (!isAdultSourceShow && (show.anilistId || show.malId) && !show._extrasTried && !show.streamingEpisodes) {
+  if (!isAdultSourceShow && options.hydrateExtras !== false && (show.anilistId || show.malId) && !show._extrasTried && !show.streamingEpisodes) {
     show._extrasTried = true;
     fetchAniListShowExtras(show).then(() => {
       // Don't rebuild while the in-panel source picker is open (user pressed Play
@@ -13437,6 +13589,10 @@ function selectEpisodeByPosition(seasonIndex, episodeIndex, shouldPlay = true) {
       document.body.classList.remove("player-cinema-open");
       const background = getWatchBackdropArtwork(show, season);
       frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
+      // Give the click immediate visual feedback while the primary source lookup
+      // finishes. The same compact loader remains in place when playActiveShow
+      // takes over, so this adds no extra transition or player reinitialization.
+      renderPlayerPopupMessage(frame, currentEpisodeLabel(), "");
       schedulePlaybackSourceOptions(show, episode, seasonNumber, { autoReplay: true });
       // Keep the episode list on screen. Picking an episode used to replace it
       // with the source picker, so the list you were browsing vanished the
@@ -15124,10 +15280,21 @@ function prefetchPlayerShell() {
   if (_playerShellPrefetched) return;
   _playerShellPrefetched = true;
   const version = PLAYER_SHELL_VERSION ? `?v=${encodeURIComponent(PLAYER_SHELL_VERSION)}` : "";
-  ["/player/player.html", "/player/player.css", "/player/player.js"].forEach((path) => {
+  const assets = [
+    { href: `/player/player.html${version}`, as: "document" },
+    { href: `/player/player.css${version}`, as: "style" },
+    { href: `/player/player.js${version}`, as: "script" },
+    // These execute inside the same-origin player iframe. Browser caches are
+    // shared with the parent, so low-priority prefetching here removes both CDN
+    // downloads from the critical path when Play is pressed.
+    { href: "https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js", as: "script" },
+    { href: "https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js", as: "script" }
+  ];
+  assets.forEach(({ href, as }) => {
     const link = document.createElement("link");
     link.rel = "prefetch";
-    link.href = `${path}${version}`;
+    link.as = as;
+    link.href = href;
     document.head.appendChild(link);
   });
 }
@@ -17664,6 +17831,7 @@ fakePlay.addEventListener("click", () => {
     stopActivePlayback();
     const background = getWatchBackdropArtwork(show, ep.season);
     frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
+    renderPlayerPopupMessage(frame, currentEpisodeLabel(), "");
     schedulePlaybackSourceOptions(show, ep.episode, seasonNumber, { autoReplay: true });
     // Keep the episode list up rather than swapping it for the source picker -
     // see selectEpisodeByPosition. Servers stay reachable from the Servers
@@ -18649,7 +18817,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=768");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=769");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
