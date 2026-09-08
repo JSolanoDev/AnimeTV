@@ -164,6 +164,99 @@ test("direct anime and watch routes bypass the deferred homepage catalog path", 
   assert.match(loadSource, /state\.route === "home" && !isDirectDetailRoute/);
 });
 
+test("anime details paint before franchise and episode-list work", async () => {
+  const calls = [];
+  const animationFrames = [];
+  const timers = [];
+  const show = {
+    id: "fixture",
+    title: "Fixture",
+    description: "Fixture description",
+    animeAv1Slug: "fixture"
+  };
+  const episode = { episode: 1, providerAnimeSlug: "fixture" };
+  const seasons = [{ season: 1, episodes: [episode] }];
+  const overlay = { hidden: true };
+  const episodeList = {
+    hidden: false,
+    replaceChildren() { calls.push("clear-episodes"); }
+  };
+  const c = vm.createContext({
+    state: { shows: [show], addonSections: [], av1Shows: new Map() },
+    overlay,
+    episodeList,
+    closeOverlay: { focus() {} },
+    window: {
+      scrollY: 0,
+      pageYOffset: 0,
+      setTimeout: (callback) => { timers.push(callback); }
+    },
+    requestAnimationFrame: (callback) => { animationFrames.push(callback); },
+    document: {
+      body: { classList: { add() {} } },
+      querySelector: (selector) => selector === "#watchDescription"
+        ? { textContent: "" }
+        : selector === "#fakePlay" ? {} : null
+    },
+    AdultMode: { isAdultContent: () => false },
+    Date,
+    Promise,
+    getShowKey: (value) => value.id,
+    warmSkipTimes() {},
+    updateRouteMeta() {},
+    pauseVisibleMetadataWarm() {},
+    warmAnimeAv1PlaybackIntent() { calls.push("warm-source"); return Promise.resolve(); },
+    resetVideoFrame(value) { calls.push(value?.length ? "full-frame" : "opening-frame"); },
+    syncWatchHeading(_value, _season, value) { calls.push(value?.length ? "full-heading" : "opening-heading"); },
+    setFavoriteButtonState() {},
+    isFavoriteShow: () => false,
+    getWatchPosterArtwork: () => "",
+    getWatchBackdropArtwork: () => "",
+    preloadArtworkImage() {},
+    preloadCinematicBackdrop() {},
+    focusElement() {},
+    ensureFranchiseShowsInCatalog() { calls.push("franchise"); },
+    getDetailSeasons() { calls.push("seasons"); return seasons; },
+    applyOpenTarget(_show, _target, value) {
+      calls.push(value === seasons ? "target-shared-seasons" : "target-rebuilt-seasons");
+      c.state.activeEpisode = { season: seasons[0], episode };
+    },
+    isScraperEnabled: () => true,
+    attachAnimeAv1Sources() { calls.push("attach-source"); return Promise.resolve(); },
+    renderEpisodeList(_show, options) {
+      calls.push(options?.seasons === seasons ? "render-shared-seasons" : "render-rebuilt-seasons");
+    },
+    resetEpisodePanelScroll() {},
+    refreshFocusables() {},
+    scheduleSeasonArtworkWarm() {},
+    hydrateOpenShowDetails() { calls.push("hydrate"); }
+  });
+  vm.runInContext(section(client, "async function openShow(", "async function hydrateOpenShowDetails("), c);
+
+  await c.openShow("fixture", {
+    skipHistory: true,
+    playIntent: true,
+    episodeNumber: 1,
+    providerAnimeSlug: "fixture"
+  });
+
+  assert.equal(overlay.hidden, false);
+  assert.deepEqual(calls.slice(0, 4), ["warm-source", "opening-frame", "opening-heading", "clear-episodes"]);
+  assert.equal(calls.includes("franchise"), false);
+  assert.equal(animationFrames.length, 1);
+
+  animationFrames.shift()();
+  assert.equal(calls.includes("franchise"), false, "heavy work must not run inside the pre-paint callback");
+  assert.equal(timers.length, 1);
+
+  timers.shift()();
+  assert.ok(calls.indexOf("franchise") > calls.indexOf("opening-heading"));
+  assert.ok(calls.indexOf("seasons") > calls.indexOf("franchise"));
+  assert.ok(calls.includes("target-shared-seasons"));
+  assert.ok(calls.includes("render-shared-seasons"));
+  assert.ok(calls.indexOf("attach-source") < calls.indexOf("hydrate"));
+});
+
 test("catalog replacement enriches the live detail object instead of orphaning it", () => {
   const open = { id: "same", title: "Example", franchiseSeasons: null };
   const fresh = { id: "same", title: "Example", franchiseSeasons: [{ anilistId: 1 }, { anilistId: 2 }] };

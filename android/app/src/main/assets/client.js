@@ -682,7 +682,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=767`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=768`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3926,7 +3926,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=767";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=768";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -8140,11 +8140,6 @@ async function openShow(id, target = {}) {
     if (!state.shows.some((entry) => entry.id === show.id)) state.shows = [...state.shows, show];
   }
   if (!show) return;
-  // Provider pages number each separately published sequel/cour as Season 1.
-  // Apply the baked relation identity before any episode list or TMDB artwork is
-  // built, otherwise the first render can permanently cache Season 1 metadata
-  // under the selected sequel's route.
-  ensureFranchiseShowsInCatalog(show);
   if (!target.skipHistory) {
     const path = target.playIntent && target.episodeNumber
       ? episodePathForShow(show, target.seasonNumber || extractSeasonNumber(show.title, 1), target.episodeNumber, target.seasonPart || "")
@@ -8186,55 +8181,89 @@ async function openShow(id, target = {}) {
   // stranded half-done.
   pauseVisibleMetadataWarm();
 
-  // ── Kick off image prefetches NOW so poster/backdrop are in the browser cache
-  //    by the time the overlay DOM is ready (avoids the blank-poster delay).
-  try {
-    const _preloadSeasons = show ? getDetailSeasons(show) : [];
-    const _preloadSeason = _preloadSeasons[0] || null;
-    const _preloadPoster = getWatchPosterArtwork(show, _preloadSeason);
-    const _preloadBg = getWatchBackdropArtwork(show, _preloadSeason);
-    if (_preloadPoster) preloadArtworkImage(_preloadPoster, 640, 90, true);
-    if (_preloadBg && _preloadBg !== _preloadPoster) preloadCinematicBackdrop(_preloadBg, true);
-    scheduleSeasonArtworkWarm(show, 0);
-  } catch { /* non-fatal */ }
+  // A direct /watch route already identifies its provider episode. Start that
+  // lookup before any franchise/season work so network time overlaps the first
+  // paint. Card hover/focus uses this same coalesced request, so a quick click
+  // consumes the existing flight instead of issuing a duplicate request.
+  Promise.resolve(warmAnimeAv1PlaybackIntent(show, target)).catch(() => {});
 
-  // ── Show the overlay shell INSTANTLY (poster + title) so opening feels snappy.
-  resetVideoFrame();
-  syncWatchHeading(show);
-  document.querySelector("#watchDescription").textContent = show.description;
+  // Paint from fields already present on the card. Passing an empty season list
+  // deliberately avoids relation normalization and placeholder episode repair
+  // on this first frame; the authoritative season snapshot replaces it just
+  // after the browser has displayed the overlay.
+  const openingSeasons = [];
+  resetVideoFrame(openingSeasons);
+  syncWatchHeading(show, null, openingSeasons);
+  const descriptionNode = document.querySelector("#watchDescription");
+  if (descriptionNode) descriptionNode.textContent = show.description || "";
   setFavoriteButtonState(isFavoriteShow(show));
+  if (episodeList) {
+    episodeList.hidden = true;
+    episodeList.replaceChildren();
+  }
   overlay.hidden = false;
   document.body.classList.add("watch-detail-open");
+
+  // Kick off only the already-known card artwork here. Season-specific artwork
+  // waits until the canonical season has been selected below.
+  try {
+    const poster = getWatchPosterArtwork(show, null);
+    const background = getWatchBackdropArtwork(show, null);
+    if (poster) preloadArtworkImage(poster, 640, 90, true);
+    if (background && background !== poster) preloadCinematicBackdrop(background, true);
+  } catch { /* non-fatal */ }
+
   // Land focus on the Play action (remote-friendly) so OK plays and D-pad reaches
   // the episode list — instead of the easily-missed close button.
   const playBtn = document.querySelector("#fakePlay");
   if (playBtn) focusElement(playBtn); else closeOverlay.focus();
 
-  // ── Defer the heavier episode-list / season build to the next frame so the
-  //    browser can paint the overlay first (avoids the "couple seconds" lag).
+  // A requestAnimationFrame callback itself runs before paint. Queue the work as
+  // a task from that callback so the shell above is committed first, then build
+  // the canonical franchise and episode UI without delaying the click response.
   requestAnimationFrame(() => {
-    if (state.activeOpenToken !== openToken) return; // user already closed/navigated
-    applyOpenTarget(show, target);
-    // A /watch deep link already names the exact episode. Start its primary
-    // source lookup while artwork and franchise metadata hydrate so those waits
-    // overlap instead of running back-to-back. Limit this fast path to an
-    // existing provider slug: fuzzy title matching and all fallback behavior
-    // stay in the normal, fully hydrated playback pipeline below.
-    const targetEpisode = state.activeEpisode?.episode;
-    const isAdultShow = typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show);
-    if (
-      target.playIntent
-      && targetEpisode
-      && !isAdultShow
-      && isScraperEnabled("animeav1")
-      && (targetEpisode.providerAnimeSlug || show.animeAv1Slug)
-    ) {
-      Promise.resolve(attachAnimeAv1Sources(show, targetEpisode)).catch(() => {});
-    }
-    renderEpisodeList(show);
-    resetEpisodePanelScroll();
-    refreshFocusables();
-    hydrateOpenShowDetails(show, target, openToken);
+    window.setTimeout(() => {
+      if (state.activeOpenToken !== openToken) return; // user already closed/navigated
+
+      // Provider pages number each separately published sequel/cour as Season 1.
+      // Apply the baked relation identity before building the one shared season
+      // snapshot, otherwise sequel routes can cache metadata under Season 1.
+      ensureFranchiseShowsInCatalog(show);
+      const detailSeasons = getDetailSeasons(show);
+      applyOpenTarget(show, target, detailSeasons);
+      const activeSeason = detailSeasons[state.activeSeasonIndex] || detailSeasons[0] || null;
+
+      resetVideoFrame(detailSeasons);
+
+      // Attach the coalesced primary lookup to the real episode while metadata
+      // and artwork hydrate. Fuzzy matching and fallbacks stay in the normal
+      // fully-hydrated playback pipeline.
+      const targetEpisode = state.activeEpisode?.episode;
+      const isAdultShow = typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show);
+      if (
+        target.playIntent
+        && targetEpisode
+        && !isAdultShow
+        && isScraperEnabled("animeav1")
+        && (targetEpisode.providerAnimeSlug || show.animeAv1Slug)
+      ) {
+        Promise.resolve(attachAnimeAv1Sources(show, targetEpisode)).catch(() => {});
+      }
+
+      renderEpisodeList(show, { seasons: detailSeasons, franchiseReady: !isAdultShow });
+      resetEpisodePanelScroll();
+      refreshFocusables();
+
+      try {
+        const poster = getWatchPosterArtwork(show, activeSeason);
+        const background = getWatchBackdropArtwork(show, activeSeason);
+        if (poster) preloadArtworkImage(poster, 640, 90, true);
+        if (background && background !== poster) preloadCinematicBackdrop(background, true);
+        scheduleSeasonArtworkWarm(show, state.activeSeasonIndex);
+      } catch { /* non-fatal */ }
+
+      hydrateOpenShowDetails(show, target, openToken);
+    }, 0);
   });
 }
 
@@ -8690,7 +8719,7 @@ async function hydrateAniPubEpisodes(show) {
   return show;
 }
 
-function applyOpenTarget(show, target = {}) {
+function applyOpenTarget(show, target = {}, knownSeasons = null) {
   const seasonNumber = Number(target.seasonNumber || extractSeasonNumber(show.title, 1));
   const seasonPart = target.seasonPart ? Number(target.seasonPart) : "";
   // Only a real episode route/card target may select an episode. Catalog rows
@@ -8702,7 +8731,7 @@ function applyOpenTarget(show, target = {}) {
   const hasSeasonTarget = Number.isFinite(seasonNumber) && seasonNumber > 1;
   if (!hasEpisodeTarget && !hasSeasonTarget) return;
 
-  const seasons = getDetailSeasons(show);
+  const seasons = Array.isArray(knownSeasons) ? knownSeasons : getDetailSeasons(show);
   let seasonIndex = seasons.findIndex((season) => {
     if (Number(season.season) !== seasonNumber) return false;
     if (!seasonPart) return true;
@@ -8961,10 +8990,12 @@ function refreshActiveWatchPoster(show = state.activeShow, season = null) {
   image.src = delivered[0];
 }
 
-function resetVideoFrame() {
+function resetVideoFrame(knownSeasons = null) {
   stopActivePlayback();
   const show = state.activeShow;
-  const seasons = show ? getDetailSeasons(show) : [];
+  const seasons = Array.isArray(knownSeasons)
+    ? knownSeasons
+    : (show ? getDetailSeasons(show) : []);
   const activeSeason = seasons[state.activeSeasonIndex] || seasons[0] || null;
   const background = getWatchBackdropArtwork(show, activeSeason);
   const frame = document.querySelector("#videoFrame");
@@ -9327,9 +9358,9 @@ function renderDetailMeta(show) {
   updateTrailerButton(show);
 }
 
-function syncWatchHeading(show = state.activeShow, season = null) {
+function syncWatchHeading(show = state.activeShow, season = null, knownSeasons = null) {
   if (!show) return;
-  const seasons = getDetailSeasons(show);
+  const seasons = Array.isArray(knownSeasons) ? knownSeasons : getDetailSeasons(show);
   const activeSeason = season || seasons[state.activeSeasonIndex] || seasons[0];
   const title = getShowTitle(show) || "Selected anime";
   const titleNode = document.querySelector("#watchTitle");
@@ -10087,13 +10118,13 @@ function getEpisodeChunkIndex(show, season, seasonIndex, chunksCount, chunkSize)
   return safeIndex;
 }
 
-function renderEpisodeList(show) {
+function renderEpisodeList(show, options = {}) {
   if (!episodeList || !show) return;
   hideAdultGalleryPanel();
   // Lazily pull AniList per-episode titles/thumbnails + HQ banner once the show's
   // anilistId is known (for scraped shows it arrives after source enrichment).
   const isAdultSourceShow = typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show);
-  if (!isAdultSourceShow) ensureFranchiseShowsInCatalog(show);
+  if (!isAdultSourceShow && !options.franchiseReady) ensureFranchiseShowsInCatalog(show);
   if (!isAdultSourceShow && (show.anilistId || show.malId) && !show._extrasTried && !show.streamingEpisodes) {
     show._extrasTried = true;
     fetchAniListShowExtras(show).then(() => {
@@ -10105,7 +10136,7 @@ function renderEpisodeList(show) {
       if (state.activeShow?.id === show.id && (show.streamingEpisodes || show.banner)) renderEpisodeList(show);
     }).catch(() => {});
   }
-  const seasons = getDetailSeasons(show);
+  const seasons = Array.isArray(options.seasons) ? options.seasons : getDetailSeasons(show);
   const episodeHint = document.querySelector("#watchArt .watch-ready-hint");
   if (episodeHint) {
     const count = seasons.reduce((sum, season) => sum + (season.episodes?.length || 0), 0);
@@ -10116,7 +10147,7 @@ function renderEpisodeList(show) {
   if (state.activeSeasonIndex >= seasons.length) state.activeSeasonIndex = 0;
   const activeSeason = seasons[state.activeSeasonIndex] || seasons[0];
   const seasonTitle = getSeasonDisplayTitle(show, activeSeason);
-  syncWatchHeading(show, activeSeason);
+  syncWatchHeading(show, activeSeason, seasons);
 
   const seasonNav = buildSeasonNav(show, seasons);
   // Highlight the season that's actually open. For franchise lists every entry
@@ -18618,7 +18649,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=767");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=768");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
