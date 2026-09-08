@@ -226,6 +226,28 @@ checkNoThrow("undefined show resolves", () => ensure(undefined, 1));
   check("franchise metadata never crosses seasons", ImageResolver.getSeasonEpisodeMeta(franchise, 3, 1), null);
 }
 
+{
+  const continuous = {
+    title: "Naruto",
+    isFranchiseEntry: true,
+    totalEpisodes: 220,
+    seasons: [{ season: 1, episodes: Array.from({ length: 220 }, (_, index) => ({ episode: index + 1 })) }],
+    tmdbSeasons: [
+      { season_number: 1, episode_count: 52 },
+      { season_number: 2, episode_count: 52 },
+      { season_number: 3, episode_count: 54 },
+      { season_number: 4, episode_count: 62 }
+    ],
+    tmdbStillsBySeason: { 1: { 1: "https://example.test/local-1.jpg" } },
+    tmdbEpisodesBySeasonNum: { 1: { 1: { episode: 1, title: "Local One" } } },
+    tmdbEpisodeStills: { 101: "https://example.test/global-101.jpg" },
+    tmdbEpisodesByNum: { 101: { episode: 101, title: "Global One Hundred One" } }
+  };
+  check("a continuous long-series entry is detected", ImageResolver.usesContinuousGlobalEpisodeMap(continuous), true);
+  check("continuous Naruto stills continue past physical TMDB Season 1", ImageResolver.getEpisodeStill(continuous, { episode: 101 }, 1), "https://example.test/global-101.jpg");
+  check("continuous Naruto titles continue past physical TMDB Season 1", ImageResolver.getSeasonEpisodeMeta(continuous, 1, 101)?.title, "Global One Hundred One");
+}
+
 console.log(rows.join("\n"));
 const failed = rows.filter((r) => r.startsWith("FAIL")).length;
 console.log(failed ? `\n${failed} FAILED` : "\nall season-stills checks passed");

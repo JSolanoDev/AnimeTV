@@ -221,6 +221,81 @@ test("a title without a TMDB backdrop keeps its identity and metadata", () => {
   assert.equal(merged.description, "Metadata survives.");
 });
 
+test("a sparse direct artwork row inherits rich art from the same exact identity", () => {
+  const source = fs.readFileSync(path.join(process.cwd(), "animetv-server.js"), "utf8");
+  const start = source.indexOf("function buildArtworkIdentityIndex(");
+  const end = source.indexOf("function handleScrapedCatalog(", start);
+  assert.ok(start >= 0 && end > start);
+  const catalog = { items: [row("naruto", { anilistId: 20, malId: 20 })] };
+  const context = vm.createContext({
+    root: "/repo",
+    path,
+    fs: { readFileSync: () => JSON.stringify(catalog) },
+    readArtworkMap: () => ({
+      "animeav1-naruto": {
+        status: "offline-db",
+        anilistId: 20,
+        malId: 20,
+        metadataCover: "https://images.test/direct-cover.jpg",
+        tmdbId: null,
+        tmdbPoster: "",
+        tmdbBackdrop: ""
+      },
+      "anilist-20": {
+        status: "ok",
+        anilistId: 20,
+        malId: 20,
+        tmdbId: 46260,
+        tmdbPoster: "https://image.tmdb.org/t/p/original/naruto-poster.jpg",
+        tmdbBackdrop: "https://image.tmdb.org/t/p/original/naruto-backdrop.jpg",
+        meta: { episodes: 220, year: 2002 }
+      }
+    }),
+    readAiringMap: () => null
+  });
+  vm.runInContext(source.slice(start, end), context, { filename: "animetv-server.js catalog extract" });
+  const [merged] = vm.runInContext("readScrapedRegularCatalogItems()", context);
+  assert.equal(merged.anilistId, 20);
+  assert.equal(merged.tmdbId, 46260);
+  assert.equal(merged.tmdbPoster, "https://image.tmdb.org/t/p/original/naruto-poster.jpg");
+  assert.equal(merged.tmdbBackdrop, "https://image.tmdb.org/t/p/original/naruto-backdrop.jpg");
+  assert.equal(merged.coverImageLarge, "https://images.test/direct-cover.jpg");
+  assert.equal(merged.anilistEpisodeCount, 220);
+});
+
+test("verified movie routes use provider episode zero and phantom sequel episodes stay absent", () => {
+  const items = JSON.parse(fs.readFileSync(path.join(process.cwd(), "scraper", "anime_metadata.json"), "utf8")).items;
+  const byId = new Map(items.map((item) => [item.id, item]));
+  const movieIds = [
+    "animeav1-kidou-senshi-gundam-senkou-no-hathaway-circe-no-majo",
+    "animeav1-gintama-movie-3-yoshiwara-daienjou",
+    "animeav1-the-ribbon-hero",
+    "animeav1-ansatsu-kyoushitsu-movie-minna-no-jikan",
+    "animeav1-zombieland-saga-movie-yumeginga-paradise",
+    "animeav1-chainsaw-man-movie-reze-hen",
+    "animeav1-kobayashi-san-chi-no-maid-dragon-samishigariya-no-ryuu",
+    "animeav1-kaijuu-8-gou-movie"
+  ];
+  for (const id of movieIds) {
+    assert.deepEqual(byId.get(id)?.sourceEpisodeIds, [0], `${id} must keep its verified movie route`);
+  }
+
+  const absent = [
+    ["animeav1-devil-may-cry-2026", 12],
+    ["animeav1-devil-may-cry-2025", 12],
+    ["animeav1-neet-kunoichi-to-nazeka-dousei-hajimemashita", 24],
+    ["animeav1-kinnikuman-kanpeki-choujin-shiso-hen", 137],
+    ["animeav1-zuoshou-shanglan", 8],
+    ["animeav1-spy-x-family-part-2", 13],
+    ["animeav1-yojouhan-time-machine-blues", 6],
+    ["animeav1-long-zu", 17],
+    ["animeav1-bastard-ankoku-no-hakaishin-ona", 24]
+  ];
+  for (const [id, episodeId] of absent) {
+    assert.equal(byId.get(id)?.sourceEpisodeIds?.includes(episodeId), false, `${id}/${episodeId} must not be fabricated`);
+  }
+});
+
 test("a related season receives its own poster, background, and metadata", () => {
   const source = fs.readFileSync(path.join(process.cwd(), "animetv-server.js"), "utf8");
   const start = source.indexOf("function buildArtworkIdentityIndex(");

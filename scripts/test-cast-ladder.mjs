@@ -36,6 +36,7 @@ const check = (name, got, want) => {
 function makeEnv({ receiverBehaviour, candidates, manifest, variantManifest, deadlineMs }) {
   const notices = [];
   const stops = [];
+  const loads = [];
   let loadCount = 0;
   let playerState = null;
   let idleReason = null;
@@ -86,8 +87,9 @@ function makeEnv({ receiverBehaviour, candidates, manifest, variantManifest, dea
   };
   const session = {
     getMediaSession: () => (playerState === null ? null : media),
-    async loadMedia() {
+    async loadMedia(request) {
       loadCount++;
+      loads.push(request);
       const behaviour = receiverBehaviour[loadCount - 1] || receiverBehaviour[receiverBehaviour.length - 1];
       if (behaviour === "reject") throw Object.assign(new Error("load failed"), { code: "load_failed" });
       // Accepted: the receiver starts buffering.
@@ -169,7 +171,7 @@ function makeEnv({ receiverBehaviour, candidates, manifest, variantManifest, dea
     : castBlock;
   vm.runInContext(block, ctx, { filename: "player.js cast block" });
 
-  return { ctx, notices, stops, loadCount: () => loadCount, timers };
+  return { ctx, notices, stops, loads, loadCount: () => loadCount, timers };
 }
 
 const FMP4_MANIFEST = "#EXTM3U\n#EXT-X-MAP:URI=\"init.mp4\"\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXTINF:4,\nseg1.html\n#EXT-X-ENDLIST\n";
@@ -229,6 +231,11 @@ const FMP4_MANIFEST = "#EXTM3U\n#EXT-X-MAP:URI=\"init.mp4\"\n#EXT-X-PLAYLIST-TYP
   await vm.runInContext("loadCastMedia()", env.ctx);
   check("5. hlsSegmentFormat set for CMAF", vm.runInContext("castHlsSegmentFormat", env.ctx), "fmp4");
   check("5b. hlsVideoSegmentFormat set for CMAF", vm.runInContext("castHlsVideoSegmentFormat", env.ctx), "fmp4");
+  check("5c. AV1 source URL is sent unchanged to the receiver", env.loads[0]?.media?.contentId,
+    "https://zenkaitv.com/api/source?url=https%3A%2F%2Fplayer.zilla-networks.com%2Fm3u8%2Fabc&refererHost=player.zilla-networks.com");
+  check("5d. AV1 request declares an HLS content type", env.loads[0]?.media?.contentType, "application/x-mpegurl");
+  check("5e. AV1 request declares fMP4 media segments", env.loads[0]?.media?.hlsSegmentFormat, "fmp4");
+  check("5f. AV1 request declares fMP4 video segments", env.loads[0]?.media?.hlsVideoSegmentFormat, "fmp4");
   env.timers.forEach(clearTimeout);
 }
 
@@ -376,6 +383,9 @@ const TWO = [
   check("16. no canDisplayType call in the sender", /canDisplayType\s*\(/.test(player), false);
   check("16b. no CastReceiverContext use in the sender", /CastReceiverContext/.test(player), false);
   check("16c. no transcode path", /transcod/i.test(player), false);
+  check("16d. the Cast SDK script has a singleton marker", /data-zenkai-cast-sdk/.test(player), true);
+  check("16e. Cast context configuration has a singleton guard", /__ZENKAI_CAST_CONTEXT_CONFIGURED__/.test(player), true);
+  check("16f. native AirPlay is limited to Safari", /airplay:\s*\/\\bSafari/.test(player), true);
 }
 
 console.log(results.join("\n"));

@@ -2454,6 +2454,25 @@ function buildArtworkIdentityIndex(artwork) {
   return { byAniList, byMal };
 }
 
+function mergeExactArtworkRecords(primary, exactIdentity) {
+  if (!primary) return exactIdentity || null;
+  if (!exactIdentity || primary === exactIdentity) return primary;
+
+  const hasValue = (value) => value !== undefined && value !== null && value !== "";
+  const merged = { ...exactIdentity, ...primary };
+  for (const [key, value] of Object.entries(exactIdentity)) {
+    if (!hasValue(primary[key]) && hasValue(value)) merged[key] = value;
+  }
+
+  if (primary.meta || exactIdentity.meta) {
+    merged.meta = { ...(exactIdentity.meta || {}), ...(primary.meta || {}) };
+    for (const [key, value] of Object.entries(exactIdentity.meta || {})) {
+      if (!hasValue(primary.meta?.[key]) && hasValue(value)) merged.meta[key] = value;
+    }
+  }
+  return merged;
+}
+
 function enrichFranchiseSeasonEntries(entries, artwork, artworkIndex, parentArtwork = null) {
   if (!Array.isArray(entries) || !entries.length) return entries;
   const index = artworkIndex || buildArtworkIdentityIndex(artwork);
@@ -2534,11 +2553,20 @@ function readScrapedRegularCatalogItems() {
       const artworkIndex = buildArtworkIdentityIndex(artwork);
       return items.map((item) => {
         const hit = artwork ? artwork[item.id] : null;
+        const aniListId = String(item.anilistId || hit?.anilistId || "");
+        const malId = String(item.malId || hit?.malId || hit?.meta?.malId || "");
+        const exactIdentityHit = (aniListId && artworkIndex.byAniList.get(aniListId))
+          || (malId && artworkIndex.byMal.get(malId))
+          || null;
         // The airing map is keyed by the same row id, and is independent of the
         // artwork one: a row with no artwork entry can still have a schedule.
         const airingHit = airing ? airing[item.id] : null;
-        if (!hit && !airingHit) return item;
-        const artHit = hit || {};
+        if (!hit && !exactIdentityHit && !airingHit) return item;
+        // A direct slug record can be sparse (for example status "offline-db")
+        // while the same verified AniList/MAL identity has a richer build record.
+        // Fill only missing fields from that exact identity; never fuzzy-match or
+        // let a null direct value mask its poster, backdrop, TMDB id or metadata.
+        const artHit = mergeExactArtworkRecords(hit, exactIdentityHit) || {};
         // Metadata resolved once by scripts/add-artwork-metadata.mjs. Measured on
         // 2026-09-02, ZERO of 1079 catalogue rows were fully populated - year on 15
         // rows, duration and format on none - because artwork had been moved to
@@ -11236,7 +11264,19 @@ function fetchJikanJson(pathname, { deadlineAt = Infinity } = {}) {
       jikanLastRequestAt = Date.now();
       try {
         const upstream = await fetch(`${JIKAN_API}${pathname}`, { signal: controller.signal });
-        if (upstream.ok) return await upstream.json();
+        if (upstream.ok) {
+          const payload = await upstream.json();
+          // Jikan occasionally responds HTTP 200 while its JSON body reports an
+          // upstream 5xx. Treat that as a retryable failure instead of caching an
+          // empty episode list for a full day (Naruto exposed this exact case).
+          const logicalStatus = Number(payload?.status || 0);
+          if (logicalStatus >= 400) {
+            const error = new Error(`Jikan payload ${logicalStatus}`);
+            error.status = logicalStatus;
+            throw error;
+          }
+          return payload;
+        }
         await upstream.body?.cancel();
         const error = new Error(`Jikan HTTP ${upstream.status}`);
         error.status = upstream.status;

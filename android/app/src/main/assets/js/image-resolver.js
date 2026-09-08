@@ -467,6 +467,12 @@ const ImageResolver = (function () {
   // themoviedb.org.
   const TMDB_ID_OVERRIDES = [
     { tmdb: 123542, names: ["Shiguang Dailiren", "Shiguang Dailiren II", "Shiguang Dailiren III", "Shiguang Dailiren: Yingdu Pian", "Link Click", "Link Click Season 2", "Link Click Season 3", "Link Click: Bridon Arc"] },
+    // Long-running catalog anchors. Their generic names produce many TMDB search
+    // candidates, so an exact series id is required before collecting hundreds
+    // of season-scoped episode titles and stills.
+    { tmdb: 46260, names: ["Naruto"] },
+    { tmdb: 37854, names: ["One Piece"] },
+    { tmdb: 70881, names: ["Boruto: Naruto Next Generations", "Boruto Naruto Next Generations"] },
     // Bleach TYBW: the dedicated TMDB show (#308329) carries NO episode stills,
     // so every episode fell back to the show backdrop. Pin to the main Bleach
     // entry (#30984) whose "Thousand-Year Blood War" season DOES have stills;
@@ -897,8 +903,39 @@ const ImageResolver = (function () {
   }
 
   // ── Per-surface resolution (the documented priority chains) ─────────────────
+  function usesContinuousGlobalEpisodeMap(anime) {
+    if (!anime || anime.tmdbFranchiseFallback) return false;
+    const providerRuns = [
+      Number(anime.totalEpisodes || 0),
+      Number(anime.episodeCount || 0),
+      Number(anime.latestAiredEp || anime.episode || 0),
+      Array.isArray(anime.episodes) ? anime.episodes.length : 0,
+      ...(Array.isArray(anime.seasons)
+        ? anime.seasons.map((season) => Array.isArray(season?.episodes) ? season.episodes.length : 0)
+        : [])
+    ];
+    const longestProviderRun = Math.max(0, ...providerRuns);
+    const tmdbEpisodeCount = (anime.tmdbSeasons || [])
+      .filter((season) => Number(season.season_number) > 0)
+      .reduce((total, season) => total + Number(season.episode_count || 0), 0);
+    const populatedProviderSeasons = (anime.seasons || [])
+      .filter((season) => Array.isArray(season?.episodes) && season.episodes.length);
+    const parsedSeason = typeof SeasonNormalization !== "undefined"
+      ? Number(SeasonNormalization.parseTitle(anime.romajiTitle || anime.title || "").seasonNumber || 1)
+      : 1;
+    return longestProviderRun > 100
+      && tmdbEpisodeCount > 100
+      && populatedProviderSeasons.length <= 1
+      && parsedSeason <= 1;
+  }
+
   function requiresSeasonScopedEpisodeArt(anime, appSeasonNumber) {
     if (!anime || !Number(appSeasonNumber || 0)) return false;
+    // AnimeAV1 keeps Naruto, Shippuden, One Piece and similar long shows as one
+    // continuous provider list even though TMDB divides the same run into many
+    // physical seasons. Their flattened TMDB map is intentional and must remain
+    // available past the first physical season.
+    if (usesContinuousGlobalEpisodeMap(anime)) return false;
     return Boolean(
       anime.isFranchiseEntry
       || anime.canonicalSeasonNumber
@@ -1352,6 +1389,7 @@ const ImageResolver = (function () {
     resolvePrePlayerPoster,
     findTmdbSeasonForEpisode,
     lazyFetchEpisodeStill,
+    usesContinuousGlobalEpisodeMap,
     // exposed for tests / debugging
     scoreCandidate,
     titleScore,

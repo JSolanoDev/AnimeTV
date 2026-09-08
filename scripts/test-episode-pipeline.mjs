@@ -59,9 +59,10 @@ function routerContext(pathname = "/") {
 }
 
 function applyTargetContext(seasons) {
-  const state = {};
+  const state = { episodeChunkByContext: {} };
   const sandbox = vm.createContext({
     state,
+    getShowKey: (show = {}) => show.id || show.slug || show.title || "show",
     extractSeasonNumber: utils.extractSeasonNumber,
     parseEpisodeNumber: (value, fallback = null) => {
       if (typeof value === "number" && Number.isFinite(value) && value >= 0) return value;
@@ -78,6 +79,7 @@ function applyTargetContext(seasons) {
     getDetailSeasons: () => seasons,
     getEpisodeUrl: (episode = {}) => episode.videoUrl || ""
   });
+  vm.runInContext(section(clientSource, "function episodeChunkContextKey(", "function renderEpisodeList("), sandbox);
   vm.runInContext(section(clientSource, "function applyOpenTarget(", "function closeShow("), sandbox);
   return sandbox;
 }
@@ -514,6 +516,7 @@ test("21. an episode-row click reaches source scheduling with canonical season i
     activeShow: { id: "show", slug: "show", canonicalSeasonNumber: 2, canonicalSeasonPart: 1 },
     activeEpisode: null,
     activeSeasonIndex: 0,
+    episodeChunkByContext: {},
     currentRouteInfo: null
   };
   const frame = { style: { setProperty() {} } };
@@ -543,6 +546,7 @@ test("21. an episode-row click reaches source scheduling with canonical season i
     refreshFocusables() {},
     Math
   });
+  vm.runInContext(section(clientSource, "function episodeChunkContextKey(", "function renderEpisodeList("), sandbox);
   vm.runInContext(section(clientSource, "function selectEpisodeByPosition(", "function showEpisodeListTab("), sandbox);
   sandbox.selectEpisodeByPosition(0, 0, true);
   assert.equal(scheduled.value, episode);
@@ -756,6 +760,7 @@ test("related-season direct URLs rebuild from relations and reject corrupt route
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   const sandbox = vm.createContext({
     state,
+    getShowKey: (show = {}) => show.id || show.slug || "show",
     Date,
     Map,
     ROUTE_SLUG_ALIASES: {},

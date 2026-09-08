@@ -292,7 +292,11 @@
       hotkey: true,
       mutex: true,
       playsInline: true,
-      airplay: true,
+      // Chromium owns Chromecast through the control below. Enabling ArtPlayer's
+      // native remote-playback control there exposes a second device route and can
+      // make the same receiver appear twice. Keep AirPlay only where it is native.
+      airplay: /\bSafari\//i.test(navigator.userAgent)
+        && !/\b(?:Chrome|CriOS|Edg|OPR|Android)\b/i.test(navigator.userAgent),
       lock: true,
       fastForward: true,
       autoOrientation: true,
@@ -472,21 +476,13 @@
   // way round (which the plugin did, on click) means the callback can be missed
   // entirely and nothing ever knows whether a receiver exists.
   function initCastFramework() {
-    if (castInitStarted) return;
-    castInitStarted = true;
     if (!window.isSecureContext || !window.chrome || /\b(?:Firefox|OPR)\//i.test(navigator.userAgent)) {
       castInitState = "unsupported-browser";
       castLog("unsupported browser or insecure context - not loading the SDK");
       return;
     }
-    castInitState = "loading-sdk";
-    window.__onGCastApiAvailable = (available, reason) => {
-      castLog("SDK callback received", { available, reason });
-      if (!available) {
-        castInitState = "sdk-unavailable";
-        console.error("[Cast] SDK reported unavailable", { reason });
-        return;
-      }
+
+    const configureContext = () => {
       if (!window.cast?.framework) {
         castInitState = "framework-missing";
         console.error("[Cast] cast.framework missing despite loadCastFramework=1");
@@ -497,19 +493,24 @@
       try {
         castReceiverAppId = window.chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID;
         const ctx = window.cast.framework.CastContext.getInstance();
-        // setOptions exactly once, not per click.
-        ctx.setOptions({
-          receiverApplicationId: castReceiverAppId,
-          autoJoinPolicy: window.chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
-        });
-        ctx.addEventListener(window.cast.framework.CastContextEventType.CAST_STATE_CHANGED, (event) => {
-          const name = enumName(window.cast.framework.CastState, event.castState);
-          castLog("state:", name);
-          syncCastControl(name);
-        });
-        ctx.addEventListener(window.cast.framework.CastContextEventType.SESSION_STATE_CHANGED, (event) => {
-          castLog("session:", enumName(window.cast.framework.SessionState, event.sessionState));
-        });
+        // setOptions and framework listeners are document singletons. initPlayer()
+        // can run again after Retry/source recovery; registering them each time is
+        // what produced duplicate receiver entries in Chrome's chooser.
+        if (!window.__ZENKAI_CAST_CONTEXT_CONFIGURED__) {
+          ctx.setOptions({
+            receiverApplicationId: castReceiverAppId,
+            autoJoinPolicy: window.chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+          });
+          ctx.addEventListener(window.cast.framework.CastContextEventType.CAST_STATE_CHANGED, (event) => {
+            const name = enumName(window.cast.framework.CastState, event.castState);
+            castLog("state:", name);
+            syncCastControl(name);
+          });
+          ctx.addEventListener(window.cast.framework.CastContextEventType.SESSION_STATE_CHANGED, (event) => {
+            castLog("session:", enumName(window.cast.framework.SessionState, event.sessionState));
+          });
+          window.__ZENKAI_CAST_CONTEXT_CONFIGURED__ = true;
+        }
         castInitState = "ready";
         castLog("initialization complete", { receiverApplicationId: castReceiverAppId, castState: castStateNow() });
         syncCastControl(castStateNow());
@@ -518,9 +519,35 @@
         console.error("[Cast] initialization failed", error);
       }
     };
+
+    if (window.cast?.framework && window.chrome?.cast?.media) {
+      castInitStarted = true;
+      configureContext();
+      return;
+    }
+    if (castInitStarted) return;
+    castInitStarted = true;
+    castInitState = "loading-sdk";
+
+    const existingScript = document.querySelector("script[data-zenkai-cast-sdk]");
+    if (existingScript) {
+      existingScript.addEventListener("load", () => configureContext(), { once: true });
+      return;
+    }
+
+    window.__onGCastApiAvailable = (available, reason) => {
+      castLog("SDK callback received", { available, reason });
+      if (!available) {
+        castInitState = "sdk-unavailable";
+        console.error("[Cast] SDK reported unavailable", { reason });
+        return;
+      }
+      configureContext();
+    };
     const script = document.createElement("script");
     script.src = CAST_SDK;
     script.async = true;
+    script.dataset.zenkaiCastSdk = "1";
     script.onerror = () => {
       castInitState = "sdk-load-error";
       console.error("[Cast] failed to load", CAST_SDK, "- check CSP script-src allows www.gstatic.com");
@@ -1428,6 +1455,55 @@
     document.addEventListener("fullscreenchange", onFullscreenChange);
     document.addEventListener("webkitfullscreenchange", onFullscreenChange);
 
+    const isPortrait = () => {
+      try { return window.matchMedia("(orientation: portrait)").matches; }
+      catch (error) { return window.innerHeight >= window.innerWidth; }
+    };
+    const enterPortraitFullscreen = () => {
+      if (!isPhonePlayer() || !isPortrait()) return false;
+      if (document.fullscreenElement || document.webkitFullscreenElement) return false;
+      const request = player.requestFullscreen || player.webkitRequestFullscreen;
+      if (request) {
+        try {
+          const pending = request.call(player);
+          if (pending?.catch) {
+            pending.catch(() => {
+              try { art.fullscreen = true; } catch (error) { /* browser declined fullscreen */ }
+            });
+          }
+          return true;
+        } catch (requestError) { /* Artplayer remains the compatibility fallback. */ }
+      }
+      try {
+        art.fullscreen = true;
+        return true;
+      } catch (error) {
+        return false;
+      }
+    };
+
+    // A play button press carries the browser gesture needed by the Fullscreen
+    // API. Autoplay may not, so the picture-click path below is the dependable
+    // fallback on browsers that reject this first request.
+    art.on("play", () => {
+      if (!navigator.userActivation || navigator.userActivation.isActive) enterPortraitFullscreen();
+    });
+
+    // A phone can be rotated upright after playback has already begun. Fullscreen
+    // is still attempted here for installed apps/WebViews that permit it; normal
+    // browsers may require the next picture tap, which uses the trusted path below.
+    let orientationFullscreenTimer = 0;
+    const onPlaybackOrientationChange = () => {
+      window.clearTimeout(orientationFullscreenTimer);
+      orientationFullscreenTimer = window.setTimeout(() => {
+        if (art?.video && !art.video.paused && isPortrait()) enterPortraitFullscreen();
+      }, 120);
+    };
+    window.addEventListener("orientationchange", onPlaybackOrientationChange);
+    if (window.screen?.orientation?.addEventListener) {
+      window.screen.orientation.addEventListener("change", onPlaybackOrientationChange);
+    }
+
     // Captured on pointerdown because Artplayer's own click handler runs first
     // and may have already re-shown the bar by the time the click listener fires.
     // Without this, a tap meant to REVEAL the controls would hide them again.
@@ -1442,19 +1518,21 @@
       // *using* the controls - only taps on the picture itself count here.
       if (target && target.closest && target.closest(".art-bottom, .art-settings, .art-contextmenus, .art-layers, .ztv-sheet")) return;
 
-      // NOTE: a tap here used to go straight to fullscreen on a phone, to get
-      // landscape in one gesture. It made the inline player unusable - every tap
-      // meant to reveal the controls, pause, or scrub threw you into fullscreen
-      // instead, and there was no way to just *use* the player on the page.
-      // Landscape is still one press away on the fullscreen control, which locks
-      // the orientation through the fullscreenchange handler above.
+      // Only an already-playing portrait video promotes itself. A paused video
+      // keeps the normal reveal/play interaction, and every actual control is
+      // excluded above, so scrubbing and menu taps never trigger fullscreen.
+      if (art?.video && !art.video.paused && enterPortraitFullscreen()) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       if (!wasVisible) return;
       // Deferred: Artplayer shows the controls from its own click handler, so
       // hiding synchronously here would just be undone.
       window.setTimeout(() => {
         try { art.controls.show = false; } catch (error) { /* player torn down */ }
       }, 0);
-    });
+    }, true);
   }
 
   // Long enough to move the pointer from the button onto the panel, short enough

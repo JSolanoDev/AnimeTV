@@ -12709,8 +12709,8 @@ main {
   }
 }
 
-/* Codec note on a source-picker row. Informational only - the source stays
-   selectable, because AV1 plays fine locally and only Chromecast cannot take it. */
+/* Codec note on a source-picker row. Informational only: the source stays
+   selectable and the Cast ladder sends AV1 CMAF to receivers that support it. */
 .source-codec-note {
   display: block;
   margin-top: 0.15rem;
@@ -12722,4 +12722,102 @@ main {
 .source-codec-note[data-codec="AV1"] {
   color: #f7a13a;
   opacity: 0.95;
+}
+
+/* Final compact phone/tablet rhythm. The bottom-nav reservation now matches its
+   rendered height, cards are large enough to scan, and route bands do not stack
+   desktop spacing on a narrow viewport. */
+@media (max-width: 760px) {
+  .app-shell,
+  body.sidebar-collapsed .app-shell {
+    padding-bottom: calc(4.05rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  main {
+    --page-gutter: 0.6rem;
+    padding: 0.55rem var(--page-gutter) 0.7rem;
+  }
+
+  .hero,
+  .carousel-stage {
+    height: clamp(19.5rem, 46vh, 23.5rem);
+    min-height: clamp(19.5rem, 46vh, 23.5rem);
+  }
+
+  .carousel-stage {
+    padding: 1rem 0.95rem 4.7rem;
+  }
+
+  .carousel-info {
+    gap: 0.55rem;
+    padding-bottom: 0.7rem;
+  }
+
+  .carousel-info h2 {
+    font-size: 1.65rem;
+  }
+
+  .carousel-indicators {
+    right: 0.9rem;
+    bottom: 0.55rem;
+    left: 0.9rem;
+    gap: 0.45rem;
+  }
+
+  .carousel-dot {
+    width: 5.5rem;
+    height: 3.1rem;
+  }
+
+  .content-band {
+    padding: 0.7rem 0 1rem;
+  }
+
+  .section-heading {
+    margin-bottom: 0.6rem;
+  }
+
+  #continueWatching .section-heading,
+  #continueWatchingAdult .section-heading {
+    margin-bottom: 0.65rem;
+  }
+
+  .poster-grid {
+    --rail-gap: 0.55rem;
+  }
+
+  .rail-shell .poster-grid {
+    grid-auto-columns: clamp(8.4rem, 36vw, 10.25rem);
+    gap: 0.55rem;
+    padding-bottom: 0.55rem;
+  }
+
+  .show-card {
+    gap: 0.48rem;
+  }
+
+  .bottom-bar,
+  body.sidebar-collapsed .bottom-bar {
+    margin-bottom: calc(-4.05rem - env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1024px) {
+  main {
+    padding: 0.8rem 1.1rem 1rem;
+  }
+
+  .carousel-stage {
+    min-height: clamp(25rem, 50vh, 29rem);
+    padding-bottom: 5rem;
+  }
+
+  .content-band {
+    padding-top: 0.9rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .rail-shell .poster-grid {
+    grid-auto-columns: calc((100% - (3 * var(--rail-gap))) / 4);
+  }
 }

@@ -8,6 +8,7 @@ import {
   sortCarouselCurrency,
   sortCarouselQuality
 } from "../js/utils.js";
+import fs from "node:fs";
 
 const rows = [];
 const check = (name, got, want) => {
@@ -82,6 +83,19 @@ check("an old-season show is not", isCurrentSeasonShow({ season: "SPRING", seaso
 /* ---- stability: an empty pool and a single item are safe ---- */
 check("empty pool stays empty", sortCarouselCurrency([], NOW, () => null), []);
 check("single item survives", sortCarouselCurrency([A], NOW, () => null).map((s) => s.title), ["A"]);
+
+/* ---- production wiring: the Home hero follows provider releases only ---- */
+{
+  const client = fs.readFileSync("client.js", "utf8");
+  const between = (from, to) => client.slice(client.indexOf(from), client.indexOf(to, client.indexOf(from)));
+  const recentFallback = between("function recentlyAiredShows(", "function todayShows(");
+  const releasePool = between("function recentReleaseCarouselShows(", "// Hero backdrop:");
+  const render = between("function renderCarousel()", "let _carouselDotsHtml");
+  check("recentlyAiredShows never pads from the whole catalog", /sortCarouselCurrency|result\.push\(\.\.\.pad\)/.test(recentFallback), false);
+  check("release carousel is sourced from the AnimeAV1 feed", /buildAnimeAv1ReleaseCards/.test(releasePool), true);
+  check("renderCarousel consumes only the release pool", /recentReleaseCarouselShows\(8\)/.test(render), true);
+  check("latest feed starts promptly after first paint", /function scheduleAnimeAv1LatestLoad\(delayMs = 450\)/.test(client), true);
+}
 
 console.log(rows.join("\n"));
 const failed = rows.filter((r) => r.startsWith("FAIL")).length;

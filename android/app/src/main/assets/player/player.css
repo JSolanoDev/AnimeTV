@@ -1146,6 +1146,37 @@ body.ztv-chrome-hidden .ztv-corner-toggle svg {
   .ztv-mascot { display: none !important; }
 }
 
+/* Phone/tablet playback title: one quiet line inside the picture. ArtPlayer's
+   .art-mobile marker survives rotation and fullscreen, unlike a width query. */
+.art-mobile .ztv-player-topbar {
+  min-height: 52px;
+  gap: 0.4rem;
+  padding:
+    calc(8px + env(safe-area-inset-top))
+    calc(56px + env(safe-area-inset-right))
+    18px
+    calc(56px + env(safe-area-inset-left));
+}
+
+.art-mobile .ztv-kicker,
+.art-mobile .ztv-player-brand {
+  display: none;
+}
+
+.art-mobile .ztv-title-block h1 {
+  display: block;
+  overflow: hidden;
+  font-size: 0.82rem;
+  line-height: 1.15;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.art-mobile .ztv-floating-label {
+  font-size: 0.7rem;
+}
+
 /* The settings popover opened across the timeline: its bottom edge sat at 774px
    with the progress bar spanning 758-764, so the panel covered the scrubber you
    might be aiming for. The volume rail already clears it (bottom: 100% + 21px);

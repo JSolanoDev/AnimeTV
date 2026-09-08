@@ -333,7 +333,7 @@ test("late episode metadata cannot cross from one canonical season into another"
     SeasonNormalization: { parseTitle: () => ({ seasonNumber: null }) }
   });
   vm.runInContext(
-    section(client, "function requiresSeasonScopedEpisodeMetadata(", "function mergeAiredEpisodeMetadata("),
+    section(client, "function usesContinuousGlobalEpisodeMetadata(", "function mergeAiredEpisodeMetadata("),
     c
   );
   const show = { anilistId: 200, malId: 300, banner: "", streamingEpisodesByNum: {} };

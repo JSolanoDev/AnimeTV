@@ -164,6 +164,8 @@ const state = {
   activeSettingsTab: "general",
   activeLegalTab: "terms",
   activeSeasonIndex: 0,
+  activeEpisodeChunkIndex: 0,
+  episodeChunkByContext: {},
   carouselIndex: 0,
   shows: [],
   av1Latest: (() => {
@@ -642,7 +644,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=755`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=759`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -652,7 +654,7 @@ async function fetchHomepageBootstrapCatalog() {
   return rawItems.map((item, index) => normalizeExternalShow(item, source, index)).filter(Boolean);
 }
 
-function scheduleAnimeAv1LatestLoad(delayMs = 2500) {
+function scheduleAnimeAv1LatestLoad(delayMs = 450) {
   const loadLatest = () => loadAnimeAv1Latest();
   const run = () => {
     if ("requestIdleCallback" in window) window.requestIdleCallback(loadLatest, { timeout: 3000 });
@@ -2790,20 +2792,6 @@ function recentlyAiredShows(limit = 8) {
     if (result.length >= limit) break;
   }
 
-  // Padding used to be sortCarouselQuality() over the whole catalogue, which
-  // ranks on banner, source and score with no status or recency test - so a
-  // short pool pulled in years-old completed hits purely because they scored
-  // well. Rank the pad by how CURRENT a title is instead; quality still breaks
-  // ties, it just no longer decides the tier.
-  if (result.length < limit) {
-    const pad = sortCarouselCurrency(
-      catalogShows().filter((s) => getCarouselArtwork(s) && !seenTitles.has(normalizeTitle(s.title))),
-      nowMs,
-      (s) => lastEpisodeAiredMs(s, nowMs)
-    ).slice(0, limit - result.length);
-    result.push(...pad);
-  }
-
   return result;
 }
 
@@ -2942,12 +2930,9 @@ function registerAv1Show(show) {
   return state.av1Shows.get(show.id);
 }
 
-function buildLatestEpisodesList(limit = HOME_CARD_LIMIT) {
-  if (typeof AdultMode !== "undefined" && AdultMode.isEnabled()) {
-    return adultSourceOrderedShows(limit);
-  }
+function buildAnimeAv1ReleaseCards(limit = HOME_CARD_LIMIT, { applyUiFilters = true } = {}) {
   const av1 = state.av1Latest || [];
-  if (!av1.length) return latestEpisodeReleases(limit);   // AnimeAV1 feed not loaded yet
+  if (!av1.length) return [];
 
   const idx = buildCatalogKeyIndex();
   const list = [];
@@ -2978,8 +2963,8 @@ function buildLatestEpisodesList(limit = HOME_CARD_LIMIT) {
     const titleKey = titleKeyOf(card);
     if (usedIds.has(card.id) || (titleKey && usedTitles.has(titleKey))) continue;
     if (typeof AdultMode !== "undefined" && !AdultMode.matchesActiveCatalog(card)) continue;
-    if (!matchesShowSearch(card)) continue;
-    if (state.filter !== "all") {
+    if (applyUiFilters && !matchesShowSearch(card)) continue;
+    if (applyUiFilters && state.filter !== "all") {
       const matchesG = (card.genre && String(card.genre).toLowerCase() === state.filter.toLowerCase()) ||
         (Array.isArray(card.genres) && card.genres.some(g => String(g).toLowerCase() === state.filter.toLowerCase()));
       if (!matchesG) continue;
@@ -2989,6 +2974,20 @@ function buildLatestEpisodesList(limit = HOME_CARD_LIMIT) {
     list.push(card);
     if (list.length >= limit) break;
   }
+
+  return list;
+}
+
+function buildLatestEpisodesList(limit = HOME_CARD_LIMIT) {
+  if (typeof AdultMode !== "undefined" && AdultMode.isEnabled()) {
+    return adultSourceOrderedShows(limit);
+  }
+  if (!state.av1Latest?.length) return latestEpisodeReleases(limit);
+
+  const list = buildAnimeAv1ReleaseCards(limit);
+  const usedIds = new Set(list.map((show) => String(show.id)));
+  const usedTitles = new Set(list.map((show) => normalizeTitle(getShowTitle(show) || show.title || "")).filter(Boolean));
+  const titleKeyOf = (card) => normalizeTitle(getShowTitle(card) || card.title || "");
 
   // Top up with the airing-based list if the feed is short (and not searching).
   if (list.length < limit && !state.search) {
@@ -3045,6 +3044,7 @@ async function loadAnimeAv1Latest(force = false) {
       localStorage.setItem("zenkaitv-av1-latest-cache-at", String(state.av1LatestAt));
 
       if (isChanged) {
+        resetReleaseCarouselLineup();
         render();   // repaint the rail in AnimeAV1 order
         scheduleVisibleMetadataWarm(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
       }
@@ -3658,56 +3658,36 @@ let _carouselPaintedShow = null;
 
 function buildStableCarouselItems(pool) {
   const MAX = 8;
-  const byId = new Map(pool.map((s) => [String(s.id), s]));
-  // Resolve against the whole catalogue, not just `pool`: a later render
-  // legitimately drops a title out of the "recently aired + has artwork" window,
-  // and losing it from the lineup is the reshuffle this function prevents.
-  const findAnywhere = (id) => id
-    ? (byId.get(id) || (state.shows || []).find((s) => String(s.id) === id) || null)
-    : null;
-  const existing = _carouselStableIds.map(findAnywhere).filter(Boolean);
-
-  // ONCE A LINEUP EXISTS, ITS ORDER IS FIXED. Only ever append to it.
-  //
-  // Re-sorting on later renders moved the slide out from under the user: every
-  // repaint updates _carouselPaintedId, so seating that show at index 0 while
-  // state.carouselIndex still pointed at its old position made the hero jump to a
-  // different anime the moment you clicked a thumbnail. Order is decided once, at
-  // first build, and after that a growing pool can only add slides on the end.
-  let ordered;
-  if (existing.length >= 3) {
-    ordered = existing.slice(0, MAX);
-    const seen = new Set(ordered.map((s) => String(s.id)));
-    for (const s of pool) {
-      if (ordered.length >= MAX) break;
-      const id = String(s.id);
-      if (seen.has(id)) continue;
-      seen.add(id);
-      ordered.push(s);
-    }
-  } else {
-    // First build: lead with whatever is already on screen or remembered, so the
-    // restored hero stays put once the real catalogue lands, then shows whose
-    // trailer has resolved, then the rest of the pool.
-    const pinned = [findAnywhere(_carouselPaintedId ? String(_carouselPaintedId) : ""),
-                    findAnywhere(_carouselMemoId)].filter(Boolean);
-    const withTrailer = pool.filter((s) => {
-      const tr = s.anilistId ? _readTrailerCache(String(s.anilistId)) : null;
-      return tr && tr.id;
-    });
-    ordered = [];
-    const seen = new Set();
-    for (const s of [...pinned, ...existing, ...withTrailer, ...pool]) {
-      if (!s) continue;
-      const id = String(s.id);
-      if (seen.has(id)) continue;
-      seen.add(id);
-      ordered.push(s);
-      if (ordered.length >= MAX) break;
-    }
+  const ordered = [];
+  const seen = new Set();
+  for (const show of pool) {
+    if (!show) continue;
+    const id = String(show.id || getShowKey(show));
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    ordered.push(show);
+    if (ordered.length >= MAX) break;
   }
   _carouselStableIds = ordered.map((s) => String(s.id));
   return ordered;
+}
+
+function resetReleaseCarouselLineup() {
+  state.carouselIndex = 0;
+  _carouselStableIds = [];
+  _carouselPaintedId = null;
+  _carouselPaintedShow = null;
+  _carouselDotsHtml = null;
+}
+
+function recentReleaseCarouselShows(limit = 8) {
+  if (typeof AdultMode !== "undefined" && AdultMode.isEnabled()) {
+    return adultSourceOrderedShows(limit).filter((show) => carouselArtworkOrPoster(show));
+  }
+  const providerReleases = buildAnimeAv1ReleaseCards(limit, { applyUiFilters: false })
+    .filter((show) => carouselArtworkOrPoster(show));
+  if (providerReleases.length) return providerReleases.slice(0, limit);
+  return recentlyAiredShows(limit).filter((show) => carouselArtworkOrPoster(show));
 }
 
 // Hero backdrop: prefer a dedicated landscape banner, fall back to the poster so
@@ -3724,6 +3704,10 @@ const CAROUSEL_PROVISIONAL_HOLD_MS = 6000;
 let _carouselProvisionalSince = 0;
 
 function carouselLineupIsProvisional() {
+  if (state.av1Latest?.length || (typeof AdultMode !== "undefined" && AdultMode.isEnabled())) {
+    _carouselProvisionalSince = 0;
+    return false;
+  }
   if (state.catalogTier !== "bootstrap") { _carouselProvisionalSince = 0; return false; }
   const now = Date.now();
   if (!_carouselProvisionalSince) {
@@ -3736,22 +3720,9 @@ function carouselLineupIsProvisional() {
 }
 
 function renderCarousel() {
-  // On-air / recently-aired pool only (these already have landscape artwork).
-  let pool = recentlyAiredShows(24).filter((s) => getCarouselArtwork(s));
-  // Resilience: if nothing has a landscape banner yet (slow/rate-limited load),
-  // fall back to the best poster-bearing shows so the hero never gets stuck on
-  // "Loading…" while the catalog actually has content.
-  if (!pool.length) {
-    // Same correction as the pad: when no landscape banner has resolved yet the
-    // hero still has to show something, but "something" must stay current rather
-    // than becoming whatever scores highest in the whole catalogue.
-    const fallbackNow = Date.now();
-    pool = sortCarouselCurrency(
-      catalogShows().filter((s) => carouselArtworkOrPoster(s)),
-      fallbackNow,
-      (s) => lastEpisodeAiredMs(s, fallbackNow)
-    ).slice(0, 12);
-  }
+  // The hero mirrors the provider's newest release feed. It never pads with old
+  // high-scoring catalog entries, so every slide represents a recent episode.
+  let pool = recentReleaseCarouselShows(8);
   // See CAROUSEL_PROVISIONAL_HOLD_MS: a line-up chosen from the bootstrap
   // snapshot is guaranteed to be replaced, so decline to choose one yet. An
   // empty pool falls into the not-ready branch below, which already leaves a
@@ -3775,7 +3746,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=755";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=759";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -3803,7 +3774,9 @@ function renderCarousel() {
   // again when the full catalogue lands, is the "it loads another anime first"
   // behaviour. With no memo (first ever visit) this does not apply and the
   // bootstrap hero paints as before - there is nothing better to show.
-  if (heroMemoActive && state.catalogTier === "bootstrap") return;
+  const hasFreshReleaseLineup = Boolean(state.av1Latest?.length)
+    || (typeof AdultMode !== "undefined" && AdultMode.isEnabled() && adultSourceOrderedShows().length);
+  if (heroMemoActive && state.catalogTier === "bootstrap" && !hasFreshReleaseLineup) return;
   if (String(show.id || "") === _carouselPaintedId) return;
   _carouselPaintedId = String(show.id || "");
 
@@ -3940,7 +3913,8 @@ function renderCarousel() {
   // "Local | ACTION" on the hero, which says nothing to a viewer. Drop them and
   // show only what is actually known; no day is better than a fake one.
   const heroDay = ["Local", "TBA", ""].includes(String(show.day || "").trim()) ? "" : show.day;
-  carouselMeta.textContent = [heroDay, showAiringTimeText(show), (show.genre || "").toUpperCase()].filter(Boolean).join(" | ");
+  const releaseEpisode = Number(show._av1Episode || show.latestAiredEp || show.episode || 0);
+  carouselMeta.textContent = [releaseEpisode > 0 ? `EP ${releaseEpisode}` : "", heroDay, showAiringTimeText(show), (show.genre || "").toUpperCase()].filter(Boolean).join(" | ");
   const target = getCardTarget(show);
   carouselOpen.dataset.openShow = String(show.id || "");
   carouselOpen.dataset.openSeason = String(target.seasonNumber || "");
@@ -4013,7 +3987,10 @@ function scheduleCarouselIndicatorHydration() {
 }
 
 function simpleCarouselText(show) {
-  const clean = show.description || "Featured pick from today's anime lineup.";
+  const episodeNumber = Number(show?._av1Episode || show?.latestAiredEp || show?.episode || 0);
+  const clean = show.description || (episodeNumber > 0
+    ? `Episode ${episodeNumber} is now available on ZenkaiTV.`
+    : "A recent anime release, now available on ZenkaiTV.");
   // Word-safe truncation (no mid-word cuts like "...No").
   return cleanDescription(clean, 150);
 }
@@ -4627,7 +4604,34 @@ function enrichTmdbImages(show) {
   }).catch(() => show);
 }
 
+function usesContinuousGlobalEpisodeMetadata(show = {}) {
+  if (!show || show.tmdbFranchiseFallback) return false;
+  const providerRuns = [
+    Number(show.totalEpisodes || 0),
+    Number(show.episodeCount || 0),
+    Number(show.latestAiredEp || show.episode || 0),
+    Array.isArray(show.episodes) ? show.episodes.length : 0,
+    ...(Array.isArray(show.seasons)
+      ? show.seasons.map((season) => Array.isArray(season?.episodes) ? season.episodes.length : 0)
+      : [])
+  ];
+  const longestProviderRun = Math.max(0, ...providerRuns);
+  const tmdbEpisodeCount = (show.tmdbSeasons || [])
+    .filter((season) => Number(season.season_number) > 0)
+    .reduce((total, season) => total + Number(season.episode_count || 0), 0);
+  const populatedProviderSeasons = (show.seasons || [])
+    .filter((season) => Array.isArray(season?.episodes) && season.episodes.length);
+  const parsedSeason = typeof SeasonNormalization !== "undefined"
+    ? Number(SeasonNormalization.parseTitle(show.romajiTitle || show.title || "").seasonNumber || 1)
+    : 1;
+  return longestProviderRun > 100
+    && tmdbEpisodeCount > 100
+    && populatedProviderSeasons.length <= 1
+    && parsedSeason <= 1;
+}
+
 function requiresSeasonScopedEpisodeMetadata(show = {}) {
+  if (usesContinuousGlobalEpisodeMetadata(show)) return false;
   const providerSeason = Number(show.seasonNumber || 0);
   return Boolean(
     show.isFranchiseEntry
@@ -4897,7 +4901,7 @@ function trailerEmbedUrl(trailer) {
 const APP_ROUTES = ["home", "library", "schedule", "releases", "favorites", "settings", "sources", "profile", "not-found"];
 const ROUTE_SLUG_ALIASES = {
   "demon-slayer": ["kimetsu-no-yaiba", "kimetsu-no-yaiba-yuukaku-hen", "kimetsu-no-yaiba-katanakaji-no-sato-hen"],
-  "naruto": ["naruto", "naruto-shippuuden", "naruto-shippuden"],
+  "naruto": ["naruto"],
   "naruto-shippuden": ["naruto-shippuuden", "naruto-shippuden"],
   "one-piece": ["one-piece"],
   "bleach": ["bleach", "bleach-sennen-kessen-hen"]
@@ -4998,6 +5002,26 @@ function findShowBySlugOrId(value) {
   show = (state.addonSections || []).flatMap((section) => section.items || []).find(exactIdentity);
   if (show) return show;
   if (state.av1Shows?.has(wanted)) return state.av1Shows.get(wanted);
+  // A literal route slug outranks franchise aliases. Without this, /anime/naruto
+  // could select Naruto Shippuden from a lightweight bootstrap before the exact
+  // Naruto row arrived, then keep that wrong identity for the whole session.
+  const exactSlug = (entry) => {
+    if (!entry) return false;
+    const providerIdSlug = String(entry.id || "").replace(/^animeav1-/i, "");
+    const explicitSlugs = [
+      entry.slug,
+      entry.routeSlug,
+      entry.animeAv1Slug,
+      entry._av1Slug,
+      /^animeav1-/i.test(String(entry.id || "")) ? providerIdSlug : ""
+    ].map((slug) => getShowSlug({ slug })).filter(Boolean);
+    if (explicitSlugs.length) return explicitSlugs.includes(wantedSlug);
+    return [wanted, wantedSlug].includes(getShowSlug(entry));
+  };
+  show = state.shows.find(exactSlug);
+  if (show) return show;
+  show = (state.addonSections || []).flatMap((section) => section.items || []).find(exactSlug);
+  if (show) return show;
   // A clean direct URL can point at a related season/cour that is not one of the
   // provider's current catalog rows. Rebuild that exact relation-backed row from
   // a catalog chain before consulting localStorage. This makes refresh and shared
@@ -8379,7 +8403,10 @@ async function hydrateAniPubEpisodes(show) {
 function applyOpenTarget(show, target = {}) {
   const seasonNumber = Number(target.seasonNumber || extractSeasonNumber(show.title, 1));
   const seasonPart = target.seasonPart ? Number(target.seasonPart) : "";
-  const rawEpisodeTarget = target.episodeNumber ?? show.episode;
+  // Only a real episode route/card target may select an episode. Catalog rows
+  // often store their newest episode in show.episode; treating that as a deep
+  // link made Naruto/One Piece open on their final 100-episode range by default.
+  const rawEpisodeTarget = target.episodeNumber;
   const episodeNumber = parseEpisodeNumber(rawEpisodeTarget);
   const hasEpisodeTarget = episodeNumber !== null && Number.isFinite(episodeNumber) && episodeNumber >= 0;
   const hasSeasonTarget = Number.isFinite(seasonNumber) && seasonNumber > 1;
@@ -8409,7 +8436,7 @@ function applyOpenTarget(show, target = {}) {
   if (!episode) return;
   state.activeEpisode = { season: activeSeason, episode, seasonIndex, episodeIndex: safeEpisodeIndex };
   state.activeEpisodeUrl = getEpisodeUrl(episode);
-  state.activeEpisodeChunkIndex = Math.floor(safeEpisodeIndex / 100);
+  setEpisodeChunkIndex(show, activeSeason, seasonIndex, Math.floor(safeEpisodeIndex / 100));
 }
 
 function closeShow() {
@@ -9742,6 +9769,32 @@ function resetEpisodePanelScroll() {
   if (rows) rows.scrollTop = 0;
 }
 
+function episodeChunkContextKey(show, season, seasonIndex = state.activeSeasonIndex) {
+  const showId = String(show?.id || getShowKey(show || {}) || "show");
+  const seasonNumber = Number(season?.canonicalSeasonNumber || season?.season || seasonIndex + 1) || 1;
+  const seasonPart = Number(season?.part || season?.seasonPart || 1) || 1;
+  return `${showId}:s${seasonNumber}:p${seasonPart}`;
+}
+
+function setEpisodeChunkIndex(show, season, seasonIndex, chunkIndex) {
+  const safeIndex = Math.max(0, Number(chunkIndex) || 0);
+  state.activeEpisodeChunkIndex = safeIndex;
+  state.episodeChunkByContext[episodeChunkContextKey(show, season, seasonIndex)] = safeIndex;
+  return safeIndex;
+}
+
+function getEpisodeChunkIndex(show, season, seasonIndex, chunksCount, chunkSize) {
+  const key = episodeChunkContextKey(show, season, seasonIndex);
+  let requested = state.episodeChunkByContext[key];
+  if (!Number.isInteger(requested) && state.activeEpisode?.seasonIndex === seasonIndex) {
+    requested = Math.floor((Number(state.activeEpisode.episodeIndex) || 0) / chunkSize);
+  }
+  const safeIndex = Math.max(0, Math.min(Number(requested) || 0, Math.max(0, chunksCount - 1)));
+  state.activeEpisodeChunkIndex = safeIndex;
+  state.episodeChunkByContext[key] = safeIndex;
+  return safeIndex;
+}
+
 function renderEpisodeList(show) {
   if (!episodeList || !show) return;
   hideAdultGalleryPanel();
@@ -9825,18 +9878,18 @@ function renderEpisodeList(show) {
   const useChunking = totalEpisodes > 150;
   let chunkedEpisodes = episodes;
   let chunksCount = 0;
+  let activeChunkIndex = 0;
 
   if (useChunking) {
     chunksCount = Math.ceil(totalEpisodes / EPISODE_CHUNK_SIZE);
-    if (state.activeEpisodeChunkIndex === undefined || state.activeEpisodeChunkIndex === null) {
-      if (state.activeEpisode && state.activeEpisode.seasonIndex === state.activeSeasonIndex) {
-        state.activeEpisodeChunkIndex = Math.floor(state.activeEpisode.episodeIndex / EPISODE_CHUNK_SIZE);
-      } else {
-        state.activeEpisodeChunkIndex = 0;
-      }
-    }
-    state.activeEpisodeChunkIndex = Math.max(0, Math.min(state.activeEpisodeChunkIndex, chunksCount - 1));
-    const startIdx = state.activeEpisodeChunkIndex * EPISODE_CHUNK_SIZE;
+    activeChunkIndex = getEpisodeChunkIndex(
+      show,
+      activeSeason,
+      state.activeSeasonIndex,
+      chunksCount,
+      EPISODE_CHUNK_SIZE
+    );
+    const startIdx = activeChunkIndex * EPISODE_CHUNK_SIZE;
     const endIdx = startIdx + EPISODE_CHUNK_SIZE;
     chunkedEpisodes = episodes.slice(startIdx, endIdx);
   }
@@ -9892,11 +9945,13 @@ function renderEpisodeList(show) {
       <div class="ep-chunks-container">
         <div class="ep-chunks">
           ${Array.from({ length: chunksCount }).map((_, i) => {
-            const start = i * EPISODE_CHUNK_SIZE + 1;
-            const end = Math.min((i + 1) * EPISODE_CHUNK_SIZE, totalEpisodes);
-            const isSelected = i === state.activeEpisodeChunkIndex;
+            const firstIndex = i * EPISODE_CHUNK_SIZE;
+            const lastIndex = Math.min((i + 1) * EPISODE_CHUNK_SIZE, totalEpisodes) - 1;
+            const start = getCanonicalEpisodeNumber(episodes[firstIndex], firstIndex + 1);
+            const end = getCanonicalEpisodeNumber(episodes[lastIndex], lastIndex + 1);
+            const isSelected = i === activeChunkIndex;
             return `
-            <button class="ep-chunk-btn focusable ${isSelected ? "is-selected" : ""}" data-chunk-index="${i}" type="button">
+            <button class="ep-chunk-btn focusable ${isSelected ? "is-selected" : ""}" data-chunk-index="${i}" type="button" aria-pressed="${isSelected}">
               ${start}-${end}
             </button>`;
           }).join("")}
@@ -9905,7 +9960,7 @@ function renderEpisodeList(show) {
 
       <div class="ep-rows" id="epRows">
         ${chunkedEpisodes.length ? chunkedEpisodes.map((episode, chunkLocalIndex) => {
-          const episodeIndex = useChunking ? (state.activeEpisodeChunkIndex * EPISODE_CHUNK_SIZE + chunkLocalIndex) : chunkLocalIndex;
+          const episodeIndex = useChunking ? (activeChunkIndex * EPISODE_CHUNK_SIZE + chunkLocalIndex) : chunkLocalIndex;
           const num = episode.episode || episodeIndex + 1;
           // Prefer AniList per-episode metadata (real title + still), matched by
           // episode number.
@@ -10264,7 +10319,8 @@ function renderEpisodeList(show) {
     state.activeSeasonIndex = Math.max(0, target.localIndex);
     state.activeEpisode = null;
     state.activeEpisodeUrl = "";
-    state.activeEpisodeChunkIndex = 0;
+    const targetSeason = getDetailSeasons(ctx)[state.activeSeasonIndex];
+    setEpisodeChunkIndex(ctx, targetSeason, state.activeSeasonIndex, 0);
     state.detailTabSwitched = true;
     renderEpisodeList(ctx);
     resetEpisodePanelScroll();
@@ -10310,7 +10366,7 @@ function renderEpisodeList(show) {
   episodeList.querySelectorAll("[data-chunk-index]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const idx = Number(btn.dataset.chunkIndex);
-      state.activeEpisodeChunkIndex = idx;
+      setEpisodeChunkIndex(show, activeSeason, state.activeSeasonIndex, idx);
       renderEpisodeList(show);
       const newBtn = episodeList.querySelector(`[data-chunk-index="${idx}"]`);
       if (newBtn) {
@@ -10323,12 +10379,14 @@ function renderEpisodeList(show) {
           const containerWidth = container.clientWidth;
           container.scrollTo({
             left: btnLeft - (containerWidth / 2) + (btnWidth / 2),
-            behavior: "smooth"
+            behavior: "auto"
           });
         }
       } else {
         refreshFocusables();
       }
+      const rows = episodeList.querySelector("#epRows");
+      if (rows) rows.scrollTop = 0;
     });
   });
   state.detailTabSwitched = false;
@@ -11979,7 +12037,7 @@ const PLAYER_SKIP_SEGMENTS = ["intro", "outro"];
 // rest are left alone rather than guessed at. Purely a label: the source stays
 // selectable, because AV1 plays perfectly well locally.
 const CAST_CODEC_LABELS = {
-  "AV1": "AV1 \u00b7 Chromecast unsupported",
+  "AV1": "AV1 \u00b7 Cast when supported",
   "H.264": "H.264 \u00b7 Chromecast compatible",
   "HEVC": "HEVC \u00b7 Chromecast support varies",
   "VP9": "VP9 \u00b7 Chromecast compatible"
@@ -13022,7 +13080,7 @@ function selectEpisodeByPosition(seasonIndex, episodeIndex, shouldPlay = true) {
   state.activeDetailTab = "episodes";
   state.activeEpisode = { season, episode, seasonIndex, episodeIndex };
   state.activeEpisodeUrl = getEpisodeUrl(episode);
-  state.activeEpisodeChunkIndex = Math.floor(episodeIndex / 100);
+  setEpisodeChunkIndex(state.activeShow, season, seasonIndex, Math.floor(episodeIndex / 100));
   const { seasonNumber, seasonPart } = selectedSeasonIdentity(
     state.activeShow || {},
     state.activeEpisode,
@@ -16103,7 +16161,7 @@ function playEpisodeByPosition(seasonIndex, episodeIndex) {
   state.activeDetailTab = "episodes";
   state.activeEpisode = { season, episode, seasonIndex, episodeIndex };
   state.activeEpisodeUrl = getEpisodeUrl(episode);
-  state.activeEpisodeChunkIndex = Math.floor(episodeIndex / 100);
+  setEpisodeChunkIndex(state.activeShow, season, seasonIndex, Math.floor(episodeIndex / 100));
   if (episode._failedSourceIds) {
     episode._failedSourceIds.clear();
   }
@@ -18148,7 +18206,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=755");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=759");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

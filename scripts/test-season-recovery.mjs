@@ -60,7 +60,7 @@ function context(fetchWithTimeout = async () => ({ ok: false })) {
   vm.runInContext(section(clientSource, "function bakedChainFor(", "function getFranchiseSeasonList("), sandbox);
   vm.runInContext(section(clientSource, "function ensureFranchiseShowsInCatalog(", "function validateEpisodeIntegrity("), sandbox);
   vm.runInContext(section(clientSource, "function mergeAiredEpisodeMetadata(", "// Strip a leading"), sandbox);
-  vm.runInContext(section(clientSource, "function requiresSeasonScopedEpisodeMetadata(", "function applyAniListExtras("), sandbox);
+  vm.runInContext(section(clientSource, "function usesContinuousGlobalEpisodeMetadata(", "function applyAniListExtras("), sandbox);
   vm.runInContext(imageSource + "\nthis.resolver = ImageResolver;", sandbox);
   vm.runInContext(section(clientSource, "function episodeMetadataForNumber(", "function episodeCandidateImage("), sandbox);
   return sandbox;

@@ -56,6 +56,13 @@ const ONLY_IDS = new Set(String(argOf("--ids", ""))
 // viewport width - never up.
 const TMDB_IMG = "https://image.tmdb.org/t/p/original";
 const TMDB_ID_OVERRIDES = new Map([
+  // Stable visual carriers for the long-running shows. These names are too
+  // generic for fuzzy search and every daily rebuild must retain the same exact
+  // series so global episode titles/stills stay aligned.
+  ["animeav1-naruto", 46260],
+  ["animeav1-naruto-shippuuden", 31910],
+  ["animeav1-one-piece", 37854],
+  ["animeav1-boruto-naruto-next-generations", 70881],
   // Western animation carried by AnimeAV1 has no MAL/AniList identity.
   ["animeav1-castlevania", 71024],
   // Recuts are separate AnimeAV1 titles but metadata providers often fold them

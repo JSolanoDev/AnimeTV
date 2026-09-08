@@ -105,6 +105,18 @@ test("a transient HTTP failure is retried within the same deadline", async () =>
   assert.equal(h.timers.size, 0);
 });
 
+test("an HTTP 200 body carrying an upstream 500 is retried instead of cached empty", async () => {
+  let attempts = 0;
+  const h = harness(() => ++attempts < 3
+    ? { ok: true, json: async () => ({ status: 500, type: "UpstreamException", message: "temporary failure" }) }
+    : success([{ title: "Recovered episode" }]));
+  const request = h.context.fetchJikanJson("/anime/20/episodes");
+  await h.advance(1950);
+  assert.equal((await request).data[0].title, "Recovered episode");
+  assert.equal(attempts, 3);
+  assert.equal(h.timers.size, 0);
+});
+
 test("repeated HTTP failures stop after three attempts", async () => {
   const h = harness(() => ({ ok: false, status: 504 }));
   const request = assert.rejects(h.context.fetchJikanJson("/anime/1/full"), { status: 504 });

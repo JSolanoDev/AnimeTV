@@ -8,6 +8,7 @@ const ROOT = process.argv[2] || ".";
 const src = fs.readFileSync(ROOT + "/client.js", "utf8");
 const appCss = fs.readFileSync(ROOT + "/styles.css", "utf8");
 const playerCss = fs.readFileSync(ROOT + "/player/player.css", "utf8");
+const playerJs = fs.readFileSync(ROOT + "/player/player.js", "utf8");
 
 const start = src.indexOf("const PLAYER_POSTER_MAX_LENGTH");
 if (start < 0) { console.error("MISS PLAYER_POSTER_MAX_LENGTH"); process.exit(1); }
@@ -61,6 +62,12 @@ check("compact player labels obey both corner insets",
   /\.ztv-floating-label\s*\{[\s\S]*?width:\s*auto;/.test(playerCss), true);
 check("narrow controls reserve room for fullscreen",
   /@media \(max-width:\s*560px\)[\s\S]*?\.art-control-rewind-10,[\s\S]*?display:\s*none\s*!important;/.test(playerCss), true);
+check("portrait phones request native fullscreen before the Artplayer fallback",
+  playerJs.indexOf("request.call(player)") < playerJs.indexOf("art.fullscreen = true", playerJs.indexOf("const enterPortraitFullscreen")), true);
+check("playing video retries fullscreen when the phone turns portrait",
+  /orientationchange[\s\S]*?!art\.video\.paused[\s\S]*?enterPortraitFullscreen\(\)/.test(playerJs), true);
+check("phone titles are one compact ellipsized line",
+  /\.art-mobile \.ztv-title-block h1\s*\{[\s\S]*?font-size:\s*0\.82rem;[\s\S]*?text-overflow:\s*ellipsis;[\s\S]*?white-space:\s*nowrap;/.test(playerCss), true);
 check("source resolution uses the current player loader without provider copy",
   /class="ztv-stream-loader"[\s\S]*?Loading stream\.\.\.[\s\S]*?:\s*`<div class="play-symbol"/.test(src), true);
 check("source resolution loader stays compact and quick",
