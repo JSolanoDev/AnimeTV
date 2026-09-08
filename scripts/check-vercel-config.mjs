@@ -85,6 +85,16 @@ if (failed) {
 }
 console.log(`  PASS  ${FILE} keys are all supported by Vercel`);
 
+const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+const reservedBuild = String(packageJson.scripts?.["vercel-build"] || "").trim();
+const configuredBuild = String(config.buildCommand || "").trim();
+if (reservedBuild && /(?:^|\s)npm\s+run\s+vercel-build(?:\s|$)/i.test(configuredBuild)) {
+  console.log("  FAIL  buildCommand repeats the reserved vercel-build lifecycle script");
+  console.log("        Vercel runs both, and the second build can delete dist while the first is uploading it.");
+  process.exit(1);
+}
+console.log("  PASS  production build has one owner (no duplicate vercel-build invocation)");
+
 const catalogHeaderEntry = (config.headers || []).find((entry) => entry.source === "/api/catalog");
 const catalogHeaders = new Map((catalogHeaderEntry?.headers || []).map((entry) => [entry.key.toLowerCase(), entry.value]));
 const catalogCacheControl = catalogHeaders.get("cache-control") || "";
