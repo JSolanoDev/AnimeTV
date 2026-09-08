@@ -765,7 +765,30 @@ const ImageResolver = (function () {
         SeasonNormalization.parseTitle(anime.romajiTitle || anime.title || "").seasonNumber <= 1;
       const incompleteArcs = continuous && expectedEpisodes > 100 &&
         Object.keys(cached?.episodesByNum || {}).length < expectedEpisodes;
-      const cachedStale = cached && !isMovie && (cachedStillCount === 0 || incompleteArcs);
+      const sourceEpisodeIds = Array.isArray(anime.sourceEpisodeIds)
+        ? anime.sourceEpisodeIds
+          .map(Number)
+          .filter((number) => Number.isFinite(number) && number >= 0)
+          .map((number) => number === 0 ? 1 : number)
+        : [];
+      const newestPlayableEpisode = Math.max(
+        0,
+        Number(anime.sourceEpisodeCount) || 0,
+        ...sourceEpisodeIds
+      );
+      const newestCachedMetadata = newestPlayableEpisode
+        ? cached?.episodesByNum?.[newestPlayableEpisode]
+        : null;
+      const missingNewestMetadata = newestPlayableEpisode > 0 && !(
+        newestCachedMetadata?.title
+        || newestCachedMetadata?.thumbnail
+        || cached?.episodeStills?.[newestPlayableEpisode]
+      );
+      const cachedStale = cached && !isMovie && (
+        cachedStillCount === 0
+        || incompleteArcs
+        || missingNewestMetadata
+      );
       if (cached && !cachedStale && (!trustedTmdbId || Number(cached.tmdbId) === Number(trustedTmdbId))) {
         applyResolvedMatch(anime, cached);
         anime._tmdbResolved = true;

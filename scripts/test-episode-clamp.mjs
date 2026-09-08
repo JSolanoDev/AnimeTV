@@ -34,6 +34,7 @@ const code = [
   slice("function getSeasonEpisodeLimit(", "\nfunction "),
   slice("function clampSeasonEpisodes(", "\nfunction "),
   slice("function mergeAiredEpisodeMetadata(", "\n// Strip a leading"),
+  slice("function expectedPlayableMetadataEpisode(", "\nasync function fetchAniListShowExtras"),
   slice("function repairEpisodeGaps(", "\nfunction ")
 ].join("\n");
 
@@ -50,6 +51,8 @@ const getSeasonEpisodeLimit = vm.runInContext("getSeasonEpisodeLimit", ctx);
 const clampSeasonEpisodes = vm.runInContext("clampSeasonEpisodes", ctx);
 const mergeAiredEpisodeMetadata = vm.runInContext("mergeAiredEpisodeMetadata", ctx);
 const repairEpisodeGaps = vm.runInContext("repairEpisodeGaps", ctx);
+const expectedPlayableMetadataEpisode = vm.runInContext("expectedPlayableMetadataEpisode", ctx);
+const showExtrasIncludeEpisode = vm.runInContext("showExtrasIncludeEpisode", ctx);
 
 const rows = [];
 const check = (name, got, want) => {
@@ -121,6 +124,12 @@ check("an airing show with no signal at all is not clamped",
   getSeasonEpisodeLimit({ status: "RELEASING" }, {}), null);
 check("nextAiring still caps a mid-air season",
   getSeasonEpisodeLimit({ status: "RELEASING", nextAiringEpisodeNumber: 12, latestAiredEp: 11 }, {}), 11);
+check("metadata refresh targets the newest confirmed provider episode",
+  expectedPlayableMetadataEpisode({ sourceEpisodeCount: 10, sourceEpisodeIds: [1, 2, 11] }), 11);
+check("episode zero metadata is displayed as episode one",
+  expectedPlayableMetadataEpisode({ sourceEpisodeCount: 1, sourceEpisodeIds: [0] }), 1);
+check("metadata cache detects a missing new episode",
+  showExtrasIncludeEpisode({ episodes: [{ episode: 10 }] }, 11), false);
 
 /* ── empty metadata changes nothing ───────────────────────────────────────── */
 {
@@ -166,6 +175,19 @@ check("nextAiring still caps a mid-air season",
   check("a zero floor behaves exactly as before", repairEpisodeGaps(one, 1, 0).length, 1);
   check("a corrupt floor cannot allocate without bound", repairEpisodeGaps(one, 1, 1e9).length, 2000);
   check("an empty list with a floor still fills", repairEpisodeGaps([], 1, 12).length, 12);
+}
+
+/* -- a newly confirmed provider episode is playable while metadata catches up */
+{
+  const filled = repairEpisodeGaps(
+    [{ episode: 1, title: "First" }],
+    1,
+    2,
+    { animeAv1Slug: "new-release" }
+  );
+  check("a provider-backed new row falls back to its episode number", filled[1].title, "Episode 2");
+  check("a provider-backed new row stays resolvable", filled[1].needsResolve, true);
+  check("a provider-backed new row is not labeled unavailable", filled[1].unavailable, false);
 }
 
 

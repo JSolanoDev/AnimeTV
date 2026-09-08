@@ -682,7 +682,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=764`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=765`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2636,6 +2636,9 @@ function applyAnimeAv1LatestEpisodeToShow(show, item, observedAt = Date.now()) {
 
   const { providerEpisodeId, displayEpisode } = identity;
   const previousIds = Array.isArray(show.sourceEpisodeIds) ? show.sourceEpisodeIds : [];
+  const isNewProviderEpisode = !previousIds
+    .map(Number)
+    .some((number) => Number.isFinite(number) && number === providerEpisodeId);
   const sourceEpisodeIds = [...new Set([
     ...previousIds.map(Number).filter((number) => Number.isFinite(number) && number >= 0),
     providerEpisodeId
@@ -2678,6 +2681,15 @@ function applyAnimeAv1LatestEpisodeToShow(show, item, observedAt = Date.now()) {
     show.sourceUnavailableEpisodeIds = show.sourceUnavailableEpisodeIds
       .map(Number)
       .filter((number) => Number.isFinite(number) && number >= 0 && number !== providerEpisodeId);
+  }
+
+  // A newly published provider route can arrive before the daily metadata
+  // caches do. Let the normal background hydrators check specifically for this
+  // episode again; complete caches remain untouched.
+  if (isNewProviderEpisode) {
+    show._metadataPreloadComplete = false;
+    show._extrasTried = false;
+    delete show._tmdbResolved;
   }
 
   // A normalized catalog row ordinarily owns one provider season. Keep that
@@ -3914,7 +3926,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=764";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=765";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4540,6 +4552,8 @@ const _showExtrasInFlight = new Map();
 // by its canonical catalog twin, then replay Season 1 titles onto a later season.
 const SHOW_EXTRAS_CACHE_PREFIX = "zenkaitv:show-extras:v3:";
 const SHOW_EXTRAS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const SHOW_EXTRAS_MISSING_EPISODE_RETRY_MS = 5 * 60 * 1000;
+const _showExtrasMissingEpisodeAttemptAt = new Map();
 const ANIME_METADATA_CACHE_PREFIX = "zenkaitv:anime-metadata:v2:";
 const ANIME_METADATA_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -4972,23 +4986,45 @@ function cleanEpisodeTitle(raw, num) {
   return t || `Episode ${num}`;
 }
 
+function expectedPlayableMetadataEpisode(show = {}) {
+  const providerEpisodes = Array.isArray(show.sourceEpisodeIds)
+    ? show.sourceEpisodeIds
+      .map(Number)
+      .filter((number) => Number.isFinite(number) && number >= 0)
+      .map((number) => number === 0 ? 1 : number)
+    : [];
+  return Math.max(0, Number(show.sourceEpisodeCount) || 0, ...providerEpisodes);
+}
+
+function showExtrasIncludeEpisode(data, expectedEpisode) {
+  if (!expectedEpisode) return true;
+  return Array.isArray(data?.episodes) && data.episodes.some((episode) =>
+    Number(episode?.episode ?? episode?.number) === expectedEpisode
+  );
+}
+
 async function fetchAniListShowExtras(show) {
   const id = show && show.anilistId;
   const malId = show && show.malId;
   if (!id && !malId) return;
   const key = String(id || `mal-${malId}`);
-  if (_showExtrasCache.has(key)) { applyAniListExtras(show, _showExtrasCache.get(key)); return; }
-  const stored = readShowExtrasCache(key);
+  const expectedEpisode = expectedPlayableMetadataEpisode(show);
+  const memoryCached = _showExtrasCache.get(key);
+  const stored = memoryCached || readShowExtrasCache(key);
   if (stored) {
     _showExtrasCache.set(key, stored);
     applyAniListExtras(show, stored);
-    return stored;
+    if (showExtrasIncludeEpisode(stored, expectedEpisode)) return stored;
   }
   if (_showExtrasInFlight.has(key)) {
     const data = await _showExtrasInFlight.get(key);
     if (data) applyAniListExtras(show, data);
     return data;
   }
+  const missingEpisodeKey = `${key}:${expectedEpisode}`;
+  const lastMissingAttempt = _showExtrasMissingEpisodeAttemptAt.get(missingEpisodeKey) || 0;
+  if (stored && Date.now() - lastMissingAttempt < SHOW_EXTRAS_MISSING_EPISODE_RETRY_MS) return stored;
+  if (expectedEpisode) _showExtrasMissingEpisodeAttemptAt.set(missingEpisodeKey, Date.now());
 
   const request = (async () => {
     const [aniResp, jikanResp] = await Promise.allSettled([
@@ -4996,7 +5032,11 @@ async function fetchAniListShowExtras(show) {
       // browser is always a CORS failure. /api/anilist/media now carries
       // bannerImage and streamingEpisodes for exactly this.
       id ? fetchWithTimeout(`/api/anilist/media?id=${encodeURIComponent(id)}`, {}, 8000).then(r => r.json()) : Promise.resolve(null),
-      malId ? fetchWithTimeout(`/api/jikan/episodes?id=${encodeURIComponent(malId)}`, {}, 22000).then(r => r.json()) : Promise.resolve(null)
+      malId ? fetchWithTimeout(
+        `/api/jikan/episodes?id=${encodeURIComponent(malId)}${expectedEpisode ? `&episode=${encodeURIComponent(expectedEpisode)}` : ""}`,
+        {},
+        22000
+      ).then(r => r.json()) : Promise.resolve(null)
     ]);
 
     const media = (aniResp.status === "fulfilled" && aniResp.value && !aniResp.value.unavailable)
@@ -5039,6 +5079,9 @@ async function fetchAniListShowExtras(show) {
 
     _showExtrasCache.set(key, data);
     writeShowExtrasCache(key, data);
+    if (showExtrasIncludeEpisode(data, expectedEpisode)) {
+      _showExtrasMissingEpisodeAttemptAt.delete(missingEpisodeKey);
+    }
     return data;
   })();
   _showExtrasInFlight.set(key, request);
@@ -15975,9 +16018,10 @@ function repairEpisodeGaps(episodes = [], seasonNumber = 1, knownAired = 0, show
     const episode = index + 1;
     if (!byNumber.has(episode)) console.warn(`Missing episode ${episode} detected`);
     const providerEpisodeOffset = Number(show.providerEpisodeOffset) || 0;
+    const canResolveFromProvider = Boolean(show.animeAv1Slug || show.providerBaseTitle);
     return byNumber.get(episode) || {
       id: `missing-s${seasonNumber}-e${episode}`,
-      title: "Not available yet",
+      title: canResolveFromProvider ? `Episode ${episode}` : "Not available yet",
       season: normalizedSeason,
       episode,
       canonicalSeason: normalizedSeason,
@@ -15987,11 +16031,11 @@ function repairEpisodeGaps(episodes = [], seasonNumber = 1, knownAired = 0, show
       providerEpisodeId: providerEpisodeOffset + episode,
       providerAnimeId: show.providerAnimeId || show.animeAv1Slug || show.id || null,
       providerAnimeSlug: show.animeAv1Slug || "",
-      needsResolve: Boolean(show.animeAv1Slug || show.providerBaseTitle),
-      locked: !(show.animeAv1Slug || show.providerBaseTitle),
-      missing: !(show.animeAv1Slug || show.providerBaseTitle),
-      unavailable: !(show.animeAv1Slug || show.providerBaseTitle),
-      server: show.animeAv1Slug || show.providerBaseTitle ? "AnimeAV1" : "Missing from source"
+      needsResolve: canResolveFromProvider,
+      locked: !canResolveFromProvider,
+      missing: !canResolveFromProvider,
+      unavailable: !canResolveFromProvider,
+      server: canResolveFromProvider ? "AnimeAV1" : "Missing from source"
     };
   });
   return [...specialEpisodes, ...repaired].sort((a, b) => getCanonicalEpisodeNumber(a, 0) - getCanonicalEpisodeNumber(b, 0));
@@ -18501,7 +18545,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=764");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=765");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

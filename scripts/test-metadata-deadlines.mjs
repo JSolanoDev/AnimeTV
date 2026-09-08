@@ -208,6 +208,41 @@ test("successful episode pagination still returns every page", async () => {
   assert.equal(response.body.pages, 3);
 });
 
+test("a fresh episode cache refreshes when it does not include the confirmed release", async () => {
+  const h = harness(() => ({ ok: true, json: async () => ({
+    data: [{ mal_id: 2, title: "New episode" }],
+    pagination: { last_visible_page: 1 }
+  }) }));
+  h.context.jikanEpisodeCache.set("1", {
+    data: [{ episode: 1, title: "Cached episode" }],
+    ts: 100000
+  });
+  const response = {};
+  const request = h.context.handleJikanEpisodes(
+    new URL("https://app.example.test/api/jikan/episodes?id=1&episode=2"),
+    response
+  );
+  await h.advance(1);
+  await request;
+  assert.equal(h.calls.length, 1);
+  assert.equal(response.body.data[0].episode, 2);
+});
+
+test("a fresh episode cache remains fast when it includes the confirmed release", async () => {
+  const h = harness(() => { throw new Error("upstream should not be called"); });
+  h.context.jikanEpisodeCache.set("1", {
+    data: [{ episode: 2, title: "Cached new episode" }],
+    ts: 100000
+  });
+  const response = {};
+  await h.context.handleJikanEpisodes(
+    new URL("https://app.example.test/api/jikan/episodes?id=1&episode=2"),
+    response
+  );
+  assert.equal(h.calls.length, 0);
+  assert.equal(response.body.cached, true);
+});
+
 for (const [handler, path] of [["handleJikanFull", "full?id=1"], ["handleJikanSearch", "search?q=Example"]]) {
   test(`${handler} treats timeouts as unavailable, not missing titles`, async () => {
     const h = harness(never);

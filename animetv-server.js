@@ -11628,11 +11628,18 @@ async function handleJikanSearch(url, response) {
 async function handleJikanEpisodes(url, response) {
   const malId = url.searchParams.get("id");
   if (!malId) return sendJson(response, { error: "Missing ID" }, 400);
+  const requestedEpisode = Number(url.searchParams.get("episode"));
+  const expectedEpisode = Number.isFinite(requestedEpisode) && requestedEpisode > 0
+    ? requestedEpisode
+    : null;
 
   const episodesKey = `episodes:${malId}`;
   const cached = jikanEpisodeCache.get(String(malId));
   try {
-    if (cached && Date.now() - cached.ts < JIKAN_EPISODE_CACHE_TTL_MS) {
+    const cacheHasExpectedEpisode = !expectedEpisode || cached?.data?.some((episode) =>
+      Number(episode?.episode) === expectedEpisode
+    );
+    if (cached && Date.now() - cached.ts < JIKAN_EPISODE_CACHE_TTL_MS && cacheHasExpectedEpisode) {
       return sendJson(response, { data: cached.data, cached: true });
     }
     if (jikanCoolingDown(episodesKey)) {

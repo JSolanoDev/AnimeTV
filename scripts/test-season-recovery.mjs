@@ -379,6 +379,44 @@ test("TMDB absolute numbering is not offset twice across arcs", async () => {
   assert.equal(show.tmdbEpisodesByNum[160], undefined);
 });
 
+test("TMDB refreshes a fresh cache that is missing the newest playable episode", async () => {
+  const calls = [];
+  const c = context(async url => {
+    calls.push(url);
+    const body = url.includes("/tv?")
+      ? { show: { id: 99, poster_path: "/poster.jpg", seasons: [{ season_number: 1, name: "Season 1", episode_count: 2 }] } }
+      : { season: { episodes: [
+          { episode_number: 1, name: "First", air_date: "2026-01-01", still_path: "/first.jpg" },
+          { episode_number: 2, name: "Fresh title", air_date: "2026-01-08", still_path: "/fresh.jpg" }
+        ] } };
+    return { ok: true, json: async () => body };
+  });
+  c.localStorage.setItem("zenkaitv:tmdb-match:v18:123", JSON.stringify({
+    savedAt: Date.now(),
+    data: {
+      tmdbId: 99,
+      confidence: 100,
+      showPoster: "https://image.test/poster.jpg",
+      episodeStills: { 1: "https://image.test/first.jpg" },
+      episodesByNum: { 1: { episode: 1, title: "First" } },
+      seasons: [{ season_number: 1, name: "Season 1", episode_count: 2 }]
+    }
+  }));
+  const show = {
+    id: "latest-show",
+    anilistId: 123,
+    tmdbId: 99,
+    title: "Latest Show",
+    format: "TV",
+    sourceEpisodeCount: 2,
+    sourceEpisodeIds: [1, 2]
+  };
+  await c.resolver.hydrateTmdbImages(show);
+  assert.ok(calls.some(url => url.includes("/api/tmdb/season")));
+  assert.equal(show.tmdbEpisodesByNum[2].title, "Fresh title");
+  assert.match(show.tmdbEpisodesByNum[2].thumbnail, /fresh\.jpg$/);
+});
+
 test("named season mapping does not reuse the base season or confuse arc numbering", () => {
   const c = context();
   const result = c.resolver.pickTmdbSeason({ title: "Link Click Season 3", romajiTitle: "Shiguang Dailiren III", year: 2026 }, { seasons: [
