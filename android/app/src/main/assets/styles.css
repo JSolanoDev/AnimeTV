@@ -6659,6 +6659,18 @@ body.player-cinema-open .close-button {
   object-position: center 30%;
 }
 
+/* A catalog poster is useful fallback art, but it must not be stretched into a
+   full-width backdrop. Keep its native composition on the open right side of
+   the hero while the existing surface and text scrim carry the rest. */
+.carousel-backdrop-image.is-portrait-art {
+  box-sizing: border-box;
+  object-fit: scale-down;
+  object-position: right center;
+  padding: clamp(1rem, 3vh, 2.25rem) clamp(1.25rem, 5vw, 5rem)
+    clamp(1rem, 3vh, 2.25rem) clamp(42%, 50vw, 55%);
+  opacity: 0.78;
+}
+
 /* Keep loading cheap and visually quiet. The backdrop div is an app-colored
    surface; only the sharp image layer ever receives artwork. */
 .carousel-stage.is-backdrop-loading .carousel-backdrop {
@@ -6674,6 +6686,7 @@ body.player-cinema-open .close-button {
   position: absolute;
   inset: 0;
   z-index: 2;
+  box-sizing: border-box;
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
@@ -11874,6 +11887,37 @@ body.is-tv .topbar-auth {
   animation: calm-loader-track 1.7s cubic-bezier(0.65, 0, 0.35, 1) infinite;
 }
 
+/* A failed thumbnail is a navigation dot, not another loading state. This
+   remains clickable without leaving a row of animated empty cards onscreen. */
+.carousel-dot.is-artless {
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 50%;
+  background: rgba(17, 22, 36, 0.88);
+}
+
+.carousel-dot span.carousel-dot-fallback {
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+  background: transparent;
+}
+
+.carousel-dot span.carousel-dot-fallback::after {
+  content: none;
+  display: none;
+  animation: none;
+}
+
+.carousel-dot.is-artless.is-selected {
+  border-color: #30cde8;
+  background: rgba(22, 39, 56, 0.96);
+  box-shadow: 0 0 0 0.16rem rgba(48, 205, 232, 0.18);
+}
+
 .carousel-dot img {
   opacity: 1;
   animation: none;
@@ -12884,6 +12928,11 @@ main {
 
   .carousel-stage {
     padding: 1rem 0.95rem 4.7rem;
+  }
+
+  .carousel-backdrop-image.is-portrait-art {
+    padding: 0.85rem 0.65rem 0.85rem 42%;
+    opacity: 0.68;
   }
 
   .carousel-wait {

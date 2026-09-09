@@ -168,7 +168,8 @@ const mergedClientIdentity = normalizeContext.__testMergeShows([
   { id: "same-card-id", anilistId: 9253, title: "Steins;Gate", banner: "carousel.jpg", _paintedCarouselArtwork: "carousel.jpg", source: "AniList" },
   { id: "same-card-id", title: "Steins;Gate", banner: "fallback.jpg", source: "Local cache" }
 ]);
-check("Carousel uses the canonical cinematic URL", /const deliveredArt = art \? cinematicBackdropUrl\(art\)/.test(clientSource));
+check("Carousel uses the canonical cinematic URL for landscape art", /hasLandscapeBanner \? cinematicBackdropUrl\(art\)/.test(clientSource));
+check("Carousel never upscales a portrait fallback as a cinematic backdrop", /imageDeliveryUrl\(art, 342, 88\)/.test(clientSource));
 check("Detail sharp layer uses the canonical cinematic URL", /const optimized = url \? cinematicBackdropUrl\(url\)/.test(clientSource));
 check("Detail blur layer reuses the canonical cinematic URL", /const blurUrl = url \? cinematicBackdropUrl\(url\)/.test(clientSource));
 check("No separate 640px backdrop preview remains", !/imageDeliveryUrl\(url, 640, 70\)/.test(clientSource));

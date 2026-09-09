@@ -210,9 +210,12 @@ test("carousel loading conceals incomplete artwork and its selector", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
   assert.match(html, /class="carousel-wait" aria-hidden="true"/);
+  assert.match(css, /\.carousel-wait\s*\{[^}]*box-sizing: border-box;/);
   assert.match(css, /\.carousel-stage:is\(\.is-loading, \.is-backdrop-loading\) \.carousel-wait\s*\{[^}]*visibility: visible;[^}]*opacity: 1;/);
   assert.match(css, /\.carousel-stage\.is-backdrop-loading \.carousel-indicators\s*\{[^}]*visibility: hidden;[^}]*opacity: 0;/);
   assert.match(css, /body\.reduce-motion \.carousel-wait-track\s*\{[^}]*animation: none !important;/);
+  assert.match(css, /\.carousel-backdrop-image\.is-portrait-art\s*\{[^}]*object-fit: scale-down;/);
+  assert.match(css, /\.carousel-dot span\.carousel-dot-fallback::after\s*\{[^}]*content: none;[^}]*animation: none;/);
 });
 
 test("the anime detail view has visible, reduced-motion-safe hydration feedback", () => {

@@ -366,6 +366,7 @@ const carouselStage = document.querySelector("#carouselStage");
 const carouselIndicators = document.querySelector("#carouselIndicators");
 let carouselTimer = null;
 let _carouselIndicatorImagesReady = false;
+let _carouselIndicatorReadyArtwork = new Set();
 let _carouselIndicatorHydrationQueued = false;
 let _carouselIndicatorHydrationGeneration = 0;
 let lastInputWasPointer = false;
@@ -554,6 +555,7 @@ function resetCatalogModeControls() {
   if (typeof _carouselMemoId !== "undefined") _carouselMemoId = "";
   if (typeof _carouselDotsHtml !== "undefined") _carouselDotsHtml = null;
   if (typeof _carouselIndicatorImagesReady !== "undefined") _carouselIndicatorImagesReady = false;
+  if (typeof _carouselIndicatorReadyArtwork !== "undefined") _carouselIndicatorReadyArtwork = new Set();
   if (typeof _carouselIndicatorHydrationQueued !== "undefined") _carouselIndicatorHydrationQueued = false;
   if (typeof _carouselIndicatorHydrationGeneration !== "undefined") _carouselIndicatorHydrationGeneration += 1;
   if (carouselIndicators) {
@@ -712,7 +714,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=778`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=781`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3899,6 +3901,7 @@ function resetReleaseCarouselLineup() {
   _carouselPaintedShow = null;
   _carouselDotsHtml = null;
   _carouselIndicatorImagesReady = false;
+  _carouselIndicatorReadyArtwork = new Set();
   _carouselIndicatorHydrationQueued = false;
   _carouselIndicatorHydrationGeneration += 1;
   if (carouselIndicators) {
@@ -3974,7 +3977,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=778";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=781";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4030,13 +4033,22 @@ function renderCarousel() {
   // After one attempt we just fall back to the banner.
   const resolving = !hiResArt && !show._tmdbResolved && !show._carouselResolveTried && typeof enrichTmdbImages === "function";
   if (resolving) {
+    // The artwork lookup is part of loading too. Without this class, a restored
+    // low-resolution release image and the selector remain visible for the full
+    // TMDB request, even though the final backdrop has not been chosen yet.
+    carouselStage.classList.add("is-backdrop-loading");
     show._carouselResolveTried = true;
-    enrichTmdbImages(show, { refresh: false }).then(() => {
+    const repaintResolvedArtwork = () => {
       if (state.route === "home" && String(items[state.carouselIndex]?.id || "") === String(show.id)) {
         _carouselPaintedId = null; // force a repaint now that the backdrop resolved
         renderCarousel();
       }
-    }).catch(() => {});
+    };
+    // A failed lookup still needs a repaint. _carouselResolveTried prevents a
+    // retry loop, and the next render selects the source artwork fallback.
+    enrichTmdbImages(show, { refresh: false })
+      .then(repaintResolvedArtwork, repaintResolvedArtwork)
+      .catch(() => {});
   }
   // Warm only the immediate next slide and preload its hero image. It has the
   // full seven-second dwell of the current slide to finish; warming three future
@@ -4052,9 +4064,12 @@ function renderCarousel() {
       else enrichTmdbImages(next, { refresh: false }).then(() => preloadHeroImage(next)).catch(() => {});
     }
   }
-  const hasLandscapeBanner = Boolean(hiResArt || show.banner || show.backdrop || show.heroImage || show.wideImage || show.landscapeImage);
-  const art = hiResArt || (resolving ? "" : carouselArtworkOrPoster(show));
-  const deliveredArt = art ? cinematicBackdropUrl(art) : "";
+  const landscapeArt = hiResArt || getCarouselArtwork(show);
+  const hasLandscapeBanner = Boolean(landscapeArt);
+  const art = landscapeArt || (resolving ? "" : carouselArtworkOrPoster(show));
+  const deliveredArt = art
+    ? (hasLandscapeBanner ? cinematicBackdropUrl(art) : imageDeliveryUrl(art, 342, 88))
+    : "";
   show._paintedCarouselArtwork = art || "";
   carouselBackdrop.classList.toggle("has-banner", Boolean(art));
   carouselBackdrop.classList.toggle("is-portrait-blur", Boolean(art && !hasLandscapeBanner));
@@ -4124,7 +4139,7 @@ function renderCarousel() {
       // transparent and fading back in a moment later is a visible flash.
       carouselBackdropImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
       carouselBackdropImage.removeAttribute("srcset");
-      carouselStage.classList.remove("is-backdrop-loading");
+      if (!resolving) carouselStage.classList.remove("is-backdrop-loading");
     }
   }
   if (art) {
@@ -4168,6 +4183,10 @@ function renderCarousel() {
 
 let _carouselDotsHtml = null;
 
+function carouselIndicatorArtwork(show = {}) {
+  return getCardPosterCandidates(show)[0] || carouselArtworkOrPoster(show);
+}
+
 function renderCarouselIndicators(items) {
   if (!carouselIndicators) return;
   if (!_carouselIndicatorImagesReady) {
@@ -4184,11 +4203,17 @@ function renderCarouselIndicators(items) {
 
   carouselIndicators.hidden = false;
   carouselIndicators.setAttribute("aria-busy", "false");
-  const dotsHtml = items.slice(0, 8).map((show, index) => `
-    <button class="carousel-dot focusable" data-carousel-index="${index}" aria-label="Show ${escapeHtml(getShowTitle(show))}">
-      ${carouselArtworkOrPoster(show) ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(carouselArtworkOrPoster(show), 180, 72))}" alt="" width="180" height="101" loading="lazy" decoding="async" fetchpriority="low">` : "<span></span>"}
-    </button>
-  `).join("");
+  const dotsHtml = items.slice(0, 8).map((show, index) => {
+    const artwork = carouselIndicatorArtwork(show);
+    const artworkReady = Boolean(artwork && _carouselIndicatorReadyArtwork.has(artwork));
+    return `
+      <button class="carousel-dot focusable${artworkReady ? "" : " is-artless"}" data-carousel-index="${index}" aria-label="Show ${escapeHtml(getShowTitle(show))}">
+        ${artworkReady
+          ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(artwork, 180, 72))}" alt="" width="180" height="101" loading="lazy" decoding="async" fetchpriority="low">`
+          : `<span class="carousel-dot-fallback" aria-hidden="true">${index + 1}</span>`}
+      </button>
+    `;
+  }).join("");
 
   // The lineup/artwork controls DOM identity; selection is a class update. This
   // keeps all eight decoded thumbnail nodes alive during every auto-advance.
@@ -4222,12 +4247,15 @@ function scheduleCarouselIndicatorHydration(items = []) {
   const hydrate = async () => {
     if (hydrationStarted || _carouselIndicatorImagesReady || generation !== _carouselIndicatorHydrationGeneration) return;
     hydrationStarted = true;
-    const artwork = [...new Set(items.slice(0, 8).map((show) => carouselArtworkOrPoster(show)).filter(Boolean))];
+    const artwork = [...new Set(items.slice(0, 8).map((show) => carouselIndicatorArtwork(show)).filter(Boolean))];
     // Start the same small URLs renderCarouselIndicators will use, but keep them
     // off-screen until decoded. The reveal becomes one clean paint and no extra
     // request is made because preloadArtworkImage shares the browser cache.
-    await Promise.allSettled(artwork.map((url) => preloadArtworkImage(url, 180, 72, false)));
+    const results = await Promise.allSettled(artwork.map((url) => preloadArtworkImage(url, 180, 72, false)));
     if (generation !== _carouselIndicatorHydrationGeneration) return;
+    _carouselIndicatorReadyArtwork = new Set(artwork.filter((url, index) => (
+      results[index]?.status === "fulfilled" && results[index].value === true
+    )));
     _carouselIndicatorImagesReady = true;
     _carouselIndicatorHydrationQueued = false;
     if (state.route === "home") renderCarousel();
@@ -18969,7 +18997,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=778");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=781");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
