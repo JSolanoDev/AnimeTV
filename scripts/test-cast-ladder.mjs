@@ -452,6 +452,22 @@ const TWO = [
     /isStreamTapeMedia \|\| upstream\.status === 206[\s\S]*?responseHeaders\["accept-ranges"\] = "bytes"/.test(server), true);
   check("15x. packed embed scripts are unpacked from the complete document",
     /const wholePacked = unpackPackedJs\(text\)/.test(server), true);
+
+  const rewriteStart = server.indexOf("function rewriteM3u8Playlist(");
+  const rewriteEnd = server.indexOf("async function handleTranslate(", rewriteStart);
+  const rewriteCtx = vm.createContext({ URL, URLSearchParams });
+  vm.runInContext(server.slice(rewriteStart, rewriteEnd), rewriteCtx);
+  const rewritten = vm.runInContext(`rewriteM3u8Playlist(${JSON.stringify([
+    "#EXTM3U",
+    '#EXT-X-KEY:METHOD=AES-128,URI="key.bin"',
+    "#EXTINF:6,",
+    "segment-1.ts",
+    ""
+  ].join("\n"))}, "https://cdn.example/hls/master.m3u8?token=abc", "sfastwish.com")`, rewriteCtx);
+  const rewrittenUris = String(rewritten).match(/\/api\/source\?[^"\n]+/g) || [];
+  check("15y. generic HLS keys and segments stay on the short-request relay", rewrittenUris.length, 2);
+  check("15z. rewritten HLS children preserve the provider Referer",
+    rewrittenUris.every((uri) => new URL(uri, "https://zenkaitv.com").searchParams.get("refererHost") === "sfastwish.com"), true);
 }
 
 /* 16. Nothing in the sender pretends it can ask the receiver about codecs. */
@@ -479,7 +495,7 @@ const TWO = [
     /media\?\.playerState \|\| remotePlayer\?\.playerState/.test(player), true);
 }
 
-/* 17. The parent prepares a direct, proxied TV fallback only on Cast request. */
+/* 17. The parent prepares a segmented, proxied TV fallback only on Cast request. */
 {
   const client = fs.readFileSync("client.js", "utf8");
   const backupStart = client.indexOf("const CAST_BACKUP_PREPARE_TIMEOUT_MS");
@@ -526,7 +542,13 @@ const TWO = [
         ? { url: "/api/source?url=https%3A%2F%2Fstreamtape.com%2Fget_video%3Fid%3Dabc&refererHost=streamtape.com", type: "mp4" }
         : { url: "https://a3.mp4upload.com:183/d/token/video.mp4", type: "mp4" };
     },
-    proxiedStreamUrl: (url) => { calls.push(["proxy", url]); return url; },
+    proxiedStreamUrl: (url, referer) => {
+      calls.push(["proxy", url, referer]);
+      const proxy = new URL("https://zenkaitv.com/api/source");
+      proxy.searchParams.set("url", url);
+      proxy.searchParams.set("refererHost", new URL(referer).host);
+      return proxy.href;
+    },
     streamTypeFromUrl: (url) => /\.m3u8(?:$|\?)/i.test(url) ? "hls" : "",
     buildCastCandidateList: () => [{ label: "AnimeAV1", url: "/api/source?url=av1", type: "hls" }],
     wait: () => new Promise(() => {}),
@@ -539,10 +561,11 @@ const TWO = [
   check("17. Cast preparation appends one fallback", prepared.length, 2);
   check("17b. exact AnimeAV1 slug and episode are requested", calls[0][1], "/api/jkanime/sources?slug=test-show&episode=1");
   check("17c. segmented HLS is resolved before progressive Streamtape", /sfastwish/.test(calls[1][1]), true);
-  check("17d. CORS-ready HLS stays direct for the receiver", prepared[1].url, "https://cdn.example/video/master.m3u8?token=abc");
+  check("17d. resolved HLS stays on the short-request media relay", new URL(prepared[1].url).pathname, "/api/source");
   check("17e. resolver is tightly bounded", calls[1][3], 3000);
   check("17f. the resolver's HLS type reaches the Cast ladder", prepared[1].type, "hls");
-  check("17g. direct HLS does not consume the Vercel media proxy", calls.some(([kind]) => kind === "proxy"), false);
+  check("17g. the relay preserves the embed host as Referer", new URL(prepared[1].url).searchParams.get("refererHost"), "sfastwish.com");
+  check("17g2. the original HLS URL stays nested in the relay", new URL(prepared[1].url).searchParams.get("url"), "https://cdn.example/video/master.m3u8?token=abc");
 
   castBackupSandbox.AdultMode.isAdultContent = () => true;
   const adult = await vm.runInContext("buildPreparedCastCandidateList()", backupContext);

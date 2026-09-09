@@ -712,7 +712,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=775`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=776`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3974,7 +3974,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=775";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=776";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -12295,11 +12295,11 @@ function isProxyableStreamUrl(url = "") {
   return /^https?:\/\//i.test(String(url || ""));
 }
 
-function proxiedStreamUrl(url = "") {
+function proxiedStreamUrl(url = "", refererUrl = "") {
   const resolved = resolveSourceEndpoint(url);
   if (isLocalSourceProxyUrl(resolved)) return localSourceProxyPath(resolved);
   if (!isProxyableStreamUrl(resolved) || location.protocol === "file:") return resolved;
-  const proxyHost = streamProxyHost(resolved);
+  const proxyHost = streamProxyHost(refererUrl || resolved);
   const proxy = new URL(LOCAL_SOURCE_PROXY_ENDPOINT, location.origin);
   proxy.searchParams.set("url", resolved);
   if (proxyHost) proxy.searchParams.set("refererHost", proxyHost);
@@ -12560,13 +12560,12 @@ async function buildCastBackupCandidate() {
       if (mediaUrl.port && mediaUrl.port !== "80" && mediaUrl.port !== "443") continue;
     } catch (error) { continue; }
     const resolvedType = String(resolved.type || "").toLowerCase();
-    // Streamwish/Vidhide HLS already exposes CORS on the master, variants, and
-    // segments. Give that URL to the receiver directly so playback does not
-    // consume one Vercel function invocation per segment. MP4 hosts still use
-    // their existing proxy path because their tokens/referers can be host-bound.
-    const playbackUrl = resolvedType === "hls"
-      ? new URL(resolved.url, location.origin).href
-      : proxiedStreamUrl(resolved.url);
+    // These HLS tokens are resolved from Vercel's network and may be tied to its
+    // IP/ASN. They also do not consistently expose CORS to the Cast receiver.
+    // The existing source relay rewrites each playlist URI back through one
+    // short-lived request, avoiding both the token mismatch and the 30-second
+    // timeout that made a single progressive MP4 relay stall mid-playback.
+    const playbackUrl = proxiedStreamUrl(resolved.url, embedUrl);
     const type = streamTypeFromUrl(playbackUrl)
       || (resolvedType === "hls" ? "hls" : (resolvedType === "mp4" ? "file" : ""));
     if (!playbackUrl || !type) continue;
@@ -18970,7 +18969,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=775");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=776");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
