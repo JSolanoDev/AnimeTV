@@ -716,7 +716,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=783`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=784`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3978,7 +3978,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=783";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=784";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -12576,7 +12576,8 @@ function buildCastCandidateList() {
 }
 
 const CAST_BACKUP_PREPARE_TIMEOUT_MS = 6000;
-const CAST_EMBED_RESOLVE_TIMEOUT_MS = 3000;
+const CAST_ANIMEAV1_PREPARE_TIMEOUT_MS = 7500;
+const CAST_EMBED_RESOLVE_TIMEOUT_MS = 5000;
 
 function castBackupEpisodeNumber(show, episode, verifiedFallback, usingJkAnimeSlug) {
   const raw = verifiedFallback?.providerEpisodeId
@@ -12603,6 +12604,64 @@ function castEmbedPreference(source = {}) {
   if (identity.includes("streamtape")) return 8;
   if (identity.includes("mp4upload")) return 9;
   return 10 + (Number(source.sourceRank) || 0);
+}
+
+async function buildAnimeAv1CastCandidate() {
+  const show = state.activeShow;
+  const episode = state.activeEpisode?.episode;
+  if (!show || !episode) return null;
+  if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) return null;
+  if (!isScraperEnabled("animeav1")) return null;
+
+  const slug = episode.providerAnimeSlug
+    || show.animeAv1Slug
+    || animeAv1CatalogSlugForShow(show);
+  if (!slug) return null;
+  const rawEpisodeNumber = getInventoryProviderEpisodeId(show, episode)
+    ?? episode.providerEpisodeId
+    ?? getCanonicalEpisodeNumber(episode, 1);
+  const episodeNumber = Number(rawEpisodeNumber);
+  if (!Number.isFinite(episodeNumber) || episodeNumber < 0) return null;
+
+  let payload;
+  try {
+    const endpoint = `/api/animeav1/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(episodeNumber)}&variant=SUB`;
+    const response = await fetchWithTimeout(endpoint, { cache: "default" }, 4000);
+    if (!response.ok) return null;
+    payload = await response.json();
+  } catch (error) {
+    console.warn("AnimeAV1 Cast mirror lookup failed:", error);
+    return null;
+  }
+  if (!payload?.ok || !Array.isArray(payload.castSources)) return null;
+
+  const embeds = payload.castSources
+    .filter((source) => source?.type !== "direct" && (source?.externalUrl || source?.url))
+    .sort((a, b) => castEmbedPreference(a) - castEmbedPreference(b))
+    .slice(0, 6);
+  const siteReferer = payload.episodeUrl
+    || `https://animeav1.com/media/${encodeURIComponent(slug)}/${encodeURIComponent(episodeNumber)}`;
+
+  for (const source of embeds) {
+    const embedUrl = source.externalUrl || source.url;
+    const resolved = await attemptResolveEmbed(embedUrl, siteReferer, CAST_EMBED_RESOLVE_TIMEOUT_MS);
+    if (!resolved?.url) continue;
+    try {
+      const mediaUrl = new URL(resolved.url, location.origin);
+      if (mediaUrl.port && mediaUrl.port !== "80" && mediaUrl.port !== "443") continue;
+    } catch (error) { continue; }
+    const playbackUrl = proxiedStreamUrl(resolved.url, resolved.mediaReferer || embedUrl);
+    const resolvedType = String(resolved.type || "").toLowerCase();
+    const type = streamTypeFromUrl(playbackUrl)
+      || (resolvedType === "hls" ? "hls" : (resolvedType === "mp4" ? "file" : ""));
+    if (!playbackUrl || !type) continue;
+    return {
+      label: `AnimeAV1 - ${source.provider || "Cast mirror"}`,
+      url: playbackUrl,
+      type
+    };
+  }
+  return null;
 }
 
 async function buildCastBackupCandidate() {
@@ -12657,7 +12716,7 @@ async function buildCastBackupCandidate() {
     // The existing source relay rewrites each playlist URI back through one
     // short-lived request, avoiding both the token mismatch and the 30-second
     // timeout that made a single progressive MP4 relay stall mid-playback.
-    const playbackUrl = proxiedStreamUrl(resolved.url, embedUrl);
+    const playbackUrl = proxiedStreamUrl(resolved.url, resolved.mediaReferer || embedUrl);
     const type = streamTypeFromUrl(playbackUrl)
       || (resolvedType === "hls" ? "hls" : (resolvedType === "mp4" ? "file" : ""));
     if (!playbackUrl || !type) continue;
@@ -12672,12 +12731,19 @@ async function buildCastBackupCandidate() {
 
 async function buildPreparedCastCandidateList() {
   const base = buildCastCandidateList();
-  const backup = await Promise.race([
-    buildCastBackupCandidate(),
-    wait(CAST_BACKUP_PREPARE_TIMEOUT_MS).then(() => null)
+  const [animeAv1Backup, jkAnimeBackup] = await Promise.all([
+    Promise.race([
+      buildAnimeAv1CastCandidate(),
+      wait(CAST_ANIMEAV1_PREPARE_TIMEOUT_MS).then(() => null)
+    ]),
+    Promise.race([
+      buildCastBackupCandidate(),
+      wait(CAST_BACKUP_PREPARE_TIMEOUT_MS).then(() => null)
+    ])
   ]);
-  if (!backup) return base;
-  return [...base, backup].slice(0, 4);
+  const backups = [animeAv1Backup, jkAnimeBackup].filter(Boolean);
+  if (!backups.length) return base;
+  return [...base.slice(0, Math.max(0, 4 - backups.length)), ...backups].slice(0, 4);
 }
 
 // The poster travels in the player iframe's QUERY STRING, so its length is
@@ -16764,7 +16830,12 @@ async function attemptResolveEmbed(embedUrl, siteReferer = "", timeoutMs = 7000)
     if (!response.ok) return null;
     const payload = await response.json();
     if (payload && payload.ok && payload.url) {
-      return { url: payload.url, referer: payload.referer, type: payload.type };
+      return {
+        url: payload.url,
+        referer: payload.referer,
+        mediaReferer: payload.mediaReferer,
+        type: payload.type
+      };
     }
   } catch (error) {
     console.warn("Embed resolution failed:", error);
@@ -19061,7 +19132,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=783");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=784");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

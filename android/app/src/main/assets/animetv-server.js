@@ -8060,6 +8060,52 @@ function classifyStreamUrl(raw) {
   if (/\.mp4(?=[?#/"'\s]|$)/i.test(url)) return { url, type: "mp4" };
   return null;
 }
+
+function decodeVoePlayerConfig(html = "") {
+  const text = String(html || "");
+  const scripts = text.matchAll(/<script\b[^>]*type=["']application\/json["'][^>]*>([\s\S]*?)<\/script>/gi);
+  for (const script of scripts) {
+    try {
+      const payload = JSON.parse(script[1].trim());
+      const encoded = Array.isArray(payload) ? payload[0] : "";
+      if (typeof encoded !== "string" || encoded.length < 32) continue;
+      const rot13 = encoded.replace(/[A-Za-z]/g, (character) => {
+        const start = character <= "Z" ? 65 : 97;
+        return String.fromCharCode(start + ((character.charCodeAt(0) - start + 13) % 26));
+      });
+      const compact = rot13
+        .replace(/@\$|\^\^|~@|%\?|\*~|!!|#&/g, "_")
+        .split("_")
+        .join("");
+      const shifted = Buffer.from(compact, "base64").toString("latin1");
+      const reversedBase64 = [...shifted]
+        .map((character) => String.fromCharCode(character.charCodeAt(0) - 3))
+        .join("")
+        .split("")
+        .reverse()
+        .join("");
+      const config = JSON.parse(Buffer.from(reversedBase64, "base64").toString("utf8"));
+      if (config && typeof config === "object") return config;
+    } catch {
+      // Other application/json blocks are unrelated player state.
+    }
+  }
+  return null;
+}
+
+function extractEmbedPageRedirect(html = "", baseUrl = "") {
+  const text = String(html || "");
+  const match = text.match(/window\.location(?:\.href)?\s*=\s*["'](https?:\/\/[^"']+)["']/i)
+    || text.match(/<meta\b[^>]*http-equiv=["']?refresh["']?[^>]*content=["'][^"']*url\s*=\s*([^"';\s>]+)[^"']*["']/i);
+  if (!match?.[1]) return "";
+  try {
+    const redirect = new URL(decodeHtmlEntities(match[1]), baseUrl || undefined);
+    return /^https?:$/i.test(redirect.protocol) ? redirect.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
 function extractStreamFromEmbed(html) {
   const text = String(html || "");
   // Streamtape disguises an embed page as /e/<id>/<name>.mp4, then assembles the
@@ -8076,6 +8122,24 @@ function extractStreamFromEmbed(html) {
       direct.searchParams.set("ip", match[3]);
       direct.searchParams.set("token", match[4]);
       return { url: direct.toString(), type: "mp4" };
+    }
+  }
+  // VOE keeps its real HLS URL in an encoded application/json block and places
+  // a harmless sample MP4 in ordinary JavaScript. Decode the player config
+  // before the generic scan so that sample can never win.
+  const voeConfig = decodeVoePlayerConfig(text);
+  if (voeConfig) {
+    const voeCandidates = [
+      voeConfig.source,
+      ...(Array.isArray(voeConfig.fallback) ? voeConfig.fallback : []),
+      voeConfig.direct_access_url
+    ];
+    for (const candidate of voeCandidates) {
+      const value = typeof candidate === "string"
+        ? candidate
+        : candidate?.file || candidate?.src || candidate?.url;
+      const stream = classifyStreamUrl(value);
+      if (stream) return stream;
     }
   }
   // Walk EVERY match of a pattern and return the first that survives
@@ -8174,18 +8238,28 @@ async function handleResolveEmbed(reqUrl, response) {
     const referer = customReferer && /^https?:\/\//i.test(customReferer)
       ? customReferer
       : `https://${host}/`;
-    const r = await fetchWithTimeout(target, {
-      headers: { ...GENERIC_CRAWL_HEADERS, Referer: referer }
-    }, HOSTED_RUNTIME ? 8000 : 12000);
-    if (!r.ok) throw new Error(`embed HTTP ${r.status}`);
-    const html = await r.text();
+    let resolvedTarget = target;
+    let requestReferer = referer;
+    let html = "";
+    for (let redirectCount = 0; redirectCount < 3; redirectCount += 1) {
+      const r = await fetchWithTimeout(resolvedTarget, {
+        headers: { ...GENERIC_CRAWL_HEADERS, Referer: requestReferer }
+      }, HOSTED_RUNTIME ? 8000 : 12000);
+      if (!r.ok) throw new Error(`embed HTTP ${r.status}`);
+      html = await r.text();
+      const redirect = extractEmbedPageRedirect(html, resolvedTarget);
+      if (!redirect || redirect === resolvedTarget) break;
+      requestReferer = resolvedTarget;
+      resolvedTarget = redirect;
+    }
     const stream = extractStreamFromEmbed(html);
     if (!stream) { sendJson(response, { ok: false, error: "No playable stream found in this embed." }); return; }
     sendJson(response, {
       ok: true,
-      url: resolvedEmbedPlaybackUrl(stream.url, target),
+      url: resolvedEmbedPlaybackUrl(stream.url, resolvedTarget),
       type: stream.type,
-      referer
+      referer,
+      mediaReferer: resolvedTarget
     }, 200, { "Cache-Control": "public, max-age=120" });
   } catch (error) {
     sendJson(response, { ok: false, error: `Resolve failed: ${error.message}` }, 502);
@@ -8699,6 +8773,7 @@ async function fetchAnimeAv1EpisodeSourcesDirect(slug, episode, variant = "SUB")
     ? Object.values(allDownloads).flat()
     : (allDownloads[selectedVariant] || []);
   const normalizedSources = normalizeAnimeAv1SourceList(sources, episodeUrl);
+  const normalizedCastSources = normalizeAnimeAv1SourceList(sources, episodeUrl, { includeEmbeds: true });
   const normalizedDownloads = normalizeAnimeAv1SourceList(downloads, episodeUrl, { downloads: true });
   return {
     ok: normalizedSources.length > 0,
@@ -8711,6 +8786,8 @@ async function fetchAnimeAv1EpisodeSourcesDirect(slug, episode, variant = "SUB")
     variants: Object.keys(allSources),
     count: normalizedSources.length,
     sources: normalizedSources,
+    castSourceCount: normalizedCastSources.length,
+    castSources: normalizedCastSources,
     downloads: normalizedDownloads
   };
 }
@@ -8775,7 +8852,7 @@ function normalizeAnimeAv1SourceList(items = [], siteUrl = "", options = {}) {
         referer: item.referer || item.referrer || siteUrl || ""
       };
     })
-    .filter((item) => item && (options.downloads || item.type === "direct"));
+    .filter((item) => item && (options.downloads || options.includeEmbeds || item.type === "direct"));
 }
 
 function parseAnimeAv1Info(html = "", slug = "") {

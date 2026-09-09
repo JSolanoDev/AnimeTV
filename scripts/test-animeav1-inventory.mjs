@@ -206,7 +206,7 @@ test("concurrent cold AnimeAV1 requests share one provider fetch", async () => {
       providerFetches += 1;
       await providerGate;
       return new Response(
-        'embeds:{SUB:[{server:"HLS",url:"https://player.zilla-networks.com/play/0123456789abcdef0123456789abcdef"}]},downloads:{}',
+        'embeds:{SUB:[{server:"HLS",url:"https://player.zilla-networks.com/play/0123456789abcdef0123456789abcdef"},{server:"Voe",url:"https://voe.sx/e/coalesce"}]},downloads:{}',
         { status: 200, headers: { "Content-Type": "text/html" } }
       );
     }
@@ -223,6 +223,11 @@ test("concurrent cold AnimeAV1 requests share one provider fetch", async () => {
     const responses = await Promise.all([first, second]);
     assert.deepEqual(responses.map((response) => response.status), [200, 200]);
     assert.ok(responses.every((response) => /s-maxage=300/.test(response.headers["Cache-Control"])));
+    const payload = JSON.parse(responses[0].body);
+    assert.equal(payload.sources.length, 1);
+    assert.equal(payload.castSources.length, 2);
+    assert.equal(payload.castSources[1].provider, "Voe");
+    assert.equal(payload.castSources[1].type, "iframe");
   } finally {
     globalThis.fetch = originalFetch;
     releaseProvider?.();

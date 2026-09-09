@@ -430,7 +430,7 @@ const TWO = [
 
   const embedStart = server.indexOf("function unpackPackedJs(");
   const embedEnd = server.indexOf("function resolvedEmbedPlaybackUrl(", embedStart);
-  const embedCtx = vm.createContext({ URL, URLSearchParams });
+  const embedCtx = vm.createContext({ URL, URLSearchParams, Buffer, decodeHtmlEntities: (value) => value });
   vm.runInContext(server.slice(embedStart, embedEnd), embedCtx);
   const streamTapeFixture = [
     '<div>//streamtape.com/get_video id=abc&expires=1&ip=ip1&token=decoy</div>',
@@ -452,6 +452,27 @@ const TWO = [
     /isStreamTapeMedia \|\| upstream\.status === 206[\s\S]*?responseHeaders\["accept-ranges"\] = "bytes"/.test(server), true);
   check("15x. packed embed scripts are unpacked from the complete document",
     /const wholePacked = unpackPackedJs\(text\)/.test(server), true);
+
+  const encodeVoeConfig = (config) => {
+    const inner = Buffer.from(JSON.stringify(config), "utf8").toString("base64");
+    const shifted = [...inner].reverse().map((character) => String.fromCharCode(character.charCodeAt(0) + 3)).join("");
+    const outer = Buffer.from(shifted, "latin1").toString("base64");
+    return outer.replace(/[A-Za-z]/g, (character) => {
+      const start = character <= "Z" ? 65 : 97;
+      return String.fromCharCode(start + ((character.charCodeAt(0) - start + 13) % 26));
+    });
+  };
+  const voeUrl = "https://voe-cdn.example/master.m3u8?token=working";
+  const voeFixture = [
+    `<script>var source='https://test-videos.example/decoy.mp4';</script>`,
+    `<script type="application/json">${JSON.stringify([encodeVoeConfig({ source: voeUrl })])}</script>`
+  ].join("\n");
+  const voeStream = vm.runInContext(`extractStreamFromEmbed(${JSON.stringify(voeFixture)})`, embedCtx);
+  check("15x2. VOE's encoded player config resolves to HLS", voeStream?.type, "hls");
+  check("15x3. VOE's harmless sample MP4 cannot outrank the real stream", voeStream?.url, voeUrl);
+  check("15x4. JavaScript embed redirects are followed",
+    vm.runInContext(`extractEmbedPageRedirect(${JSON.stringify("window.location.href = 'https://voe-final.example/e/abc';")}, "https://voe.sx/e/abc")`, embedCtx),
+    "https://voe-final.example/e/abc");
 
   const rewriteStart = server.indexOf("function rewriteM3u8Playlist(");
   const rewriteEnd = server.indexOf("async function handleTranslate(", rewriteStart);
@@ -495,7 +516,7 @@ const TWO = [
     /media\?\.playerState \|\| remotePlayer\?\.playerState/.test(player), true);
 }
 
-/* 17. The parent prepares a segmented, proxied TV fallback only on Cast request. */
+/* 17. The parent keeps Cast on AnimeAV1 before its final JKAnime fallback. */
 {
   const client = fs.readFileSync("client.js", "utf8");
   const backupStart = client.indexOf("const CAST_BACKUP_PREPARE_TIMEOUT_MS");
@@ -520,6 +541,19 @@ const TWO = [
     getCanonicalEpisodeNumber: (episode) => episode.episode,
     fetchWithTimeout: async (endpoint) => {
       calls.push(["lookup", endpoint]);
+      if (endpoint.startsWith("/api/animeav1/sources")) {
+        return {
+          ok: true,
+          json: async () => ({
+            ok: true,
+            episodeUrl: "https://animeav1.com/media/test-show/1",
+            castSources: [
+              { provider: "HLS", type: "direct", url: "/api/source?url=av1" },
+              { provider: "Voe", type: "iframe", externalUrl: "https://voe.sx/e/animeav1" }
+            ]
+          })
+        };
+      }
       return {
         ok: true,
         json: async () => ({
@@ -535,6 +569,13 @@ const TWO = [
     },
     attemptResolveEmbed: async (url, referer, timeout) => {
       calls.push(["resolve", url, referer, timeout]);
+      if (url.includes("voe.sx")) {
+        return {
+          url: "https://voe-cdn.example/video/master.m3u8?token=animeav1",
+          mediaReferer: "https://eugenemakedraw.com/e/animeav1",
+          type: "hls"
+        };
+      }
       if (url.includes("sfastwish")) {
         return { url: "https://cdn.example/video/master.m3u8?token=abc", type: "hls" };
       }
@@ -558,14 +599,22 @@ const TWO = [
   const backupContext = vm.createContext(castBackupSandbox);
   vm.runInContext(client.slice(backupStart, backupEnd), backupContext, { filename: "client.js cast backup block" });
   const prepared = await vm.runInContext("buildPreparedCastCandidateList()", backupContext);
-  check("17. Cast preparation appends one fallback", prepared.length, 2);
-  check("17b. exact AnimeAV1 slug and episode are requested", calls[0][1], "/api/jkanime/sources?slug=test-show&episode=1");
-  check("17c. segmented HLS is resolved before progressive Streamtape", /sfastwish/.test(calls[1][1]), true);
-  check("17d. resolved HLS stays on the short-request media relay", new URL(prepared[1].url).pathname, "/api/source");
-  check("17e. resolver is tightly bounded", calls[1][3], 3000);
-  check("17f. the resolver's HLS type reaches the Cast ladder", prepared[1].type, "hls");
-  check("17g. the relay preserves the embed host as Referer", new URL(prepared[1].url).searchParams.get("refererHost"), "sfastwish.com");
-  check("17g2. the original HLS URL stays nested in the relay", new URL(prepared[1].url).searchParams.get("url"), "https://cdn.example/video/master.m3u8?token=abc");
+  const lookups = calls.filter(([kind]) => kind === "lookup");
+  const resolves = calls.filter(([kind]) => kind === "resolve");
+  check("17. Cast preparation appends both provider fallbacks", prepared.length, 3);
+  check("17b. AnimeAV1's exact slug and episode are requested",
+    lookups.some((call) => call[1] === "/api/animeav1/sources?slug=test-show&episode=1&variant=SUB"), true);
+  check("17c. JKAnime remains the last-resort lookup",
+    lookups.some((call) => call[1] === "/api/jkanime/sources?slug=test-show&episode=1"), true);
+  check("17d. the AnimeAV1 mirror is ahead of JKAnime", prepared.map((candidate) => candidate.label),
+    ["AnimeAV1", "AnimeAV1 - Voe", "JKAnime - Streamwish"]);
+  check("17e. VOE and segmented JKAnime HLS are both resolved",
+    resolves.map((call) => new URL(call[1]).host), ["voe.sx", "sfastwish.com"]);
+  check("17f. both resolvers are tightly bounded", resolves.every((call) => call[3] === 5000), true);
+  check("17g. AnimeAV1 HLS stays on the short-request media relay", new URL(prepared[1].url).pathname, "/api/source");
+  check("17g2. the relay uses VOE's final player host as Referer",
+    new URL(prepared[1].url).searchParams.get("refererHost"), "eugenemakedraw.com");
+  check("17g3. JKAnime remains after AnimeAV1", new URL(prepared[2].url).searchParams.get("refererHost"), "sfastwish.com");
 
   castBackupSandbox.AdultMode.isAdultContent = () => true;
   const adult = await vm.runInContext("buildPreparedCastCandidateList()", backupContext);
