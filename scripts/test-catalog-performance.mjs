@@ -603,3 +603,142 @@ test("local-only retired files cannot change the production catalog total", asyn
   assert.deepEqual(results.map(result => result.excludedForSafety), [1, 1]);
   assert.match(client, /multi-source-v13/, "retired browser snapshots must not be restored after upgrading");
 });
+
+test("catalog cold builds reuse the bundled snapshot instead of fan-out metadata calls", () => {
+  const build = section(server, "async function buildCatalogPayload()", "async function handleCatalog(");
+  assert.match(build, /readScrapedRegularCatalogItems\(\)/);
+  assert.doesNotMatch(build, /await fetchAnimeAv1LatestEpisodes\(\)/);
+  assert.match(build, /animeAv1LatestCache/);
+  assert.doesNotMatch(build, /fetchAniListTrending\(/);
+  assert.doesNotMatch(build, /fetchJikanPages\(/);
+  assert.doesNotMatch(build, /animeAv1RowsMissingFromScrape\(/);
+});
+
+test("one hundred identical catalog requests share one cold build", async () => {
+  let builds = 0;
+  let releaseBuild;
+  const buildGate = new Promise((resolve) => { releaseBuild = resolve; });
+  const c = vm.createContext({
+    Date,
+    catalogResponseCache: null,
+    catalogResponseInflight: null,
+    CATALOG_RESPONSE_TTL_MS: 600000,
+    CATALOG_RESPONSE_CACHE_HEADERS: { "Cache-Control": "public, s-maxage=600" },
+    buildCatalogPayload: async () => { builds += 1; return buildGate; },
+    sendJson: (response, body, status = 200, headers = {}) => Object.assign(response, { body, status, headers }),
+    log() {}
+  });
+  vm.runInContext(section(server, "async function handleCatalog(", "async function handleSourceProxy("), c);
+
+  const responses = Array.from({ length: 100 }, () => ({}));
+  const requests = responses.map((response) => c.handleCatalog(response));
+  await Promise.resolve();
+  assert.equal(builds, 1);
+  releaseBuild({ ok: true, count: 1, items: [{ id: "fixture" }] });
+  await Promise.all(requests);
+  assert.equal(responses.every((response) => response.status === 200 && response.body.count === 1), true);
+
+  const cached = {};
+  await c.handleCatalog(cached);
+  assert.equal(builds, 1);
+  assert.equal(cached.body.cached, true);
+});
+
+test("browser fetch deduplication clones responses for one hundred consumers", async () => {
+  let requests = 0;
+  let clones = 0;
+  let releaseFetch;
+  const response = { clone: () => ({ cloneId: ++clones }) };
+  const c = vm.createContext({
+    Map,
+    Promise,
+    fetch: () => {
+      requests += 1;
+      return new Promise((resolve) => { releaseFetch = () => resolve(response); });
+    }
+  });
+  vm.runInContext(section(client, "const _inflightFetch = new Map();", "let visibleMetadataWarmGeneration"), c);
+
+  const consumers = Array.from({ length: 100 }, () => c.fetchDeduped("/api/anilist/media?id=1"));
+  assert.equal(requests, 1);
+  releaseFetch();
+  const results = await Promise.all(consumers);
+  assert.equal(clones, 100);
+  assert.equal(new Set(results.map((item) => item.cloneId)).size, 100);
+});
+
+test("airing enrichment never downloads the full catalog twice", () => {
+  const enrichment = section(client, "async function enrichCatalogAiringData(", "async function loadExternalSources(");
+  assert.match(enrichment, /state\.shows/);
+  assert.doesNotMatch(enrichment, /fetchWithTimeout\(["']\/api\/catalog/);
+});
+
+test("shared metadata cache lifetimes match the production policy", () => {
+  const aniMedia = section(server, "const ANILIST_MEDIA_CACHE_HEADERS", "const ANILIST_SEARCH_CACHE_HEADERS");
+  const aniSearch = section(server, "const ANILIST_SEARCH_CACHE_HEADERS", "const ANILIST_AIRING_CACHE_HEADERS");
+  const aniAiring = section(server, "const ANILIST_AIRING_CACHE_HEADERS", "const ANILIST_UNAVAILABLE_CACHE_HEADERS");
+  const tmdbTv = section(server, "const TMDB_TV_CACHE_HEADERS", "const TMDB_SEASON_CACHE_HEADERS");
+  assert.match(aniMedia, /s-maxage=86400/);
+  assert.match(aniSearch, /s-maxage=3600/);
+  assert.match(aniAiring, /s-maxage=600/);
+  assert.match(tmdbTv, /s-maxage=43200/);
+  assert.match(server, /stale-if-error=604800/);
+});
+
+test("one hundred identical TMDB TV reads share one upstream request", async () => {
+  let calls = 0;
+  let releaseFetch;
+  const gate = new Promise((resolve) => { releaseFetch = resolve; });
+  const c = vm.createContext({
+    Date,
+    TMDB_AVAILABLE: true,
+    TMDB_CACHE_TTL_MS: 604800000,
+    TMDB_TV_CACHE_HEADERS: { "Cache-Control": "public, s-maxage=43200" },
+    METADATA_STALE_CACHE_HEADERS: { "Cache-Control": "public, s-maxage=60" },
+    tmdbTvCache: new Map(),
+    tmdbInflight: new Map(),
+    tmdbFetch: async () => { calls += 1; return gate; },
+    sendJson: (response, body, status = 200, headers = {}) => Object.assign(response, { body, status, headers }),
+    log() {}
+  });
+  vm.runInContext(section(server, "function coalesceInflight(", "function parseRetryAfterMs("), c);
+  vm.runInContext(section(server, "async function handleTmdbTv(", "async function handleTmdbSeason("), c);
+
+  const responses = Array.from({ length: 100 }, () => ({}));
+  const requests = responses.map((response) => c.handleTmdbTv(new URL("https://app.test/api/tmdb/tv?id=1399"), response));
+  await Promise.resolve();
+  assert.equal(calls, 1);
+  releaseFetch({ id: 1399, name: "Fixture", seasons: [] });
+  await Promise.all(requests);
+  assert.equal(responses.every((response) => response.status === 200 && response.body.show.id === 1399), true);
+});
+
+test("TMDB TV treats a missing upstream id as a cacheable result", async () => {
+  let calls = 0;
+  const c = vm.createContext({
+    Date,
+    TMDB_AVAILABLE: true,
+    TMDB_CACHE_TTL_MS: 604800000,
+    TMDB_TV_CACHE_HEADERS: { "Cache-Control": "public, s-maxage=43200" },
+    METADATA_STALE_CACHE_HEADERS: { "Cache-Control": "public, s-maxage=60" },
+    tmdbTvCache: new Map(),
+    tmdbInflight: new Map(),
+    tmdbFetch: async () => { calls += 1; const error = new Error("TMDB HTTP 404"); error.status = 404; throw error; },
+    sendJson: (response, body, status = 200, headers = {}) => Object.assign(response, { body, status, headers }),
+    log() {}
+  });
+  vm.runInContext(section(server, "function coalesceInflight(", "function parseRetryAfterMs("), c);
+  vm.runInContext(section(server, "async function handleTmdbTv(", "async function handleTmdbSeason("), c);
+
+  const first = {};
+  await c.handleTmdbTv(new URL("https://app.test/api/tmdb/tv?id=999999999"), first);
+  assert.equal(first.status, 200);
+  assert.equal(first.body.notFound, true);
+  assert.equal(first.body.show, null);
+
+  const second = {};
+  await c.handleTmdbTv(new URL("https://app.test/api/tmdb/tv?id=999999999"), second);
+  assert.equal(calls, 1);
+  assert.equal(second.body.cached, true);
+  assert.equal(second.body.notFound, true);
+});

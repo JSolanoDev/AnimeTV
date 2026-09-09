@@ -31,8 +31,11 @@ function harness(fetchImpl) {
     JIKAN_FAILURE_TTL_MS: 60000,
     JIKAN_OK_CACHE: {},
     JIKAN_UNAVAILABLE_CACHE: { "Cache-Control": "no-store, max-age=0" },
+    METADATA_STALE_CACHE_HEADERS: { "Cache-Control": "public, stale-while-revalidate=300" },
     jikanRequestQueue: Promise.resolve(),
     jikanLastRequestAt: 0,
+    jikanRetryAt: 0,
+    jikanInflight: new Map(),
     jikanEpisodeCache: new Map(),
     jikanSearchCache: new Map(),
     jikanFullCache: new Map(),
@@ -45,6 +48,7 @@ function harness(fetchImpl) {
   vm.runInContext([
     section("function isPermanentJikanError(", "function noteJikanFailure("),
     section("function sendJikanUnavailable(", "setInterval("),
+    section("function coalesceInflight(", "function anilistCoalesce("),
     section("function wait(ms)", "function normalizeJikanEpisode("),
     section("function normalizeJikanEpisode(", "// \u2500\u2500 TMDB proxy")
   ].join("\n"), context);
@@ -103,6 +107,71 @@ test("a transient HTTP failure is retried within the same deadline", async () =>
   assert.equal(attempts, 2);
   assert.equal(cancelled, 1);
   assert.equal(h.timers.size, 0);
+});
+
+test("a 429 honors Retry-After without multiplying upstream requests", async () => {
+  let limited = true;
+  const h = harness(() => limited
+    ? {
+        ok: false,
+        status: 429,
+        headers: { get: (name) => name.toLowerCase() === "retry-after" ? "15" : null },
+        body: { cancel: async () => {} }
+      }
+    : success([]));
+
+  await assert.rejects(h.context.fetchJikanJson("/anime/1/full"), { status: 429 });
+  assert.equal(h.calls.length, 1);
+  assert.equal(h.context.jikanRetryAt, 115000);
+
+  await assert.rejects(h.context.fetchJikanJson("/anime/2/full"), { status: 429 });
+  assert.equal(h.calls.length, 1);
+
+  limited = false;
+  await h.advance(15000);
+  await h.context.fetchJikanJson("/anime/2/full");
+  assert.equal(h.calls.length, 2);
+});
+
+test("TMDB shares its Retry-After cooldown across route keys", async () => {
+  let now = 200000;
+  let calls = 0;
+  let limited = true;
+  const c = vm.createContext({
+    Date: class extends Date { static now() { return now; } },
+    URLSearchParams,
+    TMDB_CONFIGURED: true,
+    TMDB_PROXY_BASE: "",
+    TMDB_READ_TOKEN: "",
+    TMDB_API_KEY: "fixture-key",
+    TMDB_API_BASE: "https://tmdb.example.test/3",
+    TMDB_TIMEOUT_MS: 12000,
+    tmdbRetryAt: 0,
+    fetchWithTimeout: async () => {
+      calls += 1;
+      return limited
+        ? {
+            ok: false,
+            status: 429,
+            headers: { get: (name) => name.toLowerCase() === "retry-after" ? "10" : null },
+            body: { cancel: async () => {} }
+          }
+        : { ok: true, json: async () => ({ id: 1 }) };
+    }
+  });
+  vm.runInContext(section("function coalesceInflight(", "function anilistCoalesce("), c);
+  vm.runInContext(section("function tmdbCooldownError(", "function tmdbNotConfigured("), c);
+
+  await assert.rejects(c.tmdbFetch("/tv/1", { language: "en-US" }), { status: 429 });
+  assert.equal(calls, 1);
+  assert.equal(c.tmdbRetryAt, 210000);
+  await assert.rejects(c.tmdbFetch("/tv/2", { language: "en-US" }), { status: 429 });
+  assert.equal(calls, 1);
+
+  now = 210000;
+  limited = false;
+  assert.equal((await c.tmdbFetch("/tv/2", { language: "en-US" })).id, 1);
+  assert.equal(calls, 2);
 });
 
 test("an HTTP 200 body carrying an upstream 500 is retried instead of cached empty", async () => {
@@ -186,7 +255,7 @@ test("episode pages share one deadline and keep stale data on failure", async ()
   assert.equal(response.body.stale, true);
   assert.equal(response.body.data, stale);
   assert.equal(response.body.notFound, undefined);
-  assert.match(response.headers["Cache-Control"], /no-store/);
+  assert.match(response.headers["Cache-Control"], /stale-while-revalidate/);
   assert.equal(h.context.jikanEpisodeCache.get("1").data, stale);
   const count = h.calls.length;
   assert.ok(count > 1 && count < 30);

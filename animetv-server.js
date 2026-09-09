@@ -67,6 +67,24 @@ const TMDB_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days ΓÇö episode stil
 const tmdbSearchCache = new Map();  // `${normalizedTitle}|${year}` -> { data, ts }
 const tmdbTvCache = new Map();      // tmdbId -> { data, ts }
 const tmdbSeasonCache = new Map();  // `${tmdbId}:${season}` -> { data, ts }
+const tmdbInflight = new Map();
+let tmdbRetryAt = 0;
+const TMDB_SEARCH_CACHE_HEADERS = Object.freeze({
+  "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800",
+  "Vary": "Accept-Encoding"
+});
+const TMDB_TV_CACHE_HEADERS = Object.freeze({
+  "Cache-Control": "public, max-age=1800, s-maxage=43200, stale-while-revalidate=86400, stale-if-error=604800",
+  "Vary": "Accept-Encoding"
+});
+const TMDB_SEASON_CACHE_HEADERS = Object.freeze({
+  "Cache-Control": "public, max-age=900, s-maxage=21600, stale-while-revalidate=86400, stale-if-error=604800",
+  "Vary": "Accept-Encoding"
+});
+const METADATA_STALE_CACHE_HEADERS = Object.freeze({
+  "Cache-Control": "public, max-age=30, s-maxage=60, stale-while-revalidate=300",
+  "Vary": "Accept-Encoding"
+});
 
 const CONSUMET_API = String(process.env.CONSUMET_API || "http://localhost:3000").replace(/\/+$/, "");
 const CONSUMET_PROVIDER = "kickassanime";
@@ -153,6 +171,17 @@ let hentaiOceanCatalogCache = null;
 let hentaiOceanCatalogCacheAt = 0;
 const hentaiPlayerDirectCache = new Map();
 const luluStreamDirectCache = new Map();
+const resolveEmbedCache = new Map();
+const resolveEmbedInflight = new Map();
+const RESOLVE_EMBED_CACHE_TTL_MS = 45 * 1000;
+const RESOLVE_EMBED_CACHE_HEADERS = Object.freeze({
+  "Cache-Control": "public, max-age=15, s-maxage=45",
+  "Vary": "Accept-Encoding"
+});
+const ANIMEAV1_LATEST_CACHE_HEADERS = Object.freeze({
+  "Cache-Control": "public, max-age=60, s-maxage=120, stale-while-revalidate=600, stale-if-error=86400",
+  "Vary": "Accept-Encoding"
+});
 let underHentaiDetailsSnapshot = null;
 let veoHentaiDetailsSnapshot = null;
 let adultPortraitArtworkMap = null;
@@ -222,9 +251,25 @@ const JKANIME_CACHE_TTL_MS = 1000 * 60 * 30;
 const JKANIME_MISS_CACHE_TTL_MS = 1000 * 60 * 8;
 
 const ANILIST_MEDIA_CACHE_TTL_MS  = 1000 * 60 * 60 * 24;  // 24 h ΓÇö stable metadata
-const ANILIST_SEARCH_CACHE_TTL_MS = 1000 * 60 * 60 * 6;   // 6 h
+const ANILIST_SEARCH_CACHE_TTL_MS = 1000 * 60 * 60;       // 1 h
 const anilistMediaCache  = new Map(); // anilistId ΓåÆ { data, ts }
 const anilistSearchCache = new Map();
+const ANILIST_MEDIA_CACHE_HEADERS = Object.freeze({
+  "Cache-Control": "public, max-age=900, s-maxage=86400, stale-while-revalidate=86400, stale-if-error=604800",
+  "Vary": "Accept-Encoding"
+});
+const ANILIST_SEARCH_CACHE_HEADERS = Object.freeze({
+  "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=21600, stale-if-error=86400",
+  "Vary": "Accept-Encoding"
+});
+const ANILIST_AIRING_CACHE_HEADERS = Object.freeze({
+  "Cache-Control": "public, max-age=120, s-maxage=600, stale-while-revalidate=900, stale-if-error=86400",
+  "Vary": "Accept-Encoding"
+});
+const ANILIST_UNAVAILABLE_CACHE_HEADERS = Object.freeze({
+  "Cache-Control": "no-store, max-age=0",
+  "Vary": "Accept-Encoding"
+});
 
 // Coalesce concurrent AniList lookups. Without this every caller for the same
 // key fired its own upstream request: the dev log showed ONE media id hitting
@@ -241,6 +286,68 @@ const anilistInflight = new Map();
 // its rate limit in the first place. Success clears the mark straight away.
 const anilistFailureCache = new Map();
 const ANILIST_FAILURE_TTL_MS = 30000;
+let anilistRetryAt = 0;
+
+function coalesceInflight(map, key, work) {
+  const existing = map.get(key);
+  if (existing) return existing;
+  const pending = Promise.resolve().then(work)
+    .finally(() => {
+      if (map.get(key) === pending) map.delete(key);
+    });
+  map.set(key, pending);
+  return pending;
+}
+
+function parseRetryAfterMs(value, now = Date.now(), fallbackMs = 0) {
+  const text = String(value || "").trim();
+  if (!text) return Math.max(0, Number(fallbackMs) || 0);
+  const seconds = Number(text);
+  if (Number.isFinite(seconds)) return Math.max(0, Math.ceil(seconds * 1000));
+  const date = Date.parse(text);
+  return Number.isFinite(date)
+    ? Math.max(0, date - now)
+    : Math.max(0, Number(fallbackMs) || 0);
+}
+
+function upstreamHttpError(provider, response, fallbackRetryMs = 0) {
+  const error = new Error(`${provider} HTTP ${response.status}`);
+  error.status = Number(response.status || 0);
+  error.retryAfterMs = parseRetryAfterMs(
+    response.headers?.get?.("retry-after"),
+    Date.now(),
+    fallbackRetryMs
+  );
+  return error;
+}
+
+async function fetchAniListJson(query, variables, timeout = 14000) {
+  const now = Date.now();
+  if (anilistRetryAt > now) {
+    const error = new Error("AniList rate-limit cooldown is active");
+    error.status = 429;
+    error.retryAfterMs = anilistRetryAt - now;
+    throw error;
+  }
+  const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ query, variables })
+  }, timeout);
+  if (!upstream.ok) {
+    const error = upstreamHttpError("AniList", upstream, ANILIST_FAILURE_TTL_MS);
+    try { await upstream.body?.cancel?.(); } catch { /* response may already be closed */ }
+    if (error.status === 429) {
+      anilistRetryAt = Math.max(anilistRetryAt, Date.now() + error.retryAfterMs);
+    }
+    throw error;
+  }
+  const payload = await upstream.json();
+  if (!payload?.data && Array.isArray(payload?.errors) && payload.errors.length) {
+    throw new Error(`AniList GraphQL error: ${payload.errors[0]?.message || "unknown error"}`);
+  }
+  return payload;
+}
 
 function anilistCoalesce(key, work) {
   const existing = anilistInflight.get(key);
@@ -265,11 +372,13 @@ setInterval(() => {
 const jikanEpisodeCache = new Map(); // malId -> { data, ts }
 const jikanFullCache = new Map(); // malId -> { data, ts }
 const jikanSearchCache = new Map(); // normalized title -> { data, ts }
+const jikanInflight = new Map();
 const JIKAN_EPISODE_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 const JIKAN_REQUEST_BUDGET_MS = 8000;
 const JIKAN_EPISODE_BUDGET_MS = 20000;
 let jikanRequestQueue = Promise.resolve();
 let jikanLastRequestAt = 0;
+let jikanRetryAt = 0;
 
 // Jikan is a free, heavily rate-limited upstream and returns 504 regularly. Its
 // handlers used to translate that straight into OUR 500, so a single flaky
@@ -340,18 +449,22 @@ function noteJikanSuccess(key) {
 // that vercel.json is schema-validated and supports NO comments - adding one
 // there fails the deployment before it builds, which is exactly how v491 was
 // lost - so the rationale lives here instead.
-const JIKAN_OK_CACHE = { "Cache-Control": "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400" };
+const JIKAN_OK_CACHE = {
+  "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800",
+  "Vary": "Accept-Encoding"
+};
 const JIKAN_UNAVAILABLE_CACHE = { "Cache-Control": "no-store, max-age=0" };
 
-function sendJikanUnavailable(response, cachedData, fallback) {
+function sendJikanUnavailable(response, cachedData, fallback, error = null) {
+  const hasStale = cachedData !== undefined && cachedData !== null;
   const data = cachedData === undefined || cachedData === null ? fallback : cachedData;
   return sendJson(response, {
     data,
     ok: false,
-    stale: cachedData !== undefined && cachedData !== null,
+    stale: hasStale,
     unavailable: true,
-    retryAfterMs: JIKAN_FAILURE_TTL_MS
-  }, 200, JIKAN_UNAVAILABLE_CACHE);
+    retryAfterMs: Math.max(JIKAN_FAILURE_TTL_MS, Number(error?.retryAfterMs || 0))
+  }, 200, hasStale ? METADATA_STALE_CACHE_HEADERS : JIKAN_UNAVAILABLE_CACHE);
 }
 
 setInterval(() => {
@@ -370,6 +483,7 @@ const SERVER_CACHE_DIR = path.join(root, ".cache", "server");
 const RATE_LIMIT_WINDOW_MS = Math.max(1000, Number(process.env.RATE_LIMIT_WINDOW_MS || 60000));
 const RATE_LIMIT_MAX_REQUESTS = Math.max(20, Number(process.env.RATE_LIMIT_MAX_REQUESTS || 240));
 const RATE_LIMIT_API_MAX_REQUESTS = Math.max(20, Number(process.env.RATE_LIMIT_API_MAX_REQUESTS || 120));
+const RATE_LIMIT_MEDIA_MAX_REQUESTS = Math.max(600, Number(process.env.RATE_LIMIT_MEDIA_MAX_REQUESTS || 1800));
 const translationCache = new Map();
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -1404,6 +1518,22 @@ function handleServerInfo(request, response) {
 
 function checkRateLimit(request, url) {
   if (url.pathname === "/api/health") return { allowed: true, limit: RATE_LIMIT_API_MAX_REQUESTS, retryAfterMs: 0 };
+  // HLS playback legitimately requests a manifest plus many short fragments.
+  // Keeping media in the generic API bucket let metadata traffic consume the
+  // remaining allowance and turn a healthy stream into 429s mid-episode.
+  if (url.pathname === "/api/source") {
+    const key = `${getClientIp(request)}:media`;
+    const now = Date.now();
+    const bucket = rateLimitBuckets.get(key) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
+    if (now > bucket.resetAt) { bucket.count = 0; bucket.resetAt = now + RATE_LIMIT_WINDOW_MS; }
+    bucket.count += 1;
+    rateLimitBuckets.set(key, bucket);
+    return {
+      allowed: bucket.count <= RATE_LIMIT_MEDIA_MAX_REQUESTS,
+      limit: RATE_LIMIT_MEDIA_MAX_REQUESTS,
+      retryAfterMs: Math.max(0, bucket.resetAt - now)
+    };
+  }
   // Catalog reads are cacheable and happen during startup. Keep them separate
   // from metadata/detail traffic so a busy page cannot starve its own catalog.
   if (/^\/api\/adult\/(?:underhentai|hentaiocean)\/catalog$/.test(url.pathname)) {
@@ -1643,7 +1773,7 @@ const CATALOG_RESPONSE_TTL_MS = Math.max(
   Number(process.env.CATALOG_RESPONSE_TTL_MS || 10 * 60 * 1000)
 );
 const CATALOG_RESPONSE_CACHE_HEADERS = Object.freeze({
-  "Cache-Control": "public, max-age=300, s-maxage=600, stale-while-revalidate=86400",
+  "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800",
   "Vary": "Accept-Encoding"
 });
 let catalogResponseCache = null;   // { payload, ts }
@@ -1809,31 +1939,18 @@ function applyAnimeAv1LatestInventory(items = [], latestItems = [], observedAt =
 }
 
 async function buildCatalogPayload() {
-  const [anilist, jikanAiring, jikanSeason, jikanPopular, animeAv1Latest] = await Promise.allSettled([
-    fetchAniListTrending(),
-    fetchJikanPages(JIKAN_TOP_ENDPOINT, "Jikan Airing", 2),
-    fetchJikanPages(JIKAN_SEASON_ENDPOINT, "Jikan Season", 2),
-    fetchJikanPages(JIKAN_POPULAR_ENDPOINT, "Jikan Popular", 2),
-    fetchAnimeAv1LatestEpisodes()
-  ]);
-
   const scrapedAnimeAv1 = readScrapedRegularCatalogItems();
-  const latestItems = animeAv1Latest.status === "fulfilled" ? animeAv1Latest.value : [];
-  const sourceItems = applyAnimeAv1LatestInventory([
-    ...scrapedAnimeAv1,
-    ...await animeAv1RowsMissingFromScrape(scrapedAnimeAv1)
-  ], latestItems);
-  const items = [
-    ...sourceItems,
-    ...(anilist.status === "fulfilled" ? anilist.value : []),
-    ...(jikanAiring.status === "fulfilled" ? jikanAiring.value : []),
-    ...(jikanSeason.status === "fulfilled" ? jikanSeason.value : []),
-    ...(jikanPopular.status === "fulfilled" ? jikanPopular.value : [])
-  ];
+  if (!scrapedAnimeAv1.length) throw new Error("Bundled AnimeAV1 catalog is unavailable");
 
-  // Every upstream failing yields an empty list - do not cache that over a
-  // previously good catalog.
-  if (!items.length) throw new Error("All metadata upstreams returned nothing");
+  // Artwork, identity, season chains, and airing metadata are already built into
+  // the checked-in snapshots by the daily workflow. Re-fetching four AniList
+  // pages and six rate-limited Jikan pages here made every cold catalog request
+  // spend several seconds rebuilding data it already had. Do not await even the
+  // small latest-release feed here: an AnimeAV1 timeout could otherwise put the
+  // route straight back at seven seconds. The browser loads that feed separately
+  // and can create a lightweight card for a title newer than this snapshot.
+  const latestItems = Array.isArray(animeAv1LatestCache) ? animeAv1LatestCache : [];
+  const items = applyAnimeAv1LatestInventory(scrapedAnimeAv1, latestItems);
 
   const merged = applyAnimeAv1LatestInventory(mergeShows(items), latestItems).filter((item) => {
     // AniList/Jikan enrich source-backed rows, but cannot create a card by
@@ -1966,6 +2083,14 @@ async function handleSourceProxy(request, url, response) {
     if (request.headers.range) headers.Range = request.headers.range;
     else if (isHeadRequest) headers.Range = "bytes=0-0";
     const upstream = await fetchWithTimeout(target, { headers }, 12000);
+    if (!upstream.ok) {
+      log("warn", "Source relay upstream rejected request", {
+        providerHost: targetHost,
+        method: String(request.method || "GET").toUpperCase(),
+        upstreamStatus: upstream.status,
+        ranged: Boolean(headers.Range)
+      });
+    }
     const upstreamType = upstream.headers.get("content-type") || "";
     // "Useless" means the origin told us nothing a player can act on. A real
     // video/*, audio/*, text/vtt or HLS type is always passed through untouched.
@@ -1988,7 +2113,7 @@ async function handleSourceProxy(request, url, response) {
       "Content-Type": contentType,
       "Cache-Control": "no-store, max-age=0"
     };
-    ["accept-ranges", "content-length", "content-range", "etag", "last-modified"].forEach((name) => {
+    ["accept-ranges", "content-length", "content-range", "etag", "last-modified", "retry-after"].forEach((name) => {
       const value = upstream.headers.get(name);
       if (value) responseHeaders[name] = value;
     });
@@ -2034,7 +2159,7 @@ async function handleSourceProxy(request, url, response) {
         // Codec detection in the sender and playback on the TV request the same
         // VOD playlist. A short shared cache lets the first request warm the
         // second without risking stale live manifests.
-        responseHeaders["Cache-Control"] = "public, max-age=60, s-maxage=900, stale-while-revalidate=3600";
+        responseHeaders["Cache-Control"] = "public, max-age=60, s-maxage=900, stale-while-revalidate=3600, stale-if-error=21600";
       }
       responseHeaders["Content-Length"] = String(Buffer.byteLength(playlist));
       response.writeHead(upstream.status, responseHeaders);
@@ -2059,6 +2184,13 @@ async function handleSourceProxy(request, url, response) {
       response.destroy(error);
       return;
     }
+    let providerHost = "invalid-url";
+    try { providerHost = new URL(target).hostname; } catch { /* validated above */ }
+    log("warn", "Source relay failed", {
+      providerHost,
+      method: String(request.method || "GET").toUpperCase(),
+      error: error?.name === "AbortError" ? "upstream timeout" : error.message
+    });
     sendJson(response, { ok: false, error: "Local source unavailable" }, 502);
   }
 }
@@ -8291,54 +8423,107 @@ async function handleResolveEmbed(reqUrl, response) {
   const isStreamTapeEmbed = /^https?:\/\/(?:www\.)?streamtape\.com\/e\//i.test(target);
   // Already a direct stream? Pass it straight through.
   if (!isStreamTapeEmbed && /\.(m3u8|mp4)(\?|#|$)/i.test(target)) {
-    sendJson(response, { ok: true, url: target, type: /\.m3u8/i.test(target) ? "hls" : "mp4" }, 200, { "Cache-Control": "public, max-age=120" });
+    sendJson(response, { ok: true, url: target, type: /\.m3u8/i.test(target) ? "hls" : "mp4" }, 200, {
+      "Cache-Control": "public, max-age=120, s-maxage=300, stale-if-error=3600",
+      "Vary": "Accept-Encoding"
+    });
+    return;
+  }
+  const cacheKey = `${target}\n${customReferer}`;
+  const cached = resolveEmbedCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < RESOLVE_EMBED_CACHE_TTL_MS) {
+    sendJson(response, { ...cached.payload, cached: true }, 200, RESOLVE_EMBED_CACHE_HEADERS);
     return;
   }
   try {
-    const upnShareId = upnShareVideoId(target);
-    if (upnShareId) {
-      const stream = await resolveUpnShareEmbed(target);
-      sendJson(response, {
-        ok: true,
-        url: stream.url,
-        type: stream.type,
-        referer: "https://animeav1.uns.bio/",
-        mediaReferer: stream.mediaReferer
-      }, 200, { "Cache-Control": "private, no-store, max-age=0" });
+    const result = await coalesceInflight(resolveEmbedInflight, cacheKey, async () => {
+      const upnShareId = upnShareVideoId(target);
+      if (upnShareId) {
+        const stream = await resolveUpnShareEmbed(target);
+        return {
+          payload: {
+            ok: true,
+            url: stream.url,
+            type: stream.type,
+            referer: "https://animeav1.uns.bio/",
+            mediaReferer: stream.mediaReferer
+          },
+          headers: { "Cache-Control": "private, no-store, max-age=0" },
+          shared: false
+        };
+      }
+      const host = new URL(target).hostname;
+      // Use the caller-supplied referer (e.g. jkanime.net for JKAnime embeds) so
+      // embed hosts that check the Referer against their whitelist allow the fetch.
+      // Fall back to the embed host itself only when no origin is specified.
+      const referer = customReferer && /^https?:\/\//i.test(customReferer)
+        ? customReferer
+        : `https://${host}/`;
+      let resolvedTarget = target;
+      let requestReferer = referer;
+      let html = "";
+      for (let redirectCount = 0; redirectCount < 3; redirectCount += 1) {
+        const upstream = await fetchWithTimeout(resolvedTarget, {
+          headers: { ...GENERIC_CRAWL_HEADERS, Referer: requestReferer }
+        }, HOSTED_RUNTIME ? 8000 : 12000);
+        if (!upstream.ok) throw upstreamHttpError("Embed", upstream);
+        html = await upstream.text();
+        const redirect = extractEmbedPageRedirect(html, resolvedTarget);
+        if (!redirect || redirect === resolvedTarget) break;
+        requestReferer = resolvedTarget;
+        resolvedTarget = redirect;
+      }
+      const stream = extractStreamFromEmbed(html);
+      if (!stream) {
+        return {
+          payload: { ok: false, notFound: true, error: "No playable stream found in this embed." },
+          headers: RESOLVE_EMBED_CACHE_HEADERS,
+          shared: true
+        };
+      }
+      return {
+        payload: {
+          ok: true,
+          url: resolvedEmbedPlaybackUrl(stream.url, resolvedTarget),
+          type: stream.type,
+          referer,
+          mediaReferer: resolvedTarget
+        },
+        headers: RESOLVE_EMBED_CACHE_HEADERS,
+        shared: true
+      };
+    });
+    if (result.shared && (result.payload.ok || result.payload.notFound)) {
+      resolveEmbedCache.set(cacheKey, { payload: result.payload, ts: Date.now() });
+    }
+    sendJson(response, result.payload, 200, result.headers);
+  } catch (error) {
+    let providerHost = "invalid-url";
+    try { providerHost = new URL(target).hostname; } catch { /* validated above */ }
+    log("warn", "Embed resolve failed", {
+      providerHost,
+      upstreamStatus: Number(error.status || 0) || null,
+      error: error?.name === "AbortError" ? "upstream timeout" : error.message
+    });
+    if (error.status === 404 || error.status === 410) {
+      const payload = {
+        ok: false,
+        notFound: true,
+        error: "The embed is no longer available upstream.",
+        providerHost,
+        upstreamStatus: error.status
+      };
+      resolveEmbedCache.set(cacheKey, { payload, ts: Date.now() });
+      sendJson(response, payload, 200, RESOLVE_EMBED_CACHE_HEADERS);
       return;
     }
-    const host = (target.match(/^https?:\/\/([^/]+)/) || [])[1] || "";
-    // Use the caller-supplied referer (e.g. jkanime.net for JKAnime embeds) so
-    // embed hosts that check the Referer against their whitelist allow the fetch.
-    // Fall back to the embed host itself only when no origin is specified.
-    const referer = customReferer && /^https?:\/\//i.test(customReferer)
-      ? customReferer
-      : `https://${host}/`;
-    let resolvedTarget = target;
-    let requestReferer = referer;
-    let html = "";
-    for (let redirectCount = 0; redirectCount < 3; redirectCount += 1) {
-      const r = await fetchWithTimeout(resolvedTarget, {
-        headers: { ...GENERIC_CRAWL_HEADERS, Referer: requestReferer }
-      }, HOSTED_RUNTIME ? 8000 : 12000);
-      if (!r.ok) throw new Error(`embed HTTP ${r.status}`);
-      html = await r.text();
-      const redirect = extractEmbedPageRedirect(html, resolvedTarget);
-      if (!redirect || redirect === resolvedTarget) break;
-      requestReferer = resolvedTarget;
-      resolvedTarget = redirect;
-    }
-    const stream = extractStreamFromEmbed(html);
-    if (!stream) { sendJson(response, { ok: false, error: "No playable stream found in this embed." }); return; }
     sendJson(response, {
-      ok: true,
-      url: resolvedEmbedPlaybackUrl(stream.url, resolvedTarget),
-      type: stream.type,
-      referer,
-      mediaReferer: resolvedTarget
-    }, 200, { "Cache-Control": "private, no-store, max-age=0" });
-  } catch (error) {
-    sendJson(response, { ok: false, error: `Resolve failed: ${error.message}` }, 502);
+      ok: false,
+      error: `Resolve failed: ${error.message}`,
+      providerHost,
+      upstreamStatus: Number(error.status || 0) || null,
+      retryAfterMs: Number(error.retryAfterMs || 0) || undefined
+    }, 502);
   }
 }
 
@@ -8407,11 +8592,17 @@ async function handleAnimeAv1Latest(response) {
       source: "AnimeAV1",
       count: items.length,
       items
-    }, 200, { "Cache-Control": "public, max-age=120" });
+    }, 200, ANIMEAV1_LATEST_CACHE_HEADERS);
   } catch (error) {
     // Serve a stale cache if we have one, otherwise report the failure.
     if (animeAv1LatestCache?.length) {
-      sendJson(response, { ok: true, source: "AnimeAV1", stale: true, count: animeAv1LatestCache.length, items: animeAv1LatestCache });
+      sendJson(response, {
+        ok: true,
+        source: "AnimeAV1",
+        stale: true,
+        count: animeAv1LatestCache.length,
+        items: animeAv1LatestCache
+      }, 200, METADATA_STALE_CACHE_HEADERS);
       return;
     }
     sendJson(response, { ok: false, source: "AnimeAV1", error: "AnimeAV1 latest failed.", detail: error.message, items: [] }, 502);
@@ -9182,21 +9373,23 @@ query($search:String,$isAdult:Boolean){
 async function fetchAniListBestMatchForTitle(q) {
   const query = String(q || "").trim();
   if (!query) return null;
-  const cacheKey = query.toLowerCase().replace(/\s+/g, " ");
+  const cacheKey = `safe:${query.toLowerCase().replace(/\s+/g, " ")}`;
   const cached = anilistSearchCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < ANILIST_SEARCH_CACHE_TTL_MS) {
     return cached.data;
   }
-  const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ query: ANILIST_SEARCH_GQL, variables: { search: query, isAdult: false } })
-  }, 9000);
-  if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
-  const payload = await upstream.json();
-  const best = payload?.data?.Page?.media?.[0] || null;
-  if (best) anilistSearchCache.set(cacheKey, { data: best, ts: Date.now() });
-  return best;
+  const result = await anilistCoalesce(`search:${cacheKey}`, async () => {
+    const payload = await fetchAniListJson(
+      ANILIST_SEARCH_GQL,
+      { search: query, isAdult: false },
+      9000
+    );
+    const results = payload?.data?.Page?.media || [];
+    const best = results[0] || null;
+    anilistSearchCache.set(cacheKey, { data: best, results, ts: Date.now() });
+    return { best, results };
+  });
+  return result?.best || null;
 }
 
 async function fetchAniListMediaById(id) {
@@ -9205,16 +9398,12 @@ async function fetchAniListMediaById(id) {
   const cacheKey = String(mediaId);
   const cached = anilistMediaCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < ANILIST_MEDIA_CACHE_TTL_MS) return cached.data;
-  const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ query: ANILIST_MEDIA_GQL, variables: { id: mediaId } })
-  }, 9000);
-  if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
-  const payload = await upstream.json();
-  const media = payload?.data?.Media || null;
-  if (media) anilistMediaCache.set(cacheKey, { data: media, ts: Date.now() });
-  return media;
+  return anilistCoalesce(`media:${cacheKey}`, async () => {
+    const payload = await fetchAniListJson(ANILIST_MEDIA_GQL, { id: mediaId }, 9000);
+    const media = payload?.data?.Media || null;
+    anilistMediaCache.set(cacheKey, { data: media, ts: Date.now() });
+    return media;
+  });
 }
 
 // The Weekly Schedule needs one thing the catalogue does not carry: when the
@@ -9241,15 +9430,13 @@ query ($page: Int!) {
     }
   }
 }`;
-const ANILIST_AIRING_TTL_MS = 30 * 60 * 1000;
+const ANILIST_AIRING_TTL_MS = 10 * 60 * 1000;
 const anilistAiringCache = { data: null, ts: 0 };
 
 async function handleAniListAiring(url, response) {
   const now = Date.now();
   if (anilistAiringCache.data && now - anilistAiringCache.ts < ANILIST_AIRING_TTL_MS) {
-    sendJson(response, { ok: true, items: anilistAiringCache.data, cached: true }, 200, {
-      "Cache-Control": "public, max-age=600"
-    });
+    sendJson(response, { ok: true, items: anilistAiringCache.data, cached: true }, 200, ANILIST_AIRING_CACHE_HEADERS);
     return;
   }
   try {
@@ -9258,13 +9445,7 @@ async function handleAniListAiring(url, response) {
       // Three pages of 50 covers every currently-releasing title with room to
       // spare, and stops early the moment AniList says there is no next page.
       for (let page = 1; page <= 3; page += 1) {
-        const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ query: ANILIST_AIRING_GQL, variables: { page } })
-        }, 14000);
-        if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
-        const payload = await upstream.json();
+        const payload = await fetchAniListJson(ANILIST_AIRING_GQL, { page }, 14000);
         const media = payload?.data?.Page?.media || [];
         for (const entry of media) {
           const airingAt = Number(entry?.nextAiringEpisode?.airingAt || 0);
@@ -9285,14 +9466,19 @@ async function handleAniListAiring(url, response) {
       anilistAiringCache.ts = Date.now();
       return collected;
     });
-    sendJson(response, { ok: true, items }, 200, { "Cache-Control": "public, max-age=600" });
+    sendJson(response, { ok: true, items }, 200, ANILIST_AIRING_CACHE_HEADERS);
   } catch (err) {
     log("warn", "AniList airing fetch failed", { error: err.message });
     // Serve the last good answer rather than nothing: a stale schedule beats an
     // empty one, and AniList being rate-limited is not a fault of this server.
-    sendJson(response, { ok: false, items: anilistAiringCache.data || [] }, 200, {
-      "Cache-Control": "public, max-age=60"
-    });
+    const hasStale = Array.isArray(anilistAiringCache.data);
+    sendJson(response, {
+      ok: hasStale,
+      stale: hasStale,
+      unavailable: true,
+      items: anilistAiringCache.data || [],
+      retryAfterMs: Math.max(ANILIST_FAILURE_TTL_MS, Number(err.retryAfterMs || 0))
+    }, 200, hasStale ? METADATA_STALE_CACHE_HEADERS : ANILIST_UNAVAILABLE_CACHE_HEADERS);
   }
 }
 
@@ -9305,24 +9491,22 @@ async function handleAniListMedia(url, response) {
   const cacheKey = String(id);
   const cached = anilistMediaCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < ANILIST_MEDIA_CACHE_TTL_MS) {
-    sendJson(response, { ok: true, media: cached.data, cached: true });
+    sendJson(response, {
+      ok: true,
+      media: cached.data,
+      cached: true,
+      notFound: cached.data === null
+    }, 200, ANILIST_MEDIA_CACHE_HEADERS);
     return;
   }
   try {
     const media = await anilistCoalesce(`media:${cacheKey}`, async () => {
-      const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ query: ANILIST_MEDIA_GQL, variables: { id } })
-      }, 14000);
-      if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
-      const payload = await upstream.json();
-      const found = payload?.data?.Media;
-      if (!found) throw new Error("No Media in response");
+      const payload = await fetchAniListJson(ANILIST_MEDIA_GQL, { id }, 14000);
+      const found = payload?.data?.Media || null;
       anilistMediaCache.set(cacheKey, { data: found, ts: Date.now() });
       return found;
     });
-    sendJson(response, { ok: true, media });
+    sendJson(response, { ok: true, media, notFound: media === null }, 200, ANILIST_MEDIA_CACHE_HEADERS);
   } catch (err) {
     log("warn", "AniList media fetch failed", { id, error: err.message });
     // AniList being rate-limited or down is NOT a fault of this server, and the
@@ -9330,7 +9514,24 @@ async function handleAniListMedia(url, response) {
     // to Jikan. Returning 502 for it inflated the error rate for an outcome the
     // app handles normally, so answer 200 with an empty result instead. Genuine
     // server faults elsewhere still return 5xx.
-    sendJson(response, { ok: false, media: null, unavailable: true, error: err.message });
+    if (cached) {
+      sendJson(response, {
+        ok: true,
+        media: cached.data,
+        stale: true,
+        unavailable: true,
+        error: err.message,
+        retryAfterMs: Math.max(ANILIST_FAILURE_TTL_MS, Number(err.retryAfterMs || 0))
+      }, 200, METADATA_STALE_CACHE_HEADERS);
+      return;
+    }
+    sendJson(response, {
+      ok: false,
+      media: null,
+      unavailable: true,
+      error: err.message,
+      retryAfterMs: Math.max(ANILIST_FAILURE_TTL_MS, Number(err.retryAfterMs || 0))
+    }, 200, ANILIST_UNAVAILABLE_CACHE_HEADERS);
   }
 }
 
@@ -9345,19 +9546,22 @@ async function handleAniListTrailers(url, response) {
     return;
   }
   try {
-    const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ query: ANILIST_TRAILERS_GQL, variables: { ids } })
-    }, 12000);
-    if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
-    const payload = await upstream.json();
-    sendJson(response, { ok: true, media: payload?.data?.Page?.media || [] });
+    const media = await anilistCoalesce(`trailers:${[...ids].sort((a, b) => a - b).join(",")}`, async () => {
+      const payload = await fetchAniListJson(ANILIST_TRAILERS_GQL, { ids }, 12000);
+      return payload?.data?.Page?.media || [];
+    });
+    sendJson(response, { ok: true, media }, 200, ANILIST_MEDIA_CACHE_HEADERS);
   } catch (err) {
     log("warn", "AniList trailers fetch failed", { error: err.message });
     // Same reasoning as /api/anilist/media: a missing trailer is an outcome the
     // client handles normally, not a fault of this server.
-    sendJson(response, { ok: false, media: [], unavailable: true, error: err.message });
+    sendJson(response, {
+      ok: false,
+      media: [],
+      unavailable: true,
+      error: err.message,
+      retryAfterMs: Math.max(ANILIST_FAILURE_TTL_MS, Number(err.retryAfterMs || 0))
+    }, 200, ANILIST_UNAVAILABLE_CACHE_HEADERS);
   }
 }
 
@@ -9429,7 +9633,13 @@ async function handleAniListSearch(url, response) {
   const cacheKey = `${isAdult ? "adult" : "safe"}:${q.toLowerCase().replace(/\s+/g, " ")}`;
   const cached = anilistSearchCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < ANILIST_SEARCH_CACHE_TTL_MS) {
-    sendJson(response, { ok: true, media: cached.data, cached: true });
+    sendJson(response, {
+      ok: true,
+      media: cached.data,
+      results: cached.results || (cached.data ? [cached.data] : []),
+      cached: true,
+      notFound: cached.data === null
+    }, 200, ANILIST_SEARCH_CACHE_HEADERS);
     return;
   }
   try {
@@ -9438,21 +9648,20 @@ async function handleAniListSearch(url, response) {
       // Only the first spelling costs a request in the common case: the loop
       // stops as soon as something comes back.
       for (const search of anilistSearchVariants(q)) {
-        const upstream = await fetchWithTimeout(ANILIST_ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ query: ANILIST_SEARCH_GQL, variables: { search, isAdult } })
-        }, 14000);
-        if (!upstream.ok) throw new Error(`AniList HTTP ${upstream.status}`);
-        const payload = await upstream.json();
+        const payload = await fetchAniListJson(ANILIST_SEARCH_GQL, { search, isAdult }, 14000);
         list = payload?.data?.Page?.media || [];
         if (list.length) break;
       }
       const top = list[0] || null;
-      if (top) anilistSearchCache.set(cacheKey, { data: top, ts: Date.now() });
+      anilistSearchCache.set(cacheKey, { data: top, results: list, ts: Date.now() });
       return { best: top, results: list };
     });
-    sendJson(response, { ok: true, media: best, results });
+    sendJson(response, {
+      ok: true,
+      media: best,
+      results,
+      notFound: best === null
+    }, 200, ANILIST_SEARCH_CACHE_HEADERS);
   } catch (err) {
     log("warn", "AniList search failed", { q, error: err.message });
     // AniList being rate-limited or down is NOT a fault of this server, and the
@@ -9460,7 +9669,26 @@ async function handleAniListSearch(url, response) {
     // to Jikan. Returning 502 for it inflated the error rate for an outcome the
     // app handles normally, so answer 200 with an empty result instead. Genuine
     // server faults elsewhere still return 5xx.
-    sendJson(response, { ok: false, media: null, results: [], unavailable: true, error: err.message });
+    if (cached) {
+      sendJson(response, {
+        ok: true,
+        media: cached.data,
+        results: cached.results || (cached.data ? [cached.data] : []),
+        stale: true,
+        unavailable: true,
+        error: err.message,
+        retryAfterMs: Math.max(ANILIST_FAILURE_TTL_MS, Number(err.retryAfterMs || 0))
+      }, 200, METADATA_STALE_CACHE_HEADERS);
+      return;
+    }
+    sendJson(response, {
+      ok: false,
+      media: null,
+      results: [],
+      unavailable: true,
+      error: err.message,
+      retryAfterMs: Math.max(ANILIST_FAILURE_TTL_MS, Number(err.retryAfterMs || 0))
+    }, 200, ANILIST_UNAVAILABLE_CACHE_HEADERS);
   }
 }
 
@@ -11854,9 +12082,21 @@ function fetchJikanJson(pathname, { deadlineAt = Infinity } = {}) {
   const requestJson = async () => {
     for (let attempt = 0; attempt < 3; attempt++) {
       if (controller.signal.aborted) throw timeoutError;
+      if (jikanRetryAt > Date.now()) {
+        const error = new Error("Jikan rate-limit cooldown is active");
+        error.status = 429;
+        error.retryAfterMs = jikanRetryAt - Date.now();
+        throw error;
+      }
       const waitMs = Math.max(0, 350 - (Date.now() - jikanLastRequestAt));
       if (waitMs) await wait(waitMs);
       if (controller.signal.aborted) throw timeoutError;
+      if (jikanRetryAt > Date.now()) {
+        const error = new Error("Jikan rate-limit cooldown is active");
+        error.status = 429;
+        error.retryAfterMs = jikanRetryAt - Date.now();
+        throw error;
+      }
       jikanLastRequestAt = Date.now();
       try {
         const upstream = await fetch(`${JIKAN_API}${pathname}`, { signal: controller.signal });
@@ -11874,11 +12114,16 @@ function fetchJikanJson(pathname, { deadlineAt = Infinity } = {}) {
           return payload;
         }
         await upstream.body?.cancel();
-        const error = new Error(`Jikan HTTP ${upstream.status}`);
-        error.status = upstream.status;
+        const error = upstreamHttpError("Jikan", upstream, JIKAN_FAILURE_TTL_MS);
+        if (error.status === 429) {
+          jikanRetryAt = Math.max(jikanRetryAt, Date.now() + error.retryAfterMs);
+        }
         throw error;
       } catch (error) {
         if (controller.signal.aborted) throw timeoutError;
+        // A 429 is an instruction to stop. Remember its Retry-After across all
+        // keys instead of multiplying the rate-limit problem with local retries.
+        if (error.status === 429) throw error;
         const retryable = !error.status || [408, 429, 500, 502, 503, 504].includes(error.status);
         if (!retryable || attempt === 2) throw error;
         await wait(650 * (2 ** attempt));
@@ -11899,14 +12144,17 @@ async function handleJikanFull(url, response) {
   const cached = jikanFullCache.get(String(malId));
   try {
     if (cached && Date.now() - cached.ts < JIKAN_EPISODE_CACHE_TTL_MS) {
-      return sendJson(response, { data: cached.data, cached: true });
+      return sendJson(response, { data: cached.data, cached: true }, 200, JIKAN_OK_CACHE);
     }
     if (jikanCoolingDown(fullKey)) {
       return sendJikanUnavailable(response, cached?.data, null);
     }
-    const payload = await fetchJikanJson(`/anime/${encodeURIComponent(malId)}/full`);
-    const data = payload.data || null;
-    if (data) jikanFullCache.set(String(malId), { data, ts: Date.now() });
+    const data = await coalesceInflight(jikanInflight, fullKey, async () => {
+      const payload = await fetchJikanJson(`/anime/${encodeURIComponent(malId)}/full`);
+      const found = payload.data || null;
+      jikanFullCache.set(String(malId), { data: found, ts: Date.now() });
+      return found;
+    });
     noteJikanSuccess(fullKey);
     sendJson(response, { data, ok: true, notFound: !data }, 200, JIKAN_OK_CACHE);
   } catch (error) {
@@ -11916,7 +12164,7 @@ async function handleJikanFull(url, response) {
       return sendJson(response, { data: null, ok: true, notFound: true }, 200, JIKAN_OK_CACHE);
     }
     noteJikanFailure(fullKey, error);
-    sendJikanUnavailable(response, cached?.data, null);
+    sendJikanUnavailable(response, cached?.data, null, error);
   }
 }
 
@@ -11927,15 +12175,18 @@ async function handleJikanSearch(url, response) {
   const cached = jikanSearchCache.get(cacheKey);
   try {
     if (cached && Date.now() - cached.ts < JIKAN_EPISODE_CACHE_TTL_MS) {
-      return sendJson(response, { data: cached.data, cached: true });
+      return sendJson(response, { data: cached.data, cached: true }, 200, JIKAN_OK_CACHE);
     }
     // Serve whatever we have rather than re-hitting an upstream we just saw fail.
     if (jikanCoolingDown(cacheKey)) {
       return sendJikanUnavailable(response, cached?.data, []);
     }
-    const payload = await fetchJikanJson(`/anime?q=${encodeURIComponent(query)}&limit=5&sfw=true`);
-    const data = payload.data || [];
-    jikanSearchCache.set(cacheKey, { data, ts: Date.now() });
+    const data = await coalesceInflight(jikanInflight, `search:${cacheKey}`, async () => {
+      const payload = await fetchJikanJson(`/anime?q=${encodeURIComponent(query)}&limit=5&sfw=true`);
+      const found = payload.data || [];
+      jikanSearchCache.set(cacheKey, { data: found, ts: Date.now() });
+      return found;
+    });
     noteJikanSuccess(cacheKey);
     // ok:true with an empty array means "Jikan has no such title" - a real
     // answer, distinct from unavailable:true which means "we could not ask".
@@ -11949,7 +12200,7 @@ async function handleJikanSearch(url, response) {
       return sendJson(response, { data: [], ok: true, notFound: true }, 200, JIKAN_OK_CACHE);
     }
     noteJikanFailure(cacheKey, error);
-    sendJikanUnavailable(response, cached?.data, []);
+    sendJikanUnavailable(response, cached?.data, [], error);
   }
 }
 
@@ -11968,30 +12219,34 @@ async function handleJikanEpisodes(url, response) {
       Number(episode?.episode) === expectedEpisode
     );
     if (cached && Date.now() - cached.ts < JIKAN_EPISODE_CACHE_TTL_MS && cacheHasExpectedEpisode) {
-      return sendJson(response, { data: cached.data, cached: true });
+      return sendJson(response, { data: cached.data, cached: true }, 200, JIKAN_OK_CACHE);
     }
     if (jikanCoolingDown(episodesKey)) {
       return sendJikanUnavailable(response, cached?.data, []);
     }
 
-    const deadlineAt = Date.now() + JIKAN_EPISODE_BUDGET_MS;
-    const firstPayload = await fetchJikanJson(`/anime/${encodeURIComponent(malId)}/episodes?page=1`, { deadlineAt });
-    const pageCount = Math.max(1, Math.min(30, Number(firstPayload.pagination?.last_visible_page || 1)));
-    const payloads = [firstPayload];
+    const result = await coalesceInflight(jikanInflight, episodesKey, async () => {
+      const deadlineAt = Date.now() + JIKAN_EPISODE_BUDGET_MS;
+      const firstPayload = await fetchJikanJson(`/anime/${encodeURIComponent(malId)}/episodes?page=1`, { deadlineAt });
+      const pageCount = Math.max(1, Math.min(30, Number(firstPayload.pagination?.last_visible_page || 1)));
+      const payloads = [firstPayload];
 
-    for (let page = 2; page <= pageCount; page += 2) {
-      const batch = [page, page + 1].filter((value) => value <= pageCount);
-      const results = await Promise.all(batch.map((pageNumber) =>
-        fetchJikanJson(`/anime/${encodeURIComponent(malId)}/episodes?page=${pageNumber}`, { deadlineAt })
-      ));
-      payloads.push(...results);
-    }
+      for (let page = 2; page <= pageCount; page += 2) {
+        const batch = [page, page + 1].filter((value) => value <= pageCount);
+        const results = await Promise.all(batch.map((pageNumber) =>
+          fetchJikanJson(`/anime/${encodeURIComponent(malId)}/episodes?page=${pageNumber}`, { deadlineAt })
+        ));
+        payloads.push(...results);
+      }
 
-    const episodes = payloads
-      .flatMap((payload) => payload.data || [])
-      .map(normalizeJikanEpisode)
-      .sort((a, b) => Number(a.episode || 0) - Number(b.episode || 0));
-    jikanEpisodeCache.set(String(malId), { data: episodes, ts: Date.now() });
+      const episodes = payloads
+        .flatMap((payload) => payload.data || [])
+        .map(normalizeJikanEpisode)
+        .sort((a, b) => Number(a.episode || 0) - Number(b.episode || 0));
+      jikanEpisodeCache.set(String(malId), { data: episodes, ts: Date.now() });
+      return { episodes, pageCount };
+    });
+    const { episodes, pageCount } = result;
     noteJikanSuccess(episodesKey);
     sendJson(response, { data: episodes, pages: pageCount, ok: true, notFound: episodes.length === 0 }, 200, JIKAN_OK_CACHE);
   } catch (error) {
@@ -12001,7 +12256,7 @@ async function handleJikanEpisodes(url, response) {
       return sendJson(response, { data: [], ok: true, notFound: true }, 200, JIKAN_OK_CACHE);
     }
     noteJikanFailure(episodesKey, error);
-    sendJikanUnavailable(response, cached?.data, []);
+    sendJikanUnavailable(response, cached?.data, [], error);
   }
 }
 
@@ -12022,7 +12277,29 @@ function normalizeJikanEpisode(ep) {
 // Thin proxy that keeps the TMDB credentials server-side. The client-side
 // ImageResolver does the title matching / confidence scoring / caching; here we
 // only forward search, show, and season requests (with shared server caching).
+function tmdbCooldownError() {
+  if (tmdbRetryAt <= Date.now()) return null;
+  const error = new Error("TMDB rate-limit cooldown is active");
+  error.status = 429;
+  error.retryAfterMs = tmdbRetryAt - Date.now();
+  return error;
+}
+
+async function readTmdbUpstream(upstream, provider) {
+  if (!upstream.ok) {
+    const error = upstreamHttpError(provider, upstream, 30000);
+    try { await upstream.body?.cancel?.(); } catch { /* response may already be closed */ }
+    if (error.status === 429) {
+      tmdbRetryAt = Math.max(tmdbRetryAt, Date.now() + error.retryAfterMs);
+    }
+    throw error;
+  }
+  return upstream.json();
+}
+
 function tmdbFetch(pathname, params = {}) {
+  const cooldownError = tmdbCooldownError();
+  if (cooldownError) return Promise.reject(cooldownError);
   if (!TMDB_CONFIGURED && TMDB_PROXY_BASE) {
     const proxyParams = new URLSearchParams();
     let route = "";
@@ -12046,10 +12323,8 @@ function tmdbFetch(pathname, params = {}) {
       return Promise.reject(new Error("Unsupported TMDB proxy route"));
     }
     const requestUrl = `${TMDB_PROXY_BASE}/${route}?${proxyParams.toString()}`;
-    return fetchWithTimeout(requestUrl, { headers: { Accept: "application/json" } }, TMDB_TIMEOUT_MS).then(async (upstream) => {
-      if (!upstream.ok) throw new Error(`TMDB proxy HTTP ${upstream.status}`);
-      return upstream.json();
-    });
+    return fetchWithTimeout(requestUrl, { headers: { Accept: "application/json" } }, TMDB_TIMEOUT_MS)
+      .then((upstream) => readTmdbUpstream(upstream, "TMDB proxy"));
   }
 
   const search = new URLSearchParams(params);
@@ -12059,15 +12334,13 @@ function tmdbFetch(pathname, params = {}) {
   else if (TMDB_API_KEY) search.set("api_key", TMDB_API_KEY);
   const qs = search.toString();
   const requestUrl = `${TMDB_API_BASE}${pathname}${qs ? `?${qs}` : ""}`;
-  return fetchWithTimeout(requestUrl, { headers }, TMDB_TIMEOUT_MS).then(async (upstream) => {
-    if (!upstream.ok) throw new Error(`TMDB HTTP ${upstream.status}`);
-    return upstream.json();
-  });
+  return fetchWithTimeout(requestUrl, { headers }, TMDB_TIMEOUT_MS)
+    .then((upstream) => readTmdbUpstream(upstream, "TMDB"));
 }
 
 function tmdbNotConfigured(response) {
   // Not an error: the client treats configured:false as "fall back to AniList".
-  sendJson(response, { ok: true, configured: false, results: [] });
+  sendJson(response, { ok: true, configured: false, results: [] }, 200, TMDB_SEARCH_CACHE_HEADERS);
 }
 
 async function handleTmdbSearch(url, response) {
@@ -12079,71 +12352,129 @@ async function handleTmdbSearch(url, response) {
   // Include the media type: the tv and movie indexes answer the same query
   // differently, and sharing one key would serve a film result for a series.
   const cacheKey = `${normalizeTitle(query)}|${year}|${String(url.searchParams.get("type") || "tv").toLowerCase()}|${includeAdult ? "adult" : "safe"}`;
+  const cached = tmdbSearchCache.get(cacheKey);
   try {
-    const cached = tmdbSearchCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < TMDB_CACHE_TTL_MS) {
-      return sendJson(response, { ok: true, configured: true, cached: true, results: cached.data });
+      return sendJson(response, { ok: true, configured: true, cached: true, results: cached.data }, 200, TMDB_SEARCH_CACHE_HEADERS);
     }
     const wantMovie = String(url.searchParams.get("type") || "").toLowerCase() === "movie";
-    const route = wantMovie ? "/search/movie" : "/search/tv";
-    const yearKey = wantMovie ? "primary_release_year" : "first_air_date_year";
-    const params = { query, include_adult: includeAdult ? "true" : "false", language: "en-US" };
-    if (year) params[yearKey] = year;
-    let payload = await tmdbFetch(route, params);
-    let results = Array.isArray(payload.results) ? payload.results : [];
-    if (year && !results.length) {
-      const fallbackParams = { query, include_adult: includeAdult ? "true" : "false", language: "en-US" };
-      payload = await tmdbFetch(route, fallbackParams);
-      results = Array.isArray(payload.results) ? payload.results : [];
-    }
-    // A movie result carries title/original_title/release_date. Alias them to the
-    // TV field names so callers never have to branch on the media type.
-    const sliced = results.slice(0, 10).map((r) => (wantMovie
-      ? { ...r, name: r.name || r.title, original_name: r.original_name || r.original_title, first_air_date: r.first_air_date || r.release_date, media_type: "movie" }
-      : r));
-    tmdbSearchCache.set(cacheKey, { data: sliced, ts: Date.now() });
-    sendJson(response, { ok: true, configured: true, results: sliced });
+    const sliced = await coalesceInflight(tmdbInflight, `search:${cacheKey}`, async () => {
+      const route = wantMovie ? "/search/movie" : "/search/tv";
+      const yearKey = wantMovie ? "primary_release_year" : "first_air_date_year";
+      const params = { query, include_adult: includeAdult ? "true" : "false", language: "en-US" };
+      if (year) params[yearKey] = year;
+      let payload = await tmdbFetch(route, params);
+      let results = Array.isArray(payload.results) ? payload.results : [];
+      if (year && !results.length) {
+        const fallbackParams = { query, include_adult: includeAdult ? "true" : "false", language: "en-US" };
+        payload = await tmdbFetch(route, fallbackParams);
+        results = Array.isArray(payload.results) ? payload.results : [];
+      }
+      // A movie result carries title/original_title/release_date. Alias them to the
+      // TV field names so callers never have to branch on the media type.
+      const found = results.slice(0, 10).map((r) => (wantMovie
+        ? { ...r, name: r.name || r.title, original_name: r.original_name || r.original_title, first_air_date: r.first_air_date || r.release_date, media_type: "movie" }
+        : r));
+      tmdbSearchCache.set(cacheKey, { data: found, ts: Date.now() });
+      return found;
+    });
+    sendJson(response, { ok: true, configured: true, results: sliced }, 200, TMDB_SEARCH_CACHE_HEADERS);
   } catch (error) {
-    log("warn", "TMDB search failed", { query, error: error.message });
-    sendJson(response, { ok: false, configured: true, error: error.message, results: [] }, 502);
+    log("warn", "TMDB search failed", {
+      query,
+      upstreamStatus: Number(error.status || 0) || null,
+      retryAfterMs: Number(error.retryAfterMs || 0) || null,
+      error: error.message
+    });
+    if (cached) {
+      sendJson(response, { ok: true, configured: true, cached: true, stale: true, results: cached.data }, 200, METADATA_STALE_CACHE_HEADERS);
+      return;
+    }
+    sendJson(response, {
+      ok: false,
+      configured: true,
+      error: error.message,
+      upstreamStatus: Number(error.status || 0) || null,
+      retryAfterMs: Number(error.retryAfterMs || 0) || undefined,
+      results: []
+    }, 502);
   }
 }
 
 async function handleTmdbTv(url, response) {
   if (!TMDB_AVAILABLE) return tmdbNotConfigured(response);
   const id = String(url.searchParams.get("id") || "").trim();
-  if (!id) return sendJson(response, { ok: false, configured: true, error: "Missing id" }, 400);
+  if (!/^\d+$/.test(id) || Number(id) <= 0) {
+    return sendJson(response, { ok: false, configured: true, error: "Missing or invalid id" }, 400);
+  }
+  const cached = tmdbTvCache.get(id);
   try {
-    const cached = tmdbTvCache.get(id);
     if (cached && Date.now() - cached.ts < TMDB_CACHE_TTL_MS) {
-      return sendJson(response, { ok: true, configured: true, cached: true, show: cached.data });
+      return sendJson(response, {
+        ok: true,
+        configured: true,
+        cached: true,
+        notFound: cached.data === null,
+        show: cached.data
+      }, 200, TMDB_TV_CACHE_HEADERS);
     }
-    const payload = await tmdbFetch(`/tv/${encodeURIComponent(id)}`, { language: "en-US" });
-    const show = {
-      id: payload.id,
-      name: payload.name,
-      original_name: payload.original_name,
-      first_air_date: payload.first_air_date,
-      poster_path: payload.poster_path,
-      backdrop_path: payload.backdrop_path,
-      number_of_seasons: payload.number_of_seasons,
-      number_of_episodes: payload.number_of_episodes,
-      genres: payload.genres || [],
-      seasons: Array.isArray(payload.seasons)
-        ? payload.seasons.map((s) => ({
-            season_number: s.season_number,
-            name: s.name,
-            poster_path: s.poster_path,
-            air_date: s.air_date,
-            episode_count: s.episode_count
-          }))
-        : []
-    };
-    tmdbTvCache.set(id, { data: show, ts: Date.now() });
-    sendJson(response, { ok: true, configured: true, show });
+    const show = await coalesceInflight(tmdbInflight, `tv:${id}`, async () => {
+      const raw = await tmdbFetch(`/tv/${encodeURIComponent(id)}`, { language: "en-US" });
+      const payload = raw?.show || raw;
+      const found = {
+        id: payload.id,
+        name: payload.name,
+        original_name: payload.original_name,
+        first_air_date: payload.first_air_date,
+        poster_path: payload.poster_path,
+        backdrop_path: payload.backdrop_path,
+        number_of_seasons: payload.number_of_seasons,
+        number_of_episodes: payload.number_of_episodes,
+        genres: payload.genres || [],
+        seasons: Array.isArray(payload.seasons)
+          ? payload.seasons.map((s) => ({
+              season_number: s.season_number,
+              name: s.name,
+              poster_path: s.poster_path,
+              air_date: s.air_date,
+              episode_count: s.episode_count
+            }))
+          : []
+      };
+      tmdbTvCache.set(id, { data: found, ts: Date.now() });
+      return found;
+    });
+    sendJson(response, { ok: true, configured: true, show }, 200, TMDB_TV_CACHE_HEADERS);
   } catch (error) {
-    log("warn", "TMDB tv fetch failed", { id, error: error.message });
-    sendJson(response, { ok: false, configured: true, error: error.message }, 502);
+    log("warn", "TMDB tv fetch failed", {
+      id,
+      upstreamStatus: Number(error.status || 0) || null,
+      retryAfterMs: Number(error.retryAfterMs || 0) || null,
+      error: error.message
+    });
+    if (error.status === 404) {
+      tmdbTvCache.set(id, { data: null, ts: Date.now() });
+      sendJson(response, { ok: true, configured: true, notFound: true, show: null }, 200, TMDB_TV_CACHE_HEADERS);
+      return;
+    }
+    if (cached) {
+      sendJson(response, {
+        ok: true,
+        configured: true,
+        cached: true,
+        stale: true,
+        notFound: cached.data === null,
+        show: cached.data
+      }, 200, METADATA_STALE_CACHE_HEADERS);
+      return;
+    }
+    sendJson(response, {
+      ok: false,
+      configured: true,
+      error: error.message,
+      upstreamStatus: Number(error.status || 0) || null,
+      retryAfterMs: Number(error.retryAfterMs || 0) || undefined
+    }, 502);
   }
 }
 
@@ -12151,33 +12482,73 @@ async function handleTmdbSeason(url, response) {
   if (!TMDB_AVAILABLE) return tmdbNotConfigured(response);
   const id = String(url.searchParams.get("id") || "").trim();
   const season = String(url.searchParams.get("season") || "").trim();
-  if (!id || season === "") return sendJson(response, { ok: false, configured: true, error: "Missing id or season" }, 400);
+  if (!/^\d+$/.test(id) || Number(id) <= 0 || !/^\d+$/.test(season)) {
+    return sendJson(response, { ok: false, configured: true, error: "Missing or invalid id or season" }, 400);
+  }
   const cacheKey = `${id}:${season}`;
+  const cached = tmdbSeasonCache.get(cacheKey);
   try {
-    const cached = tmdbSeasonCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < TMDB_CACHE_TTL_MS) {
-      return sendJson(response, { ok: true, configured: true, cached: true, season: cached.data });
+      return sendJson(response, {
+        ok: true,
+        configured: true,
+        cached: true,
+        notFound: cached.data === null,
+        season: cached.data
+      }, 200, TMDB_SEASON_CACHE_HEADERS);
     }
-    const payload = await tmdbFetch(`/tv/${encodeURIComponent(id)}/season/${encodeURIComponent(season)}`, { language: "en-US" });
-    const data = {
-      season_number: payload.season_number,
-      name: payload.name,
-      poster_path: payload.poster_path,
-      air_date: payload.air_date,
-          episodes: Array.isArray(payload.episodes)
-        ? payload.episodes.map((ep) => ({
-            episode_number: ep.episode_number,
-            name: ep.name,
-            overview: ep.overview,
-            still_path: ep.still_path,
-            air_date: ep.air_date
-          }))
-        : []
-    };
-    tmdbSeasonCache.set(cacheKey, { data, ts: Date.now() });
-    sendJson(response, { ok: true, configured: true, season: data });
+    const data = await coalesceInflight(tmdbInflight, `season:${cacheKey}`, async () => {
+      const raw = await tmdbFetch(`/tv/${encodeURIComponent(id)}/season/${encodeURIComponent(season)}`, { language: "en-US" });
+      const payload = raw?.season || raw;
+      const found = {
+        season_number: payload.season_number,
+        name: payload.name,
+        poster_path: payload.poster_path,
+        air_date: payload.air_date,
+        episodes: Array.isArray(payload.episodes)
+          ? payload.episodes.map((ep) => ({
+              episode_number: ep.episode_number,
+              name: ep.name,
+              overview: ep.overview,
+              still_path: ep.still_path,
+              air_date: ep.air_date
+            }))
+          : []
+      };
+      tmdbSeasonCache.set(cacheKey, { data: found, ts: Date.now() });
+      return found;
+    });
+    sendJson(response, { ok: true, configured: true, season: data }, 200, TMDB_SEASON_CACHE_HEADERS);
   } catch (error) {
-    log("warn", "TMDB season fetch failed", { id, season, error: error.message });
-    sendJson(response, { ok: false, configured: true, error: error.message }, 502);
+    log("warn", "TMDB season fetch failed", {
+      id,
+      season,
+      upstreamStatus: Number(error.status || 0) || null,
+      retryAfterMs: Number(error.retryAfterMs || 0) || null,
+      error: error.message
+    });
+    if (error.status === 404) {
+      tmdbSeasonCache.set(cacheKey, { data: null, ts: Date.now() });
+      sendJson(response, { ok: true, configured: true, notFound: true, season: null }, 200, TMDB_SEASON_CACHE_HEADERS);
+      return;
+    }
+    if (cached) {
+      sendJson(response, {
+        ok: true,
+        configured: true,
+        cached: true,
+        stale: true,
+        notFound: cached.data === null,
+        season: cached.data
+      }, 200, METADATA_STALE_CACHE_HEADERS);
+      return;
+    }
+    sendJson(response, {
+      ok: false,
+      configured: true,
+      error: error.message,
+      upstreamStatus: Number(error.status || 0) || null,
+      retryAfterMs: Number(error.retryAfterMs || 0) || undefined
+    }, 502);
   }
 }

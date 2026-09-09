@@ -716,7 +716,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=788`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=789`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -925,17 +925,14 @@ async function loadDirectCatalogFallback() {
   window.setTimeout(() => enrichCatalogAiringData(), 7000);
 }
 
-// The client builds its catalog from AniList trending + Jikan directly, but some
-// airing shows arrive Jikan-only (no AniList airing fields), so their cards would
-// fall back to "TV". The server's /api/catalog cross-enriches every entry with
-// AniList data, so pull the authoritative latest-aired / status / ids from there
-// and patch the in-memory catalog, then re-render.
+// Overlay the compact airing feed onto the catalog already in memory. This used
+// to download the complete multi-megabyte /api/catalog response a second time
+// seven seconds after startup, even though loadAnimeSources had just installed
+// that same catalog. Reusing state.shows keeps the identity data and removes one
+// function invocation plus a large transfer from every page load.
 async function enrichCatalogAiringData(attempt = 0) {
   try {
-    const res = await fetchWithTimeout("/api/catalog", { cache: "no-store" }, 12000);
-    if (!res.ok) throw new Error("catalog unavailable");
-    const json = await res.json();
-    const items = Array.isArray(json.items) ? json.items : [];
+    const items = Array.isArray(state.shows) ? state.shows : [];
     if (!items.length) throw new Error("catalog empty");
     // /api/catalog carries identity, status and artwork but no airing instants
     // at all - measured, 0 of 994 rows have nextAiringAt - so despite its name
@@ -1024,7 +1021,7 @@ async function enrichCatalogAiringData(attempt = 0) {
       if (typeof renderSchedule === "function") { try { renderSchedule(); } catch { /* one bad row must not break the merge */ } }
     }
   } catch {
-    // /api/catalog may still be warming up — retry a few times.
+    // The initial catalog may still be installing; retry a few times.
     if (attempt < 5) window.setTimeout(() => enrichCatalogAiringData(attempt + 1), 3000);
   }
 }
@@ -1145,12 +1142,10 @@ async function loadExternalSources() {
 
 async function fetchLocalMetadataCatalog() {
   if (location.protocol === "file:") return [];
-  // /api/catalog (217 titles) is heavy and routinely takes 4-6s. The default 5s
-  // API_TIMEOUT_MS aborted it about half the time, which left the homepage stuck
-  // on the 54-title bootstrap ("only 66 titles"). It runs deferred/off the
-  // critical render path, so a generous 20s timeout is safe and just lets the
-  // full catalog finish loading.
-  const response = await fetchWithTimeout(LOCAL_METADATA_ENDPOINT, { cache: "no-store" }, 20000);
+  // The complete catalog is a multi-megabyte response. It is served from the
+  // shared cache now, but the longer timeout still protects viewers on a slow
+  // connection and remains off the critical first-paint path.
+  const response = await fetchWithTimeout(LOCAL_METADATA_ENDPOINT, {}, 20000);
   if (!response.ok) throw new Error("ZenkaiTV metadata API unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2261,8 +2256,8 @@ async function findAdultCinematicArtwork(show, title) {
     }
   } catch { /* continue with TMDB and AniList */ }
   const tmdbRequests = [
-    fetchWithTimeout(`/api/tmdb/search?q=${encodeURIComponent(title)}${suffix}`, { cache: "no-store" }, 10000),
-    fetchWithTimeout(`/api/tmdb/search?q=${encodeURIComponent(title)}${suffix}&type=movie`, { cache: "no-store" }, 10000)
+    fetchWithTimeout(`/api/tmdb/search?q=${encodeURIComponent(title)}${suffix}`, {}, 10000),
+    fetchWithTimeout(`/api/tmdb/search?q=${encodeURIComponent(title)}${suffix}&type=movie`, {}, 10000)
   ];
   const readSettledPayloads = async (requests) => Promise.all((await Promise.allSettled(requests)).map(async (entry) => {
     if (entry.status !== "fulfilled" || !entry.value.ok) return null;
@@ -2294,7 +2289,7 @@ async function findAdultCinematicArtwork(show, title) {
   if (choices.length) return choices.sort((a, b) => b.score - a.score || b.preference - a.preference)[0];
 
   const [aniPayload] = await readSettledPayloads([
-    fetchWithTimeout(`/api/anilist/search?q=${encodeURIComponent(title)}&adult=1`, { cache: "no-store" }, 10000)
+    fetchWithTimeout(`/api/anilist/search?q=${encodeURIComponent(title)}&adult=1`, {}, 10000)
   ]);
   const aniMedia = Array.isArray(aniPayload?.results) && aniPayload.results.length
     ? aniPayload.results
@@ -2792,7 +2787,7 @@ async function liveSearchAnimeAv1Catalog(query) {
   if (q.length < 3 || _animeAv1CatalogSearchDone.has(q)) return;
   const seq = ++_animeAv1CatalogSearchSeq;
   try {
-    const res = await fetchWithTimeout(`/api/animeav1/catalog-search?q=${encodeURIComponent(raw)}`, { cache: "no-store" }, 10000);
+    const res = await fetchWithTimeout(`/api/animeav1/catalog-search?q=${encodeURIComponent(raw)}`, {}, 10000);
     if (!res.ok) return;
     const payload = await res.json();
     const items = Array.isArray(payload.items) ? payload.items : [];
@@ -2827,7 +2822,7 @@ async function liveSearchAniList(query) {
   if (q.length < 3 || _liveSearchDone.has(q)) return;
   const seq = ++_liveSearchSeq;
   try {
-    const res = await fetchWithTimeout(`/api/anilist/search?q=${encodeURIComponent(raw)}`, { cache: "no-store" }, 9000);
+    const res = await fetchWithTimeout(`/api/anilist/search?q=${encodeURIComponent(raw)}`, {}, 9000);
     if (!res.ok) return;
     const json = await res.json();
     const results = Array.isArray(json.results) && json.results.length
@@ -3254,7 +3249,7 @@ async function loadAnimeAv1Latest(force = false) {
 
   state.av1LatestLoading = true;
   try {
-    const res = await fetchWithTimeout("/api/animeav1/latest", { cache: "no-store" }, 9000);
+    const res = await fetchWithTimeout("/api/animeav1/latest", {}, 9000);
     if (!res.ok) throw new Error(`AnimeAV1 latest HTTP ${res.status}`);
     const json = await res.json();
     if (Array.isArray(json.items) && json.items.length) {
@@ -3980,7 +3975,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=788";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=789";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4832,7 +4827,7 @@ async function hydrateCanonicalAnimeMetadata(show, options = {}) {
     try {
       const response = await fetchWithTimeout(
         `/api/jikan/search?q=${encodeURIComponent(show.romajiTitle || show.title || "")}`,
-        { cache: "no-store" },
+        {},
         15000
       );
       const payload = response.ok ? await response.json() : null;
@@ -15044,11 +15039,20 @@ async function resolveTioAnimeSlugFromCatalog(show) {
 // E.g. anilist/media?id=169580 called 4× simultaneously becomes 1 network hit.
 const _inflightFetch = new Map();
 function fetchDeduped(url, init) {
-  const key = String(url);
-  if (_inflightFetch.has(key)) return _inflightFetch.get(key);
-  const p = fetch(url, init).finally(() => _inflightFetch.delete(key));
-  _inflightFetch.set(key, p);
-  return p;
+  const method = String(init?.method || "GET").toUpperCase();
+  if (method !== "GET" && method !== "HEAD") return fetch(url, init);
+
+  const key = `${method}:${String(url)}`;
+  let pending = _inflightFetch.get(key);
+  if (!pending) {
+    pending = fetch(url, init).finally(() => {
+      if (_inflightFetch.get(key) === pending) _inflightFetch.delete(key);
+    });
+    _inflightFetch.set(key, pending);
+  }
+  // Response bodies are single-use. Every consumer gets its own clone while
+  // still sharing the underlying network request.
+  return pending.then((response) => typeof response?.clone === "function" ? response.clone() : response);
 }
 
 let visibleMetadataWarmGeneration = 0;
@@ -16829,7 +16833,7 @@ async function attemptResolveEmbed(embedUrl, siteReferer = "", timeoutMs = 7000)
     const api = new URL("/api/resolve", location.origin);
     api.searchParams.set("url", embedUrl);
     if (siteReferer) api.searchParams.set("referer", siteReferer);
-    const response = await fetchWithTimeout(api.toString(), { cache: "no-store" }, timeoutMs);
+    const response = await fetchWithTimeout(api.toString(), {}, timeoutMs);
     if (!response.ok) return null;
     const payload = await response.json();
     if (payload && payload.ok && payload.url) {
@@ -19135,7 +19139,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=788");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=789");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

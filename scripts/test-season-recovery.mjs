@@ -257,12 +257,15 @@ test("a failed refresh preserves existing seasons", async () => {
 
 test("season metadata requests cannot exhaust the playback API budget", () => {
   const c = vm.createContext({ Date, RATE_LIMIT_WINDOW_MS: 60000, RATE_LIMIT_API_MAX_REQUESTS: 120,
-    RATE_LIMIT_MAX_REQUESTS: 240, rateLimitBuckets: new Map(), getClientIp: () => "fixture", pruneRateLimitBuckets() {} });
+    RATE_LIMIT_MAX_REQUESTS: 240, RATE_LIMIT_MEDIA_MAX_REQUESTS: 1800,
+    rateLimitBuckets: new Map(), getClientIp: () => "fixture", pruneRateLimitBuckets() {} });
   vm.runInContext(section(serverSource, "function checkRateLimit(", "function pruneRateLimitBuckets("), c);
   for (let i = 0; i < 250; i++) assert.equal(c.checkRateLimit({}, new URL("https://example.test/api/tmdb/season")).allowed, true);
   assert.equal(c.checkRateLimit({}, new URL("https://example.test/api/animeav1/sources")).allowed, true);
   for (let i = 0; i < 110; i++) c.checkRateLimit({}, new URL("https://example.test/api/tmdb/season"));
   assert.equal(c.checkRateLimit({}, new URL("https://example.test/api/tmdb/season")).allowed, false);
+  for (let i = 0; i < 1000; i++) assert.equal(c.checkRateLimit({}, new URL("https://example.test/api/source")).allowed, true);
+  assert.equal(c.checkRateLimit({}, new URL("https://example.test/api/source")).limit, 1800);
 });
 
 test("catalog responses vary by both CORS origin and compression", () => {

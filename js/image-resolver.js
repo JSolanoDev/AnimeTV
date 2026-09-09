@@ -591,7 +591,7 @@ const ImageResolver = (function () {
     const idLabel = anime.anilistId || anime.id;
     let show = null;
     try {
-      const resp = await fetchWithTimeout(`/api/tmdb/tv?id=${encodeURIComponent(tmdbId)}`, { cache: "no-store" }, 12000);
+      const resp = await fetchWithTimeout(`/api/tmdb/tv?id=${encodeURIComponent(tmdbId)}`, {}, 12000);
       const payload = resp.ok ? await resp.json() : null;
       show = payload?.show || null;
     } catch { /* keep going with search-level paths below */ }
@@ -614,7 +614,7 @@ const ImageResolver = (function () {
         try {
           const resp = await fetchWithTimeout(
             `/api/tmdb/season?id=${encodeURIComponent(tmdbId)}&season=${encodeURIComponent(season.season_number)}`,
-            { cache: "no-store" }, 12000
+            {}, 12000
           );
           const payload = resp.ok ? await resp.json() : null;
           const tmdbEpisodes = payload?.season?.episodes || [];
@@ -685,7 +685,7 @@ const ImageResolver = (function () {
         try {
           const r = await fetchWithTimeout(
             `/api/tmdb/season?id=${encodeURIComponent(tmdbId)}&season=${encodeURIComponent(s.season_number)}`,
-            { cache: "no-store" }, 10000
+            {}, 10000
           );
           const payload = r.ok ? await r.json() : null;
           const episodes = payload?.season?.episodes || [];
@@ -857,13 +857,13 @@ const ImageResolver = (function () {
         try {
           let resp = await fetchWithTimeout(
             `/api/tmdb/search?q=${encodeURIComponent(title)}${mediaType}${year ? `&year=${encodeURIComponent(year)}` : ""}`,
-            { cache: "no-store" }, 12000
+            {}, 12000
           );
           payload = resp.ok ? await resp.json() : null;
           if ((!payload || !payload.results || !payload.results.length) && year) {
             resp = await fetchWithTimeout(
               `/api/tmdb/search?q=${encodeURIComponent(title)}${mediaType}`,
-              { cache: "no-store" }, 12000
+              {}, 12000
             );
             payload = resp.ok ? await resp.json() : null;
           }
@@ -873,7 +873,7 @@ const ImageResolver = (function () {
           if ((!payload || !payload.results || !payload.results.length) && mediaType) {
             resp = await fetchWithTimeout(
               `/api/tmdb/search?q=${encodeURIComponent(title)}`,
-              { cache: "no-store" }, 12000
+              {}, 12000
             );
             payload = resp.ok ? await resp.json() : null;
           }
@@ -1136,7 +1136,7 @@ const ImageResolver = (function () {
       debug(`Lazy fetching TMDB season S${mapping.seasonNumber} for show ${anime.anilistId || anime.id} (contains absolute episode ${episodeNumber})...`);
       const url = `/api/tmdb/season?id=${encodeURIComponent(anime.tmdbId)}&season=${encodeURIComponent(mapping.seasonNumber)}`;
       const resp = typeof fetchWithTimeout === "function"
-        ? await fetchWithTimeout(url, { cache: "no-store" }, 12000)
+        ? await fetchWithTimeout(url, {}, 12000)
         : await fetch(url);
       const payload = resp.ok ? await resp.json() : null;
       const eps = payload?.season?.episodes || [];
@@ -1264,7 +1264,7 @@ const ImageResolver = (function () {
       try {
         const url = `/api/tmdb/season?id=${encodeURIComponent(anime.tmdbId)}&season=${encodeURIComponent(tmdbSeasonNumber)}`;
         const resp = typeof fetchWithTimeout === "function"
-          ? await fetchWithTimeout(url, { cache: "no-store" }, 12000)
+          ? await fetchWithTimeout(url, {}, 12000)
           : await fetch(url);
         const payload = resp.ok ? await resp.json() : null;
         const eps = payload?.season?.episodes || [];
