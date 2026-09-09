@@ -267,7 +267,9 @@ const ANILIST_AIRING_CACHE_HEADERS = Object.freeze({
   "Vary": "Accept-Encoding"
 });
 const ANILIST_UNAVAILABLE_CACHE_HEADERS = Object.freeze({
-  "Cache-Control": "no-store, max-age=0",
+  // Keep an explicit upstream outage visible, but collapse identical failures
+  // at the edge so 100 viewers do not make 100 doomed provider requests.
+  "Cache-Control": "public, max-age=10, s-maxage=60",
   "Vary": "Accept-Encoding"
 });
 
@@ -453,7 +455,10 @@ const JIKAN_OK_CACHE = {
   "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800",
   "Vary": "Accept-Encoding"
 };
-const JIKAN_UNAVAILABLE_CACHE = { "Cache-Control": "no-store, max-age=0" };
+const JIKAN_UNAVAILABLE_CACHE = {
+  "Cache-Control": "public, max-age=10, s-maxage=60",
+  "Vary": "Accept-Encoding"
+};
 
 function sendJikanUnavailable(response, cachedData, fallback, error = null) {
   const hasStale = cachedData !== undefined && cachedData !== null;
@@ -463,7 +468,13 @@ function sendJikanUnavailable(response, cachedData, fallback, error = null) {
     ok: false,
     stale: hasStale,
     unavailable: true,
-    retryAfterMs: Math.max(JIKAN_FAILURE_TTL_MS, Number(error?.retryAfterMs || 0))
+    retryAfterMs: Math.max(JIKAN_FAILURE_TTL_MS, Number(error?.retryAfterMs || 0)),
+    ...(error ? {
+      upstreamStatus: Number(error.status || 0) || null,
+      reason: error.code === "JIKAN_TIMEOUT"
+        ? "timeout"
+        : (error.status ? "upstream_http" : "network")
+    } : { reason: "cooldown" })
   }, 200, hasStale ? METADATA_STALE_CACHE_HEADERS : JIKAN_UNAVAILABLE_CACHE);
 }
 

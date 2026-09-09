@@ -30,7 +30,7 @@ function harness(fetchImpl) {
     JIKAN_EPISODE_CACHE_TTL_MS: 86400000,
     JIKAN_FAILURE_TTL_MS: 60000,
     JIKAN_OK_CACHE: {},
-    JIKAN_UNAVAILABLE_CACHE: { "Cache-Control": "no-store, max-age=0" },
+    JIKAN_UNAVAILABLE_CACHE: { "Cache-Control": "public, max-age=10, s-maxage=60" },
     METADATA_STALE_CACHE_HEADERS: { "Cache-Control": "public, stale-while-revalidate=300" },
     jikanRequestQueue: Promise.resolve(),
     jikanLastRequestAt: 0,
@@ -322,6 +322,7 @@ for (const [handler, path] of [["handleJikanFull", "full?id=1"], ["handleJikanSe
     assert.equal(response.status, 200);
     assert.equal(response.body.unavailable, true);
     assert.equal(response.body.notFound, undefined);
+    assert.match(response.headers["Cache-Control"], /s-maxage=60/);
     assert.equal(h.context.jikanFullCache.size + h.context.jikanSearchCache.size, 0);
   });
 }

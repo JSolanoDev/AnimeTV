@@ -682,6 +682,8 @@ test("shared metadata cache lifetimes match the production policy", () => {
   assert.match(aniSearch, /s-maxage=3600/);
   assert.match(aniAiring, /s-maxage=600/);
   assert.match(tmdbTv, /s-maxage=43200/);
+  assert.match(server, /ANILIST_UNAVAILABLE_CACHE_HEADERS[\s\S]*?s-maxage=60/);
+  assert.match(server, /JIKAN_UNAVAILABLE_CACHE[\s\S]*?s-maxage=60/);
   assert.match(server, /stale-if-error=604800/);
 });
 
