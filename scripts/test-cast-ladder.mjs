@@ -465,6 +465,16 @@ const TWO = [
     /const preparation = Promise\.allSettled[\s\S]*?await ctx\.requestSession\(\)[\s\S]*?await preparation/.test(player), true);
   check("16h. declared HLS type reaches extensionless Cast codec detection",
     /detectCastVideoCodec\(candidate\.url, candidate\.contentType\)/.test(player), true);
+  check("16i. the official RemotePlayer integration is activated",
+    (player.match(/initRemotePlayer\(\)/g) || []).length >= 3, true);
+  check("16j. each accepted load is followed by media-session observation",
+    /await session\.loadMedia\(request\);\s*observeMediaSession\(candidate\.label\)/.test(player), true);
+  check("16k. an existing CastSession is reused instead of requested again",
+    /let session = castSession\(\);[\s\S]*?if \(!session\) \{[\s\S]*?await ctx\.requestSession\(\)/.test(player), true);
+  check("16l. duplicate chooser clicks are suppressed",
+    /if \(castSessionStarting\)[\s\S]*?castSessionStarting = true/.test(player), true);
+  check("16m. playback polling can read the framework RemotePlayer state",
+    /media\?\.playerState \|\| remotePlayer\?\.playerState/.test(player), true);
 }
 
 /* 17. The parent prepares a direct, proxied TV fallback only on Cast request. */

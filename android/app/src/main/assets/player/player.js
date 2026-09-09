@@ -440,6 +440,7 @@
   let castAttempts = [];
   let castCandidatesCache = null;
   let castLadderRunning = false;
+  let castSessionStarting = false;
 
   function castLog(...parts) {
     if (CAST_DEV) console.log("[Cast]", ...parts);
@@ -511,10 +512,28 @@
             syncCastControl(name);
           });
           ctx.addEventListener(window.cast.framework.CastContextEventType.SESSION_STATE_CHANGED, (event) => {
-            castLog("session:", enumName(window.cast.framework.SessionState, event.sessionState));
+            const name = enumName(window.cast.framework.SessionState, event.sessionState);
+            castLog("session:", name);
+            if (name === "SESSION_STARTED" || name === "SESSION_RESUMED") {
+              initRemotePlayer();
+              window.setTimeout(() => {
+                captureReceiverStatus();
+                syncCastControl(castStateNow());
+              }, 0);
+            } else if (name === "SESSION_ENDED") {
+              // Cancel any in-flight media watcher without disconnecting a newer
+              // session that may already be starting.
+              castAttemptSeq++;
+              castLadderRunning = false;
+              lastReceiverIdleReason = null;
+              lastReceiverMediaError = null;
+              mediaSessionSeenAt = null;
+              syncCastControl(castStateNow());
+            }
           });
           window.__ZENKAI_CAST_CONTEXT_CONFIGURED__ = true;
         }
+        initRemotePlayer();
         castInitState = "ready";
         castLog("initialization complete", { receiverApplicationId: castReceiverAppId, castState: castStateNow() });
         syncCastControl(castStateNow());
@@ -580,52 +599,71 @@
         : "Casting is unavailable in this browser";
       return;
     }
-    const before = { castState: castStateNow(), sessionState: sessionStateNow() };
-    castLog("requestSession from click", before);
-    // Discovery found nothing. That is NOT a session failure, and saying so sends
-    // people to debug their Wi-Fi when the SDK simply has no receiver to offer.
-    if (before.castState === "NO_DEVICES_AVAILABLE") {
-      console.error("[Cast] no devices available", { ...before, receiverApplicationId: castReceiverAppId });
-      if (art) art.notice.show = "No Chromecast devices found";
+    if (castSessionStarting) {
+      castLog("session request already in progress - ignoring duplicate click");
       return;
     }
-    // Resolve the Cast ladder and inspect the selected manifest while Chrome's
-    // device picker is open. Both operations were previously started only after
-    // a TV was chosen, adding several seconds of a blank receiver screen.
-    const preparation = Promise.allSettled([
-      requestCastCandidates(),
-      detectCastVideoCodec(castMediaUrl(), castContentType())
-    ]);
+    castSessionStarting = true;
     try {
-      await ctx.requestSession();
-    } catch (error) {
-      // The exact SDK value, not a guess. chrome.cast.ErrorCode members are strings
-      // like "cancel" / "receiver_unavailable" / "session_error"; requestSession can
-      // also reject with a bare string.
-      const code = String(error?.code ?? error?.description ?? error ?? "");
-      console.error("[Cast] requestSession failed", {
-        error,
-        code,
-        message: error?.message ?? error?.description,
-        castState: castStateNow(),
-        sessionState: sessionStateNow(),
-        receiverApplicationId: castReceiverAppId
-      });
-      if (!art) return;
-      const lower = code.toLowerCase();
-      if (lower.includes("cancel")) { art.notice.show = ""; return; }
-      if (lower.includes("receiver_unavailable") || lower.includes("unavailable")) {
-        art.notice.show = "No Chromecast devices found";
+      const before = { castState: castStateNow(), sessionState: sessionStateNow() };
+      let session = castSession();
+      castLog(session ? "reusing current session" : "requestSession from click", before);
+      // Discovery found nothing. That is NOT a session failure, and saying so sends
+      // people to debug their Wi-Fi when the SDK simply has no receiver to offer.
+      if (!session && before.castState === "NO_DEVICES_AVAILABLE") {
+        console.error("[Cast] no devices available", { ...before, receiverApplicationId: castReceiverAppId });
+        if (art) art.notice.show = "No Chromecast devices found";
         return;
       }
-      if (lower.includes("timeout")) { art.notice.show = "The Chromecast did not respond - try again"; return; }
-      if (lower.includes("extension")) { art.notice.show = "Chrome cannot reach its Cast support"; return; }
-      art.notice.show = `Couldn't start the Cast session (${code || "unknown"})`;
-      return;
+      // Resolve the Cast ladder and inspect the selected manifest while Chrome's
+      // device picker is open. Both operations were previously started only after
+      // a TV was chosen, adding several seconds of a blank receiver screen.
+      const preparation = Promise.allSettled([
+        requestCastCandidates(),
+        detectCastVideoCodec(castMediaUrl(), castContentType())
+      ]);
+      if (!session) {
+        try {
+          await ctx.requestSession();
+        } catch (error) {
+          // The exact SDK value, not a guess. chrome.cast.ErrorCode members are strings
+          // like "cancel" / "receiver_unavailable" / "session_error"; requestSession can
+          // also reject with a bare string.
+          const code = String(error?.code ?? error?.description ?? error ?? "");
+          console.error("[Cast] requestSession failed", {
+            error,
+            code,
+            message: error?.message ?? error?.description,
+            castState: castStateNow(),
+            sessionState: sessionStateNow(),
+            receiverApplicationId: castReceiverAppId
+          });
+          if (!art) return;
+          const lower = code.toLowerCase();
+          if (lower.includes("cancel")) { art.notice.show = ""; return; }
+          if (lower.includes("receiver_unavailable") || lower.includes("unavailable")) {
+            art.notice.show = "No Chromecast devices found";
+            return;
+          }
+          if (lower.includes("timeout")) { art.notice.show = "The Chromecast did not respond - try again"; return; }
+          if (lower.includes("extension")) { art.notice.show = "Chrome cannot reach its Cast support"; return; }
+          art.notice.show = `Couldn't start the Cast session (${code || "unknown"})`;
+          return;
+        }
+        session = castSession();
+      }
+      await preparation;
+      if (!session) {
+        console.error("[Cast] requestSession resolved without a current CastSession");
+        if (art) art.notice.show = "The Chromecast session did not finish connecting";
+        return;
+      }
+      initRemotePlayer();
+      castLog("session established", { castState: castStateNow(), sessionState: sessionStateNow() });
+      await loadCastMedia();
+    } finally {
+      castSessionStarting = false;
     }
-    await preparation;
-    castLog("session established", { castState: castStateNow(), sessionState: sessionStateNow() });
-    loadCastMedia().catch((error) => console.error("[Cast] loadCastMedia threw", error));
   }
 
   // Stage 3. A failure here is about the MEDIA, never about discovery.
@@ -1119,7 +1157,8 @@
       timer = window.setInterval(() => {
         if (token !== castAttemptSeq) return stop("superseded", "a newer attempt took over");
         const media = castMedia();
-        const state = media?.playerState ? enumName(PlayerState, media.playerState) : "";
+        const rawState = media?.playerState || remotePlayer?.playerState || "";
+        const state = rawState ? enumName(PlayerState, rawState) : "";
         const idle = media?.idleReason ? enumName(IdleReason, media.idleReason) : "";
         if (state) lastState = state;
         if (idle) lastReceiverIdleReason = idle;
@@ -1212,7 +1251,9 @@
     });
     let loaded;
     try {
+      initRemotePlayer();
       await session.loadMedia(request);
+      observeMediaSession(candidate.label);
       loaded = true;
     } catch (error) {
       return {
