@@ -712,7 +712,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=774`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=775`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3974,7 +3974,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=774";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=775";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -12501,14 +12501,15 @@ function castBackupEpisodeNumber(show, episode, verifiedFallback, usingJkAnimeSl
 
 function castEmbedPreference(source = {}) {
   const identity = `${source.provider || ""} ${source.url || source.externalUrl || ""}`.toLowerCase();
-  // Streamtape exposes a standard-port H.264/AAC MP4 once its embed page is
-  // resolved. MP4Upload currently resolves to port 183, which the production
-  // runtime cannot reach and which made every fallback burn its full timeout.
-  if (identity.includes("streamtape")) return 0;
-  if (identity.includes("streamwish") || identity.includes("sfastwish")) return 1;
+  // Prefer segmented H.264 HLS. A Cast receiver can fetch each short segment
+  // directly, while relaying one long Streamtape MP4 range through Vercel is
+  // killed by the serverless execution limit and produces play-then-freeze.
+  if (identity.includes("streamwish") || identity.includes("sfastwish")) return 0;
+  if (identity.includes("vidhide")) return 1;
   if (identity.includes("filemoon")) return 2;
   if (identity.includes("voe")) return 3;
-  if (identity.includes("mp4upload")) return 4;
+  if (identity.includes("streamtape")) return 8;
+  if (identity.includes("mp4upload")) return 9;
   return 10 + (Number(source.sourceRank) || 0);
 }
 
@@ -12544,7 +12545,7 @@ async function buildCastBackupCandidate() {
   const embeds = payload.sources
     .filter((source) => source?.url || source?.externalUrl)
     .sort((a, b) => castEmbedPreference(a) - castEmbedPreference(b))
-    .slice(0, 3);
+    .slice(0, 6);
   const siteReferer = (() => {
     try { return new URL(payload.episodeUrl || `https://jkanime.net/${slug}/${episodeNumber}`).origin + "/"; }
     catch (error) { return "https://jkanime.net/"; }
@@ -12558,14 +12559,20 @@ async function buildCastBackupCandidate() {
       const mediaUrl = new URL(resolved.url, location.origin);
       if (mediaUrl.port && mediaUrl.port !== "80" && mediaUrl.port !== "443") continue;
     } catch (error) { continue; }
-    const proxied = proxiedStreamUrl(resolved.url);
     const resolvedType = String(resolved.type || "").toLowerCase();
-    const type = streamTypeFromUrl(proxied)
+    // Streamwish/Vidhide HLS already exposes CORS on the master, variants, and
+    // segments. Give that URL to the receiver directly so playback does not
+    // consume one Vercel function invocation per segment. MP4 hosts still use
+    // their existing proxy path because their tokens/referers can be host-bound.
+    const playbackUrl = resolvedType === "hls"
+      ? new URL(resolved.url, location.origin).href
+      : proxiedStreamUrl(resolved.url);
+    const type = streamTypeFromUrl(playbackUrl)
       || (resolvedType === "hls" ? "hls" : (resolvedType === "mp4" ? "file" : ""));
-    if (!proxied || !type) continue;
+    if (!playbackUrl || !type) continue;
     return {
       label: `JKAnime - ${source.provider || "TV fallback"}`,
-      url: proxied,
+      url: playbackUrl,
       type
     };
   }
@@ -18963,7 +18970,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=774");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=775");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

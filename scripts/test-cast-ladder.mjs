@@ -450,6 +450,8 @@ const TWO = [
     /upstream\.status === 206[\s\S]*?responseHeaders\["accept-ranges"\] = "bytes"/.test(server), true);
   check("15w. Streamtape MP4 responses advertise seeking even before the first range",
     /isStreamTapeMedia \|\| upstream\.status === 206[\s\S]*?responseHeaders\["accept-ranges"\] = "bytes"/.test(server), true);
+  check("15x. packed embed scripts are unpacked from the complete document",
+    /const wholePacked = unpackPackedJs\(text\)/.test(server), true);
 }
 
 /* 16. Nothing in the sender pretends it can ask the receiver about codecs. */
@@ -509,6 +511,7 @@ const TWO = [
           episodeUrl: "https://jkanime.net/test-show/1",
           sources: [
             { provider: "Streamtape", url: "https://streamtape.com/e/abc/video.mp4", sourceRank: 4 },
+            { provider: "Streamwish", url: "https://sfastwish.com/e/segmented", sourceRank: 1 },
             { provider: "Mp4upload", url: "https://www.mp4upload.com/embed-1.html", sourceRank: 5 }
           ]
         })
@@ -516,12 +519,15 @@ const TWO = [
     },
     attemptResolveEmbed: async (url, referer, timeout) => {
       calls.push(["resolve", url, referer, timeout]);
+      if (url.includes("sfastwish")) {
+        return { url: "https://cdn.example/video/master.m3u8?token=abc", type: "hls" };
+      }
       return url.includes("streamtape")
         ? { url: "/api/source?url=https%3A%2F%2Fstreamtape.com%2Fget_video%3Fid%3Dabc&refererHost=streamtape.com", type: "mp4" }
         : { url: "https://a3.mp4upload.com:183/d/token/video.mp4", type: "mp4" };
     },
-    proxiedStreamUrl: (url) => url,
-    streamTypeFromUrl: () => "",
+    proxiedStreamUrl: (url) => { calls.push(["proxy", url]); return url; },
+    streamTypeFromUrl: (url) => /\.m3u8(?:$|\?)/i.test(url) ? "hls" : "",
     buildCastCandidateList: () => [{ label: "AnimeAV1", url: "/api/source?url=av1", type: "hls" }],
     wait: () => new Promise(() => {}),
     location: { origin: "https://zenkaitv.com" }
@@ -532,14 +538,15 @@ const TWO = [
   const prepared = await vm.runInContext("buildPreparedCastCandidateList()", backupContext);
   check("17. Cast preparation appends one fallback", prepared.length, 2);
   check("17b. exact AnimeAV1 slug and episode are requested", calls[0][1], "/api/jkanime/sources?slug=test-show&episode=1");
-  check("17c. reachable Streamtape is resolved before MP4Upload", /streamtape/.test(calls[1][1]), true);
-  check("17d. fallback is a same-origin proxy URL", /^\/api\/source\?/.test(prepared[1].url), true);
+  check("17c. segmented HLS is resolved before progressive Streamtape", /sfastwish/.test(calls[1][1]), true);
+  check("17d. CORS-ready HLS stays direct for the receiver", prepared[1].url, "https://cdn.example/video/master.m3u8?token=abc");
   check("17e. resolver is tightly bounded", calls[1][3], 3000);
-  check("17f. the resolver's MP4 type survives an extensionless get_video URL", prepared[1].type, "file");
+  check("17f. the resolver's HLS type reaches the Cast ladder", prepared[1].type, "hls");
+  check("17g. direct HLS does not consume the Vercel media proxy", calls.some(([kind]) => kind === "proxy"), false);
 
   castBackupSandbox.AdultMode.isAdultContent = () => true;
   const adult = await vm.runInContext("buildPreparedCastCandidateList()", backupContext);
-  check("17g. regular backup never crosses into adult mode", adult.length, 1);
+  check("17h. regular backup never crosses into adult mode", adult.length, 1);
 }
 
 console.log(results.join("\n"));

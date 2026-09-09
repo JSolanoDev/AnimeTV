@@ -8097,6 +8097,21 @@ function extractStreamFromEmbed(html) {
   got = scan("https?://[^\\s\"'\\\\<>]+\\.m3u8[^\\s\"'\\\\<>]*");
   if (got) return got;
   // 3) Packed eval(p,a,c,k,e,d) payloads (Streamwish/Filemoon/mp4upload family).
+  // Unpack the complete document first. These payloads contain ordinary `))`
+  // sequences inside their quoted program; the bounded regex below can stop on
+  // one of those and hand the unpacker a truncated script.
+  const wholePacked = unpackPackedJs(text);
+  if (wholePacked) {
+    const reUrl = /https?:\/\/[^\s"'\\<>]+\.(?:m3u8|mp4)[^\s"'\\<>]*/gi;
+    let packedMatch;
+    while ((packedMatch = reUrl.exec(wholePacked)) !== null) {
+      const inner = classifyStreamUrl(packedMatch[0]);
+      if (inner) return inner;
+    }
+    const cfg = wholePacked.match(/(?:file|src|source)\s*:\s*["'](https?:\/\/[^"']+)["']/i);
+    const cfgGot = cfg && classifyStreamUrl(cfg[1]);
+    if (cfgGot) return cfgGot;
+  }
   for (const p of text.matchAll(/eval\(function\(p,a,c,k,e,d\)\{[\s\S]*?\}\([\s\S]*?\)\)\s*\)?/g)) {
     const un = unpackPackedJs(p[0]);
     const reUrl = /https?:\/\/[^\s"'\\<>]+\.(?:m3u8|mp4)[^\s"'\\<>]*/gi;
