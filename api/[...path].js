@@ -12,6 +12,7 @@ try {
   // includeFiles already lists scraper/*.json, so they ship regardless.
   require.resolve("../scraper/underhentai_catalog.json");
   require.resolve("../scraper/underhentai_details.json");
+  require.resolve("../scraper/adult_portrait_map.json");
   require.resolve("../scraper/veohentai_catalog.json");
   require.resolve("../scraper/veohentai_details.json");
   require.resolve("../scraper/hentaila_catalog.json");

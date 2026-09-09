@@ -18,6 +18,10 @@ const {
 const underHentai = new UnderHentaiAdultSourceAdapter();
 const hentaiOcean = new HentaiOceanAdultSourceAdapter();
 const composite = new CompositeAdultSourceAdapter([underHentai, hentaiOcean]);
+const portraitMap = require("../scraper/adult_portrait_map.json");
+
+assert.equal(Object.keys(portraitMap.items || {}).length, portraitMap.total);
+assert.ok(portraitMap.total >= 690, "the production portrait map should retain broad catalog coverage");
 
 const portraitFixtures = [
   ["nonohara-yuka-no-himitsu-no-haishin", "Nonohara Yuka no Himitsu no Haishin", /veohentai\.com/],

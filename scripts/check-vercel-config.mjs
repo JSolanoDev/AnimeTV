@@ -95,6 +95,19 @@ if (reservedBuild && /(?:^|\s)npm\s+run\s+vercel-build(?:\s|$)/i.test(configured
 }
 console.log("  PASS  production build has one owner (no duplicate vercel-build invocation)");
 
+const adultPortraitMap = "scraper/adult_portrait_map.json";
+const serverlessEntry = readFileSync("api/[...path].js", "utf8");
+const vercelIgnore = existsSync(".vercelignore") ? readFileSync(".vercelignore", "utf8") : "";
+if (!existsSync(adultPortraitMap) || !serverlessEntry.includes("adult_portrait_map.json")) {
+  console.log("  FAIL  the adult portrait map must be traced into the serverless bundle");
+  process.exit(1);
+}
+if (vercelIgnore.split(/\r?\n/).some((line) => line.trim() === adultPortraitMap)) {
+  console.log("  FAIL  .vercelignore excludes the production adult portrait map");
+  process.exit(1);
+}
+console.log("  PASS  the adult portrait map is included in the serverless bundle");
+
 const catalogHeaderEntry = (config.headers || []).find((entry) => entry.source === "/api/catalog");
 const catalogHeaders = new Map((catalogHeaderEntry?.headers || []).map((entry) => [entry.key.toLowerCase(), entry.value]));
 const catalogCacheControl = catalogHeaders.get("cache-control") || "";

@@ -111,6 +111,7 @@ const VEOHENTAI_CATALOG_FILE = resolveScraperFile("veohentai_catalog.json");
 const VEOHENTAI_DETAILS_FILE = resolveScraperFile("veohentai_details.json");
 const HENTAILA_CATALOG_FILE = resolveScraperFile("hentaila_catalog.json");
 const HENTAILA_DETAILS_FILE = resolveScraperFile("hentaila_details.json");
+const ADULT_PORTRAIT_MAP_FILE = resolveScraperFile("adult_portrait_map.json");
 const REGULAR_SOURCE_FALLBACKS_FILE = resolveScraperFile("regular-source-fallbacks.json");
 const UNDERHENTAI_CACHE_TTL_MS = 1000 * 60 * 30;
 const UNDERHENTAI_LIVE_CATALOG_ENABLED = String(process.env.UNDERHENTAI_LIVE_CATALOG || "").trim() === "1";
@@ -154,7 +155,7 @@ const hentaiPlayerDirectCache = new Map();
 const luluStreamDirectCache = new Map();
 let underHentaiDetailsSnapshot = null;
 let veoHentaiDetailsSnapshot = null;
-let adultPortraitArtworkIndex = null;
+let adultPortraitArtworkMap = null;
 const ANIMEAV1_BASE = "https://animeav1.com";
 // The durable catalogue is rebuilt daily, while this lightweight provider-slug
 // overlay closes the gap between that build and a newly posted title. Keep it in
@@ -9981,6 +9982,26 @@ function handleUnderHentaiReleases(url, response) {
 }
 
 const CURATED_UNDERHENTAI_PORTRAITS = Object.freeze({
+  "nonohara-yuka-no-himitsu-no-haishin": {
+    url: "https://veohentai.com/wp-content/uploads/2025/03/Nonohara-Yuka-no-Himitsu-no-Haishin-Episode-2.jpg",
+    source: "VeoHentai"
+  },
+  "shiawase-nara-niku-o-morou-the-animation": {
+    url: "https://veohentai.com/wp-content/uploads/2022/08/shiawase-nara-niko-o-morou-1-cv1.png",
+    source: "VeoHentai"
+  },
+  "mecha-gishi-resta-no-daibouken": {
+    url: "https://veohentai.com/wp-content/uploads/2025/02/Mecha-Gishi-Resta-no-Daibouken-Episode-2.jpg",
+    source: "VeoHentai"
+  },
+  "sex-ga-suki-de-suki-de-daisuki-na-classmate-no-ano-ko": {
+    url: "https://veohentai.com/wp-content/uploads/2025/05/Sex-ga-Suki-de-Suki-de-Daisuki-na-Classmate-no-Ano-Musume-Episode-4.jpg",
+    source: "VeoHentai"
+  },
+  "kakurenbo-the-animation": {
+    url: "https://veohentai.com/wp-content/uploads/2025/09/Kakurenbo-The-Animation-Episode-1.jpg",
+    source: "VeoHentai"
+  },
   "nee-summer": {
     url: "https://shikimori.one/system/animes/original/11321.jpg?1711965812",
     source: "Shikimori"
@@ -9991,65 +10012,25 @@ const CURATED_UNDERHENTAI_PORTRAITS = Object.freeze({
   }
 });
 
-function normalizeAdultPortraitTitle(value = "") {
-  return normalizeUnderHentaiSafetyText(value)
-    .replace(/\b(?:the\s+)?animation\b/g, " ")
-    .replace(/\b(?:ova|ona)\b/g, " ")
-    // These are equivalent romanizations used by the bundled adult catalogs.
-    .replace(/\bwo\b/g, "o")
-    .replace(/\bmusume\b/g, "ko")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function adultPortraitImage(item = {}) {
-  return String(
-    item.adultPortraitCover
-    || item.image
-    || item.poster
-    || item.cover
-    || item.thumbnail
-    || ""
-  ).trim();
-}
-
-function readHentailaCatalog() {
+function readAdultPortraitArtworkMap() {
+  if (adultPortraitArtworkMap) return adultPortraitArtworkMap;
   try {
     let payload;
     try {
-      payload = require("./scraper/hentaila_catalog.json");
+      payload = require("./scraper/adult_portrait_map.json");
     } catch {
-      payload = JSON.parse(fs.readFileSync(HENTAILA_CATALOG_FILE, "utf8"));
+      payload = JSON.parse(fs.readFileSync(ADULT_PORTRAIT_MAP_FILE, "utf8"));
     }
-    return Array.isArray(payload.items) ? payload.items.filter(isSafeAdultMetadata) : [];
+    const entries = payload?.items && typeof payload.items === "object"
+      ? Object.entries(payload.items)
+      : [];
+    adultPortraitArtworkMap = new Map(entries.filter(([slug, artwork]) => (
+      slug && /^https:\/\//i.test(String(artwork?.url || ""))
+    )));
   } catch {
-    return [];
+    adultPortraitArtworkMap = new Map();
   }
-}
-
-function getAdultPortraitArtworkIndex() {
-  if (adultPortraitArtworkIndex) return adultPortraitArtworkIndex;
-  const bySlug = new Map();
-  const byTitle = new Map();
-  const register = (item, source) => {
-    const url = adultPortraitImage(item);
-    if (!/^https:\/\//i.test(url)) return;
-    const artwork = { url, source };
-    const slug = String(item.slug || "").trim().toLowerCase();
-    if (slug && !bySlug.has(slug)) bySlug.set(slug, artwork);
-    [item.title]
-      .map(normalizeAdultPortraitTitle)
-      .filter(Boolean)
-      .forEach((key) => {
-        if (!byTitle.has(key)) byTitle.set(key, artwork);
-      });
-  };
-  // VeoHentai publishes portrait episode covers for most exact UnderHentai
-  // titles. Hentaila fills a smaller set that Veo does not carry.
-  readVeoHentaiCatalog().items.forEach((item) => register(item, "VeoHentai"));
-  readHentailaCatalog().forEach((item) => register(item, "Hentaila"));
-  adultPortraitArtworkIndex = { bySlug, byTitle };
-  return adultPortraitArtworkIndex;
+  return adultPortraitArtworkMap;
 }
 
 function resolveUnderHentaiPortraitArtwork(item = {}) {
@@ -10057,15 +10038,7 @@ function resolveUnderHentaiPortraitArtwork(item = {}) {
   if (/^https:\/\//i.test(explicit)) return { url: explicit, source: item.adultPortraitSource || "UnderHentai" };
   const slug = String(item.slug || "").trim().toLowerCase();
   if (CURATED_UNDERHENTAI_PORTRAITS[slug]) return CURATED_UNDERHENTAI_PORTRAITS[slug];
-  const index = getAdultPortraitArtworkIndex();
-  if (slug && index.bySlug.has(slug)) return index.bySlug.get(slug);
-  const keys = [item.title]
-    .map(normalizeAdultPortraitTitle)
-    .filter(Boolean);
-  for (const key of keys) {
-    if (index.byTitle.has(key)) return index.byTitle.get(key);
-  }
-  return null;
+  return slug ? readAdultPortraitArtworkMap().get(slug) || null : null;
 }
 
 function applyUnderHentaiPortraitArtwork(item = {}) {

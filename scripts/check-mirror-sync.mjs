@@ -25,7 +25,8 @@ const mirrored = [
   ...(existsSync("js") ? readdirSync("js").filter((f) => f.endsWith(".js")).map((f) => `js/${f}`) : []),
   ...(existsSync("player") ? readdirSync("player").filter((f) => /\.(?:js|css|html)$/.test(f)).map((f) => `player/${f}`) : []),
   "scraper/artwork-map.json",
-  "scraper/aniskip-map.json"
+  "scraper/aniskip-map.json",
+  "scraper/adult_portrait_map.json"
 ];
 
 let failed = 0;
