@@ -11,12 +11,39 @@ const {
 } = require("../js/adult-source-adapter.js");
 const {
   parseHentaiOceanEmbedData,
-  hentaiOceanDirectCandidates
+  hentaiOceanDirectCandidates,
+  resolveUnderHentaiPortraitArtwork
 } = require("../animetv-server.js");
 
 const underHentai = new UnderHentaiAdultSourceAdapter();
 const hentaiOcean = new HentaiOceanAdultSourceAdapter();
 const composite = new CompositeAdultSourceAdapter([underHentai, hentaiOcean]);
+
+const portraitFixtures = [
+  ["nonohara-yuka-no-himitsu-no-haishin", "Nonohara Yuka no Himitsu no Haishin", /veohentai\.com/],
+  ["shiawase-nara-niku-o-morou-the-animation", "Shiawase nara Niku o Morou! The Animation", /veohentai\.com/],
+  ["mecha-gishi-resta-no-daibouken", "Mecha Gishi Resta no Daibouken", /veohentai\.com/],
+  ["sex-ga-suki-de-suki-de-daisuki-na-classmate-no-ano-ko", "Sex ga Suki de Suki de Daisuki na Classmate no Ano Ko", /veohentai\.com/],
+  ["kakurenbo-the-animation", "Kakurenbo The Animation", /veohentai\.com/],
+  ["nee-summer", "Nee Summer!", /shikimori\.one/],
+  ["boku-dake-no-hentai-kanojo-motto-the-animation", "Boku dake no Hentai Kanojo Motto The Animation", /shikimori\.one/]
+];
+portraitFixtures.forEach(([slug, title, expectedHost]) => {
+  const artwork = resolveUnderHentaiPortraitArtwork({ slug, title });
+  assert.match(artwork?.url || "", expectedHost, `${title} should have a portrait-card fallback`);
+});
+
+const portraitPrimary = underHentai._catalogItem({
+  slug: "portrait-fixture",
+  title: "Portrait Fixture",
+  image: "https://static.underhentai.net/assets/landscape.jpg",
+  adultPortraitCover: "https://veohentai.com/wp-content/uploads/portrait.jpg"
+});
+assert.equal(
+  portraitPrimary.adultPortraitCover,
+  "https://veohentai.com/wp-content/uploads/portrait.jpg",
+  "UnderHentai card mapping must preserve a separate portrait cover"
+);
 
 const primary = underHentai._catalogItem({
   slug: "sample-the-animation",

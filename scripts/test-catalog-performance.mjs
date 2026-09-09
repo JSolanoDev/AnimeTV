@@ -587,6 +587,7 @@ test("local-only retired files cannot change the production catalog total", asyn
       loadLiveUnderHentaiCatalog: async () => [],
       readVeoHentaiCatalog: () => { retiredReads++; return { items: hasRetiredFile ? [{ slug: "retired" }] : [] }; },
       prepareVeoHentaiSnapshotItem: item => item,
+      applyUnderHentaiPortraitArtwork: item => item,
       decodeUnderHentaiImage: value => value,
       chooseUnderHentaiDisplayImage: value => value,
       getUnderHentaiArtwork: () => ({ screenshots: [], backgroundArtwork: "" }),
@@ -600,5 +601,5 @@ test("local-only retired files cannot change the production catalog total", asyn
   }
   assert.deepEqual(results.map(result => result.count), [1, 1]);
   assert.deepEqual(results.map(result => result.excludedForSafety), [1, 1]);
-  assert.match(client, /multi-source-v10/, "retired browser snapshots must not be restored after upgrading");
+  assert.match(client, /multi-source-v11/, "retired browser snapshots must not be restored after upgrading");
 });

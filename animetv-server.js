@@ -154,6 +154,7 @@ const hentaiPlayerDirectCache = new Map();
 const luluStreamDirectCache = new Map();
 let underHentaiDetailsSnapshot = null;
 let veoHentaiDetailsSnapshot = null;
+let adultPortraitArtworkIndex = null;
 const ANIMEAV1_BASE = "https://animeav1.com";
 // The durable catalogue is rebuilt daily, while this lightweight provider-slug
 // overlay closes the gap between that build and a newly posted title. Keep it in
@@ -412,7 +413,8 @@ const IMAGE_PROXY_ALLOWED_HOSTS = new Set([
   "hentaiocean.com",
   "www.hentaiocean.com",
   "hanime-cdn.com",
-  "www.hanime-cdn.com"
+  "www.hanime-cdn.com",
+  "shikimori.one"
 ]);
 const IMAGE_PROXY_MAX_BYTES = 5 * 1024 * 1024;
 // 3840 so a 4K display gets the real thing. The clamp was 2560, which meant a
@@ -1550,6 +1552,7 @@ module.exports.applyRegularSourceFallback = applyRegularSourceFallback;
 module.exports.hasVerifiedRegularSourceFallback = hasVerifiedRegularSourceFallback;
 module.exports.resolvedEmbedPlaybackUrl = resolvedEmbedPlaybackUrl;
 module.exports.applyAnimeAv1LatestInventory = applyAnimeAv1LatestInventory;
+module.exports.resolveUnderHentaiPortraitArtwork = resolveUnderHentaiPortraitArtwork;
 
 async function handleDailyRefresh(url, response) {
   const force = url.searchParams.get("force") === "1";
@@ -9977,6 +9980,104 @@ function handleUnderHentaiReleases(url, response) {
   }
 }
 
+const CURATED_UNDERHENTAI_PORTRAITS = Object.freeze({
+  "nee-summer": {
+    url: "https://shikimori.one/system/animes/original/11321.jpg?1711965812",
+    source: "Shikimori"
+  },
+  "boku-dake-no-hentai-kanojo-motto-the-animation": {
+    url: "https://shikimori.one/system/animes/original/36109.jpg?1711944293",
+    source: "Shikimori"
+  }
+});
+
+function normalizeAdultPortraitTitle(value = "") {
+  return normalizeUnderHentaiSafetyText(value)
+    .replace(/\b(?:the\s+)?animation\b/g, " ")
+    .replace(/\b(?:ova|ona)\b/g, " ")
+    // These are equivalent romanizations used by the bundled adult catalogs.
+    .replace(/\bwo\b/g, "o")
+    .replace(/\bmusume\b/g, "ko")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function adultPortraitImage(item = {}) {
+  return String(
+    item.adultPortraitCover
+    || item.image
+    || item.poster
+    || item.cover
+    || item.thumbnail
+    || ""
+  ).trim();
+}
+
+function readHentailaCatalog() {
+  try {
+    let payload;
+    try {
+      payload = require("./scraper/hentaila_catalog.json");
+    } catch {
+      payload = JSON.parse(fs.readFileSync(HENTAILA_CATALOG_FILE, "utf8"));
+    }
+    return Array.isArray(payload.items) ? payload.items.filter(isSafeAdultMetadata) : [];
+  } catch {
+    return [];
+  }
+}
+
+function getAdultPortraitArtworkIndex() {
+  if (adultPortraitArtworkIndex) return adultPortraitArtworkIndex;
+  const bySlug = new Map();
+  const byTitle = new Map();
+  const register = (item, source) => {
+    const url = adultPortraitImage(item);
+    if (!/^https:\/\//i.test(url)) return;
+    const artwork = { url, source };
+    const slug = String(item.slug || "").trim().toLowerCase();
+    if (slug && !bySlug.has(slug)) bySlug.set(slug, artwork);
+    [item.title]
+      .map(normalizeAdultPortraitTitle)
+      .filter(Boolean)
+      .forEach((key) => {
+        if (!byTitle.has(key)) byTitle.set(key, artwork);
+      });
+  };
+  // VeoHentai publishes portrait episode covers for most exact UnderHentai
+  // titles. Hentaila fills a smaller set that Veo does not carry.
+  readVeoHentaiCatalog().items.forEach((item) => register(item, "VeoHentai"));
+  readHentailaCatalog().forEach((item) => register(item, "Hentaila"));
+  adultPortraitArtworkIndex = { bySlug, byTitle };
+  return adultPortraitArtworkIndex;
+}
+
+function resolveUnderHentaiPortraitArtwork(item = {}) {
+  const explicit = String(item.adultPortraitCover || "").trim();
+  if (/^https:\/\//i.test(explicit)) return { url: explicit, source: item.adultPortraitSource || "UnderHentai" };
+  const slug = String(item.slug || "").trim().toLowerCase();
+  if (CURATED_UNDERHENTAI_PORTRAITS[slug]) return CURATED_UNDERHENTAI_PORTRAITS[slug];
+  const index = getAdultPortraitArtworkIndex();
+  if (slug && index.bySlug.has(slug)) return index.bySlug.get(slug);
+  const keys = [item.title]
+    .map(normalizeAdultPortraitTitle)
+    .filter(Boolean);
+  for (const key of keys) {
+    if (index.byTitle.has(key)) return index.byTitle.get(key);
+  }
+  return null;
+}
+
+function applyUnderHentaiPortraitArtwork(item = {}) {
+  const artwork = resolveUnderHentaiPortraitArtwork(item);
+  if (!artwork?.url) return item;
+  return {
+    ...item,
+    adultPortraitCover: artwork.url,
+    adultPortraitSource: artwork.source
+  };
+}
+
 function readUnderHentaiCatalog() {
   try {
     let payload;
@@ -9986,7 +10087,7 @@ function readUnderHentaiCatalog() {
       payload = JSON.parse(fs.readFileSync(UNDERHENTAI_CATALOG_FILE, "utf8"));
     }
     const storedItems = Array.isArray(payload.items) ? payload.items : [];
-    const items = storedItems.filter(isSafeAdultMetadata);
+    const items = storedItems.filter(isSafeAdultMetadata).map(applyUnderHentaiPortraitArtwork);
     return {
       ...payload,
       excludedForSafety: Number(payload.excludedForSafety || 0) + (storedItems.length - items.length),
@@ -10007,7 +10108,9 @@ function readUnderHentaiDetails() {
     } catch {
       payload = JSON.parse(fs.readFileSync(UNDERHENTAI_DETAILS_FILE, "utf8"));
     }
-    const items = Array.isArray(payload.items) ? payload.items.filter(isSafeAdultMetadata) : [];
+    const items = Array.isArray(payload.items)
+      ? payload.items.filter(isSafeAdultMetadata).map(applyUnderHentaiPortraitArtwork)
+      : [];
     underHentaiDetailsSnapshot = {
       ...payload,
       items,
@@ -10248,7 +10351,9 @@ async function handleUnderHentaiCatalog(url, response) {
   // Only use the configured catalog. Retired snapshots are excluded from the
   // production bundle and must not silently expand localhost's title list.
   const seen = new Set();
-  items = [...liveItems, ...snapshot.items].filter((item) => item.slug && !seen.has(item.slug) && seen.add(item.slug));
+  items = [...liveItems, ...snapshot.items]
+    .filter((item) => item.slug && !seen.has(item.slug) && seen.add(item.slug))
+    .map(applyUnderHentaiPortraitArtwork);
 
   const normalizedQuery = query.toLowerCase();
   const filtered = normalizedQuery
@@ -11063,8 +11168,9 @@ async function handleUnderHentaiDetails(url, response) {
       return;
     }
     item.slug = slug;
-    underHentaiDetailCache.set(slug, { data: item, ts: Date.now() });
-    sendJson(response, { ok: true, source: "UnderHentai", adultOnly: true, item });
+    const enrichedItem = applyUnderHentaiPortraitArtwork(item);
+    underHentaiDetailCache.set(slug, { data: enrichedItem, ts: Date.now() });
+    sendJson(response, { ok: true, source: "UnderHentai", adultOnly: true, item: enrichedItem });
   } catch (error) {
     if (snapshotItem) {
       const item = prepareUnderHentaiSnapshotItem(snapshotItem);

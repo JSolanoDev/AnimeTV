@@ -178,6 +178,7 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
       ? Number(item.sourceOrder)
       : sourceIndex;
     const image = this._bestImage(item);
+    const portrait = String(item.adultPortraitCover || "").trim();
     const banner = this._bestBanner(item, image);
     const aired = String(item.aired || "").trim();
     const year = this._airedYear(aired);
@@ -198,7 +199,7 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
       cover: image,
       coverImage: image,
       mainWallpaper: image,
-      adultPortraitCover: image,
+      adultPortraitCover: portrait || image,
       banner,
       backdrop: banner,
       highQualityBackground: banner || image,
@@ -242,18 +243,22 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
   }
 
   async search(query, page = 1) {
-    const payload = await this._request("/catalog", { q: query, page });
+    const payload = await this._request("/catalog", { q: query, page, artwork: "portrait-v1" });
     return (payload.items || []).map((item, index) => this._catalogItem(item, index));
   }
 
   async listLatest(page = 1, options = {}) {
-    const payload = await this._request("/catalog", { page, refresh: options.refresh ? 1 : "" });
+    const payload = await this._request("/catalog", {
+      page,
+      refresh: options.refresh ? 1 : "",
+      artwork: "portrait-v1"
+    });
     return (payload.items || []).map((item, index) => this._catalogItem(item, index));
   }
 
   async getDetails(id) {
     const slug = String(id || "").replace(/^adult-underhentai-/, "");
-    const payload = await this._request("/details", { slug });
+    const payload = await this._request("/details", { slug, artwork: "portrait-v1" });
     const item = payload.item || null;
     if (!item) return null;
     const image = this._bestImage(item);
