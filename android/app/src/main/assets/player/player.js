@@ -1006,9 +1006,9 @@
 
   // Describes the media to the receiver. hlsSegmentFormat is the AUDIO segment
   // format and hlsVideoSegmentFormat the VIDEO one - they are two different fields
-  // for two different tracks, and a CMAF ladder carries both in fMP4. Enum values
-  // are read off the live SDK so a build that lacks them describes nothing rather
-  // than smuggling in string literals the receiver may reject.
+  // for two different tracks. Enum values are read off the live SDK so a build
+  // that lacks them describes nothing rather than smuggling in string literals
+  // the receiver may reject.
   function buildCastLoadRequest(candidate, detection) {
     let contentUrl = candidate.url;
     // AnimeAV1 serves a media playlist directly. Cast defaults an HLS stream
@@ -1041,11 +1041,16 @@
         media.hlsVideoSegmentFormat = VidFmt.FMP4;
         castHlsVideoSegmentFormat = String(VidFmt.FMP4);
       }
+    } else if (detection.packaging === "MPEG2_TS") {
+      if (SegFmt?.TS) {
+        media.hlsSegmentFormat = SegFmt.TS;
+        castHlsSegmentFormat = String(SegFmt.TS);
+      }
+      if (VidFmt?.MPEG2_TS) {
+        media.hlsVideoSegmentFormat = VidFmt.MPEG2_TS;
+        castHlsVideoSegmentFormat = String(VidFmt.MPEG2_TS);
+      }
     }
-    // MPEG-TS and UNKNOWN are deliberately left undescribed. The MPEG-TS ladder
-    // already casts correctly with no HLS format fields at all, so adding them
-    // there could only put a working path at risk, and UNKNOWN has no evidence to
-    // describe in the first place.
     try {
       const meta = new window.chrome.cast.media.GenericMediaMetadata();
       meta.title = title || "ZenkaiTV";
@@ -1397,14 +1402,17 @@
       const result = await detectCastVideoCodec(url, contentType);
       const SegFmt = window.chrome?.cast?.media?.HlsSegmentFormat;
       const VidFmt = window.chrome?.cast?.media?.HlsVideoSegmentFormat;
-      const wouldDescribe = result.packaging === "FMP4" && Boolean(SegFmt?.FMP4 && VidFmt?.FMP4);
+      const isFmp4 = result.packaging === "FMP4";
+      const isMpegTs = result.packaging === "MPEG2_TS";
+      const segmentFormat = isFmp4 ? SegFmt?.FMP4 : (isMpegTs ? SegFmt?.TS : null);
+      const videoSegmentFormat = isFmp4 ? VidFmt?.FMP4 : (isMpegTs ? VidFmt?.MPEG2_TS : null);
       return {
         detectedVideoCodec: result.codec,
         codecDetectionMethod: result.method,
         hlsPackaging: result.packaging,
         hlsPackagingEvidence: result.packagingHow,
-        wouldSetHlsSegmentFormat: wouldDescribe ? String(SegFmt.FMP4) : "(not set)",
-        wouldSetHlsVideoSegmentFormat: wouldDescribe ? String(VidFmt.FMP4) : "(not set)",
+        wouldSetHlsSegmentFormat: segmentFormat ? String(segmentFormat) : "(not set)",
+        wouldSetHlsVideoSegmentFormat: videoSegmentFormat ? String(videoSegmentFormat) : "(not set)",
         sourceHost: castSourceLabel(),
         urlClassification: classifyCastUrl(url, contentType)
       };

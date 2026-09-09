@@ -125,8 +125,8 @@ function makeEnv({ receiverBehaviour, candidates, manifest, variantManifest, dea
         LoadRequest: class { constructor(m) { this.media = m; } },
         StopRequest: class {},
         GenericMediaMetadata: class {},
-        HlsSegmentFormat: { FMP4: "fmp4" },
-        HlsVideoSegmentFormat: { FMP4: "fmp4" },
+        HlsSegmentFormat: { FMP4: "fmp4", TS: "ts", TS_AAC: "ts_aac" },
+        HlsVideoSegmentFormat: { FMP4: "fmp4", MPEG2_TS: "mpeg2_ts" },
         StreamType: { BUFFERED: "BUFFERED" },
         PlayerState: { IDLE: "IDLE_STATE", PLAYING: "PLAYING_STATE", PAUSED: "PAUSED_STATE", BUFFERING: "BUFFERING_STATE" },
         IdleReason: { ERROR: "ERROR_REASON", FINISHED: "FINISHED_REASON", CANCELLED: "CANCELLED_REASON" }
@@ -267,13 +267,13 @@ const FMP4_MANIFEST = "#EXTM3U\n#EXT-X-MAP:URI=\"init.mp4\"\n#EXT-X-PLAYLIST-TYP
   env.timers.forEach(clearTimeout);
 }
 
-/* 7. MPEG-TS must stay undescribed - that path already casts. */
+/* 7. MPEG-TS must carry the exact HLS format metadata documented by Cast. */
 {
   const TS = "#EXTM3U\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXTINF:4,\nseg1.ts\n#EXT-X-ENDLIST\n";
   const env = makeEnv({ receiverBehaviour: ["play"], manifest: TS });
   await vm.runInContext("loadCastMedia()", env.ctx);
-  check("7. MPEG-TS sets no HLS format fields", vm.runInContext("castHlsSegmentFormat", env.ctx), "");
-  check("7b. nor the video one", vm.runInContext("castHlsVideoSegmentFormat", env.ctx), "");
+  check("7. MPEG-TS declares TS media segments", vm.runInContext("castHlsSegmentFormat", env.ctx), "ts");
+  check("7b. MPEG-TS declares MPEG2_TS video segments", vm.runInContext("castHlsVideoSegmentFormat", env.ctx), "mpeg2_ts");
   env.timers.forEach(clearTimeout);
 }
 
