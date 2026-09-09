@@ -1351,7 +1351,10 @@ async function handleImageProxy(url, response) {
       outputBuffer = await sharp(originalBuffer, { animated: false, limitInputPixels: 36_000_000 })
         .rotate()
         .resize({ width: requestedWidth, withoutEnlargement: true })
-        .webp({ quality: requestedQuality, effort: 5 })
+        // At these high quality settings effort 2 is visually equivalent while
+        // cutting cold hero transcode CPU time roughly in half. Repeat requests
+        // remain free through the immutable CDN cache.
+        .webp({ quality: requestedQuality, effort: 2 })
         .toBuffer();
       outputType = "image/webp";
       optimized = true;

@@ -367,6 +367,7 @@ const carouselIndicators = document.querySelector("#carouselIndicators");
 let carouselTimer = null;
 let _carouselIndicatorImagesReady = false;
 let _carouselIndicatorHydrationQueued = false;
+let _carouselIndicatorHydrationGeneration = 0;
 let lastInputWasPointer = false;
 
 function hideAppLoader() {
@@ -551,6 +552,15 @@ function resetCatalogModeControls() {
   if (typeof _carouselPaintedId !== "undefined") _carouselPaintedId = null;
   if (typeof _carouselPaintedShow !== "undefined") _carouselPaintedShow = null;
   if (typeof _carouselMemoId !== "undefined") _carouselMemoId = "";
+  if (typeof _carouselDotsHtml !== "undefined") _carouselDotsHtml = null;
+  if (typeof _carouselIndicatorImagesReady !== "undefined") _carouselIndicatorImagesReady = false;
+  if (typeof _carouselIndicatorHydrationQueued !== "undefined") _carouselIndicatorHydrationQueued = false;
+  if (typeof _carouselIndicatorHydrationGeneration !== "undefined") _carouselIndicatorHydrationGeneration += 1;
+  if (carouselIndicators) {
+    carouselIndicators.hidden = true;
+    carouselIndicators.setAttribute("aria-busy", "true");
+    carouselIndicators.innerHTML = "";
+  }
 }
 
 // A catalogue upgrade must not yank the hero back to slide 1. Once a hero has been
@@ -702,7 +712,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=770`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=771`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3888,6 +3898,14 @@ function resetReleaseCarouselLineup() {
   _carouselPaintedId = null;
   _carouselPaintedShow = null;
   _carouselDotsHtml = null;
+  _carouselIndicatorImagesReady = false;
+  _carouselIndicatorHydrationQueued = false;
+  _carouselIndicatorHydrationGeneration += 1;
+  if (carouselIndicators) {
+    carouselIndicators.hidden = true;
+    carouselIndicators.setAttribute("aria-busy", "true");
+    carouselIndicators.innerHTML = "";
+  }
 }
 
 function recentReleaseCarouselShows(limit = 8) {
@@ -3956,7 +3974,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=770";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=771";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -3966,7 +3984,11 @@ function renderCarousel() {
     }
     carouselOpen.removeAttribute("data-open-show");
     carouselOpen.disabled = true;
-    if (carouselIndicators) carouselIndicators.innerHTML = "";
+    if (carouselIndicators) {
+      carouselIndicators.hidden = true;
+      carouselIndicators.setAttribute("aria-busy", "true");
+      carouselIndicators.innerHTML = "";
+    }
     return;
   }
   carouselStage.classList.remove("is-loading");
@@ -4036,11 +4058,12 @@ function renderCarousel() {
   show._paintedCarouselArtwork = art || "";
   carouselBackdrop.classList.toggle("has-banner", Boolean(art));
   carouselBackdrop.classList.toggle("is-portrait-blur", Boolean(art && !hasLandscapeBanner));
-  if (art) {
-    carouselBackdrop.style.backgroundImage = `url("${deliveredArt}")`;
-  } else {
-    carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
-  }
+  // The sharp <img> below is the only artwork layer. Painting the same 4K file
+  // onto this div as well made Chromium composite a second full-screen surface,
+  // then blur and scale it while the image decoded. Besides the GPU cost, that
+  // exposed a blocky, half-loaded copy of the next slide. Keep a quiet app-color
+  // surface here and reveal the decoded image once it is genuinely ready.
+  carouselBackdrop.style.backgroundImage = "linear-gradient(115deg, #090c16 0%, #111728 58%, #0a101b 100%)";
   if (carouselBackdropImage) {
     // Don't let a restored hero be DOWNGRADED. The memo holds the TMDB backdrop
     // this very show had last visit; on a fresh load show.tmdbBackdrop has not
@@ -4147,9 +4170,23 @@ let _carouselDotsHtml = null;
 
 function renderCarouselIndicators(items) {
   if (!carouselIndicators) return;
+  if (!_carouselIndicatorImagesReady) {
+    // Do not expose eight large empty cards while their tiny images are pending.
+    // They were the dark, broken-looking strip in the loading screenshot and also
+    // added animated paint work across the full width of the hero.
+    carouselIndicators.hidden = true;
+    carouselIndicators.setAttribute("aria-busy", "true");
+    if (carouselIndicators.childElementCount) carouselIndicators.innerHTML = "";
+    _carouselDotsHtml = null;
+    scheduleCarouselIndicatorHydration(items);
+    return;
+  }
+
+  carouselIndicators.hidden = false;
+  carouselIndicators.setAttribute("aria-busy", "false");
   const dotsHtml = items.slice(0, 8).map((show, index) => `
     <button class="carousel-dot focusable" data-carousel-index="${index}" aria-label="Show ${escapeHtml(getShowTitle(show))}">
-      ${_carouselIndicatorImagesReady && carouselArtworkOrPoster(show) ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(carouselArtworkOrPoster(show), 180, 72))}" alt="" width="180" height="101" loading="lazy" decoding="async" fetchpriority="low">` : "<span></span>"}
+      ${carouselArtworkOrPoster(show) ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(carouselArtworkOrPoster(show), 180, 72))}" alt="" width="180" height="101" loading="lazy" decoding="async" fetchpriority="low">` : "<span></span>"}
     </button>
   `).join("");
 
@@ -4163,7 +4200,7 @@ function renderCarouselIndicators(items) {
         event.stopPropagation();
         state.carouselIndex = Number(button.dataset.carouselIndex);
         carouselStage.classList.add("is-changing");
-        window.setTimeout(() => carouselStage.classList.remove("is-changing"), 420);
+        window.setTimeout(() => carouselStage.classList.remove("is-changing"), 240);
         renderCarousel();
         restartCarouselTimer();
       });
@@ -4175,23 +4212,31 @@ function renderCarouselIndicators(items) {
     if (selected) button.setAttribute("aria-current", "true");
     else button.removeAttribute("aria-current");
   });
-  if (!_carouselIndicatorImagesReady) scheduleCarouselIndicatorHydration();
 }
 
-function scheduleCarouselIndicatorHydration() {
+function scheduleCarouselIndicatorHydration(items = []) {
   if (_carouselIndicatorHydrationQueued || _carouselIndicatorImagesReady) return;
   _carouselIndicatorHydrationQueued = true;
-  const hydrate = () => {
-    if (_carouselIndicatorImagesReady) return;
+  const generation = _carouselIndicatorHydrationGeneration;
+  let hydrationStarted = false;
+  const hydrate = async () => {
+    if (hydrationStarted || _carouselIndicatorImagesReady || generation !== _carouselIndicatorHydrationGeneration) return;
+    hydrationStarted = true;
+    const artwork = [...new Set(items.slice(0, 8).map((show) => carouselArtworkOrPoster(show)).filter(Boolean))];
+    // Start the same small URLs renderCarouselIndicators will use, but keep them
+    // off-screen until decoded. The reveal becomes one clean paint and no extra
+    // request is made because preloadArtworkImage shares the browser cache.
+    await Promise.allSettled(artwork.map((url) => preloadArtworkImage(url, 180, 72, false)));
+    if (generation !== _carouselIndicatorHydrationGeneration) return;
     _carouselIndicatorImagesReady = true;
     _carouselIndicatorHydrationQueued = false;
     if (state.route === "home") renderCarousel();
   };
   const afterFirstPaint = () => {
     if ("requestIdleCallback" in window) {
-      window.requestIdleCallback(hydrate, { timeout: 1800 });
+      window.requestIdleCallback(() => { void hydrate(); }, { timeout: 900 });
     } else {
-      window.setTimeout(hydrate, 900);
+      window.setTimeout(() => { void hydrate(); }, 300);
     }
   };
   // Hydrate as soon as the page has finished loading (the hero/LCP image is
@@ -4513,7 +4558,7 @@ function moveCarousel(step) {
   carouselStage.classList.remove("is-changing", "is-prev", "is-next");
   window.requestAnimationFrame(() => {
     carouselStage.classList.add("is-changing", step < 0 ? "is-prev" : "is-next");
-    window.setTimeout(() => carouselStage.classList.remove("is-changing", "is-prev", "is-next"), 520);
+    window.setTimeout(() => carouselStage.classList.remove("is-changing", "is-prev", "is-next"), 260);
   });
   renderCarousel();
   restartCarouselTimer();
@@ -18907,7 +18952,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=770");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=771");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

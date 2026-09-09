@@ -6643,7 +6643,7 @@ body.player-cinema-open .close-button {
   opacity: 1;
   filter: none;
   transform: none;
-  transition: opacity 360ms ease, filter 520ms ease, transform 520ms ease;
+  transition: opacity 180ms ease;
 }
 
 .carousel-backdrop-image {
@@ -6659,11 +6659,11 @@ body.player-cinema-open .close-button {
   object-position: center 30%;
 }
 
-/* Both layers use the same 1920px file. The CSS-only blur is visible while that
-   one resource decodes, then the sharp layer settles in without an image swap. */
+/* Keep loading cheap and visually quiet. The backdrop div is an app-colored
+   surface; only the sharp image layer ever receives artwork. */
 .carousel-stage.is-backdrop-loading .carousel-backdrop {
-  filter: blur(24px) saturate(1.12) brightness(0.72);
-  transform: scale(1.07);
+  filter: none;
+  transform: none;
 }
 .carousel-stage.is-backdrop-loading .carousel-backdrop-image { opacity: 0; }
 
@@ -6917,7 +6917,7 @@ body.player-cinema-open .close-button {
 }
 
 .carousel-stage.is-changing .carousel-info {
-  animation: carousel-slide-next 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: carousel-slide-next 240ms ease-out both;
 }
 
 .carousel-stage.is-changing.is-prev .carousel-info {
@@ -6943,6 +6943,10 @@ body.player-cinema-open .close-button {
   mask-image: linear-gradient(90deg, transparent 0, #000 1rem, #000 calc(100% - 1rem), transparent 100%);
 }
 
+.carousel-indicators[hidden] {
+  display: none !important;
+}
+
 .carousel-indicators::-webkit-scrollbar {
   display: none;
 }
@@ -6957,7 +6961,7 @@ body.player-cinema-open .close-button {
   border-radius: 0.55rem;
   background: rgba(255, 255, 255, 0.06);
   cursor: pointer;
-  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease, opacity 200ms ease;
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
   opacity: 0.7;
 }
 
@@ -7018,37 +7022,23 @@ body.player-cinema-open .close-button {
 
 @keyframes carousel-slide-next {
   0% {
-    opacity: 0.2;
-    transform: translateX(2.2rem) scale(0.96);
-    filter: blur(4px);
-  }
-  58% {
-    opacity: 1;
-    transform: translateX(-0.32rem) scale(1.01);
-    filter: blur(0);
+    opacity: 0.35;
+    transform: translateX(0.7rem);
   }
   100% {
     opacity: 1;
-    transform: translateX(0) scale(1);
-    filter: blur(0);
+    transform: translateX(0);
   }
 }
 
 @keyframes carousel-slide-prev {
   0% {
-    opacity: 0.2;
-    transform: translateX(-2.2rem) scale(0.96);
-    filter: blur(4px);
-  }
-  58% {
-    opacity: 1;
-    transform: translateX(0.32rem) scale(1.01);
-    filter: blur(0);
+    opacity: 0.35;
+    transform: translateX(-0.7rem);
   }
   100% {
     opacity: 1;
-    transform: translateX(0) scale(1);
-    filter: blur(0);
+    transform: translateX(0);
   }
 }
 

@@ -98,6 +98,10 @@ check("single item survives", sortCarouselCurrency([A], NOW, () => null).map((s)
   const indicators = between("function renderCarouselIndicators(", "function scheduleCarouselIndicatorHydration(");
   check("slide selection keeps the existing indicator image nodes", /if \(_carouselDotsHtml !== dotsHtml\)/.test(indicators), true);
   check("selection is updated as a class instead of rebuilt into HTML", /classList\.toggle\("is-selected", selected\)/.test(indicators), true);
+  check("empty indicator cards stay hidden until thumbnails are ready", /carouselIndicators\.hidden = true/.test(indicators), true);
+  const hydration = between("function scheduleCarouselIndicatorHydration(", "function simpleCarouselText(");
+  check("indicator artwork is preloaded before the selector is revealed", /Promise\.allSettled\([\s\S]*preloadArtworkImage/.test(hydration), true);
+  check("the hero never paints its 4K artwork onto the loading layer", /carouselBackdrop\.style\.backgroundImage = `url/.test(render), false);
   check("the carousel warms only its immediate next slide", /state\.carouselIndex \+ 1/.test(render) && !/off <= 3/.test(render), true);
   check("carousel TMDB hydration suppresses unrelated detail renders", /enrichTmdbImages\(next, \{ refresh: false \}\)/.test(render), true);
 }
