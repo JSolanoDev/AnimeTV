@@ -441,6 +441,8 @@
   let castCandidatesCache = null;
   let castLadderRunning = false;
   let castSessionStarting = false;
+  let castSessionStopping = false;
+  let castPlaybackConfirmed = false;
 
   function castLog(...parts) {
     if (CAST_DEV) console.log("[Cast]", ...parts);
@@ -510,25 +512,34 @@
             const name = enumName(window.cast.framework.CastState, event.castState);
             castLog("state:", name);
             syncCastControl(name);
+            syncCastStopControl();
           });
           ctx.addEventListener(window.cast.framework.CastContextEventType.SESSION_STATE_CHANGED, (event) => {
             const name = enumName(window.cast.framework.SessionState, event.sessionState);
             castLog("session:", name);
             if (name === "SESSION_STARTED" || name === "SESSION_RESUMED") {
+              castSessionStopping = false;
               initRemotePlayer();
               window.setTimeout(() => {
                 captureReceiverStatus();
                 syncCastControl(castStateNow());
+                syncCastStopControl();
               }, 0);
+            } else if (name === "SESSION_ENDING") {
+              castSessionStopping = true;
+              syncCastStopControl();
             } else if (name === "SESSION_ENDED") {
               // Cancel any in-flight media watcher without disconnecting a newer
               // session that may already be starting.
+              castSessionStopping = false;
+              castPlaybackConfirmed = false;
               castAttemptSeq++;
               castLadderRunning = false;
               lastReceiverIdleReason = null;
               lastReceiverMediaError = null;
               mediaSessionSeenAt = null;
               syncCastControl(castStateNow());
+              syncCastStopControl();
             }
           });
           window.__ZENKAI_CAST_CONTEXT_CONFIGURED__ = true;
@@ -537,6 +548,7 @@
         castInitState = "ready";
         castLog("initialization complete", { receiverApplicationId: castReceiverAppId, castState: castStateNow() });
         syncCastControl(castStateNow());
+        syncCastStopControl();
       } catch (error) {
         castInitState = "init-failed";
         console.error("[Cast] initialization failed", error);
@@ -587,6 +599,53 @@
     control.classList.toggle("is-cast-unavailable", stateName === "NO_DEVICES_AVAILABLE");
   }
 
+  function syncCastStopControl() {
+    const control = art?.template?.$player?.querySelector?.(".art-control-chromecast-stop");
+    if (!control) return;
+    const visible = castPlaybackConfirmed && Boolean(castSession());
+    control.classList.toggle("is-visible", visible);
+    control.classList.toggle("is-stopping", visible && castSessionStopping);
+    control.setAttribute("aria-hidden", visible ? "false" : "true");
+  }
+
+  async function stopConfirmedCast() {
+    // A connected origin-scoped session is not proof that this episode is on the
+    // TV. Only watchCastPlayback() may enable this action after real progress.
+    if (!castPlaybackConfirmed || castSessionStopping) return;
+    const ctx = castContext();
+    if (!ctx || !castSession()) {
+      castPlaybackConfirmed = false;
+      syncCastStopControl();
+      return;
+    }
+
+    castSessionStopping = true;
+    castAttemptSeq++;
+    castLadderRunning = false;
+    syncCastStopControl();
+    try {
+      await Promise.resolve(ctx.endCurrentSession(true));
+      castPlaybackConfirmed = false;
+      syncCastStopControl();
+      if (art) art.notice.show = "Casting stopped";
+    } catch (error) {
+      castSessionStopping = false;
+      console.error("[Cast] could not stop the confirmed session", error);
+      syncCastStopControl();
+      if (art) art.notice.show = "Could not stop casting - try again";
+      return;
+    }
+
+    // SESSION_ENDED normally clears the transition. If a receiver disappears
+    // without the final event, recover the button from the live media session.
+    window.setTimeout(() => {
+      if (!castSessionStopping) return;
+      castSessionStopping = false;
+      castPlaybackConfirmed = Boolean(castSession() && castMedia());
+      syncCastStopControl();
+    }, 3000);
+  }
+
   // Stage 2 of three. Discovery (stage 1) is Chrome's job, and media delivery
   // (stage 3) happens on the receiver - each gets its own message rather than one
   // catch-all about the network.
@@ -599,6 +658,7 @@
         : "Casting is unavailable in this browser";
       return;
     }
+    if (castSessionStopping) return;
     if (castSessionStarting) {
       castLog("session request already in progress - ignoring duplicate click");
       return;
@@ -950,7 +1010,13 @@
   // took the media and then could not play it.
   function captureReceiverStatus() {
     const media = castMedia();
-    if (!media) return;
+    if (!media) {
+      if (remotePlayer && !remotePlayer.isMediaLoaded) {
+        castPlaybackConfirmed = false;
+        syncCastStopControl();
+      }
+      return;
+    }
     if (!mediaSessionSeenAt) mediaSessionSeenAt = new Date().toISOString();
     if (media.idleReason) lastReceiverIdleReason = String(media.idleReason);
     // Previously declared, surfaced in snapshot() and never written, so a hard
@@ -965,6 +1031,10 @@
     }
     const status = media.playerState ? String(media.playerState) : null;
     if (status) castLog("receiver playerState", status, "idleReason", media.idleReason ?? null);
+    if (status && enumName(window.chrome?.cast?.media?.PlayerState, status) === "IDLE") {
+      castPlaybackConfirmed = false;
+    }
+    syncCastStopControl();
   }
 
   // Diagnostic only - getMediaSession() does not necessarily appear synchronously,
@@ -1280,6 +1350,8 @@
 
   async function loadCastMedia() {
     const session = castSession();
+    castPlaybackConfirmed = false;
+    syncCastStopControl();
     castLoadCalled = false;
     castLoadResult = "not-called";
     castLoadError = null;
@@ -1342,6 +1414,8 @@
         });
         if (result.outcome === "playing") {
           castLoadResult = "playing";
+          castPlaybackConfirmed = true;
+          syncCastStopControl();
           castLog("playing on the receiver", { candidate: candidate.label, waitedMs: result.waitedMs });
           if (art) art.notice.show = "Casting";
           try { art?.video?.pause?.(); } catch (error) { /* already stopped */ }
@@ -1492,6 +1566,18 @@
           // Straight off the user gesture: the Cast chooser is gated on user
           // activation, and awaiting anything first can spend it.
           startCastSession();
+        }
+      });
+      playerOptions.controls.push({
+        name: "chromecast-stop",
+        position: "right",
+        index: 15,
+        html: '<button class="ztv-cast-stop-button" type="button" aria-label="Stop casting"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2"/></svg></button>',
+        tooltip: "Stop casting",
+        mounted: (control) => control.setAttribute("aria-hidden", "true"),
+        click: (_component, event) => {
+          event.stopPropagation();
+          stopConfirmedCast();
         }
       });
     }

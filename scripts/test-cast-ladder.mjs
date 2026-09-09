@@ -38,6 +38,7 @@ function makeEnv({ receiverBehaviour, candidates, manifest, variantManifest, dea
   const notices = [];
   const stops = [];
   const loads = [];
+  const endedSessions = [];
   let loadCount = 0;
   let playerState = null;
   let idleReason = null;
@@ -134,9 +135,15 @@ function makeEnv({ receiverBehaviour, candidates, manifest, variantManifest, dea
       }
     }
   };
+  const castContextApi = {
+    getCurrentSession: () => session,
+    getCastState: () => "CONNECTED",
+    getSessionState: () => "SESSION_STARTED",
+    endCurrentSession: (stopCasting) => endedSessions.push(stopCasting)
+  };
   sandbox.cast = {
     framework: {
-      CastContext: { getInstance: () => ({ getCurrentSession: () => session, getCastState: () => "CONNECTED", getSessionState: () => "SESSION_STARTED" }) },
+      CastContext: { getInstance: () => castContextApi },
       CastState: { CONNECTED: "CONNECTED" },
       SessionState: { SESSION_STARTED: "SESSION_STARTED" }
     }
@@ -183,10 +190,23 @@ function makeEnv({ receiverBehaviour, candidates, manifest, variantManifest, dea
     : castBlock;
   vm.runInContext(block, ctx, { filename: "player.js cast block" });
 
-  return { ctx, notices, stops, loads, loadCount: () => loadCount, timers };
+  return { ctx, notices, stops, loads, endedSessions, loadCount: () => loadCount, timers };
 }
 
 const FMP4_MANIFEST = "#EXTM3U\n#EXT-X-MAP:URI=\"init.mp4\"\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXTINF:4,\nseg1.html\n#EXT-X-ENDLIST\n";
+
+/* 0. An auto-joined session is not stoppable until receiver playback is proven. */
+{
+  const env = makeEnv({ receiverBehaviour: ["play"], manifest: FMP4_MANIFEST });
+  await vm.runInContext("stopConfirmedCast()", env.ctx);
+  check("0. a connected session alone does not expose Stop", env.endedSessions, []);
+  await vm.runInContext("loadCastMedia()", env.ctx);
+  check("0b. receiver progress confirms the Stop action", vm.runInContext("castPlaybackConfirmed", env.ctx), true);
+  await vm.runInContext("stopConfirmedCast()", env.ctx);
+  check("0c. confirmed Stop ends playback on the receiver", env.endedSessions, [true]);
+  check("0d. Stop confirms the action", env.notices[env.notices.length - 1], "Casting stopped");
+  env.timers.forEach(clearTimeout);
+}
 
 /* 1. The receiver plays: one attempt, reported as playing. */
 {
@@ -532,6 +552,14 @@ const TWO = [
     /if \(castSessionStarting\)[\s\S]*?castSessionStarting = true/.test(player), true);
   check("16m. playback polling can read the framework RemotePlayer state",
     /media\?\.playerState \|\| remotePlayer\?\.playerState/.test(player), true);
+  const castControlStart = player.indexOf('name: "chromecast"');
+  const stopControlStart = player.indexOf('name: "chromecast-stop"', castControlStart);
+  const castControl = player.slice(castControlStart, stopControlStart);
+  const stopControl = player.slice(stopControlStart, player.indexOf("art = new window.Artplayer", stopControlStart));
+  check("16n. the normal Cast button still only starts or reuses a session",
+    /startCastSession\(\)/.test(castControl) && !/stopConfirmedCast\(\)/.test(castControl), true);
+  check("16o. Stop remains a separate control gated by confirmed playback",
+    /stopConfirmedCast\(\)/.test(stopControl) && /castPlaybackConfirmed/.test(player), true);
 }
 
 /* 17. The parent keeps Cast on AnimeAV1 before its final JKAnime fallback. */

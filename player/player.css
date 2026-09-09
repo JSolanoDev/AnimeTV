@@ -445,6 +445,75 @@ body.fit-fill .art-video {
   opacity: 0.45;
 }
 
+/* Stop is a separate, out-of-flow action. It appears only after the receiver has
+   advanced through real playback, so an auto-joined Cast session cannot expose it
+   early and the mobile control row never gains another column. */
+.art-control-chromecast-stop {
+  position: absolute !important;
+  right: 8px;
+  bottom: calc(100% + 8px);
+  z-index: 3;
+  display: flex !important;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 !important;
+  align-items: center;
+  justify-content: center;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity 140ms ease, transform 140ms ease, visibility 140ms;
+}
+
+.art-control-chromecast-stop.is-visible {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.art-control-chromecast-stop.is-stopping {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.ztv-cast-stop-button {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  color: #ff6262;
+  background: rgba(10, 12, 22, 0.9);
+  border: 1px solid rgba(255, 98, 98, 0.58);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  cursor: pointer;
+}
+
+.ztv-cast-stop-button:hover,
+.ztv-cast-stop-button:focus-visible {
+  color: #fff;
+  background: rgba(180, 40, 48, 0.94);
+  outline: 2px solid rgba(255, 255, 255, 0.88);
+  outline-offset: 2px;
+}
+
+.ztv-cast-stop-button svg {
+  width: 17px;
+  height: 17px;
+  fill: currentColor;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .art-control-chromecast-stop {
+    transition: none;
+  }
+}
+
 .art-control-rewind-10,
 .art-control-forward-10,
 .art-control-next-episode {
