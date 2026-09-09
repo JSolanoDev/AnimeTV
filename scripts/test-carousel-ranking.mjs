@@ -99,14 +99,10 @@ check("single item survives", sortCarouselCurrency([A], NOW, () => null).map((s)
   check("slide selection keeps the existing indicator image nodes", /if \(_carouselDotsHtml !== dotsHtml\)/.test(indicators), true);
   check("selection is updated as a class instead of rebuilt into HTML", /classList\.toggle\("is-selected", selected\)/.test(indicators), true);
   check("empty indicator cards stay hidden until thumbnails are ready", /carouselIndicators\.hidden = true/.test(indicators), true);
-  check("indicator thumbnails use the verified poster chain", /carouselIndicatorArtwork\(show\)/.test(indicators), true);
-  check("failed indicator artwork uses a compact static fallback", /carousel-dot-fallback/.test(indicators), true);
+  check("indicator cards preload stable poster artwork without changing their layout", /carouselIndicatorArtwork\(show\)/.test(indicators), true);
   const hydration = between("function scheduleCarouselIndicatorHydration(", "function simpleCarouselText(");
   check("indicator artwork is preloaded before the selector is revealed", /Promise\.allSettled\([\s\S]*preloadArtworkImage/.test(hydration), true);
-  check("only successfully decoded indicator artwork is rendered", /results\[index\]\?\.status === "fulfilled"[\s\S]*results\[index\]\.value === true/.test(hydration), true);
   check("the hero never paints its 4K artwork onto the loading layer", /carouselBackdrop\.style\.backgroundImage = `url/.test(render), false);
-  check("portrait fallback classification follows the selected valid artwork", /const landscapeArt = hiResArt \|\| getCarouselArtwork\(show\)[\s\S]*const hasLandscapeBanner = Boolean\(landscapeArt\)/.test(render), true);
-  check("portrait fallbacks use a bounded image request", /imageDeliveryUrl\(art, 342, 88\)/.test(render), true);
   check("the high-resolution lookup keeps the clean wait surface visible", /if \(resolving\) \{[\s\S]*carouselStage\.classList\.add\("is-backdrop-loading"\)/.test(render), true);
   check("a failed high-resolution lookup repaints the source-art fallback", /\.then\(repaintResolvedArtwork, repaintResolvedArtwork\)/.test(render), true);
   check("the empty image branch does not dismiss an active artwork lookup", /if \(!resolving\) carouselStage\.classList\.remove\("is-backdrop-loading"\)/.test(render), true);

@@ -366,7 +366,6 @@ const carouselStage = document.querySelector("#carouselStage");
 const carouselIndicators = document.querySelector("#carouselIndicators");
 let carouselTimer = null;
 let _carouselIndicatorImagesReady = false;
-let _carouselIndicatorReadyArtwork = new Set();
 let _carouselIndicatorHydrationQueued = false;
 let _carouselIndicatorHydrationGeneration = 0;
 let lastInputWasPointer = false;
@@ -555,7 +554,6 @@ function resetCatalogModeControls() {
   if (typeof _carouselMemoId !== "undefined") _carouselMemoId = "";
   if (typeof _carouselDotsHtml !== "undefined") _carouselDotsHtml = null;
   if (typeof _carouselIndicatorImagesReady !== "undefined") _carouselIndicatorImagesReady = false;
-  if (typeof _carouselIndicatorReadyArtwork !== "undefined") _carouselIndicatorReadyArtwork = new Set();
   if (typeof _carouselIndicatorHydrationQueued !== "undefined") _carouselIndicatorHydrationQueued = false;
   if (typeof _carouselIndicatorHydrationGeneration !== "undefined") _carouselIndicatorHydrationGeneration += 1;
   if (carouselIndicators) {
@@ -714,7 +712,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=781`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=782`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3901,7 +3899,6 @@ function resetReleaseCarouselLineup() {
   _carouselPaintedShow = null;
   _carouselDotsHtml = null;
   _carouselIndicatorImagesReady = false;
-  _carouselIndicatorReadyArtwork = new Set();
   _carouselIndicatorHydrationQueued = false;
   _carouselIndicatorHydrationGeneration += 1;
   if (carouselIndicators) {
@@ -3977,7 +3974,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=781";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=782";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4064,12 +4061,9 @@ function renderCarousel() {
       else enrichTmdbImages(next, { refresh: false }).then(() => preloadHeroImage(next)).catch(() => {});
     }
   }
-  const landscapeArt = hiResArt || getCarouselArtwork(show);
-  const hasLandscapeBanner = Boolean(landscapeArt);
-  const art = landscapeArt || (resolving ? "" : carouselArtworkOrPoster(show));
-  const deliveredArt = art
-    ? (hasLandscapeBanner ? cinematicBackdropUrl(art) : imageDeliveryUrl(art, 342, 88))
-    : "";
+  const hasLandscapeBanner = Boolean(hiResArt || show.banner || show.backdrop || show.heroImage || show.wideImage || show.landscapeImage);
+  const art = hiResArt || (resolving ? "" : carouselArtworkOrPoster(show));
+  const deliveredArt = art ? cinematicBackdropUrl(art) : "";
   show._paintedCarouselArtwork = art || "";
   carouselBackdrop.classList.toggle("has-banner", Boolean(art));
   carouselBackdrop.classList.toggle("is-portrait-blur", Boolean(art && !hasLandscapeBanner));
@@ -4203,17 +4197,11 @@ function renderCarouselIndicators(items) {
 
   carouselIndicators.hidden = false;
   carouselIndicators.setAttribute("aria-busy", "false");
-  const dotsHtml = items.slice(0, 8).map((show, index) => {
-    const artwork = carouselIndicatorArtwork(show);
-    const artworkReady = Boolean(artwork && _carouselIndicatorReadyArtwork.has(artwork));
-    return `
-      <button class="carousel-dot focusable${artworkReady ? "" : " is-artless"}" data-carousel-index="${index}" aria-label="Show ${escapeHtml(getShowTitle(show))}">
-        ${artworkReady
-          ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(artwork, 180, 72))}" alt="" width="180" height="101" loading="lazy" decoding="async" fetchpriority="low">`
-          : `<span class="carousel-dot-fallback" aria-hidden="true">${index + 1}</span>`}
-      </button>
-    `;
-  }).join("");
+  const dotsHtml = items.slice(0, 8).map((show, index) => `
+    <button class="carousel-dot focusable" data-carousel-index="${index}" aria-label="Show ${escapeHtml(getShowTitle(show))}">
+      ${carouselIndicatorArtwork(show) ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(carouselIndicatorArtwork(show), 180, 72))}" alt="" width="180" height="101" loading="lazy" decoding="async" fetchpriority="low">` : "<span></span>"}
+    </button>
+  `).join("");
 
   // The lineup/artwork controls DOM identity; selection is a class update. This
   // keeps all eight decoded thumbnail nodes alive during every auto-advance.
@@ -4251,11 +4239,8 @@ function scheduleCarouselIndicatorHydration(items = []) {
     // Start the same small URLs renderCarouselIndicators will use, but keep them
     // off-screen until decoded. The reveal becomes one clean paint and no extra
     // request is made because preloadArtworkImage shares the browser cache.
-    const results = await Promise.allSettled(artwork.map((url) => preloadArtworkImage(url, 180, 72, false)));
+    await Promise.allSettled(artwork.map((url) => preloadArtworkImage(url, 180, 72, false)));
     if (generation !== _carouselIndicatorHydrationGeneration) return;
-    _carouselIndicatorReadyArtwork = new Set(artwork.filter((url, index) => (
-      results[index]?.status === "fulfilled" && results[index].value === true
-    )));
     _carouselIndicatorImagesReady = true;
     _carouselIndicatorHydrationQueued = false;
     if (state.route === "home") renderCarousel();
@@ -18997,7 +18982,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=781");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=782");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
