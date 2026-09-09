@@ -206,6 +206,15 @@ test("loading feedback respects the app's reduced-motion preference", () => {
   assert.match(css, /body\.reduce-motion \.library-auto-loader-track > span\s*\{[^}]*animation: none/);
 });
 
+test("carousel loading conceals incomplete artwork and its selector", () => {
+  const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+  assert.match(html, /class="carousel-wait" aria-hidden="true"/);
+  assert.match(css, /\.carousel-stage:is\(\.is-loading, \.is-backdrop-loading\) \.carousel-wait\s*\{[^}]*visibility: visible;[^}]*opacity: 1;/);
+  assert.match(css, /\.carousel-stage\.is-backdrop-loading \.carousel-indicators\s*\{[^}]*visibility: hidden;[^}]*opacity: 0;/);
+  assert.match(css, /body\.reduce-motion \.carousel-wait-track\s*\{[^}]*animation: none !important;/);
+});
+
 test("the anime detail view has visible, reduced-motion-safe hydration feedback", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
