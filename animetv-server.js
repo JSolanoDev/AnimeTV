@@ -1885,6 +1885,7 @@ async function handleSourceProxy(request, url, response) {
   }
 
   try {
+    const isHeadRequest = String(request.method || "").toUpperCase() === "HEAD";
     const refererHost = String(url.searchParams.get("refererHost") || "").trim();
     const castCodecs = sanitizeCastCodecs(url.searchParams.get("castCodecs") || "");
     const targetUrl = new URL(target);
@@ -1957,6 +1958,7 @@ async function handleSourceProxy(request, url, response) {
       headers.Origin = `https://${refererHost}`;
     }
     if (request.headers.range) headers.Range = request.headers.range;
+    else if (isHeadRequest) headers.Range = "bytes=0-0";
     const upstream = await fetchWithTimeout(target, { headers }, 12000);
     const upstreamType = upstream.headers.get("content-type") || "";
     // "Useless" means the origin told us nothing a player can act on. A real
@@ -1984,8 +1986,25 @@ async function handleSourceProxy(request, url, response) {
       const value = upstream.headers.get(name);
       if (value) responseHeaders[name] = value;
     });
+    if (upstream.status === 206 || upstream.headers.get("content-range")) {
+      responseHeaders["accept-ranges"] = "bytes";
+    }
+    if (isHeadRequest) {
+      // Cast receivers commonly probe a media URL with HEAD before loading it.
+      // Some video hosts do not implement HEAD, so use a one-byte GET upstream,
+      // recover the full length from Content-Range, and never drain the movie.
+      const totalLength = upstream.headers.get("content-range")?.match(/\/(\d+)\s*$/)?.[1] || "";
+      delete responseHeaders["content-range"];
+      if (totalLength) responseHeaders["content-length"] = totalLength;
+      response.writeHead(upstream.ok ? 200 : upstream.status, responseHeaders);
+      try { await upstream.body?.cancel?.(); } catch (error) { /* body may already be closed */ }
+      response.end();
+      return;
+    }
     if (isPlaylist) {
       let playlist = rewriteM3u8Playlist(await upstream.text(), target, refererHost);
+      const playlistIsVod = /^#EXT-X-PLAYLIST-TYPE:VOD\s*$/mi.test(playlist)
+        || /^#EXT-X-ENDLIST\s*$/mi.test(playlist);
       // Google Cast defaults HLS without a master CODECS declaration to H.264.
       // AnimeAV1 exposes an AV1 media playlist directly, so a Cast-only request
       // gets a tiny one-variant master that identifies the real decoder. Normal
@@ -2005,10 +2024,23 @@ async function handleSourceProxy(request, url, response) {
       // Passing through the old length truncates it before its final segment.
       delete responseHeaders["content-length"];
       delete responseHeaders["content-range"];
+      if (upstream.ok && playlistIsVod) {
+        // Codec detection in the sender and playback on the TV request the same
+        // VOD playlist. A short shared cache lets the first request warm the
+        // second without risking stale live manifests.
+        responseHeaders["Cache-Control"] = "public, max-age=60, s-maxage=900, stale-while-revalidate=3600";
+      }
       responseHeaders["Content-Length"] = String(Buffer.byteLength(playlist));
       response.writeHead(upstream.status, responseHeaders);
       response.end(playlist);
       return;
+    }
+    if (upstream.ok && !request.headers.range
+      && (isZillaDisguisedSegment || isZillaOtherSegment || isGuploadSegment)) {
+      // These URLs identify immutable VOD fragments. The Cast sender probes the
+      // init fragment before the receiver asks for it, so caching here removes a
+      // duplicate serverless hop and gives every following viewer a CDN hit.
+      responseHeaders["Cache-Control"] = "public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000, immutable";
     }
     response.writeHead(upstream.status, responseHeaders);
     if (!upstream.body) {
@@ -8029,6 +8061,22 @@ function classifyStreamUrl(raw) {
 }
 function extractStreamFromEmbed(html) {
   const text = String(html || "");
+  // Streamtape disguises an embed page as /e/<id>/<name>.mp4, then assembles the
+  // real standard-port MP4 endpoint in inline JavaScript. The final parameter set
+  // in the page is the one assigned by that script; earlier hidden nodes are
+  // deliberate decoys with invalid token suffixes.
+  if (/streamtape\.com\/get_vi/i.test(text)) {
+    const params = [...text.matchAll(/id=([A-Za-z0-9_-]+)&expires=(\d+)&ip=([^&"'<>\\\s]+)&token=([A-Za-z0-9_-]+)/g)];
+    const match = params[params.length - 1];
+    if (match) {
+      const direct = new URL("https://streamtape.com/get_video");
+      direct.searchParams.set("id", match[1]);
+      direct.searchParams.set("expires", match[2]);
+      direct.searchParams.set("ip", match[3]);
+      direct.searchParams.set("token", match[4]);
+      return { url: direct.toString(), type: "mp4" };
+    }
+  }
   // Walk EVERY match of a pattern and return the first that survives
   // classifyStreamUrl ΓÇö so a host-name false positive (ΓÇªmp4uploadΓÇª) is skipped
   // and the scan continues to the genuine video URL later in the page.
@@ -8075,6 +8123,12 @@ function resolvedEmbedPlaybackUrl(streamUrl = "", embedUrl = "") {
     if (/(?:^|\.)yourupload\.com$/i.test(embedHost)) {
       return sourceProxyPath(streamUrl, embedHost);
     }
+    // Streamtape signs get_video for the network that resolved its embed. Keep
+    // both requests on the server side so the TV does not invalidate that token
+    // by following it from a different public IP.
+    if (/(?:^|\.)streamtape\.com$/i.test(embedHost)) {
+      return sourceProxyPath(streamUrl, "streamtape.com");
+    }
   } catch {
     // Other resolved hosts retain the existing direct-stream behavior.
   }
@@ -8088,8 +8142,11 @@ async function handleResolveEmbed(reqUrl, response) {
     sendJson(response, { ok: false, error: "Missing embed url." }, 400);
     return;
   }
+  // Streamtape embeds end in .mp4 even though the response is an HTML player.
+  // Do not let that naming trick bypass the resolver.
+  const isStreamTapeEmbed = /^https?:\/\/(?:www\.)?streamtape\.com\/e\//i.test(target);
   // Already a direct stream? Pass it straight through.
-  if (/\.(m3u8|mp4)(\?|#|$)/i.test(target)) {
+  if (!isStreamTapeEmbed && /\.(m3u8|mp4)(\?|#|$)/i.test(target)) {
     sendJson(response, { ok: true, url: target, type: /\.m3u8/i.test(target) ? "hls" : "mp4" }, 200, { "Cache-Control": "public, max-age=120" });
     return;
   }

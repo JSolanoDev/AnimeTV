@@ -712,7 +712,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=771`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=772`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3974,7 +3974,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=771";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=772";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -12483,7 +12483,7 @@ function buildCastCandidateList() {
   }).filter(Boolean).slice(0, 4);
 }
 
-const CAST_BACKUP_PREPARE_TIMEOUT_MS = 9000;
+const CAST_BACKUP_PREPARE_TIMEOUT_MS = 6000;
 const CAST_EMBED_RESOLVE_TIMEOUT_MS = 3000;
 
 function castBackupEpisodeNumber(show, episode, verifiedFallback, usingJkAnimeSlug) {
@@ -12501,10 +12501,14 @@ function castBackupEpisodeNumber(show, episode, verifiedFallback, usingJkAnimeSl
 
 function castEmbedPreference(source = {}) {
   const identity = `${source.provider || ""} ${source.url || source.externalUrl || ""}`.toLowerCase();
-  if (identity.includes("mp4upload")) return 0;
+  // Streamtape exposes a standard-port H.264/AAC MP4 once its embed page is
+  // resolved. MP4Upload currently resolves to port 183, which the production
+  // runtime cannot reach and which made every fallback burn its full timeout.
+  if (identity.includes("streamtape")) return 0;
   if (identity.includes("streamwish") || identity.includes("sfastwish")) return 1;
   if (identity.includes("filemoon")) return 2;
   if (identity.includes("voe")) return 3;
+  if (identity.includes("mp4upload")) return 4;
   return 10 + (Number(source.sourceRank) || 0);
 }
 
@@ -12550,12 +12554,19 @@ async function buildCastBackupCandidate() {
     const embedUrl = source.url || source.externalUrl;
     const resolved = await attemptResolveEmbed(embedUrl, siteReferer, CAST_EMBED_RESOLVE_TIMEOUT_MS);
     if (!resolved?.url) continue;
+    try {
+      const mediaUrl = new URL(resolved.url, location.origin);
+      if (mediaUrl.port && mediaUrl.port !== "80" && mediaUrl.port !== "443") continue;
+    } catch (error) { continue; }
     const proxied = proxiedStreamUrl(resolved.url);
-    if (!proxied || !streamTypeFromUrl(proxied)) continue;
+    const resolvedType = String(resolved.type || "").toLowerCase();
+    const type = streamTypeFromUrl(proxied)
+      || (resolvedType === "hls" ? "hls" : (resolvedType === "mp4" ? "file" : ""));
+    if (!proxied || !type) continue;
     return {
       label: `JKAnime - ${source.provider || "TV fallback"}`,
       url: proxied,
-      type: streamTypeFromUrl(proxied)
+      type
     };
   }
   return null;
@@ -16655,7 +16666,7 @@ async function attemptResolveEmbed(embedUrl, siteReferer = "", timeoutMs = 7000)
     if (!response.ok) return null;
     const payload = await response.json();
     if (payload && payload.ok && payload.url) {
-      return { url: payload.url, referer: payload.referer };
+      return { url: payload.url, referer: payload.referer, type: payload.type };
     }
   } catch (error) {
     console.warn("Embed resolution failed:", error);
@@ -18952,7 +18963,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=771");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=772");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

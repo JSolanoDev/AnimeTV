@@ -427,10 +427,12 @@
   const CAST_PLAYBACK_DEADLINE_MS = 15000;
   const CAST_AV1_FALLBACK_DEADLINE_MS = 6500;
   const CAST_PLAYBACK_PROGRESS_SECONDS = 0.15;
+  const CAST_PLAYBACK_CONFIRM_SECONDS = 3;
+  const CAST_PLAYBACK_STALL_GRACE_MS = 3200;
   // The parent frame owns the source list. If it does not answer in this long we
   // cast the source we were opened with and nothing else, which is exactly the
   // old behaviour - the ladder is an enhancement, never a prerequisite.
-  const CAST_CANDIDATE_REPLY_MS = 10000;
+  const CAST_CANDIDATE_REPLY_MS = 7000;
   // Bumped per attempt. Every async watcher captures it and bails the moment it
   // no longer matches, so a late callback from an abandoned attempt can never
   // resolve, abort or report on behalf of the current one.
@@ -587,6 +589,13 @@
       if (art) art.notice.show = "No Chromecast devices found";
       return;
     }
+    // Resolve the Cast ladder and inspect the selected manifest while Chrome's
+    // device picker is open. Both operations were previously started only after
+    // a TV was chosen, adding several seconds of a blank receiver screen.
+    const preparation = Promise.allSettled([
+      requestCastCandidates(),
+      detectCastVideoCodec(castMediaUrl())
+    ]);
     try {
       await ctx.requestSession();
     } catch (error) {
@@ -614,6 +623,7 @@
       art.notice.show = `Couldn't start the Cast session (${code || "unknown"})`;
       return;
     }
+    await preparation;
     castLog("session established", { castState: castStateNow(), sessionState: sessionStateNow() });
     loadCastMedia().catch((error) => console.error("[Cast] loadCastMedia threw", error));
   }
@@ -724,7 +734,10 @@
   function castFetch(url, init) {
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), CAST_PROBE_TIMEOUT_MS);
-    return fetch(url, { ...init, cache: "no-store", signal: controller.signal })
+    // The source proxy gives immutable segments and VOD manifests bounded cache
+    // lifetimes. Let the sender warm those responses for the receiver instead of
+    // forcing an identical second origin request immediately afterwards.
+    return fetch(url, { cache: "default", ...init, signal: controller.signal })
       .finally(() => window.clearTimeout(timer));
   }
 
@@ -1095,6 +1108,7 @@
       let lastState = "";
       const baselineTime = Math.max(0, Number(requestedStartTime) || 0);
       let lastTime = baselineTime;
+      let lastProgressAt = 0;
       const stop = (outcome, detail) => {
         window.clearInterval(timer);
         resolve({ outcome, detail, waitedMs: Date.now() - startedAt, lastState, lastTime });
@@ -1109,24 +1123,28 @@
         const mediaTime = Number(media?.currentTime || 0);
         const remoteTime = Number(remotePlayer?.currentTime || 0);
         const now = Math.max(Number.isFinite(mediaTime) ? mediaTime : 0, Number.isFinite(remoteTime) ? remoteTime : 0);
-        if (now > lastTime) lastTime = now;
+        const sampledAt = Date.now();
+        if (now > lastTime + 0.04) {
+          lastTime = now;
+          lastProgressAt = sampledAt;
+        }
         const clockAdvanced = lastTime >= baselineTime + CAST_PLAYBACK_PROGRESS_SECONDS;
-        // Some receivers say PLAYING as soon as the metadata card disappears,
-        // while the decoder is still black at 0:00. Require the media clock to
-        // move before accepting the attempt as real playback.
-        if (state === "PLAYING" && clockAdvanced) {
-          return stop("playing", "receiver reported PLAYING and advanced the media clock");
+        const playbackActive = state === "PLAYING" || state === "BUFFERING";
+        // A one-second AV1 burst is not a successful cast. Both tested receivers
+        // can briefly decode the first fragment and then freeze, while continuing
+        // to claim PLAYING. Keep the ladder alive until several seconds of media
+        // have actually advanced so that failure can fall through to H.264.
+        if (playbackActive && lastTime >= baselineTime + CAST_PLAYBACK_CONFIRM_SECONDS) {
+          return stop("playing", `receiver advanced ${CAST_PLAYBACK_CONFIRM_SECONDS}s`);
         }
         // A receiver that is PAUSED past zero has decoded and rendered frames, so
         // the media is good even though it is not running right now.
-        if (state === "PAUSED" && now > 0) {
+        if (state === "PAUSED" && clockAdvanced) {
           return stop("playing", "receiver reported PAUSED past 0s");
         }
-        // Bare BUFFERING is NOT success - buffering for ever is the whole bug.
-        // Buffering with the clock moving is different: frames are being decoded,
-        // so that counts.
-        if (state === "BUFFERING" && clockAdvanced) {
-          return stop("playing", "receiver buffering with the clock past 0s");
+        if (playbackActive && clockAdvanced && lastProgressAt
+          && sampledAt - lastProgressAt >= CAST_PLAYBACK_STALL_GRACE_MS) {
+          return stop("stalled", `receiver clock stopped at ${lastTime.toFixed(2)}s`);
         }
         // IDLE after a load means the receiver is not going to play this. ERROR is
         // never transient, so act on it at once; the other reasons only count once
@@ -1283,7 +1301,7 @@
         if (result.outcome === "superseded") return;
         castLoadResult = result.outcome;
         castLoadError = result.detail;
-        console.error("[Cast] attempt did not reach playback", {
+        console.error("[Cast] attempt did not reach playback", JSON.stringify({
           candidate: candidate.label,
           host: hostOnly(candidate.url),
           contentType: candidate.contentType,
@@ -1294,7 +1312,7 @@
           receiverState: result.lastState || null,
           idleReason: lastReceiverIdleReason,
           remaining: ladder.length - index - 1
-        });
+        }));
         // Drop the dead media before the next rung so the receiver is not left
         // holding a stream it could not play.
         await abortCastAttempt();
@@ -1309,7 +1327,7 @@
           ? "None of this episode\u2019s sources would play on your TV."
           : "Your TV could not play this source, and this episode has no other.";
       }
-      console.error("[Cast] every candidate failed", { attempts: castAttempts });
+      console.error("[Cast] every candidate failed", JSON.stringify({ attempts: castAttempts }));
     } finally {
       castLadderRunning = false;
     }

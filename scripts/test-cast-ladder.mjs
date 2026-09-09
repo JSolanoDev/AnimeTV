@@ -95,16 +95,19 @@ function makeEnv({ receiverBehaviour, candidates, manifest, variantManifest, dea
       if (behaviour === "reject") throw Object.assign(new Error("load failed"), { code: "load_failed" });
       // Accepted: the receiver starts buffering.
       playerState = "BUFFERING_STATE"; idleReason = null;
-      if (behaviour === "play") setTimeout(() => { playerState = "PLAYING_STATE"; media.currentTime = 1; }, 200);
+      if (behaviour === "play") setTimeout(() => { playerState = "PLAYING_STATE"; media.currentTime = 3.5; }, 200);
       // The exact real-TV failure: metadata disappears and the receiver claims
       // PLAYING, but its clock remains at zero and the panel is black.
       if (behaviour === "falseplay") setTimeout(() => { playerState = "PLAYING_STATE"; }, 200);
+      // The receiver decodes a moment of AV1, then its clock freezes while it
+      // continues claiming PLAYING. This must not end the fallback ladder.
+      if (behaviour === "burst") setTimeout(() => { playerState = "PLAYING_STATE"; media.currentTime = 1; }, 200);
       if (behaviour === "error") setTimeout(() => { playerState = "IDLE_STATE"; idleReason = "ERROR_REASON"; }, 200);
       // A receiver that goes IDLE for a reason OTHER than ERROR. Only counts as a
       // failure once the grace has passed, so this also proves the grace exists.
       if (behaviour === "cancelled") setTimeout(() => { playerState = "IDLE_STATE"; idleReason = "CANCELLED_REASON"; }, 100);
       // Buffering, but the clock is moving: frames ARE being decoded.
-      if (behaviour === "creep") setTimeout(() => { media.currentTime = 0.5; }, 300);
+      if (behaviour === "creep") setTimeout(() => { media.currentTime = 3.5; }, 300);
       // "hang" -> stays BUFFERING forever, clock frozen at 0.
       return {};
     }
@@ -322,6 +325,18 @@ const TWO = [
   env.timers.forEach(clearTimeout);
 }
 
+/* 11b. One second of playback followed by a freeze is not success. */
+{
+  const env = makeEnv({ receiverBehaviour: ["burst", "play"], manifest: FMP4_MANIFEST, candidates: TWO, deadlineMs: 1400 });
+  await vm.runInContext("loadCastMedia()", env.ctx);
+  check("11b. a one-second AV1 burst falls through to H.264", vm.runInContext("castLoadResult", env.ctx), "playing");
+  check("11c. the burst source is stopped before fallback", env.stops.length >= 1, true);
+  const attempts = vm.runInContext("JSON.parse(JSON.stringify(castAttempts))", env.ctx);
+  check("11d. the short burst is not recorded as successful", attempts[0].outcome === "playing", false);
+  check("11e. the fallback is the successful attempt", attempts[1].outcome, "playing");
+  env.timers.forEach(clearTimeout);
+}
+
 /* 12. IDLE for a reason other than ERROR still ends the attempt - after the grace. */
 {
   const env = makeEnv({ receiverBehaviour: ["cancelled"], manifest: FMP4_MANIFEST, deadlineMs: 20000 });
@@ -404,6 +419,31 @@ const TWO = [
     /function sanitizeCastCodecs[\s\S]*?\^av01/.test(server), true);
   check("15n. Cast wrapper emits a one-variant master",
     /#EXT-X-STREAM-INF:BANDWIDTH=5000000,CODECS/.test(server), true);
+  check("15o. VOD manifests warm the receiver through a bounded shared cache",
+    /playlistIsVod[\s\S]*?s-maxage=900/.test(server), true);
+  check("15p. immutable CMAF fragments are CDN cached",
+    /isZillaDisguisedSegment \|\| isZillaOtherSegment \|\| isGuploadSegment[\s\S]*?s-maxage=604800/.test(server), true);
+
+  const embedStart = server.indexOf("function unpackPackedJs(");
+  const embedEnd = server.indexOf("function resolvedEmbedPlaybackUrl(", embedStart);
+  const embedCtx = vm.createContext({ URL, URLSearchParams });
+  vm.runInContext(server.slice(embedStart, embedEnd), embedCtx);
+  const streamTapeFixture = [
+    '<div>//streamtape.com/get_video id=abc&expires=1&ip=ip1&token=decoy</div>',
+    '<script>//streamtape.com/get_vi id=abc&expires=2&ip=ip2&token=working</script>'
+  ].join("\n");
+  const streamTape = vm.runInContext(`extractStreamFromEmbed(${JSON.stringify(streamTapeFixture)})`, embedCtx);
+  check("15q. Streamtape's disguised .mp4 embed resolves to get_video", streamTape?.type, "mp4");
+  check("15r. the final scripted Streamtape token wins over decoys",
+    new URL(streamTape?.url).searchParams.get("token"), "working");
+  check("15s. a Streamtape /e/*.mp4 URL is treated as an embed page",
+    /isStreamTapeEmbed[\s\S]*?!isStreamTapeEmbed/.test(server), true);
+  check("15t. Cast HEAD probes become bounded one-byte upstream requests",
+    /isHeadRequest[\s\S]*?headers\.Range = "bytes=0-0"/.test(server), true);
+  check("15u. HEAD probes close without draining the media body",
+    /if \(isHeadRequest\)[\s\S]*?upstream\.body\?\.cancel\?\.\(\)[\s\S]*?response\.end\(\)/.test(server), true);
+  check("15v. partial media responses advertise byte-range support",
+    /upstream\.status === 206[\s\S]*?responseHeaders\["accept-ranges"\] = "bytes"/.test(server), true);
 }
 
 /* 16. Nothing in the sender pretends it can ask the receiver about codecs. */
@@ -415,6 +455,8 @@ const TWO = [
   check("16d. the Cast SDK script has a singleton marker", /data-zenkai-cast-sdk/.test(player), true);
   check("16e. Cast context configuration has a singleton guard", /__ZENKAI_CAST_CONTEXT_CONFIGURED__/.test(player), true);
   check("16f. native AirPlay is limited to Safari", /airplay:\s*\/\\bSafari/.test(player), true);
+  check("16g. Cast candidates and codec are warmed while the picker is open",
+    /const preparation = Promise\.allSettled[\s\S]*?await ctx\.requestSession\(\)[\s\S]*?await preparation/.test(player), true);
 }
 
 /* 17. The parent prepares a direct, proxied TV fallback only on Cast request. */
@@ -448,7 +490,7 @@ const TWO = [
           ok: true,
           episodeUrl: "https://jkanime.net/test-show/1",
           sources: [
-            { provider: "Streamwish", url: "https://wish.test/e/1", sourceRank: 1 },
+            { provider: "Streamtape", url: "https://streamtape.com/e/abc/video.mp4", sourceRank: 4 },
             { provider: "Mp4upload", url: "https://www.mp4upload.com/embed-1.html", sourceRank: 5 }
           ]
         })
@@ -456,12 +498,15 @@ const TWO = [
     },
     attemptResolveEmbed: async (url, referer, timeout) => {
       calls.push(["resolve", url, referer, timeout]);
-      return url.includes("mp4upload") ? { url: "https://a3.mp4upload.com/d/token/video.mp4" } : null;
+      return url.includes("streamtape")
+        ? { url: "/api/source?url=https%3A%2F%2Fstreamtape.com%2Fget_video%3Fid%3Dabc&refererHost=streamtape.com", type: "mp4" }
+        : { url: "https://a3.mp4upload.com:183/d/token/video.mp4", type: "mp4" };
     },
-    proxiedStreamUrl: (url) => `/api/source?url=${encodeURIComponent(url)}&refererHost=mp4upload.com`,
-    streamTypeFromUrl: () => "file",
+    proxiedStreamUrl: (url) => url,
+    streamTypeFromUrl: () => "",
     buildCastCandidateList: () => [{ label: "AnimeAV1", url: "/api/source?url=av1", type: "hls" }],
-    wait: () => new Promise(() => {})
+    wait: () => new Promise(() => {}),
+    location: { origin: "https://zenkaitv.com" }
   };
   castBackupSandbox.window = castBackupSandbox;
   const backupContext = vm.createContext(castBackupSandbox);
@@ -469,13 +514,14 @@ const TWO = [
   const prepared = await vm.runInContext("buildPreparedCastCandidateList()", backupContext);
   check("17. Cast preparation appends one fallback", prepared.length, 2);
   check("17b. exact AnimeAV1 slug and episode are requested", calls[0][1], "/api/jkanime/sources?slug=test-show&episode=1");
-  check("17c. MP4Upload is resolved before lower-priority embeds", /mp4upload/.test(calls[1][1]), true);
+  check("17c. reachable Streamtape is resolved before MP4Upload", /streamtape/.test(calls[1][1]), true);
   check("17d. fallback is a same-origin proxy URL", /^\/api\/source\?/.test(prepared[1].url), true);
   check("17e. resolver is tightly bounded", calls[1][3], 3000);
+  check("17f. the resolver's MP4 type survives an extensionless get_video URL", prepared[1].type, "file");
 
   castBackupSandbox.AdultMode.isAdultContent = () => true;
   const adult = await vm.runInContext("buildPreparedCastCandidateList()", backupContext);
-  check("17f. regular backup never crosses into adult mode", adult.length, 1);
+  check("17g. regular backup never crosses into adult mode", adult.length, 1);
 }
 
 console.log(results.join("\n"));
