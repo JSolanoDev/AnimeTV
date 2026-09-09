@@ -441,7 +441,6 @@
   let castCandidatesCache = null;
   let castLadderRunning = false;
   let castSessionStarting = false;
-  let castSessionStopping = false;
 
   function castLog(...parts) {
     if (CAST_DEV) console.log("[Cast]", ...parts);
@@ -516,19 +515,14 @@
             const name = enumName(window.cast.framework.SessionState, event.sessionState);
             castLog("session:", name);
             if (name === "SESSION_STARTED" || name === "SESSION_RESUMED") {
-              castSessionStopping = false;
               initRemotePlayer();
               window.setTimeout(() => {
                 captureReceiverStatus();
                 syncCastControl(castStateNow());
               }, 0);
-            } else if (name === "SESSION_ENDING") {
-              castSessionStopping = true;
-              syncCastControl(castStateNow());
             } else if (name === "SESSION_ENDED") {
               // Cancel any in-flight media watcher without disconnecting a newer
               // session that may already be starting.
-              castSessionStopping = false;
               castAttemptSeq++;
               castLadderRunning = false;
               lastReceiverIdleReason = null;
@@ -588,51 +582,9 @@
   function syncCastControl(stateName) {
     const control = art?.template?.$player?.querySelector?.(".art-control-chromecast");
     if (!control) return;
-    const hasSession = Boolean(castSession());
-    const stopping = castSessionStopping;
-    control.classList.toggle("is-cast-connected", hasSession && !stopping);
-    control.classList.toggle("is-cast-stopping", stopping);
+    control.classList.toggle("is-cast-connected", stateName === "CONNECTED");
     control.classList.toggle("is-cast-connecting", stateName === "CONNECTING");
     control.classList.toggle("is-cast-unavailable", stateName === "NO_DEVICES_AVAILABLE");
-    const label = stopping ? "Stopping casting" : (hasSession ? "Stop casting" : "Cast to a device");
-    control.setAttribute("aria-label", label);
-  }
-
-  async function stopCastSession() {
-    const ctx = castContext();
-    if (!ctx || !castSession()) {
-      castSessionStopping = false;
-      syncCastControl(castStateNow());
-      if (art) art.notice.show = "No active Cast session";
-      return;
-    }
-    if (castSessionStopping) return;
-
-    castSessionStopping = true;
-    // End the receiver app as well as disconnecting this browser. Incrementing the
-    // token also cancels a source-ladder watcher if Stop is pressed while loading.
-    castAttemptSeq++;
-    castLadderRunning = false;
-    syncCastControl(castStateNow());
-    try {
-      await Promise.resolve(ctx.endCurrentSession(true));
-      castLog("session stop requested");
-      if (art) art.notice.show = "Casting stopped";
-    } catch (error) {
-      castSessionStopping = false;
-      console.error("[Cast] could not stop the current session", error);
-      syncCastControl(castStateNow());
-      if (art) art.notice.show = "Could not stop casting - try again";
-      return;
-    }
-
-    // SESSION_ENDED normally clears this state. The fallback keeps the button
-    // usable if a receiver disappears without delivering the final SDK event.
-    window.setTimeout(() => {
-      if (!castSessionStopping) return;
-      castSessionStopping = false;
-      syncCastControl(castStateNow());
-    }, 3000);
   }
 
   // Stage 2 of three. Discovery (stage 1) is Chrome's job, and media delivery
@@ -647,7 +599,6 @@
         : "Casting is unavailable in this browser";
       return;
     }
-    if (castSessionStopping) return;
     if (castSessionStarting) {
       castLog("session request already in progress - ignoring duplicate click");
       return;
@@ -702,8 +653,6 @@
         session = castSession();
       }
       await preparation;
-      if (castSessionStopping) return;
-      session = castSession();
       if (!session) {
         console.error("[Cast] requestSession resolved without a current CastSession");
         if (art) art.notice.show = "The Chromecast session did not finish connecting";
@@ -1536,15 +1485,10 @@
         name: "chromecast",
         position: "right",
         index: 14,
-        html: '<i class="art-icon art-icon-cast" aria-hidden="true"><svg class="art-icon-cast-screen" height="20" width="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path d="M512 96H64v99c-13-2-26.4-3-40-3H0V96C0 60.7 28.7 32 64 32H512c35.3 0 64 28.7 64 64V416c0 35.3-28.7 64-64 64H288V456c0-13.6-1-27-3-40H512V96zM24 224c128.1 0 232 103.9 232 232c0 13.3-10.7 24-24 24s-24-10.7-24-24c0-101.6-82.4-184-184-184c-13.3 0-24-10.7-24-24s10.7-24 24-24zm8 192a32 32 0 1 1 0 64 32 32 0 1 1 0-64zM0 344c0-13.3 10.7-24 24-24c75.1 0 136 60.9 136 136c0 13.3-10.7 24-24 24s-24-10.7-24-24c0-48.6-39.4-88-88-88c-13.3 0-24-10.7-24-24z"/></svg><svg class="art-icon-cast-stop" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg></i>',
+        html: '<i class="art-icon art-icon-cast"><svg height="20" width="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path d="M512 96H64v99c-13-2-26.4-3-40-3H0V96C0 60.7 28.7 32 64 32H512c35.3 0 64 28.7 64 64V416c0 35.3-28.7 64-64 64H288V456c0-13.6-1-27-3-40H512V96zM24 224c128.1 0 232 103.9 232 232c0 13.3-10.7 24-24 24s-24-10.7-24-24c0-101.6-82.4-184-184-184c-13.3 0-24-10.7-24-24s10.7-24 24-24zm8 192a32 32 0 1 1 0 64 32 32 0 1 1 0-64zM0 344c0-13.3 10.7-24 24-24c75.1 0 136 60.9 136 136c0 13.3-10.7 24-24 24s-24-10.7-24-24c0-48.6-39.4-88-88-88c-13.3 0-24-10.7-24-24z"/></svg></i>',
         tooltip: "Cast to a device",
-        mounted: (control) => control.setAttribute("aria-label", "Cast to a device"),
         click: (_component, event) => {
           event.stopPropagation();
-          if (castSession()) {
-            stopCastSession();
-            return;
-          }
           // Straight off the user gesture: the Cast chooser is gated on user
           // activation, and awaiting anything first can spend it.
           startCastSession();

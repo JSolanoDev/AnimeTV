@@ -425,32 +425,18 @@ body.fit-fill .art-video {
   height: 19px;
 }
 
-.art-control-chromecast .art-icon-cast-stop {
-  display: none;
-}
-
-/* Cast state is rendered by syncCastControl(): orange while connecting, then a
-   red stop glyph while connected. Both glyphs occupy the same fixed-size control,
-   so switching state never shifts the rest of the mobile player controls. */
+/* The plugin used to set the icon colour inline to signal session state (white
+   idle, orange connecting, red connected). We render the icon ourselves now, so
+   the same three states are classes toggled by syncCastControl(). Colour only -
+   the glyph, its size and its position are unchanged. */
 .art-control-chromecast.is-cast-connecting .art-icon-cast svg {
   color: #f7a13a;
   fill: currentColor;
 }
 
-.art-control-chromecast.is-cast-connected .art-icon-cast-screen,
-.art-control-chromecast.is-cast-stopping .art-icon-cast-screen {
-  display: none;
-}
-
-.art-control-chromecast.is-cast-connected .art-icon-cast-stop,
-.art-control-chromecast.is-cast-stopping .art-icon-cast-stop {
-  display: block;
+.art-control-chromecast.is-cast-connected .art-icon-cast svg {
   color: #ff5252;
   fill: currentColor;
-}
-
-.art-control-chromecast.is-cast-stopping .art-icon-cast-stop {
-  opacity: 0.55;
 }
 
 /* Discovery found nothing: dim it rather than hide it, so the control does not

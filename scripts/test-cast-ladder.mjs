@@ -38,7 +38,6 @@ function makeEnv({ receiverBehaviour, candidates, manifest, variantManifest, dea
   const notices = [];
   const stops = [];
   const loads = [];
-  const endedSessions = [];
   let loadCount = 0;
   let playerState = null;
   let idleReason = null;
@@ -135,15 +134,9 @@ function makeEnv({ receiverBehaviour, candidates, manifest, variantManifest, dea
       }
     }
   };
-  const castContextApi = {
-    getCurrentSession: () => session,
-    getCastState: () => "CONNECTED",
-    getSessionState: () => "SESSION_STARTED",
-    endCurrentSession: (stopCasting) => endedSessions.push(stopCasting)
-  };
   sandbox.cast = {
     framework: {
-      CastContext: { getInstance: () => castContextApi },
+      CastContext: { getInstance: () => ({ getCurrentSession: () => session, getCastState: () => "CONNECTED", getSessionState: () => "SESSION_STARTED" }) },
       CastState: { CONNECTED: "CONNECTED" },
       SessionState: { SESSION_STARTED: "SESSION_STARTED" }
     }
@@ -190,19 +183,10 @@ function makeEnv({ receiverBehaviour, candidates, manifest, variantManifest, dea
     : castBlock;
   vm.runInContext(block, ctx, { filename: "player.js cast block" });
 
-  return { ctx, notices, stops, loads, endedSessions, loadCount: () => loadCount, timers };
+  return { ctx, notices, stops, loads, loadCount: () => loadCount, timers };
 }
 
 const FMP4_MANIFEST = "#EXTM3U\n#EXT-X-MAP:URI=\"init.mp4\"\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXTINF:4,\nseg1.html\n#EXT-X-ENDLIST\n";
-
-/* 0. The connected Cast control ends the receiver session, not just the sender. */
-{
-  const env = makeEnv({ receiverBehaviour: ["play"], manifest: FMP4_MANIFEST });
-  await vm.runInContext("stopCastSession()", env.ctx);
-  check("0. stop casting ends the current receiver session", env.endedSessions, [true]);
-  check("0b. stop casting confirms the action", env.notices[env.notices.length - 1], "Casting stopped");
-  env.timers.forEach(clearTimeout);
-}
 
 /* 1. The receiver plays: one attempt, reported as playing. */
 {
