@@ -51,6 +51,8 @@ check("781 stays proxied", imageDeliveryUrl(TMDB, 781, 90).startsWith("/api/imag
 check("AniList stays proxied", imageDeliveryUrl("https://s4.anilist.co/file/x.jpg", 360, 88).startsWith("/api/image"), true);
 check("AnimeAV1 stays proxied", imageDeliveryUrl("https://cdn.animeav1.com/covers/x.jpg", 360, 88).startsWith("/api/image"), true);
 check("adult host stays proxied", imageDeliveryUrl("https://static.underhentai.net/x.jpg", 360, 88).startsWith("/api/image"), true);
+check("Bangumi adult fallback stays proxied", imageDeliveryUrl("https://lain.bgm.tv/pic/cover/l/x.jpg", 360, 88).startsWith("/api/image"), true);
+check("Shikimori adult fallback stays proxied", imageDeliveryUrl("https://shikimori.one/system/animes/original/x.jpg", 360, 88).startsWith("/api/image"), true);
 check("unknown host untouched", imageDeliveryUrl("https://example.com/x.jpg", 360, 88), "https://example.com/x.jpg");
 
 /* ---- malformed TMDB paths must NOT be rewritten ---- */

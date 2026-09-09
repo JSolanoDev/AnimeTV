@@ -415,7 +415,8 @@ const IMAGE_PROXY_ALLOWED_HOSTS = new Set([
   "www.hentaiocean.com",
   "hanime-cdn.com",
   "www.hanime-cdn.com",
-  "shikimori.one"
+  "shikimori.one",
+  "lain.bgm.tv"
 ]);
 const IMAGE_PROXY_MAX_BYTES = 5 * 1024 * 1024;
 // 3840 so a 4K display gets the real thing. The clamp was 2560, which meant a

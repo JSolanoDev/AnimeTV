@@ -243,7 +243,7 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
   }
 
   async search(query, page = 1) {
-    const payload = await this._request("/catalog", { q: query, page, artwork: "portrait-v2" });
+    const payload = await this._request("/catalog", { q: query, page, artwork: "portrait-v3" });
     return (payload.items || []).map((item, index) => this._catalogItem(item, index));
   }
 
@@ -251,14 +251,14 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
     const payload = await this._request("/catalog", {
       page,
       refresh: options.refresh ? 1 : "",
-      artwork: "portrait-v2"
+      artwork: "portrait-v3"
     });
     return (payload.items || []).map((item, index) => this._catalogItem(item, index));
   }
 
   async getDetails(id) {
     const slug = String(id || "").replace(/^adult-underhentai-/, "");
-    const payload = await this._request("/details", { slug, artwork: "portrait-v2" });
+    const payload = await this._request("/details", { slug, artwork: "portrait-v3" });
     const item = payload.item || null;
     if (!item) return null;
     const image = this._bestImage(item);

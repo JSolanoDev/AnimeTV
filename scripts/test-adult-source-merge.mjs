@@ -21,7 +21,7 @@ const composite = new CompositeAdultSourceAdapter([underHentai, hentaiOcean]);
 const portraitMap = require("../scraper/adult_portrait_map.json");
 
 assert.equal(Object.keys(portraitMap.items || {}).length, portraitMap.total);
-assert.ok(portraitMap.total >= 690, "the production portrait map should retain broad catalog coverage");
+assert.ok(portraitMap.total >= 704, "the production portrait map should retain broad catalog coverage");
 
 const portraitFixtures = [
   ["nonohara-yuka-no-himitsu-no-haishin", "Nonohara Yuka no Himitsu no Haishin", /veohentai\.com/],
@@ -30,7 +30,18 @@ const portraitFixtures = [
   ["sex-ga-suki-de-suki-de-daisuki-na-classmate-no-ano-ko", "Sex ga Suki de Suki de Daisuki na Classmate no Ano Ko", /veohentai\.com/],
   ["kakurenbo-the-animation", "Kakurenbo The Animation", /veohentai\.com/],
   ["nee-summer", "Nee Summer!", /shikimori\.one/],
-  ["boku-dake-no-hentai-kanojo-motto-the-animation", "Boku dake no Hentai Kanojo Motto The Animation", /shikimori\.one/]
+  ["boku-dake-no-hentai-kanojo-motto-the-animation", "Boku dake no Hentai Kanojo Motto The Animation", /shikimori\.one/],
+  ["ane-kyun-joshi-ga-ie-ni-kita", "Ane Kyun! Joshi ga Ie ni Kita!", /veohentai\.com/],
+  ["inyouchuu-shoku-ryoushokutou-taimaroku-harami-ochiru-shoujo-tachi-anime-edition", "Inyouchuu Shoku", /lain\.bgm\.tv/],
+  ["s-ke-ni-totsuida-m-jou-no-nichijou", "S-ke ni Totsuida M-jou no Nichijou", /lain\.bgm\.tv/],
+  ["otome-hime", "Otome Hime", /veohentai\.com/],
+  ["mou-ichido-shite-mitai", "Mou Ichido, Shite Mitai.", /lain\.bgm\.tv/],
+  ["dainiji-ura-nyuugakushiken-the-animation", "Dainiji Ura Nyuugakushiken The Animation", /lain\.bgm\.tv/],
+  ["tsuma-ga-onsen-de-circle-nakama-no-nikubenki-ni-natta-no-desu-ga-anime-edition", "Tsuma ga Onsen", /lain\.bgm\.tv/],
+  ["swamp-stamp-anime-edition", "Swamp Stamp Anime Edition", /shikimori\.one/],
+  ["kowaremono-risa-plus-the-animation", "Kowaremono: Risa Plus The Animation", /shikimori\.one/],
+  ["kowaremono-risa-the-animation", "Kowaremono: Risa The Animation", /shikimori\.one/],
+  ["kowaremono-the-animation", "Kowaremono The Animation", /lain\.bgm\.tv/]
 ];
 portraitFixtures.forEach(([slug, title, expectedHost]) => {
   const artwork = resolveUnderHentaiPortraitArtwork({ slug, title });
