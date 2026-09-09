@@ -59,6 +59,7 @@ function makeEnv({ receiverBehaviour, candidates, manifest, variantManifest, dea
       const bytes = new Uint8Array([
         0, 0, 0, 24, 115, 116, 121, 112, 0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 16, 97, 118, 48, 49, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 12, 97, 118, 49, 67, 129, 8, 76, 0,
         0, 0, 0, 16, 109, 112, 52, 97, 0, 0, 0, 0, 0, 0, 0, 0
       ]);
       return { ok: true, status: 200, text: async () => body, arrayBuffer: async () => bytes.buffer };
@@ -95,6 +96,9 @@ function makeEnv({ receiverBehaviour, candidates, manifest, variantManifest, dea
       // Accepted: the receiver starts buffering.
       playerState = "BUFFERING_STATE"; idleReason = null;
       if (behaviour === "play") setTimeout(() => { playerState = "PLAYING_STATE"; media.currentTime = 1; }, 200);
+      // The exact real-TV failure: metadata disappears and the receiver claims
+      // PLAYING, but its clock remains at zero and the panel is black.
+      if (behaviour === "falseplay") setTimeout(() => { playerState = "PLAYING_STATE"; }, 200);
       if (behaviour === "error") setTimeout(() => { playerState = "IDLE_STATE"; idleReason = "ERROR_REASON"; }, 200);
       // A receiver that goes IDLE for a reason OTHER than ERROR. Only counts as a
       // failure once the grace has passed, so this also proves the grace exists.
@@ -231,8 +235,11 @@ const FMP4_MANIFEST = "#EXTM3U\n#EXT-X-MAP:URI=\"init.mp4\"\n#EXT-X-PLAYLIST-TYP
   await vm.runInContext("loadCastMedia()", env.ctx);
   check("5. hlsSegmentFormat set for CMAF", vm.runInContext("castHlsSegmentFormat", env.ctx), "fmp4");
   check("5b. hlsVideoSegmentFormat set for CMAF", vm.runInContext("castHlsVideoSegmentFormat", env.ctx), "fmp4");
-  check("5c. AV1 source URL is sent unchanged to the receiver", env.loads[0]?.media?.contentId,
-    "https://zenkaitv.com/api/source?url=https%3A%2F%2Fplayer.zilla-networks.com%2Fm3u8%2Fabc&refererHost=player.zilla-networks.com");
+  const castUrl = new URL(env.loads[0]?.media?.contentId);
+  check("5c. AV1 source keeps the same upstream stream", castUrl.searchParams.get("url"),
+    "https://player.zilla-networks.com/m3u8/abc");
+  check("5c2. AV1 source declares its exact codec for the Cast-only master", castUrl.searchParams.get("castCodecs"),
+    "av01.0.08M.10,mp4a.40.2");
   check("5d. AV1 request declares an HLS content type", env.loads[0]?.media?.contentType, "application/x-mpegurl");
   check("5e. AV1 request declares fMP4 media segments", env.loads[0]?.media?.hlsSegmentFormat, "fmp4");
   check("5f. AV1 request declares fMP4 video segments", env.loads[0]?.media?.hlsVideoSegmentFormat, "fmp4");
@@ -295,6 +302,18 @@ const TWO = [
   env.timers.forEach(clearTimeout);
 }
 
+/* 10c. PLAYING at a frozen 0:00 is the black-screen symptom, not success. */
+{
+  const env = makeEnv({ receiverBehaviour: ["falseplay", "play"], manifest: FMP4_MANIFEST, candidates: TWO, deadlineMs: 900 });
+  await vm.runInContext("loadCastMedia()", env.ctx);
+  check("10c. false PLAYING at 0:00 falls through", vm.runInContext("castLoadResult", env.ctx), "playing");
+  check("10d. the black first media is stopped", env.stops.length >= 1, true);
+  const attempts = vm.runInContext("JSON.parse(JSON.stringify(castAttempts))", env.ctx);
+  check("10e. frozen PLAYING is recorded as timeout", attempts[0].outcome, "timeout");
+  check("10f. frozen receiver time remains zero", attempts[0].receiverTime, 0);
+  env.timers.forEach(clearTimeout);
+}
+
 /* 11. Buffering with the clock moving is real playback, not the hang. */
 {
   const env = makeEnv({ receiverBehaviour: ["creep"], manifest: FMP4_MANIFEST, deadlineMs: 4000 });
@@ -351,10 +370,12 @@ const TWO = [
   };
   const disguised = grab("isZillaDisguisedSegment");
   const other = grab("isZillaOtherSegment");
+  const directMp4 = grab("isDirectMp4");
   const useless = grab("upstreamTypeIsUseless");
   check("15. the narrow disguised-segment rule is the one that ships", Boolean(disguised && /\\.html\$/.test(disguised)), true);
   check("15b. other spellings are a separate, conditional rule", Boolean(other && /m3u8\|html/.test(other)), true);
   check("15c. and it only fires on a useless upstream type", Boolean(useless && /octet-stream/.test(useless)), true);
+  check("15c2. direct MP4 correction ships", Boolean(directMp4 && /mp4\|m4v/.test(directMp4)), true);
 
   // Evaluate the real predicates rather than restating them.
   const H = "0".repeat(32);
@@ -363,8 +384,10 @@ const TWO = [
     const isZilla = true;
     const isZillaDisguisedSegment = eval(disguised);
     const isZillaOtherSegment = eval(other);
+    const isDirectMp4 = eval(directMp4);
     const upstreamTypeIsUseless = eval(useless.replace(/upstreamType/g, JSON.stringify(upstreamType)));
     if (isZillaDisguisedSegment) return "video/mp4";
+    if (isDirectMp4 && upstreamTypeIsUseless) return "video/mp4";
     if (isZillaOtherSegment && upstreamTypeIsUseless) return "video/mp4";
     return upstreamType || "application/json; charset=utf-8";
   };
@@ -375,6 +398,12 @@ const TWO = [
   check("15h. a playlist under /segs keeps its own type", evalFor(`/segs/${H}/index.m3u8`, "application/vnd.apple.mpegurl"), "application/vnd.apple.mpegurl");
   check("15i. a subtitle is never rewritten", evalFor(`/segs/${H}/subs.vtt`, "text/vtt"), "text/vtt");
   check("15j. the manifest path itself is untouched", evalFor(`/m3u8/${H}`, "application/vnd.apple.mpegurl"), "application/vnd.apple.mpegurl");
+  check("15k. direct MP4 with octet-stream is corrected", evalFor("/video.mp4", "application/octet-stream"), "video/mp4");
+  check("15l. direct MP4 with a valid type is untouched", evalFor("/video.mp4", "video/mp4"), "video/mp4");
+  check("15m. Cast wrapper only accepts a narrow AV1/AAC CODECS value",
+    /function sanitizeCastCodecs[\s\S]*?\^av01/.test(server), true);
+  check("15n. Cast wrapper emits a one-variant master",
+    /#EXT-X-STREAM-INF:BANDWIDTH=5000000,CODECS/.test(server), true);
 }
 
 /* 16. Nothing in the sender pretends it can ask the receiver about codecs. */
@@ -386,6 +415,67 @@ const TWO = [
   check("16d. the Cast SDK script has a singleton marker", /data-zenkai-cast-sdk/.test(player), true);
   check("16e. Cast context configuration has a singleton guard", /__ZENKAI_CAST_CONTEXT_CONFIGURED__/.test(player), true);
   check("16f. native AirPlay is limited to Safari", /airplay:\s*\/\\bSafari/.test(player), true);
+}
+
+/* 17. The parent prepares a direct, proxied TV fallback only on Cast request. */
+{
+  const client = fs.readFileSync("client.js", "utf8");
+  const backupStart = client.indexOf("const CAST_BACKUP_PREPARE_TIMEOUT_MS");
+  const backupEnd = client.indexOf("// The poster travels in the player iframe's QUERY STRING", backupStart);
+  if (backupStart < 0 || backupEnd < 0) throw new Error("could not slice Cast backup preparation");
+  const calls = [];
+  const castBackupSandbox = {
+    console: { warn() {} },
+    URL,
+    encodeURIComponent,
+    Number,
+    Promise,
+    state: {
+      activeShow: { title: "Test Show", animeAv1Slug: "test-show" },
+      activeEpisode: { episode: { episode: 1, providerEpisodeId: 1 } }
+    },
+    AdultMode: { isAdultContent: () => false },
+    isScraperEnabled: () => true,
+    getVerifiedFallbackSourceEpisode: () => null,
+    animeAv1CatalogSlugForShow: (show) => show.animeAv1Slug,
+    getInventoryProviderEpisodeId: (_show, episode) => episode.providerEpisodeId,
+    getCanonicalEpisodeNumber: (episode) => episode.episode,
+    fetchWithTimeout: async (endpoint) => {
+      calls.push(["lookup", endpoint]);
+      return {
+        ok: true,
+        json: async () => ({
+          ok: true,
+          episodeUrl: "https://jkanime.net/test-show/1",
+          sources: [
+            { provider: "Streamwish", url: "https://wish.test/e/1", sourceRank: 1 },
+            { provider: "Mp4upload", url: "https://www.mp4upload.com/embed-1.html", sourceRank: 5 }
+          ]
+        })
+      };
+    },
+    attemptResolveEmbed: async (url, referer, timeout) => {
+      calls.push(["resolve", url, referer, timeout]);
+      return url.includes("mp4upload") ? { url: "https://a3.mp4upload.com/d/token/video.mp4" } : null;
+    },
+    proxiedStreamUrl: (url) => `/api/source?url=${encodeURIComponent(url)}&refererHost=mp4upload.com`,
+    streamTypeFromUrl: () => "file",
+    buildCastCandidateList: () => [{ label: "AnimeAV1", url: "/api/source?url=av1", type: "hls" }],
+    wait: () => new Promise(() => {})
+  };
+  castBackupSandbox.window = castBackupSandbox;
+  const backupContext = vm.createContext(castBackupSandbox);
+  vm.runInContext(client.slice(backupStart, backupEnd), backupContext, { filename: "client.js cast backup block" });
+  const prepared = await vm.runInContext("buildPreparedCastCandidateList()", backupContext);
+  check("17. Cast preparation appends one fallback", prepared.length, 2);
+  check("17b. exact AnimeAV1 slug and episode are requested", calls[0][1], "/api/jkanime/sources?slug=test-show&episode=1");
+  check("17c. MP4Upload is resolved before lower-priority embeds", /mp4upload/.test(calls[1][1]), true);
+  check("17d. fallback is a same-origin proxy URL", /^\/api\/source\?/.test(prepared[1].url), true);
+  check("17e. resolver is tightly bounded", calls[1][3], 3000);
+
+  castBackupSandbox.AdultMode.isAdultContent = () => true;
+  const adult = await vm.runInContext("buildPreparedCastCandidateList()", backupContext);
+  check("17f. regular backup never crosses into adult mode", adult.length, 1);
 }
 
 console.log(results.join("\n"));

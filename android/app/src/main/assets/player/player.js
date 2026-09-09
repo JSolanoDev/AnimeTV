@@ -425,10 +425,12 @@
   // receiver that reports IDLE/ERROR is abandoned at once rather than waiting the
   // clock out.
   const CAST_PLAYBACK_DEADLINE_MS = 15000;
+  const CAST_AV1_FALLBACK_DEADLINE_MS = 6500;
+  const CAST_PLAYBACK_PROGRESS_SECONDS = 0.15;
   // The parent frame owns the source list. If it does not answer in this long we
   // cast the source we were opened with and nothing else, which is exactly the
   // old behaviour - the ladder is an enhancement, never a prerequisite.
-  const CAST_CANDIDATE_REPLY_MS = 1500;
+  const CAST_CANDIDATE_REPLY_MS = 10000;
   // Bumped per attempt. Every async watcher captures it and bails the moment it
   // no longer matches, so a late callback from an abandoned attempt can never
   // resolve, abort or report on behalf of the current one.
@@ -631,8 +633,11 @@
       // rest of the request is.
       if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[?::1\]?)$/i.test(parsed.hostname)) return "LOCAL";
     } catch (error) { return "OTHER"; }
-    if (streamType(sourceUrl, params.get("type")) === "m3u8") return "HLS";
-    const probe = castUpstreamUrl() || url;
+    if (streamType(url) === "m3u8") return "HLS";
+    let probe = url;
+    try {
+      probe = new URL(url, window.location.origin).searchParams.get("url") || url;
+    } catch (error) { /* use the candidate URL */ }
     const clean = probe.split("?")[0].split("#")[0].toLowerCase();
     if (clean.endsWith(".m3u8")) return "HLS";
     if (clean.endsWith(".mpd")) return "DASH";
@@ -668,6 +673,24 @@
     if (ascii.includes("hvc1") || ascii.includes("hev1")) return "HEVC";
     if (ascii.includes("avc1") || ascii.includes("avc3")) return "H.264";
     if (ascii.includes("vp09")) return "VP9";
+    return "";
+  }
+
+  function av1CodecStringFromBytes(bytes) {
+    const limit = Math.min(bytes.length - 6, 32768);
+    for (let i = 0; i < limit; i++) {
+      if (bytes[i] !== 0x61 || bytes[i + 1] !== 0x76 || bytes[i + 2] !== 0x31 || bytes[i + 3] !== 0x43) continue;
+      // ISO/IEC 14496-15 AV1CodecConfigurationRecord: marker/version, then
+      // profile+level, then tier+bit-depth flags. The short RFC 6381 spelling is
+      // enough for a Cast HLS master playlist and avoids guessing the decoder.
+      const profileAndLevel = bytes[i + 5];
+      const tierAndDepth = bytes[i + 6];
+      const profile = (profileAndLevel >> 5) & 0x07;
+      const level = profileAndLevel & 0x1f;
+      const tier = (tierAndDepth & 0x80) ? "H" : "M";
+      const bitDepth = (tierAndDepth & 0x20) ? 12 : ((tierAndDepth & 0x40) ? 10 : 8);
+      return `av01.${profile}.${String(level).padStart(2, "0")}${tier}.${String(bitDepth).padStart(2, "0")}`;
+    }
     return "";
   }
 
@@ -741,12 +764,21 @@
     if (cached) return cached;
     const out = {
       codec: "UNKNOWN", method: "not determined",
+      codecString: "",
       audioCodec: "UNKNOWN",
       packaging: "UNKNOWN", packagingHow: "not determined",
       // A receiver treats a playlist with no ENDLIST and no PLAYLIST-TYPE as live.
       hasEndlist: null, playlistType: null
     };
     try {
+      // A direct MP4 has no HLS manifest to inspect. Fetching it as text would
+      // pull the whole episode through the Vercel proxy before Cast even starts.
+      // The receiver can inspect the MP4 container itself, so leave it unknown.
+      if (castContentTypeFor(url) !== "application/x-mpegurl") {
+        out.method = "direct media; receiver inspects container";
+        castCodecCache.set(key, out);
+        return out;
+      }
       const res = await castFetch(url);
       if (!res.ok) {
         out.method = `manifest HTTP ${res.status}`;
@@ -759,6 +791,7 @@
         const codec = codecFromCodecsAttribute(declared);
         if (codec) {
           out.codec = codec;
+          out.codecString = declared || "";
           out.audioCodec = audioCodecFrom(declared) || "UNKNOWN";
           out.method = "HLS EXT-X-STREAM-INF CODECS";
           // FOLLOW the variant. Returning UNKNOWN here - which is what v683 did -
@@ -816,6 +849,7 @@
         }
         out.audioCodec = audioCodecFrom(initAscii) || "UNKNOWN";
         out.codec = codec || "UNKNOWN";
+        out.codecString = codec === "AV1" ? av1CodecStringFromBytes(initBytes) : "";
         out.method = codec ? "HLS EXT-X-MAP init segment" : "init segment carried no known fourCC";
         castCodecCache.set(key, out);
         return out;
@@ -922,7 +956,22 @@
   // are read off the live SDK so a build that lacks them describes nothing rather
   // than smuggling in string literals the receiver may reject.
   function buildCastLoadRequest(candidate, detection) {
-    const media = new window.chrome.cast.media.MediaInfo(candidate.url, candidate.contentType);
+    let contentUrl = candidate.url;
+    // AnimeAV1 serves a media playlist directly. Cast defaults an HLS stream
+    // with no master CODECS attribute to H.264, even when its fMP4 init segment
+    // actually declares AV1. Ask our proxy for a one-variant Cast-only master so
+    // the receiver initializes the decoder that matches the media.
+    if (detection.codec === "AV1" && detection.codecString && candidate.contentType === "application/x-mpegurl") {
+      try {
+        const parsed = new URL(candidate.url, window.location.origin);
+        if (parsed.origin === window.location.origin && parsed.pathname === "/api/source") {
+          const codecs = `${detection.codecString},mp4a.40.2`;
+          parsed.searchParams.set("castCodecs", codecs);
+          contentUrl = parsed.href;
+        }
+      } catch (error) { /* cast the original URL */ }
+    }
+    const media = new window.chrome.cast.media.MediaInfo(contentUrl, candidate.contentType);
     const SegFmt = window.chrome?.cast?.media?.HlsSegmentFormat;
     const VidFmt = window.chrome?.cast?.media?.HlsVideoSegmentFormat;
     const StreamType = window.chrome?.cast?.media?.StreamType;
@@ -1032,7 +1081,7 @@
   // the cast worked. Polled rather than event-driven on purpose: the media session
   // does not exist yet when loadMedia() resolves, so there is nothing to attach an
   // update listener to at the one moment we need to start watching.
-  function watchCastPlayback(deadlineMs, token) {
+  function watchCastPlayback(deadlineMs, token, requestedStartTime = 0) {
     return new Promise((resolve) => {
       const PlayerState = window.chrome?.cast?.media?.PlayerState || {};
       const IdleReason = window.chrome?.cast?.media?.IdleReason || {};
@@ -1044,7 +1093,8 @@
       const IDLE_GRACE_MS = 2000;
       let timer = null;
       let lastState = "";
-      let lastTime = 0;
+      const baselineTime = Math.max(0, Number(requestedStartTime) || 0);
+      let lastTime = baselineTime;
       const stop = (outcome, detail) => {
         window.clearInterval(timer);
         resolve({ outcome, detail, waitedMs: Date.now() - startedAt, lastState, lastTime });
@@ -1056,9 +1106,17 @@
         const idle = media?.idleReason ? enumName(IdleReason, media.idleReason) : "";
         if (state) lastState = state;
         if (idle) lastReceiverIdleReason = idle;
-        const now = Number(media?.currentTime || 0);
+        const mediaTime = Number(media?.currentTime || 0);
+        const remoteTime = Number(remotePlayer?.currentTime || 0);
+        const now = Math.max(Number.isFinite(mediaTime) ? mediaTime : 0, Number.isFinite(remoteTime) ? remoteTime : 0);
         if (now > lastTime) lastTime = now;
-        if (state === "PLAYING") return stop("playing", "receiver reported PLAYING");
+        const clockAdvanced = lastTime >= baselineTime + CAST_PLAYBACK_PROGRESS_SECONDS;
+        // Some receivers say PLAYING as soon as the metadata card disappears,
+        // while the decoder is still black at 0:00. Require the media clock to
+        // move before accepting the attempt as real playback.
+        if (state === "PLAYING" && clockAdvanced) {
+          return stop("playing", "receiver reported PLAYING and advanced the media clock");
+        }
         // A receiver that is PAUSED past zero has decoded and rendered frames, so
         // the media is good even though it is not running right now.
         if (state === "PAUSED" && now > 0) {
@@ -1067,7 +1125,7 @@
         // Bare BUFFERING is NOT success - buffering for ever is the whole bug.
         // Buffering with the clock moving is different: frames are being decoded,
         // so that counts.
-        if (state === "BUFFERING" && now > 0) {
+        if (state === "BUFFERING" && clockAdvanced) {
           return stop("playing", "receiver buffering with the clock past 0s");
         }
         // IDLE after a load means the receiver is not going to play this. ERROR is
@@ -1107,7 +1165,7 @@
   }
 
   // One attempt, one candidate, no retries. Returns what the receiver did.
-  async function attemptCast(session, candidate, token) {
+  async function attemptCast(session, candidate, token, hasFallback = false) {
     const kind = classifyCastUrl(candidate.url);
     if (kind === "NONE" || kind === "BLOB" || kind === "DATA" || kind === "FILE" || kind === "LOCAL") {
       return { outcome: "refused", detail: `url is ${kind}`, kind };
@@ -1146,8 +1204,11 @@
     }
     if (token !== castAttemptSeq) return { outcome: "superseded", detail: "a newer attempt took over", kind, detection };
     // Accepted. Now find out whether it actually plays.
-    const watched = await watchCastPlayback(CAST_PLAYBACK_DEADLINE_MS, token);
-    return { ...watched, loaded, kind, detection };
+    const deadlineMs = detection.codec === "AV1" && hasFallback
+      ? Math.min(CAST_PLAYBACK_DEADLINE_MS, CAST_AV1_FALLBACK_DEADLINE_MS)
+      : CAST_PLAYBACK_DEADLINE_MS;
+    const watched = await watchCastPlayback(deadlineMs, token, request.currentTime);
+    return { ...watched, loaded, kind, detection, deadlineMs };
   }
 
   async function loadCastMedia() {
@@ -1172,6 +1233,7 @@
     castAttempts = [];
     const token = ++castAttemptSeq;
     try {
+      if (art) art.notice.show = "Preparing TV playback...";
       const ladder = await castCandidateLadder();
       if (art) art.notice.show = "Starting on your TV...";
       for (let index = 0; index < ladder.length; index++) {
@@ -1181,7 +1243,7 @@
         castLastContentType = candidate.contentType;
         castLoadCalled = true;
         castLoadResult = "pending";
-        const result = await attemptCast(session, candidate, token);
+        const result = await attemptCast(session, candidate, token, index < ladder.length - 1);
         if (token !== castAttemptSeq) return;
         castAttempts.push({
           rung: index + 1,
@@ -1203,7 +1265,7 @@
           outcome: result.outcome,
           detail: result.detail,
           waitedMs: result.waitedMs ?? null,
-          deadlineMs: CAST_PLAYBACK_DEADLINE_MS,
+          deadlineMs: result.deadlineMs ?? CAST_PLAYBACK_DEADLINE_MS,
           receiverState: result.lastState || null,
           receiverTime: result.lastTime ?? null,
           idleReason: lastReceiverIdleReason,

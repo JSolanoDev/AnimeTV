@@ -1883,6 +1883,7 @@ async function handleSourceProxy(request, url, response) {
 
   try {
     const refererHost = String(url.searchParams.get("refererHost") || "").trim();
+    const castCodecs = sanitizeCastCodecs(url.searchParams.get("castCodecs") || "");
     const targetUrl = new URL(target);
     const targetHost = targetUrl.hostname.toLowerCase();
     const isZilla = targetHost === "player.zilla-networks.com";
@@ -1910,6 +1911,7 @@ async function handleSourceProxy(request, url, response) {
       && /^\/segs\/[a-f0-9]{32}\/.+$/i.test(targetUrl.pathname)
       && !/\.(m3u8|html)$/i.test(targetUrl.pathname);
     const isGuploadSegment = isGupload && /^\/data\/e\/hls\/[a-z0-9_-]+\/[^/]+\.jpg$/i.test(targetUrl.pathname);
+    const isDirectMp4 = /\.(?:mp4|m4v)$/i.test(targetUrl.pathname);
     const headers = {
       "User-Agent": String(request.headers["user-agent"] || UNDERHENTAI_HEADERS["User-Agent"])
     };
@@ -1963,6 +1965,8 @@ async function handleSourceProxy(request, url, response) {
       ? "video/mp4"
       : isGuploadSegment
         ? "video/mp2t"
+        : (isDirectMp4 && upstreamTypeIsUseless)
+          ? "video/mp4"
         : (isZillaOtherSegment && upstreamTypeIsUseless)
           ? "video/mp4"
           : upstreamType || "application/json; charset=utf-8";
@@ -1978,7 +1982,22 @@ async function handleSourceProxy(request, url, response) {
       if (value) responseHeaders[name] = value;
     });
     if (isPlaylist) {
-      const playlist = rewriteM3u8Playlist(await upstream.text(), target, refererHost);
+      let playlist = rewriteM3u8Playlist(await upstream.text(), target, refererHost);
+      // Google Cast defaults HLS without a master CODECS declaration to H.264.
+      // AnimeAV1 exposes an AV1 media playlist directly, so a Cast-only request
+      // gets a tiny one-variant master that identifies the real decoder. Normal
+      // browser playback keeps receiving the provider's rewritten media list.
+      if (castCodecs && !/^#EXT-X-STREAM-INF:/mi.test(playlist) && /^#EXTINF:/mi.test(playlist)) {
+        const child = new URLSearchParams(url.searchParams);
+        child.delete("castCodecs");
+        playlist = [
+          "#EXTM3U",
+          "#EXT-X-VERSION:7",
+          `#EXT-X-STREAM-INF:BANDWIDTH=5000000,CODECS="${castCodecs}"`,
+          `${url.pathname}?${child.toString()}`,
+          ""
+        ].join("\n");
+      }
       // Rewriting segment URIs makes the playlist larger than the upstream file.
       // Passing through the old length truncates it before its final segment.
       delete responseHeaders["content-length"];
@@ -2439,6 +2458,11 @@ function readSkipTimesMap() {
     _skipTimesAmbiguousMalIds = new Set();
   }
   return _skipTimesCache;
+}
+
+function sanitizeCastCodecs(value = "") {
+  const codecs = String(value || "").trim();
+  return /^av01\.\d\.\d{2}[MH]\.\d{2},mp4a\.40\.\d{1,2}$/i.test(codecs) ? codecs : "";
 }
 
 // Only the episodes of one anime, so the client fetches a few hundred bytes per

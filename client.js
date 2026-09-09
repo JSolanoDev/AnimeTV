@@ -702,7 +702,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=769`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=770`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3956,7 +3956,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=769";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=770";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -12438,6 +12438,94 @@ function buildCastCandidateList() {
   }).filter(Boolean).slice(0, 4);
 }
 
+const CAST_BACKUP_PREPARE_TIMEOUT_MS = 9000;
+const CAST_EMBED_RESOLVE_TIMEOUT_MS = 3000;
+
+function castBackupEpisodeNumber(show, episode, verifiedFallback, usingJkAnimeSlug) {
+  const raw = verifiedFallback?.providerEpisodeId
+    ?? (usingJkAnimeSlug
+      ? getCanonicalEpisodeNumber(episode, 1)
+      : getInventoryProviderEpisodeId(show, episode))
+    ?? episode?.providerEpisodeId
+    ?? getCanonicalEpisodeNumber(episode, 1);
+  const number = Number(raw);
+  if (!Number.isFinite(number) || number < 0) return 1;
+  // AnimeAV1 uses episode 0 for one-part movies; JKAnime exposes those as 1.
+  return number === 0 ? 1 : number;
+}
+
+function castEmbedPreference(source = {}) {
+  const identity = `${source.provider || ""} ${source.url || source.externalUrl || ""}`.toLowerCase();
+  if (identity.includes("mp4upload")) return 0;
+  if (identity.includes("streamwish") || identity.includes("sfastwish")) return 1;
+  if (identity.includes("filemoon")) return 2;
+  if (identity.includes("voe")) return 3;
+  return 10 + (Number(source.sourceRank) || 0);
+}
+
+async function buildCastBackupCandidate() {
+  const show = state.activeShow;
+  const episode = state.activeEpisode?.episode;
+  if (!show || !episode) return null;
+  if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) return null;
+  if (!isScraperEnabled("jkanime")) return null;
+
+  const verifiedFallback = getVerifiedFallbackSourceEpisode(show, episode, "jkanime");
+  const usingJkAnimeSlug = Boolean(verifiedFallback?.providerAnimeSlug || show.jkAnimeSlug);
+  const slug = verifiedFallback?.providerAnimeSlug
+    || show.jkAnimeSlug
+    || animeAv1CatalogSlugForShow(show)
+    || episode.providerAnimeSlug
+    || "";
+  if (!slug) return null;
+
+  const episodeNumber = castBackupEpisodeNumber(show, episode, verifiedFallback, usingJkAnimeSlug);
+  let payload;
+  try {
+    const endpoint = `/api/jkanime/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(episodeNumber)}`;
+    const response = await fetchWithTimeout(endpoint, { cache: "no-store" }, 4500);
+    if (!response.ok) return null;
+    payload = await response.json();
+  } catch (error) {
+    console.warn("Cast backup lookup failed:", error);
+    return null;
+  }
+  if (!payload?.ok || !Array.isArray(payload.sources)) return null;
+
+  const embeds = payload.sources
+    .filter((source) => source?.url || source?.externalUrl)
+    .sort((a, b) => castEmbedPreference(a) - castEmbedPreference(b))
+    .slice(0, 3);
+  const siteReferer = (() => {
+    try { return new URL(payload.episodeUrl || `https://jkanime.net/${slug}/${episodeNumber}`).origin + "/"; }
+    catch (error) { return "https://jkanime.net/"; }
+  })();
+
+  for (const source of embeds) {
+    const embedUrl = source.url || source.externalUrl;
+    const resolved = await attemptResolveEmbed(embedUrl, siteReferer, CAST_EMBED_RESOLVE_TIMEOUT_MS);
+    if (!resolved?.url) continue;
+    const proxied = proxiedStreamUrl(resolved.url);
+    if (!proxied || !streamTypeFromUrl(proxied)) continue;
+    return {
+      label: `JKAnime - ${source.provider || "TV fallback"}`,
+      url: proxied,
+      type: streamTypeFromUrl(proxied)
+    };
+  }
+  return null;
+}
+
+async function buildPreparedCastCandidateList() {
+  const base = buildCastCandidateList();
+  const backup = await Promise.race([
+    buildCastBackupCandidate(),
+    wait(CAST_BACKUP_PREPARE_TIMEOUT_MS).then(() => null)
+  ]);
+  if (!backup) return base;
+  return [...base, backup].slice(0, 4);
+}
+
 // The poster travels in the player iframe's QUERY STRING, so its length is
 // charged against the request line, not the body. A data: URI poster is base64
 // artwork - tens of kilobytes at least - and Chrome answered the resulting URL
@@ -12834,7 +12922,9 @@ function createApkPlayerController(iframe, options = {}) {
     // Cast-only. The player frame is opened with ONE src, so without this there
     // is nothing for a failed cast to fall back to.
     if (command === "castCandidates") {
-      postApkPlayerCommand(iframe, "castCandidates", buildCastCandidateList());
+      Promise.resolve(buildPreparedCastCandidateList())
+        .then((candidates) => postApkPlayerCommand(iframe, "castCandidates", candidates))
+        .catch(() => postApkPlayerCommand(iframe, "castCandidates", buildCastCandidateList()));
       return;
     }
     if (command === "back") {
@@ -16510,13 +16600,13 @@ function isExternalIframeEpisode(episode) {
   return Boolean(episode?.externalUrl && (episode.externalType || "iframe") === "iframe");
 }
 
-async function attemptResolveEmbed(embedUrl, siteReferer = "") {
+async function attemptResolveEmbed(embedUrl, siteReferer = "", timeoutMs = 7000) {
   if (!embedUrl) return null;
   try {
     const api = new URL("/api/resolve", location.origin);
     api.searchParams.set("url", embedUrl);
     if (siteReferer) api.searchParams.set("referer", siteReferer);
-    const response = await fetchWithTimeout(api.toString(), {}, 7000);
+    const response = await fetchWithTimeout(api.toString(), { cache: "no-store" }, timeoutMs);
     if (!response.ok) return null;
     const payload = await response.json();
     if (payload && payload.ok && payload.url) {
@@ -18817,7 +18907,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=769");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=770");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
