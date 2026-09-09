@@ -1571,7 +1571,7 @@
       playerOptions.controls.push({
         name: "chromecast-stop",
         position: "right",
-        index: 15,
+        index: 13,
         html: '<button class="ztv-cast-stop-button" type="button" aria-label="Stop casting"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2"/></svg></button>',
         tooltip: "Stop casting",
         mounted: (control) => control.setAttribute("aria-hidden", "true"),

@@ -10,6 +10,7 @@ import vm from "node:vm";
 import crypto from "node:crypto";
 
 const src = fs.readFileSync("player/player.js", "utf8");
+const playerCss = fs.readFileSync("player/player.css", "utf8");
 
 // Extract from the CAST_DEV declaration through the end of loadCastMedia().
 const start = src.indexOf("  const CAST_DEV =");
@@ -560,6 +561,10 @@ const TWO = [
     /startCastSession\(\)/.test(castControl) && !/stopConfirmedCast\(\)/.test(castControl), true);
   check("16o. Stop remains a separate control gated by confirmed playback",
     /stopConfirmedCast\(\)/.test(stopControl) && /castPlaybackConfirmed/.test(player), true);
+  check("16p. Stop is ordered and anchored immediately left of Cast",
+    /name: "chromecast-stop",[\s\S]*?position: "right",[\s\S]*?index: 13/.test(stopControl)
+      && /\.art-controls-right\s*\{[\s\S]*?position:\s*relative/.test(playerCss)
+      && /\.art-control-chromecast-stop\s*\{[\s\S]*?left:\s*-46px;[\s\S]*?right:\s*auto;[\s\S]*?bottom:\s*0;/.test(playerCss), true);
 }
 
 /* 17. The parent keeps Cast on AnimeAV1 before its final JKAnime fallback. */

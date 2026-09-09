@@ -445,18 +445,23 @@ body.fit-fill .art-video {
   opacity: 0.45;
 }
 
-/* Stop is a separate, out-of-flow action. It appears only after the receiver has
-   advanced through real playback, so an auto-joined Cast session cannot expose it
-   early and the mobile control row never gains another column. */
+/* Stop stays out of the flex row so it cannot crowd phone controls, but is anchored
+   immediately to the left of Cast. It appears only after the receiver has advanced
+   through real playback, so an auto-joined session cannot expose it early. */
+.art-controls-right {
+  position: relative;
+}
+
 .art-control-chromecast-stop {
   position: absolute !important;
-  right: 8px;
-  bottom: calc(100% + 8px);
+  left: -46px;
+  right: auto;
+  bottom: 0;
   z-index: 3;
   display: flex !important;
-  width: 40px;
-  min-width: 40px;
-  height: 40px;
+  width: 46px !important;
+  min-width: 46px !important;
+  height: 46px;
   padding: 0 !important;
   align-items: center;
   justify-content: center;
