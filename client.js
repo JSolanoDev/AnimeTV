@@ -716,7 +716,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=784`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=785`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3978,7 +3978,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=784";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=785";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -12597,10 +12597,11 @@ function castEmbedPreference(source = {}) {
   // Prefer segmented H.264 HLS. A Cast receiver can fetch each short segment
   // directly, while relaying one long Streamtape MP4 range through Vercel is
   // killed by the serverless execution limit and produces play-then-freeze.
-  if (identity.includes("streamwish") || identity.includes("sfastwish")) return 0;
-  if (identity.includes("vidhide")) return 1;
-  if (identity.includes("filemoon")) return 2;
-  if (identity.includes("voe")) return 3;
+  if (identity.includes("upnshare") || identity.includes("animeav1.uns.bio")) return 0;
+  if (identity.includes("streamwish") || identity.includes("sfastwish")) return 1;
+  if (identity.includes("vidhide")) return 2;
+  if (identity.includes("filemoon")) return 3;
+  if (identity.includes("voe")) return 4;
   if (identity.includes("streamtape")) return 8;
   if (identity.includes("mp4upload")) return 9;
   return 10 + (Number(source.sourceRank) || 0);
@@ -19132,7 +19133,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=784");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=785");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

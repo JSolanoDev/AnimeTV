@@ -7,6 +7,7 @@
 // control flow in player.js changes, this test sees the change.
 import fs from "node:fs";
 import vm from "node:vm";
+import crypto from "node:crypto";
 
 const src = fs.readFileSync("player/player.js", "utf8");
 
@@ -430,7 +431,7 @@ const TWO = [
 
   const embedStart = server.indexOf("function unpackPackedJs(");
   const embedEnd = server.indexOf("function resolvedEmbedPlaybackUrl(", embedStart);
-  const embedCtx = vm.createContext({ URL, URLSearchParams, Buffer, decodeHtmlEntities: (value) => value });
+  const embedCtx = vm.createContext({ URL, URLSearchParams, Buffer, crypto, decodeHtmlEntities: (value) => value });
   vm.runInContext(server.slice(embedStart, embedEnd), embedCtx);
   const streamTapeFixture = [
     '<div>//streamtape.com/get_video id=abc&expires=1&ip=ip1&token=decoy</div>',
@@ -473,6 +474,23 @@ const TWO = [
   check("15x4. JavaScript embed redirects are followed",
     vm.runInContext(`extractEmbedPageRedirect(${JSON.stringify("window.location.href = 'https://voe-final.example/e/abc';")}, "https://voe.sx/e/abc")`, embedCtx),
     "https://voe-final.example/e/abc");
+
+  const upnPayload = { source: "https://upn-cdn.example/video/master.m3u8?token=working" };
+  const upnCipher = crypto.createCipheriv(
+    "aes-128-cbc",
+    Buffer.from("kiemtienmua911ca", "utf8"),
+    Buffer.from("1234567890oiuytr", "utf8")
+  );
+  const upnEncrypted = Buffer.concat([
+    upnCipher.update(Buffer.from(JSON.stringify(upnPayload), "utf8")),
+    upnCipher.final()
+  ]).toString("hex");
+  const upnDecoded = vm.runInContext(`decryptUpnSharePayload(${JSON.stringify(upnEncrypted)})`, embedCtx);
+  check("15x5. AnimeAV1's UPNShare player payload decrypts", upnDecoded.source, upnPayload.source);
+  check("15x6. UPNShare hash IDs survive the resolver query",
+    vm.runInContext(`upnShareVideoId("https://animeav1.uns.bio/#ius1zd")`, embedCtx), "ius1zd");
+  check("15x7. signed embed resolutions are never shared-cached",
+    /private, no-store, max-age=0/.test(server), true);
 
   const rewriteStart = server.indexOf("function rewriteM3u8Playlist(");
   const rewriteEnd = server.indexOf("async function handleTranslate(", rewriteStart);
@@ -549,7 +567,8 @@ const TWO = [
             episodeUrl: "https://animeav1.com/media/test-show/1",
             castSources: [
               { provider: "HLS", type: "direct", url: "/api/source?url=av1" },
-              { provider: "Voe", type: "iframe", externalUrl: "https://voe.sx/e/animeav1" }
+              { provider: "Voe", type: "iframe", externalUrl: "https://voe.sx/e/animeav1" },
+              { provider: "UPNShare", type: "iframe", externalUrl: "https://animeav1.uns.bio/#ius1zd" }
             ]
           })
         };
@@ -569,6 +588,13 @@ const TWO = [
     },
     attemptResolveEmbed: async (url, referer, timeout) => {
       calls.push(["resolve", url, referer, timeout]);
+      if (url.includes("animeav1.uns.bio")) {
+        return {
+          url: "https://upn-cdn.example/video/master.m3u8?token=animeav1",
+          mediaReferer: "https://animeav1.uns.bio/",
+          type: "hls"
+        };
+      }
       if (url.includes("voe.sx")) {
         return {
           url: "https://voe-cdn.example/video/master.m3u8?token=animeav1",
@@ -607,13 +633,13 @@ const TWO = [
   check("17c. JKAnime remains the last-resort lookup",
     lookups.some((call) => call[1] === "/api/jkanime/sources?slug=test-show&episode=1"), true);
   check("17d. the AnimeAV1 mirror is ahead of JKAnime", prepared.map((candidate) => candidate.label),
-    ["AnimeAV1", "AnimeAV1 - Voe", "JKAnime - Streamwish"]);
-  check("17e. VOE and segmented JKAnime HLS are both resolved",
-    resolves.map((call) => new URL(call[1]).host), ["voe.sx", "sfastwish.com"]);
+    ["AnimeAV1", "AnimeAV1 - UPNShare", "JKAnime - Streamwish"]);
+  check("17e. UPNShare and segmented JKAnime HLS are both resolved",
+    resolves.map((call) => new URL(call[1]).host), ["animeav1.uns.bio", "sfastwish.com"]);
   check("17f. both resolvers are tightly bounded", resolves.every((call) => call[3] === 5000), true);
   check("17g. AnimeAV1 HLS stays on the short-request media relay", new URL(prepared[1].url).pathname, "/api/source");
-  check("17g2. the relay uses VOE's final player host as Referer",
-    new URL(prepared[1].url).searchParams.get("refererHost"), "eugenemakedraw.com");
+  check("17g2. the relay uses AnimeAV1 UPNShare as Referer",
+    new URL(prepared[1].url).searchParams.get("refererHost"), "animeav1.uns.bio");
   check("17g3. JKAnime remains after AnimeAV1", new URL(prepared[2].url).searchParams.get("refererHost"), "sfastwish.com");
 
   castBackupSandbox.AdultMode.isAdultContent = () => true;

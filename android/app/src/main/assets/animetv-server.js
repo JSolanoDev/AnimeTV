@@ -8106,6 +8106,65 @@ function extractEmbedPageRedirect(html = "", baseUrl = "") {
   }
 }
 
+const UPNSHARE_PLAYER_KEY = Buffer.from("kiemtienmua911ca", "utf8");
+const UPNSHARE_PLAYER_IV = Buffer.from("1234567890oiuytr", "utf8");
+
+function upnShareVideoId(embedUrl = "") {
+  try {
+    const parsed = new URL(embedUrl);
+    if (parsed.hostname.toLowerCase() !== "animeav1.uns.bio") return "";
+    const id = decodeURIComponent(parsed.hash.slice(1).split("&")[0] || "").trim();
+    return /^[a-z0-9_-]{2,64}$/i.test(id) ? id : "";
+  } catch {
+    return "";
+  }
+}
+
+function decryptUpnSharePayload(payload = "") {
+  const encrypted = String(payload || "").trim();
+  if (!encrypted || encrypted.length % 32 !== 0 || !/^[a-f0-9]+$/i.test(encrypted)) {
+    throw new Error("UPNShare returned an invalid player payload.");
+  }
+  const decipher = crypto.createDecipheriv("aes-128-cbc", UPNSHARE_PLAYER_KEY, UPNSHARE_PLAYER_IV);
+  const json = Buffer.concat([
+    decipher.update(Buffer.from(encrypted, "hex")),
+    decipher.final()
+  ]).toString("utf8");
+  const parsed = JSON.parse(json);
+  if (!parsed || typeof parsed !== "object") throw new Error("UPNShare player payload was empty.");
+  return parsed;
+}
+
+async function resolveUpnShareEmbed(embedUrl = "") {
+  const videoId = upnShareVideoId(embedUrl);
+  if (!videoId) return null;
+  const origin = "https://animeav1.uns.bio";
+  const upstream = await fetchWithTimeout(`${origin}/api/v1/video?id=${encodeURIComponent(videoId)}`, {
+    headers: {
+      ...GENERIC_CRAWL_HEADERS,
+      Accept: "application/octet-stream,*/*;q=0.8",
+      Referer: `${origin}/`,
+      Origin: origin
+    }
+  }, HOSTED_RUNTIME ? 7000 : 10000);
+  if (!upstream.ok) throw new Error(`UPNShare player returned HTTP ${upstream.status}.`);
+  const payload = decryptUpnSharePayload(await upstream.text());
+  // cfNative is the same H.264/AAC ladder as source, but its master and child
+  // manifests are served through UPNShare's edge in under a second. The raw
+  // storage-IP rendition can take longer than a serverless media request allows.
+  const candidates = [payload.cfNative, payload.source];
+  for (const candidate of candidates) {
+    let absolute = "";
+    try { absolute = new URL(String(candidate || ""), origin).toString(); }
+    catch { continue; }
+    const stream = classifyStreamUrl(absolute);
+    if (stream?.type === "hls" && /^https:\/\//i.test(stream.url)) {
+      return { ...stream, mediaReferer: `${origin}/` };
+    }
+  }
+  throw new Error("UPNShare did not return a playable HLS stream.");
+}
+
 function extractStreamFromEmbed(html) {
   const text = String(html || "");
   // Streamtape disguises an embed page as /e/<id>/<name>.mp4, then assembles the
@@ -8231,6 +8290,18 @@ async function handleResolveEmbed(reqUrl, response) {
     return;
   }
   try {
+    const upnShareId = upnShareVideoId(target);
+    if (upnShareId) {
+      const stream = await resolveUpnShareEmbed(target);
+      sendJson(response, {
+        ok: true,
+        url: stream.url,
+        type: stream.type,
+        referer: "https://animeav1.uns.bio/",
+        mediaReferer: stream.mediaReferer
+      }, 200, { "Cache-Control": "private, no-store, max-age=0" });
+      return;
+    }
     const host = (target.match(/^https?:\/\/([^/]+)/) || [])[1] || "";
     // Use the caller-supplied referer (e.g. jkanime.net for JKAnime embeds) so
     // embed hosts that check the Referer against their whitelist allow the fetch.
@@ -8260,7 +8331,7 @@ async function handleResolveEmbed(reqUrl, response) {
       type: stream.type,
       referer,
       mediaReferer: resolvedTarget
-    }, 200, { "Cache-Control": "public, max-age=120" });
+    }, 200, { "Cache-Control": "private, no-store, max-age=0" });
   } catch (error) {
     sendJson(response, { ok: false, error: `Resolve failed: ${error.message}` }, 502);
   }
