@@ -594,7 +594,7 @@
     // a TV was chosen, adding several seconds of a blank receiver screen.
     const preparation = Promise.allSettled([
       requestCastCandidates(),
-      detectCastVideoCodec(castMediaUrl())
+      detectCastVideoCodec(castMediaUrl(), castContentType())
     ]);
     try {
       await ctx.requestSession();
@@ -631,7 +631,7 @@
   // Stage 3. A failure here is about the MEDIA, never about discovery.
   // What the receiver is being asked to fetch. Extension alone is unreliable here
   // (our proxy path has none), so the declared stream type wins when we have it.
-  function classifyCastUrl(url) {
+  function classifyCastUrl(url, typeHint = "") {
     if (!url) return "NONE";
     if (/^blob:/i.test(url)) return "BLOB";
     if (/^data:/i.test(url)) return "DATA";
@@ -643,7 +643,7 @@
       // rest of the request is.
       if (/^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[?::1\]?)$/i.test(parsed.hostname)) return "LOCAL";
     } catch (error) { return "OTHER"; }
-    if (streamType(url) === "m3u8") return "HLS";
+    if (/mpegurl/i.test(typeHint) || streamType(url, typeHint) === "m3u8") return "HLS";
     let probe = url;
     try {
       probe = new URL(url, window.location.origin).searchParams.get("url") || url;
@@ -771,8 +771,8 @@
   // reliable evidence first: a master playlist states CODECS outright, and an
   // fMP4 rendition names it in an init segment that is a couple of KB - far less
   // than pulling a 3MB media segment.
-  async function detectCastVideoCodec(url) {
-    const key = `${segmentsEpisodeKey}|${url}`;
+  async function detectCastVideoCodec(url, typeHint = "") {
+    const key = `${segmentsEpisodeKey}|${typeHint}|${url}`;
     const cached = castCodecCache.get(key);
     if (cached) return cached;
     const out = {
@@ -787,7 +787,10 @@
       // A direct MP4 has no HLS manifest to inspect. Fetching it as text would
       // pull the whole episode through the Vercel proxy before Cast even starts.
       // The receiver can inspect the MP4 container itself, so leave it unknown.
-      if (castContentTypeFor(url) !== "application/x-mpegurl") {
+      const declaredHls = /mpegurl/i.test(typeHint)
+        || streamType(url, typeHint) === "m3u8"
+        || castContentTypeFor(url, typeHint) === "application/x-mpegurl";
+      if (!declaredHls) {
         out.method = "direct media; receiver inspects container";
         castCodecCache.set(key, out);
         return out;
@@ -1184,11 +1187,11 @@
 
   // One attempt, one candidate, no retries. Returns what the receiver did.
   async function attemptCast(session, candidate, token, hasFallback = false) {
-    const kind = classifyCastUrl(candidate.url);
+    const kind = classifyCastUrl(candidate.url, candidate.contentType);
     if (kind === "NONE" || kind === "BLOB" || kind === "DATA" || kind === "FILE" || kind === "LOCAL") {
       return { outcome: "refused", detail: `url is ${kind}`, kind };
     }
-    const detection = await detectCastVideoCodec(candidate.url);
+    const detection = await detectCastVideoCodec(candidate.url, candidate.contentType);
     let request;
     try {
       request = buildCastLoadRequest(candidate, detection);
@@ -1257,7 +1260,7 @@
       for (let index = 0; index < ladder.length; index++) {
         if (token !== castAttemptSeq) return;
         const candidate = ladder[index];
-        castLastUrlType = classifyCastUrl(candidate.url);
+        castLastUrlType = classifyCastUrl(candidate.url, candidate.contentType);
         castLastContentType = candidate.contentType;
         castLoadCalled = true;
         castLoadResult = "pending";
@@ -1349,7 +1352,8 @@
     // Runs the same detection loadCastMedia uses, without needing a receiver.
     async detectCodec() {
       const url = castMediaUrl();
-      const result = await detectCastVideoCodec(url);
+      const contentType = castContentType();
+      const result = await detectCastVideoCodec(url, contentType);
       const SegFmt = window.chrome?.cast?.media?.HlsSegmentFormat;
       const VidFmt = window.chrome?.cast?.media?.HlsVideoSegmentFormat;
       const wouldDescribe = result.packaging === "FMP4" && Boolean(SegFmt?.FMP4 && VidFmt?.FMP4);
@@ -1361,7 +1365,7 @@
         wouldSetHlsSegmentFormat: wouldDescribe ? String(SegFmt.FMP4) : "(not set)",
         wouldSetHlsVideoSegmentFormat: wouldDescribe ? String(VidFmt.FMP4) : "(not set)",
         sourceHost: castSourceLabel(),
-        urlClassification: classifyCastUrl(url)
+        urlClassification: classifyCastUrl(url, contentType)
       };
     },
     snapshot() {
@@ -1392,7 +1396,7 @@
         codecDetectionMethod: castCodecMethod || "not-run",
         codecDetectionResult: castCodecResult,
         castBlockedForCodec,
-        mediaUrlType: castLastUrlType || classifyCastUrl(castMediaUrl()),
+        mediaUrlType: castLastUrlType || classifyCastUrl(castMediaUrl(), castContentType()),
         contentType: castLastContentType || castContentType(),
         hlsPackaging: castHlsPackaging || "not-detected",
         hlsSegmentFormat: castHlsSegmentFormat || "(not set)",

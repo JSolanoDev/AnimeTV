@@ -1892,6 +1892,7 @@ async function handleSourceProxy(request, url, response) {
     const targetHost = targetUrl.hostname.toLowerCase();
     const isZilla = targetHost === "player.zilla-networks.com";
     const isGupload = targetHost === "gupload.xyz" || targetHost === "www.gupload.xyz";
+    const isStreamTapeMedia = targetHost === "streamtape.com" && targetUrl.pathname === "/get_video";
     const isLuluMedia = /(?:^|\.)(?:luluvdo|lulustream)\.com$/i.test(refererHost);
     const zillaHash = isZilla
       ? targetUrl.pathname.match(/^\/(?:m3u8|segs)\/([a-f0-9]{32})(?:\/|$)/i)?.[1] || ""
@@ -1986,7 +1987,7 @@ async function handleSourceProxy(request, url, response) {
       const value = upstream.headers.get(name);
       if (value) responseHeaders[name] = value;
     });
-    if (upstream.status === 206 || upstream.headers.get("content-range")) {
+    if (upstream.ok && (isStreamTapeMedia || upstream.status === 206 || upstream.headers.get("content-range"))) {
       responseHeaders["accept-ranges"] = "bytes";
     }
     if (isHeadRequest) {

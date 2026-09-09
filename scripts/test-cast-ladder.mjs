@@ -68,7 +68,11 @@ function makeEnv({ receiverBehaviour, candidates, manifest, variantManifest, dea
     params: new URLSearchParams("type=hls"),
     sourceUrl: "https://zenkaitv.com/api/source?url=https%3A%2F%2Fplayer.zilla-networks.com%2Fm3u8%2Fabc&refererHost=player.zilla-networks.com",
     title: "Test", episode: "E1", poster: "",
-    streamType: () => "m3u8",
+    streamType: (url, hint) => {
+      const normalizedHint = String(hint || "").toLowerCase();
+      if (normalizedHint === "m3u8" || normalizedHint === "hls") return "m3u8";
+      return String(url || "").split("?")[0].toLowerCase().endsWith(".m3u8") ? "m3u8" : "";
+    },
     segmentsEpisodeKey: "k",
     art: { notice: { set show(v) { notices.push(v); } }, video: { currentTime: 0, pause() {} } },
     localStorage: { getItem: () => null }
@@ -256,7 +260,7 @@ const FMP4_MANIFEST = "#EXTM3U\n#EXT-X-MAP:URI=\"init.mp4\"\n#EXT-X-PLAYLIST-TYP
   const env = makeEnv({ receiverBehaviour: ["play"], manifest: MASTER, variantManifest: FMP4_MANIFEST });
   // The variant fetch returns the same manifest text in this harness, so a master
   // that is followed reports the fMP4 evidence from the variant.
-  const out = await vm.runInContext("detectCastVideoCodec('https://zenkaitv.com/api/source?url=x')", env.ctx);
+  const out = await vm.runInContext("detectCastVideoCodec('https://zenkaitv.com/api/source?url=x', 'application/x-mpegurl')", env.ctx);
   check("6. master playlist codec still read", out.codec, "AV1");
   check("6b. packaging is no longer abandoned as UNKNOWN", out.packaging !== "UNKNOWN", true);
   check("6c. and it says the variant was followed", /^variant:/.test(out.packagingHow), true);
@@ -444,6 +448,8 @@ const TWO = [
     /if \(isHeadRequest\)[\s\S]*?upstream\.body\?\.cancel\?\.\(\)[\s\S]*?response\.end\(\)/.test(server), true);
   check("15v. partial media responses advertise byte-range support",
     /upstream\.status === 206[\s\S]*?responseHeaders\["accept-ranges"\] = "bytes"/.test(server), true);
+  check("15w. Streamtape MP4 responses advertise seeking even before the first range",
+    /isStreamTapeMedia \|\| upstream\.status === 206[\s\S]*?responseHeaders\["accept-ranges"\] = "bytes"/.test(server), true);
 }
 
 /* 16. Nothing in the sender pretends it can ask the receiver about codecs. */
@@ -457,6 +463,8 @@ const TWO = [
   check("16f. native AirPlay is limited to Safari", /airplay:\s*\/\\bSafari/.test(player), true);
   check("16g. Cast candidates and codec are warmed while the picker is open",
     /const preparation = Promise\.allSettled[\s\S]*?await ctx\.requestSession\(\)[\s\S]*?await preparation/.test(player), true);
+  check("16h. declared HLS type reaches extensionless Cast codec detection",
+    /detectCastVideoCodec\(candidate\.url, candidate\.contentType\)/.test(player), true);
 }
 
 /* 17. The parent prepares a direct, proxied TV fallback only on Cast request. */
