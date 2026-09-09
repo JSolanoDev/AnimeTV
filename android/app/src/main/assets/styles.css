@@ -9907,7 +9907,8 @@ body:not(.adult-mode) #releases { display: none !important; }
 .release-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1.6rem 1.1rem; }
 .release-card { display: block; min-width: 0; color: var(--text); text-decoration: none; border-radius: 8px; }
 .release-poster { position: relative; width: 100%; aspect-ratio: 259 / 370; overflow: hidden; isolation: isolate; background: var(--bg-raised) url("logo-mark-128.webp") center / 3rem no-repeat; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
-.release-poster img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 220ms ease; }
+.release-poster img { display: block; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 140ms ease, transform 220ms ease; }
+.release-poster img.img-ready { opacity: 1; }
 .release-poster img[hidden] { display: none; }
 .release-episode { position: absolute; left: 0.55rem; bottom: 0.55rem; padding: 0.28rem 0.45rem; border-radius: 4px; background: rgba(8,8,12,0.91); color: #fff; font-size: 0.66rem; font-weight: 700; line-height: 1.4; }
 .release-open { position: absolute; top: 0.55rem; right: 0.55rem; display: grid; place-items: center; width: 1.8rem; height: 1.8rem; border-radius: 50%; color: #fff; background: rgba(8,8,12,0.82); opacity: 0; transition: opacity 180ms ease; }

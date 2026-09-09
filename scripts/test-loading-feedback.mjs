@@ -206,6 +206,21 @@ test("loading feedback respects the app's reduced-motion preference", () => {
   assert.match(css, /body\.reduce-motion \.library-auto-loader-track > span\s*\{[^}]*animation: none/);
 });
 
+test("release posters share the cached-image ready and fallback lifecycle", () => {
+  const client = readFileSync(new URL("../client.js", import.meta.url), "utf8");
+  const releases = readFileSync(new URL("../js/adult-releases.js", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+  assert.match(client, /class="schedule-thumb-img release-poster-img"/);
+  assert.match(client, /\.thumb-poster, \.ep-thumb-img, \.release-poster-img/);
+  assert.match(client, /syncCompletedArtwork\(scheduleList\)/);
+  assert.match(releases, /class="release-poster-img"/);
+  assert.match(releases, /data-image-fallbacks=/);
+  assert.doesNotMatch(releases, /data-fallback=/);
+  assert.match(releases, /let cardIndex = 0;[\s\S]*card\(entry, cardIndex\+\+, shows\)/);
+  assert.match(releases, /view\.context\.syncArtwork\?\.\(result\)/);
+  assert.match(css, /\.release-poster img\.img-ready\s*\{[^}]*opacity: 1/);
+});
+
 test("carousel loading conceals incomplete artwork and its selector", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");

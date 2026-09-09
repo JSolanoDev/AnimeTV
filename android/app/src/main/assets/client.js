@@ -716,7 +716,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=791`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=792`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3975,7 +3975,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=791";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=792";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4476,11 +4476,11 @@ function applyArtworkPlaceholder(img) {
     img.style.display = "none";
     return;
   }
-  if (img.classList.contains("thumb-poster") || img.classList.contains("thumb-backdrop") || img.classList.contains("schedule-thumb-img") || img.closest(".carousel-dot")) {
+  if (img.classList.contains("thumb-poster") || img.classList.contains("thumb-backdrop") || img.classList.contains("schedule-thumb-img") || img.classList.contains("release-poster-img") || img.closest(".carousel-dot")) {
     img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
     img.removeAttribute("srcset");
     img.style.opacity = "0";
-    const card = img.closest(".thumb-art") || img.closest(".schedule-poster") || img.closest(".schedule-thumb") || img.closest(".carousel-dot");
+    const card = img.closest(".thumb-art") || img.closest(".release-poster") || img.closest(".schedule-thumb") || img.closest(".carousel-dot");
     if (card && !card.querySelector(".poster-placeholder")) {
       const placeholder = document.createElement("div");
       placeholder.className = "poster-placeholder";
@@ -4511,7 +4511,8 @@ document.addEventListener("error", (event) => {
                         img.classList.contains("ep-thumb-img") ||
                         img.classList.contains("season-card-img") ||
                         img.classList.contains("watch-poster") ||
-                        img.classList.contains("schedule-thumb-img");
+                        img.classList.contains("schedule-thumb-img") ||
+                        img.classList.contains("release-poster-img");
                         
   if (hasCandidates) {
     try { ImageResolver.markImageFailed(img.currentSrc || img.src); } catch { /* resolver optional */ }
@@ -4549,20 +4550,20 @@ function markArtworkReady(img) {
     return;
   }
   img.classList.add("img-ready");
-  img.closest(".thumb-art, .ep-thumb")?.classList.add("img-ready");
+  img.closest(".thumb-art, .ep-thumb, .release-poster")?.classList.add("img-ready");
 }
 
 // Cached images can complete between innerHTML insertion and the delegated load
 // event. Checking `complete` immediately keeps their loading rail from replaying.
 function syncCompletedArtwork(root = document) {
-  root.querySelectorAll?.(".thumb-poster, .ep-thumb-img").forEach((img) => {
+  root.querySelectorAll?.(".thumb-poster, .ep-thumb-img, .release-poster-img").forEach((img) => {
     if (img.complete) markArtworkReady(img);
   });
 }
 
 document.addEventListener("load", (event) => {
   const img = event.target;
-  if (img instanceof HTMLImageElement && (img.classList.contains("thumb-poster") || img.classList.contains("ep-thumb-img"))) {
+  if (img instanceof HTMLImageElement && (img.classList.contains("thumb-poster") || img.classList.contains("ep-thumb-img") || img.classList.contains("release-poster-img"))) {
     markArtworkReady(img);
   }
 }, true);
@@ -5753,12 +5754,12 @@ function scheduleCardTemplate(show, index) {
     ? ` data-image-fallbacks="${escapeHtml(encodeURIComponent(JSON.stringify(deliveredCandidates)))}" data-image-fallback-index="0"`
     : "";
   const poster = deliveredCandidates[0]
-    ? `<img referrerpolicy="no-referrer" class="schedule-thumb-img" src="${escapeHtml(deliveredCandidates[0])}" alt="" width="259" height="370" loading="${index < 6 ? "eager" : "lazy"}" decoding="async"${fallbackData}>`
+    ? `<img referrerpolicy="no-referrer" class="schedule-thumb-img release-poster-img" src="${escapeHtml(deliveredCandidates[0])}" alt="" width="259" height="370" loading="${index < 12 ? "eager" : "lazy"}" fetchpriority="${index < 6 ? "high" : "auto"}" decoding="async"${fallbackData}>`
     : "";
   const time = showAiringTimeText(show);
   return `
     <a class="release-card schedule-card focusable" href="${escapeHtml(animePathForShow(show))}" data-open-show="${escapeHtml(show.id)}" data-open-season="${target.seasonNumber}" data-open-episode="${target.episodeNumber}" aria-label="Open ${escapeHtml(title)}">
-      <div class="release-poster schedule-poster">
+      <div class="release-poster schedule-poster" data-artwork-title="${escapeHtml(title)}">
         ${poster}
         <span class="release-episode">${escapeHtml(cardEpisodeLabel(show))}</span>
         <span class="release-open"><span class="release-icon release-icon-arrow-up-right" aria-hidden="true"></span></span>
@@ -5942,6 +5943,7 @@ function renderSchedule() {
         </div>
       </section>`;
   }).join("");
+  syncCompletedArtwork(scheduleList);
 }
 
 function renderAniPubCatalog() {
@@ -8099,7 +8101,7 @@ function _render() {
   }
   if (isSchedule) renderSchedule();
   if (state.route === "releases" && typeof AdultReleases !== "undefined") {
-    AdultReleases.render({ language: state.appLanguage, shows: state.shows, imageUrl: imageDeliveryUrl, escape: escapeHtml, animePath: animePathForShow });
+    AdultReleases.render({ language: state.appLanguage, shows: state.shows, imageUrl: imageDeliveryUrl, posterCandidates: getCardPosterCandidates, syncArtwork: syncCompletedArtwork, escape: escapeHtml, animePath: animePathForShow });
   }
   if (isSources) renderSources();
   if (isSettings) renderSettings();
@@ -19139,7 +19141,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=791");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=792");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

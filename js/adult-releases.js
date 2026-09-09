@@ -60,14 +60,6 @@
     });
     root.querySelector("#releaseYear").addEventListener("change", event => changeYear(Number(event.target.value)));
     root.querySelector("#releaseSearch").addEventListener("input", event => { view.query = event.target.value; paint(); });
-    root.addEventListener("error", event => {
-      const img = event.target;
-      if (img.tagName !== "IMG") return;
-      if (img.dataset.fallback && img.src !== img.dataset.fallback) {
-        img.src = img.dataset.fallback;
-        delete img.dataset.fallback;
-      } else img.hidden = true;
-    }, true);
     view.mounted = true;
   }
 
@@ -104,13 +96,21 @@
     const show = shows.get(entry.catalogId);
     const state = status(entry);
     const canOpen = show && state === "available";
-    const poster = entry.poster || show?.image;
-    const fallback = show?.image && show.image !== poster ? view.context.imageUrl(show.image, 480, 85) : "";
+    const posterCandidates = [...new Set([
+      entry.poster,
+      ...(show && typeof view.context.posterCandidates === "function" ? view.context.posterCandidates(show) : []),
+      show?.image
+    ].map(value => String(value || "").trim()).filter(Boolean)
+      .map(value => view.context.imageUrl(value, 480, 85)))];
+    const poster = posterCandidates[0] || "";
+    const fallbackData = posterCandidates.length > 1
+      ? ` data-image-fallbacks="${esc(encodeURIComponent(JSON.stringify(posterCandidates)))}" data-image-fallback-index="0"`
+      : "";
     const tag = canOpen ? "a" : "article";
     const target = canOpen ? `href="${esc(view.context.animePath(show))}/episode/s1-e${entry.episode}" data-open-show="${esc(show.id)}" data-open-season="1" data-open-episode="${entry.episode}" aria-label="${esc(entry.title)}, ${esc(label.episode)} ${entry.episode}, ${esc(label.details)}"` : "";
     return `<${tag} class="release-card${canOpen ? " focusable" : ""}" ${target}>
-      <div class="release-poster">
-        ${poster ? `<img src="${esc(view.context.imageUrl(poster, 480, 85))}" ${fallback ? `data-fallback="${esc(fallback)}"` : ""} alt="" width="259" height="370" loading="${index < 6 ? "eager" : "lazy"}" decoding="async" referrerpolicy="no-referrer">` : ""}
+      <div class="release-poster" data-artwork-title="${esc(entry.title)}">
+        ${poster ? `<img class="release-poster-img" src="${esc(poster)}"${fallbackData} alt="" width="259" height="370" loading="${index < 12 ? "eager" : "lazy"}" fetchpriority="${index < 6 ? "high" : "auto"}" decoding="async" referrerpolicy="no-referrer">` : ""}
         <span class="release-episode">${esc(label.episode)} ${String(entry.episode).padStart(2, "0")}</span>
         ${canOpen ? `<span class="release-open">${icon("arrow-up-right")}</span>` : ""}
       </div>
@@ -175,11 +175,13 @@
       result.innerHTML = `<div class="releases-empty">${icon("calendar-days")}<p>${esc(label.empty)}</p><button type="button" class="focusable" data-release-reset>${esc(label.reset)}</button></div>`;
     } else {
       const months = [...new Set(filtered.map(entry => entry.date.slice(0, 7)))];
+      let cardIndex = 0;
       result.innerHTML = months.map(month => {
         const rows = filtered.filter(entry => entry.date.startsWith(month));
-        return `<section class="release-month-group"><div class="release-month-heading"><h2>${esc(monthName(Number(month.slice(5))))}</h2><span>${rows.length} ${esc(label.count)}</span></div><div class="release-grid">${rows.map((entry, i) => card(entry, i, shows)).join("")}</div></section>`;
+        return `<section class="release-month-group"><div class="release-month-heading"><h2>${esc(monthName(Number(month.slice(5))))}</h2><span>${rows.length} ${esc(label.count)}</span></div><div class="release-grid">${rows.map(entry => card(entry, cardIndex++, shows)).join("")}</div></section>`;
       }).join("");
     }
+    view.context.syncArtwork?.(result);
   }
 
   window.AdultReleases = {
