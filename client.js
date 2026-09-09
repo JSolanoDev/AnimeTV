@@ -252,6 +252,10 @@ const anipubGrid = document.querySelector("#anipubGrid");
 const anipubSummary = document.querySelector("#anipubSummary");
 const favoritesGrid = document.querySelector("#favoritesGrid");
 const scheduleList = document.querySelector("#scheduleList");
+const scheduleDays = document.querySelector("#scheduleDays");
+const scheduleCount = document.querySelector("#scheduleCount");
+const scheduleTimeZone = document.querySelector("#scheduleTimeZone");
+const scheduleKicker = document.querySelector("#scheduleKicker");
 const sourcesGrid = document.querySelector("#sourcesGrid");
 const sourceSummary = document.querySelector("#sourceSummary");
 const settingsGrid = document.querySelector("#settingsGrid");
@@ -504,7 +508,7 @@ function applyAppLanguage() {
   carouselOpen.querySelector("span:last-child").textContent = t("play");
   setText("#latest .section-heading h2", "latestEpisodes");
   setText("#library .section-heading h2", "animeLibrary");
-  setText("#schedule .section-heading h2", "weeklySchedule");
+  setText("#schedule .schedule-page-heading h1", "weeklySchedule");
   setText("#anipubSummary", "anipubSummary");
   setText("#favorites .section-heading h2", "favorites");
   setText("#emptyFavorites", "emptyFavorites");
@@ -712,7 +716,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=782`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=783`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -3974,7 +3978,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=782";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=783";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4479,7 +4483,7 @@ function applyArtworkPlaceholder(img) {
     img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
     img.removeAttribute("srcset");
     img.style.opacity = "0";
-    const card = img.closest(".thumb-art") || img.closest(".schedule-thumb") || img.closest(".carousel-dot");
+    const card = img.closest(".thumb-art") || img.closest(".schedule-poster") || img.closest(".schedule-thumb") || img.closest(".carousel-dot");
     if (card && !card.querySelector(".poster-placeholder")) {
       const placeholder = document.createElement("div");
       placeholder.className = "poster-placeholder";
@@ -5721,8 +5725,59 @@ function renderSkeletonCards(container, count = 7) {
 
 // Memo for the Schedule's airing-show computation (see renderSchedule).
 let _scheduleMemo = { key: "", at: 0, value: null };
+let _scheduleSelectedDay = null;
+let _scheduleControlsWired = false;
+
+function scheduleLocale() {
+  return state.appLanguage === "es" ? "es" : "en";
+}
+
+function scheduleDayName(index, width = "long") {
+  const locale = scheduleLocale();
+  const value = new Intl.DateTimeFormat(locale, { weekday: width, timeZone: "UTC" })
+    .format(new Date(Date.UTC(2023, 0, 2 + index)));
+  return value ? value.charAt(0).toLocaleUpperCase(locale) + value.slice(1) : "";
+}
+
+function revealSelectedScheduleDay() {
+  if (!scheduleDays || scheduleDays.offsetParent === null) return;
+  const selected = scheduleDays.querySelector('[aria-pressed="true"]');
+  if (!selected) return;
+  scheduleDays.scrollLeft = selected.offsetLeft - scheduleDays.offsetLeft
+    - ((scheduleDays.clientWidth - selected.offsetWidth) / 2);
+}
+
+function scheduleCardTemplate(show, index) {
+  const target = getCardTarget(show);
+  const title = getShowTitle(show);
+  const deliveredCandidates = getCardPosterCandidates(show)
+    .map((url) => imageDeliveryUrl(url, 480, 85));
+  const fallbackData = deliveredCandidates.length > 1
+    ? ` data-image-fallbacks="${escapeHtml(encodeURIComponent(JSON.stringify(deliveredCandidates)))}" data-image-fallback-index="0"`
+    : "";
+  const poster = deliveredCandidates[0]
+    ? `<img referrerpolicy="no-referrer" class="schedule-thumb-img" src="${escapeHtml(deliveredCandidates[0])}" alt="" width="259" height="370" loading="${index < 6 ? "eager" : "lazy"}" decoding="async"${fallbackData}>`
+    : "";
+  const time = showAiringTimeText(show);
+  return `
+    <a class="release-card schedule-card focusable" href="${escapeHtml(animePathForShow(show))}" data-open-show="${escapeHtml(show.id)}" data-open-season="${target.seasonNumber}" data-open-episode="${target.episodeNumber}" aria-label="Open ${escapeHtml(title)}">
+      <div class="release-poster schedule-poster">
+        ${poster}
+        <span class="release-episode">${escapeHtml(cardEpisodeLabel(show))}</span>
+        <span class="release-open"><span class="release-icon release-icon-arrow-up-right" aria-hidden="true"></span></span>
+      </div>
+      <div class="release-card-copy">
+        <div class="release-card-meta">
+          <time>${time ? escapeHtml(time) : escapeHtml(t("scheduleTimeTba"))}</time>
+          <span class="release-status is-available">${escapeHtml(t("scheduleAiring"))}</span>
+        </div>
+        <h3 title="${escapeHtml(title)}">${escapeHtml(title)}</h3>
+      </div>
+    </a>`;
+}
 
 function renderSchedule() {
+  if (!scheduleList) return;
   // Fixed Mon → Sun order
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -5785,86 +5840,110 @@ function renderSchedule() {
   // Highlight the current weekday. getDay() is 0=Sun..6=Sat; our columns run
   // Mon..Sun, so shift by 6 to line up.
   const todayIdx = (new Date().getDay() + 6) % 7;
+  if (!Number.isInteger(_scheduleSelectedDay) || _scheduleSelectedDay < -1 || _scheduleSelectedDay > 6) {
+    _scheduleSelectedDay = todayIdx;
+  }
+
+  const showsByDay = days.map(() => []);
+  airingShows.forEach((show) => {
+    const weekday = weekdayIndexFromName(show.day);
+    if (weekday === undefined) return;
+    showsByDay[(weekday + 6) % 7].push(show);
+  });
+
+  if (!_scheduleControlsWired && scheduleDays) {
+    _scheduleControlsWired = true;
+    scheduleDays.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-schedule-day]");
+      if (!button) return;
+      const nextDay = Number(button.dataset.scheduleDay);
+      if (!Number.isInteger(nextDay) || nextDay < -1 || nextDay > 6 || nextDay === _scheduleSelectedDay) return;
+      _scheduleSelectedDay = nextDay;
+      renderSchedule();
+      refreshFocusables();
+    });
+  }
 
   // Skip the rebuild when nothing changed. render() fires repeatedly during the
   // post-navigation metadata-enrichment burst; without this guard every one of
   // those renders tore down and recreated all ~84 schedule <img> elements
   // (re-decoding artwork each time) — a major cause of the Schedule freeze.
-  const scheduleSig = `${todayIdx}|` + airingShows
-    .map((s) => `${s.id}:${s.day}:${cardEpisodeLabel(s)}:${(s.image || s.images?.poster || s.cover || s.poster || "")}`)
-    .join("|");
+  const scheduleSig = JSON.stringify([
+    todayIdx,
+    _scheduleSelectedDay,
+    state.appLanguage,
+    state.uiPreferences.titleLanguage,
+    airingShows.map((show) => [
+      show.id,
+      show.day,
+      showAiringTimeText(show),
+      cardEpisodeLabel(show),
+      getShowTitle(show),
+      getCardPosterCandidates(show)[0] || ""
+    ])
+  ]);
   if (scheduleList.dataset.schedSig === scheduleSig) return;
   scheduleList.dataset.schedSig = scheduleSig;
 
-  scheduleList.innerHTML = days.map((day, idx) => {
-    const isToday = idx === todayIdx;
-    const shows = airingShows
-      // Matched by weekday INDEX, not by an English string prefix: show.day is
-      // produced by Intl in the viewer's locale, so "Fri".startsWith("fri") only
-      // ever worked in English. weekdayIndexFromName folds localised names to an
-      // index; days[] is Monday-first while the index is Sunday-first, hence +6%7.
-      .filter((show) => {
-        const weekday = weekdayIndexFromName(show.day);
-        return weekday !== undefined && ((weekday + 6) % 7) === idx;
-      })
-      .slice(0, 12);
+  const totalShows = showsByDay.reduce((count, shows) => count + shows.length, 0);
+  if (scheduleKicker) scheduleKicker.textContent = t("scheduleCalendar");
+  if (scheduleDays) {
+    const options = [
+      { index: -1, label: t("scheduleAllDays"), title: t("scheduleAllDays"), count: totalShows },
+      ...days.map((_, index) => ({
+        index,
+        label: scheduleDayName(index, "short"),
+        title: scheduleDayName(index),
+        count: showsByDay[index].length
+      }))
+    ];
+    scheduleDays.setAttribute("aria-label", t("scheduleCalendar"));
+    scheduleDays.innerHTML = options.map((option) => {
+      const isToday = option.index === todayIdx;
+      const title = `${option.title}${isToday ? ` - ${t("scheduleToday")}` : ""}`;
+      return `<button type="button" class="focusable${isToday ? " is-today" : ""}" data-schedule-day="${option.index}" aria-pressed="${option.index === _scheduleSelectedDay}"${isToday ? ' aria-current="date"' : ""} title="${escapeHtml(title)}">${escapeHtml(option.label)}<span>${option.count || ""}</span></button>`;
+    }).join("");
+    requestAnimationFrame(revealSelectedScheduleDay);
+  }
+
+  const visibleDays = _scheduleSelectedDay === -1
+    ? days.map((_, index) => index).filter((index) => showsByDay[index].length)
+    : [_scheduleSelectedDay];
+  const visibleCount = visibleDays.reduce((count, index) => count + showsByDay[index].length, 0);
+  const selectedLabel = _scheduleSelectedDay === -1
+    ? t("scheduleAllDays")
+    : scheduleDayName(_scheduleSelectedDay);
+  if (scheduleCount) {
+    scheduleCount.textContent = `${visibleCount} ${t("scheduleEpisodes")} · ${selectedLabel}${_scheduleSelectedDay === todayIdx ? ` · ${t("scheduleToday")}` : ""}`;
+  }
+  if (scheduleTimeZone) {
+    let zone = "";
+    try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone.replace(/_/g, " "); } catch { /* timezone label is optional */ }
+    scheduleTimeZone.textContent = [t("scheduleLocalTime"), zone].filter(Boolean).join(" · ");
+  }
+
+  if (!visibleCount) {
+    scheduleList.innerHTML = `<div class="releases-empty schedule-empty-state"><span class="release-icon release-icon-calendar-days" aria-hidden="true"></span><p>${escapeHtml(t("scheduleNoEpisodes"))}</p></div>`;
+    return;
+  }
+
+  let cardIndex = 0;
+  scheduleList.innerHTML = visibleDays.map((dayIndex) => {
+    const shows = showsByDay[dayIndex];
+    const todayLabel = dayIndex === todayIdx ? ` · ${t("scheduleToday")}` : "";
     return `
-      <section class="schedule-day-column${isToday ? " is-today" : ""}"${isToday ? ' aria-current="date"' : ""}>
-        <h3>${fullDayName(day)}${isToday ? '<span class="schedule-today-badge">Today</span>' : ""}</h3>
-        <div class="schedule-day-rail">
-          ${shows.length ? shows.map((show) => {
-            // One bad entry must not take the week with it. Every helper below -
-            // animePathForShow, getCardTarget, cardEpisodeLabel, getShowTitle,
-            // imageDeliveryUrl - runs per show, and a single throw inside this
-            // map would abort the whole .map() and leave scheduleList.innerHTML
-            // unassigned: a blank Schedule because one item was malformed.
-            // Isolate each card; a broken one is skipped and the rest render.
-            try {
-            return `
-            <a class="schedule-item focusable" href="${escapeHtml(animePathForShow(show))}" data-open-show="${escapeHtml(show.id)}" data-open-season="${getCardTarget(show).seasonNumber}" data-open-episode="${getCardTarget(show).episodeNumber}">
-              <span class="schedule-thumb">
-                ${(() => {
-                  const scheduleCandidates = [
-                    show.image,
-                    show.images?.poster,
-                    show.images?.cover,
-                    show.coverImageLarge,
-                    show.cover,
-                    show.poster,
-                    show.thumbnail,
-                    show.images?.backdrop,
-                    show.images?.banner,
-                    show.tmdbBackdrop,
-                    show.highQualityBackground,
-                    show.banner,
-                    show.bannerImage,
-                    show.backdrop,
-                    show.heroImage,
-                    show.wideImage,
-                    show.landscapeImage
-                  ].map((v) => hqImage(String(v || "").trim())).filter(Boolean);
-                  const uniqueCandidates = [...new Set(scheduleCandidates)];
-                  const deliveredCandidates = uniqueCandidates.map((url) => imageDeliveryUrl(url, 360, 86));
-                  const fallbackData = deliveredCandidates.length > 1
-                    ? ` data-image-fallbacks="${escapeHtml(encodeURIComponent(JSON.stringify(deliveredCandidates)))}" data-image-fallback-index="0"`
-                    : "";
-                  return deliveredCandidates[0]
-                    ? `<img referrerpolicy="no-referrer" class="schedule-thumb-img" src="${escapeHtml(deliveredCandidates[0])}" alt="" width="160" height="90" loading="lazy" decoding="async"${fallbackData}>`
-                    : "";
-                })()}
-                <span>${cardEpisodeLabel(show)}</span>
-              </span>
-              <span class="schedule-copy">
-                <span class="schedule-title">${escapeHtml(getShowTitle(show))}</span>
-                <span class="show-meta">${(() => { const t = showAiringTimeText(show); return t ? escapeHtml(t) : "Time TBA"; })()}${show.source ? ` · ${escapeHtml(show.source)}` : ""}</span>
-              </span>
-            </a>
-          `;
-            } catch { return ""; }
-          }).join("") : `<p class="schedule-empty">No new episodes</p>`}
+      <section class="release-month-group schedule-day-group"${dayIndex === todayIdx ? ' aria-current="date"' : ""}>
+        <div class="release-month-heading">
+          <h2>${escapeHtml(scheduleDayName(dayIndex))}</h2>
+          <span>${shows.length} ${escapeHtml(t("scheduleEpisodes"))}${escapeHtml(todayLabel)}</span>
         </div>
-      </section>
-    `;
+        <div class="release-grid">
+          ${shows.map((show) => {
+            try { return scheduleCardTemplate(show, cardIndex++); }
+            catch { return ""; }
+          }).join("")}
+        </div>
+      </section>`;
   }).join("");
 }
 
@@ -18982,7 +19061,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=782");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=783");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
