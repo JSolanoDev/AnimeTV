@@ -11,6 +11,66 @@ function section(start, end) {
   return client.slice(from, to);
 }
 
+test("artwork stays on one selected high-quality file through metadata refreshes", () => {
+  const failed = new Set();
+  const c = vm.createContext({
+    isArtworkLowQuality: () => false,
+    ImageResolver: { isImageFailed: url => failed.has(url) }
+  });
+  vm.runInContext(section("const stableArtworkChoices =", "function getCardPosterCandidates"), c);
+  const choose = (show, urls, role = "poster") => c.stableArtworkCandidates(show, urls, role)[0];
+  assert.equal(choose({ id: "show-s1" }, ["hq-original", "backup"]), "hq-original");
+  assert.equal(choose({ id: "show-s1", tmdbId: 10 }, ["different-poster"]), "hq-original");
+  assert.equal(choose({ id: "show-s2" }, ["season-two"]), "season-two");
+  assert.equal(choose({ id: "show-s1" }, ["wide-hq"], "backdrop"), "wide-hq");
+  failed.add("hq-original");
+  assert.equal(choose({ id: "show-s1" }, ["hq-original", "backup"]), "backup");
+  assert.equal(choose({ id: "bootstrap-one", anilistId: 1 }, ["canonical-art"]), "canonical-art");
+  assert.equal(choose({ id: "provider-one", anilistId: 1 }, ["different-art"]), "canonical-art");
+});
+
+test("a decoded old hero cannot reveal or save over a new slide", async () => {
+  const render = section("function renderCarousel()", "let _carouselDotsHtml");
+  const start = render.indexOf("const revealBackdrop = () =>");
+  const end = render.indexOf("carouselBackdropImage.onload =", start);
+  let finish;
+  let current = "slide-one";
+  const events = [];
+  const c = vm.createContext({
+    deliveredArt: "slide-one", show: { id: "one" }, hasLandscapeBanner: true,
+    carouselBackdropImage: { naturalWidth: 1920, getAttribute: () => current, decode: () => new Promise(resolve => { finish = resolve; }) },
+    carouselStage: { classList: { remove: () => events.push("reveal") } },
+    clearCarouselBlurPlaceholder: () => events.push("clear"),
+    signalAppLoader: () => events.push("signal"), writeHeroMemo: () => events.push("save"), getShowTitle: () => "One"
+  });
+  vm.runInContext(render.slice(start, end) + "revealBackdrop();", c);
+  current = "slide-two";
+  finish();
+  await Promise.resolve();
+  assert.deepEqual(events, []);
+  vm.runInContext("revealBackdrop();", c);
+  assert.deepEqual(events, []);
+  current = "slide-one";
+  vm.runInContext("revealBackdrop();", c);
+  finish();
+  await Promise.resolve();
+  assert.deepEqual(events, ["reveal", "clear", "signal", "save"]);
+});
+
+test("same-slide metadata refreshes retain the pending blurred preview", () => {
+  const render = section("function renderCarousel()", "let _carouselDotsHtml");
+  const start = render.indexOf("if (_carouselPreviewShowId !==");
+  const end = render.indexOf("// Load ONLY", start);
+  assert.ok(start > 0 && end > start);
+  let resets = 0;
+  const c = vm.createContext({ show: { id: "one" }, _carouselPreviewShowId: "one", artworkShowIdentity: show => show.id, resetCarouselBlurPlaceholder: () => resets++ });
+  vm.runInContext(render.slice(start, end), c);
+  assert.equal(resets, 0);
+  c.show = { id: "two" };
+  vm.runInContext(render.slice(start, end), c);
+  assert.equal(resets, 1);
+});
+
 function scheduler() {
   let now = 0;
   let id = 0;
@@ -240,4 +300,265 @@ test("the anime detail view has visible, reduced-motion-safe hydration feedback"
   assert.match(css, /\.watch-detail-progress > span:first-child[\s\S]*?watch-detail-progress-slide/);
   assert.match(css, /\.watch-overlay\.is-hydrating-details \.watch-summary:empty::after/);
   assert.match(css, /body\.reduce-motion \.watch-detail-progress[\s\S]*?animation: none/);
+});
+
+// The splash coordinator, run against a fake clock that starts at time origin.
+function splashHarness({ route = "home", pathname = "/" } = {}) {
+  const clock = scheduler();
+  const loader = {
+    hidden: 0,
+    removed: 0,
+    classList: { add(name) { if (name === "is-hidden") loader.hidden += 1; } },
+    remove() { loader.removed += 1; }
+  };
+  const c = vm.createContext({
+    ...clock,
+    appLoader: loader,
+    document: { body: { dataset: { route } } },
+    location: { pathname }
+  });
+  vm.runInContext(
+    section("const APP_LOADER_MIN_MS", "const latestGrid")
+      + section("function hideAppLoader()", "function setWatchDetailLoading("),
+    c
+  );
+  return { c, clock, loader };
+}
+
+test("the splash holds for the hero on home, between a floor and a hard ceiling", async () => {
+  // Nothing ever ready: it stays up, then the ceiling takes it down regardless.
+  const stuck = splashHarness();
+  stuck.c.maybeHideAppLoader();
+  await stuck.clock.advance(3990);
+  assert.equal(stuck.loader.hidden, 0);
+  await stuck.clock.advance(10);
+  assert.equal(stuck.loader.hidden, 1);
+
+  // Ready early: held to the floor rather than flashed away.
+  const early = splashHarness();
+  await early.clock.advance(300);
+  early.c.signalAppLoader("hero");
+  await early.clock.advance(690);
+  assert.equal(early.loader.hidden, 0);
+  await early.clock.advance(10);
+  assert.equal(early.loader.hidden, 1);
+
+  // Past the floor a catalogue alone is not enough on home; the hero is.
+  const late = splashHarness();
+  await late.clock.advance(1500);
+  late.c.signalAppLoader("catalog");
+  assert.equal(late.loader.hidden, 0);
+  late.c.signalAppLoader("hero");
+  assert.equal(late.loader.hidden, 1);
+
+  // Idempotent: later signals and the backstop never run the hide twice.
+  late.c.signalAppLoader("hero");
+  late.c.hideAppLoader();
+  await late.clock.advance(5000);
+  assert.equal(late.loader.hidden, 1);
+  assert.equal(late.loader.removed, 1);
+});
+
+test("routes without a hero lift the splash on the first catalogue, deep links included", async () => {
+  for (const [route, pathname] of [["schedule", "/schedule"], ["home", "/anime/example-show"]]) {
+    const h = splashHarness({ route, pathname });
+    await h.clock.advance(1200);
+    h.c.signalAppLoader("catalog");
+    assert.equal(h.loader.hidden, 1, `${pathname} must not wait on the carousel`);
+  }
+  // The Android app's asset fallback loads .../index.html, which is the home page.
+  for (const pathname of ["/index.html", "/android_asset/index.html"]) {
+    const h = splashHarness({ pathname });
+    await h.clock.advance(1200);
+    h.c.signalAppLoader("catalog");
+    assert.equal(h.loader.hidden, 0, `${pathname} is home, so it waits for the hero`);
+    h.c.signalAppLoader("hero");
+    assert.equal(h.loader.hidden, 1);
+  }
+});
+
+test("startup no longer drops the splash before there is anything to show", () => {
+  const load = section("async function loadAnimeSources(", "function scheduleLazyAddonCatalogLoad(");
+  assert.doesNotMatch(load, /\bhideAppLoader\(\)/);
+  assert.match(load, /maybeHideAppLoader\(\)/);
+  assert.doesNotMatch(client, /setTimeout\(hideAppLoader, 850\)/);
+  assert.match(client, /window\.setTimeout\(hideAppLoader, APP_LOADER_MAX_MS\);/);
+  assert.match(section("function replaceRegularCatalog(", "function regularCatalogSnapshot("), /signalAppLoader\("catalog"\)/);
+  const render = section("function renderCarousel()", "let _carouselDotsHtml");
+  assert.match(render, /const reveal = \(\) => \{[\s\S]*?clearCarouselBlurPlaceholder\(\);[\s\S]*?signalAppLoader\("hero"\);/);
+  assert.match(render, /else if \(art && carouselBackdropImage\.complete && carouselBackdropImage\.naturalWidth > 0\) \{[\s\S]*?signalAppLoader\("hero"\);/);
+});
+
+// The carousel blur-preview helpers, with a fake stage, image and Image().
+function blurHarness() {
+  const clock = scheduler();
+  const classes = new Set();
+  const previews = [];
+  const signals = [];
+  const img = { src: "", complete: false, naturalWidth: 0, getAttribute(name) { return name === "src" ? this.src : null; } };
+  const c = vm.createContext({
+    ...clock,
+    carouselStage: { classList: { add: (n) => classes.add(n), remove: (n) => classes.delete(n), contains: (n) => classes.has(n) } },
+    carouselBackdropBlur: { style: { backgroundImage: "" } },
+    carouselBackdropImage: img,
+    imageDeliveryUrl: (url, width, quality) => `/api/image?src=${encodeURIComponent(url)}&w=${width}&q=${quality}`,
+    signalAppLoader: (name) => signals.push(name),
+    Image: class { constructor() { previews.push(this); } }
+  });
+  const decl = client.match(/const CAROUSEL_BLUR_WIDTH = \d+;\s*const CAROUSEL_BLUR_QUALITY = \d+;\s*let _carouselBlurToken = 0;/);
+  assert.ok(decl, "blur preview constants are declared together");
+  vm.runInContext(decl[0] + section("function carouselBlurSourceUrl(", "function renderCarousel()"), c);
+  return { c, clock, classes, previews, signals, img, blur: c.carouselBackdropBlur };
+}
+
+test("the carousel shows a small blurred preview only while its full image loads", async () => {
+  const art = "https://cdn.example/hero.jpg";
+  const delivered = "/api/image?src=hero&w=1920&q=92";
+  const h = blurHarness();
+  h.img.src = delivered;
+  h.classes.add("is-backdrop-loading");
+  h.c.showCarouselBlurPlaceholder(art, delivered);
+  assert.equal(h.previews.length, 1);
+  const width = Number(new URLSearchParams(h.previews[0].src.split("?")[1]).get("w"));
+  assert.ok(width > 0 && width <= 342, "the preview is a small file, never the full-resolution one");
+  assert.equal(h.classes.has("has-blur-placeholder"), false, "nothing shows until the preview has loaded");
+  h.previews[0].onload();
+  assert.equal(h.classes.has("has-blur-placeholder"), true);
+  assert.ok(h.blur.style.backgroundImage.includes(h.previews[0].src));
+  assert.deepEqual(h.signals, ["hero"]);
+
+  // The full image is revealed: the preview goes once the wait surface has
+  // faded, and its image is then released.
+  h.classes.delete("is-backdrop-loading");
+  h.c.clearCarouselBlurPlaceholder();
+  assert.equal(h.classes.has("has-blur-placeholder"), true);
+  await h.clock.advance(200);
+  assert.equal(h.classes.has("has-blur-placeholder"), false);
+  assert.notEqual(h.blur.style.backgroundImage, "");
+  await h.clock.advance(420);
+  assert.equal(h.blur.style.backgroundImage, "");
+});
+
+test("a late or stale carousel preview never flashes over the real image", async () => {
+  const art = "https://cdn.example/hero.jpg";
+  const delivered = "/api/image?src=hero&w=1920&q=92";
+  const next = "/api/image?src=next&w=1920&q=92";
+
+  // Lands after the full image already arrived.
+  const late = blurHarness();
+  late.img.src = delivered;
+  late.classes.add("is-backdrop-loading");
+  late.c.showCarouselBlurPlaceholder(art, delivered);
+  late.img.complete = true;
+  late.img.naturalWidth = 1920;
+  late.previews[0].onload();
+  assert.equal(late.classes.has("has-blur-placeholder"), false);
+
+  // Lands after the carousel moved to another slide.
+  const moved = blurHarness();
+  moved.img.src = delivered;
+  moved.classes.add("is-backdrop-loading");
+  moved.c.showCarouselBlurPlaceholder(art, delivered);
+  moved.img.src = next;
+  moved.c.showCarouselBlurPlaceholder("https://cdn.example/next.jpg", next);
+  moved.previews[0].onload();
+  assert.equal(moved.classes.has("has-blur-placeholder"), false);
+  assert.equal(moved.blur.style.backgroundImage, "");
+  moved.previews[1].onload();
+  assert.equal(moved.classes.has("has-blur-placeholder"), true);
+  assert.match(moved.blur.style.backgroundImage, /next/);
+
+  // A clear still pending from the previous slide must not wipe the next one's preview.
+  const again = blurHarness();
+  again.img.src = delivered;
+  again.classes.add("is-backdrop-loading");
+  again.c.showCarouselBlurPlaceholder(art, delivered);
+  again.previews[0].onload();
+  again.classes.delete("is-backdrop-loading");
+  again.c.clearCarouselBlurPlaceholder();
+  again.img.src = next;
+  again.classes.add("is-backdrop-loading");
+  again.c.showCarouselBlurPlaceholder("https://cdn.example/next.jpg", next);
+  again.previews[1].onload();
+  await again.clock.advance(1000);
+  assert.equal(again.classes.has("has-blur-placeholder"), true);
+  assert.match(again.blur.style.backgroundImage, /next/);
+
+  // No preview at all when it would be the very file already being fetched.
+  const same = blurHarness();
+  same.c.showCarouselBlurPlaceholder("https://cdn.example/a.jpg", "/api/image?src=https%3A%2F%2Fcdn.example%2Fa.jpg&w=160&q=50");
+  assert.equal(same.previews.length, 0);
+});
+
+test("the carousel blur layer sits under the sharp image, is inert, and never uses the full file", () => {
+  const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+  assert.match(html, /id="carouselBackdrop"><\/div>\s*<div class="carousel-backdrop-blur" id="carouselBackdropBlur" aria-hidden="true"><\/div>\s*<img class="carousel-backdrop-image"/);
+  assert.match(css, /\.carousel-backdrop-blur\s*\{[^}]*opacity: 0;[^}]*visibility: hidden;[^}]*pointer-events: none;/);
+  assert.match(css, /\.carousel-stage\.has-blur-placeholder \.carousel-backdrop-blur\s*\{[^}]*opacity: 1;[^}]*visibility: visible;/);
+  assert.match(css, /\.carousel-stage\.has-blur-placeholder \.carousel-wait\s*\{[^}]*background: transparent;/);
+  assert.match(css, /body\.reduce-motion \.carousel-backdrop-blur\s*\{[^}]*transition: none !important;/);
+  assert.doesNotMatch(section("function carouselBlurSourceUrl(", "function renderCarousel()"), /cinematicBackdropUrl/);
+  const render = section("function renderCarousel()", "let _carouselDotsHtml");
+  assert.match(render, /carouselBackdropImage\.src = deliveredArt;\s*\/\/[^\n]*\n\s*showCarouselBlurPlaceholder\(art, deliveredArt\);/);
+});
+
+test("changing slide drops the previous slide's preview at once, even when no new one follows", async () => {
+  const art = "https://cdn.example/hero.jpg";
+  const delivered = "/api/image?src=hero&w=1920&q=92";
+
+  // The next slide is still resolving its artwork: renderCarousel resets on the change.
+  const resolving = blurHarness();
+  resolving.img.src = delivered;
+  resolving.classes.add("is-backdrop-loading");
+  resolving.c.showCarouselBlurPlaceholder(art, delivered);
+  resolving.previews[0].onload();
+  assert.equal(resolving.classes.has("has-blur-placeholder"), true);
+  resolving.c.resetCarouselBlurPlaceholder();
+  assert.equal(resolving.classes.has("has-blur-placeholder"), false, "no fade hold: this is another anime");
+  resolving.previews[0].onload();
+  assert.equal(resolving.classes.has("has-blur-placeholder"), false, "a late load of the old preview cannot bring it back");
+  await resolving.clock.advance(420);
+  assert.equal(resolving.blur.style.backgroundImage, "");
+
+  // The next slide's preview would be its own delivered file, so none is loaded.
+  const skipped = blurHarness();
+  skipped.img.src = delivered;
+  skipped.classes.add("is-backdrop-loading");
+  skipped.c.showCarouselBlurPlaceholder(art, delivered);
+  skipped.previews[0].onload();
+  const same = "/api/image?src=https%3A%2F%2Fcdn.example%2Fb.jpg&w=160&q=50";
+  skipped.img.src = same;
+  skipped.c.showCarouselBlurPlaceholder("https://cdn.example/b.jpg", same);
+  assert.equal(skipped.previews.length, 1);
+  assert.equal(skipped.classes.has("has-blur-placeholder"), false);
+
+  // Releasing the old image never wipes a new preview that landed first.
+  const quick = blurHarness();
+  quick.img.src = delivered;
+  quick.classes.add("is-backdrop-loading");
+  quick.c.showCarouselBlurPlaceholder(art, delivered);
+  quick.previews[0].onload();
+  const next = "/api/image?src=next&w=1920&q=92";
+  quick.img.src = next;
+  quick.c.showCarouselBlurPlaceholder("https://cdn.example/next.jpg", next);
+  await quick.clock.advance(100);
+  quick.previews[1].onload();
+  await quick.clock.advance(1000);
+  assert.equal(quick.classes.has("has-blur-placeholder"), true);
+  assert.match(quick.blur.style.backgroundImage, /next/);
+
+  const render = section("function renderCarousel()", "let _carouselDotsHtml");
+  assert.match(render, /if \(_carouselPreviewShowId !== artworkShowIdentity\(show\)\) \{[\s\S]*?resetCarouselBlurPlaceholder\(\);/);
+  // An emptied line-up shows the loading skeleton, never an old slide's preview.
+  assert.match(render, /if \(!items\.length\) \{[\s\S]*?resetCarouselBlurPlaceholder\(\);[\s\S]*?return;/);
+});
+
+test("a restored hero lifts the splash even after renderCarousel adopts it mid-load", () => {
+  // renderCarousel flips heroMemoActive off when it picks the same art as the
+  // memo, without attaching a reveal handler (the src is already right). The
+  // memo's load listener must therefore key on the file, not on ownership.
+  const restore = section("(function restoreHeroBackdrop() {", "const carouselTitle =");
+  assert.match(restore, /addEventListener\("load", \(\) => \{[\s\S]*?getAttribute\("src"\) === memo\.src\) signalAppLoader\("hero"\);[\s\S]*?\{ once: true \}\);/);
+  assert.doesNotMatch(restore, /if \(heroMemoActive\) signalAppLoader/);
 });

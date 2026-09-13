@@ -20,6 +20,7 @@
 // fail the nightly catalogue job.
 import fs from "node:fs";
 import path from "node:path";
+import { createEnrichmentBudget } from "./lib/enrichment-budget.mjs";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 let ARTWORK_MAP = path.join(root, "scraper", "artwork-map.json");
@@ -33,6 +34,8 @@ let RELATIONS_CACHE = path.join(root, "scraper", "relations-cache.json");
 const ANILIST = "https://graphql.anilist.co";
 
 const args = process.argv.slice(2);
+const budget = createEnrichmentBudget(args, 32);
+const fetch = budget.fetch;
 const argOf = (name, fallback) => { const i = args.indexOf(name); return i >= 0 && args[i + 1] ? args[i + 1] : fallback; };
 const WRITE = args.includes("--write");
 const LIMIT = Number(argOf("--limit", "0")) || 0;
@@ -61,7 +64,7 @@ if (RELATIONS_OVERRIDE) RELATIONS_CACHE = path.resolve(RELATIONS_OVERRIDE);
 // catalogue inside ~40 requests, and the pause keeps a comfortable margin.
 const BATCH = 25;
 const PAUSE_MS = 1200;
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const sleep = budget.sleep;
 
 const log = (...a) => console.log(" ", ...a);
 
@@ -323,6 +326,8 @@ function indexOfflineDatabase(text) {
 
 async function loadOfflineIndex() {
   if (OFFLINE_FIXTURE) return indexOfflineDatabase(fs.readFileSync(OFFLINE_FIXTURE, "utf8"));
+  const databasePath = argOf("--db", "");
+  if (databasePath && fs.existsSync(databasePath)) return indexOfflineDatabase(fs.readFileSync(databasePath, "utf8"));
   const listing = await fetch(OFFLINE_DB_RELEASE, { headers: { Accept: "application/vnd.github+json" } });
   if (!listing.ok) throw new Error(`GitHub releases HTTP ${listing.status}`);
   const release = await listing.json();
@@ -624,6 +629,7 @@ async function fetchViaJikan(targets, seasonHintsByMal = new Map()) {
       reused += 1;
     } else {
       if (NO_FETCH) { stoppedBy = "--no-fetch"; break; }
+      if (budget.expired()) { stoppedBy = "enrichment time budget"; break; }
       if (requests >= JIKAN_MAX_REQUESTS) { stoppedBy = "request budget"; break; }
       if (!fixture && Date.now() - startedAt > JIKAN_DEADLINE_MS) { stoppedBy = "time budget"; break; }
       requests += 1;
@@ -931,7 +937,9 @@ async function addSourceEpisodeCounts(entries, db, targets = [], alreadyCovered 
   log(`${airing.length} airing row(s); probing ${wanted.length} for what the source actually serves`);
   let probed = 0;
   for (const { rowId, slug, anilistId, malId, identityId, planned } of wanted) {
+    if (budget.expired()) break;
     const count = await av1EpisodeCount(slug, planned);
+    if (budget.expired()) break; // An interrupted probe is not an observed episode limit.
     if (count <= 0) continue;
     // A show with no chain still deserves a correct episode count, so give it a
     // row rather than dropping the measurement on the floor.
@@ -1057,7 +1065,7 @@ async function main() {
     log(`fixture: loaded ${fetched.length} media`);
   } else {
     let failures = 0;
-    for (let i = 0; SKIP_ANILIST ? false : i < wanted.length; i += BATCH) {
+    for (let i = 0; !SKIP_ANILIST && !budget.expired() && i < wanted.length; i += BATCH) {
       const slice = wanted.slice(i, i + BATCH);
       try {
         const data = await fetchBatch(slice);

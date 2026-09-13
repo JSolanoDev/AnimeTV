@@ -6715,6 +6715,40 @@ body.player-cinema-open .close-button {
   pointer-events: none;
 }
 
+/* A blurred PREVIEW of the slide while its full-resolution backdrop loads - the
+   same effect as the anime detail page. It is a small copy of the same artwork,
+   never the 4K file itself (see showCarouselBlurPlaceholder), and it exists only
+   while loading: once the sharp image is revealed the class goes and the image is
+   dropped, so it never becomes a permanent full-screen blurred surface. The
+   stage already clips overflow, so the inset bleed hides the soft blur edge. */
+.carousel-backdrop-blur {
+  position: absolute;
+  inset: -6%;
+  background-color: transparent;
+  background-position: center 30%;
+  background-size: cover;
+  background-repeat: no-repeat;
+  filter: blur(26px) saturate(1.2) brightness(0.82);
+  transform: scale(1.06);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 360ms ease, visibility 0s linear 360ms;
+}
+
+.carousel-stage.has-blur-placeholder .carousel-backdrop-blur {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+/* The wait surface is opaque so that a half-decoded image never shows. With a
+   finished preview beneath it there is nothing left to hide, so let the preview
+   through and keep only the progress rail. */
+.carousel-stage.has-blur-placeholder .carousel-wait {
+  background: transparent;
+}
+
 .carousel-backdrop.has-banner {
   background-position: center center;
   background-size: cover;
@@ -12030,6 +12064,16 @@ body.reduce-motion .carousel-wait-track {
 body.reduce-motion .carousel-wait,
 body.reduce-motion .carousel-indicators {
   transition: none !important;
+}
+
+body.reduce-motion .carousel-backdrop-blur {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carousel-backdrop-blur {
+    transition: none !important;
+  }
 }
 
 

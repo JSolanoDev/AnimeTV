@@ -196,12 +196,12 @@ jobs:
 
       - name: Refresh high-quality regular artwork
         continue-on-error: true
-        run: node scripts/build-artwork-map.mjs --base https://zenkaitv.com --concurrency 2
+        run: node scripts/build-artwork-map.mjs --base https://zenkaitv.com --concurrency 2 --max-minutes 15
         timeout-minutes: 18
 
       - name: Refresh regular title metadata
         continue-on-error: true
-        run: node scripts/add-artwork-metadata.mjs
+        run: node scripts/add-artwork-metadata.mjs --max-minutes 9
         timeout-minutes: 12
 
       # graphql.anilist.co answers 403 to Vercel, to the browser AND to this
@@ -217,7 +217,7 @@ jobs:
       # minutes. The script still cannot fail this job: it exits 0 whatever
       # happens and always leaves a valid map behind.
       - name: Bake airing schedules and season chains
-        run: node scripts/build-airing-map.mjs --write
+        run: node scripts/build-airing-map.mjs --write --max-minutes 32 --db "$RUNNER_TEMP/anime-offline-database.jsonl"
         timeout-minutes: 40
         continue-on-error: true
 
@@ -233,7 +233,7 @@ jobs:
 
       - name: Refresh high-quality related season artwork
         continue-on-error: true
-        run: node scripts/build-artwork-map.mjs --base https://zenkaitv.com --concurrency 2
+        run: node scripts/build-artwork-map.mjs --base https://zenkaitv.com --concurrency 2 --max-minutes 15
         timeout-minutes: 18
 
       - name: Sync regular catalog assets to Android

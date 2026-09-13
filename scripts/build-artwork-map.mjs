@@ -20,6 +20,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { createEnrichmentBudget } from "./lib/enrichment-budget.mjs";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 const SRC = path.join(root, "scraper", "anime_metadata.json");
@@ -40,6 +41,8 @@ try {
 }
 
 const args = process.argv.slice(2);
+const budget = createEnrichmentBudget(args, 15);
+const fetch = budget.fetch;
 const argOf = (name, fallback) => {
   const i = args.indexOf(name);
   return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
@@ -174,7 +177,7 @@ function titleScore(candidates, tmdbNames) {
   return best;
 }
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const sleep = budget.sleep;
 
 // AniList allows about 90 requests a minute and answers 429 well before that when
 // several land at once. Running at concurrency 3 with no gate produced 554
@@ -599,7 +602,7 @@ async function main() {
   let done = 0, ok = 0, rejected = 0, none = 0;
   let cursor = 0;
   const worker = async () => {
-    while (cursor < todo.length) {
+    while (cursor < todo.length && !budget.expired()) {
       const item = todo[cursor++];
       try {
         const existing = map[item.id] || null;
@@ -612,7 +615,7 @@ async function main() {
         else none++;
       } catch (err) {
         if (/not configured/.test(err.message)) throw err;
-        map[item.id] = { status: "error", error: err.message };
+        map[item.id] = { ...map[item.id], status: "error", error: err.message };
       }
       done++;
       if (done % 25 === 0 || done === todo.length) {
@@ -623,6 +626,7 @@ async function main() {
     }
   };
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  if (budget.expired()) console.log("Time budget reached; saving progress for the next run.");
 
   fs.writeFileSync(OUT, JSON.stringify({ generatedAt: new Date().toISOString(), count: Object.keys(map).length, entries: map }, null, 0));
   const okTotal = Object.values(map).filter((v) => v.status === "ok").length;

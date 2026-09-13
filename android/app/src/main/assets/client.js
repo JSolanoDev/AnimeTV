@@ -246,6 +246,13 @@ if (localStorage.getItem(TITLE_LANGUAGE_ROMAJI_MIGRATION_KEY) !== "done") {
 }
 
 const appLoader = document.querySelector("#appLoader");
+// The splash stays up until there is something to show, between a floor and a
+// hard ceiling. See maybeHideAppLoader().
+const APP_LOADER_MIN_MS = 1000;
+const APP_LOADER_MAX_MS = 4000;
+const _appLoaderSignals = new Set();
+let _appLoaderHidden = false;
+let _appLoaderTimer = 0;
 const latestGrid = document.querySelector("#latestGrid");
 const libraryGrid = document.querySelector("#libraryGrid");
 const anipubGrid = document.querySelector("#anipubGrid");
@@ -280,6 +287,13 @@ const episodeList = document.querySelector("#episodeList");
 const sections = document.querySelectorAll("[data-section]");
 const carouselBackdrop = document.querySelector("#carouselBackdrop");
 const carouselBackdropImage = document.querySelector("#carouselBackdropImage");
+const carouselBackdropBlur = document.querySelector("#carouselBackdropBlur");
+// A small copy of the slide's own artwork, blurred, shown only while the full
+// resolution backdrop loads. See showCarouselBlurPlaceholder().
+const CAROUSEL_BLUR_WIDTH = 160;
+const CAROUSEL_BLUR_QUALITY = 50;
+let _carouselBlurToken = 0;
+let _carouselPreviewShowId = "";
 // The hero backdrop covers ~93% of the above-the-fold pixel area, but its URL is
 // only known once the catalog resolves (~1.2 s in), so Speed Index is basically
 // "when does the hero paint". Repaint the previous hero straight from storage so
@@ -348,6 +362,11 @@ let _carouselMemoId = "";
     carouselBackdropImage.setAttribute("srcset", memo.srcset);
     carouselBackdropImage.setAttribute("sizes", "100vw");
   }
+  carouselBackdropImage.addEventListener("load", () => {
+    // Real art for a real show, whether the memo still owns it or renderCarousel
+    // has adopted it as this visit's hero.
+    if (carouselBackdropImage.getAttribute("src") === memo.src) signalAppLoader("hero");
+  }, { once: true });
   carouselBackdropImage.src = memo.src;
   carouselBackdropImage.classList.add("has-banner");
   carouselBackdropImage.classList.toggle("is-portrait-art", Boolean(memo.portrait));
@@ -374,10 +393,57 @@ let _carouselIndicatorHydrationQueued = false;
 let _carouselIndicatorHydrationGeneration = 0;
 let lastInputWasPointer = false;
 
+// The splash used to come down almost as soon as it went up: loadAnimeSources()
+// called hideAppLoader() as its very FIRST statement, before any catalogue had
+// loaded, with a flat 850ms timer behind it as a backstop. On home that handed
+// the viewer an empty hero surface and a loading rail instead.
+//
+// Now it waits until the page has something to show - on home, the hero (its
+// blurred preview is enough, so the sharpening happens in view); on any other
+// route, the first catalogue install. A floor stops it flashing on a warm cache,
+// and a hard ceiling means a slow network can never trap anyone behind it.
 function hideAppLoader() {
-  if (!appLoader) return;
+  if (_appLoaderHidden || !appLoader) return;
+  _appLoaderHidden = true;
+  if (_appLoaderTimer) { window.clearTimeout(_appLoaderTimer); _appLoaderTimer = 0; }
   appLoader.classList.add("is-hidden");
   window.setTimeout(() => appLoader.remove(), 260);
+}
+
+// Only the bare home page has a hero worth waiting for. A deep link such as
+// /anime/<slug> is classified "home" by the boot script too, but it opens the
+// detail view instead - waiting for a carousel there would sit out the ceiling.
+function appLoaderWantsHero() {
+  const route = document.body?.dataset?.route || "home";
+  const pathname = String(location.pathname || "/").replace(/\/+$/, "") || "/";
+  // ".../index.html" is home too: the Android app's asset fallback loads that path.
+  return route === "home" && (pathname === "/" || /\/index\.html$/i.test(pathname));
+}
+
+function maybeHideAppLoader() {
+  if (_appLoaderHidden) return;
+  const elapsed = typeof performance !== "undefined" && typeof performance.now === "function"
+    ? performance.now()
+    : APP_LOADER_MAX_MS;
+  const ready = appLoaderWantsHero() ? _appLoaderSignals.has("hero") : _appLoaderSignals.has("catalog");
+  if (elapsed >= APP_LOADER_MAX_MS || (ready && elapsed >= APP_LOADER_MIN_MS)) {
+    hideAppLoader();
+    return;
+  }
+  // Re-check at the next boundary: the floor if already ready, otherwise the
+  // ceiling. A signal that arrives sooner re-checks for itself.
+  const next = (ready ? APP_LOADER_MIN_MS : APP_LOADER_MAX_MS) - elapsed;
+  if (_appLoaderTimer) window.clearTimeout(_appLoaderTimer);
+  _appLoaderTimer = window.setTimeout(() => {
+    _appLoaderTimer = 0;
+    maybeHideAppLoader();
+  }, Math.max(16, next));
+}
+
+function signalAppLoader(name) {
+  if (_appLoaderHidden) return;
+  _appLoaderSignals.add(name);
+  maybeHideAppLoader();
 }
 
 function setWatchDetailLoading(loading, openToken = state.activeOpenToken) {
@@ -705,6 +771,8 @@ function replaceRegularCatalog(items = [], tier = "full") {
   }
   // Re-apply the airing data this install just discarded.
   scheduleAiringEnrichment();
+  // Routes without a hero only need a catalogue before the splash can go.
+  signalAppLoader("catalog");
   return state.shows;
 }
 
@@ -716,7 +784,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=793`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=795`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -785,7 +853,8 @@ function scheduleDeferredServerCatalogRefresh(delayMs = 1500) {
 async function loadAnimeSources() {
   setSourceStatus("Loading ZenkaiTV metadata API...");
   render();
-  hideAppLoader();
+  // Arm the splash rather than drop it: it comes down once there is content.
+  maybeHideAppLoader();
 
   let hasInitialCatalog = false;
   const cachedCatalog = readResponseCache("main-catalog", CATALOG_CACHE_TTL);
@@ -2224,10 +2293,7 @@ function applyAdultCinematicArtwork(show, artwork = {}) {
     show.images = { ...(show.images || {}), poster: cover, cover, thumbnail: cover };
   }
   if (artwork.canonicalTitle && !show.officialTitle) show.officialTitle = artwork.canonicalTitle;
-  // A title opened from the carousel normally keeps that exact image. Upgrade
-  // that remembered image too, otherwise the old 640x360 frame would remain
-  // pinned after the high-quality match finishes loading.
-  if (show._paintedCarouselArtwork) show._paintedCarouselArtwork = url;
+  // Keep artwork already displayed by the hero; enrichment is for unpainted views.
   return true;
 }
 
@@ -3646,6 +3712,28 @@ function getWatchPosterArtwork(show = {}, season = null) {
   return pickImage(candidates);
 }
 
+const stableArtworkChoices = new Map();
+
+function artworkShowIdentity(show = {}) {
+  if (show.anilistId) return `anilist-${show.anilistId}`;
+  if (show.malId) return `mal-${show.malId}`;
+  return String(show.id || show.slug || show.title || "");
+}
+
+function stableArtworkCandidates(show, candidates, role) {
+  const identity = artworkShowIdentity(show);
+  const key = `${role}:${identity}`;
+  const previous = stableArtworkChoices.get(key);
+  const valid = (url) => url && !isArtworkLowQuality(url, role)
+    && (typeof ImageResolver === "undefined" || !ImageResolver.isImageFailed(url));
+  const choices = [...new Set([previous, ...candidates].filter(valid))];
+  if (choices.length) {
+    stableArtworkChoices.set(key, choices[0]);
+    if (stableArtworkChoices.size > 2000) stableArtworkChoices.delete(stableArtworkChoices.keys().next().value);
+  } else stableArtworkChoices.delete(key);
+  return choices;
+}
+
 function getCardPosterCandidates(show = {}) {
   const candidates = [
     show.adultPortraitCover,
@@ -3686,11 +3774,12 @@ function getCardPosterCandidates(show = {}) {
     });
   });
   expanded.forEach((url) => { if (url) verticalArt.add(url); });
-  return [...new Set(expanded)].filter((url) => {
+  const usable = [...new Set(expanded)].filter((url) => {
     if (isArtworkLowQuality(url, "poster")) return false;
     try { return typeof ImageResolver === "undefined" || !ImageResolver.isImageFailed(url); }
     catch { return true; }
   });
+  return stableArtworkCandidates(show, usable, "poster");
 }
 
 function getBackdropSeasonNumber(season = null) {
@@ -3948,6 +4037,89 @@ function carouselLineupIsProvisional() {
   return (now - _carouselProvisionalSince) < CAROUSEL_PROVISIONAL_HOLD_MS;
 }
 
+// A blurred PREVIEW of the slide while its full-resolution backdrop loads - the
+// effect the anime detail page uses, but NOT the same file. Painting the 4K image
+// itself as a second blurred layer is exactly what was removed from here:
+// Chromium composited an extra full-screen surface, and the progressive decode
+// exposed a blocky half of the next slide. A small copy of the same artwork
+// decodes in one go and looks right once blurred - for TMDB it is the CDN's own
+// w342, so not even a function invocation.
+function carouselBlurSourceUrl(art) {
+  const raw = String(art || "").trim();
+  return raw ? imageDeliveryUrl(raw, CAROUSEL_BLUR_WIDTH, CAROUSEL_BLUR_QUALITY) : "";
+}
+
+function clearCarouselBlurPlaceholder() {
+  if (!carouselStage || !carouselBackdropBlur) return;
+  // Called on every repaint of a settled slide, so do nothing when there is
+  // nothing to clear.
+  if (!carouselStage.classList.contains("has-blur-placeholder") && !carouselBackdropBlur.style.backgroundImage) return;
+  const token = ++_carouselBlurToken;
+  // Hold the class until the wait surface has finished fading out (160ms).
+  // Dropping it at once would snap that surface back to its opaque background
+  // mid-fade and flash a dark frame over the image that just arrived.
+  window.setTimeout(() => {
+    if (token !== _carouselBlurToken) return;
+    carouselStage.classList.remove("has-blur-placeholder");
+    // Then drop the image, so the blurred layer stops existing as a GPU
+    // surface: it is a loading aid, not part of the design.
+    window.setTimeout(() => {
+      if (token !== _carouselBlurToken) return;
+      carouselBackdropBlur.style.backgroundImage = "";
+    }, 420);
+  }, 200);
+}
+
+// Drop whatever preview is up, AT ONCE: it belongs to an earlier image - on a
+// slide change, another anime. (The fade hold in clearCarouselBlurPlaceholder is
+// only for a reveal of the same slide.) Without this, a next slide that is still
+// resolving its artwork, or that loads no preview, sat under the previous
+// slide's blurred art - the wait surface is transparent while the class is on.
+function resetCarouselBlurPlaceholder() {
+  if (!carouselStage || !carouselBackdropBlur) return 0;
+  const token = ++_carouselBlurToken;
+  carouselStage.classList.remove("has-blur-placeholder");
+  if (carouselBackdropBlur.style.backgroundImage) {
+    // Release the old image once it has faded - unless a newer preview has
+    // already landed and switched the layer back on.
+    window.setTimeout(() => {
+      if (token !== _carouselBlurToken) return;
+      if (carouselStage.classList.contains("has-blur-placeholder")) return;
+      carouselBackdropBlur.style.backgroundImage = "";
+    }, 420);
+  }
+  return token;
+}
+
+function showCarouselBlurPlaceholder(art, deliveredArt) {
+  if (!carouselStage || !carouselBackdropBlur || !carouselBackdropImage) return;
+  // First, whatever was up goes - even when no new preview follows.
+  const token = resetCarouselBlurPlaceholder();
+  const source = carouselBlurSourceUrl(art);
+  // No gain when the preview would be the very file already being fetched (a
+  // TMDB portrait resolves to w342 either way; so does any file:// asset).
+  if (!source || source === deliveredArt) return;
+  const preview = new Image();
+  preview.referrerPolicy = "no-referrer";
+  preview.decoding = "async";
+  preview.onload = () => {
+    // Only for the slide still being loaded, and only if the real image has not
+    // already arrived - a preview landing after it would just flash.
+    if (token !== _carouselBlurToken) return;
+    if (carouselBackdropImage.getAttribute("src") !== deliveredArt) return;
+    if (!carouselStage.classList.contains("is-backdrop-loading")) return;
+    if (carouselBackdropImage.complete && carouselBackdropImage.naturalWidth > 0) return;
+    carouselBackdropBlur.style.backgroundImage = `url("${source}")`;
+    carouselStage.classList.add("has-blur-placeholder");
+    // A recognisable preview is enough to lift the splash; the sharpening then
+    // happens in view.
+    signalAppLoader("hero");
+  };
+  // A failed preview leaves the existing quiet loading surface, unchanged.
+  preview.onerror = () => {};
+  preview.src = source;
+}
+
 function renderCarousel() {
   // The hero mirrors the provider's newest release feed. It never pads with old
   // high-scoring catalog entries, so every slide represents a recent episode.
@@ -3965,6 +4137,9 @@ function renderCarousel() {
     _carouselPaintedId = null;
     _carouselPaintedShow = null;
     carouselStage.classList.add("is-loading");
+    _carouselPreviewShowId = "";
+    // No slide, so no slide's preview either.
+    resetCarouselBlurPlaceholder();
     // A restored hero is real artwork for a real show, and it is already on
     // screen. Replacing it with the placeholder for the ~150ms before the
     // catalogue arrives is what made every load read as "it shows one anime,
@@ -3975,7 +4150,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=793";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=795";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4012,6 +4187,12 @@ function renderCarousel() {
   if (heroMemoActive && state.catalogTier === "bootstrap" && !hasFreshReleaseLineup) return;
   if (String(show.id || "") === _carouselPaintedId) return;
   _carouselPaintedId = String(show.id || "");
+  // Metadata refreshes reset the paint cache, but still belong to the same image.
+  // Only a different anime should discard a preview whose full image is pending.
+  if (_carouselPreviewShowId !== artworkShowIdentity(show)) {
+    _carouselPreviewShowId = artworkShowIdentity(show);
+    resetCarouselBlurPlaceholder();
+  }
 
   // Load ONLY the high-resolution TMDB backdrop for the hero — never the lower-res
   // AniList banner first and then swap to TMDB (that read as "two different images
@@ -4019,11 +4200,11 @@ function renderCarousel() {
   // (no image), then load the one high-res file. A show with no TMDB match
   // (_tmdbResolved flips true on every resolve outcome) falls back to its banner as
   // the single image. Bounded: resolve once per show, current item only.
-  const hiResArt = pickImage([
+  const hiResArt = pickImage(stableArtworkCandidates(show, [
     show.tmdbBackdrop,
     show.highQualityBackground
   ].map((value) => hqImage(String(value || "").trim()))
-    .filter((value) => value && !isArtworkLowQuality(value, "backdrop")));
+    .filter((value) => value && !isArtworkLowQuality(value, "backdrop")), "backdrop"));
   // Resolve the backdrop AT MOST ONCE per show (_carouselResolveTried). Without
   // this guard, a show whose TMDB resolution THROWS (network error) never sets
   // _tmdbResolved, so `resolving` stays true and the .then below re-renders the
@@ -4063,7 +4244,7 @@ function renderCarousel() {
     }
   }
   const hasLandscapeBanner = Boolean(hiResArt || show.banner || show.backdrop || show.heroImage || show.wideImage || show.landscapeImage);
-  const art = hiResArt || (resolving ? "" : carouselArtworkOrPoster(show));
+  const art = hiResArt || (resolving ? "" : stableArtworkCandidates(show, [carouselArtworkOrPoster(show)], "backdrop")[0] || "");
   const deliveredArt = art ? cinematicBackdropUrl(art) : "";
   show._paintedCarouselArtwork = art || "";
   carouselBackdrop.classList.toggle("has-banner", Boolean(art));
@@ -4100,7 +4281,19 @@ function renderCarousel() {
       carouselBackdropImage.removeAttribute("sizes");
       const revealBackdrop = () => {
         if (carouselBackdropImage.getAttribute("src") !== deliveredArt) return;
-        const reveal = () => carouselStage.classList.remove("is-backdrop-loading");
+        const reveal = () => {
+          if (carouselBackdropImage.getAttribute("src") !== deliveredArt || !carouselBackdropImage.naturalWidth) return;
+          carouselStage.classList.remove("is-backdrop-loading");
+          clearCarouselBlurPlaceholder();
+          signalAppLoader("hero");
+          writeHeroMemo({
+            id: String(show.id || ""),
+            title: getShowTitle(show) || show.title || "",
+            src: deliveredArt,
+            srcset: "",
+            portrait: !hasLandscapeBanner
+          });
+        };
         if (typeof carouselBackdropImage.decode === "function") {
           carouselBackdropImage.decode().then(reveal).catch(reveal);
         } else {
@@ -4110,6 +4303,7 @@ function renderCarousel() {
       carouselBackdropImage.onload = revealBackdrop;
       carouselBackdropImage.onerror = () => {
         if (carouselBackdropImage.getAttribute("src") !== deliveredArt) return;
+        clearCarouselBlurPlaceholder();
         markArtworkLowQuality(art, "backdrop");
         try { ImageResolver.markImageFailed(art); } catch { /* resolver optional */ }
         show._paintedCarouselArtwork = "";
@@ -4117,16 +4311,15 @@ function renderCarousel() {
         renderCarousel();
       };
       carouselBackdropImage.src = deliveredArt;
-      // Remember it for the next visit (see restoreHeroBackdrop above).
-      writeHeroMemo({
-        id: String(show.id || ""),
-        title: getShowTitle(show) || show.title || "",
-        src: deliveredArt,
-        srcset: "",
-        portrait: !hasLandscapeBanner
-      });
-    } else if (art && carouselBackdropImage.complete) {
+      // A small blurred preview of this same artwork while the full image loads.
+      showCarouselBlurPlaceholder(art, deliveredArt);
+    } else if (art && carouselBackdropImage.complete && carouselBackdropImage.naturalWidth > 0) {
       carouselStage.classList.remove("is-backdrop-loading");
+      clearCarouselBlurPlaceholder();
+      signalAppLoader("hero");
+    } else if (art && !memoStillBetter && !carouselBackdropImage.complete) {
+      // A bootstrap row may acquire a new provider id while this same URL loads.
+      if (!carouselStage.classList.contains("has-blur-placeholder")) showCarouselBlurPlaceholder(art, deliveredArt);
     } else if (!art && !heroMemoActive) {
       // Resolving (or genuinely no art): show only the dark gradient behind a
       // transparent image, so we never load a second placeholder/banner picture.
@@ -4135,6 +4328,11 @@ function renderCarousel() {
       carouselBackdropImage.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
       carouselBackdropImage.removeAttribute("srcset");
       if (!resolving) carouselStage.classList.remove("is-backdrop-loading");
+      // Genuinely nothing to load for this slide, so nothing to hold the splash for.
+      if (!resolving) {
+        clearCarouselBlurPlaceholder();
+        signalAppLoader("hero");
+      }
     }
   }
   if (art) {
@@ -9988,12 +10186,8 @@ function applyWatchBackdrop(show, season) {
   try { currentFailed = Boolean(currentUrl && typeof ImageResolver !== "undefined" && ImageResolver.isImageFailed(currentUrl)); }
   catch { currentFailed = false; }
   if (currentKey === key && currentUrl && !currentFailed && art && art !== currentUrl) {
-    // Keep an existing real wide backdrop if a later render temporarily offers a
-    // poster fallback, but allow hydration to upgrade a poster/placeholder into
-    // TMDB/AniList wide art. This avoids both flicker and sticky bad artwork.
-    const currentIsWide = wideSources.has(currentUrl);
-    const nextIsWide = wideSources.has(art);
-    if (currentIsWide && !nextIsWide) art = currentUrl;
+    // Once the chosen artwork is visible, metadata hydration must not swap it.
+    art = currentUrl;
   }
   if (!art) {
     paint("");
@@ -19141,7 +19335,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=793");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=795");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
@@ -19155,7 +19349,11 @@ function startUpdateManagerWhenIdle() {
   window.setTimeout(later, 15000);
 }
 startUpdateManagerWhenIdle();
-window.setTimeout(hideAppLoader, 850);
+// Floor and ceiling for the splash (see maybeHideAppLoader). The ceiling is a
+// plain hide, deliberately independent of the readiness logic, so no bug in that
+// logic can ever keep anyone behind the splash.
+window.setTimeout(maybeHideAppLoader, APP_LOADER_MIN_MS);
+window.setTimeout(hideAppLoader, APP_LOADER_MAX_MS);
 // Best-effort background refresh of stale full-site crawls (if a crawler is wired).
 window.setTimeout(() => { try { checkSourceRefreshes(); } catch { /* ignore */ } }, 30000);
 

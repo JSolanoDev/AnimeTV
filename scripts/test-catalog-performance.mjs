@@ -314,6 +314,7 @@ test("catalog replacement enriches the live detail object instead of orphaning i
     mergeShows: (items) => items.map((item) => ({ ...item })),
     reconcileAnimeAv1LatestInventory() {},
     scheduleAiringEnrichment() {},
+    signalAppLoader() {},
     window: { requestAnimationFrame: (callback) => callback() },
     overlay: { hidden: true }
   });
@@ -358,6 +359,7 @@ test("full catalog arrival rebinds a colliding sequel slug to its relation ident
     mergeShows: (items) => items.map((item) => ({ ...item })),
     reconcileAnimeAv1LatestInventory() {},
     scheduleAiringEnrichment() {},
+    signalAppLoader() {},
     window: { requestAnimationFrame: (callback) => callback() },
     overlay: { hidden: false },
     ROUTE_SLUG_ALIASES: {},

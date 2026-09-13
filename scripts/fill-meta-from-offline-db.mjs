@@ -21,12 +21,13 @@ import path from "node:path";
 import readline from "node:readline";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
-const MAP = path.join(root, "scraper", "artwork-map.json");
+let MAP = path.join(root, "scraper", "artwork-map.json");
 const CATALOG = path.join(root, "scraper", "anime_metadata.json");
 
 const args = process.argv.slice(2);
 const argOf = (n, d) => { const i = args.indexOf(n); return i >= 0 && args[i + 1] ? args[i + 1] : d; };
 const DB = argOf("--db", "");
+MAP = path.resolve(argOf("--artwork", MAP));
 const WRITE = args.includes("--write");
 if (!DB || !fs.existsSync(DB)) { console.error("pass --db <anime-offline-database.jsonl>"); process.exit(1); }
 
@@ -131,7 +132,7 @@ for (const k of keys) {
   // Backfill the MAL id wherever only the AniList id was known - that is the route
   // add-artwork-metadata.mjs needs when AniList is unavailable.
   if (!e.malId && hit.malId) { e.malId = hit.malId; filledMal++; }
-  if (hit.picture && e.metadataCover !== hit.picture) { e.metadataCover = hit.picture; filledCovers++; }
+  if (hit.picture && !e.metadataCover) { e.metadataCover = hit.picture; filledCovers++; }
   if (!e.meta) { e.meta = { ...hit }; filledMeta++; continue; }
   // Genres only, and only when the row has none. AniList and Jikan both give better
   // genres than tag-intersection does, so this never overwrites an existing list -

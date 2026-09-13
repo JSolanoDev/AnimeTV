@@ -21,11 +21,12 @@ import path from "node:path";
 import readline from "node:readline";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
-const MAP = path.join(root, "scraper", "artwork-map.json");
+let MAP = path.join(root, "scraper", "artwork-map.json");
 
 const args = process.argv.slice(2);
 const argOf = (n, d) => { const i = args.indexOf(n); return i >= 0 && args[i + 1] ? args[i + 1] : d; };
 const DB = argOf("--db", "");
+MAP = path.resolve(argOf("--artwork", MAP));
 const BASE = String(argOf("--base", "https://zenkaitv.com")).replace(/\/$/, "");
 const IDS = argOf("--ids", "");
 const AIRING = argOf("--airing", "");

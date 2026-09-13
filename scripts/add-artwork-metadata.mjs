@@ -22,11 +22,14 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { createEnrichmentBudget } from "./lib/enrichment-budget.mjs";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 const MAP = path.join(root, "scraper", "artwork-map.json");
 
 const args = process.argv.slice(2);
+const budget = createEnrichmentBudget(args, 9);
+const fetch = budget.fetch;
 const argOf = (name, fallback) => {
   const i = args.indexOf(name);
   return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
@@ -38,7 +41,7 @@ const LIMIT = Number(argOf("--limit", "0")) || 0;
 const INTERVAL = Number(argOf("--interval", "2500"));
 const BATCH = 50;
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const sleep = budget.sleep;
 
 const ANILIST_URL = "https://graphql.anilist.co";
 const QUERY = `query ($ids: [Int]) {
@@ -217,7 +220,7 @@ console.log(`${batches.length} requests at ${INTERVAL}ms spacing (~${Math.round(
 
 let resolved = 0;
 let missing = 0;
-for (let i = 0; i < batches.length; i++) {
+for (let i = 0; i < batches.length && !budget.expired(); i++) {
   const batch = batches[i];
   if (i > 0) await sleep(INTERVAL);
   const media = await fetchBatch(batch);
@@ -258,9 +261,15 @@ const leftover = Object.keys(entries).filter((k) => {
 if (leftover.length) {
   console.log(`\n${leftover.length} entries with a malId need metadata or a synopsis/genres top-up - trying Jikan`);
   let filled = 0, topped = 0;
+  const fetchedByMal = new Map();
   for (const key of leftover) {
-    await sleep(400);
-    const fresh = await jikanMeta(entries[key].malId);
+    if (budget.expired()) break;
+    const malId = entries[key].malId;
+    if (!fetchedByMal.has(malId)) {
+      await sleep(1100);
+      fetchedByMal.set(malId, await jikanMeta(malId));
+    }
+    const fresh = fetchedByMal.get(malId);
     if (!fresh) continue;
     const cur = entries[key].meta;
     if (!cur) { entries[key].meta = fresh; filled++; continue; }
@@ -280,6 +289,7 @@ if (leftover.length) {
 }
 
 raw.entries = entries;
+if (budget.expired()) console.log("Time budget reached; saving metadata progress for the next run.");
 raw.metadataGeneratedAt = new Date().toISOString();
 fs.writeFileSync(MAP, JSON.stringify(raw, null, 2));
 
