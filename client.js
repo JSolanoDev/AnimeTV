@@ -784,7 +784,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=795`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=796`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -1974,7 +1974,7 @@ function sortLibraryShows(shows) {
   if (state.librarySort === "episodes") {
     return list.sort((a, b) => Number(b.totalEpisodes || b.episode || b.episodes || 0) - Number(a.totalEpisodes || a.episode || a.episodes || 0));
   }
-  return list;
+  return state.search ? sortSearchResults(list, state.search) : list;
 }
 
 function updateLibraryResultCount(count) {
@@ -2687,6 +2687,133 @@ function matchesShowSearch(show) {
   // then union in the source's own result set once the debounced lookup lands.
   const sourceMatches = _animeAv1CatalogSearchMatches.get(query);
   return Boolean(sourceMatches?.has(animeAv1CatalogSlugForShow(show)));
+}
+
+function searchRankingText(value) {
+  return normalizeSearchText(value).replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+
+function searchResultTitles(show) {
+  const values = [getShowTitle(show), show.title, show.englishTitle, show.romajiTitle, show.nativeTitle,
+    ...(show.aliases || []), ...(show.alternativeTitles || []), ...(show.synonyms || [])].filter(Boolean);
+  const signature = JSON.stringify(values);
+  if (show._searchRankingSignature !== signature) {
+    show._searchRankingSignature = signature;
+    show._searchRankingTitles = [...new Set(values.map(searchRankingText).filter(Boolean))];
+  }
+  return show._searchRankingTitles;
+}
+
+function searchResultRank(titles, query) {
+  const tokens = query.split(" ");
+  let rank = 5; // Genre/provider-only matches stay available, after title matches.
+  for (const title of titles) {
+    if (title === query) return 0;
+    if (title.startsWith(`${query} `)) rank = Math.min(rank, 1);
+    else if (` ${title} `.includes(` ${query} `)) rank = Math.min(rank, 2);
+    else if (tokens.every(token => title.includes(token))) rank = Math.min(rank, 3);
+    else if (rank > 4 && tokens.every(token => searchTokenMatches(token, title, title.split(" ")))) rank = 4;
+  }
+  return rank;
+}
+
+function searchSeriesTitle(title) {
+  // Only explicit season/part suffixes. Numbers inside a name (86, Thunder 3)
+  // are not themselves evidence that two titles belong to the same series.
+  return title.replace(/\s+(?:(?:\d+(?:st|nd|rd|th)|second|third|fourth|fifth|final)\s+season|(?:season|part|cour)\s+(?:\d+|[ivx]+))\b.*$/, "").trim();
+}
+
+function sortSearchResults(shows, rawQuery) {
+  const query = searchRankingText(rawQuery);
+  if (!query || shows.length < 2) return shows.slice();
+  const identityKeys = show => [
+    show.anilistId ? (/^mal-/.test(String(show.anilistId)) ? String(show.anilistId) : `anilist-${show.anilistId}`) : "",
+    show.malId ? `mal-${show.malId}` : ""
+  ].filter(Boolean);
+  const seasonNodes = new Map();
+  for (const show of shows) {
+    const chain = Array.isArray(show.franchiseSeasons) ? show.franchiseSeasons : [];
+    for (const season of chain) {
+      for (const id of identityKeys(season)) {
+        if ((seasonNodes.get(id)?.length || 0) < chain.length) seasonNodes.set(id, { season, length: chain.length });
+      }
+    }
+  }
+  const records = shows.map((show, index) => {
+    const titles = searchResultTitles(show);
+    const chain = Array.isArray(show.franchiseSeasons) ? show.franchiseSeasons : [];
+    const ids = identityKeys(show);
+    const self = ids.map(id => seasonNodes.get(id)?.season).find(Boolean);
+    const parsed = SeasonNormalization.parseTitle(String(show.romajiTitle || show.title || getShowTitle(show) || ""));
+    const type = showType(show);
+    const count = Number(show.anilistEpisodeCount || show.totalEpisodes || show.episodeCount || 0);
+    const oneOff = count === 1 && /finished|complete/i.test(String(show.status || show.airingStatus || ""));
+    return {
+      show, index, titles, chain, ids, rank: searchResultRank(titles, query),
+      extra: !["tv", "tv-short", "ona", "anime"].includes(type) || oneOff ? 1 : 0,
+      order: Number(self?.order) || (parsed.isFinalSeason ? 9000 : Number(show.canonicalSeasonNumber || parsed.seasonNumber) || 1),
+      year: showYear(show) || Number(self?.seasonYear) || 9999,
+      startedAt: Number(self?.startedAt) || 0,
+      part: Number(parsed.partNumber) || 1
+    };
+  });
+
+  // Connect only the already-filtered results. Neither grouping nor ordering
+  // changes membership, provider links, episode numbers, or explicit filters.
+  const parents = records.map((_, index) => index);
+  const find = index => {
+    while (parents[index] !== index) {
+      parents[index] = parents[parents[index]];
+      index = parents[index];
+    }
+    return index;
+  };
+  const owners = new Map();
+  const connect = (key, index) => {
+    if (owners.has(key)) parents[find(index)] = find(owners.get(key));
+    else owners.set(key, index);
+  };
+  const titleOwners = new Map();
+  for (const row of records) {
+    for (const id of [...row.ids, ...row.chain.flatMap(identityKeys)]) connect(`id:${id}`, row.index);
+    for (const title of row.titles) {
+      const base = searchSeriesTitle(title);
+      if (base.length < 3 || /^(?:the|and|anime|season|movie|special)$/.test(base)) continue;
+      connect(`title:${base}`, row.index);
+      if (!titleOwners.has(base)) titleOwners.set(base, row.index);
+    }
+  }
+  // A catalog may lack relations for a named sequel such as Naruto Shippuden.
+  // Link it only when its complete leading title is itself a result, not merely
+  // because two unrelated anime share the user's search word.
+  for (const row of records) {
+    for (const title of row.titles) {
+      const words = title.split(" ");
+      for (let length = words.length - 1; length > 0; length--) {
+        const owner = titleOwners.get(words.slice(0, length).join(" "));
+        if (owner !== undefined) { parents[find(row.index)] = find(owner); break; }
+      }
+    }
+  }
+  const compareTitles = (a, b) => String(getShowTitle(a.show) || a.show.title || "")
+    .localeCompare(String(getShowTitle(b.show) || b.show.title || ""), undefined, { numeric: true });
+  const groups = new Map();
+  for (const row of records) {
+    const key = find(row.index);
+    if (!groups.has(key)) groups.set(key, { rank: row.rank, rows: [] });
+    const group = groups.get(key);
+    group.rank = Math.min(group.rank, row.rank);
+    group.rows.push(row);
+  }
+  for (const group of groups.values()) {
+    group.rows.sort((a, b) => Number(b.rank === 0) - Number(a.rank === 0)
+      || a.extra - b.extra || a.year - b.year || a.order - b.order
+      || a.startedAt - b.startedAt || a.part - b.part || compareTitles(a, b)
+      || String(a.show.id || "").localeCompare(String(b.show.id || "")) || a.index - b.index);
+  }
+  return [...groups.values()]
+    .sort((a, b) => a.rank - b.rank || a.rows[0].extra - b.rows[0].extra || compareTitles(a.rows[0], b.rows[0]))
+    .flatMap(group => group.rows.map(row => row.show));
 }
 
 // ── Live AniList search ───────────────────────────────────────────────────────
@@ -4150,7 +4277,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=795";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=796";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -19335,7 +19462,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=795");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=796");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
