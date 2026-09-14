@@ -656,6 +656,17 @@ function resetCarouselIndexForFreshCatalog() {
 //
 // Debounced, because three installs in a row must not mean three fetches.
 let _airingEnrichTimer = 0;
+// The catalogue is installed and merged in several asynchronous passes. Keep
+// the Schedule memo tied to those passes so an early empty result can never be
+// reused after airing fields arrive or a later source rebuilds the show rows.
+let _scheduleDataRevision = 0;
+let _scheduleMemo = { key: "", at: 0, value: null };
+
+function invalidateScheduleData() {
+  _scheduleDataRevision += 1;
+  _scheduleMemo = { key: "", at: 0, value: null };
+}
+
 function scheduleAiringEnrichment(delay = 1200) {
   if (typeof window === "undefined") return;
   if (_airingEnrichTimer) window.clearTimeout(_airingEnrichTimer);
@@ -692,6 +703,7 @@ function replaceRegularCatalog(items = [], tier = "full") {
   );
   state.catalogTier = tier;
   state.shows = mergeShows([...items, ...adultItems], Infinity);
+  invalidateScheduleData();
   // The lightweight latest feed refreshes every five minutes, while the full
   // catalog can still be yesterday's build. Re-apply those exact provider
   // observations after every catalog replacement so a newly posted card opens
@@ -784,7 +796,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=797`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=798`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -940,6 +952,7 @@ async function loadLazyAddonCatalogs() {
     if (catalog?.items?.length) {
       const baseShows = [...state.shows];
       state.shows = mergeShows([...baseShows, ...catalog.items]);
+      invalidateScheduleData();
       setSourceStatus(catalogStatusLabel("AniList + Jikan + Sources", state.shows));
       enrichCatalogAiringData();
       render();
@@ -1053,24 +1066,7 @@ async function enrichCatalogAiringData(attempt = 0) {
       // The source's own publish time first: a real UTC instant from the
       // provider that serves the episodes, so there is no timezone to model and
       // nothing to disagree with.
-      if (!Number(s.nextAiringAt) && it.lastEpisodeAt) {
-        const lastMs = Date.parse(it.lastEpisodeAt);
-        const weekly = nextWeeklyAiringFrom(lastMs);
-        if (weekly > 0) {
-          s.nextAiringAt = weekly;
-          s.lastEpisodeAt = it.lastEpisodeAt;
-        }
-      }
-      if (!Number(s.nextAiringAt) && it.broadcastDay) {
-        const slotMs = broadcastInstant(it.broadcastDay, it.broadcastTime, it.broadcastTimezone);
-        if (slotMs > 0) s.nextAiringAt = slotMs;
-      }
-      const mergedAiringMs = Number(s.nextAiringAt || 0);
-      if (mergedAiringMs > 0) {
-        const mergedAiringDate = new Date(mergedAiringMs);
-        s.day = formatAiringWeekday(mergedAiringDate);
-        s.time = formatAiringClock(mergedAiringDate);
-      }
+      applyScheduleAiringFields(s, it);
       if (it.totalEpisodes != null) s.totalEpisodes = it.totalEpisodes;
       if (it.status) s.status = it.status;
       if (it.episode != null && it.episode !== "?") s.episode = it.episode;
@@ -1078,6 +1074,7 @@ async function enrichCatalogAiringData(attempt = 0) {
       changed = true;
     });
     if (changed) {
+      invalidateScheduleData();
       writeResponseCache("direct-catalog", regularCatalogSnapshot());
       render();
       // The Weekly Schedule paints from this same airing data, but it is built
@@ -1169,6 +1166,7 @@ async function loadExternalSources() {
         // Update global state and re-render addon rails right away
         state.addonSections = [...addonSections];
       state.shows = mergeShows([...state.shows, ...allLoaded]);
+      invalidateScheduleData();
       if (_animeAv1SlugTitleMap) state.shows.forEach((show) => applyAnimeAv1SlugFromMap(show, _animeAv1SlugTitleMap));
       if (!source.playbackOnly) {
           renderAddonSections();
@@ -1183,6 +1181,7 @@ async function loadExternalSources() {
     state.addonSections = addonSections;
     if (allLoaded.length || addonSections.length) {
       state.shows = mergeShows([...state.shows, ...allLoaded]);
+      invalidateScheduleData();
       warmAnimeAv1SlugCatalog(state.shows);
       warmVisibleShowMetadata(state.shows);
       const addonCount = addonSections.reduce((t, s) => t + (s.items?.length || 0), 0);
@@ -4310,7 +4309,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=797";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=798";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -6079,10 +6078,50 @@ function renderSkeletonCards(container, count = 7) {
   `).join("");
 }
 
-// Memo for the Schedule's airing-show computation (see renderSchedule).
-let _scheduleMemo = { key: "", at: 0, value: null };
+// UI state for the Schedule. Its data memo lives beside the catalogue install
+// lifecycle above, where every replacement can invalidate it immediately.
 let _scheduleSelectedDay = null;
 let _scheduleControlsWired = false;
+
+function applyScheduleAiringFields(show, source = show) {
+  if (!show || !source) return false;
+  let changed = false;
+  let nextAiringAt = Number(show.nextAiringAt || 0);
+  if (!(nextAiringAt > 0)) nextAiringAt = Number(source.nextAiringAt || 0);
+
+  if (!(nextAiringAt > 0) && source.lastEpisodeAt) {
+    const numericLast = Number(source.lastEpisodeAt);
+    const lastMs = Number.isFinite(numericLast) && numericLast > 0
+      ? numericLast
+      : Date.parse(source.lastEpisodeAt);
+    nextAiringAt = nextWeeklyAiringFrom(lastMs);
+    if (nextAiringAt > 0 && show.lastEpisodeAt !== source.lastEpisodeAt) {
+      show.lastEpisodeAt = source.lastEpisodeAt;
+      changed = true;
+    }
+  }
+  if (!(nextAiringAt > 0) && source.broadcastDay) {
+    nextAiringAt = broadcastInstant(source.broadcastDay, source.broadcastTime, source.broadcastTimezone);
+  }
+  if (!(nextAiringAt > 0)) return changed;
+
+  if (Number(show.nextAiringAt || 0) !== nextAiringAt) {
+    show.nextAiringAt = nextAiringAt;
+    changed = true;
+  }
+  const airingDate = new Date(nextAiringAt);
+  const day = formatAiringWeekday(airingDate);
+  const time = formatAiringClock(airingDate);
+  if (day && show.day !== day) {
+    show.day = day;
+    changed = true;
+  }
+  if (time && show.time !== time) {
+    show.time = time;
+    changed = true;
+  }
+  return changed;
+}
 
 function scheduleLocale() {
   return state.appLanguage === "es" ? "es" : "en";
@@ -6144,13 +6183,18 @@ function renderSchedule() {
   // and used to re-run on EVERY render() - and render() fires many times a
   // second during catalog enrichment, which is what made the Schedule route
   // feel laggy. Reuse the last result for a short window instead.
-  const _schedKey = state.shows.length + ":" + ((typeof AdultMode !== "undefined" && AdultMode.isEnabled()) ? 1 : 0);
+  const _schedKey = state.shows.length + ":" + ((typeof AdultMode !== "undefined" && AdultMode.isEnabled()) ? 1 : 0) + ":" + _scheduleDataRevision;
   const _schedNow = Date.now();
   const _schedFresh = Boolean(_scheduleMemo.value) && _scheduleMemo.key === _schedKey && (_schedNow - _scheduleMemo.at) < 500;
   const airingShows = _schedFresh ? _scheduleMemo.value : (() => {
     const seen = new Map();
     [...catalogShows()]
       .filter((show) => {
+        // The catalog already carries either a provider publish instant or a
+        // Jikan broadcast slot for current shows. Derive the viewer-local day
+        // synchronously so the route does not flash an empty week while the
+        // compact AniList airing request is still in flight.
+        applyScheduleAiringFields(show);
         if (!show.day || show.day === "TBA" || show.day === "Local") return false;
         const status = (show.status || "").toUpperCase();
         // Exclude shows that have definitively ended
@@ -6206,6 +6250,14 @@ function renderSchedule() {
     if (weekday === undefined) return;
     showsByDay[(weekday + 6) % 7].push(show);
   });
+  const totalShows = showsByDay.reduce((count, shows) => count + shows.length, 0);
+
+  // A timezone shift or a fresh catalog can move the last title off the day the
+  // user had selected. Keep the route populated by returning to the full week
+  // whenever that happens instead of leaving an apparently broken empty page.
+  if (_scheduleSelectedDay !== -1 && totalShows > 0 && !showsByDay[_scheduleSelectedDay].length) {
+    _scheduleSelectedDay = -1;
+  }
 
   if (!_scheduleControlsWired && scheduleDays) {
     _scheduleControlsWired = true;
@@ -6241,7 +6293,6 @@ function renderSchedule() {
   if (scheduleList.dataset.schedSig === scheduleSig) return;
   scheduleList.dataset.schedSig = scheduleSig;
 
-  const totalShows = showsByDay.reduce((count, shows) => count + shows.length, 0);
   if (scheduleKicker) scheduleKicker.textContent = t("scheduleCalendar");
   if (scheduleDays) {
     const options = [
@@ -7735,6 +7786,7 @@ async function loadMoreAddonSection(section, button) {
     }
     if (section.id !== "anipub-catalog") {
       state.shows = mergeShows([...state.shows, ...newItems]);
+      invalidateScheduleData();
     }
     state.apiStatus.local = `${section.items.length}${section.totalResults ? ` of ${section.totalResults}` : ""} ${section.name} titles`;
     render();
@@ -19553,7 +19605,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=797");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=798");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

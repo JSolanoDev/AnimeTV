@@ -833,6 +833,11 @@ function clientCatalogIdentityKeys(show = {}) {
   ].filter(Boolean))];
 }
 
+function usefulClientAiringValue(value) {
+  const normalized = String(value || "").trim().toUpperCase();
+  return Boolean(normalized && normalized !== "TBA" && normalized !== "LOCAL");
+}
+
 function mergeClientCatalogShow(current, show) {
   if (!current) return { ...show, source: mergeCatalogSourceLabels(show?.source) };
   if (!show) return current;
@@ -875,6 +880,24 @@ function mergeClientCatalogShow(current, show) {
     score: preferred?.score || current.score || show.score || null,
     genre: preferred?.genre || current.genre || show.genre || "anime",
     genres: preferred?.genres?.length ? preferred.genres : (current.genres || show.genres || []),
+    // Late metadata and addon rows frequently carry the airing keys with empty
+    // defaults. Do not let them erase the provider/AniList values that already
+    // made a title visible in the Weekly Schedule.
+    nextAiringAt: Number(show.nextAiringAt) > 0
+      ? Number(show.nextAiringAt)
+      : (Number(current.nextAiringAt) > 0 ? Number(current.nextAiringAt) : null),
+    nextAiringEpisodeNumber: show.nextAiringEpisodeNumber ?? current.nextAiringEpisodeNumber ?? null,
+    latestAiredEp: show.latestAiredEp ?? current.latestAiredEp ?? null,
+    lastEpisodeAt: show.lastEpisodeAt || current.lastEpisodeAt || "",
+    broadcastDay: show.broadcastDay || current.broadcastDay || "",
+    broadcastTime: show.broadcastTime || current.broadcastTime || "",
+    broadcastTimezone: show.broadcastTimezone || current.broadcastTimezone || "",
+    day: usefulClientAiringValue(show.day)
+      ? show.day
+      : (usefulClientAiringValue(current.day) ? current.day : (show.day || current.day || "Local")),
+    time: usefulClientAiringValue(show.time)
+      ? show.time
+      : (usefulClientAiringValue(current.time) ? current.time : (show.time || current.time || "")),
     image: current.image || show.image,
     banner: preferred?.banner || current.banner || show.banner,
     // Artwork must survive a merge. These three fall through the plain `...show`
