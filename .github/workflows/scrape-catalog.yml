@@ -61,6 +61,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 50
 
       # ── 2. Python setup ────────────────────────────────────────────────────
       - name: Set up Python 3.11
@@ -147,7 +148,7 @@ jobs:
           print(f"  Scraped at     : {data.get('scrapedAt', '?')}")
           if len(items) == 0:
               # 0 items means the scraper kept the existing file unchanged.
-              # The git-auto-commit step will detect no diff and skip the commit.
+              # The catalog commit step will detect no diff and skip the commit.
               # Do NOT fail the workflow — this is expected when all sites are unreachable.
               print("NOTE: catalog has 0 items — file unchanged, no commit will be made.")
               sys.exit(0)
@@ -277,30 +278,8 @@ jobs:
       # ── 7. Commit updated catalog ──────────────────────────────────────────
       - name: Commit updated catalog
         id: commit-catalog
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore: update anime catalog"
-          file_pattern: >-
-            scraper/anime_metadata.json
-            scraper/anime_metadata.previous.json
-            scraper/anime_metadata.csv
-            scraper/anilist-id-overrides.json
-            scraper/artwork-map.json
-            scraper/airing-map.json
-            scraper/aniskip-map.json
-            scraper/relations-cache.json
-            scraper/regular-source-fallbacks.json
-            scraper/underhentai_catalog.json
-            scraper/underhentai_details.json
-            scraper/underhentai_releases.json
-            android/app/src/main/assets/scraper/underhentai_catalog.json
-            android/app/src/main/assets/scraper/underhentai_details.json
-            android/app/src/main/assets/scraper/underhentai_releases.json
-            android/app/src/main/assets/scraper/artwork-map.json
-            android/app/src/main/assets/scraper/aniskip-map.json
-            android/app/src/main/assets/scraper/regular-source-fallbacks.json
-          commit_user_name: "github-actions[bot]"
-          commit_user_email: "github-actions[bot]@users.noreply.github.com"
+        shell: bash
+        run: bash scripts/commit-catalog-update.sh
 
       - name: Trigger Vercel deploy hook
         if: steps.commit-catalog.outputs.changes_detected == 'true'
