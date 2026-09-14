@@ -1,6 +1,6 @@
 {
   "source": "UnderHentai",
-  "generatedAt": "2026-09-07T11:22:11.152Z",
+  "generatedAt": "2026-09-14T06:21:04.183Z",
   "years": {
     "2012": [
       {
@@ -15338,8 +15338,8 @@
         "episode": 1,
         "date": "2026-05-29",
         "poster": "https://static.underhentai.net/assets/Seishidouin_no_Oshigoto_The_Animation_01v2_rel.jpg",
-        "catalogId": "adult-underhentai-seishidouin-no-oshigoto-the-animation",
-        "available": true
+        "catalogId": "",
+        "available": false
       },
       {
         "id": "love-wa-gal-kara-hajimaru-unmei-e2-2026-06-05",
@@ -15658,7 +15658,7 @@
         "episode": 2,
         "date": "2026-09-18",
         "poster": "https://static.underhentai.net/assets/Seishidouin_no_Oshigoto_The_Animation_02_rel.jpg",
-        "catalogId": "adult-underhentai-seishidouin-no-oshigoto-the-animation",
+        "catalogId": "",
         "available": false
       },
       {
@@ -15747,7 +15747,7 @@
         "title": "Hitori Tsuma",
         "episode": 1,
         "date": "2026-10-30",
-        "poster": "https://static.underhentai.net/assets/Hitori_Tsuma_01_rel.jpg",
+        "poster": "https://static.underhentai.net/assets/Hitori_Tsuma_01v2_rel.jpg",
         "catalogId": "",
         "available": false
       },
@@ -15787,7 +15787,7 @@
         "title": "So_low",
         "episode": 4,
         "date": "2026-10-30",
-        "poster": "https://static.underhentai.net/assets/So_low_04_rel.jpg",
+        "poster": "https://static.underhentai.net/assets/So_low_04v2_rel.jpg",
         "catalogId": "adult-underhentai-so_low",
         "available": false
       },
@@ -15839,6 +15839,26 @@
         "date": "2026-11-27",
         "poster": "https://static.underhentai.net/assets/Sare_Tsuma_wa_Ubawaretai_02_rel.jpg",
         "catalogId": "adult-underhentai-sare-tsuma-wa-ubawaretai",
+        "available": false
+      },
+      {
+        "id": "futanari-jinja-wa-otome-ochinpo-soudansho-e1-2026-12-04",
+        "slug": "futanari-jinja-wa-otome-ochinpo-soudansho",
+        "title": "Futanari Jinja wa Otome Ochinpo Soudansho",
+        "episode": 1,
+        "date": "2026-12-04",
+        "poster": "https://static.underhentai.net/themes/undernet-bs5/assets/images/no_image_p.jpg,qo=p,aw=280.pagespeed.ce.hqxFwiI4rr.jpg",
+        "catalogId": "",
+        "available": false
+      },
+      {
+        "id": "futanari-jinja-wa-otome-ochinpo-soudansho-e2-2026-12-04",
+        "slug": "futanari-jinja-wa-otome-ochinpo-soudansho",
+        "title": "Futanari Jinja wa Otome Ochinpo Soudansho",
+        "episode": 2,
+        "date": "2026-12-04",
+        "poster": "https://static.underhentai.net/themes/undernet-bs5/assets/images/no_image_p.jpg,qo=p,aw=280.pagespeed.ce.hqxFwiI4rr.jpg",
+        "catalogId": "",
         "available": false
       }
     ]
