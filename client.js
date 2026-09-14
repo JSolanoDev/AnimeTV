@@ -174,6 +174,88 @@ const LIBRARY_RENDER_STEP = 56;
 
 const verticalArt = new Set();
 
+const FAVORITES_STORAGE_KEY = "anime-tv-favorites";
+const FAVORITES_DISPOSABLE_CACHE_KEYS = new Set([
+  "animetv-anipub-title-map",
+  "zenkaitv-av1-latest-cache",
+  "zenkaitv-av1-latest-cache-at",
+  "zenkaitv-captured-episode-frames-v1",
+  "zenkaitv-franchise-routes-v3",
+  "zenkaitv:img-failed:v1",
+  "ztv:hero-art"
+]);
+const FAVORITES_DISPOSABLE_CACHE_PREFIXES = [
+  "animetv-response-cache:",
+  "animetv-anipub-episode:",
+  "animetv-anime1v-fallback:",
+  "animetv-jimov-fallback:",
+  "animetv-allanime-fallback:",
+  "animetv-rapid-fallback:",
+  "animetv-anilist-meta:",
+  "animetv-subtitle-translation:",
+  "zenkaitv:anime-metadata:",
+  "zenkaitv:show-extras:",
+  "zenkaitv:tmdb-match:",
+  "zenkaitv:tmdb-season-art:",
+  "zenkaitv-trailer:"
+];
+
+function normalizeFavoriteIds(values) {
+  if (!Array.isArray(values)) return [];
+  return Array.from(new Set(values
+    .filter((value) => value !== undefined && value !== null && value !== "")
+    .map(String)));
+}
+
+function readFavoriteIds(storage = localStorage) {
+  try {
+    return normalizeFavoriteIds(JSON.parse(storage.getItem(FAVORITES_STORAGE_KEY) || "[]"));
+  } catch {
+    return [];
+  }
+}
+
+function isDisposableFavoriteCacheKey(key) {
+  return FAVORITES_DISPOSABLE_CACHE_KEYS.has(key)
+    || FAVORITES_DISPOSABLE_CACHE_PREFIXES.some((prefix) => key.startsWith(prefix));
+}
+
+function persistFavoriteIds(values, storage = localStorage) {
+  const payload = JSON.stringify(normalizeFavoriteIds(values));
+  const tryWrite = () => {
+    try {
+      storage.setItem(FAVORITES_STORAGE_KEY, payload);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  if (tryWrite()) return true;
+
+  // Favorites are durable user data. If the browser quota is full, reclaim
+  // only reproducible caches, largest first, and retry after each removal.
+  let cacheEntries = [];
+  try {
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (!key || !isDisposableFavoriteCacheKey(key)) continue;
+      cacheEntries.push({ key, size: String(storage.getItem(key) || "").length });
+    }
+  } catch {
+    return false;
+  }
+  cacheEntries = cacheEntries.sort((a, b) => b.size - a.size);
+  for (const { key } of cacheEntries) {
+    try {
+      storage.removeItem(key);
+    } catch {
+      continue;
+    }
+    if (tryWrite()) return true;
+  }
+  return false;
+}
+
 const state = {
   route: "home",
   filter: "all",
@@ -228,7 +310,7 @@ const state = {
     local: "No local sources loaded"
   },
   sourceOverrides: JSON.parse(localStorage.getItem("animetv-source-overrides") || "{}"),
-  favorites: JSON.parse(localStorage.getItem("anime-tv-favorites") || "[]"),
+  favorites: readFavoriteIds(),
   appLanguage: localStorage.getItem(APP_LANGUAGE_KEY) || "en",
   theme: localStorage.getItem(APP_THEME_KEY) || "dark",
   uiPreferences: readUiPreferences(),
@@ -796,7 +878,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=798`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=799`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -1051,7 +1133,7 @@ async function enrichCatalogAiringData(attempt = 0) {
       if (!it) return;
       if (it.latestAiredEp != null) s.latestAiredEp = it.latestAiredEp;
       if (it.nextAiringEpisodeNumber != null) s.nextAiringEpisodeNumber = it.nextAiringEpisodeNumber;
-      if (it.nextAiringAt != null && s.nextAiringAt == null) s.nextAiringAt = it.nextAiringAt;
+      if (Number(it.nextAiringAt || 0) > 0) s.nextAiringAt = Number(it.nextAiringAt);
       // The airing INSTANT was merged, but the two display strings the Weekly
       // Schedule actually reads were not. /api/catalog sends no day at all, so
       // every row kept the "Local" default - a value the Schedule explicitly
@@ -4309,7 +4391,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=798";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=799";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -6086,9 +6168,16 @@ let _scheduleControlsWired = false;
 function applyScheduleAiringFields(show, source = show) {
   if (!show || !source) return false;
   let changed = false;
-  let nextAiringAt = Number(show.nextAiringAt || 0);
-  if (!(nextAiringAt > 0)) nextAiringAt = Number(source.nextAiringAt || 0);
+  let nextAiringAt = Number(source.nextAiringAt || 0);
+  if (!(nextAiringAt > 0)) nextAiringAt = Number(show.nextAiringAt || 0);
 
+  // A provider upload can arrive hours or days after broadcast. Prefer the
+  // show's declared weekly slot, and use upload time only when no schedule
+  // metadata exists. Exact next-airing timestamps stay authoritative because
+  // they include one-off delays and reschedules.
+  if (!(nextAiringAt > 0) && source.broadcastDay) {
+    nextAiringAt = broadcastInstant(source.broadcastDay, source.broadcastTime, source.broadcastTimezone);
+  }
   if (!(nextAiringAt > 0) && source.lastEpisodeAt) {
     const numericLast = Number(source.lastEpisodeAt);
     const lastMs = Number.isFinite(numericLast) && numericLast > 0
@@ -6099,9 +6188,6 @@ function applyScheduleAiringFields(show, source = show) {
       show.lastEpisodeAt = source.lastEpisodeAt;
       changed = true;
     }
-  }
-  if (!(nextAiringAt > 0) && source.broadcastDay) {
-    nextAiringAt = broadcastInstant(source.broadcastDay, source.broadcastTime, source.broadcastTimezone);
   }
   if (!(nextAiringAt > 0)) return changed;
 
@@ -9599,13 +9685,12 @@ function toggleFavorite() {
   if (isAdding) {
     // Save BOTH the catalog id and the stable key so the entry survives the
     // show being served by a different source next session.
-    state.favorites = Array.from(new Set([...state.favorites, id, key]
-      .filter((v) => v !== undefined && v !== null && v !== "")));
+    state.favorites = normalizeFavoriteIds([...state.favorites, id, key]);
   } else {
     const drop = [id, key].filter(Boolean).map(String);
     state.favorites = state.favorites.filter((fav) => !drop.includes(String(fav)));
   }
-  localStorage.setItem("anime-tv-favorites", JSON.stringify(state.favorites));
+  persistFavoriteIds(state.favorites);
   setFavoriteButtonState(isFavoriteShow(state.activeShow));
   render();
   
@@ -19539,8 +19624,8 @@ async function syncFavoritesFromDatabase() {
     if (error) throw error;
     if (data) {
       const dbFavs = data.map((d) => d.anime_id);
-      state.favorites = Array.from(new Set([...state.favorites, ...dbFavs]));
-      localStorage.setItem("anime-tv-favorites", JSON.stringify(state.favorites));
+      state.favorites = normalizeFavoriteIds([...state.favorites, ...dbFavs]);
+      persistFavoriteIds(state.favorites);
       render();
     }
   } catch (err) {
@@ -19605,7 +19690,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=798");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=799");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

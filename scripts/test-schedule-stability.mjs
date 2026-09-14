@@ -65,6 +65,67 @@ test("schedule falls back to a known broadcast slot", () => {
   assert.equal(show.day, "Mon");
 });
 
+test("an exact next-airing timestamp wins over recurring and upload fallbacks", () => {
+  const exactInstant = Date.UTC(2026, 9, 19, 14, 0);
+  const { context } = scheduleFieldHarness({
+    nextWeeklyAiringFrom: () => {
+      throw new Error("upload fallback should not run");
+    },
+    broadcastInstant: () => {
+      throw new Error("broadcast fallback should not run");
+    }
+  });
+  const show = { nextAiringAt: exactInstant };
+  const source = {
+    nextAiringAt: 0,
+    broadcastDay: "Fridays",
+    broadcastTime: "23:00",
+    broadcastTimezone: "Asia/Tokyo",
+    lastEpisodeAt: "2026-09-12T15:24:20.000Z"
+  };
+
+  context.applyScheduleAiringFields(show, source);
+  assert.equal(show.nextAiringAt, exactInstant);
+});
+
+test("fresh airing enrichment replaces a stale exact timestamp", () => {
+  const staleInstant = Date.UTC(2026, 8, 12, 14, 0);
+  const refreshedInstant = Date.UTC(2026, 9, 19, 14, 0);
+  const { context } = scheduleFieldHarness({
+    broadcastInstant: () => {
+      throw new Error("broadcast fallback should not run");
+    }
+  });
+  const show = { nextAiringAt: staleInstant };
+  const source = { nextAiringAt: refreshedInstant };
+
+  context.applyScheduleAiringFields(show, source);
+  assert.equal(show.nextAiringAt, refreshedInstant);
+});
+
+test("a recurring broadcast slot wins over a late provider upload", () => {
+  let uploadFallbackCalls = 0;
+  const broadcastAt = Date.UTC(2026, 8, 18, 14, 0);
+  const { context } = scheduleFieldHarness({
+    broadcastInstant: () => broadcastAt,
+    nextWeeklyAiringFrom: () => {
+      uploadFallbackCalls += 1;
+      return Date.UTC(2026, 8, 19, 18, 0);
+    }
+  });
+  const show = {};
+  const source = {
+    broadcastDay: "Fridays",
+    broadcastTime: "23:00",
+    broadcastTimezone: "Asia/Tokyo",
+    lastEpisodeAt: "2026-09-12T15:24:20.000Z"
+  };
+
+  context.applyScheduleAiringFields(show, source);
+  assert.equal(show.nextAiringAt, broadcastAt);
+  assert.equal(uploadFallbackCalls, 0);
+});
+
 test("catalog changes clear an empty schedule memo", () => {
   const context = vm.createContext({});
   vm.runInContext(
@@ -122,5 +183,6 @@ test("every catalog replacement invalidates schedule data before rendering", () 
   const replacement = section(client, "function replaceRegularCatalog(", "function regularCatalogSnapshot(");
   const enrichment = section(client, "async function enrichCatalogAiringData(", "async function loadExternalSources(");
   assert.match(replacement, /state\.shows = mergeShows[\s\S]*?invalidateScheduleData\(\)/);
+  assert.match(enrichment, /if \(Number\(it\.nextAiringAt \|\| 0\) > 0\) s\.nextAiringAt = Number\(it\.nextAiringAt\)/);
   assert.match(enrichment, /if \(changed\) \{\s*invalidateScheduleData\(\)/);
 });
