@@ -4,6 +4,7 @@ import vm from "node:vm";
 import { readFileSync } from "node:fs";
 
 const client = readFileSync(new URL("../client.js", import.meta.url), "utf8");
+const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
 function section(source, start, end) {
   const from = source.indexOf(start);
@@ -75,4 +76,42 @@ test("favorites tolerate corrupt or unavailable browser storage", () => {
 
   assert.deepEqual(Array.from(context.readFavoriteIds(corrupt)), []);
   assert.equal(context.persistFavoriteIds(["bleach"], disabled), false);
+});
+
+test("favorite taps trigger restartable feedback with reduced-motion support", () => {
+  const classes = new Set();
+  let cleanup = null;
+  const favoriteButton = {
+    classList: {
+      add: (...names) => names.forEach((name) => classes.add(name)),
+      remove: (...names) => names.forEach((name) => classes.delete(name))
+    },
+    offsetWidth: 48
+  };
+  const context = vm.createContext({
+    favoriteButton,
+    window: {
+      clearTimeout: () => {},
+      setTimeout: (callback) => {
+        cleanup = callback;
+        return 1;
+      }
+    }
+  });
+  vm.runInContext(
+    section(client, "let _favoriteFeedbackTimer", "function detailFormatLabel("),
+    context
+  );
+
+  context.animateFavoriteButton(true);
+  assert.equal(classes.has("favorite-feedback"), true);
+  assert.equal(classes.has("is-favorite-added"), true);
+  cleanup();
+  assert.equal(classes.has("favorite-feedback"), false);
+
+  context.animateFavoriteButton(false);
+  assert.equal(classes.has("is-favorite-removed"), true);
+  assert.match(styles, /#favoriteButton\.favorite-feedback > span/);
+  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(client, /setFavoriteButtonState\(isFavoriteShow\(state\.activeShow\)\);\s*animateFavoriteButton\(isAdding\)/);
 });

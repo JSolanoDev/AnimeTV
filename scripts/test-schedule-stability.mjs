@@ -24,7 +24,7 @@ function scheduleFieldHarness(overrides = {}) {
     ...overrides
   });
   vm.runInContext(
-    section(client, "function applyScheduleAiringFields(", "function scheduleLocale("),
+    section(client, "const WEEKLY_SCHEDULE_DAY_OVERRIDES", "function scheduleLocale("),
     context
   );
   return { context, instant };
@@ -101,6 +101,16 @@ test("fresh airing enrichment replaces a stale exact timestamp", () => {
 
   context.applyScheduleAiringFields(show, source);
   assert.equal(show.nextAiringAt, refreshedInstant);
+});
+
+test("Bleach keeps its corrected Friday slot during a one-off AniList delay", () => {
+  const delayedMonday = Date.UTC(2026, 9, 19, 14, 0);
+  const { context } = scheduleFieldHarness();
+  const show = { id: "animeav1-bleach-sennen-kessen-hen-kashin-tan" };
+
+  context.applyScheduleAiringFields(show, { nextAiringAt: delayedMonday });
+  assert.equal(show.nextAiringAt, delayedMonday);
+  assert.equal(show.day, "Fri");
 });
 
 test("a recurring broadcast slot wins over a late provider upload", () => {

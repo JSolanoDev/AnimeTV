@@ -878,7 +878,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=799`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=800`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -4391,7 +4391,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=799";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=800";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -6165,6 +6165,24 @@ function renderSkeletonCards(container, count = 7) {
 let _scheduleSelectedDay = null;
 let _scheduleControlsWired = false;
 
+// The weekly grid describes ZenkaiTV's recurring release day. A temporary
+// AniList delay can move one nextAiringAt without changing that weekly slot.
+// Keep corrections identity-scoped so similarly named seasons are untouched.
+const WEEKLY_SCHEDULE_DAY_OVERRIDES = Object.freeze({
+  "show:animeav1-bleach-sennen-kessen-hen-kashin-tan": "Fri",
+  "anilist:185874": "Fri",
+  "mal:60636": "Fri"
+});
+
+function weeklyScheduleDayOverride(show = {}, source = show) {
+  const identities = [show, source].flatMap((entry) => [
+    entry?.id ? `show:${entry.id}` : "",
+    entry?.anilistId ? `anilist:${entry.anilistId}` : "",
+    entry?.malId ? `mal:${entry.malId}` : ""
+  ]).filter(Boolean);
+  return identities.map((identity) => WEEKLY_SCHEDULE_DAY_OVERRIDES[identity]).find(Boolean) || "";
+}
+
 function applyScheduleAiringFields(show, source = show) {
   if (!show || !source) return false;
   let changed = false;
@@ -6196,7 +6214,7 @@ function applyScheduleAiringFields(show, source = show) {
     changed = true;
   }
   const airingDate = new Date(nextAiringAt);
-  const day = formatAiringWeekday(airingDate);
+  const day = weeklyScheduleDayOverride(show, source) || formatAiringWeekday(airingDate);
   const time = formatAiringClock(airingDate);
   if (day && show.day !== day) {
     show.day = day;
@@ -9692,6 +9710,7 @@ function toggleFavorite() {
   }
   persistFavoriteIds(state.favorites);
   setFavoriteButtonState(isFavoriteShow(state.activeShow));
+  animateFavoriteButton(isAdding);
   render();
   
   // Database sync
@@ -10012,6 +10031,22 @@ function setFavoriteButtonState(isFav) {
   const label = isFav ? t("favorited") : t("favorite");
   favoriteButton.setAttribute("aria-label", label);
   favoriteButton.dataset.tip = label;
+}
+
+let _favoriteFeedbackTimer = 0;
+function animateFavoriteButton(isAdding) {
+  if (!favoriteButton) return;
+  favoriteButton.classList.remove("favorite-feedback", "is-favorite-added", "is-favorite-removed");
+  // Restart the same CSS animation when someone taps the heart repeatedly.
+  void favoriteButton.offsetWidth;
+  favoriteButton.classList.add(
+    "favorite-feedback",
+    isAdding ? "is-favorite-added" : "is-favorite-removed"
+  );
+  window.clearTimeout(_favoriteFeedbackTimer);
+  _favoriteFeedbackTimer = window.setTimeout(() => {
+    favoriteButton.classList.remove("favorite-feedback", "is-favorite-added", "is-favorite-removed");
+  }, 520);
 }
 
 function detailFormatLabel(format) {
@@ -19690,7 +19725,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=799");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=800");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
