@@ -60,7 +60,7 @@ test("a decoded old hero cannot reveal or save over a new slide", async () => {
 test("same-slide metadata refreshes retain the pending blurred preview", () => {
   const render = section("function renderCarousel()", "let _carouselDotsHtml");
   const start = render.indexOf("if (_carouselPreviewShowId !==");
-  const end = render.indexOf("// Load ONLY", start);
+  const end = render.indexOf("const hiResArt =", start);
   assert.ok(start > 0 && end > start);
   let resets = 0;
   const c = vm.createContext({ show: { id: "one" }, _carouselPreviewShowId: "one", artworkShowIdentity: show => show.id, resetCarouselBlurPlaceholder: () => resets++ });
@@ -439,6 +439,23 @@ test("the carousel shows a small blurred preview only while its full image loads
   assert.equal(h.blur.style.backgroundImage, "");
 });
 
+test("artwork lookup shows an available show image as a blur instead of a blank hero", () => {
+  const pendingArt = "https://cdn.example/show-poster.jpg";
+  const emptyBackdrop = "data:image/gif;base64,transparent";
+  const h = blurHarness();
+  h.img.src = emptyBackdrop;
+  h.img.complete = true;
+  h.img.naturalWidth = 1;
+  h.classes.add("is-backdrop-loading");
+
+  h.c.showCarouselBlurPlaceholder(pendingArt, emptyBackdrop, { ignoreTargetReadiness: true });
+  assert.equal(h.previews.length, 1);
+  h.previews[0].onload();
+
+  assert.equal(h.classes.has("has-blur-placeholder"), true);
+  assert.match(h.blur.style.backgroundImage, /show-poster/);
+});
+
 test("a late or stale carousel preview never flashes over the real image", async () => {
   const art = "https://cdn.example/hero.jpg";
   const delivered = "/api/image?src=hero&w=1920&q=92";
@@ -500,7 +517,8 @@ test("the carousel blur layer sits under the sharp image, is inert, and never us
   assert.match(css, /body\.reduce-motion \.carousel-backdrop-blur\s*\{[^}]*transition: none !important;/);
   assert.doesNotMatch(section("function carouselBlurSourceUrl(", "function renderCarousel()"), /cinematicBackdropUrl/);
   const render = section("function renderCarousel()", "let _carouselDotsHtml");
-  assert.match(render, /carouselBackdropImage\.src = deliveredArt;\s*\/\/[^\n]*\n\s*showCarouselBlurPlaceholder\(art, deliveredArt\);/);
+  assert.match(render, /carouselBackdropImage\.src = deliveredArt;[\s\S]*?if \(!carouselStage\.classList\.contains\("has-blur-placeholder"\)\) \{\s*showCarouselBlurPlaceholder\(art, deliveredArt\);/);
+  assert.match(render, /const pendingArt = carouselArtworkOrPoster\(show\);[\s\S]*?showCarouselBlurPlaceholder\(pendingArt, emptyBackdrop, \{ ignoreTargetReadiness: true \}\);/);
 });
 
 test("changing slide drops the previous slide's preview at once, even when no new one follows", async () => {
