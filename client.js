@@ -878,7 +878,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=801`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=802`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -4332,7 +4332,7 @@ function resetCarouselBlurPlaceholder() {
   return token;
 }
 
-function showCarouselBlurPlaceholder(art, deliveredArt, { ignoreTargetReadiness = false } = {}) {
+function showCarouselBlurPlaceholder(art, deliveredArt) {
   if (!carouselStage || !carouselBackdropBlur || !carouselBackdropImage) return;
   // First, whatever was up goes - even when no new preview follows.
   const token = resetCarouselBlurPlaceholder();
@@ -4349,10 +4349,7 @@ function showCarouselBlurPlaceholder(art, deliveredArt, { ignoreTargetReadiness 
     if (token !== _carouselBlurToken) return;
     if (carouselBackdropImage.getAttribute("src") !== deliveredArt) return;
     if (!carouselStage.classList.contains("is-backdrop-loading")) return;
-    // During metadata lookup the target is an intentional transparent pixel,
-    // which is already decoded. In that one state the preview is the useful
-    // visual, so do not mistake the placeholder target for finished artwork.
-    if (!ignoreTargetReadiness && carouselBackdropImage.complete && carouselBackdropImage.naturalWidth > 0) return;
+    if (carouselBackdropImage.complete && carouselBackdropImage.naturalWidth > 0) return;
     carouselBackdropBlur.style.backgroundImage = `url("${source}")`;
     carouselStage.classList.add("has-blur-placeholder");
     // A recognisable preview is enough to lift the splash; the sharpening then
@@ -4394,7 +4391,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=801";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=802";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4438,11 +4435,11 @@ function renderCarousel() {
     resetCarouselBlurPlaceholder();
   }
 
-  // Load only the high-resolution TMDB backdrop as the final hero. While that URL
-  // is still resolving, a tiny copy of the show's available artwork supplies the
-  // blurred loading state; it never becomes a second sharp image. A show with no
-  // TMDB match falls back to its source artwork. Bounded: resolve once per show,
-  // current item only.
+  // Load only the high-resolution TMDB backdrop as the final hero. Once that URL
+  // is known, a tiny copy of that exact image supplies the blurred loading state;
+  // provider artwork is never shown first because it may be a different picture.
+  // A show with no TMDB match falls back to its source artwork. Bounded: resolve
+  // once per show, current item only.
   const hiResArt = pickImage(stableArtworkCandidates(show, [
     show.tmdbBackdrop,
     show.highQualityBackground
@@ -4554,11 +4551,9 @@ function renderCarousel() {
         renderCarousel();
       };
       carouselBackdropImage.src = deliveredArt;
-      // Keep a resolving-stage preview when it is already visible. Otherwise,
-      // load a small copy of this final artwork while the sharp file decodes.
-      if (!carouselStage.classList.contains("has-blur-placeholder")) {
-        showCarouselBlurPlaceholder(art, deliveredArt);
-      }
+      // Load a small copy of this exact final artwork while the sharp file
+      // decodes. The two visible states therefore never use different images.
+      showCarouselBlurPlaceholder(art, deliveredArt);
     } else if (art && carouselBackdropImage.complete && carouselBackdropImage.naturalWidth > 0) {
       carouselStage.classList.remove("is-backdrop-loading");
       clearCarouselBlurPlaceholder();
@@ -4567,20 +4562,14 @@ function renderCarousel() {
       // A bootstrap row may acquire a new provider id while this same URL loads.
       if (!carouselStage.classList.contains("has-blur-placeholder")) showCarouselBlurPlaceholder(art, deliveredArt);
     } else if (!art && !heroMemoActive) {
-      // Keep the sharp layer empty while artwork resolves. When this show already
-      // has source artwork, use only a tiny delivered copy as the blurred waiting
-      // surface rather than leaving the carousel blank.
+      // Keep the sharp layer empty while artwork resolves. The provider image may
+      // not match the final TMDB backdrop, so keep the neutral wait surface until
+      // the final URL is known instead of briefly showing a different picture.
       // A restored hero is deliberately left alone here — blanking it to
       // transparent and fading back in a moment later is a visible flash.
       const emptyBackdrop = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
       carouselBackdropImage.src = emptyBackdrop;
       carouselBackdropImage.removeAttribute("srcset");
-      if (resolving) {
-        const pendingArt = carouselArtworkOrPoster(show);
-        if (pendingArt) {
-          showCarouselBlurPlaceholder(pendingArt, emptyBackdrop, { ignoreTargetReadiness: true });
-        }
-      }
       if (!resolving) carouselStage.classList.remove("is-backdrop-loading");
       // Genuinely nothing to load for this slide, so nothing to hold the splash for.
       if (!resolving) {
@@ -19738,7 +19727,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=801");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=802");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
