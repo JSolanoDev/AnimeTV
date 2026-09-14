@@ -784,7 +784,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=796`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=797`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2205,6 +2205,37 @@ function compareAdultShows(a, b) {
   return rb.ep - ra.ep;
 }
 
+function adultRandomShowIdentity(show = {}) {
+  if (!show || typeof show !== "object" || !Object.keys(show).length) return "";
+  return String(show.id || getShowKey(show) || "").trim();
+}
+
+function pickRandomAdultShow(shows = [], excludedIds = [], random = Math.random) {
+  const unique = [];
+  const seen = new Set();
+  for (const show of Array.isArray(shows) ? shows : []) {
+    const key = adultRandomShowIdentity(show);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    unique.push(show);
+  }
+  if (!unique.length) return null;
+
+  const excluded = new Set(excludedIds.map((id) => String(id || "").trim()).filter(Boolean));
+  let candidates = unique.filter((show) => !excluded.has(adultRandomShowIdentity(show)));
+  // With a two-title catalog, excluding both the current and previous title
+  // would leave nothing. Prefer changing the current title over repeating it.
+  if (!candidates.length && excludedIds.length > 1) {
+    const current = String(excludedIds[0] || "").trim();
+    candidates = unique.filter((show) => adultRandomShowIdentity(show) !== current);
+  }
+  if (!candidates.length) candidates = unique;
+
+  const sample = Number(typeof random === "function" ? random() : random);
+  const bounded = Number.isFinite(sample) ? Math.min(Math.max(sample, 0), 0.999999999) : 0;
+  return candidates[Math.floor(bounded * candidates.length)] || candidates[0];
+}
+
 function catalogShows() {
   if (typeof AdultMode === "undefined") return state.shows;
   const filtered = AdultMode.filterCatalog(state.shows);
@@ -2568,6 +2599,8 @@ function syncAdultModeChrome() {
   document.body.classList.toggle("adult-mode", on);
   const badge = document.querySelector("#adultModeBadge");
   if (badge) badge.hidden = !on;
+  const randomToggle = document.querySelector("#adultRandomToggle");
+  if (randomToggle) randomToggle.hidden = !on;
   const headerToggle = document.querySelector("#adultModeToggleHeader");
   if (headerToggle) {
     headerToggle.classList.toggle("is-active", on);
@@ -4277,7 +4310,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=796";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=797";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -18622,6 +18655,64 @@ shareButton?.addEventListener("click", async () => {
 const fullscreenToggle = document.querySelector("#fullscreenToggle");
 fullscreenToggle?.addEventListener("click", toggleNativeFullscreen);
 
+const adultRandomToggle = document.querySelector("#adultRandomToggle");
+let lastRandomAdultShowId = "";
+let adultRandomCatalogLoading = false;
+let adultRandomAnimationTimer = 0;
+
+function replayAdultRandomAnimation() {
+  if (!adultRandomToggle) return;
+  window.clearTimeout(adultRandomAnimationTimer);
+  adultRandomToggle.classList.remove("is-shuffling");
+  requestAnimationFrame(() => {
+    adultRandomToggle.classList.add("is-shuffling");
+    adultRandomAnimationTimer = window.setTimeout(() => {
+      adultRandomToggle.classList.remove("is-shuffling");
+    }, 440);
+  });
+}
+
+async function openRandomAdultCatalogShow() {
+  if (adultRandomCatalogLoading || typeof AdultMode === "undefined" || !AdultMode.isEnabled()) return;
+  let candidates = catalogShows();
+  if (!candidates.length) {
+    adultRandomCatalogLoading = true;
+    if (adultRandomToggle) {
+      adultRandomToggle.disabled = true;
+      adultRandomToggle.setAttribute("aria-busy", "true");
+      adultRandomToggle.setAttribute("aria-label", "Loading adult catalog");
+    }
+    try {
+      await loadAdultCatalog();
+      candidates = catalogShows();
+    } catch (error) {
+      console.warn("Random title could not load the adult catalog:", error);
+      candidates = catalogShows();
+    } finally {
+      adultRandomCatalogLoading = false;
+      if (adultRandomToggle) {
+        adultRandomToggle.disabled = false;
+        adultRandomToggle.removeAttribute("aria-busy");
+        adultRandomToggle.setAttribute("aria-label", "Open random anime");
+      }
+    }
+  }
+
+  if (!AdultMode.isEnabled()) return;
+
+  const currentId = adultRandomShowIdentity(state.activeShow || {});
+  const show = pickRandomAdultShow(candidates, [currentId, lastRandomAdultShowId]);
+  if (!show) {
+    showToast("No titles are available yet.");
+    return;
+  }
+  lastRandomAdultShowId = adultRandomShowIdentity(show);
+  replayAdultRandomAnimation();
+  openShow(lastRandomAdultShowId, { showRef: show });
+}
+
+adultRandomToggle?.addEventListener("click", openRandomAdultCatalogShow);
+
 let _lastFullscreenActive = null;
 function syncFullscreenToggleState() {
   // Reflects EITHER Fullscreen-API fullscreen (in-app button / player) OR
@@ -19462,7 +19553,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=796");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=797");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

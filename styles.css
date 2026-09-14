@@ -9628,8 +9628,9 @@ body.has-embedded-player .watch-side {
 }
 .ep-row.is-tv-focused { transform: scale(1.015); }
 
-/* ── Global fullscreen toggle (fixed top-right, every screen) ──────────────── */
-.fs-toggle {
+/* ── Global fullscreen and adult random controls ─────────────────────────── */
+.fs-toggle,
+.adult-random-toggle {
   position: fixed;
   /* Sits higher than it used to: in the detail overlay the Seasons/Episodes panel
      starts just under the top-right corner and the two were crowding each other. */
@@ -9652,8 +9653,15 @@ body.has-embedded-player .watch-side {
   box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,0.35), inset 0 0 0 0.08rem rgba(255,255,255,0.04);
   transition: background 180ms ease, transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 }
+.adult-random-toggle {
+  right: calc(clamp(0.75rem, 1.7vw, 1.3rem) + 3.55rem);
+  display: none;
+}
+body.adult-mode .adult-random-toggle:not([hidden]) { display: grid; }
+.adult-random-toggle:disabled { cursor: wait; opacity: 0.65; }
 /* Identical hover to the back button: same accent, same scale, same easing. */
-.fs-toggle:is(:hover, :focus-visible) {
+.fs-toggle:is(:hover, :focus-visible),
+.adult-random-toggle:is(:hover, :focus-visible) {
   background: rgba(24, 20, 46, 0.82);
   border-color: rgba(138, 85, 255, 0.55);
   color: #ffffff;
@@ -9661,8 +9669,10 @@ body.has-embedded-player .watch-side {
   box-shadow: 0 0.7rem 1.9rem rgba(0, 0, 0, 0.42);
   outline: 0;
 }
-.fs-toggle:active { transform: scale(0.94); }
-.fs-toggle.is-tv-focused {
+.fs-toggle:active,
+.adult-random-toggle:active { transform: scale(0.94); }
+.fs-toggle.is-tv-focused,
+.adult-random-toggle.is-tv-focused {
   outline: 0;
   border-color: transparent;
   box-shadow: 0 0 0 0.2rem var(--accent, #8a5cff), 0 0.7rem 1.9rem rgba(0,0,0,0.42);
@@ -9670,11 +9680,20 @@ body.has-embedded-player .watch-side {
 }
 
 /* Stacked icons that cross-fade + rotate between expand and compress. */
-.fs-toggle .fs-ico {
+.fs-toggle .fs-ico,
+.adult-random-toggle .adult-random-ico {
   grid-area: 1 / 1;
   width: 1.35rem;
   height: 1.35rem;
   transition: opacity 260ms ease, transform 360ms cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+.adult-random-toggle.is-shuffling .adult-random-ico {
+  animation: adult-random-cycle 420ms cubic-bezier(0.34, 1.35, 0.5, 1);
+}
+@keyframes adult-random-cycle {
+  0% { transform: rotate(0deg) scale(1); }
+  48% { transform: rotate(16deg) scale(0.82); }
+  100% { transform: rotate(0deg) scale(1); }
 }
 .fs-ico-expand   { opacity: 1; transform: rotate(0deg) scale(1); }
 .fs-ico-compress { opacity: 0; transform: rotate(-90deg) scale(0.55); }
@@ -9689,10 +9708,13 @@ body.is-fullscreen .fs-ico-compress { opacity: 1; transform: rotate(0deg) scale(
   100% { transform: scale(1); box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,0.35); }
 }
 body.reduce-motion .fs-toggle.fs-pulse { animation: none; }
+body.reduce-motion .adult-random-toggle.is-shuffling .adult-random-ico { animation: none; }
 
 /* Stay clear of the active video player chrome (cinema z-index is far higher). */
 body.player-cinema-open .fs-toggle,
-body.has-embedded-player .fs-toggle { display: none; }
+body.has-embedded-player .fs-toggle,
+body.adult-mode.player-cinema-open .adult-random-toggle:not([hidden]),
+body.adult-mode.has-embedded-player .adult-random-toggle:not([hidden]) { display: none; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    Low-power TV WebView safety: drop GPU-heavy effects (backdrop-filter blurs
@@ -9716,6 +9738,9 @@ body.is-tv .watch-side {
 }
 /* The native TV app is already fullscreen — hide the (non-working there) button. */
 body.is-tv .fs-toggle { display: none !important; }
+body.is-tv.adult-mode .adult-random-toggle:not([hidden]) {
+  right: clamp(0.75rem, 1.7vw, 1.3rem);
+}
 body.is-tv .icon-action { background: rgba(24, 25, 40, 0.92); }
 body.is-tv .ep-season-menu { background: rgba(18, 19, 32, 1); }
 

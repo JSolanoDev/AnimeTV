@@ -27,7 +27,7 @@
     "test:seasons": "node --test scripts/test-season-recovery.mjs",
     "test:metadata": "node --test scripts/test-metadata-deadlines.mjs",
     "test:pipeline": "node --test scripts/test-episode-pipeline.mjs",
-    "test:catalog": "node --test scripts/test-catalog-integrity.mjs scripts/test-skip-times.mjs scripts/test-animeav1-inventory.mjs scripts/test-enrichment-budget.mjs",
+    "test:catalog": "node --test scripts/test-catalog-integrity.mjs scripts/test-skip-times.mjs scripts/test-animeav1-inventory.mjs scripts/test-enrichment-budget.mjs scripts/test-adult-randomizer.mjs",
     "security:audit": "node scripts/security-audit.mjs",
     "adult:catalog": "node scripts/build-underhentai-catalog.mjs && node scripts/build-underhentai-details.mjs && npm run adult:releases",
     "adult:setup": "npm install --no-save --package-lock=false --ignore-scripts cheerio@1.0.0",
