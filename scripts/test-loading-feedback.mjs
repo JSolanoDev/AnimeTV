@@ -38,7 +38,7 @@ test("a decoded old hero cannot reveal or save over a new slide", async () => {
   const events = [];
   const c = vm.createContext({
     art: "https://cdn.example/slide-one.jpg", deliveredArt: "slide-one", show: { id: "one" }, hasLandscapeBanner: true,
-    carouselBackdropImage: { naturalWidth: 1920, getAttribute: () => current, decode: () => new Promise(resolve => { finish = resolve; }) },
+    carouselBackdropImage: { dataset: {}, naturalWidth: 1920, getAttribute: () => current, decode: () => new Promise(resolve => { finish = resolve; }) },
     carouselStage: { classList: { remove: () => events.push("reveal") } },
     clearCarouselBlurPlaceholder: () => events.push("clear"),
     signalAppLoader: () => events.push("signal"), writeHeroMemo: () => events.push("save"), getShowTitle: () => "One"
@@ -386,7 +386,21 @@ test("startup no longer drops the splash before there is anything to show", () =
   assert.match(section("function replaceRegularCatalog(", "function regularCatalogSnapshot("), /signalAppLoader\("catalog"\)/);
   const render = section("function renderCarousel()", "let _carouselDotsHtml");
   assert.match(render, /const reveal = \(\) => \{[\s\S]*?clearCarouselBlurPlaceholder\(\);[\s\S]*?signalAppLoader\("hero"\);/);
-  assert.match(render, /else if \(art && carouselBackdropImage\.complete && carouselBackdropImage\.naturalWidth > 0\) \{[\s\S]*?signalAppLoader\("hero"\);/);
+  assert.match(render, /else if \(art && carouselBackdropImage\.dataset\.decodedSrc === deliveredArt\) \{[\s\S]*?signalAppLoader\("hero"\);/);
+});
+
+test("a catalog repaint cannot reveal a completed image before decode commits it", () => {
+  const restore = section("(function restoreHeroBackdrop() {", "// The splash used to");
+  const render = section("function renderCarousel()", "let _carouselDotsHtml");
+  const preview = section("function showCarouselBlurPlaceholder(", "function renderCarousel()");
+
+  assert.match(restore, /dataset\.decodedSrc = memo\.src;[\s\S]*?classList\.remove\("is-backdrop-loading"\)/);
+  assert.match(render, /dataset\.decodedSrc = deliveredArt;[\s\S]*?classList\.remove\("is-backdrop-loading"\)/);
+  assert.doesNotMatch(render, /carouselBackdropImage\.complete && carouselBackdropImage\.naturalWidth > 0/);
+  assert.match(render, /else if \(art && carouselBackdropImage\.dataset\.decodedSrc === deliveredArt\)/);
+  assert.match(render, /else if \(art && !memoStillBetter\) \{[\s\S]*?classList\.add\("is-backdrop-loading"\)/);
+  assert.match(preview, /dataset\.decodedSrc === deliveredArt/);
+  assert.doesNotMatch(preview, /carouselBackdropImage\.complete/);
 });
 
 // The carousel blur-preview helpers, with a fake stage, image and Image().
@@ -395,7 +409,7 @@ function blurHarness() {
   const classes = new Set();
   const previews = [];
   const signals = [];
-  const img = { src: "", complete: false, naturalWidth: 0, getAttribute(name) { return name === "src" ? this.src : null; } };
+  const img = { dataset: {}, src: "", complete: false, naturalWidth: 0, getAttribute(name) { return name === "src" ? this.src : null; } };
   const c = vm.createContext({
     ...clock,
     carouselStage: { classList: { add: (n) => classes.add(n), remove: (n) => classes.delete(n), contains: (n) => classes.has(n) } },
@@ -452,6 +466,7 @@ test("artwork lookup never substitutes a different provider image before the fin
 
 test("regular carousel artwork waits for canonical TMDB resolution before using a fallback", () => {
   const c = vm.createContext({
+    state: { catalogTier: "full" },
     isAdultCatalogShow: show => Boolean(show.adult),
     hqImage: value => value,
     isArtworkLowQuality: () => false,
@@ -474,6 +489,14 @@ test("regular carousel artwork waits for canonical TMDB resolution before using 
     _carouselResolveTried: true,
     _carouselResolvePending: false
   }), sourceBanner, "a settled no-match may use one stable fallback");
+  c.state.catalogTier = "cache";
+  assert.equal(c.carouselResolvedBackdropArtwork({
+    highQualityBackground: sourceBanner,
+    _tmdbResolved: true,
+    _carouselResolveTried: true,
+    _carouselResolvePending: false
+  }), "", "a provisional catalog cannot promote provider art to a sharp final image");
+  c.state.catalogTier = "full";
   assert.equal(c.carouselResolvedBackdropArtwork({
     highQualityBackground: sourceBanner,
     tmdbBackdrop
@@ -489,13 +512,24 @@ test("a late or stale carousel preview never flashes over the real image", async
   const delivered = "/api/image?src=hero&w=1920&q=92";
   const next = "/api/image?src=next&w=1920&q=92";
 
-  // Lands after the full image already arrived.
+  // A complete response which is still decoding must retain the blurred layer.
+  const decoding = blurHarness();
+  decoding.img.src = delivered;
+  decoding.img.complete = true;
+  decoding.img.naturalWidth = 1920;
+  decoding.classes.add("is-backdrop-loading");
+  decoding.c.showCarouselBlurPlaceholder(art, delivered);
+  decoding.previews[0].onload();
+  assert.equal(decoding.classes.has("has-blur-placeholder"), true);
+
+  // Lands after the full image already decoded and was committed.
   const late = blurHarness();
   late.img.src = delivered;
   late.classes.add("is-backdrop-loading");
   late.c.showCarouselBlurPlaceholder(art, delivered);
   late.img.complete = true;
   late.img.naturalWidth = 1920;
+  late.img.dataset.decodedSrc = delivered;
   late.previews[0].onload();
   assert.equal(late.classes.has("has-blur-placeholder"), false);
 
@@ -559,7 +593,21 @@ test("manual carousel selection warms only the intended final-art preview and he
   assert.match(indicators, /preloadArtworkImage\(url, 180, 72, false\)/);
   assert.match(indicators, /pointerenter[\s\S]*?focus[\s\S]*?pointerdown/);
   assert.match(indicators, /warmCarouselIndicatorTarget\(targetShow, true\);[\s\S]*?state\.carouselIndex/);
-  assert.match(indicators, /preloadArtworkImage\(art, CAROUSEL_BLUR_WIDTH, CAROUSEL_BLUR_QUALITY, true\);[\s\S]*?preloadCinematicBackdrop\(art, true\);/);
+  assert.match(indicators, /const art = carouselResolvedBackdropArtwork\(show\);[\s\S]*?preloadArtworkImage\(art, CAROUSEL_BLUR_WIDTH, CAROUSEL_BLUR_QUALITY, true\);[\s\S]*?preloadCinematicBackdrop\(art, true\);/);
+});
+
+test("cached latest-feed artwork stays provisional until the full catalog settles", () => {
+  const load = section("async function loadAnimeSources()", "function scheduleLazyAddonCatalogLoad(");
+  const apply = section("function applyServerCatalog(", "function scheduleDeferredServerCatalogRefresh(");
+  const deferred = section("function scheduleDeferredServerCatalogRefresh(", "async function loadAnimeSources()");
+  const render = section("function renderCarousel()", "let _carouselDotsHtml");
+
+  assert.match(load, /replaceRegularCatalog\(cachedCatalog, "cache"\)/);
+  assert.match(apply, /upgradesProvisionalArtwork[\s\S]*?_carouselPaintedId = null/);
+  assert.match(deferred, /state\.catalogTier = "fallback";[\s\S]*?_carouselPaintedId = null;[\s\S]*?renderCarousel\(\)/);
+  assert.match(render, /const catalogArtworkPending = !isAdultCatalogShow\(show\)[\s\S]*?\["none", "bootstrap", "cache"\]/);
+  assert.match(render, /const art = hiResArt;/);
+  assert.doesNotMatch(render, /hiResArt \|\| \(resolving/);
 });
 
 test("changing slide drops the previous slide's preview at once, even when no new one follows", async () => {

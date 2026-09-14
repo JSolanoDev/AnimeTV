@@ -258,6 +258,7 @@ function persistFavoriteIds(values, storage = localStorage) {
 
 const state = {
   route: "home",
+  catalogTier: "none",
   filter: "all",
   search: "",
   activeShow: null,
@@ -459,6 +460,7 @@ let _carouselMemoId = "";
     if (!heroMemoActive) return;   // real art already replaced it; not our problem
     heroMemoActive = false;
     clearHeroMemo();
+    delete carouselBackdropImage.dataset.decodedSrc;
     carouselStage.classList.remove("is-backdrop-loading");
     resetCarouselBlurPlaceholder();
     carouselBackdropImage.classList.remove("has-banner");
@@ -472,6 +474,7 @@ let _carouselMemoId = "";
     if (carouselBackdropImage.getAttribute("src") !== memo.src) return;
     const reveal = () => {
       if (carouselBackdropImage.getAttribute("src") !== memo.src || !carouselBackdropImage.naturalWidth) return;
+      carouselBackdropImage.dataset.decodedSrc = memo.src;
       carouselStage.classList.remove("is-backdrop-loading");
       clearCarouselBlurPlaceholder();
       signalAppLoader("hero");
@@ -486,6 +489,7 @@ let _carouselMemoId = "";
     }
   }, { once: true });
   carouselStage.classList.add("is-backdrop-loading");
+  delete carouselBackdropImage.dataset.decodedSrc;
   carouselBackdropImage.src = memo.src;
   showCarouselBlurPlaceholder(memo.art, memo.src);
   carouselBackdropImage.classList.add("has-banner");
@@ -904,7 +908,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=805`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=807`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -930,7 +934,12 @@ function scheduleAnimeAv1LatestLoad(delayMs = 450) {
 
 function applyServerCatalog(serverCatalog = [], label = "ZenkaiTV API") {
   if (!serverCatalog.length) return false;
+  const upgradesProvisionalArtwork = ["none", "bootstrap", "cache"].includes(state.catalogTier);
   replaceRegularCatalog(mergeShows(serverCatalog));
+  // A latest-feed-only row can share the same id as the newly installed full
+  // catalog row. Force that one slide to repaint so its baked TMDB backdrop is
+  // not stranded behind the id-only render guard.
+  if (upgradesProvisionalArtwork) _carouselPaintedId = null;
   state.isLoadingCatalog = false;
   resetCarouselIndexForFreshCatalog();
   state.apiStatus.metadata = "Online";
@@ -949,7 +958,18 @@ function scheduleDeferredServerCatalogRefresh(delayMs = 1500) {
   const cleanup = () => events.forEach((event) => window.removeEventListener(event, startRefresh, true));
   const refresh = async () => {
     const serverCatalog = await timedRequest("ZenkaiTV metadata API", () => fetchLocalMetadataCatalog()).catch(() => []);
-    if (serverCatalog.length) applyServerCatalog(serverCatalog);
+    if (serverCatalog.length) {
+      applyServerCatalog(serverCatalog);
+      return;
+    }
+    // The full catalog is the final artwork authority. If it is unreachable,
+    // release the cached/provider fallback instead of leaving the hero waiting
+    // forever; this happens only after the bounded catalog request has failed.
+    if (["none", "bootstrap", "cache"].includes(state.catalogTier)) {
+      state.catalogTier = "fallback";
+      _carouselPaintedId = null;
+      if (state.route === "home") renderCarousel();
+    }
   };
   function startRefresh() {
     if (started) return;
@@ -979,7 +999,7 @@ async function loadAnimeSources() {
   let hasInitialCatalog = false;
   const cachedCatalog = readResponseCache("main-catalog", CATALOG_CACHE_TTL);
   if (cachedCatalog?.length) {
-    replaceRegularCatalog(cachedCatalog);
+    replaceRegularCatalog(cachedCatalog, "cache");
     state.isLoadingCatalog = false;
     resetCarouselIndexForFreshCatalog();
     setSourceStatus(catalogStatusLabel("Cached ZenkaiTV catalog", cachedCatalog));
@@ -4298,8 +4318,10 @@ function carouselResolvedBackdropArtwork(show = {}) {
   // the sharp layer hidden instead of painting a temporary source image. Once
   // the lookup has genuinely settled, a show with no TMDB match may use its one
   // stable fallback; that fallback still follows blur -> decode -> sharp.
-  const lookupSettled = adult || show._tmdbResolved
-    || (show._carouselResolveTried && !show._carouselResolvePending);
+  const catalogArtworkPending = !adult && ["none", "bootstrap", "cache"].includes(state.catalogTier);
+  const lookupSettled = adult || (!catalogArtworkPending && (
+    show._tmdbResolved || (show._carouselResolveTried && !show._carouselResolvePending)
+  ));
   if (!lookupSettled) return "";
   return pickImage(stableArtworkCandidates(show, [carouselArtworkOrPoster(show)]
     .map((value) => hqImage(String(value || "").trim()))
@@ -4400,7 +4422,10 @@ function showCarouselBlurPlaceholder(art, deliveredArt) {
     if (token !== _carouselBlurToken) return;
     if (carouselBackdropImage.getAttribute("src") !== deliveredArt) return;
     if (!carouselStage.classList.contains("is-backdrop-loading")) return;
-    if (carouselBackdropImage.complete && carouselBackdropImage.naturalWidth > 0) return;
+    // `complete` only means the response finished. Chromium can still be
+    // decoding its first low-detail pass, so only a URL explicitly committed by
+    // the full-image decode callback is safe to reveal.
+    if (carouselBackdropImage.dataset.decodedSrc === deliveredArt) return;
     carouselBackdropBlur.style.backgroundImage = `url("${source}")`;
     carouselStage.classList.add("has-blur-placeholder");
     // A recognisable preview is enough to lift the splash; the sharpening then
@@ -4442,7 +4467,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=805";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=807";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4502,7 +4527,11 @@ function renderCarousel() {
     && !show._carouselResolveTried
     && !show._carouselResolvePending
     && typeof enrichTmdbImages === "function";
-  const resolving = !hiResArt && (Boolean(show._carouselResolvePending) || shouldStartResolution);
+  const catalogArtworkPending = !isAdultCatalogShow(show)
+    && ["none", "bootstrap", "cache"].includes(state.catalogTier);
+  const resolving = !hiResArt && (
+    Boolean(show._carouselResolvePending) || shouldStartResolution || catalogArtworkPending
+  );
   if (shouldStartResolution) {
     // The artwork lookup is part of loading too. Without this class, a restored
     // low-resolution release image and the selector remain visible for the full
@@ -4527,7 +4556,7 @@ function renderCarousel() {
   // full seven-second dwell of the current slide to finish; warming three future
   // shows at once only competed with the visible image and video intent requests.
   const preloadHeroImage = (s) => {
-    const a = s && hqImage(String(s.tmdbBackdrop || s.highQualityBackground || "").trim());
+    const a = s ? carouselResolvedBackdropArtwork(s) : "";
     if (a) preloadCinematicBackdrop(a, false);
   };
   if (typeof enrichTmdbImages === "function" && items.length > 1) {
@@ -4538,7 +4567,7 @@ function renderCarousel() {
     }
   }
   const hasLandscapeBanner = Boolean(hiResArt || show.banner || show.backdrop || show.heroImage || show.wideImage || show.landscapeImage);
-  const art = hiResArt || (resolving ? "" : stableArtworkCandidates(show, [carouselArtworkOrPoster(show)], "backdrop")[0] || "");
+  const art = hiResArt;
   const deliveredArt = art ? cinematicBackdropUrl(art) : "";
   show._paintedCarouselArtwork = art || "";
   carouselBackdrop.classList.toggle("has-banner", Boolean(art));
@@ -4577,6 +4606,7 @@ function renderCarousel() {
         if (carouselBackdropImage.getAttribute("src") !== deliveredArt) return;
         const reveal = () => {
           if (carouselBackdropImage.getAttribute("src") !== deliveredArt || !carouselBackdropImage.naturalWidth) return;
+          carouselBackdropImage.dataset.decodedSrc = deliveredArt;
           carouselStage.classList.remove("is-backdrop-loading");
           clearCarouselBlurPlaceholder();
           signalAppLoader("hero");
@@ -4598,6 +4628,7 @@ function renderCarousel() {
       carouselBackdropImage.onload = revealBackdrop;
       carouselBackdropImage.onerror = () => {
         if (carouselBackdropImage.getAttribute("src") !== deliveredArt) return;
+        delete carouselBackdropImage.dataset.decodedSrc;
         clearCarouselBlurPlaceholder();
         markArtworkLowQuality(art, "backdrop");
         try { ImageResolver.markImageFailed(art); } catch { /* resolver optional */ }
@@ -4605,16 +4636,20 @@ function renderCarousel() {
         _carouselPaintedId = null;
         renderCarousel();
       };
+      delete carouselBackdropImage.dataset.decodedSrc;
       carouselBackdropImage.src = deliveredArt;
       // Load a small copy of this exact final artwork while the sharp file
       // decodes. The two visible states therefore never use different images.
       showCarouselBlurPlaceholder(art, deliveredArt);
-    } else if (art && carouselBackdropImage.complete && carouselBackdropImage.naturalWidth > 0) {
+    } else if (art && carouselBackdropImage.dataset.decodedSrc === deliveredArt) {
       carouselStage.classList.remove("is-backdrop-loading");
       clearCarouselBlurPlaceholder();
       signalAppLoader("hero");
-    } else if (art && !memoStillBetter && !carouselBackdropImage.complete) {
+    } else if (art && !memoStillBetter) {
       // A bootstrap row may acquire a new provider id while this same URL loads.
+      // Keep the blur even after `complete` flips true: decode can still be
+      // pending, and that interval was exposing Chromium's blocky first pass.
+      carouselStage.classList.add("is-backdrop-loading");
       if (!carouselStage.classList.contains("has-blur-placeholder")) showCarouselBlurPlaceholder(art, deliveredArt);
     } else if (!art && !heroMemoActive) {
       // Keep the sharp layer empty while artwork resolves. The provider image may
@@ -4623,6 +4658,7 @@ function renderCarousel() {
       // A restored hero is deliberately left alone here — blanking it to
       // transparent and fading back in a moment later is a visible flash.
       const emptyBackdrop = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+      delete carouselBackdropImage.dataset.decodedSrc;
       carouselBackdropImage.src = emptyBackdrop;
       carouselBackdropImage.removeAttribute("srcset");
       if (!resolving) carouselStage.classList.remove("is-backdrop-loading");
@@ -4684,8 +4720,7 @@ function warmCarouselIndicatorTarget(show, immediate = false) {
   if (!show) return;
   const warm = () => {
     const warmResolvedArtwork = () => {
-      const art = carouselResolvedBackdropArtwork(show)
-        || (show._tmdbResolved || show._carouselResolveTried ? carouselArtworkOrPoster(show) : "");
+      const art = carouselResolvedBackdropArtwork(show);
       if (!art) return;
       // Start the tiny request first. On a click it paints the blur from the
       // selector cache while the one intended full-resolution request continues.
@@ -19814,7 +19849,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=805");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=807");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
