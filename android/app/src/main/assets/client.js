@@ -908,7 +908,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=807`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=808`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2641,7 +2641,7 @@ async function loadAdultCatalog(force = false) {
     if (loadedItems.length) return loadedItems;
   }
   const adapter = AdultSourceRegistry.get();
-  const cacheKey = `adult-catalog:${adapter.name}:multi-source-v13`;
+  const cacheKey = `adult-catalog:${adapter.name}:multi-source-v14`;
   const applyAdultItems = (items = [], labelPrefix = adapter.name) => {
     const adultItems = Array.isArray(items)
       ? items.filter((item) => item?.isAdult === true).map(isolateAdultSourceMetadata)
@@ -3648,7 +3648,16 @@ function hqImage(url) {
   return u;
 }
 
-function imageDeliveryUrl(url, width = 360, quality = 70) {
+function isRetiredAdultArtwork(url = "") {
+  try {
+    const host = new URL(String(url || "").trim(), location.href).hostname.toLowerCase();
+    return host === "veohentai.com" || host === "www.veohentai.com";
+  } catch {
+    return false;
+  }
+}
+
+function imageDeliveryUrl(url, width = 360, quality = 70, height = 0, fit = "") {
   const raw = String(url || "").trim();
   if (!raw || raw.startsWith("data:") || raw.startsWith("blob:") || raw.startsWith("./") || raw.startsWith("/")) return raw;
   if (!/^https?:$/i.test(location.protocol)) return raw;
@@ -3702,6 +3711,8 @@ function imageDeliveryUrl(url, width = 360, quality = 70) {
     proxy.searchParams.set("src", parsed.toString());
     if (width) proxy.searchParams.set("w", String(width));
     if (quality) proxy.searchParams.set("q", String(quality));
+    if (height) proxy.searchParams.set("h", String(height));
+    if (height && fit === "cover") proxy.searchParams.set("fit", "cover");
     return proxy.pathname + proxy.search;
   } catch {
     return raw;
@@ -3743,7 +3754,7 @@ function cinematicBackdropUrl(url) {
 // its own viewport/DPR instead of one giant width for everyone. This keeps full
 // per-device sharpness while cutting bytes (and LCP) on smaller screens — the
 // proxy clamps width at 2560 and never upscales (withoutEnlargement).
-function imageDeliverySrcSet(url, widths, quality = 80) {
+function imageDeliverySrcSet(url, widths, quality = 80, options = {}) {
   const raw = String(url || "").trim();
   if (!raw) return "";
   // Every candidate has to be described by the width it ACTUALLY is. The proxy
@@ -3757,7 +3768,9 @@ function imageDeliverySrcSet(url, widths, quality = 80) {
   // it collapses to a single entry and yields no srcset - as before.
   const candidates = new Map();
   for (const w of widths) {
-    const delivered = imageDeliveryUrl(raw, w, quality);
+    const aspectRatio = Number(options.aspectRatio || 0);
+    const height = aspectRatio > 0 ? Math.round(w / aspectRatio) : 0;
+    const delivered = imageDeliveryUrl(raw, w, quality, height, options.fit || "");
     if (!delivered || delivered === raw) continue;
     const native = /\/t\/p\/w(\d{2,4})\//.exec(delivered);
     if (!candidates.has(delivered)) candidates.set(delivered, native ? Number(native[1]) : w);
@@ -4052,6 +4065,10 @@ function getCardPosterCandidates(show = {}) {
   candidates.forEach((value) => {
     const raw = String(value || "").trim();
     if (!raw) return;
+    // VeoHentai removed its historical /wp-content/uploads poster set. Ignore
+    // those URLs even when an older catalog is restored from browser cache, so
+    // cards immediately reach their verified source artwork.
+    if (isRetiredAdultArtwork(raw)) return;
     if (/(^|\/)logo-(?:round|mark|wordmark|transparent)/i.test(raw)) return;
     const sourcePoster = animeAv1ArtworkVariant(raw, "poster");
     [sourcePoster, raw].filter(Boolean).forEach((candidate) => {
@@ -4467,7 +4484,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=807";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=808";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4921,8 +4938,7 @@ function artworkDimensionsAreUseful(img, role) {
 }
 
 function artworkCanUseContainedPoster(img) {
-  const width = Number(img.naturalWidth || 0);
-  const height = Number(img.naturalHeight || 0);
+  const { width, height } = artworkIntrinsicPixels(img);
   if (width < 240 || height < 120) return false;
   const ratio = width / height;
   return ratio >= 0.9 && ratio <= 2.4;
@@ -6088,8 +6104,23 @@ function cardTemplate(show, index = 0) {
     ? ` data-open-provider-slug="${escapeHtml(sourceIntentSlug)}"${sourceIntentEpisode !== undefined && sourceIntentEpisode !== null ? ` data-open-provider-episode="${escapeHtml(String(sourceIntentEpisode))}"` : ""}`
     : "";
   const posterCandidates = getCardPosterCandidates(show);
+  const adultPosterOptions = (url) => (
+    isAdultCatalogShow(show) && /^https:\/\/static\.underhentai\.net\//i.test(String(url || ""))
+      ? { aspectRatio: 2 / 3, fit: "cover" }
+      : null
+  );
+  const deliverPoster = (url, width) => {
+    const options = adultPosterOptions(url);
+    return imageDeliveryUrl(
+      url,
+      width,
+      90,
+      options ? Math.round(width / options.aspectRatio) : 0,
+      options?.fit || ""
+    );
+  };
   const deliveredCandidates = [...new Set(posterCandidates.flatMap((url) => {
-    const delivered = imageDeliveryUrl(url, 400, 90);
+    const delivered = deliverPoster(url, 400);
     const raw = String(url || "").trim();
     const isAnimeAv1Cover = /^https:\/\/cdn\.animeav1\.com\/covers\//i.test(raw);
     if (delivered === raw) return [raw];
@@ -6104,8 +6135,9 @@ function cardTemplate(show, index = 0) {
   // a retina desktop. srcset lets the browser pick, keeping cards crisp on every
   // screen while mobile downloads far fewer bytes.
   const directAnimeAv1Cover = /^https:\/\/cdn\.animeav1\.com\/covers\//i.test(String(posterCandidates[0] || ""));
+  const leadingPosterOptions = adultPosterOptions(posterCandidates[0]);
   const posterSrcSet = posterCandidates.length && !directAnimeAv1Cover
-    ? imageDeliverySrcSet(posterCandidates[0], [200, 280, 360, 400, 480], 90)
+    ? imageDeliverySrcSet(posterCandidates[0], [200, 280, 360, 400, 480], 90, leadingPosterOptions || {})
     : "";
   const srcsetAttr = posterSrcSet
     // 30vw described the 120px home-rail card only. The Library/Favorites phone
@@ -19849,7 +19881,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=807");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=808");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

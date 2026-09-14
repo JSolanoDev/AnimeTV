@@ -605,7 +605,7 @@ test("local-only retired files cannot change the production catalog total", asyn
   }
   assert.deepEqual(results.map(result => result.count), [1, 1]);
   assert.deepEqual(results.map(result => result.excludedForSafety), [1, 1]);
-  assert.match(client, /multi-source-v13/, "retired browser snapshots must not be restored after upgrading");
+  assert.match(client, /multi-source-v14/, "retired browser snapshots must not be restored after upgrading");
 });
 
 test("catalog cold builds reuse the bundled snapshot instead of fan-out metadata calls", () => {

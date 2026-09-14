@@ -12,10 +12,12 @@ const slice = (startMarker, endMarker) => {
 };
 
 const code = [
+  slice("function isRetiredAdultArtwork(", "\nfunction imageDeliveryUrl"),
   slice("function imageDeliveryUrl(", "\n// One canonical backdrop"),
   slice("function imageDeliverySrcSet(", "\nconst artworkImagePreloads"),
   slice("function artworkIntrinsicPixels(", "\nfunction artworkDimensionsAreUseful"),
-  slice("function artworkDimensionsAreUseful(", "\nfunction ")
+  slice("function artworkDimensionsAreUseful(", "\nfunction "),
+  slice("function artworkCanUseContainedPoster(", "\nfunction backdropPixelsLookUseful")
 ].join("\n");
 
 const ctx = vm.createContext({ URL, console, location: { protocol: "https:", origin: "https://zenkaitv.com", href: "https://zenkaitv.com/" } });
@@ -24,6 +26,8 @@ const imageDeliveryUrl = vm.runInContext("imageDeliveryUrl", ctx);
 const imageDeliverySrcSet = vm.runInContext("imageDeliverySrcSet", ctx);
 const artworkIntrinsicPixels = vm.runInContext("artworkIntrinsicPixels", ctx);
 const artworkDimensionsAreUseful = vm.runInContext("artworkDimensionsAreUseful", ctx);
+const artworkCanUseContainedPoster = vm.runInContext("artworkCanUseContainedPoster", ctx);
+const isRetiredAdultArtwork = vm.runInContext("isRetiredAdultArtwork", ctx);
 
 const rows = [];
 const check = (name, got, want) => rows.push(
@@ -54,6 +58,10 @@ check("adult host stays proxied", imageDeliveryUrl("https://static.underhentai.n
 check("Bangumi adult fallback stays proxied", imageDeliveryUrl("https://lain.bgm.tv/pic/cover/l/x.jpg", 360, 88).startsWith("/api/image"), true);
 check("Shikimori adult fallback stays proxied", imageDeliveryUrl("https://shikimori.one/system/animes/original/x.jpg", 360, 88).startsWith("/api/image"), true);
 check("unknown host untouched", imageDeliveryUrl("https://example.com/x.jpg", 360, 88), "https://example.com/x.jpg");
+const adultCrop = imageDeliveryUrl("https://static.underhentai.net/assets/title.jpg", 400, 90, 600, "cover");
+check("adult source fallback requests a portrait crop", adultCrop.includes("w=400") && adultCrop.includes("h=600") && adultCrop.includes("fit=cover"), true);
+check("retired VeoHentai artwork is identified", isRetiredAdultArtwork("https://veohentai.com/wp-content/uploads/dead.jpg"), true);
+check("working adult artwork is not retired", isRetiredAdultArtwork("https://static.underhentai.net/assets/title.jpg"), false);
 
 /* ---- malformed TMDB paths must NOT be rewritten ---- */
 check("TMDB non /t/p/ path stays proxied", imageDeliveryUrl("https://image.tmdb.org/weird/abc.jpg", 360, 88).startsWith("/api/image"), true);
@@ -67,6 +75,13 @@ check("srcset deduplicated to 2 candidates", ss.split(",").length, 2);
 check("srcset never labels a file by the requested width", /342w|500w/.test(ss) && !/200w|280w|360w|400w|480w/.test(ss), true);
 const ssProxy = imageDeliverySrcSet("https://s4.anilist.co/file/x.jpg", [200, 360, 480], 90);
 check("proxy srcset still uses requested widths", ssProxy.includes("200w") && ssProxy.includes("480w"), true);
+const ssAdult = imageDeliverySrcSet(
+  "https://static.underhentai.net/assets/title.jpg",
+  [200, 400],
+  90,
+  { aspectRatio: 2 / 3, fit: "cover" }
+);
+check("adult poster srcset keeps a 2:3 crop at every width", ssAdult.includes("h=300") && ssAdult.includes("h=600") && ssAdult.includes("fit=cover"), true);
 check("ineligible host yields no srcset", imageDeliverySrcSet("https://example.com/x.jpg", [200, 360], 90), "");
 
 /* ---- artworkIntrinsicPixels ---- */
@@ -89,6 +104,8 @@ check("a genuinely tiny poster is STILL rejected",
   artworkDimensionsAreUseful(img(90, 135, "https://example.com/a.jpg"), "poster"), false);
 check("malformed TMDB tiny poster still rejected",
   artworkDimensionsAreUseful(img(90, 135, "https://image.tmdb.org/t/p/wabc/a.jpg"), "poster"), false);
+check("responsive landscape source art remains a usable contained fallback",
+  artworkCanUseContainedPoster(img(179, 119, "/api/image?src=x&w=280&q=90")), true);
 
 console.log(rows.join("\n"));
 const failed = rows.filter((r) => r.startsWith("FAIL")).length;

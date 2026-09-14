@@ -549,6 +549,7 @@ const IMAGE_PROXY_MAX_BYTES = 5 * 1024 * 1024;
 // browser on a 4K screen. sharp still runs withoutEnlargement, so a smaller
 // source is passed through at its own size rather than upscaled.
 const IMAGE_PROXY_MAX_WIDTH = 3840;
+const IMAGE_PROXY_MAX_HEIGHT = 3840;
 const IMAGE_PROXY_DEFAULT_WIDTH = 360;
 const IMAGE_PROXY_WEBP_QUALITY = 70;
 const STRICT_TRANSPORT_SECURITY = "max-age=31536000; includeSubDomains; preload";
@@ -1472,6 +1473,15 @@ async function handleImageProxy(url, response) {
     45,
     Math.min(92, Number(url.searchParams.get("q") || IMAGE_PROXY_WEBP_QUALITY) || IMAGE_PROXY_WEBP_QUALITY)
   );
+  const rawHeight = Number(url.searchParams.get("h") || 0);
+  // Height cropping is intentionally limited to the verified UnderHentai card
+  // fallback. Keeping the general image proxy width-only avoids exposing a
+  // public arbitrary-canvas transform that could multiply serverless CPU use.
+  const canCropPortrait = source.hostname.toLowerCase() === "static.underhentai.net";
+  const requestedHeight = canCropPortrait && rawHeight > 0
+    ? Math.max(64, Math.min(IMAGE_PROXY_MAX_HEIGHT, requestedWidth * 2, rawHeight))
+    : 0;
+  const requestedFit = requestedHeight && url.searchParams.get("fit") === "cover" ? "cover" : "inside";
   let outputBuffer = originalBuffer;
   let outputType = contentType;
   let optimized = false;
@@ -1479,7 +1489,14 @@ async function handleImageProxy(url, response) {
     try {
       outputBuffer = await sharp(originalBuffer, { animated: false, limitInputPixels: 36_000_000 })
         .rotate()
-        .resize({ width: requestedWidth, withoutEnlargement: true })
+        .resize({
+          width: requestedWidth,
+          ...(requestedHeight ? { height: requestedHeight, fit: requestedFit, position: "centre" } : {}),
+          // Source title frames are commonly 600x400. A portrait card crops a
+          // narrow 267x400 region from that frame, so allow only this trusted
+          // crop path to scale to its requested 2:3 output dimensions.
+          withoutEnlargement: !requestedHeight
+        })
         // At these high quality settings effort 2 is visually equivalent while
         // cutting cold hero transcode CPU time roughly in half. Repeat requests
         // remain free through the immutable CDN cache.
@@ -10223,24 +10240,20 @@ function handleUnderHentaiReleases(url, response) {
 
 const CURATED_UNDERHENTAI_PORTRAITS = Object.freeze({
   "nonohara-yuka-no-himitsu-no-haishin": {
-    url: "https://veohentai.com/wp-content/uploads/2025/03/Nonohara-Yuka-no-Himitsu-no-Haishin-Episode-2.jpg",
-    source: "VeoHentai"
+    url: "https://img.hentaihaven.xxx/images/hh/y/c/s_Nonohara-Yuka-no-Himitsu-no-Haishin-Episode-2.jpg",
+    source: "HentaiLA"
   },
   "shiawase-nara-niku-o-morou-the-animation": {
-    url: "https://veohentai.com/wp-content/uploads/2022/08/shiawase-nara-niko-o-morou-1-cv1.png",
-    source: "VeoHentai"
+    url: "https://shikimori.one/system/animes/original/49580.jpg?1706499404",
+    source: "Shikimori"
   },
-  "mecha-gishi-resta-no-daibouken": {
-    url: "https://veohentai.com/wp-content/uploads/2025/02/Mecha-Gishi-Resta-no-Daibouken-Episode-2.jpg",
-    source: "VeoHentai"
+  "ane-kyun-joshi-ga-ie-ni-kita": {
+    url: "https://shikimori.one/system/animes/original/24967.jpg?1711940647",
+    source: "Shikimori"
   },
-  "sex-ga-suki-de-suki-de-daisuki-na-classmate-no-ano-ko": {
-    url: "https://veohentai.com/wp-content/uploads/2025/05/Sex-ga-Suki-de-Suki-de-Daisuki-na-Classmate-no-Ano-Musume-Episode-4.jpg",
-    source: "VeoHentai"
-  },
-  "kakurenbo-the-animation": {
-    url: "https://veohentai.com/wp-content/uploads/2025/09/Kakurenbo-The-Animation-Episode-1.jpg",
-    source: "VeoHentai"
+  "otome-hime": {
+    url: "https://shikimori.one/system/animes/original/27909.jpg?1711968089",
+    source: "Shikimori"
   },
   "nee-summer": {
     url: "https://shikimori.one/system/animes/original/11321.jpg?1711965812",
@@ -10251,6 +10264,20 @@ const CURATED_UNDERHENTAI_PORTRAITS = Object.freeze({
     source: "Shikimori"
   }
 });
+
+const RETIRED_ADULT_ARTWORK_HOSTS = new Set([
+  "veohentai.com",
+  "www.veohentai.com"
+]);
+
+function isUsableAdultPortraitArtwork(value = "") {
+  try {
+    const parsed = new URL(String(value || "").trim());
+    return parsed.protocol === "https:" && !RETIRED_ADULT_ARTWORK_HOSTS.has(parsed.hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
 
 function readAdultPortraitArtworkMap() {
   if (adultPortraitArtworkMap) return adultPortraitArtworkMap;
@@ -10265,7 +10292,7 @@ function readAdultPortraitArtworkMap() {
       ? Object.entries(payload.items)
       : [];
     adultPortraitArtworkMap = new Map(entries.filter(([slug, artwork]) => (
-      slug && /^https:\/\//i.test(String(artwork?.url || ""))
+      slug && isUsableAdultPortraitArtwork(artwork?.url)
     )));
   } catch {
     adultPortraitArtworkMap = new Map();
@@ -10275,7 +10302,9 @@ function readAdultPortraitArtworkMap() {
 
 function resolveUnderHentaiPortraitArtwork(item = {}) {
   const explicit = String(item.adultPortraitCover || "").trim();
-  if (/^https:\/\//i.test(explicit)) return { url: explicit, source: item.adultPortraitSource || "UnderHentai" };
+  if (isUsableAdultPortraitArtwork(explicit)) {
+    return { url: explicit, source: item.adultPortraitSource || "UnderHentai" };
+  }
   const slug = String(item.slug || "").trim().toLowerCase();
   if (CURATED_UNDERHENTAI_PORTRAITS[slug]) return CURATED_UNDERHENTAI_PORTRAITS[slug];
   return slug ? readAdultPortraitArtworkMap().get(slug) || null : null;

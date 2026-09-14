@@ -18,23 +18,36 @@ const {
 const underHentai = new UnderHentaiAdultSourceAdapter();
 const hentaiOcean = new HentaiOceanAdultSourceAdapter();
 const composite = new CompositeAdultSourceAdapter([underHentai, hentaiOcean]);
+const underHentaiCatalog = require("../scraper/underhentai_catalog.json");
 const portraitMap = require("../scraper/adult_portrait_map.json");
 
+assert.ok(underHentaiCatalog.items.length >= 989, "the complete adult catalog should remain bundled");
+assert.ok(
+  underHentaiCatalog.items.every((item) => /^https:\/\/static\.underhentai\.net\//i.test(item.image || "")),
+  "every bundled adult title must retain its verified source artwork fallback"
+);
+assert.ok(
+  underHentaiCatalog.items
+    .map((item, index) => underHentai._catalogItem(item, index))
+    .every((item) => item.adultPortraitCover && item.image),
+  "every normalized adult card must have both primary and portrait artwork"
+);
 assert.equal(Object.keys(portraitMap.items || {}).length, portraitMap.total);
-assert.ok(portraitMap.total >= 704, "the production portrait map should retain broad catalog coverage");
+assert.ok(portraitMap.total >= 90, "the production portrait map should retain verified exact-match coverage");
+assert.ok(
+  Object.values(portraitMap.items || {}).every((artwork) => !/(?:www\.)?veohentai\.com/i.test(artwork?.url || "")),
+  "the production portrait map must not retain the retired VeoHentai uploads"
+);
 
 const portraitFixtures = [
-  ["nonohara-yuka-no-himitsu-no-haishin", "Nonohara Yuka no Himitsu no Haishin", /veohentai\.com/],
-  ["shiawase-nara-niku-o-morou-the-animation", "Shiawase nara Niku o Morou! The Animation", /veohentai\.com/],
-  ["mecha-gishi-resta-no-daibouken", "Mecha Gishi Resta no Daibouken", /veohentai\.com/],
-  ["sex-ga-suki-de-suki-de-daisuki-na-classmate-no-ano-ko", "Sex ga Suki de Suki de Daisuki na Classmate no Ano Ko", /veohentai\.com/],
-  ["kakurenbo-the-animation", "Kakurenbo The Animation", /veohentai\.com/],
+  ["nonohara-yuka-no-himitsu-no-haishin", "Nonohara Yuka no Himitsu no Haishin", /img\.hentaihaven\.xxx/],
+  ["shiawase-nara-niku-o-morou-the-animation", "Shiawase nara Niku o Morou! The Animation", /shikimori\.one/],
   ["nee-summer", "Nee Summer!", /shikimori\.one/],
   ["boku-dake-no-hentai-kanojo-motto-the-animation", "Boku dake no Hentai Kanojo Motto The Animation", /shikimori\.one/],
-  ["ane-kyun-joshi-ga-ie-ni-kita", "Ane Kyun! Joshi ga Ie ni Kita!", /veohentai\.com/],
+  ["ane-kyun-joshi-ga-ie-ni-kita", "Ane Kyun! Joshi ga Ie ni Kita!", /shikimori\.one/],
   ["inyouchuu-shoku-ryoushokutou-taimaroku-harami-ochiru-shoujo-tachi-anime-edition", "Inyouchuu Shoku", /lain\.bgm\.tv/],
   ["s-ke-ni-totsuida-m-jou-no-nichijou", "S-ke ni Totsuida M-jou no Nichijou", /lain\.bgm\.tv/],
-  ["otome-hime", "Otome Hime", /veohentai\.com/],
+  ["otome-hime", "Otome Hime", /shikimori\.one/],
   ["mou-ichido-shite-mitai", "Mou Ichido, Shite Mitai.", /lain\.bgm\.tv/],
   ["dainiji-ura-nyuugakushiken-the-animation", "Dainiji Ura Nyuugakushiken The Animation", /lain\.bgm\.tv/],
   ["tsuma-ga-onsen-de-circle-nakama-no-nikubenki-ni-natta-no-desu-ga-anime-edition", "Tsuma ga Onsen", /lain\.bgm\.tv/],
@@ -48,16 +61,36 @@ portraitFixtures.forEach(([slug, title, expectedHost]) => {
   assert.match(artwork?.url || "", expectedHost, `${title} should have a portrait-card fallback`);
 });
 
+assert.equal(
+  resolveUnderHentaiPortraitArtwork({
+    slug: "unmapped-retired-poster",
+    adultPortraitCover: "https://veohentai.com/wp-content/uploads/dead.jpg"
+  }),
+  null,
+  "a stale cached VeoHentai poster must not be returned as usable artwork"
+);
+
 const portraitPrimary = underHentai._catalogItem({
   slug: "portrait-fixture",
   title: "Portrait Fixture",
   image: "https://static.underhentai.net/assets/landscape.jpg",
-  adultPortraitCover: "https://veohentai.com/wp-content/uploads/portrait.jpg"
+  adultPortraitCover: "https://img.hentaihaven.xxx/images/portrait.jpg"
 });
 assert.equal(
   portraitPrimary.adultPortraitCover,
-  "https://veohentai.com/wp-content/uploads/portrait.jpg",
+  "https://img.hentaihaven.xxx/images/portrait.jpg",
   "UnderHentai card mapping must preserve a separate portrait cover"
+);
+
+const sourceFallback = underHentai._catalogItem({
+  slug: "source-fallback",
+  title: "Source Fallback",
+  image: "https://static.underhentai.net/assets/source-fallback.jpg"
+});
+assert.equal(
+  sourceFallback.adultPortraitCover,
+  sourceFallback.image,
+  "every title without a mapped portrait must retain its verified source image"
 );
 
 const primary = underHentai._catalogItem({
