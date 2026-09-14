@@ -103,7 +103,7 @@ check("single item survives", sortCarouselCurrency([A], NOW, () => null).map((s)
   const hydration = between("function scheduleCarouselIndicatorHydration(", "function simpleCarouselText(");
   check("indicator artwork is preloaded before the selector is revealed", /Promise\.allSettled\([\s\S]*preloadArtworkImage/.test(hydration), true);
   check("the hero never paints its 4K artwork onto the loading layer", /carouselBackdrop\.style\.backgroundImage = `url/.test(render), false);
-  check("the high-resolution lookup keeps the clean wait surface visible", /if \(resolving\) \{[\s\S]*carouselStage\.classList\.add\("is-backdrop-loading"\)/.test(render), true);
+  check("the high-resolution lookup keeps the clean wait surface visible", /if \(shouldStartResolution\) \{[\s\S]*carouselStage\.classList\.add\("is-backdrop-loading"\)/.test(render), true);
   check("a failed high-resolution lookup repaints the source-art fallback", /\.then\(repaintResolvedArtwork, repaintResolvedArtwork\)/.test(render), true);
   check("the empty image branch does not dismiss an active artwork lookup", /if \(!resolving\) carouselStage\.classList\.remove\("is-backdrop-loading"\)/.test(render), true);
   check("the carousel warms only its immediate next slide", /state\.carouselIndex \+ 1/.test(render) && !/off <= 3/.test(render), true);

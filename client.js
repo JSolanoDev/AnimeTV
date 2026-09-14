@@ -370,6 +370,17 @@ const sections = document.querySelectorAll("[data-section]");
 const carouselBackdrop = document.querySelector("#carouselBackdrop");
 const carouselBackdropImage = document.querySelector("#carouselBackdropImage");
 const carouselBackdropBlur = document.querySelector("#carouselBackdropBlur");
+const carouselTitle = document.querySelector("#carouselTitle");
+const carouselText = document.querySelector("#carouselText");
+const carouselMeta = document.querySelector("#carouselMeta");
+const carouselOpen = document.querySelector("#carouselOpen");
+const carouselStage = document.querySelector("#carouselStage");
+const carouselIndicators = document.querySelector("#carouselIndicators");
+let carouselTimer = null;
+let _carouselIndicatorImagesReady = false;
+let _carouselIndicatorHydrationQueued = false;
+let _carouselIndicatorHydrationGeneration = 0;
+let lastInputWasPointer = false;
 // A small copy of the slide's own artwork, blurred, shown only while the full
 // resolution backdrop loads. See showCarouselBlurPlaceholder().
 const CAROUSEL_BLUR_WIDTH = 160;
@@ -385,7 +396,7 @@ let _carouselPreviewShowId = "";
 const HERO_MEMO_KEY = "ztv:hero-art";
 // Bump when the stored shape changes - every older entry is then dropped on read
 // instead of being fed to code that expects new fields.
-const HERO_MEMO_SCHEMA = 3;
+const HERO_MEMO_SCHEMA = 4;
 // Artwork gets replaced upstream; a memo older than this is more likely to be a
 // dead URL than a useful head start, so it expires rather than living forever.
 const HERO_MEMO_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -412,6 +423,17 @@ function readHeroMemo() {
   // Same-origin proxy URLs only: a tampered value must not repoint the hero at
   // an arbitrary host.
   if (typeof memo.src !== "string" || !memo.src.startsWith("/api/image?")) { clearHeroMemo(); return null; }
+  // The original final-art URL is required to build a tiny preview of that exact
+  // image. Older memos only stored the full proxy URL and exposed its progressive
+  // decode as a blocky sharp image, so schema 4 deliberately drops them once.
+  if (typeof memo.art !== "string" || !/^https?:\/\//i.test(memo.art)) { clearHeroMemo(); return null; }
+  try {
+    const proxiedArt = new URL(memo.src, location.origin).searchParams.get("src");
+    if (!proxiedArt || new URL(proxiedArt).href !== new URL(memo.art).href) {
+      clearHeroMemo();
+      return null;
+    }
+  } catch (err) { clearHeroMemo(); return null; }
   if (memo.srcset != null && typeof memo.srcset !== "string") { clearHeroMemo(); return null; }
   return memo;
 }
@@ -437,6 +459,8 @@ let _carouselMemoId = "";
     if (!heroMemoActive) return;   // real art already replaced it; not our problem
     heroMemoActive = false;
     clearHeroMemo();
+    carouselStage.classList.remove("is-backdrop-loading");
+    resetCarouselBlurPlaceholder();
     carouselBackdropImage.classList.remove("has-banner");
     carouselBackdropImage.removeAttribute("srcset");
   });
@@ -445,11 +469,25 @@ let _carouselMemoId = "";
     carouselBackdropImage.setAttribute("sizes", "100vw");
   }
   carouselBackdropImage.addEventListener("load", () => {
-    // Real art for a real show, whether the memo still owns it or renderCarousel
-    // has adopted it as this visit's hero.
-    if (carouselBackdropImage.getAttribute("src") === memo.src) signalAppLoader("hero");
+    if (carouselBackdropImage.getAttribute("src") !== memo.src) return;
+    const reveal = () => {
+      if (carouselBackdropImage.getAttribute("src") !== memo.src || !carouselBackdropImage.naturalWidth) return;
+      carouselStage.classList.remove("is-backdrop-loading");
+      clearCarouselBlurPlaceholder();
+      signalAppLoader("hero");
+    };
+    // Keep the sharp layer completely hidden until the browser has decoded it.
+    // This prevents the low-detail progressive pass from becoming a visible
+    // loading state on a cold cache.
+    if (typeof carouselBackdropImage.decode === "function") {
+      carouselBackdropImage.decode().then(reveal).catch(reveal);
+    } else {
+      reveal();
+    }
   }, { once: true });
+  carouselStage.classList.add("is-backdrop-loading");
   carouselBackdropImage.src = memo.src;
+  showCarouselBlurPlaceholder(memo.art, memo.src);
   carouselBackdropImage.classList.add("has-banner");
   carouselBackdropImage.classList.toggle("is-portrait-art", Boolean(memo.portrait));
   heroMemoActive = true;
@@ -463,18 +501,6 @@ let _carouselMemoId = "";
     if (titleEl) titleEl.textContent = memo.title;
   }
 })();
-const carouselTitle = document.querySelector("#carouselTitle");
-const carouselText = document.querySelector("#carouselText");
-const carouselMeta = document.querySelector("#carouselMeta");
-const carouselOpen = document.querySelector("#carouselOpen");
-const carouselStage = document.querySelector("#carouselStage");
-const carouselIndicators = document.querySelector("#carouselIndicators");
-let carouselTimer = null;
-let _carouselIndicatorImagesReady = false;
-let _carouselIndicatorHydrationQueued = false;
-let _carouselIndicatorHydrationGeneration = 0;
-let lastInputWasPointer = false;
-
 // The splash used to come down almost as soon as it went up: loadAnimeSources()
 // called hideAppLoader() as its very FIRST statement, before any catalogue had
 // loaded, with a flat 850ms timer behind it as a backstop. On home that handed
@@ -878,7 +904,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=804`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=805`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -4256,10 +4282,27 @@ function carouselArtworkOrPoster(show = {}) {
 }
 
 function carouselResolvedBackdropArtwork(show = {}) {
-  return pickImage(stableArtworkCandidates(show, [
-    show.tmdbBackdrop,
-    show.highQualityBackground
-  ].map((value) => hqImage(String(value || "").trim()))
+  const adult = isAdultCatalogShow(show);
+  // Regular releases use TMDB as the canonical hero. AniList and provider
+  // banners are useful fallbacks, but accepting one before TMDB resolution is
+  // settled creates two "final" images: a soft source banner followed by TMDB.
+  // Adult titles keep their source-curated cinematic backdrop as canonical.
+  const canonical = pickImage((adult
+    ? [show.adultCinematicBackdrop, show.tmdbBackdrop, show.highQualityBackground]
+    : [show.tmdbBackdrop]
+  ).map((value) => hqImage(String(value || "").trim()))
+    .filter((value) => value && !isArtworkLowQuality(value, "backdrop")));
+  if (canonical) return canonical;
+
+  // While a regular lookup is pending, return no artwork. renderCarousel keeps
+  // the sharp layer hidden instead of painting a temporary source image. Once
+  // the lookup has genuinely settled, a show with no TMDB match may use its one
+  // stable fallback; that fallback still follows blur -> decode -> sharp.
+  const lookupSettled = adult || show._tmdbResolved
+    || (show._carouselResolveTried && !show._carouselResolvePending);
+  if (!lookupSettled) return "";
+  return pickImage(stableArtworkCandidates(show, [carouselArtworkOrPoster(show)]
+    .map((value) => hqImage(String(value || "").trim()))
     .filter((value) => value && !isArtworkLowQuality(value, "backdrop")), "backdrop"));
 }
 
@@ -4399,7 +4442,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=804";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=805";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4454,14 +4497,21 @@ function renderCarousel() {
   // _tmdbResolved, so `resolving` stays true and the .then below re-renders the
   // carousel forever — an infinite loop that freezes the tab and spams the proxy.
   // After one attempt we just fall back to the banner.
-  const resolving = !hiResArt && !show._tmdbResolved && !show._carouselResolveTried && typeof enrichTmdbImages === "function";
-  if (resolving) {
+  const shouldStartResolution = !hiResArt
+    && !show._tmdbResolved
+    && !show._carouselResolveTried
+    && !show._carouselResolvePending
+    && typeof enrichTmdbImages === "function";
+  const resolving = !hiResArt && (Boolean(show._carouselResolvePending) || shouldStartResolution);
+  if (shouldStartResolution) {
     // The artwork lookup is part of loading too. Without this class, a restored
     // low-resolution release image and the selector remain visible for the full
     // TMDB request, even though the final backdrop has not been chosen yet.
     carouselStage.classList.add("is-backdrop-loading");
     show._carouselResolveTried = true;
+    show._carouselResolvePending = true;
     const repaintResolvedArtwork = () => {
+      show._carouselResolvePending = false;
       if (state.route === "home" && String(items[state.carouselIndex]?.id || "") === String(show.id)) {
         _carouselPaintedId = null; // force a repaint now that the backdrop resolved
         renderCarousel();
@@ -4533,6 +4583,7 @@ function renderCarousel() {
           writeHeroMemo({
             id: String(show.id || ""),
             title: getShowTitle(show) || show.title || "",
+            art,
             src: deliveredArt,
             srcset: "",
             portrait: !hasLandscapeBanner
@@ -19763,7 +19814,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=804");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=805");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

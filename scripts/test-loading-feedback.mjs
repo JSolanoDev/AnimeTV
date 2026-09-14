@@ -37,7 +37,7 @@ test("a decoded old hero cannot reveal or save over a new slide", async () => {
   let current = "slide-one";
   const events = [];
   const c = vm.createContext({
-    deliveredArt: "slide-one", show: { id: "one" }, hasLandscapeBanner: true,
+    art: "https://cdn.example/slide-one.jpg", deliveredArt: "slide-one", show: { id: "one" }, hasLandscapeBanner: true,
     carouselBackdropImage: { naturalWidth: 1920, getAttribute: () => current, decode: () => new Promise(resolve => { finish = resolve; }) },
     carouselStage: { classList: { remove: () => events.push("reveal") } },
     clearCarouselBlurPlaceholder: () => events.push("clear"),
@@ -450,6 +450,40 @@ test("artwork lookup never substitutes a different provider image before the fin
   assert.match(lookupWait, /carouselBackdropImage\.src = emptyBackdrop/);
 });
 
+test("regular carousel artwork waits for canonical TMDB resolution before using a fallback", () => {
+  const c = vm.createContext({
+    isAdultCatalogShow: show => Boolean(show.adult),
+    hqImage: value => value,
+    isArtworkLowQuality: () => false,
+    pickImage: values => values.find(Boolean) || "",
+    stableArtworkCandidates: (_show, values) => values,
+    carouselArtworkOrPoster: show => show.highQualityBackground || show.banner || show.image || ""
+  });
+  vm.runInContext(section("function carouselResolvedBackdropArtwork(", "// How long the carousel"), c);
+
+  const sourceBanner = "https://source.example/soft-banner.jpg";
+  const tmdbBackdrop = "https://image.tmdb.org/t/p/original/final.jpg";
+  assert.equal(c.carouselResolvedBackdropArtwork({ highQualityBackground: sourceBanner }), "");
+  assert.equal(c.carouselResolvedBackdropArtwork({
+    highQualityBackground: sourceBanner,
+    _carouselResolveTried: true,
+    _carouselResolvePending: true
+  }), "", "a rerender during the lookup must not expose the source banner");
+  assert.equal(c.carouselResolvedBackdropArtwork({
+    highQualityBackground: sourceBanner,
+    _carouselResolveTried: true,
+    _carouselResolvePending: false
+  }), sourceBanner, "a settled no-match may use one stable fallback");
+  assert.equal(c.carouselResolvedBackdropArtwork({
+    highQualityBackground: sourceBanner,
+    tmdbBackdrop
+  }), tmdbBackdrop);
+  assert.equal(c.carouselResolvedBackdropArtwork({
+    adult: true,
+    highQualityBackground: sourceBanner
+  }), sourceBanner, "adult source-curated backdrops remain canonical");
+});
+
 test("a late or stale carousel preview never flashes over the real image", async () => {
   const art = "https://cdn.example/hero.jpg";
   const delivered = "/api/image?src=hero&w=1920&q=92";
@@ -579,11 +613,16 @@ test("changing slide drops the previous slide's preview at once, even when no ne
   assert.match(render, /if \(!items\.length\) \{[\s\S]*?resetCarouselBlurPlaceholder\(\);[\s\S]*?return;/);
 });
 
-test("a restored hero lifts the splash even after renderCarousel adopts it mid-load", () => {
-  // renderCarousel flips heroMemoActive off when it picks the same art as the
-  // memo, without attaching a reveal handler (the src is already right). The
-  // memo's load listener must therefore key on the file, not on ownership.
-  const restore = section("(function restoreHeroBackdrop() {", "const carouselTitle =");
-  assert.match(restore, /addEventListener\("load", \(\) => \{[\s\S]*?getAttribute\("src"\) === memo\.src\) signalAppLoader\("hero"\);[\s\S]*?\{ once: true \}\);/);
+test("a restored hero stays blurred until its exact full image has decoded", () => {
+  const restore = section("(function restoreHeroBackdrop() {", "// The splash used to");
+  const memoRead = section("function readHeroMemo()", "function writeHeroMemo(");
+  const render = section("function renderCarousel()", "let _carouselDotsHtml");
+  assert.match(client, /const HERO_MEMO_SCHEMA = 4;/);
+  assert.match(memoRead, /typeof memo\.art !== "string"/);
+  assert.match(memoRead, /proxiedArt[\s\S]*?new URL\(proxiedArt\)\.href !== new URL\(memo\.art\)\.href/);
+  assert.match(restore, /carouselStage\.classList\.add\("is-backdrop-loading"\);[\s\S]*?carouselBackdropImage\.src = memo\.src;[\s\S]*?showCarouselBlurPlaceholder\(memo\.art, memo\.src\);/);
+  assert.match(restore, /carouselBackdropImage\.decode\(\)\.then\(reveal\)\.catch\(reveal\)/);
+  assert.match(restore, /classList\.remove\("is-backdrop-loading"\);[\s\S]*?clearCarouselBlurPlaceholder\(\);[\s\S]*?signalAppLoader\("hero"\);/);
+  assert.match(render, /writeHeroMemo\(\{[\s\S]*?\bart,[\s\S]*?src: deliveredArt/);
   assert.doesNotMatch(restore, /if \(heroMemoActive\) signalAppLoader/);
 });
