@@ -497,7 +497,8 @@ test("a late or stale carousel preview never flashes over the real image", async
 
   // No preview at all when it would be the very file already being fetched.
   const same = blurHarness();
-  same.c.showCarouselBlurPlaceholder("https://cdn.example/a.jpg", "/api/image?src=https%3A%2F%2Fcdn.example%2Fa.jpg&w=160&q=50");
+  const sameArt = "https://cdn.example/a.jpg";
+  same.c.showCarouselBlurPlaceholder(sameArt, same.c.carouselBlurSourceUrl(sameArt));
   assert.equal(same.previews.length, 0);
 });
 
@@ -513,6 +514,18 @@ test("the carousel blur layer sits under the sharp image, is inert, and never us
   const render = section("function renderCarousel()", "let _carouselDotsHtml");
   assert.match(render, /carouselBackdropImage\.src = deliveredArt;[\s\S]*?showCarouselBlurPlaceholder\(art, deliveredArt\);/);
   assert.doesNotMatch(render, /showCarouselBlurPlaceholder\(pendingArt/);
+});
+
+test("manual carousel selection warms only the intended final-art preview and hero", () => {
+  const render = section("function renderCarousel()", "let _carouselDotsHtml");
+  const indicators = section("function carouselIndicatorArtwork(", "function simpleCarouselText(");
+  assert.match(render, /const hiResArt = carouselResolvedBackdropArtwork\(show\);/);
+  assert.match(indicators, /return getCardPosterCandidates\(show\)\[0\] \|\| carouselArtworkOrPoster\(show\);/);
+  assert.match(indicators, /imageDeliveryUrl\(carouselIndicatorArtwork\(show\), 180, 72\)/);
+  assert.match(indicators, /preloadArtworkImage\(url, 180, 72, false\)/);
+  assert.match(indicators, /pointerenter[\s\S]*?focus[\s\S]*?pointerdown/);
+  assert.match(indicators, /warmCarouselIndicatorTarget\(targetShow, true\);[\s\S]*?state\.carouselIndex/);
+  assert.match(indicators, /preloadArtworkImage\(art, CAROUSEL_BLUR_WIDTH, CAROUSEL_BLUR_QUALITY, true\);[\s\S]*?preloadCinematicBackdrop\(art, true\);/);
 });
 
 test("changing slide drops the previous slide's preview at once, even when no new one follows", async () => {
@@ -539,7 +552,7 @@ test("changing slide drops the previous slide's preview at once, even when no ne
   skipped.classes.add("is-backdrop-loading");
   skipped.c.showCarouselBlurPlaceholder(art, delivered);
   skipped.previews[0].onload();
-  const same = "/api/image?src=https%3A%2F%2Fcdn.example%2Fb.jpg&w=160&q=50";
+  const same = skipped.c.carouselBlurSourceUrl("https://cdn.example/b.jpg");
   skipped.img.src = same;
   skipped.c.showCarouselBlurPlaceholder("https://cdn.example/b.jpg", same);
   assert.equal(skipped.previews.length, 1);

@@ -878,7 +878,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=802`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=804`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -4255,6 +4255,14 @@ function carouselArtworkOrPoster(show = {}) {
   return getCarouselArtwork(show) || String(show.image || show.poster || show.cover || "").trim();
 }
 
+function carouselResolvedBackdropArtwork(show = {}) {
+  return pickImage(stableArtworkCandidates(show, [
+    show.tmdbBackdrop,
+    show.highQualityBackground
+  ].map((value) => hqImage(String(value || "").trim()))
+    .filter((value) => value && !isArtworkLowQuality(value, "backdrop")), "backdrop"));
+}
+
 // How long the carousel will wait for the real catalogue before settling for
 // the bootstrap one. The deferred refresh starts 1.5s after load and runs in a
 // requestIdleCallback with a 5s timeout, so a healthy load lands well inside
@@ -4391,7 +4399,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=802";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=804";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4440,11 +4448,7 @@ function renderCarousel() {
   // provider artwork is never shown first because it may be a different picture.
   // A show with no TMDB match falls back to its source artwork. Bounded: resolve
   // once per show, current item only.
-  const hiResArt = pickImage(stableArtworkCandidates(show, [
-    show.tmdbBackdrop,
-    show.highQualityBackground
-  ].map((value) => hqImage(String(value || "").trim()))
-    .filter((value) => value && !isArtworkLowQuality(value, "backdrop")), "backdrop"));
+  const hiResArt = carouselResolvedBackdropArtwork(show);
   // Resolve the backdrop AT MOST ONCE per show (_carouselResolveTried). Without
   // this guard, a show whose TMDB resolution THROWS (network error) never sets
   // _tmdbResolved, so `resolving` stays true and the .then below re-renders the
@@ -4618,9 +4622,36 @@ function renderCarousel() {
 }
 
 let _carouselDotsHtml = null;
+let _carouselIntentWarmTimer = null;
 
 function carouselIndicatorArtwork(show = {}) {
   return getCardPosterCandidates(show)[0] || carouselArtworkOrPoster(show);
+}
+
+function warmCarouselIndicatorTarget(show, immediate = false) {
+  window.clearTimeout(_carouselIntentWarmTimer);
+  if (!show) return;
+  const warm = () => {
+    const warmResolvedArtwork = () => {
+      const art = carouselResolvedBackdropArtwork(show)
+        || (show._tmdbResolved || show._carouselResolveTried ? carouselArtworkOrPoster(show) : "");
+      if (!art) return;
+      // Start the tiny request first. On a click it paints the blur from the
+      // selector cache while the one intended full-resolution request continues.
+      void preloadArtworkImage(art, CAROUSEL_BLUR_WIDTH, CAROUSEL_BLUR_QUALITY, true);
+      void preloadCinematicBackdrop(art, true);
+    };
+    if (carouselResolvedBackdropArtwork(show)) {
+      warmResolvedArtwork();
+      return;
+    }
+    const resolver = isAdultCatalogShow(show)
+      ? hydrateAdultCinematicArtwork(show)
+      : (typeof enrichTmdbImages === "function" ? enrichTmdbImages(show, { refresh: false }) : Promise.resolve(show));
+    Promise.resolve(resolver).then(warmResolvedArtwork).catch(() => {});
+  };
+  if (immediate) warm();
+  else _carouselIntentWarmTimer = window.setTimeout(warm, 90);
 }
 
 function renderCarouselIndicators(items) {
@@ -4651,8 +4682,13 @@ function renderCarouselIndicators(items) {
     _carouselDotsHtml = dotsHtml;
     carouselIndicators.innerHTML = dotsHtml;
     carouselIndicators.querySelectorAll("[data-carousel-index]").forEach((button) => {
+      const targetShow = items[Number(button.dataset.carouselIndex)];
+      button.addEventListener("pointerenter", () => warmCarouselIndicatorTarget(targetShow), { passive: true });
+      button.addEventListener("focus", () => warmCarouselIndicatorTarget(targetShow), { passive: true });
+      button.addEventListener("pointerdown", () => warmCarouselIndicatorTarget(targetShow, true), { passive: true });
       button.addEventListener("click", (event) => {
         event.stopPropagation();
+        warmCarouselIndicatorTarget(targetShow, true);
         state.carouselIndex = Number(button.dataset.carouselIndex);
         carouselStage.classList.add("is-changing");
         window.setTimeout(() => carouselStage.classList.remove("is-changing"), 240);
@@ -19727,7 +19763,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=802");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=804");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
