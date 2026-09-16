@@ -51,7 +51,7 @@ test("catalog commit rebases over a concurrent main update without losing either
     configureIdentity(seed);
 
     const paths = catalogPaths();
-    assert.equal(paths.length, 18);
+    assert.equal(paths.length, 20);
     for (const path of paths) {
       const file = join(seed, path);
       mkdirSync(dirname(file), { recursive: true });
@@ -89,6 +89,46 @@ test("catalog commit rebases over a concurrent main update without losing either
     writeFileSync(output, "");
     run(bash, [commitScript], worker, { env: { GITHUB_OUTPUT: output } });
     assert.equal(readFileSync(output, "utf8").trim(), "changes_detected=false");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("catalog publisher commits both regenerated adult portrait maps", () => {
+  assert.ok(bash, "Git Bash is required on Windows");
+  const root = mkdtempSync(join(tmpdir(), "catalog-portrait-commit-"));
+  const remote = join(root, "remote.git");
+  const worker = join(root, "worker");
+  const output = join(root, "github-output.txt");
+  const rootMap = "scraper/adult_portrait_map.json";
+  const androidMap = "android/app/src/main/assets/scraper/adult_portrait_map.json";
+
+  try {
+    git(root, "init", "--bare", remote);
+    git(root, "init", "--initial-branch=main", worker);
+    configureIdentity(worker);
+    const paths = catalogPaths();
+    assert.ok(paths.includes(rootMap));
+    assert.ok(paths.includes(androidMap));
+    for (const path of paths) {
+      const file = join(worker, path);
+      mkdirSync(dirname(file), { recursive: true });
+      writeFileSync(file, `initial ${path}\n`);
+    }
+    git(worker, "add", ".");
+    git(worker, "commit", "-m", "initial catalog");
+    git(worker, "remote", "add", "origin", remote);
+    git(worker, "push", "-u", "origin", "main");
+
+    for (const path of [rootMap, androidMap]) writeFileSync(join(worker, path), "updated portrait map\n");
+    writeFileSync(join(worker, paths[0]), "updated catalog\n");
+
+    run(bash, [commitScript], worker, { env: { GITHUB_OUTPUT: output } });
+
+    assert.match(readFileSync(output, "utf8"), /changes_detected=true/);
+    assert.equal(git(worker, "status", "--porcelain").trim(), "");
+    assert.equal(git(worker, "show", `HEAD:${rootMap}`).trim(), "updated portrait map");
+    assert.equal(git(worker, "show", `HEAD:${androidMap}`).trim(), "updated portrait map");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
