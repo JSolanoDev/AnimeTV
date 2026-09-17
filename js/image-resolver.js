@@ -406,6 +406,31 @@ const ImageResolver = (function () {
     } catch { /* Artwork still remains in memory when storage is full. */ }
   }
 
+  function knownSeasonEpisodeCount(anime, season) {
+    return Math.max(
+      0,
+      Number(season?.episodes?.length) || 0,
+      Number(season?.episodeCount) || 0,
+      Number(season?.sourceEpisodeCount) || 0,
+      Number(anime?.sourceEpisodeCount) || 0,
+      Number(anime?.sourceEpisodeIds?.length) || 0,
+      Number(anime?.totalEpisodes) || 0,
+      Number(anime?.episodeCount) || 0,
+      Number(anime?.episodes?.length) || 0
+    );
+  }
+
+  function seasonArtCoverage(data) {
+    const recorded = Number(data?.requestedEpisodeCount) || 0;
+    if (recorded > 0) return recorded;
+    // Older cache rows did not record the count. A row with only one still is
+    // not complete just because TMDB supplied metadata for the whole season.
+    return Math.min(
+      Object.keys(data?.metas || {}).length,
+      Object.keys(data?.stills || {}).length
+    );
+  }
+
   function applySeasonArtwork(anime, seasonNumber, data = {}) {
     if (!anime || !seasonNumber) return;
     if (!anime.tmdbStillsBySeason) anime.tmdbStillsBySeason = {};
@@ -414,6 +439,8 @@ const ImageResolver = (function () {
     if (!anime.tmdbSeasonPostersBySeason) anime.tmdbSeasonPostersBySeason = {};
     anime.tmdbStillsBySeason[seasonNumber] = data.stills || {};
     anime.tmdbEpisodesBySeasonNum[seasonNumber] = data.metas || {};
+    if (!anime._tmdbSeasonArtCoverage) anime._tmdbSeasonArtCoverage = {};
+    anime._tmdbSeasonArtCoverage[seasonNumber] = seasonArtCoverage(data);
     if (data.poster) anime.tmdbSeasonPostersBySeason[seasonNumber] = data.poster;
     if (data.backdrop) anime.tmdbSeasonBackdropsBySeason[seasonNumber] = data.backdrop;
   }
@@ -1232,7 +1259,13 @@ const ImageResolver = (function () {
     const sNum = Number(appSeasonNumber || 0);
     if (!sNum) return Promise.resolve(anime);
     const triedSeasons = seasonStillsTried(anime);
-    if (anime.tmdbStillsBySeason && Object.prototype.hasOwnProperty.call(anime.tmdbStillsBySeason, sNum)) {
+    const knownCount = knownSeasonEpisodeCount(anime, appSeasonMeta);
+    const existingCoverage = Number(anime._tmdbSeasonArtCoverage?.[sNum]) || Math.min(
+      Object.keys(anime.tmdbEpisodesBySeasonNum?.[sNum] || {}).length,
+      Object.keys(anime.tmdbStillsBySeason?.[sNum] || {}).length
+    );
+    if (anime.tmdbStillsBySeason && Object.prototype.hasOwnProperty.call(anime.tmdbStillsBySeason, sNum)
+        && existingCoverage >= knownCount) {
       return Promise.resolve(anime);
     }
 
@@ -1250,12 +1283,17 @@ const ImageResolver = (function () {
     const cached = readSeasonArtCache(anime, sNum, tmdbSeasonNumber);
     if (cached) {
       applySeasonArtwork(anime, sNum, cached);
+      if (seasonArtCoverage(cached) >= knownCount) return Promise.resolve(anime);
+    }
+    if (triedSeasons.has(sNum) &&
+        (Number(anime._tmdbSeasonArtAttemptedCount?.[sNum]) || knownCount) >= knownCount) {
       return Promise.resolve(anime);
     }
-    if (triedSeasons.has(sNum)) return Promise.resolve(anime);
 
     const key = `${anime.anilistId || anime.id}:app${sNum}`;
     if (_seasonStillsFetching.has(key)) return _seasonStillsFetching.get(key);
+    if (!anime._tmdbSeasonArtAttemptedCount) anime._tmdbSeasonArtAttemptedCount = {};
+    anime._tmdbSeasonArtAttemptedCount[sNum] = knownCount;
 
     const request = (async () => {
       const requestAnimeId = String(anime.id || "");
@@ -1278,11 +1316,7 @@ const ImageResolver = (function () {
           appSeasonMeta?.year || appSeasonMeta?.startYear || appSeasonMeta?.startDate?.year ||
           anime.seasonYear || anime.year || 0
         );
-        const expectedCount = Math.max(0, Number(
-          appSeasonMeta?.episodes?.length || appSeasonMeta?.episodeCount ||
-          anime.totalEpisodes || anime.episodeCount ||
-          (Array.isArray(anime.episodes) ? anime.episodes.length : 0) || 0
-        ));
+        const expectedCount = knownCount;
         let scopedEpisodes = eps;
         if (targetYear && eps.length > Math.max(12, expectedCount || 12)) {
           // Split cours can air in the same calendar year, so year alone points
@@ -1353,7 +1387,8 @@ const ImageResolver = (function () {
           anilistId: requestAniListId || null,
           tmdbId: requestTmdbId || null,
           appSeasonNumber: sNum,
-          tmdbSeasonNumber
+          tmdbSeasonNumber,
+          requestedEpisodeCount: expectedCount
         };
         applySeasonArtwork(anime, sNum, data);
         writeSeasonArtCache(anime, sNum, data);

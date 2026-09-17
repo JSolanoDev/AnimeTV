@@ -169,6 +169,82 @@ checkNoThrow("undefined show resolves", () => ensure(undefined, 1));
   check("same-year Part 2 keeps exactly its own episode count", Object.keys(anime.tmdbEpisodesBySeasonNum[1]).length, 12);
 }
 
+// A detail page can render with one episode before the source inventory arrives.
+// Once the list grows, the first season-art lookup must not freeze that one
+// thumbnail in memory or in localStorage for the rest of the day.
+{
+  const episodes = Array.from({ length: 26 }, (_, index) => ({
+    episode_number: index + 1,
+    name: `Episode ${index + 1} title`,
+    overview: "",
+    air_date: "2026-07-03",
+    still_path: index < 12 ? `/heavy-knight-${index + 1}.jpg` : null
+  }));
+  let fetches = 0;
+  ctx.fetch = async () => {
+    fetches += 1;
+    return { ok: true, json: async () => ({ season: { poster_path: null, episodes } }) };
+  };
+  const makeAnime = () => ({
+    id: "heavy-knight-art-coverage",
+    anilistId: 180136,
+    tmdbId: 270603,
+    year: 2026,
+    totalEpisodes: 1,
+    tmdbSeasons: [{ season_number: 1, episode_count: 26, name: "Season 1", air_date: "2026-07-03" }]
+  });
+  const anime = makeAnime();
+  await ensure(anime, 1, { season: 1, year: 2026, episodeCount: 1 });
+  check("early season lookup has one still", Object.keys(anime.tmdbStillsBySeason[1]).length, 1);
+
+  anime.sourceEpisodeCount = 12;
+  anime.sourceEpisodeIds = Array.from({ length: 12 }, (_, index) => index + 1);
+  await ensure(anime, 1, { season: 1, year: 2026, episodes: anime.sourceEpisodeIds });
+  check("grown episode list refetches season art", fetches, 2);
+  check("grown episode list gets episode 12 still", Boolean(anime.tmdbStillsBySeason[1][12]), true);
+  check("grown episode list gets episode 12 title", anime.tmdbEpisodesBySeasonNum[1][12]?.title, "Episode 12 title");
+
+  const restored = makeAnime();
+  restored.sourceEpisodeCount = 12;
+  restored.sourceEpisodeIds = anime.sourceEpisodeIds;
+  await ensure(restored, 1, { season: 1, year: 2026, episodes: anime.sourceEpisodeIds });
+  check("refreshed season art is reused from cache", fetches, 2);
+  check("cached episode 12 still survives reload", Boolean(restored.tmdbStillsBySeason[1][12]), true);
+}
+
+// Legacy cache rows can contain metadata for every scheduled episode but only
+// one downloaded still. They need one refresh, then must not refetch on every
+// visit if TMDB genuinely has no more artwork yet.
+{
+  const anime = {
+    id: "legacy-partial-art",
+    anilistId: 180137,
+    tmdbId: 270603,
+    year: 2026,
+    sourceEpisodeCount: 12,
+    tmdbSeasons: [{ season_number: 1, episode_count: 26, name: "Season 1", air_date: "2026-07-03" }]
+  };
+  const cacheKey = "zenkaitv:tmdb-season-art:v8:180137:s1";
+  store.set(cacheKey, JSON.stringify({ savedAt: Date.now(), data: {
+    anilistId: "180137", tmdbId: "270603", appSeasonNumber: 1, tmdbSeasonNumber: 1,
+    stills: { 1: "https://example.test/one.jpg" },
+    metas: Object.fromEntries(Array.from({ length: 26 }, (_, index) => [index + 1, { title: `Episode ${index + 1}` }]))
+  } }));
+  let fetches = 0;
+  ctx.fetch = async () => {
+    fetches += 1;
+    return { ok: true, json: async () => ({ season: { episodes: Array.from({ length: 26 }, (_, index) => ({
+      episode_number: index + 1, name: `Episode ${index + 1}`,
+      air_date: "2026-07-03", still_path: index < 12 ? `/fresh-${index + 1}.jpg` : null
+    })) } }) };
+  };
+  await ensure(anime, 1, { season: 1, year: 2026, episodeCount: 12 });
+  check("legacy cache with one still is refreshed", fetches, 1);
+  check("legacy cache refresh fills episode 12", Boolean(anime.tmdbStillsBySeason[1][12]), true);
+  await ensure(anime, 1, { season: 1, year: 2026, episodeCount: 12 });
+  check("complete season art does not refetch", fetches, 1);
+}
+
 // A cache row is only reusable when it came from the TMDB season the current
 // mapping selects. This is the regression behind Season 3 displaying Season 1
 // episode names after a reload.
