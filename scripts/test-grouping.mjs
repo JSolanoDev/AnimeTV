@@ -14,6 +14,7 @@ const {
   canFollowSeasonLink,
   getShowKey,
   cleanDescription,
+  stripDescriptionCredit,
   animeAv1ArtworkVariant,
   normalizeTitle
 } = require("../js/utils.js");
@@ -239,6 +240,9 @@ check("Every word kept is a complete word (no mid-word cut)", truncWords.every((
 check("No leftover HTML tags", !/[<>]/.test(cleanDescription("<p>Hello <b>world</b></p>")));
 check("Short description returned whole (no ellipsis)", cleanDescription("Short text") === "Short text");
 check("Missing description stays blank", cleanDescription("") === "");
+check("English synopsis source credit is hidden", stripDescriptionCredit("A complete story. (Source: Crunchyroll)") === "A complete story.");
+check("Cached Spanish synopsis source credit is hidden", stripDescriptionCredit("Una historia completa. (Fuente: Crunchyroll)") === "Una historia completa.");
+check("Source mentions within a synopsis are preserved", stripDescriptionCredit("The source is a spring. The journey continues.") === "The source is a spring. The journey continues.");
 const longSynopsis = "A complete description should remain available on the detail page. ".repeat(12).trim();
 check("Full detail descriptions are not cut at 320 characters", cleanDescription(longSynopsis, Infinity) === longSynopsis);
 check("Server catalog descriptions keep the full source synopsis", cleanServerDescription(longSynopsis) === longSynopsis);

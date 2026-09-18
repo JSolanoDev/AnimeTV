@@ -909,7 +909,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=813`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=814`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -4487,7 +4487,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=813";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=814";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -5300,18 +5300,18 @@ function renderWatchDescription(show) {
     return;
   }
   if (!source || state.appLanguage !== "es") {
-    node.textContent = source;
+    node.textContent = stripDescriptionCredit(source);
     node.lang = "en";
     return;
   }
   const cached = cachedSpanishDescription(show, source);
   if (cached) {
-    node.textContent = cached;
+    node.textContent = stripDescriptionCredit(cached);
     node.lang = "es";
     return;
   }
   if (Date.now() < Number(show._descriptionEsRetryAt || 0)) {
-    node.textContent = source;
+    node.textContent = stripDescriptionCredit(source);
     node.lang = "en";
     return;
   }
@@ -5337,13 +5337,13 @@ function renderWatchDescription(show) {
   descriptionTranslationFlights.get(key).then((text) => {
     if (state.appLanguage !== "es" || state.activeShow?.id !== show.id ||
         cleanDescription(state.activeShow.description || "", Infinity) !== source) return;
-    node.textContent = text;
+    node.textContent = stripDescriptionCredit(text);
     node.lang = "es";
   }).catch(() => {
     show._descriptionEsRetryAt = Date.now() + 60000;
     if (state.appLanguage !== "es" || state.activeShow?.id !== show.id ||
         cleanDescription(state.activeShow.description || "", Infinity) !== source) return;
-    node.textContent = source;
+    node.textContent = stripDescriptionCredit(source);
     node.lang = "en";
   });
 }
@@ -20020,7 +20020,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=813");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=814");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

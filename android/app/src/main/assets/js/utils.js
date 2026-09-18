@@ -266,6 +266,12 @@ function cleanDescription(value, maxLength = 320) {
   return `${safe}…`;
 }
 
+function stripDescriptionCredit(value) {
+  return String(value || "")
+    .replace(/(?:\s*(?:\((?:source|fuente)\s*:[^()]{1,160}\)|\[(?:source|fuente)\s*:[^\[\]]{1,160}\]|\[written by [^\[\]]{1,160}\]))+\s*$/i, "")
+    .trim();
+}
+
 // One numeric asset id is published by the CDN in three shapes:
 //   /thumbnails/<id>.jpg   300x200   small landscape (what the "latest" feed sends)
 //   /covers/<id>.jpg       260x368   portrait poster - exists for every id (977/977 checked)
@@ -672,6 +678,7 @@ if (typeof module !== "undefined" && module.exports) {
     extractSeasonNumber,
     getShowKey,
     cleanDescription,
+    stripDescriptionCredit,
     animeAv1ArtworkVariant,
     mediaStartYear,
     mediaFormat,
