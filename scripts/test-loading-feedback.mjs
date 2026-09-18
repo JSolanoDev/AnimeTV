@@ -11,6 +11,82 @@ function section(start, end) {
   return client.slice(from, to);
 }
 
+test("returning Home leaves Continue Watching to the main render", () => {
+  const sections = ["continueWatching", "continueWatchingAdult", "latest"].map((id) => {
+    const classes = new Set();
+    const attributes = {};
+    return {
+      id,
+      classes,
+      attributes,
+      classList: {
+        add: (name) => classes.add(name),
+        remove: (name) => classes.delete(name),
+        toggle: (name, enabled) => enabled ? classes.add(name) : classes.delete(name),
+        contains: (name) => classes.has(name)
+      },
+      setAttribute: (name, value) => { attributes[name] = value; }
+    };
+  });
+  let renders = 0;
+  const c = vm.createContext({
+    state: { route: "home" },
+    document: { querySelectorAll: (selector) => selector === "[data-section]" ? sections : [] },
+    searchInputTop: null, searchInputLibrary: null, addonSections: null,
+    renderContinueWatching: () => { renders += 1; }
+  });
+  vm.runInContext(section("function syncRouteVisibility()", "function scrollToRoute("), c);
+  c.syncRouteVisibility();
+  assert.equal(renders, 0);
+  c.state.route = "library";
+  c.syncRouteVisibility();
+  assert.equal(sections[0].attributes["aria-hidden"], "true");
+  assert.equal(sections[1].attributes["aria-hidden"], "true");
+});
+
+test("Continue Watching sanitizes only the visible saved entries", () => {
+  const map = Object.fromEntries(Array.from({ length: 1000 }, (_, index) => [String(index), {
+    episodeKey: String(index), lastWatchedAt: index, progress: 20
+  }]));
+  let sanitized = 0;
+  const c = vm.createContext({
+    getWatchMap: () => map,
+    reconcileWatchMapSeasons: () => false,
+    persistWatchMap: () => {},
+    isResumableWatchEntry: () => true,
+    sanitizeWatchEntry: () => { sanitized += 1; }
+  });
+  vm.runInContext(section("function getContinueWatchingList(", "let _cwTimer"), c);
+  const items = c.getContinueWatchingList(20);
+  assert.equal(items.length, 20);
+  assert.equal(items[0].episodeKey, "999");
+  assert.equal(sanitized, 20);
+});
+
+test("indexed saved-entry matching preserves row, canonical ID, and title precedence", () => {
+  const shows = [
+    { id: "row-a", anilistId: 10, malId: 20, title: "First" },
+    { id: "row-b", anilistId: 11, malId: 21, title: "Second" },
+    { id: "row-c", anilistId: 10, malId: 22, title: "First" }
+  ];
+  const c = vm.createContext({
+    state: { shows },
+    normalizeTitle: (value) => String(value).toLowerCase(),
+    getShowTitle: (show) => show.title
+  });
+  vm.runInContext(section("function buildWatchShowLookup(", "function resumeFromContinue("), c);
+  const lookup = c.buildWatchShowLookup(shows);
+  for (const entry of [
+    { showId: "row-b", anilistId: 10 },
+    { showId: "stale", anilistId: 10 },
+    { showId: "stale", malId: 21 },
+    { showId: "20" },
+    { showId: "stale", title: "First" }
+  ]) {
+    assert.equal(c.findShowForWatchEntry(entry, lookup), c.findShowForWatchEntry(entry));
+  }
+});
+
 test("artwork stays on one selected high-quality file through metadata refreshes", () => {
   const failed = new Set();
   const c = vm.createContext({

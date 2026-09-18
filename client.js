@@ -4489,7 +4489,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=816";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=817";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -9068,12 +9068,9 @@ function setRoute(route, options = {}) {
 function syncRouteVisibility() {
   document.querySelectorAll("[data-section]").forEach((section) => {
     if (section.id === "continueWatching" || section.id === "continueWatchingAdult") {
-      const isHome = state.route === "home";
-      if (!isHome) {
+      if (state.route !== "home") {
         section.classList.add("is-hidden");
         section.setAttribute("aria-hidden", "true");
-      } else {
-        renderContinueWatching();
       }
       return;
     }
@@ -15022,12 +15019,12 @@ function isEntryAdult(entry) {
   return false;
 }
 
-function renderContinueCardHtml(e) {
+function renderContinueCardHtml(e, lookup = null) {
   let img = e.thumb || e.poster || "";
   if (!img) {
     // Same staleness as the click target: match on the row id first, then the
     // stable ids, or the card renders with no artwork at all.
-    const show = findShowForWatchEntry(e);
+    const show = findShowForWatchEntry(e, lookup);
     if (show) {
       img = show.image || show.poster || show.banner || "";
     }
@@ -15106,10 +15103,12 @@ function authoritativeWatchSeason(show = {}, savedSeason = 1) {
 function reconcileWatchMapSeasons(map) {
   if (!map || !state.shows?.length) return false;
   let changed = false;
+  const entries = Object.entries(map);
+  const lookup = entries.length > 20 ? buildWatchShowLookup(state.shows) : null;
 
-  Object.entries(map).forEach(([storedKey, entry]) => {
+  entries.forEach(([storedKey, entry]) => {
     if (!entry) return;
-    const show = findShowForWatchEntry(entry);
+    const show = findShowForWatchEntry(entry, lookup);
     if (!show) return;
     const keyMatch = /:s(\d+):e(\d+(?:\.\d+)?)$/.exec(storedKey);
     const savedSeason = Number(entry.season ?? keyMatch?.[1]) || 1;
@@ -15160,14 +15159,12 @@ function reconcileWatchMapSeasons(map) {
 function getContinueWatchingList(limit = 20) {
   const map = getWatchMap();
   if (reconcileWatchMapSeasons(map)) persistWatchMap();
-  return Object.values(map)
+  const entries = Object.values(map)
     .filter(isResumableWatchEntry)
-    .map((e) => {
-      sanitizeWatchEntry(e);
-      return e;
-    })
     .sort((a, b) => (b.lastWatchedAt || 0) - (a.lastWatchedAt || 0))
     .slice(0, limit);
+  entries.forEach(sanitizeWatchEntry);
+  return entries;
 }
 
 let _cwTimer = null;
@@ -15177,10 +15174,16 @@ function scheduleContinueWatchingRefresh() {
 }
 
 function renderContinueWatching() {
+  if (state.route !== "home") return;
   const isAdultModeOn = typeof AdultMode !== "undefined" && AdultMode.isEnabled();
   const allEntries = getContinueWatchingList(20);
   const regularEntries = isAdultModeOn ? [] : allEntries.filter(e => !isEntryAdult(e));
   const adultEntries = isAdultModeOn ? allEntries.filter(e => isEntryAdult(e)) : [];
+  let artworkLookup = null;
+  const cardHtml = (entry) => {
+    if (!entry.thumb && !entry.poster && !artworkLookup) artworkLookup = buildWatchShowLookup(state.shows);
+    return renderContinueCardHtml(entry, artworkLookup);
+  };
 
   // Render Regular section
   const regSection = document.querySelector("#continueWatching");
@@ -15188,14 +15191,16 @@ function renderContinueWatching() {
   if (regSection && regGrid) {
     if (!regularEntries.length) {
       regSection.classList.add("is-hidden");
+      regSection.setAttribute("aria-hidden", "true");
       regGrid.dataset.cardsSig = "";
       regGrid.innerHTML = "";
     } else {
       regSection.classList.remove("is-hidden");
+      regSection.setAttribute("aria-hidden", "false");
       const sig = regularEntries.map((e) => `${e.episodeKey}:${e.progress}`).join("|");
       if (regGrid.dataset.cardsSig !== sig) {
         regGrid.dataset.cardsSig = sig;
-        regGrid.innerHTML = regularEntries.map(renderContinueCardHtml).join("");
+        regGrid.innerHTML = regularEntries.map(cardHtml).join("");
         regGrid.querySelectorAll("[data-continue-key]").forEach((card) => {
           card.onclick = () => resumeFromContinue(card.dataset.showId, card.dataset.continueKey);
         });
@@ -15210,14 +15215,16 @@ function renderContinueWatching() {
     const isAdultModeOn = typeof AdultMode !== "undefined" && AdultMode.isEnabled();
     if (!isAdultModeOn || !adultEntries.length) {
       adultSection.classList.add("is-hidden");
+      adultSection.setAttribute("aria-hidden", "true");
       adultGrid.dataset.cardsSig = "";
       adultGrid.innerHTML = "";
     } else {
       adultSection.classList.remove("is-hidden");
+      adultSection.setAttribute("aria-hidden", "false");
       const sig = adultEntries.map((e) => `${e.episodeKey}:${e.progress}`).join("|");
       if (adultGrid.dataset.cardsSig !== sig) {
         adultGrid.dataset.cardsSig = sig;
-        adultGrid.innerHTML = adultEntries.map(renderContinueCardHtml).join("");
+        adultGrid.innerHTML = adultEntries.map(cardHtml).join("");
         adultGrid.querySelectorAll("[data-continue-key]").forEach((card) => {
           card.onclick = () => resumeFromContinue(card.dataset.showId, card.dataset.continueKey);
         });
@@ -15233,31 +15240,64 @@ function renderContinueWatching() {
 // is the one that went away, openShow() found nothing and the card did nothing at
 // all when clicked - which is what "continue watching sometimes does not work"
 // looks like. Fall back to the stable ids, then to the title.
-function findShowForWatchEntry(entry) {
+function buildWatchShowLookup(shows) {
+  const byRow = new Map();
+  const byAni = new Map();
+  const byMal = new Map();
+  const byTrack = new Map();
+  for (const show of shows) {
+    const rowId = String(show.id ?? "");
+    const aniId = show.anilistId ? String(show.anilistId) : "";
+    const malId = show.malId ? String(show.malId) : "";
+    if (rowId && !byRow.has(rowId)) byRow.set(rowId, show);
+    if (aniId && !byAni.has(aniId)) byAni.set(aniId, show);
+    if (malId && !byMal.has(malId)) byMal.set(malId, show);
+    if (aniId && !byTrack.has(aniId)) byTrack.set(aniId, show);
+    if (malId && !byTrack.has(malId)) byTrack.set(malId, show);
+  }
+  return { byRow, byAni, byMal, byTrack, byTitle: null };
+}
+
+function findShowForWatchEntry(entry, lookup = null) {
   const shows = state.shows || [];
   if (!entry || !shows.length) return null;
   const rowId = String(entry.showId || entry.animeId || "");
   if (rowId) {
-    const byRow = shows.find((s) => String(s.id) === rowId);
+    const byRow = lookup ? lookup.byRow.get(rowId) : shows.find((s) => String(s.id) === rowId);
     if (byRow) return byRow;
   }
   if (entry.anilistId) {
-    const byAni = shows.find((s) => s.anilistId && String(s.anilistId) === String(entry.anilistId));
+    const byAni = lookup
+      ? lookup.byAni.get(String(entry.anilistId))
+      : shows.find((s) => s.anilistId && String(s.anilistId) === String(entry.anilistId));
     if (byAni) return byAni;
   }
   if (entry.malId) {
-    const byMal = shows.find((s) => s.malId && String(s.malId) === String(entry.malId));
+    const byMal = lookup
+      ? lookup.byMal.get(String(entry.malId))
+      : shows.find((s) => s.malId && String(s.malId) === String(entry.malId));
     if (byMal) return byMal;
   }
   // animeId is whatever getAnimeTrackId produced, which for many rows IS the
   // AniList id, so it is worth trying against the stable fields too.
   if (rowId) {
-    const byTrack = shows.find((s) => String(s.anilistId || "") === rowId || String(s.malId || "") === rowId);
+    const byTrack = lookup
+      ? lookup.byTrack.get(rowId)
+      : shows.find((s) => String(s.anilistId || "") === rowId || String(s.malId || "") === rowId);
     if (byTrack) return byTrack;
   }
   const wanted = normalizeTitle(entry.title || "");
   if (wanted) {
-    const byTitle = shows.find((s) => normalizeTitle(getShowTitle(s) || s.title || "") === wanted);
+    if (lookup && !lookup.byTitle) {
+      lookup.byTitle = new Map();
+      for (const show of shows) {
+        const title = normalizeTitle(getShowTitle(show) || show.title || "");
+        if (title && !lookup.byTitle.has(title)) lookup.byTitle.set(title, show);
+      }
+    }
+    const byTitle = lookup
+      ? lookup.byTitle.get(wanted)
+      : shows.find((s) => normalizeTitle(getShowTitle(s) || s.title || "") === wanted);
     if (byTitle) return byTitle;
   }
   return null;
@@ -20068,7 +20108,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=816");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=817");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
