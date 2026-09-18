@@ -58,8 +58,8 @@ function context(fetchWithTimeout = async () => ({ ok: false })) {
   sandbox.catalogShows = () => sandbox.state.shows;
   vm.runInContext(metadataSource, sandbox);
   vm.runInContext(section(clientSource, "function getShowSlug(", "function ensureNotFoundSection("), sandbox);
-  vm.runInContext(section(clientSource, "function bakedChainFor(", "function getFranchiseSeasonList("), sandbox);
-  vm.runInContext(section(clientSource, "function ensureFranchiseShowsInCatalog(", "function validateEpisodeIntegrity("), sandbox);
+  vm.runInContext(section(clientSource, "const bakedChainCache =", "function getFranchiseSeasonList("), sandbox);
+  vm.runInContext(section(clientSource, "const materializedFranchiseCache =", "function validateEpisodeIntegrity("), sandbox);
   vm.runInContext(section(clientSource, "function mergeAiredEpisodeMetadata(", "// Strip a leading"), sandbox);
   vm.runInContext(section(clientSource, "function usesContinuousGlobalEpisodeMetadata(", "function applyAniListExtras("), sandbox);
   vm.runInContext(imageSource + "\nthis.resolver = ImageResolver;", sandbox);
@@ -147,6 +147,27 @@ test("the richest relation carrier preserves every Bleach season on a direct vis
   assert.deepEqual(Array.from(resolved.chain, entry => entry.episodes), [366, 13, 13, 14, 7]);
   assert.equal(resolved.selfAniListId, 269);
   assert.equal(resolved.selfMalId, 269);
+});
+
+test("baked franchise lookup refreshes when a richer catalog arrives", () => {
+  const c = context();
+  const show = { id: "animeav1-example", anilistId: 10, franchiseSeasons: [{ anilistId: 10 }] };
+  c.state.shows = [show];
+  assert.equal(c.bakedChainFor(show).chain.length, 1);
+  const carrier = { id: "animeav1-example-sequel", anilistId: 11, franchiseSeasons: [{ anilistId: 10 }, { anilistId: 11 }] };
+  c.state.shows = [show, carrier];
+  assert.equal(c.bakedChainFor(show).chain.length, 2);
+});
+
+test("baked franchise lookup refreshes when the open title gains its canonical id", () => {
+  const c = context();
+  const show = { id: "direct-show" };
+  const carrier = { id: "source-carrier", anilistId: 11,
+    franchiseSeasons: [{ anilistId: 10 }, { anilistId: 11 }] };
+  c.state.shows = [show, carrier];
+  assert.equal(c.bakedChainFor(show), null);
+  show.anilistId = 10;
+  assert.equal(c.bakedChainFor(show).chain.length, 2);
 });
 
 test("one absolute provider inventory is partitioned across released franchise seasons", () => {

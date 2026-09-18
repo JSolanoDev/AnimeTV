@@ -27,10 +27,14 @@ function normalizeExternalShow(item, source, index) {
     .map((value) => String(value || "").trim())
     .filter((value) => value && !/^(?:anime|animation)$/i.test(value));
   const genre = genres.length ? pickGenre(genres) : "";
-  // Home only needs the release summary. Build a very long episode list when
-  // its title opens, instead of allocating it during every home visit.
+  // The catalog already carries verified episode counts/ids. Generate numbered
+  // placeholders only when a title opens, while preserving real embedded lists.
+  const rawEpisodes = [item.episodes, item.videos, item.streams, item.files]
+    .find((value) => Array.isArray(value));
+  const hasEmbeddedEpisodes = Boolean(rawEpisodes?.length || item.seasons?.length);
+  const deferCatalogEpisodes = source?.id === "animetv-api" && !hasEmbeddedEpisodes;
   const deferBootstrapEpisodes = source?.id === "homepage-bootstrap" && Number(item.episode) > 100;
-  const seasons = deferBootstrapEpisodes ? [] : normalizeSeasons(item);
+  const seasons = deferCatalogEpisodes || deferBootstrapEpisodes ? [] : normalizeSeasons(item);
   const episodes = seasons.flatMap((season) => season.episodes);
   const videoUrl = pickPlayableUrl(item) || getEpisodeUrl(episodes[0]) || "";
   // nextAiringAt is milliseconds. One Date for both the weekday and the clock

@@ -490,6 +490,7 @@ const slice = (start, end) => {
 let catalog = [];
 const ctx = vm.createContext({
   Number, String, Array, Math, JSON, Boolean, Object, Map, Set, Date,
+  state: { get shows() { return catalog; } },
   catalogShows: () => catalog,
   getDetailSeasons: (show) => [{ season: 1, episodes: (show.episodes || []).slice() }],
   _buildShowsByAniListId: () => new Map(),
@@ -513,7 +514,7 @@ const sliceFrom = (source, start, end) => {
 vm.runInContext([
   sliceFrom(normalizeSrc, "function canonicalSeasonNumber(", "\nfunction getOriginalProviderEpisodeId("),
   sliceFrom(normalizeSrc, "function getOriginalProviderEpisodeId(", "\nfunction canonicalEpisodeIdentity("),
-  slice("function bakedChainFor(", "\nfunction getFranchiseSeasonList("),
+  slice("const bakedChainCache =", "\nfunction getFranchiseSeasonList("),
   slice("function getFranchiseSeasonList(", "\n// ── TioAnime source integration")
 ].join("\n"), ctx, { filename: "client.js extract" });
 const bakedChainFor = vm.runInContext("bakedChainFor", ctx);

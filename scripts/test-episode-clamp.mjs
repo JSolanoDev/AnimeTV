@@ -38,8 +38,9 @@ const code = [
   slice("function repairEpisodeGaps(", "\nfunction ")
 ].join("\n");
 
+let gapWarnings = 0;
 const ctx = vm.createContext({
-  Number, Math, Array, Date, String, JSON, console, Boolean, Object, Map, Set,
+  Number, Math, Array, Date, String, JSON, console: { warn: () => { gapWarnings += 1; } }, Boolean, Object, Map, Set,
   // mergeAiredEpisodeMetadata's only outside dependency
   extractSeasonNumber: () => 1,
   // repairEpisodeGaps' dependencies
@@ -175,6 +176,8 @@ check("metadata cache detects a missing new episode",
   check("a zero floor behaves exactly as before", repairEpisodeGaps(one, 1, 0).length, 1);
   check("a corrupt floor cannot allocate without bound", repairEpisodeGaps(one, 1, 1e9).length, 2000);
   check("an empty list with a floor still fills", repairEpisodeGaps([], 1, 12).length, 12);
+  check("gap repair does not log once per absent episode", gapWarnings, 0);
+  check("special episodes stay ahead of the numbered run", repairEpisodeGaps([{ episode: 2 }, { episode: 0 }], 1).map((episode) => episode.episode), [0, 1, 2]);
 }
 
 /* -- a newly confirmed provider episode is playable while metadata catches up */

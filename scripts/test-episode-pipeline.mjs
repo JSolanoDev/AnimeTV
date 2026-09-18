@@ -927,8 +927,8 @@ test("Mushoku Tensei relation chain is ordered into three canonical seasons", ()
     seasonAiredFloor: () => 0,
     extractSeasonNumber: utils.extractSeasonNumber
   });
-  vm.runInContext(section(clientSource, "function bakedChainFor(", "// ── TioAnime source integration"), sandbox);
-  vm.runInContext(section(clientSource, "function ensureFranchiseShowsInCatalog(", "function validateEpisodeIntegrity("), sandbox);
+  vm.runInContext(section(clientSource, "const bakedChainCache =", "// ── TioAnime source integration"), sandbox);
+  vm.runInContext(section(clientSource, "const materializedFranchiseCache =", "function validateEpisodeIntegrity("), sandbox);
   vm.runInContext(section(clientSource, "function selectedSeasonIdentity(", "function selectedSeasonLabel("), sandbox);
 
   const chain = [

@@ -43,7 +43,7 @@ test("home bootstrap follows recent playable releases and includes baked artwork
   assert.equal(payload.items[1].episodes, undefined);
 });
 
-test("long bootstrap titles defer episode allocation until detail opens", () => {
+test("catalog placeholders are deferred while embedded episodes stay available", () => {
   let normalized = 0;
   const c = vm.createContext({
     animeAv1ArtworkVariant: () => "",
@@ -58,6 +58,8 @@ test("long bootstrap titles defer episode allocation until detail opens", () => 
   assert.equal(c.normalizeExternalShow(item, { id: "homepage-bootstrap" }, 0).seasons.length, 0);
   assert.equal(normalized, 0);
   c.normalizeExternalShow(item, { id: "animetv-api" }, 0);
+  assert.equal(normalized, 0);
+  c.normalizeExternalShow({ ...item, episodes: [{ episode: 1 }] }, { id: "animetv-api" }, 0);
   assert.equal(normalized, 1);
 });
 

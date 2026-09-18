@@ -1205,7 +1205,9 @@ async function enrichCatalogAiringData(attempt = 0) {
     });
     if (changed) {
       invalidateScheduleData();
-      writeResponseCache("direct-catalog", regularCatalogSnapshot());
+      if (state.apiStatus.direct === "Online") {
+        writeResponseCache("direct-catalog", regularCatalogSnapshot());
+      }
       render();
       // The Weekly Schedule paints from this same airing data, but it is built
       // by its own renderer rather than by render(), so it kept whatever it drew
@@ -4487,7 +4489,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=815";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=816";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -11180,8 +11182,7 @@ function episodeThumb(episode = {}, season = {}, show = {}, repeatedImages = new
 // Linear list of seasons for the dropdown + Prev/Next, spanning the franchise
 // (so split seasons like Iruma Temporada 1–4 appear together). Each entry knows
 // how to navigate: a related show opens it; an own season just switches index.
-function buildSeasonNav(show, seasons) {
-  const franchise = getFranchiseSeasonList(show) || [];
+function buildSeasonNav(show, seasons, franchise = getFranchiseSeasonList(show) || []) {
   const list = (franchise.length ? franchise : seasons).map((entry, i) => {
     const related = entry.relatedShowId && !entry.isCurrentShow ? String(entry.relatedShowId) : "";
     let localIndex = -1;
@@ -11275,7 +11276,8 @@ function renderEpisodeList(show, options = {}) {
   const seasonTitle = getSeasonDisplayTitle(show, activeSeason);
   syncWatchHeading(show, activeSeason, seasons);
 
-  const seasonNav = buildSeasonNav(show, seasons);
+  const franchiseList = getFranchiseSeasonList(show, !isAdultSourceShow && !options.franchiseReady) || [];
+  const seasonNav = buildSeasonNav(show, seasons, franchiseList);
   // Highlight the season that's actually open. For franchise lists every entry
   // can have localIndex === -1 (each season is a separate show), so match on the
   // isCurrent flag first and only fall back to the index/0.
@@ -11300,7 +11302,6 @@ function renderEpisodeList(show, options = {}) {
   const tab = isAdultDetailShow
     ? (state.activeDetailTab === "gallery" ? "gallery" : "episodes")
     : (state.activeDetailTab === "seasons" ? "seasons" : "episodes");
-  const franchiseList = getFranchiseSeasonList(show) || [];
   const cardSeasons = franchiseList.length ? franchiseList : seasons;
   const adultEpisodeGalleryGroups = isAdultDetailShow
     ? seasons.flatMap((season, seasonIndex) => {
@@ -15408,7 +15409,12 @@ function _buildShowsByAniListId() {
 // same show as two objects. Measured: the API row and the catalogue entry both
 // had the chain while state.activeShow had none. Match on AniList id first,
 // then on the id suffix, so either object finds it.
+const bakedChainCache = new WeakMap();
+
 function bakedChainFor(show) {
+  const cached = bakedChainCache.get(show);
+  if (cached?.catalog === state.shows && cached.localChain === show.franchiseSeasons &&
+      cached.anilistId === show.anilistId && cached.malId === show.malId) return cached.result;
   const shows = typeof catalogShows === "function" ? catalogShows() : [];
   const hasChain = (s) => Array.isArray(s.franchiseSeasons) && s.franchiseSeasons.length;
   const identity = (value = {}) => {
@@ -15446,16 +15452,23 @@ function bakedChainFor(show) {
       best = { row: candidate, chain: candidate.franchiseSeasons };
     }
   }
-  if (!best) return null;
+  if (!best) {
+    bakedChainCache.set(show, { catalog: state.shows, localChain: show.franchiseSeasons,
+      anilistId: show.anilistId, malId: show.malId, result: null });
+    return null;
+  }
 
   const currentEntry = best.chain.find((entry) => sameIdentity(entry));
   const currentRow = currentEntry || (sameSourceRow(best.row) ? best.row : show);
   const currentIdentity = identity(currentRow);
-  return {
+  const result = {
     chain: best.chain,
     selfAniListId: show.anilistId || currentRow.anilistId || null,
     selfMalId: show.malId || currentRow.malId || currentIdentity.malId || null
   };
+  bakedChainCache.set(show, { catalog: state.shows, localChain: show.franchiseSeasons,
+    anilistId: show.anilistId, malId: show.malId, result });
+  return result;
 }
 
 // ensureFranchiseShowsInCatalog() materialises a row for every franchise entry
@@ -15644,11 +15657,11 @@ function buildSeasonListFromBakedChain(show, showsMap) {
   return list.some((s) => (s.episodes || []).length) ? list : null;
 }
 
-function getFranchiseSeasonList(show) {
+function getFranchiseSeasonList(show, alreadyEnsured = false) {
   // Materialize relation-backed entries before the map is built so every
   // selector row has a deterministic navigation target, even when the source's
   // paginated catalogue omitted that older cour.
-  ensureFranchiseShowsInCatalog(show);
+  if (!alreadyEnsured) ensureFranchiseShowsInCatalog(show);
   const showsMap = _buildShowsByAniListId();
 
   // ── The relations, baked at build time ───────────────────────────────────
@@ -16842,7 +16855,14 @@ function mergeJKAnimeSourcesIntoEpisode(show, episode, data, slug, epNum) {
  * (movie, OVA, related TV seasons) has a minimal show object in state.shows.
  * This allows openShow() to find them when the user clicks a season card.
  */
+const materializedFranchiseCache = new WeakMap();
+
 function ensureFranchiseShowsInCatalog(show) {
+  const cached = materializedFranchiseCache.get(show);
+  if (cached?.catalog === state.shows &&
+      cached.franchise === show.anilistFranchise &&
+      cached.localChain === show.franchiseSeasons &&
+      cached.anilistId === show.anilistId && cached.malId === show.malId) return;
   const franchise = show.anilistFranchise;
   const baked = bakedChainFor(show);
   const bakedGroups = baked?.chain?.length && typeof SeasonNormalization !== "undefined"
@@ -17032,6 +17052,13 @@ function ensureFranchiseShowsInCatalog(show) {
     state.shows = [...state.shows, ...added];
     rememberFranchiseRoutes(added);
   }
+  materializedFranchiseCache.set(show, {
+    catalog: state.shows,
+    franchise: show.anilistFranchise,
+    localChain: show.franchiseSeasons,
+    anilistId: show.anilistId,
+    malId: show.malId
+  });
 }
 
 // How many episodes this season is known to have. getSeasonEpisodeLimit already
@@ -17432,11 +17459,10 @@ function repairEpisodeGaps(episodes = [], seasonNumber = 1, knownAired = 0, show
   const floor = Math.min(Math.max(0, Math.floor(Number(knownAired) || 0)), 2000);
   const maxEpisode = Math.max(0, floor, ...byNumber.keys());
   if (!maxEpisode) return specialEpisodes.sort((a, b) => getCanonicalEpisodeNumber(a, 0) - getCanonicalEpisodeNumber(b, 0));
+  const providerEpisodeOffset = Number(show.providerEpisodeOffset) || 0;
+  const canResolveFromProvider = Boolean(show.animeAv1Slug || show.providerBaseTitle);
   const repaired = Array.from({ length: maxEpisode }, (_, index) => {
     const episode = index + 1;
-    if (!byNumber.has(episode)) console.warn(`Missing episode ${episode} detected`);
-    const providerEpisodeOffset = Number(show.providerEpisodeOffset) || 0;
-    const canResolveFromProvider = Boolean(show.animeAv1Slug || show.providerBaseTitle);
     return byNumber.get(episode) || {
       id: `missing-s${seasonNumber}-e${episode}`,
       title: canResolveFromProvider ? `Episode ${episode}` : "Not available yet",
@@ -17456,7 +17482,9 @@ function repairEpisodeGaps(episodes = [], seasonNumber = 1, knownAired = 0, show
       server: canResolveFromProvider ? "AnimeAV1" : "Missing from source"
     };
   });
-  return [...specialEpisodes, ...repaired].sort((a, b) => getCanonicalEpisodeNumber(a, 0) - getCanonicalEpisodeNumber(b, 0));
+  return specialEpisodes.length
+    ? [...specialEpisodes, ...repaired].sort((a, b) => getCanonicalEpisodeNumber(a, 0) - getCanonicalEpisodeNumber(b, 0))
+    : repaired;
 }
 
 async function playActiveShow(options = {}) {
@@ -20040,7 +20068,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=815");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=816");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
