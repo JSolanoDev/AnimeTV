@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T11:13:34.754Z",
+  "generatedAt": "2026-09-18T10:48:35.892Z",
   "count": 1658,
   "entries": {
     "animeav1-one-piece": {
@@ -94,8 +94,8 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-09-11T03:28:12.208Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-09-18T03:20:37.280Z"
     },
     "animeav1-bleach-sennen-kessen-hen-kashin-tan": {
       "anilistId": 185874,
@@ -649,8 +649,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 10,
-      "lastEpisodeAt": "2026-09-10T16:28:00.145Z"
+      "sourceEpisodeCount": 11,
+      "lastEpisodeAt": "2026-09-17T16:21:49.782Z"
     },
     "animeav1-bang-dream-yumemita": {
       "anilistId": 198376,
@@ -731,7 +731,7 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 11,
+      "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-10T12:47:23.757Z"
     },
     "animeav1-tsue-to-tsurugi-no-wistoria-season-2": {
@@ -14728,7 +14728,7 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 11,
+      "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-10T12:47:23.757Z"
     },
     "anilist-174576": {
@@ -29931,8 +29931,8 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-09-11T03:28:12.208Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-09-18T03:20:37.280Z"
     },
     "anilist-127399": {
       "anilistId": 127399,
@@ -58534,8 +58534,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 10,
-      "lastEpisodeAt": "2026-09-10T16:28:35.873Z"
+      "sourceEpisodeCount": 11,
+      "lastEpisodeAt": "2026-09-17T16:11:23.589Z"
     },
     "animeav1-hanaori-san-wa-tensei-shitemo-kenka-ga-shitai": {
       "anilistId": null,
@@ -58558,8 +58558,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 10,
-      "lastEpisodeAt": "2026-09-10T15:12:27.120Z"
+      "sourceEpisodeCount": 11,
+      "lastEpisodeAt": "2026-09-17T15:25:31.794Z"
     },
     "animeav1-dogulwang": {
       "anilistId": null,
@@ -58885,18 +58885,6 @@
       "sourceEpisodeCount": 11,
       "lastEpisodeAt": "2026-09-12T14:11:14.768Z"
     },
-    "animeav1-otome-kaijuu-carameliser": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-10T17:49:40.602Z"
-    },
     "animeav1-kore-kaite-shine": {
       "anilistId": null,
       "airingStatus": "RELEASING",
@@ -58918,8 +58906,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-10T16:30:18.095Z"
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-17T16:23:13.913Z"
     },
     "animeav1-reiwa-no-dara-san": {
       "anilistId": null,
@@ -58930,8 +58918,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-10T12:40:08.999Z"
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-17T13:17:23.216Z"
     },
     "animeav1-world-is-dancing": {
       "anilistId": null,
@@ -59099,6 +59087,18 @@
       "franchiseSeasons": [],
       "sourceEpisodeCount": 25,
       "lastEpisodeAt": "2026-09-11T13:22:48.317Z"
+    },
+    "animeav1-otome-kaijuu-carameliser": {
+      "anilistId": 204466,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-10T17:49:40.602Z"
     },
     "animeav1-rakudai-kenja-no-gakuin-musou-nidome-no-tensei-s-rank-cheat-majutsushi-boukenroku": {
       "anilistId": 208044,
