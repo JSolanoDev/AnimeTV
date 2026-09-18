@@ -909,7 +909,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=814`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(HOMEPAGE_BOOTSTRAP_ENDPOINT, { cache: "default" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -919,18 +919,15 @@ async function fetchHomepageBootstrapCatalog() {
   return rawItems.map((item, index) => normalizeExternalShow(item, source, index)).filter(Boolean);
 }
 
-function scheduleAnimeAv1LatestLoad(delayMs = 450) {
-  const loadLatest = () => loadAnimeAv1Latest();
-  const run = () => {
-    if ("requestIdleCallback" in window) window.requestIdleCallback(loadLatest, { timeout: 3000 });
-    else window.setTimeout(loadLatest, 300);
-  };
-  // Settle the real "Latest Episodes" (AnimeAV1 order) a couple seconds after
-  // first paint instead of 45s, so the home rail stops swapping order long after
-  // the user is looking at it. Gated on `load` + idle so it never delays paint.
-  const auto = () => window.setTimeout(run, delayMs);
-  if (document.readyState === "complete") auto();
-  else window.addEventListener("load", auto, { once: true });
+let _latestLoadTimer = 0;
+function scheduleAnimeAv1LatestLoad(delayMs = 0) {
+  if (_latestLoadTimer || state.av1LatestLoading) return;
+  // The tiny latest feed determines the hero. Waiting for the full page `load`
+  // event put it behind every poster request, then held the carousel empty.
+  _latestLoadTimer = window.setTimeout(() => {
+    _latestLoadTimer = 0;
+    void loadAnimeAv1Latest();
+  }, delayMs);
 }
 
 function applyServerCatalog(serverCatalog = [], label = "ZenkaiTV API") {
@@ -997,17 +994,20 @@ async function loadAnimeSources() {
   // Arm the splash rather than drop it: it comes down once there is content.
   maybeHideAppLoader();
 
-  let hasInitialCatalog = false;
-  const cachedCatalog = readResponseCache("main-catalog", CATALOG_CACHE_TTL);
-  if (cachedCatalog?.length) {
+  const isDirectDetailRoute = /^\/(?:anime|watch)\//.test(location.pathname);
+  const preferBootstrap = state.route === "home" && !isDirectDetailRoute;
+  const installCachedCatalog = () => {
+    const cachedCatalog = readResponseCache("main-catalog", CATALOG_CACHE_TTL);
+    if (!cachedCatalog?.length) return false;
     replaceRegularCatalog(cachedCatalog, "cache");
     state.isLoadingCatalog = false;
     resetCarouselIndexForFreshCatalog();
     setSourceStatus(catalogStatusLabel("Cached ZenkaiTV catalog", cachedCatalog));
     render();
-    hasInitialCatalog = true;
     scheduleVisibleMetadataWarm(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
-  }
+    return true;
+  };
+  let hasInitialCatalog = !preferBootstrap && installCachedCatalog();
 
   if (!hasInitialCatalog) {
     const bootstrapCatalog = await fetchHomepageBootstrapCatalog().catch(() => []);
@@ -1022,7 +1022,8 @@ async function loadAnimeSources() {
     }
   }
 
-  const isDirectDetailRoute = /^\/(?:anime|watch)\//.test(location.pathname);
+  if (!hasInitialCatalog && preferBootstrap) hasInitialCatalog = installCachedCatalog();
+
   if (hasInitialCatalog && state.route === "home" && !isDirectDetailRoute) {
     state.apiStatus.metadata = "Deferred";
     setSourceStatus("Using fast ZenkaiTV homepage catalog");
@@ -4348,11 +4349,10 @@ function carouselResolvedBackdropArtwork(show = {}) {
     .filter((value) => value && !isArtworkLowQuality(value, "backdrop")), "backdrop"));
 }
 
-// How long the carousel will wait for the real catalogue before settling for
-// the bootstrap one. The deferred refresh starts 1.5s after load and runs in a
-// requestIdleCallback with a 5s timeout, so a healthy load lands well inside
-// this; past it, something is wrong and a stale line-up beats an empty stage.
-const CAROUSEL_PROVISIONAL_HOLD_MS = 6000;
+// Give the live latest feed a brief head start. The bootstrap is rebuilt from
+// current catalog data on each deployment, so it can safely paint if that feed
+// is slow instead of leaving the home hero empty for six seconds.
+const CAROUSEL_PROVISIONAL_HOLD_MS = 1500;
 let _carouselProvisionalSince = 0;
 
 function carouselLineupIsProvisional() {
@@ -4487,7 +4487,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=814";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=815";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -5293,7 +5293,7 @@ function renderWatchDescription(show) {
   const node = document.querySelector("#watchDescription");
   if (!node || !show) return;
   const source = cleanDescription(show.description || "", Infinity);
-  if (state.appLanguage === "es" && /^animeav1-/.test(String(show.id || "")) &&
+  if (state.appLanguage === "es" && /^animeav1-/.test(String(show.catalogAnimeId || show.id || "")) &&
       source.endsWith("…") && !show._fullDescriptionResolved) {
     node.textContent = t("descriptionLoading");
     node.lang = "es";
@@ -5349,12 +5349,13 @@ function renderWatchDescription(show) {
 }
 
 async function hydrateFullShowDescription(show) {
-  if (!/^animeav1-/.test(String(show.id || "")) ||
+  const catalogId = String(show.catalogAnimeId || show.id || "");
+  if (!/^animeav1-/.test(catalogId) ||
       !String(show.description || "").endsWith("…") ||
       show._fullDescriptionResolved || show._fullDescriptionPending) return;
   show._fullDescriptionPending = true;
   try {
-    const params = new URLSearchParams({ id: String(show.id) });
+    const params = new URLSearchParams({ id: catalogId });
     if (show.anilistId) params.set("anilistId", String(show.anilistId));
     if (show.malId) params.set("malId", String(show.malId));
     const response = await fetchWithTimeout(`/api/description?${params}`, {}, 7000);
@@ -5479,8 +5480,24 @@ function applyCanonicalAnimeMetadata(show, payload = {}) {
   return true;
 }
 
+function hasBakedCanonicalMetadata(show) {
+  return /^animeav1-/.test(String(show?.catalogAnimeId || ""))
+    && Boolean(show.anilistId && show.malId && show.tmdbId && show._artworkPinned)
+    && String(show.description || "").length >= 100
+    && Number(show.year) > 0 && Number(show.score) > 0
+    && Array.isArray(show.genres) && show.genres.length > 0
+    && Array.isArray(show.studios) && show.studios.length > 0;
+}
+
 async function hydrateCanonicalAnimeMetadata(show, options = {}) {
   if (!show || show._canonicalMetadataLoaded) return show;
+  // The daily catalog already carries the verified identity, synopsis, studio,
+  // rating and artwork. AniList then Jikan would only delay this title's own
+  // episode and image requests; missing fields still take the existing path.
+  if (hasBakedCanonicalMetadata(show)) {
+    show._canonicalMetadataLoaded = true;
+    return show;
+  }
   const reportProgress = () => {
     try { options.onProgress?.(show); } catch { /* rendering progress is optional */ }
   };
@@ -15951,7 +15968,10 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
   }
   const generation = ++visibleMetadataWarmGeneration;
   const providedShows = Array.isArray(shows) ? shows : [];
-  const latestShows = buildLatestEpisodesList(Math.min(HOME_CARD_LIMIT, limit));
+  // Catalog cards already have their baked poster and metadata. Warm only the
+  // first few; the rest hydrate on open, leaving connections free for clicks.
+  const warmLimit = Math.min(limit, state.route === "home" ? 2 : 4);
+  const latestShows = buildLatestEpisodesList(warmLimit);
   const prioritized = [
     ...(state.route === "library" ? providedShows : latestShows),
     ...(state.route === "library" ? latestShows : providedShows)
@@ -15962,7 +15982,7 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
     prioritized
       .filter((show) => show)
       .map((show) => [String(show.id || getShowKey(show)), show])
-  ).values()].slice(0, limit);
+  ).values()].slice(0, warmLimit);
   let cursor = 0;
 
   let changed = false;
@@ -20020,7 +20040,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=814");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=815");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

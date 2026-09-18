@@ -275,6 +275,9 @@ jobs:
           node scripts/test-season-stills.mjs .
           node scripts/test-image-delivery.mjs
 
+      - name: Refresh homepage starter catalog
+        run: node scripts/build-homepage-bootstrap.mjs
+
       # ── 7. Commit updated catalog ──────────────────────────────────────────
       - name: Commit updated catalog
         id: commit-catalog

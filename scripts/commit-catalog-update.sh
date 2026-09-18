@@ -10,6 +10,7 @@ fetch_depth="${CATALOG_PUSH_FETCH_DEPTH:-50}"
 remote_ref="refs/remotes/${remote}/${branch}"
 
 catalog_files=(
+  "homepage-bootstrap.json"
   "scraper/anime_metadata.json"
   "scraper/anime_metadata.previous.json"
   "scraper/anime_metadata.csv"

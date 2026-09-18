@@ -51,7 +51,8 @@ test("catalog commit rebases over a concurrent main update without losing either
     configureIdentity(seed);
 
     const paths = catalogPaths();
-    assert.equal(paths.length, 20);
+    assert.equal(paths.length, 21);
+    assert.ok(paths.includes("homepage-bootstrap.json"));
     for (const path of paths) {
       const file = join(seed, path);
       mkdirSync(dirname(file), { recursive: true });

@@ -2,6 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFi
 import { join, extname } from "node:path";
 import { minify as terserMinify } from "terser";
 import CleanCSS from "clean-css";
+import { writeHomepageBootstrap } from "./build-homepage-bootstrap.mjs";
 
 const files = [
   "index.html",
@@ -103,6 +104,7 @@ async function minifyDir(dir) {
 }
 
 (async () => {
+  writeHomepageBootstrap();
   for (const outDir of outDirs) {
     rmSync(outDir, { recursive: true, force: true });
     mkdirSync(outDir, { recursive: true });

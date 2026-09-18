@@ -27,7 +27,10 @@ function normalizeExternalShow(item, source, index) {
     .map((value) => String(value || "").trim())
     .filter((value) => value && !/^(?:anime|animation)$/i.test(value));
   const genre = genres.length ? pickGenre(genres) : "";
-  const seasons = normalizeSeasons(item);
+  // Home only needs the release summary. Build a very long episode list when
+  // its title opens, instead of allocating it during every home visit.
+  const deferBootstrapEpisodes = source?.id === "homepage-bootstrap" && Number(item.episode) > 100;
+  const seasons = deferBootstrapEpisodes ? [] : normalizeSeasons(item);
   const episodes = seasons.flatMap((season) => season.episodes);
   const videoUrl = pickPlayableUrl(item) || getEpisodeUrl(episodes[0]) || "";
   // nextAiringAt is milliseconds. One Date for both the weekday and the clock

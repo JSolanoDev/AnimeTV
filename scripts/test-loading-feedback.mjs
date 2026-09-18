@@ -474,7 +474,7 @@ test("regular carousel artwork waits for canonical TMDB resolution before using 
     stableArtworkCandidates: (_show, values) => values,
     carouselArtworkOrPoster: show => show.highQualityBackground || show.banner || show.image || ""
   });
-  vm.runInContext(section("function carouselResolvedBackdropArtwork(", "// How long the carousel"), c);
+  vm.runInContext(section("function carouselResolvedBackdropArtwork(", "const CAROUSEL_PROVISIONAL_HOLD_MS"), c);
 
   const sourceBanner = "https://source.example/soft-banner.jpg";
   const tmdbBackdrop = "https://image.tmdb.org/t/p/original/final.jpg";
