@@ -840,6 +840,11 @@ function handleRequest(request, response) {
     return;
   }
 
+  if (url.pathname === "/api/description") {
+    handleDescription(url, response);
+    return;
+  }
+
   if (url.pathname === "/api/skip-times") {
     handleSkipTimes(url, response).catch((error) => {
       log("warn", `Skip-time lookup failed: ${error.message}`);
@@ -1716,6 +1721,8 @@ module.exports.applyAnimeAv1LatestInventory = applyAnimeAv1LatestInventory;
 module.exports.resolveUnderHentaiPortraitArtwork = resolveUnderHentaiPortraitArtwork;
 module.exports.splitDescriptionForTranslation = splitDescriptionForTranslation;
 module.exports.cleanServerDescription = cleanDescription;
+module.exports.compactCatalogPayload = compactCatalogPayload;
+module.exports.findArtworkDescription = findArtworkDescription;
 
 async function handleDailyRefresh(url, response) {
   const force = url.searchParams.get("force") === "1";
@@ -2014,7 +2021,11 @@ async function handleCatalog(response) {
   try {
     if (!catalogResponseInflight) {
       catalogResponseInflight = buildCatalogPayload()
-        .then((payload) => { catalogResponseCache = { payload, ts: Date.now() }; return payload; })
+        .then((payload) => {
+          const compact = compactCatalogPayload(payload);
+          catalogResponseCache = { payload: compact, ts: Date.now() };
+          return compact;
+        })
         .finally(() => { catalogResponseInflight = null; });
     }
     const payload = await catalogResponseInflight;
@@ -2224,6 +2235,48 @@ async function handleSourceProxy(request, url, response) {
     });
     sendJson(response, { ok: false, error: "Local source unavailable" }, 502);
   }
+}
+
+function compactCatalogPayload(payload) {
+  return {
+    ...payload,
+    items: (payload.items || []).map((item) => {
+      const description = String(item.description || "");
+      if (description.length <= 320) return item;
+      const cutoff = description.slice(0, 320);
+      const lastSpace = cutoff.lastIndexOf(" ");
+      const preview = (lastSpace > 160 ? cutoff.slice(0, lastSpace) : cutoff).trimEnd();
+      return { ...item, description: `${preview}…` };
+    })
+  };
+}
+
+function findArtworkDescription(artwork, id, anilistId = "", malId = "") {
+  let description = String(artwork?.[id]?.meta?.description || "");
+  if (!anilistId && !malId) return cleanDescription(description);
+  for (const entry of Object.values(artwork || {})) {
+    if (!entry?.meta?.description) continue;
+    const sameAnime = anilistId && String(entry.anilistId || "") === anilistId;
+    const sameMal = malId && String(entry.malId || entry.meta.malId || "") === malId;
+    if ((sameAnime || sameMal) && entry.meta.description.length > description.length) {
+      description = entry.meta.description;
+    }
+  }
+  return cleanDescription(description);
+}
+
+function handleDescription(url, response) {
+  const id = String(url.searchParams.get("id") || "");
+  if (!/^animeav1-[a-z0-9-]{1,180}$/.test(id)) {
+    sendJson(response, { ok: false, error: "Invalid anime id" }, 400);
+    return;
+  }
+  const anilistId = /^\d+$/.test(url.searchParams.get("anilistId") || "") ? url.searchParams.get("anilistId") : "";
+  const malId = /^\d+$/.test(url.searchParams.get("malId") || "") ? url.searchParams.get("malId") : "";
+  const description = findArtworkDescription(readArtworkMap(), id, anilistId, malId);
+  sendJson(response, { ok: true, description }, 200, {
+    "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400"
+  });
 }
 
 function rewriteM3u8Playlist(text, baseUrl, refererHost = "") {

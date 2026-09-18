@@ -701,7 +701,7 @@ function applyAppLanguage() {
   if (fakePlay) fakePlay.textContent = t("play");
   if (castButton) castButton.textContent = t("cast");
   setFavoriteButtonState(Boolean(state.activeShow && isFavoriteShow(state.activeShow)));
-  if (state.activeShow) renderWatchDescription(state.activeShow);
+  if (state.activeShow && overlay && !overlay.hidden) renderWatchDescription(state.activeShow);
   document.querySelector("#videoFrame [data-i18n-placeholder]")?.removeAttribute("data-i18n-placeholder");
 }
 
@@ -909,7 +909,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=812`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=813`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -4487,7 +4487,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=812";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=813";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -5293,6 +5293,12 @@ function renderWatchDescription(show) {
   const node = document.querySelector("#watchDescription");
   if (!node || !show) return;
   const source = cleanDescription(show.description || "", Infinity);
+  if (state.appLanguage === "es" && /^animeav1-/.test(String(show.id || "")) &&
+      source.endsWith("…") && !show._fullDescriptionResolved) {
+    node.textContent = t("descriptionLoading");
+    node.lang = "es";
+    return;
+  }
   if (!source || state.appLanguage !== "es") {
     node.textContent = source;
     node.lang = "en";
@@ -5340,6 +5346,27 @@ function renderWatchDescription(show) {
     node.textContent = source;
     node.lang = "en";
   });
+}
+
+async function hydrateFullShowDescription(show) {
+  if (!/^animeav1-/.test(String(show.id || "")) ||
+      !String(show.description || "").endsWith("…") ||
+      show._fullDescriptionResolved || show._fullDescriptionPending) return;
+  show._fullDescriptionPending = true;
+  try {
+    const params = new URLSearchParams({ id: String(show.id) });
+    if (show.anilistId) params.set("anilistId", String(show.anilistId));
+    if (show.malId) params.set("malId", String(show.malId));
+    const response = await fetchWithTimeout(`/api/description?${params}`, {}, 7000);
+    const payload = response.ok ? await response.json() : null;
+    const description = cleanDescription(payload?.description || "", Infinity);
+    if (description.length > String(show.description || "").length) show.description = description;
+  } catch { /* Canonical metadata and the catalog preview remain available. */ }
+  finally {
+    show._fullDescriptionResolved = true;
+    show._fullDescriptionPending = false;
+    if (state.activeShow?.id === show.id && overlay && !overlay.hidden) renderWatchDescription(show);
+  }
 }
 const ANIME_METADATA_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -9009,7 +9036,6 @@ function setRoute(route, options = {}) {
 
   syncRouteVisibility();
   if (route === "home") {
-    renderCarousel();
     scheduleAnimeAv1LatestLoad();
   }
   if ((route === "sources" || route === "library") && !state.externalSourcesLoaded) {
@@ -9231,6 +9257,7 @@ async function openShow(id, target = {}) {
 
 async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
   try {
+    void hydrateFullShowDescription(show);
     if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) {
       await hydrateAdultShowDetails(show);
       if (state.activeOpenToken !== openToken || state.activeShow?.id !== show.id) return;
@@ -19993,7 +20020,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=812");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=813");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

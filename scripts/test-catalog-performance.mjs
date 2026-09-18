@@ -630,6 +630,7 @@ test("one hundred identical catalog requests share one cold build", async () => 
     CATALOG_RESPONSE_TTL_MS: 600000,
     CATALOG_RESPONSE_CACHE_HEADERS: { "Cache-Control": "public, s-maxage=600" },
     buildCatalogPayload: async () => { builds += 1; return buildGate; },
+    compactCatalogPayload: (payload) => payload,
     sendJson: (response, body, status = 200, headers = {}) => Object.assign(response, { body, status, headers }),
     log() {}
   });
