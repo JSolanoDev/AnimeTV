@@ -161,7 +161,7 @@ function normalizeExternalShow(item, source, index) {
     // resolve must not replace it - see applyResolvedMatch in js/image-resolver.js.
     _artworkPinned: Boolean(item.tmdbBackdrop || item.tmdbPoster),
     siteUrl: sourceSiteUrl,
-    description: cleanDescription(item.description || item.synopsis || ""),
+    description: cleanDescription(item.description || item.synopsis || "", Infinity),
     anime1vUrl: item.anime1vUrl || item.animeUrl || item.url || item.link || "",
     provider: item.provider || source.provider || "",
     episodeEndpoint: item.episodeEndpoint || source.episodeEndpoint || "",
@@ -750,7 +750,7 @@ function normalizeAniListShow(entry) {
       episodeStill: null
     },
     siteUrl: entry.siteUrl || "",
-    description: cleanDescription(entry.description),
+    description: cleanDescription(entry.description, Infinity),
     videoUrl: ""
   };
 }
@@ -791,7 +791,7 @@ function normalizeJikanShow(entry, source) {
       episodeStill: null
     },
     siteUrl: entry.url || "",
-    description: cleanDescription(entry.synopsis),
+    description: cleanDescription(entry.synopsis, Infinity),
     videoUrl: ""
   };
 }

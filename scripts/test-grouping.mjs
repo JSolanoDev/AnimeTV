@@ -22,7 +22,7 @@ const SeasonNormalization = require("../js/season-normalization.js");
 const ImageResolver = require("../js/image-resolver.js");
 const AdultMode = require("../js/adult-mode.js");
 const { UnderHentaiAdultSourceAdapter } = require("../js/adult-source-adapter.js");
-const { mergeShows: mergeServerShows } = require("../animetv-server.js");
+const { mergeShows: mergeServerShows, splitDescriptionForTranslation, cleanServerDescription } = require("../animetv-server.js");
 
 let passed = 0;
 let failed = 0;
@@ -239,6 +239,12 @@ check("Every word kept is a complete word (no mid-word cut)", truncWords.every((
 check("No leftover HTML tags", !/[<>]/.test(cleanDescription("<p>Hello <b>world</b></p>")));
 check("Short description returned whole (no ellipsis)", cleanDescription("Short text") === "Short text");
 check("Missing description stays blank", cleanDescription("") === "");
+const longSynopsis = "A complete description should remain available on the detail page. ".repeat(12).trim();
+check("Full detail descriptions are not cut at 320 characters", cleanDescription(longSynopsis, Infinity) === longSynopsis);
+check("Server catalog descriptions keep the full source synopsis", cleanServerDescription(longSynopsis) === longSynopsis);
+const translatedChunks = splitDescriptionForTranslation(`${longSynopsis} 日本語の長い説明も残す。`);
+check("Translation chunks keep the entire synopsis", translatedChunks.join(" ") === `${longSynopsis} 日本語の長い説明も残す。`);
+check("Translation chunks respect the provider's byte limit", translatedChunks.every((chunk) => Buffer.byteLength(chunk, "utf8") <= 430));
 
 console.log("\n# AnimeAV1 artwork variants");
 check(

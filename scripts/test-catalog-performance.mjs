@@ -254,6 +254,7 @@ test("anime details paint before franchise and episode-list work", async () => {
     warmAnimeAv1PlaybackIntent() { calls.push("warm-source"); return Promise.resolve(); },
     resetVideoFrame(value) { calls.push(value?.length ? "full-frame" : "opening-frame"); },
     syncWatchHeading(_value, _season, value) { calls.push(value?.length ? "full-heading" : "opening-heading"); },
+    renderWatchDescription() {},
     setFavoriteButtonState() {},
     isFavoriteShow: () => false,
     getWatchPosterArtwork: () => "",

@@ -701,6 +701,7 @@ function applyAppLanguage() {
   if (fakePlay) fakePlay.textContent = t("play");
   if (castButton) castButton.textContent = t("cast");
   setFavoriteButtonState(Boolean(state.activeShow && isFavoriteShow(state.activeShow)));
+  if (state.activeShow) renderWatchDescription(state.activeShow);
   document.querySelector("#videoFrame [data-i18n-placeholder]")?.removeAttribute("data-i18n-placeholder");
 }
 
@@ -908,7 +909,7 @@ function regularCatalogSnapshot() {
 
 async function fetchHomepageBootstrapCatalog() {
   if (location.protocol === "file:") return [];
-  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=809`, { cache: "force-cache" }, 2500);
+  const response = await fetchWithTimeout(`${HOMEPAGE_BOOTSTRAP_ENDPOINT}?v=812`, { cache: "force-cache" }, 2500);
   if (!response.ok) throw new Error("Homepage bootstrap unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -2706,7 +2707,9 @@ async function hydrateAdultShowDetails(show) {
   if (!details) return show;
   const stableId = show.id;
   const sourceOrder = show.sourceOrder;
+  const catalogDescription = show.description || "";
   Object.assign(show, details, { id: stableId, sourceOrder, adultDetailsLoaded: true });
+  if (catalogDescription.length > String(show.description || "").length) show.description = catalogDescription;
   isolateAdultSourceMetadata(show);
   hydrateAdultCinematicArtwork(show).then(() => {
     if (state.activeShow?.id === stableId) syncWatchHeading(show);
@@ -4484,7 +4487,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=809";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=812";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -5237,6 +5240,107 @@ const SHOW_EXTRAS_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const SHOW_EXTRAS_MISSING_EPISODE_RETRY_MS = 5 * 60 * 1000;
 const _showExtrasMissingEpisodeAttemptAt = new Map();
 const ANIME_METADATA_CACHE_PREFIX = "zenkaitv:anime-metadata:v2:";
+const DESCRIPTION_ES_CACHE_PREFIX = "zenkaitv:description-es:v2:";
+const descriptionTranslationFlights = new Map();
+
+function cachedSpanishDescription(show, source) {
+  if (show._descriptionEsSource === source && show.descriptionEs) return show.descriptionEs;
+  const key = DESCRIPTION_ES_CACHE_PREFIX + String(show.anilistId || show.malId || show.id || show.title);
+  try {
+    const cached = JSON.parse(localStorage.getItem(key) || "null");
+    if (cached?.source === source && cached.text) {
+      show.descriptionEs = cached.text;
+      show._descriptionEsSource = source;
+      return cached.text;
+    }
+  } catch { /* Private browsing and small TV storage may block this cache. */ }
+  return "";
+}
+
+async function fetchSpanishDescription(show, source) {
+  const isMovie = /^(?:MOVIE|FILM)$/i.test(String(show.format || show.type || ""));
+  let localizedOverview = "";
+  if (show.tmdbId && !isMovie) {
+    try {
+      const response = await fetchWithTimeout(`/api/tmdb/tv?id=${encodeURIComponent(show.tmdbId)}&lang=es`, {}, 12000);
+      const payload = response.ok ? await response.json() : null;
+      const overview = cleanDescription(payload?.show?.overview || "", Infinity);
+      if (overview && overview.toLocaleLowerCase() !== source.toLocaleLowerCase()) {
+        localizedOverview = overview;
+        if (overview.length >= source.length * 0.9) return overview;
+      }
+    } catch { /* A localized TMDB synopsis is optional; translation remains available. */ }
+  }
+  try {
+    const response = await fetchWithTimeout(TRANSLATE_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: source, from: /[\u3040-\u30ff\u3400-\u9fff]/.test(source) ? "ja" : "en", to: "es", mode: "description" })
+    }, 28000);
+    const payload = response.ok ? await response.json() : null;
+    const translated = cleanDescription(payload?.translatedText || "", Infinity);
+    if (!payload?.ok || !translated || translated.toLocaleLowerCase() === source.toLocaleLowerCase()) {
+      throw new Error("Spanish description unavailable");
+    }
+    return translated;
+  } catch (error) {
+    if (localizedOverview) return localizedOverview;
+    throw error;
+  }
+}
+
+function renderWatchDescription(show) {
+  const node = document.querySelector("#watchDescription");
+  if (!node || !show) return;
+  const source = cleanDescription(show.description || "", Infinity);
+  if (!source || state.appLanguage !== "es") {
+    node.textContent = source;
+    node.lang = "en";
+    return;
+  }
+  const cached = cachedSpanishDescription(show, source);
+  if (cached) {
+    node.textContent = cached;
+    node.lang = "es";
+    return;
+  }
+  if (Date.now() < Number(show._descriptionEsRetryAt || 0)) {
+    node.textContent = source;
+    node.lang = "en";
+    return;
+  }
+  node.textContent = t("descriptionLoading");
+  node.lang = "es";
+  const key = `${show.anilistId || show.malId || show.id}:${source}`;
+  if (!descriptionTranslationFlights.has(key)) {
+    const flight = fetchSpanishDescription(show, source)
+      .then((text) => {
+        show.descriptionEs = text;
+        show._descriptionEsSource = source;
+        try {
+          localStorage.setItem(
+            DESCRIPTION_ES_CACHE_PREFIX + String(show.anilistId || show.malId || show.id || show.title),
+            JSON.stringify({ source, text })
+          );
+        } catch { /* The in-memory translation still works. */ }
+        return text;
+      })
+      .finally(() => descriptionTranslationFlights.delete(key));
+    descriptionTranslationFlights.set(key, flight);
+  }
+  descriptionTranslationFlights.get(key).then((text) => {
+    if (state.appLanguage !== "es" || state.activeShow?.id !== show.id ||
+        cleanDescription(state.activeShow.description || "", Infinity) !== source) return;
+    node.textContent = text;
+    node.lang = "es";
+  }).catch(() => {
+    show._descriptionEsRetryAt = Date.now() + 60000;
+    if (state.appLanguage !== "es" || state.activeShow?.id !== show.id ||
+        cleanDescription(state.activeShow.description || "", Infinity) !== source) return;
+    node.textContent = source;
+    node.lang = "en";
+  });
+}
 const ANIME_METADATA_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 function readAnimeMetadataCache(key) {
@@ -5308,7 +5412,7 @@ function applyCanonicalAnimeMetadata(show, payload = {}) {
     show.image = hqImage(media.coverImage?.extraLarge || media.coverImage?.large || show.image || "");
     show.banner = media.bannerImage || show.banner || "";
     show.highQualityBackground = media.bannerImage || show.highQualityBackground || "";
-    show.description = cleanDescription(media.description || show.description || "");
+    show.description = cleanDescription(media.description || show.description || "", Infinity);
     show.genres = Array.isArray(media.genres) && media.genres.length ? media.genres : show.genres;
     show.genre = show.genres?.[0] || show.genre;
     show.score = media.averageScore || show.score;
@@ -5331,7 +5435,7 @@ function applyCanonicalAnimeMetadata(show, payload = {}) {
     show.jikanImage = jikan.images?.webp?.large_image_url || jikan.images?.jpg?.large_image_url || "";
     if (!show.image) show.image = show.jikanImage;
     if (!show.highQualityBackground && !show.banner) show.jikanBackground = show.jikanImage;
-    if (!show.description || show.description.length < 60) show.description = cleanDescription(jikan.synopsis || show.description || "");
+    if (!show.description || show.description.length < 60) show.description = cleanDescription(jikan.synopsis || show.description || "", Infinity);
     if (!show.score && jikan.score) show.score = Math.round(Number(jikan.score) * 10);
     show.malRank = jikan.rank || show.malRank;
     show.popularity = jikan.popularity || show.popularity;
@@ -9047,8 +9151,7 @@ async function openShow(id, target = {}) {
   const openingSeasons = [];
   resetVideoFrame(openingSeasons);
   syncWatchHeading(show, null, openingSeasons);
-  const descriptionNode = document.querySelector("#watchDescription");
-  if (descriptionNode) descriptionNode.textContent = show.description || "";
+  renderWatchDescription(show);
   setFavoriteButtonState(isFavoriteShow(show));
   if (episodeList) {
     episodeList.hidden = true;
@@ -9138,8 +9241,7 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
         renderEpisodeList(show, { seasons: adultSeasons, hydrateExtras: false });
       }
       syncWatchHeading(show, null, adultSeasons);
-      const descriptionNode = document.querySelector("#watchDescription");
-      if (descriptionNode) descriptionNode.textContent = show.description || "";
+      renderWatchDescription(show);
       if (state.activeEpisode && target.playIntent) {
         const frame = document.querySelector("#videoFrame");
         const background = getWatchBackdropArtwork(show, state.activeEpisode.season);
@@ -9169,8 +9271,7 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
       try {
         const seasons = getDetailSeasons(show);
         syncWatchHeading(show, null, seasons);
-        const descriptionNode = document.querySelector("#watchDescription");
-        if (descriptionNode) descriptionNode.textContent = show.description || "";
+        renderWatchDescription(show);
         // Don't clobber the source picker if the user has already selected an
         // episode. The left-side metadata can still update independently.
         if (!episodeList?.querySelector(".side-source-picker")) {
@@ -9300,8 +9401,7 @@ async function hydrateOpenShowDetails(show, target = {}, openToken = "") {
       });
     }
     syncWatchHeading(show, null, hydratedSeasons);
-    const descriptionNode = document.querySelector("#watchDescription");
-    if (descriptionNode) descriptionNode.textContent = show.description || "";
+    renderWatchDescription(show);
     setFavoriteButtonState(isFavoriteShow(show));
     // Pre-fetch sources in the background so they're ready, but only OPEN the
     // source picker when the user explicitly intends to play (Play button or an
@@ -9355,7 +9455,10 @@ async function hydrateAnime1vEpisodes(show) {
     const mergedDescription = payload.description || payload.synopsis || show.description || "";
     if (mergedImage && !show.image) show.image = mergedImage;
     if (payload.banner || payload.backdrop || mergedImage) show.banner = payload.banner || payload.backdrop || show.banner || mergedImage;
-    if (mergedDescription) show.description = cleanDescription(mergedDescription);
+    if (mergedDescription) {
+      const description = cleanDescription(mergedDescription, Infinity);
+      if (description.length > String(show.description || "").length) show.description = description;
+    }
     const seasonNumber = extractSeasonNumber(payload.title || show.title, extractSeasonNumber(show.title, 1));
     const episodes = repairEpisodeGaps(payload.episodes.map((episode) => ({
       ...episode,
@@ -9414,7 +9517,10 @@ async function hydrateConsumetEpisodes(show) {
     if (!payload.ok || !Array.isArray(payload.episodes) || !payload.episodes.length) return show;
     if (payload.image && !show.image) show.image = payload.image;
     if (payload.banner && !show.banner) show.banner = payload.banner;
-    if (payload.description) show.description = cleanDescription(payload.description);
+    if (payload.description) {
+      const description = cleanDescription(payload.description, Infinity);
+      if (description.length > String(show.description || "").length) show.description = description;
+    }
     const seasonNumber = extractSeasonNumber(payload.title || show.title, extractSeasonNumber(show.title, 1));
     const episodes = repairEpisodeGaps(payload.episodes.map((episode) => ({
       ...episode,
@@ -9472,7 +9578,10 @@ async function hydrateRapidAnimeEpisodes(show) {
     if (!payload.ok || !Array.isArray(payload.episodes) || !payload.episodes.length) return show;
     if (payload.image && !show.image) show.image = payload.image;
     if (payload.banner && !show.banner) show.banner = payload.banner;
-    if (payload.description) show.description = cleanDescription(payload.description);
+    if (payload.description) {
+      const description = cleanDescription(payload.description, Infinity);
+      if (description.length > String(show.description || "").length) show.description = description;
+    }
     const seasonNumber = extractSeasonNumber(payload.title || show.title, extractSeasonNumber(show.title, 1));
     const episodes = repairEpisodeGaps(payload.episodes.map((episode) => ({
       ...episode,
@@ -9531,7 +9640,10 @@ async function hydrateJimovEpisodes(show) {
     if (!payload.ok || !Array.isArray(payload.episodes) || !payload.episodes.length) return show;
     if (payload.image && !show.image) show.image = payload.image;
     if (payload.banner && !show.banner) show.banner = payload.banner;
-    if (payload.description) show.description = cleanDescription(payload.description);
+    if (payload.description) {
+      const description = cleanDescription(payload.description, Infinity);
+      if (description.length > String(show.description || "").length) show.description = description;
+    }
     const episodes = repairEpisodeGaps(payload.episodes.map((episode) => ({
       ...episode,
       id: episode.id || `${show.id}-jimov-${episode.episode || episode.number}`,
@@ -16810,7 +16922,7 @@ function ensureFranchiseShowsInCatalog(show) {
         if (entry.banner && (syntheticTarget || !target.banner)) target.banner = entry.banner;
         if (entry.banner && (syntheticTarget || !target.highQualityBackground)) target.highQualityBackground = entry.banner;
         if (entry.description && (syntheticTarget || !target.description || target.description.length < 60)) {
-          target.description = cleanDescription(entry.description);
+          target.description = cleanDescription(entry.description, Infinity);
         }
         if (entry.genres?.length && (syntheticTarget || !target.genres?.length)) target.genres = entry.genres;
         if (syntheticTarget && entry.title) target.title = entry.title;
@@ -19881,7 +19993,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=809");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=812");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

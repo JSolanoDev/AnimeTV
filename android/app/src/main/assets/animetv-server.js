@@ -496,6 +496,7 @@ const RATE_LIMIT_MAX_REQUESTS = Math.max(20, Number(process.env.RATE_LIMIT_MAX_R
 const RATE_LIMIT_API_MAX_REQUESTS = Math.max(20, Number(process.env.RATE_LIMIT_API_MAX_REQUESTS || 120));
 const RATE_LIMIT_MEDIA_MAX_REQUESTS = Math.max(600, Number(process.env.RATE_LIMIT_MEDIA_MAX_REQUESTS || 1800));
 const translationCache = new Map();
+const translationInflight = new Map();
 const types = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -1713,6 +1714,8 @@ module.exports.hasVerifiedRegularSourceFallback = hasVerifiedRegularSourceFallba
 module.exports.resolvedEmbedPlaybackUrl = resolvedEmbedPlaybackUrl;
 module.exports.applyAnimeAv1LatestInventory = applyAnimeAv1LatestInventory;
 module.exports.resolveUnderHentaiPortraitArtwork = resolveUnderHentaiPortraitArtwork;
+module.exports.splitDescriptionForTranslation = splitDescriptionForTranslation;
+module.exports.cleanServerDescription = cleanDescription;
 
 async function handleDailyRefresh(url, response) {
   const force = url.searchParams.get("force") === "1";
@@ -2271,6 +2274,7 @@ async function handleTranslate(request, response) {
 
   try {
     const body = await readJsonBody(request);
+    const descriptionMode = body.mode === "description";
     const text = String(body.text || "").trim();
     const to = String(body.to || "es").slice(0, 8);
     const from = String(body.from || "auto").slice(0, 8);
@@ -2278,20 +2282,57 @@ async function handleTranslate(request, response) {
       sendJson(response, { ok: true, translatedText: "" });
       return;
     }
+    if (descriptionMode && text.length > 6000) {
+      sendJson(response, { ok: false, error: "Description is too long." }, 400);
+      return;
+    }
 
-    const cacheKey = `${from}:${to}:${text}`;
+    if (!descriptionMode) {
+      const cacheKey = `${from}:${to}:${text}`;
+      if (translationCache.has(cacheKey)) {
+        sendJson(response, { ok: true, translatedText: translationCache.get(cacheKey), cached: true });
+        return;
+      }
+      const endpoint = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0, 480))}&langpair=${encodeURIComponent(`${from}|${to}`)}`;
+      const upstream = await fetchWithRetry(endpoint, { headers: { Accept: "application/json" } }, 1);
+      if (!upstream.ok) throw new Error(`Translation HTTP ${upstream.status}`);
+      const payload = await upstream.json();
+      const translatedText = cleanTranslationText(payload?.responseData?.translatedText || text);
+      translationCache.set(cacheKey, translatedText);
+      if (translationCache.size > 1200) translationCache.delete(translationCache.keys().next().value);
+      sendJson(response, { ok: true, translatedText, provider: "MyMemory" });
+      return;
+    }
+
+    const cacheKey = `description:${from}:${to}:${text}`;
     if (translationCache.has(cacheKey)) {
       sendJson(response, { ok: true, translatedText: translationCache.get(cacheKey), cached: true });
       return;
     }
 
-    const endpoint = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0, 480))}&langpair=${encodeURIComponent(`${from}|${to}`)}`;
-    const upstream = await fetchWithRetry(endpoint, { headers: { Accept: "application/json" } }, 1);
-    if (!upstream.ok) throw new Error(`Translation HTTP ${upstream.status}`);
-    const payload = await upstream.json();
-    const translatedText = cleanTranslationText(payload?.responseData?.translatedText || text);
-    translationCache.set(cacheKey, translatedText);
-    if (translationCache.size > 1200) translationCache.delete(translationCache.keys().next().value);
+    const translatedText = await coalesceInflight(translationInflight, cacheKey, async () => {
+      const chunks = splitDescriptionForTranslation(text);
+      const translated = new Array(chunks.length);
+      let next = 0;
+      const worker = async () => {
+        while (next < chunks.length) {
+          const index = next++;
+          const endpoint = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(chunks[index])}&langpair=${encodeURIComponent(`${from}|${to}`)}`;
+          const upstream = await fetchWithTimeout(endpoint, { headers: { Accept: "application/json" } }, 5000);
+          if (!upstream.ok) throw new Error(`Translation HTTP ${upstream.status}`);
+          const payload = await upstream.json();
+          if (Number(payload?.responseStatus || 200) >= 400 || !payload?.responseData?.translatedText) {
+            throw new Error("Translation provider returned no text");
+          }
+          translated[index] = cleanTranslationText(payload.responseData.translatedText);
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(3, chunks.length) }, () => worker()));
+      const result = translated.join(" ").trim();
+      translationCache.set(cacheKey, result);
+      if (translationCache.size > 1200) translationCache.delete(translationCache.keys().next().value);
+      return result;
+    });
     sendJson(response, { ok: true, translatedText, provider: "MyMemory" });
   } catch (error) {
     sendJson(response, {
@@ -2659,6 +2700,30 @@ function readSkipTimesMap() {
     _skipTimesAmbiguousMalIds = new Set();
   }
   return _skipTimesCache;
+}
+
+function splitDescriptionForTranslation(text, maxBytes = 430) {
+  const chunks = [];
+  let current = "";
+  for (const word of String(text || "").trim().split(/\s+/)) {
+    if (!word) continue;
+    const candidate = current ? `${current} ${word}` : word;
+    if (Buffer.byteLength(candidate, "utf8") <= maxBytes) {
+      current = candidate;
+      continue;
+    }
+    if (current) chunks.push(current);
+    current = "";
+    for (const character of word) {
+      if (Buffer.byteLength(current + character, "utf8") > maxBytes) {
+        chunks.push(current);
+        current = "";
+      }
+      current += character;
+    }
+  }
+  if (current) chunks.push(current);
+  return chunks;
 }
 
 function sanitizeCastCodecs(value = "") {
@@ -10108,7 +10173,7 @@ function cleanDescription(value) {
     .replace(/<\/?[^>]+(>|$)/g, "")
     .replace(/\s+/g, " ")
     .trim()
-    .slice(0, 320);
+    .slice(0, 6000);
 }
 
 function cleanTranslationText(value) {
@@ -12359,6 +12424,7 @@ function tmdbFetch(pathname, params = {}) {
     } else if (tvMatch) {
       route = "tv";
       proxyParams.set("id", tvMatch[1]);
+      if (params.language === "es-ES") proxyParams.set("lang", "es");
     } else {
       return Promise.reject(new Error("Unsupported TMDB proxy route"));
     }
@@ -12447,7 +12513,9 @@ async function handleTmdbTv(url, response) {
   if (!/^\d+$/.test(id) || Number(id) <= 0) {
     return sendJson(response, { ok: false, configured: true, error: "Missing or invalid id" }, 400);
   }
-  const cached = tmdbTvCache.get(id);
+  const language = url.searchParams.get("lang") === "es" ? "es-ES" : "en-US";
+  const cacheKey = `${id}:${language}`;
+  const cached = tmdbTvCache.get(cacheKey);
   try {
     if (cached && Date.now() - cached.ts < TMDB_CACHE_TTL_MS) {
       return sendJson(response, {
@@ -12458,13 +12526,14 @@ async function handleTmdbTv(url, response) {
         show: cached.data
       }, 200, TMDB_TV_CACHE_HEADERS);
     }
-    const show = await coalesceInflight(tmdbInflight, `tv:${id}`, async () => {
-      const raw = await tmdbFetch(`/tv/${encodeURIComponent(id)}`, { language: "en-US" });
+    const show = await coalesceInflight(tmdbInflight, `tv:${cacheKey}`, async () => {
+      const raw = await tmdbFetch(`/tv/${encodeURIComponent(id)}`, { language });
       const payload = raw?.show || raw;
       const found = {
         id: payload.id,
         name: payload.name,
         original_name: payload.original_name,
+        overview: payload.overview || "",
         first_air_date: payload.first_air_date,
         poster_path: payload.poster_path,
         backdrop_path: payload.backdrop_path,
@@ -12481,7 +12550,7 @@ async function handleTmdbTv(url, response) {
             }))
           : []
       };
-      tmdbTvCache.set(id, { data: found, ts: Date.now() });
+      tmdbTvCache.set(cacheKey, { data: found, ts: Date.now() });
       return found;
     });
     sendJson(response, { ok: true, configured: true, show }, 200, TMDB_TV_CACHE_HEADERS);
@@ -12493,7 +12562,7 @@ async function handleTmdbTv(url, response) {
       error: error.message
     });
     if (error.status === 404) {
-      tmdbTvCache.set(id, { data: null, ts: Date.now() });
+      tmdbTvCache.set(cacheKey, { data: null, ts: Date.now() });
       sendJson(response, { ok: true, configured: true, notFound: true, show: null }, 200, TMDB_TV_CACHE_HEADERS);
       return;
     }

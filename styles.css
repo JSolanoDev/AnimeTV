@@ -8690,11 +8690,16 @@ body.reduce-motion .watch-detail-progress { opacity: 1; }
   color: rgba(223, 226, 240, 0.86);
   font-size: clamp(0.92rem, 1.1vw, 1.04rem);
   line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  display: block;
+  max-height: 25dvh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
   text-shadow: 0 0.2rem 0.8rem rgba(0,0,0,0.45);
+}
+.watch-summary:focus-visible {
+  outline: 0.12rem solid var(--accent, #8955ff);
+  outline-offset: 0.2rem;
 }
 
 /* ── Bottom action bar ───────────────────────────────────────────────────── */
@@ -9221,7 +9226,7 @@ body.has-embedded-player .watch-side {
     box-shadow: 0 -1.4rem 3rem rgba(0,0,0,0.5);
   }
   .watch-overlay.cinematic .watch-title { font-size: clamp(1.7rem, 7vw, 2.6rem); }
-  .watch-summary { -webkit-line-clamp: 2; }
+  .watch-summary { max-height: 20dvh; }
 }
 
 /* Small tablets keep the cinematic hero and episode browser in one viewport.
@@ -12669,6 +12674,8 @@ body.player-cinema-open .watch-overlay .close-button {
 
   .watch-stage-body .watch-summary {
     font-size: 0.84rem;
+    max-height: none;
+    overflow: visible;
   }
 
   .watch-backdrop-title-art {
