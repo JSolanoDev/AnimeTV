@@ -223,9 +223,11 @@ test("anime details paint before franchise and episode-list work", async () => {
   const overlay = { hidden: true };
   const episodeList = {
     hidden: false,
+    dataset: {},
     replaceChildren() { calls.push("clear-episodes"); }
   };
   const c = vm.createContext({
+    _latestEpisodeRowsObserver: null,
     state: { shows: [show], addonSections: [], av1Shows: new Map() },
     overlay,
     episodeList,

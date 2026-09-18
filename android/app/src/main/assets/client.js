@@ -267,6 +267,8 @@ const state = {
   preferredSource: localStorage.getItem("animetv-preferred-playback-source") || "auto",
   sourcePickerFilter: "preferred:best-servers",
   activeDetailTab: "episodes",
+  pendingLatestEpisodeReveal: null,
+  latestEpisodeOpenToken: null,
   adultGalleryKey: "",
   adultGalleryHidden: false,
   libraryLetter: "all",
@@ -4489,7 +4491,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=817";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=818";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -6380,8 +6382,11 @@ function cardEpisodeLabel(show = {}) {
 }
 
 function getCardTarget(show) {
-  const seasonNumber = extractSeasonNumber(show.title, 1);
-  const episodeNumber = cardEpisodeNumber(show);
+  const feedEpisode = parseEpisodeNumber(show._av1Episode);
+  const seasonNumber = feedEpisode !== null && Number(show.canonicalSeasonNumber) > 0
+    ? Number(show.canonicalSeasonNumber)
+    : extractSeasonNumber(show.title, 1);
+  const episodeNumber = feedEpisode !== null && feedEpisode > 0 ? feedEpisode : cardEpisodeNumber(show);
   return {
     seasonNumber,
     episodeNumber: episodeNumber > 0 ? episodeNumber : ""
@@ -9165,6 +9170,9 @@ async function openShow(id, target = {}) {
   state.detailTabSwitched = true;
   const openToken = `${show.id || getShowKey(show)}:${Date.now()}`;
   state.activeOpenToken = openToken;
+  state.pendingLatestEpisodeReveal = target.revealLatestEpisode ? openToken : null;
+  state.latestEpisodeOpenToken = target.revealLatestEpisode ? openToken : null;
+  _latestEpisodeRowsObserver?.disconnect();
   updateRouteMeta(state.currentRouteInfo || {}, show, target);
   setWatchDetailLoading(true, openToken);
 
@@ -9198,6 +9206,7 @@ async function openShow(id, target = {}) {
   if (episodeList) {
     episodeList.hidden = true;
     episodeList.replaceChildren();
+    episodeList.dataset.scrollContext = "";
   }
   overlay.hidden = false;
   document.body.classList.add("watch-detail-open");
@@ -9878,6 +9887,9 @@ function closeShow() {
     updateRouteMeta(state.currentRouteInfo || {});
   }
   stopActivePlayback();
+  state.pendingLatestEpisodeReveal = null;
+  state.latestEpisodeOpenToken = null;
+  _latestEpisodeRowsObserver?.disconnect();
   document.body.classList.remove("player-cinema-open");
   document.body.classList.remove("has-embedded-player");
   setWatchDetailLoading(false, state.activeOpenToken);
@@ -11216,6 +11228,33 @@ function resetEpisodePanelScroll() {
   if (rows) rows.scrollTop = 0;
 }
 
+let _latestEpisodeRowsObserver = null;
+function revealLatestSelectedEpisode() {
+  if (!state.pendingLatestEpisodeReveal || state.pendingLatestEpisodeReveal !== state.activeOpenToken || state.playIntent) return;
+  const rows = episodeList?.querySelector("#epRows");
+  const selectedRow = rows?.querySelector(".ep-row.is-selected");
+  if (!selectedRow) return;
+  if (["auto", "scroll"].includes(getComputedStyle(rows).overflowY)) {
+    const rowRect = selectedRow.getBoundingClientRect();
+    const listRect = rows.getBoundingClientRect();
+    rows.scrollTo({
+      top: rows.scrollTop + rowRect.top - listRect.top - (rows.clientHeight - rowRect.height) / 2,
+      behavior: "instant"
+    });
+  } else {
+    selectedRow.scrollIntoView({ block: "center", behavior: "instant" });
+  }
+}
+
+function observeLatestEpisodeRows() {
+  _latestEpisodeRowsObserver?.disconnect();
+  if (!state.pendingLatestEpisodeReveal || state.pendingLatestEpisodeReveal !== state.activeOpenToken || typeof ResizeObserver === "undefined") return;
+  const rows = episodeList?.querySelector("#epRows");
+  if (!rows) return;
+  _latestEpisodeRowsObserver = new ResizeObserver(revealLatestSelectedEpisode);
+  _latestEpisodeRowsObserver.observe(rows);
+}
+
 function episodeChunkContextKey(show, season, seasonIndex = state.activeSeasonIndex) {
   const showId = String(show?.id || getShowKey(show || {}) || "show");
   const seasonNumber = Number(season?.canonicalSeasonNumber || season?.season || seasonIndex + 1) || 1;
@@ -11341,6 +11380,9 @@ function renderEpisodeList(show, options = {}) {
     chunkedEpisodes = episodes.slice(startIdx, endIdx);
   }
 
+  const scrollContext = `${episodeChunkContextKey(show, activeSeason, state.activeSeasonIndex)}:${activeChunkIndex}`;
+  const previousRows = episodeList.querySelector("#epRows");
+  const previousScrollTop = episodeList.dataset.scrollContext === scrollContext ? previousRows?.scrollTop : null;
   episodeList.hidden = false;
   // Drives the compact-width rules that drop the redundant Seasons tab but
   // keep the Gallery one. Set before the markup so the two can never disagree.
@@ -11582,6 +11624,13 @@ function renderEpisodeList(show, options = {}) {
       </div>`}
     </section>
   `;
+  episodeList.dataset.scrollContext = scrollContext;
+  if (previousScrollTop !== null && previousScrollTop !== undefined) {
+    const rows = episodeList.querySelector("#epRows");
+    if (rows) rows.scrollTo({ top: previousScrollTop, behavior: "instant" });
+  }
+  revealLatestSelectedEpisode();
+  observeLatestEpisodeRows();
   syncCompletedArtwork(episodeList);
 
   if (isAdultDetailShow && adultEpisodeGalleryGroups.length) {
@@ -11846,6 +11895,10 @@ function renderEpisodeList(show, options = {}) {
   requestAnimationFrame(() => {
     const selectedRow = episodeList.querySelector(".ep-row.is-selected");
     if (selectedRow) {
+      if (state.latestEpisodeOpenToken && state.latestEpisodeOpenToken === state.activeOpenToken && !state.playIntent) {
+        revealLatestSelectedEpisode();
+        return;
+      }
       const sidePanel = episodeList.closest(".watch-side") || episodeList.parentElement;
       if (sidePanel) {
         const rowTop = selectedRow.offsetTop - (sidePanel.scrollTop || 0);
@@ -18663,6 +18716,12 @@ let _lastPreloadHoverId = "";
 function wireOpenButtons() {
   if (_openButtonsDelegated) return;
   _openButtonsDelegated = true;
+  for (const type of ["wheel", "touchstart"]) {
+    episodeList?.addEventListener(type, () => {
+      state.pendingLatestEpisodeReveal = null;
+      _latestEpisodeRowsObserver?.disconnect();
+    }, { passive: true });
+  }
   const buttonFrom = (event) => (event.target && event.target.closest)
     ? event.target.closest("[data-open-show]")
     : null;
@@ -18699,7 +18758,11 @@ function wireOpenButtons() {
     e.preventDefault();
     openShow(button.dataset.openShow, {
       seasonNumber: button.dataset.openSeason,
-      episodeNumber: button.dataset.openEpisode
+      episodeNumber: button.dataset.openEpisode,
+      providerAnimeSlug: button.dataset.openProviderSlug,
+      providerEpisodeId: button.dataset.openProviderEpisode,
+      revealLatestEpisode: Boolean(button.closest("#latestGrid")),
+      playIntent: false
     });
   });
 }
@@ -20108,7 +20171,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=817");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=818");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

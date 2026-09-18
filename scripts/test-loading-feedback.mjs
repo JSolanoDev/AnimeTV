@@ -44,6 +44,46 @@ test("returning Home leaves Continue Watching to the main render", () => {
   assert.equal(sections[1].attributes["aria-hidden"], "true");
 });
 
+test("Latest Episodes cards target the feed episode, not the catalog episode count", () => {
+  const c = vm.createContext({
+    parseEpisodeNumber: (value) => Number.isFinite(Number(value)) ? Number(value) : null,
+    extractSeasonNumber: () => 1,
+    cardEpisodeNumber: (show) => show.sourceEpisodeCount
+  });
+  vm.runInContext(section("function getCardTarget(", "function cardMeta("), c);
+  const target = c.getCardTarget({ _av1Episode: 7, canonicalSeasonNumber: 3, sourceEpisodeCount: 12 });
+  assert.equal(target.seasonNumber, 3);
+  assert.equal(target.episodeNumber, 7);
+});
+
+test("Latest Episodes click opens its selected episode without autoplay", () => {
+  const listeners = new Map();
+  const opened = [];
+  const c = vm.createContext({
+    document: { addEventListener: (name, callback) => listeners.set(name, callback) },
+    episodeList: null,
+    state: { pendingLatestEpisodeReveal: null },
+    openShow: (id, target) => opened.push({ id, target }),
+    preloadOpenShow: () => {}
+  });
+  vm.runInContext(section("let _openButtonsDelegated = false;", "function openCarouselShow()"), c);
+  c.wireOpenButtons();
+  const click = (latest) => {
+    const button = {
+      dataset: { openShow: "show-1", openSeason: "2", openEpisode: "11", openProviderSlug: "show-1", openProviderEpisode: "11" },
+      closest: (selector) => selector === "#latestGrid" && latest ? {} : null
+    };
+    listeners.get("click")({ target: { closest: () => button }, preventDefault: () => {} });
+    return opened.at(-1).target;
+  };
+  const latest = click(true);
+  assert.equal(latest.revealLatestEpisode, true);
+  assert.equal(latest.playIntent, false);
+  assert.equal(latest.episodeNumber, "11");
+  assert.equal(latest.providerEpisodeId, "11");
+  assert.equal(click(false).revealLatestEpisode, false);
+});
+
 test("Continue Watching sanitizes only the visible saved entries", () => {
   const map = Object.fromEntries(Array.from({ length: 1000 }, (_, index) => [String(index), {
     episodeKey: String(index), lastWatchedAt: index, progress: 20
