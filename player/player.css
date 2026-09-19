@@ -1227,17 +1227,21 @@ body.ztv-chrome-hidden .ztv-corner-toggle svg {
 /* Phone/tablet playback title: one quiet line inside the picture. ArtPlayer's
    .art-mobile marker survives rotation and fullscreen, unlike a width query. */
 .art-mobile .ztv-player-topbar {
-  min-height: 52px;
+  /* Match the 44px corner controls: 12px top + 44px lane + 12px bottom.
+     The safe-area inset is included in both the bar and its top padding so the
+     title keeps the same center line beside a notch. */
+  min-height: calc(68px + env(safe-area-inset-top));
   gap: 0.4rem;
   padding:
-    calc(8px + env(safe-area-inset-top))
+    calc(12px + env(safe-area-inset-top))
     calc(56px + env(safe-area-inset-right))
-    18px
+    12px
     calc(56px + env(safe-area-inset-left));
 }
 
 .art-mobile .ztv-kicker,
-.art-mobile .ztv-player-brand {
+.art-mobile .ztv-player-brand,
+.art-mobile .ztv-mascot {
   display: none;
 }
 
