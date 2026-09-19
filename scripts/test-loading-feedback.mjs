@@ -20,30 +20,49 @@ test("install recommendation uses the native PWA event without API work", () => 
   );
   assert.match(html, /id="installRecommendation"/);
   assert.match(html, /id="installRecommendationAction"/);
+  assert.match(html, /id="installRecommendationNever"/);
   assert.match(styles, /body:not\(\[data-route="home"\]\) \.install-recommendation/);
   assert.match(feature, /beforeinstallprompt/);
   assert.match(feature, /event\.preventDefault\(\)/);
   assert.match(feature, /appinstalled/);
-  assert.match(feature, /!window\.ZenkaiNative/);
+  assert.match(feature, /window\.ZenkaiNative/);
+  assert.match(feature, /!isAppInstallationComplete\(\)/);
   assert.match(feature, /display-mode: standalone/);
+  assert.match(client, /data-install-app/);
+  assert.ok(
+    feature.indexOf("deferredInstallPrompt = event") < feature.indexOf("if (!canOfferInstallRecommendation()) return"),
+    "the Settings install action must retain the native event even when reminders are disabled"
+  );
   assert.doesNotMatch(feature, /\bfetch\s*\(/);
 });
 
-test("install recommendation dismissal lasts only for the current page load", () => {
+test("install recommendation supports temporary dismissal and persistent opt-out", () => {
   const pureHelpers = section(
-    "let deferredInstallPrompt",
+    "const INSTALL_RECOMMENDATION_DISABLED_KEY",
     "function updateInstallRecommendationCopy()"
   );
+  const values = new Map();
+  const storage = {
+    getItem: (key) => values.get(key) || null,
+    setItem: (key, value) => values.set(key, String(value))
+  };
   const c = vm.createContext({
     window: { matchMedia: () => ({ matches: false }), navigator: {} },
     navigator: { userAgent: "", platform: "", maxTouchPoints: 0 },
+    localStorage: storage,
     isAndroidTV: () => false
   });
   vm.runInContext(pureHelpers, c);
   assert.equal(c.canOfferInstallRecommendation(), true);
   vm.runInContext("installRecommendationDismissedForPage = true", c);
   assert.equal(c.canOfferInstallRecommendation(), false);
-  assert.doesNotMatch(pureHelpers, /localStorage|sessionStorage/);
+  vm.runInContext("installRecommendationDismissedForPage = false", c);
+  assert.equal(c.canOfferInstallRecommendation(), true);
+  c.permanentlyDisableInstallRecommendation(storage);
+  assert.equal(c.canOfferInstallRecommendation(), false);
+  vm.runInContext("installRecommendationDismissedForPage = false", c);
+  assert.equal(c.canOfferInstallRecommendation(), false);
+  assert.equal(values.get("zenkaitv-install-recommendation-disabled-v1"), "1");
 });
 
 test("returning Home leaves Continue Watching to the main render", () => {

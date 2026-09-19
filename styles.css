@@ -6028,6 +6028,28 @@ body.is-tv .install-recommendation {
   line-height: 1.25;
 }
 
+.install-recommendation-never {
+  justify-self: start;
+  margin: 0.08rem 0 0;
+  padding: 0;
+  border: 0;
+  color: rgba(207, 216, 238, 0.72);
+  background: transparent;
+  font: inherit;
+  font-size: 0.67rem;
+  font-weight: 760;
+  line-height: 1.2;
+  text-decoration: underline;
+  text-decoration-color: rgba(85, 220, 248, 0.45);
+  text-underline-offset: 0.16rem;
+  cursor: pointer;
+}
+
+.install-recommendation-never:is(:hover, :focus-visible) {
+  color: #ffffff;
+  text-decoration-color: #55dcf8;
+}
+
 .install-recommendation-action {
   display: inline-flex;
   align-items: center;
@@ -6112,6 +6134,10 @@ body.light-theme .install-recommendation {
 
 body.light-theme .install-recommendation-copy small,
 body.light-theme .install-recommendation-hint {
+  color: rgba(28, 35, 55, 0.72);
+}
+
+body.light-theme .install-recommendation-never {
   color: rgba(28, 35, 55, 0.72);
 }
 

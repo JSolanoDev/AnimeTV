@@ -4508,7 +4508,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=838";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=839";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -8407,6 +8407,8 @@ function renderSettings() {
   const language = state.appLanguage;
   const preferences = getLanguagePreferences();
   const ui = state.uiPreferences;
+  const appInstalled = isAppInstallationComplete();
+  const installReminderDisabled = isInstallRecommendationPermanentlyDisabled();
   // The Sources tab was removed: connectors are resolved automatically per episode
   // and the panel only ever exposed read-only status, so it gave the viewer nothing
   // to act on. Everything it showed is still reachable from the catalog status line.
@@ -8457,6 +8459,13 @@ function renderSettings() {
         <div class="settings-line">
           <span>${t("compactSidebar")} <small>Collapse navigation to icon-only</small></span>
           <button class="settings-switch focusable ${state.sidebarCollapsed ? "is-on" : ""}" data-toggle-sidebar-setting type="button"><b></b></button>
+        </div>
+
+        <div class="settings-divider"></div>
+        <div class="settings-group-label">${t("installSettingsGroup")}</div>
+        <div class="settings-line">
+          <span>${t("installSettingsTitle")} <small>${t(installReminderDisabled ? "installSettingsMessageHidden" : "installSettingsMessage")}</small></span>
+          <button class="secondary-action focusable" data-install-app type="button" ${appInstalled ? "disabled" : ""}>${t(appInstalled ? "installInstalled" : "installAction")}</button>
         </div>
 
         <div class="settings-group-label">Content</div>
@@ -8676,6 +8685,16 @@ function wireSettingsButtons() {
     renderSettings();
   });
 
+  settingsGrid.querySelector("[data-install-app]")?.addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    const outcome = await requestAppInstallation();
+    if (outcome === "ios") showToast(t("installIosHint"));
+    else if (outcome === "accepted") showToast(t("installAccepted"));
+    else if (outcome === "unavailable") showToast(t("installUnavailable"));
+    if (state.route === "settings") renderSettings();
+  });
+
   // 18+ adult-mode toggle (first enable requires explicit age confirmation).
   // A real state change fires AdultMode.onChange, which repaints chrome + the
   // whole app (including this Settings panel), so we only handle the messaging
@@ -8751,6 +8770,8 @@ function wireSettingsButtons() {
   settingsGrid.querySelector("[data-reset-settings]")?.addEventListener("click", () => {
     localStorage.removeItem(APP_THEME_KEY);
     localStorage.removeItem(APP_UI_PREFS_KEY);
+    localStorage.removeItem(INSTALL_RECOMMENDATION_DISABLED_KEY);
+    installRecommendationDismissedForPage = false;
     state.theme = "dark";
     state.uiPreferences = readUiPreferences();
     applyUiPreferences();
@@ -19728,15 +19749,26 @@ if ("scrollRestoration" in history) {
   history.scrollRestoration = "manual";
 }
 
+const INSTALL_RECOMMENDATION_DISABLED_KEY = "zenkaitv-install-recommendation-disabled-v1";
 let deferredInstallPrompt = null;
 let installRecommendationMode = "native";
 let installRecommendationTimer = 0;
 let installRecommendationDismissedForPage = false;
+let installRecommendationInstalledForPage = false;
 
 function isInstalledDisplayMode() {
   return Boolean(
     window.matchMedia?.("(display-mode: standalone)")?.matches
     || window.navigator?.standalone === true
+  );
+}
+
+function isAppInstallationComplete() {
+  return Boolean(
+    window.ZenkaiNative
+    || isAndroidTV()
+    || installRecommendationInstalledForPage
+    || isInstalledDisplayMode()
   );
 }
 
@@ -19747,11 +19779,27 @@ function isIosSafariInstallCandidate() {
   return isIos && /Safari/i.test(agent) && !/(CriOS|FxiOS|EdgiOS|OPiOS)/i.test(agent);
 }
 
+function isInstallRecommendationPermanentlyDisabled(storage = localStorage) {
+  try {
+    return storage.getItem(INSTALL_RECOMMENDATION_DISABLED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function permanentlyDisableInstallRecommendation(storage = localStorage) {
+  installRecommendationDismissedForPage = true;
+  try {
+    storage.setItem(INSTALL_RECOMMENDATION_DISABLED_KEY, "1");
+  } catch {
+    // Storage can be unavailable in private browsing; the page-level dismissal remains.
+  }
+}
+
 function canOfferInstallRecommendation() {
-  return !window.ZenkaiNative
-    && !isAndroidTV()
-    && !isInstalledDisplayMode()
-    && !installRecommendationDismissedForPage;
+  return !isAppInstallationComplete()
+    && !installRecommendationDismissedForPage
+    && !isInstallRecommendationPermanentlyDisabled();
 }
 
 function updateInstallRecommendationCopy() {
@@ -19766,6 +19814,7 @@ function updateInstallRecommendationCopy() {
   setCopy("installRecommendationKicker", "installKicker");
   setCopy("installRecommendationTitle", "installTitle");
   setCopy("installRecommendationMessage", "installMessage");
+  setCopy("installRecommendationNever", "installNever");
   setCopy("installRecommendationActionText", ios ? (stepsOpen ? "installGotIt" : "installSteps") : "installAction");
   setCopy("installRecommendationHint", "installIosHint");
   const action = document.getElementById("installRecommendationAction");
@@ -19774,6 +19823,23 @@ function updateInstallRecommendationCopy() {
   if (close) {
     close.setAttribute("aria-label", t("installDismiss"));
     close.title = t("installDismiss");
+  }
+}
+
+async function requestAppInstallation() {
+  if (isAppInstallationComplete()) return "installed";
+  if (isIosSafariInstallCandidate()) return "ios";
+  const promptEvent = deferredInstallPrompt;
+  if (!promptEvent) return "unavailable";
+  deferredInstallPrompt = null;
+  try {
+    await promptEvent.prompt();
+    const choice = await promptEvent.userChoice;
+    if (choice?.outcome === "accepted") installRecommendationInstalledForPage = true;
+    return choice?.outcome || "dismissed";
+  } catch {
+    // The browser owns this prompt and may cancel it during navigation.
+    return "unavailable";
   }
 }
 
@@ -19809,11 +19875,17 @@ function setupInstallRecommendation() {
   const card = document.getElementById("installRecommendation");
   const action = document.getElementById("installRecommendationAction");
   const close = document.getElementById("installRecommendationClose");
-  if (!card || !action || !close || card.dataset.ready === "true") return;
+  const never = document.getElementById("installRecommendationNever");
+  if (!card || !action || !close || !never || card.dataset.ready === "true") return;
   card.dataset.ready = "true";
   updateInstallRecommendationCopy();
 
   close.addEventListener("click", () => hideInstallRecommendation({ dismissed: true }));
+  never.addEventListener("click", () => {
+    permanentlyDisableInstallRecommendation();
+    hideInstallRecommendation();
+    if (state.route === "settings") renderSettings();
+  });
   action.addEventListener("click", async () => {
     if (installRecommendationMode === "ios") {
       if (card.dataset.stepsOpen === "true") {
@@ -19827,19 +19899,14 @@ function setupInstallRecommendation() {
       return;
     }
 
-    const promptEvent = deferredInstallPrompt;
-    if (!promptEvent) {
+    if (!deferredInstallPrompt) {
       hideInstallRecommendation();
       return;
     }
-    deferredInstallPrompt = null;
     action.disabled = true;
     try {
-      await promptEvent.prompt();
-      const choice = await promptEvent.userChoice;
-      if (choice?.outcome === "dismissed") installRecommendationDismissedForPage = true;
-    } catch {
-      // The browser owns this prompt and may cancel it during navigation.
+      const outcome = await requestAppInstallation();
+      if (outcome === "dismissed") installRecommendationDismissedForPage = true;
     } finally {
       action.disabled = false;
       hideInstallRecommendation();
@@ -19848,19 +19915,26 @@ function setupInstallRecommendation() {
 
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
-    if (!canOfferInstallRecommendation()) return;
     deferredInstallPrompt = event;
+    if (state.route === "settings") renderSettings();
+    if (!canOfferInstallRecommendation()) return;
     scheduleInstallRecommendation("native", 2200);
   });
 
   window.addEventListener("appinstalled", () => {
     deferredInstallPrompt = null;
+    installRecommendationInstalledForPage = true;
     hideInstallRecommendation();
+    if (state.route === "settings") renderSettings();
   });
 
   const displayMode = window.matchMedia?.("(display-mode: standalone)");
   displayMode?.addEventListener?.("change", (event) => {
-    if (event.matches) hideInstallRecommendation();
+    if (event.matches) {
+      installRecommendationInstalledForPage = true;
+      hideInstallRecommendation();
+      if (state.route === "settings") renderSettings();
+    }
   });
 
   if (isIosSafariInstallCandidate() && canOfferInstallRecommendation()) {
@@ -20480,7 +20554,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=838");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=839");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
