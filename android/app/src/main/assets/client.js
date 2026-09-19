@@ -704,6 +704,7 @@ function applyAppLanguage() {
   if (castButton) castButton.textContent = t("cast");
   setFavoriteButtonState(Boolean(state.activeShow && isFavoriteShow(state.activeShow)));
   if (state.activeShow && overlay && !overlay.hidden) renderWatchDescription(state.activeShow);
+  updateInstallRecommendationCopy();
   document.querySelector("#videoFrame [data-i18n-placeholder]")?.removeAttribute("data-i18n-placeholder");
 }
 
@@ -4507,7 +4508,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=836";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=837";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -19727,6 +19728,168 @@ if ("scrollRestoration" in history) {
   history.scrollRestoration = "manual";
 }
 
+const INSTALL_RECOMMENDATION_DISMISSED_KEY = "zenkaitv-install-recommendation-dismissed-at-v1";
+const INSTALL_RECOMMENDATION_DISMISS_MS = 14 * 24 * 60 * 60 * 1000;
+let deferredInstallPrompt = null;
+let installRecommendationMode = "native";
+let installRecommendationTimer = 0;
+
+function isInstalledDisplayMode() {
+  return Boolean(
+    window.matchMedia?.("(display-mode: standalone)")?.matches
+    || window.navigator?.standalone === true
+  );
+}
+
+function isIosSafariInstallCandidate() {
+  const agent = navigator.userAgent || "";
+  const isIos = /iPad|iPhone|iPod/i.test(agent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  return isIos && /Safari/i.test(agent) && !/(CriOS|FxiOS|EdgiOS|OPiOS)/i.test(agent);
+}
+
+function installRecommendationDismissedRecently(storage = localStorage, now = Date.now()) {
+  try {
+    const dismissedAt = Number(storage.getItem(INSTALL_RECOMMENDATION_DISMISSED_KEY) || 0);
+    return dismissedAt > 0 && now - dismissedAt < INSTALL_RECOMMENDATION_DISMISS_MS;
+  } catch {
+    return false;
+  }
+}
+
+function canOfferInstallRecommendation() {
+  return !window.ZenkaiNative
+    && !isAndroidTV()
+    && !isInstalledDisplayMode()
+    && !installRecommendationDismissedRecently();
+}
+
+function updateInstallRecommendationCopy() {
+  const card = document.getElementById("installRecommendation");
+  if (!card) return;
+  const ios = installRecommendationMode === "ios";
+  const stepsOpen = card.dataset.stepsOpen === "true";
+  const setCopy = (id, key) => {
+    const node = document.getElementById(id);
+    if (node) node.textContent = t(key);
+  };
+  setCopy("installRecommendationKicker", "installKicker");
+  setCopy("installRecommendationTitle", "installTitle");
+  setCopy("installRecommendationMessage", "installMessage");
+  setCopy("installRecommendationActionText", ios ? (stepsOpen ? "installGotIt" : "installSteps") : "installAction");
+  setCopy("installRecommendationHint", "installIosHint");
+  const action = document.getElementById("installRecommendationAction");
+  const close = document.getElementById("installRecommendationClose");
+  if (action) action.setAttribute("aria-label", ios ? t("installSteps") : t("installTitle"));
+  if (close) {
+    close.setAttribute("aria-label", t("installDismiss"));
+    close.title = t("installDismiss");
+  }
+}
+
+function rememberInstallRecommendationDismissal() {
+  try {
+    localStorage.setItem(INSTALL_RECOMMENDATION_DISMISSED_KEY, String(Date.now()));
+  } catch {
+    // Private browsing can reject storage; hiding for this page is enough.
+  }
+}
+
+function hideInstallRecommendation({ dismissed = false } = {}) {
+  const card = document.getElementById("installRecommendation");
+  if (dismissed) rememberInstallRecommendationDismissal();
+  window.clearTimeout(installRecommendationTimer);
+  if (!card) return;
+  card.classList.remove("is-visible");
+  window.setTimeout(() => {
+    if (!card.classList.contains("is-visible")) card.hidden = true;
+  }, 180);
+}
+
+function showInstallRecommendation(mode = "native") {
+  const card = document.getElementById("installRecommendation");
+  if (!card || !canOfferInstallRecommendation()) return;
+  installRecommendationMode = mode;
+  card.dataset.stepsOpen = "false";
+  const hint = document.getElementById("installRecommendationHint");
+  if (hint) hint.hidden = true;
+  updateInstallRecommendationCopy();
+  card.hidden = false;
+  window.requestAnimationFrame(() => card.classList.add("is-visible"));
+}
+
+function scheduleInstallRecommendation(mode, delay) {
+  window.clearTimeout(installRecommendationTimer);
+  installRecommendationTimer = window.setTimeout(() => showInstallRecommendation(mode), delay);
+}
+
+function setupInstallRecommendation() {
+  const card = document.getElementById("installRecommendation");
+  const action = document.getElementById("installRecommendationAction");
+  const close = document.getElementById("installRecommendationClose");
+  if (!card || !action || !close || card.dataset.ready === "true") return;
+  card.dataset.ready = "true";
+  updateInstallRecommendationCopy();
+
+  close.addEventListener("click", () => hideInstallRecommendation({ dismissed: true }));
+  action.addEventListener("click", async () => {
+    if (installRecommendationMode === "ios") {
+      if (card.dataset.stepsOpen === "true") {
+        hideInstallRecommendation({ dismissed: true });
+        return;
+      }
+      card.dataset.stepsOpen = "true";
+      const hint = document.getElementById("installRecommendationHint");
+      if (hint) hint.hidden = false;
+      updateInstallRecommendationCopy();
+      return;
+    }
+
+    const promptEvent = deferredInstallPrompt;
+    if (!promptEvent) {
+      hideInstallRecommendation();
+      return;
+    }
+    deferredInstallPrompt = null;
+    action.disabled = true;
+    try {
+      await promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
+      if (choice?.outcome === "dismissed") rememberInstallRecommendationDismissal();
+    } catch {
+      // The browser owns this prompt and may cancel it during navigation.
+    } finally {
+      action.disabled = false;
+      hideInstallRecommendation();
+    }
+  });
+
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    if (!canOfferInstallRecommendation()) return;
+    deferredInstallPrompt = event;
+    scheduleInstallRecommendation("native", 2200);
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    hideInstallRecommendation();
+  });
+
+  const displayMode = window.matchMedia?.("(display-mode: standalone)");
+  displayMode?.addEventListener?.("change", (event) => {
+    if (event.matches) hideInstallRecommendation();
+  });
+
+  if (isIosSafariInstallCandidate() && canOfferInstallRecommendation()) {
+    const offerIosInstall = () => scheduleInstallRecommendation("ios", 3600);
+    if (document.readyState === "complete") offerIosInstall();
+    else window.addEventListener("load", offerIosInstall, { once: true });
+  }
+}
+
+setupInstallRecommendation();
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/service-worker.js").catch(() => {});
@@ -20335,7 +20498,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=836");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=837");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

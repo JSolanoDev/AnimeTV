@@ -4,12 +4,54 @@ import vm from "node:vm";
 import { readFileSync } from "node:fs";
 
 const client = readFileSync(new URL("../client.js", import.meta.url), "utf8");
+const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 function section(start, end) {
   const from = client.indexOf(start);
   const to = client.indexOf(end, from + start.length);
   assert.ok(from >= 0 && to > from);
   return client.slice(from, to);
 }
+
+test("install recommendation uses the native PWA event without API work", () => {
+  const feature = section(
+    "const INSTALL_RECOMMENDATION_DISMISSED_KEY",
+    'if ("serviceWorker" in navigator)'
+  );
+  assert.match(html, /id="installRecommendation"/);
+  assert.match(html, /id="installRecommendationAction"/);
+  assert.match(styles, /body:not\(\[data-route="home"\]\) \.install-recommendation/);
+  assert.match(feature, /beforeinstallprompt/);
+  assert.match(feature, /event\.preventDefault\(\)/);
+  assert.match(feature, /appinstalled/);
+  assert.match(feature, /!window\.ZenkaiNative/);
+  assert.match(feature, /display-mode: standalone/);
+  assert.doesNotMatch(feature, /\bfetch\s*\(/);
+});
+
+test("install recommendation dismissal expires after fourteen days", () => {
+  const pureHelpers = section(
+    "const INSTALL_RECOMMENDATION_DISMISSED_KEY",
+    "function updateInstallRecommendationCopy()"
+  );
+  const now = 2_000_000_000_000;
+  const storage = {
+    value: "",
+    getItem() { return this.value; }
+  };
+  const c = vm.createContext({
+    window: { matchMedia: () => ({ matches: false }), navigator: {} },
+    navigator: { userAgent: "", platform: "", maxTouchPoints: 0 },
+    localStorage: storage,
+    Date,
+    isAndroidTV: () => false
+  });
+  vm.runInContext(pureHelpers, c);
+  storage.value = String(now - 13 * 24 * 60 * 60 * 1000);
+  assert.equal(c.installRecommendationDismissedRecently(storage, now), true);
+  storage.value = String(now - 15 * 24 * 60 * 60 * 1000);
+  assert.equal(c.installRecommendationDismissedRecently(storage, now), false);
+});
 
 test("returning Home leaves Continue Watching to the main render", () => {
   const sections = ["continueWatching", "continueWatchingAdult", "latest"].map((id) => {
