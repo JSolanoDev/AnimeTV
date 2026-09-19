@@ -163,6 +163,7 @@ const UNDERHENTAI_MINOR_MARKERS = [
 ];
 const UNDERHENTAI_MINOR_PATTERNS = [/\bjk\b/i];
 const underHentaiDetailCache = new Map();
+const underHentaiDetailInflight = new Map();
 const underHentaiLiveCatalogCache = new Map();
 const hentaiOceanDetailCache = new Map();
 const hentaiOceanStreamCache = new Map();
@@ -11527,6 +11528,29 @@ function prepareVeoHentaiSnapshotItem(item = {}) {
   };
 }
 
+async function loadUnderHentaiDetails(slug, snapshotItem) {
+  const sourceUrl = `${UNDERHENTAI_BASE}/${encodeURIComponent(slug)}/`;
+  try {
+    const upstream = await fetchWithRetry(sourceUrl, { headers: UNDERHENTAI_HEADERS }, 2);
+    if (!upstream.ok) throw new Error(`Title page returned HTTP ${upstream.status}`);
+    const item = parseUnderHentaiTitlePage(await upstream.text(), sourceUrl);
+    if (!item) {
+      return { status: 404, payload: { ok: false, error: "This title is excluded by the adult-content safety filter." } };
+    }
+    item.slug = slug;
+    const enrichedItem = applyUnderHentaiPortraitArtwork(item);
+    underHentaiDetailCache.set(slug, { data: enrichedItem, ts: Date.now() });
+    return { status: 200, payload: { ok: true, source: "UnderHentai", adultOnly: true, item: enrichedItem } };
+  } catch (error) {
+    if (snapshotItem) {
+      const item = prepareUnderHentaiSnapshotItem(snapshotItem);
+      underHentaiDetailCache.set(slug, { data: item, ts: Date.now() });
+      return { status: 200, payload: { ok: true, source: "UnderHentai", adultOnly: true, bundled: true, stale: true, item } };
+    }
+    return { status: 502, payload: { ok: false, error: error.message || "Adult title metadata is unavailable." } };
+  }
+}
+
 async function handleUnderHentaiDetails(url, response) {
   const slug = String(url.searchParams.get("slug") || "").trim().toLowerCase();
   if (!/^[a-z0-9][a-z0-9_-]*$/.test(slug)) {
@@ -11548,31 +11572,20 @@ async function handleUnderHentaiDetails(url, response) {
       return;
     }
   }
-  const snapshotItem = readUnderHentaiDetails().bySlug.get(slug);
-  try {
-    const sourceUrl = `${UNDERHENTAI_BASE}/${encodeURIComponent(slug)}/`;
-    const upstream = await fetchWithRetry(sourceUrl, { headers: UNDERHENTAI_HEADERS }, 2);
-    if (!upstream.ok) throw new Error(`Title page returned HTTP ${upstream.status}`);
-    const item = parseUnderHentaiTitlePage(await upstream.text(), sourceUrl);
-    if (!item) {
-      sendJson(response, { ok: false, error: "This title is excluded by the adult-content safety filter." }, 404);
-      return;
-    }
-    item.slug = slug;
-    const enrichedItem = applyUnderHentaiPortraitArtwork(item);
-    underHentaiDetailCache.set(slug, { data: enrichedItem, ts: Date.now() });
-    sendJson(response, { ok: true, source: "UnderHentai", adultOnly: true, item: enrichedItem });
-  } catch (error) {
-    if (snapshotItem) {
-      const item = prepareUnderHentaiSnapshotItem(snapshotItem);
-      underHentaiDetailCache.set(slug, { data: item, ts: Date.now() });
-      sendJson(response, { ok: true, source: "UnderHentai", adultOnly: true, bundled: true, stale: true, item });
-      return;
-    }
-    sendJson(response, { ok: false, error: error.message || "Adult title metadata is unavailable." }, 502);
-  }
-}
 
+  // A detail page can be requested concurrently by route hydration and card
+  // prefetching. Share one upstream fetch so an outage yields one response, not
+  // a burst of duplicate retries and 502s.
+  let lookup = underHentaiDetailInflight.get(slug);
+  if (!lookup) {
+    const snapshotItem = readUnderHentaiDetails().bySlug.get(slug);
+    lookup = loadUnderHentaiDetails(slug, snapshotItem)
+      .finally(() => underHentaiDetailInflight.delete(slug));
+    underHentaiDetailInflight.set(slug, lookup);
+  }
+  const { status, payload } = await lookup;
+  sendJson(response, payload, status);
+}
 function parseUnderHentaiEmbeds(html = "") {
   const urls = [];
   const candidates = [
