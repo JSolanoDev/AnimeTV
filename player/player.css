@@ -909,7 +909,7 @@ body.ztv-chrome-hidden .ztv-corner-toggle svg {
   z-index: 62;
   top: calc(12px + var(--ztv-letter, 0px) + env(safe-area-inset-top));
   left: calc(64px + var(--ztv-pillar, 0px) + env(safe-area-inset-left));
-  right: calc(64px + var(--ztv-pillar, 0px) + env(safe-area-inset-right));
+  right: auto;
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -923,16 +923,20 @@ body.ztv-chrome-hidden .ztv-corner-toggle svg {
   font-size: 0.78rem;
   white-space: nowrap;
   overflow: hidden;
-  width: auto;
-  max-width: none;
+  width: fit-content;
+  max-width: calc(
+    100% - 128px
+    - var(--ztv-pillar, 0px) - var(--ztv-pillar, 0px)
+    - env(safe-area-inset-left) - env(safe-area-inset-right)
+  );
   opacity: 0.62;
   pointer-events: none;
   transition: opacity 160ms ease;
 }
 
 /* Keep the compact episode label inside the space between the two corner
-   controls. With width:fit-content an unusually long title ignored the right
-   inset, covered the lock button and made the player feel oversized. */
+   controls. Short labels hug their text; unusually long titles ellipsize before
+   reaching the right-side button. */
 @media (max-width: 1024px) {
   .ztv-floating-label {
     font-size: clamp(0.68rem, 1.8vw, 0.78rem);

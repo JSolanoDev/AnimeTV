@@ -1613,6 +1613,32 @@
     return Boolean(art?.template?.$player?.classList.contains("art-mobile"));
   }
 
+  // The player is a fixed 16:9 iframe, so its own orientation media query is
+  // always landscape even while the phone holding it is upright. Read the
+  // same-origin host viewport when available and fall back to this window for
+  // direct player links or cross-origin embeds.
+  function getPlayerHostWindow() {
+    try {
+      if (window.parent && window.parent !== window) {
+        void window.parent.document;
+        return window.parent;
+      }
+    } catch (error) { /* Cross-origin parent: use the player viewport. */ }
+    return window;
+  }
+
+  function isPortraitPlayerHost() {
+    const hostWindow = getPlayerHostWindow();
+    try { return hostWindow.matchMedia("(orientation: portrait)").matches; }
+    catch (error) { return hostWindow.innerHeight >= hostWindow.innerWidth; }
+  }
+
+  function showPlayerControls() {
+    try {
+      if (art?.controls) art.controls.show = true;
+    } catch (error) { /* Player may be leaving the page. */ }
+  }
+
   // screen.orientation.lock() only works while something is actually fullscreen,
   // and iOS Safari has no implementation at all - it either rejects or is
   // missing. Artplayer's autoOrientation covers that case by rotating its own
@@ -1668,19 +1694,22 @@
     // leaving it - so the lock and the release can never drift apart.
     const onFullscreenChange = () => {
       if (!isPhonePlayer()) return;
-      if (document.fullscreenElement || document.webkitFullscreenElement) lockLandscape();
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        lockLandscape();
+        showPlayerControls();
+      }
       else unlockOrientation();
     };
     document.addEventListener("fullscreenchange", onFullscreenChange);
     document.addEventListener("webkitfullscreenchange", onFullscreenChange);
 
-    const isPortrait = () => {
-      try { return window.matchMedia("(orientation: portrait)").matches; }
-      catch (error) { return window.innerHeight >= window.innerWidth; }
-    };
     const enterPortraitFullscreen = () => {
-      if (!isPhonePlayer() || !isPortrait()) return false;
+      if (!isPhonePlayer() || !isPortraitPlayerHost()) return false;
       if (document.fullscreenElement || document.webkitFullscreenElement) return false;
+      // A portrait picture tap is also the natural request to reveal controls.
+      // Keep that intent even though this capture handler consumes the tap while
+      // promoting the video to fullscreen.
+      showPlayerControls();
       const request = player.requestFullscreen || player.webkitRequestFullscreen;
       if (request) {
         try {
@@ -1707,6 +1736,9 @@
     art.on("play", () => {
       if (!navigator.userActivation || navigator.userActivation.isActive) enterPortraitFullscreen();
     });
+    art.on("pause", () => {
+      if (isPhonePlayer() && isPortraitPlayerHost()) showPlayerControls();
+    });
 
     // A phone can be rotated upright after playback has already begun. Fullscreen
     // is still attempted here for installed apps/WebViews that permit it; normal
@@ -1715,13 +1747,36 @@
     const onPlaybackOrientationChange = () => {
       window.clearTimeout(orientationFullscreenTimer);
       orientationFullscreenTimer = window.setTimeout(() => {
-        if (art?.video && !art.video.paused && isPortrait()) enterPortraitFullscreen();
+        if (!isPortraitPlayerHost()) return;
+        showPlayerControls();
+        if (art?.video && !art.video.paused) enterPortraitFullscreen();
       }, 120);
     };
-    window.addEventListener("orientationchange", onPlaybackOrientationChange);
-    if (window.screen?.orientation?.addEventListener) {
-      window.screen.orientation.addEventListener("change", onPlaybackOrientationChange);
+    const hostWindow = getPlayerHostWindow();
+    hostWindow.addEventListener("orientationchange", onPlaybackOrientationChange);
+    let hostOrientationQuery = null;
+    try {
+      hostOrientationQuery = hostWindow.matchMedia("(orientation: portrait)");
+      if (hostOrientationQuery.addEventListener) {
+        hostOrientationQuery.addEventListener("change", onPlaybackOrientationChange);
+      } else if (hostOrientationQuery.addListener) {
+        hostOrientationQuery.addListener(onPlaybackOrientationChange);
+      }
+    } catch (error) { /* Legacy WebViews still emit orientationchange. */ }
+    const screenOrientation = window.screen?.orientation;
+    if (screenOrientation?.addEventListener) {
+      screenOrientation.addEventListener("change", onPlaybackOrientationChange);
     }
+    window.addEventListener("pagehide", () => {
+      window.clearTimeout(orientationFullscreenTimer);
+      hostWindow.removeEventListener("orientationchange", onPlaybackOrientationChange);
+      if (hostOrientationQuery?.removeEventListener) {
+        hostOrientationQuery.removeEventListener("change", onPlaybackOrientationChange);
+      } else if (hostOrientationQuery?.removeListener) {
+        hostOrientationQuery.removeListener(onPlaybackOrientationChange);
+      }
+      screenOrientation?.removeEventListener?.("change", onPlaybackOrientationChange);
+    }, { once: true });
 
     // Captured on pointerdown because Artplayer's own click handler runs first
     // and may have already re-shown the bar by the time the click listener fires.

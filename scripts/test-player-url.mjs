@@ -60,14 +60,18 @@ check("mobile playback stacks the player before episodes",
   /body\.player-cinema-open \.watch-overlay\.cinematic \.watch-stage\s*\{\s*display:\s*none;/.test(appCss), true);
 check("mobile Latest Episodes does not force a blank viewport",
   /#latest\.is-last-band\s*\{\s*min-height:\s*0;\s*justify-content:\s*flex-start;/.test(appCss), true);
-check("compact player labels obey both corner insets",
-  /\.ztv-floating-label\s*\{[\s\S]*?width:\s*auto;/.test(playerCss), true);
+check("compact player labels hug text and obey both corner insets",
+  /\.ztv-floating-label\s*\{[\s\S]*?right:\s*auto;[\s\S]*?width:\s*fit-content;[\s\S]*?max-width:\s*calc\(/.test(playerCss), true);
 check("narrow controls reserve room for fullscreen",
   /@media \(max-width:\s*560px\)[\s\S]*?\.art-control-rewind-10,[\s\S]*?display:\s*none\s*!important;/.test(playerCss), true);
 check("portrait phones request native fullscreen before the Artplayer fallback",
   playerJs.indexOf("request.call(player)") < playerJs.indexOf("art.fullscreen = true", playerJs.indexOf("const enterPortraitFullscreen")), true);
 check("playing video retries fullscreen when the phone turns portrait",
   /orientationchange[\s\S]*?!art\.video\.paused[\s\S]*?enterPortraitFullscreen\(\)/.test(playerJs), true);
+check("portrait detection follows the host page rather than the 16:9 iframe",
+  /function getPlayerHostWindow\(\)[\s\S]*?window\.parent[\s\S]*?function isPortraitPlayerHost\(\)/.test(playerJs), true);
+check("portrait fullscreen keeps the controls visible",
+  /const enterPortraitFullscreen = \(\) => \{[\s\S]*?showPlayerControls\(\);[\s\S]*?request\.call\(player\)/.test(playerJs), true);
 check("phone titles are one compact ellipsized line",
   /\.art-mobile \.ztv-title-block h1\s*\{[\s\S]*?font-size:\s*0\.82rem;[\s\S]*?text-overflow:\s*ellipsis;[\s\S]*?white-space:\s*nowrap;/.test(playerCss), true);
 check("source resolution uses the current player loader without provider copy",
