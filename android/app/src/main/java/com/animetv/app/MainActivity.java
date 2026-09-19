@@ -205,6 +205,10 @@ public class MainActivity extends Activity {
         /** Feature-detect resume/progress tracking support. */
         @JavascriptInterface
         public boolean supportsTracking() { return true; }
+
+        /** Distinguish the TV flavor from the phone/tablet APK in shared web code. */
+        @JavascriptInterface
+        public boolean isTv() { return !MainActivity.this.getPackageName().endsWith(".mobile"); }
     }
 
     @Override

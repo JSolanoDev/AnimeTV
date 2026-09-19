@@ -76,6 +76,12 @@ check("narrow controls reserve room for fullscreen",
   /@media \(max-width:\s*560px\)[\s\S]*?\.art-control-rewind-10,[\s\S]*?display:\s*none\s*!important;/.test(playerCss), true);
 check("portrait playback never requests fullscreen automatically",
   /enterPortraitFullscreen|art\.on\("play"[\s\S]{0,240}?requestFullscreen/.test(playerJs), false);
+check("phone APK playback stays in the shared portrait player",
+  /if \(window\.ZenkaiNative && isAndroidTV\(\) && typeof window\.ZenkaiNative\.play === "function"\)/.test(src), true);
+check("legacy mobile APKs cannot be mistaken for Android TV",
+  /function isAndroidTV\(\)[\s\S]*?if \(\/Mobile\/i\.test\(agent\)\) return false;/.test(src), true);
+check("TV-only chrome is gated by Android TV detection",
+  /function setupTvTextInputs\(\) \{\s*if \(!window\.ZenkaiNative \|\| !isAndroidTV\(\)\) return;/.test(src), true);
 check("orientation changes refresh controls without forcing fullscreen",
   /const onPlaybackOrientationChange = \(\) => \{[\s\S]*?showPlayerControls\(\);/.test(playerJs)
     && !/const onPlaybackOrientationChange = \(\) => \{[\s\S]{0,360}?(?:requestFullscreen|art\.fullscreen)/.test(playerJs), true);

@@ -4507,7 +4507,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=833";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=834";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -17915,10 +17915,12 @@ async function playActiveShow(options = {}) {
     return;
   }
 
-  // Android TV: route EVERY source through the native ExoPlayer. Direct streams
-  // play immediately; embed hosts are resolved by the player's in-app WebView
-  // stream-sniffer. In a normal browser there's no bridge, so nothing changes.
-  if (window.ZenkaiNative && typeof window.ZenkaiNative.play === "function") {
+  // Android TV: route every source through the native ExoPlayer. The phone APK
+  // exposes the same bridge for compatibility, but must stay in the shared web
+  // player so portrait playback can keep the episode browser below the video.
+  // Direct streams play immediately on TV; embed hosts are resolved by the
+  // player's in-app WebView stream-sniffer.
+  if (window.ZenkaiNative && isAndroidTV() && typeof window.ZenkaiNative.play === "function") {
     const title = currentEpisodeTitle() || getShowTitle(show) || "";
     // Build the watch-tracking context so the native player can resume from the
     // saved position and report progress back into localStorage.
@@ -18772,7 +18774,16 @@ function renderCastToast(message) {
 
 function isAndroidTV() {
   const agent = navigator.userAgent || "";
-  return /Android/i.test(agent) && (/TV|AFT|BRAVIA|SHIELD|MiBOX|Leanback/i.test(agent) || Math.max(screen.width, screen.height) >= 1280);
+  const bridge = window.ZenkaiNative;
+  if (bridge && typeof bridge.isTv === "function") {
+    try { return Boolean(bridge.isTv()); } catch { /* fall through */ }
+  }
+  // Older phone APKs do not expose isTv(). Their WebView UA includes Mobile;
+  // reject it before the large-screen fallback so high-resolution phones and
+  // tablets are never mistaken for a television.
+  if (/Mobile/i.test(agent)) return false;
+  return /Android/i.test(agent)
+    && (/TV|AFT|BRAVIA|SHIELD|MiBOX|Leanback/i.test(agent) || Math.max(screen.width, screen.height) >= 1280);
 }
 
 function openExternalPlaybackUrl(externalUrl, errorPanel) {
@@ -19553,11 +19564,11 @@ syncFullscreenToggleState();
   })
 );
 
-// TV remote: make search boxes read-only by default (Android app only) so spatial
+// TV remote: make search boxes read-only by default (Android TV app only) so spatial
 // focus can pass over them without popping the on-screen keyboard. OK enters edit
 // mode (see keydown); leaving the field re-locks it. Desktop is untouched.
 function setupTvTextInputs() {
-  if (!window.ZenkaiNative) return;
+  if (!window.ZenkaiNative || !isAndroidTV()) return;
   // The TV WebView runs on a weak GPU (often at 4K). Flag it so the stylesheet can
   // drop expensive backdrop-filter blurs and the continuous backdrop zoom, which
   // can OOM/crash the renderer.
@@ -20324,7 +20335,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=833");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=834");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
