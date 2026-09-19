@@ -4508,7 +4508,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=837";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=838";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -19728,11 +19728,10 @@ if ("scrollRestoration" in history) {
   history.scrollRestoration = "manual";
 }
 
-const INSTALL_RECOMMENDATION_DISMISSED_KEY = "zenkaitv-install-recommendation-dismissed-at-v1";
-const INSTALL_RECOMMENDATION_DISMISS_MS = 14 * 24 * 60 * 60 * 1000;
 let deferredInstallPrompt = null;
 let installRecommendationMode = "native";
 let installRecommendationTimer = 0;
+let installRecommendationDismissedForPage = false;
 
 function isInstalledDisplayMode() {
   return Boolean(
@@ -19748,20 +19747,11 @@ function isIosSafariInstallCandidate() {
   return isIos && /Safari/i.test(agent) && !/(CriOS|FxiOS|EdgiOS|OPiOS)/i.test(agent);
 }
 
-function installRecommendationDismissedRecently(storage = localStorage, now = Date.now()) {
-  try {
-    const dismissedAt = Number(storage.getItem(INSTALL_RECOMMENDATION_DISMISSED_KEY) || 0);
-    return dismissedAt > 0 && now - dismissedAt < INSTALL_RECOMMENDATION_DISMISS_MS;
-  } catch {
-    return false;
-  }
-}
-
 function canOfferInstallRecommendation() {
   return !window.ZenkaiNative
     && !isAndroidTV()
     && !isInstalledDisplayMode()
-    && !installRecommendationDismissedRecently();
+    && !installRecommendationDismissedForPage;
 }
 
 function updateInstallRecommendationCopy() {
@@ -19787,17 +19777,9 @@ function updateInstallRecommendationCopy() {
   }
 }
 
-function rememberInstallRecommendationDismissal() {
-  try {
-    localStorage.setItem(INSTALL_RECOMMENDATION_DISMISSED_KEY, String(Date.now()));
-  } catch {
-    // Private browsing can reject storage; hiding for this page is enough.
-  }
-}
-
 function hideInstallRecommendation({ dismissed = false } = {}) {
   const card = document.getElementById("installRecommendation");
-  if (dismissed) rememberInstallRecommendationDismissal();
+  if (dismissed) installRecommendationDismissedForPage = true;
   window.clearTimeout(installRecommendationTimer);
   if (!card) return;
   card.classList.remove("is-visible");
@@ -19855,7 +19837,7 @@ function setupInstallRecommendation() {
     try {
       await promptEvent.prompt();
       const choice = await promptEvent.userChoice;
-      if (choice?.outcome === "dismissed") rememberInstallRecommendationDismissal();
+      if (choice?.outcome === "dismissed") installRecommendationDismissedForPage = true;
     } catch {
       // The browser owns this prompt and may cancel it during navigation.
     } finally {
@@ -20498,7 +20480,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=837");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=838");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

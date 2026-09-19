@@ -15,7 +15,7 @@ function section(start, end) {
 
 test("install recommendation uses the native PWA event without API work", () => {
   const feature = section(
-    "const INSTALL_RECOMMENDATION_DISMISSED_KEY",
+    "let deferredInstallPrompt",
     'if ("serviceWorker" in navigator)'
   );
   assert.match(html, /id="installRecommendation"/);
@@ -29,28 +29,21 @@ test("install recommendation uses the native PWA event without API work", () => 
   assert.doesNotMatch(feature, /\bfetch\s*\(/);
 });
 
-test("install recommendation dismissal expires after fourteen days", () => {
+test("install recommendation dismissal lasts only for the current page load", () => {
   const pureHelpers = section(
-    "const INSTALL_RECOMMENDATION_DISMISSED_KEY",
+    "let deferredInstallPrompt",
     "function updateInstallRecommendationCopy()"
   );
-  const now = 2_000_000_000_000;
-  const storage = {
-    value: "",
-    getItem() { return this.value; }
-  };
   const c = vm.createContext({
     window: { matchMedia: () => ({ matches: false }), navigator: {} },
     navigator: { userAgent: "", platform: "", maxTouchPoints: 0 },
-    localStorage: storage,
-    Date,
     isAndroidTV: () => false
   });
   vm.runInContext(pureHelpers, c);
-  storage.value = String(now - 13 * 24 * 60 * 60 * 1000);
-  assert.equal(c.installRecommendationDismissedRecently(storage, now), true);
-  storage.value = String(now - 15 * 24 * 60 * 60 * 1000);
-  assert.equal(c.installRecommendationDismissedRecently(storage, now), false);
+  assert.equal(c.canOfferInstallRecommendation(), true);
+  vm.runInContext("installRecommendationDismissedForPage = true", c);
+  assert.equal(c.canOfferInstallRecommendation(), false);
+  assert.doesNotMatch(pureHelpers, /localStorage|sessionStorage/);
 });
 
 test("returning Home leaves Continue Watching to the main render", () => {
