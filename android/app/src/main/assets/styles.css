@@ -12632,11 +12632,10 @@ body.player-cinema-open .watch-overlay .close-button {
    decides it, and the video inside keeps its own ratio (object-fit is unchanged),
    so nothing is cropped or stretched.
 
-   Full-viewport playback is not lost: it moved to actual fullscreen, which is a
-   tap on the picture or the fullscreen control, and which also turns the phone
-   landscape. That is where a full-screen box belongs. Real fullscreen still wins
-   here because :fullscreen rules and the UA stylesheet outrank these. */
-@media (max-width: 760px) {
+   Rotate the phone to landscape (or use the explicit fullscreen control) for the
+   fixed viewport player. Portrait keeps this compact banner and the episode list
+   in the same scrolling panel. */
+@media (max-width: 760px) and (orientation: portrait) {
   /* `.watch-side .video-frame` is collapsed to 0x0 on purpose - the player it
      holds is normally position:fixed, so its container is told to take no space.
      An in-flow player needs a real box back, or it inherits that zero width. */
@@ -12913,7 +12912,7 @@ main {
   pointer-events: none;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 760px) and (orientation: portrait) {
   .vidstream-player.is-cinema {
     z-index: 2;
   }
@@ -12923,7 +12922,7 @@ main {
    page header and the episode browser follows it. The large metadata hero is
    still shown before an episode is selected, but it no longer sits between the
    viewer and the playing episode. */
-@media (max-width: 860px) {
+@media (max-width: 860px) and (orientation: portrait) {
   body.player-cinema-open .watch-overlay.cinematic .watch-panel {
     display: block;
     width: 100%;
@@ -12975,6 +12974,7 @@ main {
   }
 
   body.player-cinema-open .watch-overlay .watch-side .episode-list {
+    display: block;
     margin-top: 0.45rem;
     padding-top: 0.45rem;
     border-top: 0;
@@ -13006,7 +13006,7 @@ main {
    no way to leave the show at all. Measured: display:none, rect 0x0, and
    elementFromPoint over it returned .watch-stage.
    The second of those rules is !important, so this has to be too. */
-@media (max-width: 760px) {
+@media (max-width: 760px) and (orientation: portrait) {
   body.player-cinema-open .close-button,
   body.player-cinema-open .watch-overlay .close-button {
     display: grid !important;
@@ -13028,7 +13028,7 @@ main {
 
    .watch-panel is the scroller; nothing between it and here may clip, which is
    why the cinema rules already force overflow:visible on .watch-side. */
-@media (max-width: 760px) {
+@media (max-width: 760px) and (orientation: portrait) {
   /* Only once a player is actually mounted. Before an episode is picked this same
      container is the tall poster "ready" panel - roughly a full screen of it - and
      pinning that buried the episode list you are meant to be choosing from.
@@ -13039,41 +13039,6 @@ main {
     z-index: 3;
     /* Opaque, or the episode rows show through as they slide under it. */
     background: #000 !important;
-  }
-}
-
-/* Portrait playback is a dedicated player view. The compact watch panel used to
-   remain its own scroller with the episode list below a sticky player, which let
-   the whole surface drift and exposed the page behind the overlay. Keep the same
-   16:9 player, lock every eligible scroll container, and reveal the episode
-   browser only after the in-player Back action clears cinema mode. */
-@media (max-width: 860px) and (orientation: portrait) {
-  html.player-cinema-open,
-  body.player-cinema-open {
-    width: 100%;
-    height: 100%;
-    overflow: hidden !important;
-    overscroll-behavior: none;
-  }
-
-  body.player-cinema-open .watch-overlay.cinematic,
-  body.player-cinema-open .watch-overlay.cinematic .watch-panel {
-    height: 100dvh;
-    max-height: 100dvh;
-    overflow: hidden !important;
-    overscroll-behavior: none;
-  }
-
-  body.player-cinema-open .watch-overlay.cinematic .watch-side {
-    height: 100dvh;
-    min-height: 100dvh;
-    max-height: 100dvh;
-    overflow: hidden !important;
-    overscroll-behavior: none;
-  }
-
-  body.player-cinema-open .watch-overlay .watch-side .episode-list {
-    display: none !important;
   }
 }
 

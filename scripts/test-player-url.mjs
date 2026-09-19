@@ -58,8 +58,12 @@ check("no unguarded poster assignment remains",
   /searchParams\.set\("poster", options\.poster\)/.test(src), false);
 check("mobile playback stacks the player before episodes",
   /body\.player-cinema-open \.watch-overlay\.cinematic \.watch-stage\s*\{\s*display:\s*none;/.test(appCss), true);
-check("portrait playback locks the compact panel and hides episodes until Back",
-  /@media \(max-width:\s*860px\) and \(orientation:\s*portrait\)[\s\S]*?\.watch-panel\s*\{[\s\S]*?overflow:\s*hidden\s*!important;[\s\S]*?\.episode-list\s*\{\s*display:\s*none\s*!important;/.test(appCss), true);
+check("portrait playback keeps the compact scrolling panel and visible episodes",
+  /@media \(max-width:\s*860px\) and \(orientation:\s*portrait\)[\s\S]*?\.watch-panel\s*\{[\s\S]*?overflow-y:\s*auto;[\s\S]*?\.episode-list\s*\{\s*display:\s*block;/.test(appCss), true);
+check("the 16:9 in-flow player override is portrait-only",
+  /@media \(max-width:\s*760px\) and \(orientation:\s*portrait\)[\s\S]*?\.vidstream-player\.is-cinema\s*\{[\s\S]*?position:\s*relative;[\s\S]*?aspect-ratio:\s*16\s*\/\s*9;/.test(appCss), true);
+check("landscape retains the fixed viewport cinema player",
+  /\.vidstream-player\.is-cinema\s*\{\s*position:\s*fixed;[\s\S]*?width:\s*100vw;[\s\S]*?height:\s*100vh;/.test(appCss), true);
 check("cinema state locks both the root and body scrollports",
   /function setPlayerCinemaOpen\(enabled\)[\s\S]*?document\.documentElement\?\.classList\.toggle\("player-cinema-open", enabled\);[\s\S]*?document\.body\?\.classList\.toggle\("player-cinema-open", enabled\);/.test(src), true);
 check("player Back exits fullscreen before rebuilding the episode browser",
@@ -70,14 +74,15 @@ check("compact player labels hug text and obey both corner insets",
   /\.ztv-floating-label\s*\{[\s\S]*?right:\s*auto;[\s\S]*?width:\s*fit-content;[\s\S]*?max-width:\s*calc\(/.test(playerCss), true);
 check("narrow controls reserve room for fullscreen",
   /@media \(max-width:\s*560px\)[\s\S]*?\.art-control-rewind-10,[\s\S]*?display:\s*none\s*!important;/.test(playerCss), true);
-check("portrait phones request native fullscreen before the Artplayer fallback",
-  playerJs.indexOf("request.call(player)") < playerJs.indexOf("art.fullscreen = true", playerJs.indexOf("const enterPortraitFullscreen")), true);
-check("playing video retries fullscreen when the phone turns portrait",
-  /orientationchange[\s\S]*?!art\.video\.paused[\s\S]*?enterPortraitFullscreen\(\)/.test(playerJs), true);
-check("portrait detection follows the host page rather than the 16:9 iframe",
-  /function getPlayerHostWindow\(\)[\s\S]*?window\.parent[\s\S]*?function isPortraitPlayerHost\(\)/.test(playerJs), true);
-check("portrait fullscreen keeps the controls visible",
-  /const enterPortraitFullscreen = \(\) => \{[\s\S]*?showPlayerControls\(\);[\s\S]*?request\.call\(player\)/.test(playerJs), true);
+check("portrait playback never requests fullscreen automatically",
+  /enterPortraitFullscreen|art\.on\("play"[\s\S]{0,240}?requestFullscreen/.test(playerJs), false);
+check("orientation changes refresh controls without forcing fullscreen",
+  /const onPlaybackOrientationChange = \(\) => \{[\s\S]*?showPlayerControls\(\);/.test(playerJs)
+    && !/const onPlaybackOrientationChange = \(\) => \{[\s\S]{0,360}?(?:requestFullscreen|art\.fullscreen)/.test(playerJs), true);
+check("orientation changes follow the host page rather than the 16:9 iframe",
+  /function getPlayerHostWindow\(\)[\s\S]*?window\.parent[\s\S]*?hostWindow\.addEventListener\("orientationchange"/.test(playerJs), true);
+check("explicit fullscreen keeps phone controls visible and locks landscape",
+  /const onFullscreenChange = \(\) => \{[\s\S]*?lockLandscape\(\);[\s\S]*?showPlayerControls\(\);/.test(playerJs), true);
 check("phone players hide the full title bar and its chevron",
   /\.art-mobile \.ztv-player-topbar,\s*\.art-mobile \.ztv-corner-toggle\s*\{\s*display:\s*none\s*!important;/.test(playerCss), true);
 check("phone players always show the compact title pill",

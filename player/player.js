@@ -1608,14 +1608,9 @@
   }
 
   // ── Watching on a phone ─────────────────────────────────────────────────
-  // Browsing stays portrait; watching goes landscape. Tapping the picture on a
-  // phone takes the video fullscreen, and going fullscreen locks the screen
-  // sideways, so the picture fills the display without the viewer having to
-  // rotate the device - and without the site itself ever being forced sideways.
-  //
-  // Once already fullscreen the tap goes back to its other job: dismissing the
-  // control layer at once instead of waiting out CONTROL_HIDE_TIME. The volume
-  // rail lives inside that layer, so this is what makes it go away on demand.
+  // Portrait keeps the compact host-page player and its episode browser.
+  // Landscape uses the host's viewport cinema layout; native fullscreen remains
+  // an explicit control. Picture taps only reveal or dismiss the control layer.
   function isPhonePlayer() {
     // Artplayer's own device detection, set once at construction - it survives
     // rotation, where a width media query would not.
@@ -1634,12 +1629,6 @@
       }
     } catch (error) { /* Cross-origin parent: use the player viewport. */ }
     return window;
-  }
-
-  function isPortraitPlayerHost() {
-    const hostWindow = getPlayerHostWindow();
-    try { return hostWindow.matchMedia("(orientation: portrait)").matches; }
-    catch (error) { return hostWindow.innerHeight >= hostWindow.innerWidth; }
   }
 
   function showPlayerControls() {
@@ -1699,7 +1688,7 @@
     if (!player) return;
 
     // The document's own event, not Artplayer's: this fires however fullscreen
-    // was entered - our tap, the fullscreen button, or the system back gesture
+    // was entered - the fullscreen button or the system back gesture
     // leaving it - so the lock and the release can never drift apart.
     const onFullscreenChange = () => {
       if (!isPhonePlayer()) return;
@@ -1712,53 +1701,18 @@
     document.addEventListener("fullscreenchange", onFullscreenChange);
     document.addEventListener("webkitfullscreenchange", onFullscreenChange);
 
-    const enterPortraitFullscreen = () => {
-      if (!isPhonePlayer() || !isPortraitPlayerHost()) return false;
-      if (document.fullscreenElement || document.webkitFullscreenElement) return false;
-      // A portrait picture tap is also the natural request to reveal controls.
-      // Keep that intent even though this capture handler consumes the tap while
-      // promoting the video to fullscreen.
-      showPlayerControls();
-      const request = player.requestFullscreen || player.webkitRequestFullscreen;
-      if (request) {
-        try {
-          const pending = request.call(player);
-          if (pending?.catch) {
-            pending.catch(() => {
-              try { art.fullscreen = true; } catch (error) { /* browser declined fullscreen */ }
-            });
-          }
-          return true;
-        } catch (requestError) { /* Artplayer remains the compatibility fallback. */ }
-      }
-      try {
-        art.fullscreen = true;
-        return true;
-      } catch (error) {
-        return false;
-      }
-    };
-
-    // A play button press carries the browser gesture needed by the Fullscreen
-    // API. Autoplay may not, so the picture-click path below is the dependable
-    // fallback on browsers that reject this first request.
-    art.on("play", () => {
-      if (!navigator.userActivation || navigator.userActivation.isActive) enterPortraitFullscreen();
-    });
     art.on("pause", () => {
-      if (isPhonePlayer() && isPortraitPlayerHost()) showPlayerControls();
+      if (isPhonePlayer()) showPlayerControls();
     });
 
-    // A phone can be rotated upright after playback has already begun. Fullscreen
-    // is still attempted here for installed apps/WebViews that permit it; normal
-    // browsers may require the next picture tap, which uses the trusted path below.
-    let orientationFullscreenTimer = 0;
+    // Rotation swaps the host between the compact portrait flow and fixed
+    // landscape cinema through CSS. Reveal the controls after that layout change
+    // without making a Fullscreen API request from an untrusted event.
+    let orientationChromeTimer = 0;
     const onPlaybackOrientationChange = () => {
-      window.clearTimeout(orientationFullscreenTimer);
-      orientationFullscreenTimer = window.setTimeout(() => {
-        if (!isPortraitPlayerHost()) return;
+      window.clearTimeout(orientationChromeTimer);
+      orientationChromeTimer = window.setTimeout(() => {
         showPlayerControls();
-        if (art?.video && !art.video.paused) enterPortraitFullscreen();
       }, 120);
     };
     const hostWindow = getPlayerHostWindow();
@@ -1777,7 +1731,7 @@
       screenOrientation.addEventListener("change", onPlaybackOrientationChange);
     }
     window.addEventListener("pagehide", () => {
-      window.clearTimeout(orientationFullscreenTimer);
+      window.clearTimeout(orientationChromeTimer);
       hostWindow.removeEventListener("orientationchange", onPlaybackOrientationChange);
       if (hostOrientationQuery?.removeEventListener) {
         hostOrientationQuery.removeEventListener("change", onPlaybackOrientationChange);
@@ -1801,14 +1755,6 @@
       // *using* the controls - only taps on the picture itself count here.
       if (target && target.closest && target.closest(".art-bottom, .art-settings, .art-contextmenus, .art-layers, .ztv-sheet")) return;
 
-      // Only an already-playing portrait video promotes itself. A paused video
-      // keeps the normal reveal/play interaction, and every actual control is
-      // excluded above, so scrubbing and menu taps never trigger fullscreen.
-      if (art?.video && !art.video.paused && enterPortraitFullscreen()) {
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
       if (!wasVisible) return;
       // Deferred: Artplayer shows the controls from its own click handler, so
       // hiding synchronously here would just be undone.
