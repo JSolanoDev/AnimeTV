@@ -1,27 +1,35 @@
-# AnimeTV Android TV APK
+# ZenkaiTV Android APKs
 
-This folder wraps AnimeTV in a native Android WebView shell so it can be installed on Android TV.
+This folder wraps ZenkaiTV in a native Android WebView shell. The mobile and TV
+variants share the same player and hosted backend, but have separate launcher
+entries and screen orientations. The TV variant retains the existing package ID;
+the mobile variant can be installed alongside it.
 
 ## Build
 
 Install Android Studio, then open this `android` folder and run:
 
 ```powershell
-.\gradlew assembleDebug
+.\gradlew assembleMobileDebug assembleTvDebug
 ```
 
 The APK will be created at:
 
 ```text
-android\app\build\outputs\apk\debug\app-debug.apk
+android\app\build\outputs\apk\mobile\debug\app-mobile-debug.apk
+android\app\build\outputs\apk\tv\debug\app-tv-debug.apk
 ```
 
-## Install on Android TV
+## Install
 
-Enable developer mode and USB/network debugging on the TV, then run:
+Enable developer mode and USB/network debugging on the device, then run:
 
 ```powershell
-adb install -r android\app\build\outputs\apk\debug\app-debug.apk
+adb install -r android\app\build\outputs\apk\mobile\debug\app-mobile-debug.apk
+adb install -r android\app\build\outputs\apk\tv\debug\app-tv-debug.apk
 ```
 
-If your video/catalog source runs on your computer, use the computer LAN IP in `sources.json`, not `127.0.0.1`.
+Both variants load `https://zenkaitv.com` for catalog and playback. Bundled
+assets alone cannot provide the server-backed sources; deploy site changes to
+production before expecting them to appear in the APKs. If a source runs on a
+computer, use its LAN IP in `sources.json`, not `127.0.0.1`.

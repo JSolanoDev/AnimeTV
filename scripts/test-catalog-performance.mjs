@@ -621,6 +621,45 @@ test("catalog cold builds reuse the bundled snapshot instead of fan-out metadata
   assert.doesNotMatch(build, /animeAv1RowsMissingFromScrape\(/);
 });
 
+test("catalog omits scrape timestamps but keeps playback inventory", () => {
+  const c = vm.createContext({});
+  vm.runInContext(section(server, "function compactCatalogPayload(", "function findArtworkDescription("), c);
+  const item = {
+    id: "animeav1-fixture",
+    lastScrapedAt: "2026-09-17T00:00:00Z",
+    sourceEpisodeIds: [1, 2],
+    sourceInventoryCheckedAt: "2026-09-17T00:00:00Z",
+    description: "Short synopsis"
+  };
+  const compact = c.compactCatalogPayload({ ok: true, count: 1, items: [item] });
+  assert.equal(compact.items[0].lastScrapedAt, undefined);
+  assert.deepEqual(Array.from(compact.items[0].sourceEpisodeIds), [1, 2]);
+  assert.equal(compact.items[0].sourceInventoryCheckedAt, item.sourceInventoryCheckedAt);
+  assert.equal(compact.items[0].description, item.description);
+  assert.equal(item.lastScrapedAt, "2026-09-17T00:00:00Z");
+});
+
+test("catalog reads have a separate shared-IP limit without lifting other API limits", () => {
+  const c = vm.createContext({
+    Date,
+    Map,
+    rateLimitBuckets: new Map(),
+    RATE_LIMIT_API_MAX_REQUESTS: 120,
+    RATE_LIMIT_MEDIA_MAX_REQUESTS: 1800,
+    RATE_LIMIT_WINDOW_MS: 60000,
+    RATE_LIMIT_MAX_REQUESTS: 240
+  });
+  vm.runInContext(section(server, "function checkRateLimit(", "async function prewarmAllSources("), c);
+  const request = { headers: { "x-forwarded-for": "203.0.113.10" } };
+  const catalog = new URL("https://app.test/api/catalog");
+  const generic = new URL("https://app.test/api/resolve");
+  const catalogResults = Array.from({ length: 300 }, () => c.checkRateLimit(request, catalog));
+  const genericResults = Array.from({ length: 121 }, () => c.checkRateLimit(request, generic));
+  assert.equal(catalogResults.every((result) => result.allowed), true);
+  assert.equal(genericResults.slice(0, 120).every((result) => result.allowed), true);
+  assert.equal(genericResults[120].allowed, false);
+});
+
 test("one hundred identical catalog requests share one cold build", async () => {
   let builds = 0;
   let releaseBuild;
@@ -673,6 +712,62 @@ test("browser fetch deduplication clones responses for one hundred consumers", a
   const results = await Promise.all(consumers);
   assert.equal(clones, 100);
   assert.equal(new Set(results.map((item) => item.cloneId)).size, 100);
+});
+
+test("identical visible-card warmups share one run and baked cards need no upstream metadata", async () => {
+  const calls = [];
+  const raw = { id: "missing-metadata", title: "Fixture" };
+  const baked = { id: "baked", title: "Baked" };
+  const c = vm.createContext({
+    state: { activeShow: null, route: "home", shows: [raw, baked] },
+    visibleMetadataWarmGeneration: 0,
+    visibleMetadataWarmActiveKey: "",
+    _deferredMetadataWarm: null,
+    HOME_INITIAL_CARD_LIMIT: 4,
+    getShowKey: (show) => show.id,
+    buildLatestEpisodesList: () => [raw, baked],
+    hasBakedCanonicalMetadata: (show) => show === baked,
+    hydrateCanonicalAnimeMetadata: async () => { calls.push("canonical"); },
+    fetchAniListShowExtras: async () => { calls.push("extras"); },
+    enrichTmdbImages: async () => { calls.push("tmdb"); },
+    isAniPubShow: () => false,
+    isJimovShow: () => false,
+    enrichShowFromAllSources: async () => {},
+    hydrateShowAniListFranchise: async () => {},
+    hydrateAnimeAv1Slug: async () => {},
+    applyTmdbEpisodeMetadata() {},
+    dedupeCatalogShows: () => false,
+    render() {},
+    Date, Promise, Map
+  });
+  vm.runInContext(section(client, "function warmVisibleShowMetadata(", "// Defer the visible-metadata warm"), c);
+  c.warmVisibleShowMetadata([raw, baked], 4);
+  c.warmVisibleShowMetadata([raw, baked], 4);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(calls.filter((call) => call === "canonical").length, 1);
+  assert.equal(baked._metadataPreloadComplete, true);
+});
+
+test("generic upstream retries stop on 429 and honor Retry-After", async () => {
+  let calls = 0;
+  let waits = 0;
+  const c = vm.createContext({
+    fetchWithTimeout: async () => {
+      calls++;
+      return { ok: false, status: 429, headers: { get: () => "10" }, body: { cancel: async () => {} } };
+    },
+    wait: async () => { waits++; },
+    Date
+  });
+  vm.runInContext(section(server, "function parseRetryAfterMs(", "async function fetchAniListJson("), c);
+  vm.runInContext(section(server, "async function fetchWithRetry(", "async function fetchWithTimeout("), c);
+  await assert.rejects(c.fetchWithRetry("https://upstream.test", {}, 3), (error) => {
+    assert.equal(error.status, 429);
+    assert.equal(error.retryAfterMs, 10000);
+    return true;
+  });
+  assert.equal(calls, 1);
+  assert.equal(waits, 0);
 });
 
 test("airing enrichment never downloads the full catalog twice", () => {

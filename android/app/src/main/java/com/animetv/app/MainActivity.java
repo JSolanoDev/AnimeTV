@@ -18,6 +18,9 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import androidx.annotation.OptIn;
+import androidx.media3.common.util.UnstableApi;
+
 public class MainActivity extends Activity {
     // ── Backend configuration ────────────────────────────────────────────────
     // Points at the deployed ZenkaiTV website so the TV app has FULL functionality
@@ -164,6 +167,7 @@ public class MainActivity extends Activity {
         startActivity(intent);
     }
 
+    @OptIn(markerClass = UnstableApi.class)
     private void launchPlayer(String url, String title, String type, String headers,
                               String referer, long startMs, String episodeKey) {
         if (url == null || url.isEmpty()) return;

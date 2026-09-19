@@ -3755,6 +3755,9 @@ const CINEMATIC_BACKDROP_WIDTH = (() => {
 const CINEMATIC_BACKDROP_QUALITY = 92;
 
 function cinematicBackdropUrl(url) {
+  if (url === HELL_MODE_WATCH_BACKDROP) {
+    return url.replace("/original/", CINEMATIC_BACKDROP_WIDTH <= 1280 ? "/w1280/" : "/original/");
+  }
   return imageDeliveryUrl(url, CINEMATIC_BACKDROP_WIDTH, CINEMATIC_BACKDROP_QUALITY);
 }
 
@@ -3790,10 +3793,10 @@ function imageDeliverySrcSet(url, widths, quality = 80, options = {}) {
 const artworkImagePreloads = new Map();
 const relatedSeasonWarmFlights = new Map();
 
-function preloadArtworkImage(url, width, quality, priority = false) {
+function preloadArtworkImage(url, width, quality, priority = false, deliveredUrl = "") {
   const raw = String(url || "").trim();
   if (!raw || typeof Image === "undefined") return Promise.resolve(false);
-  const delivered = imageDeliveryUrl(raw, width, quality);
+  const delivered = deliveredUrl || imageDeliveryUrl(raw, width, quality);
   if (artworkImagePreloads.has(delivered)) return artworkImagePreloads.get(delivered);
 
   const request = new Promise((resolve) => {
@@ -3820,7 +3823,7 @@ function preloadArtworkImage(url, width, quality, priority = false) {
 }
 
 function preloadCinematicBackdrop(url, priority = false) {
-  return preloadArtworkImage(url, CINEMATIC_BACKDROP_WIDTH, CINEMATIC_BACKDROP_QUALITY, priority);
+  return preloadArtworkImage(url, CINEMATIC_BACKDROP_WIDTH, CINEMATIC_BACKDROP_QUALITY, priority, cinematicBackdropUrl(url));
 }
 
 async function warmSeasonArtwork(show, seasonIndex = 0, options = {}) {
@@ -4193,12 +4196,25 @@ function underHentaiBackdropCandidates(show = {}, season = null) {
   ].map((value) => hqImage(String(value || "").trim()));
 }
 
+const HELL_MODE_WATCH_BACKDROP = "https://image.tmdb.org/t/p/original/gf62V8UBVBMFPpD9yI0UFvkFvq2.jpg";
+
+function curatedWatchBackdrop(show = {}) {
+  const identity = `${show.catalogAnimeId || show.id || ""} ${show.title || ""}`.toLowerCase();
+  if (!/hell.mode.*yarikomi/.test(identity) && Number(show.tmdbId) !== 280049) return "";
+  try {
+    if (typeof ImageResolver !== "undefined" && ImageResolver.isImageFailed(HELL_MODE_WATCH_BACKDROP)) return "";
+  } catch { /* Use the known artwork when the resolver is unavailable. */ }
+  return HELL_MODE_WATCH_BACKDROP;
+}
+
 // Best wide cinematic backdrop: show-wide wallpaper first, then season-specific
 // art only when it is the best thing available. Known-broken URLs are skipped so
 // a 404'd image never wins.
 function getWatchBackdropArtwork(show = {}, season = null) {
   show = show || {};
   season = season || {};
+  const curatedBackdrop = curatedWatchBackdrop(show);
+  if (curatedBackdrop) return curatedBackdrop;
   // If this title was opened from the carousel, keep the exact artwork the user
   // just saw. It is already warm in cache and avoids a visually different detail
   // background while metadata enrichment finishes.
@@ -4491,7 +4507,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=818";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=827";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -5293,34 +5309,55 @@ async function fetchSpanishDescription(show, source) {
   }
 }
 
+let watchDescriptionExpanded = false;
+let watchDescriptionRenderId = 0;
+
+function updateWatchDescriptionToggle() {
+  const node = document.querySelector("#watchDescription");
+  const toggle = document.querySelector("#watchDescriptionToggle");
+  if (!node || !toggle) return;
+  node.classList.remove("is-expanded");
+  const hasMore = Boolean(node.textContent.trim()) && node.scrollHeight > node.clientHeight + 2;
+  node.classList.toggle("is-expanded", hasMore && watchDescriptionExpanded);
+  const wasHidden = toggle.hidden;
+  toggle.hidden = !hasMore;
+  toggle.textContent = t(hasMore && watchDescriptionExpanded ? "seeLess" : "seeMore");
+  toggle.setAttribute("aria-expanded", String(hasMore && watchDescriptionExpanded));
+  if (wasHidden !== toggle.hidden && overlay && !overlay.hidden) refreshFocusables();
+}
+
+function setWatchDescriptionText(node, value, language) {
+  node.textContent = value;
+  node.lang = language;
+  const renderId = ++watchDescriptionRenderId;
+  requestAnimationFrame(() => {
+    if (renderId === watchDescriptionRenderId && overlay && !overlay.hidden) updateWatchDescriptionToggle();
+  });
+}
+
 function renderWatchDescription(show) {
   const node = document.querySelector("#watchDescription");
   if (!node || !show) return;
   const source = cleanDescription(show.description || "", Infinity);
   if (state.appLanguage === "es" && /^animeav1-/.test(String(show.catalogAnimeId || show.id || "")) &&
       source.endsWith("…") && !show._fullDescriptionResolved) {
-    node.textContent = t("descriptionLoading");
-    node.lang = "es";
+    setWatchDescriptionText(node, t("descriptionLoading"), "es");
     return;
   }
   if (!source || state.appLanguage !== "es") {
-    node.textContent = stripDescriptionCredit(source);
-    node.lang = "en";
+    setWatchDescriptionText(node, stripDescriptionCredit(source), "en");
     return;
   }
   const cached = cachedSpanishDescription(show, source);
   if (cached) {
-    node.textContent = stripDescriptionCredit(cached);
-    node.lang = "es";
+    setWatchDescriptionText(node, stripDescriptionCredit(cached), "es");
     return;
   }
   if (Date.now() < Number(show._descriptionEsRetryAt || 0)) {
-    node.textContent = stripDescriptionCredit(source);
-    node.lang = "en";
+    setWatchDescriptionText(node, stripDescriptionCredit(source), "en");
     return;
   }
-  node.textContent = t("descriptionLoading");
-  node.lang = "es";
+  setWatchDescriptionText(node, t("descriptionLoading"), "es");
   const key = `${show.anilistId || show.malId || show.id}:${source}`;
   if (!descriptionTranslationFlights.has(key)) {
     const flight = fetchSpanishDescription(show, source)
@@ -5341,14 +5378,12 @@ function renderWatchDescription(show) {
   descriptionTranslationFlights.get(key).then((text) => {
     if (state.appLanguage !== "es" || state.activeShow?.id !== show.id ||
         cleanDescription(state.activeShow.description || "", Infinity) !== source) return;
-    node.textContent = stripDescriptionCredit(text);
-    node.lang = "es";
+    setWatchDescriptionText(node, stripDescriptionCredit(text), "es");
   }).catch(() => {
     show._descriptionEsRetryAt = Date.now() + 60000;
     if (state.appLanguage !== "es" || state.activeShow?.id !== show.id ||
         cleanDescription(state.activeShow.description || "", Infinity) !== source) return;
-    node.textContent = stripDescriptionCredit(source);
-    node.lang = "en";
+    setWatchDescriptionText(node, stripDescriptionCredit(source), "en");
   });
 }
 
@@ -9170,6 +9205,7 @@ async function openShow(id, target = {}) {
   state.detailTabSwitched = true;
   const openToken = `${show.id || getShowKey(show)}:${Date.now()}`;
   state.activeOpenToken = openToken;
+  watchDescriptionExpanded = false;
   state.pendingLatestEpisodeReveal = target.revealLatestEpisode ? openToken : null;
   state.latestEpisodeOpenToken = target.revealLatestEpisode ? openToken : null;
   _latestEpisodeRowsObserver?.disconnect();
@@ -10536,6 +10572,7 @@ function applyWatchBackdrop(show, season) {
   const key = watchBackdropKey(show, season);
   const showKey = String(show?.id || show?.anilistId || show?.title || "show");
   const adultShow = isAdultCatalogShow(show);
+  const curatedBackdrop = curatedWatchBackdrop(show);
   const carouselBackdrop = getCarouselArtwork(show);
   const adultBackdropSources = new Set([
     carouselBackdrop,
@@ -10545,6 +10582,7 @@ function applyWatchBackdrop(show, season) {
   // Restore the original banner-first treatment while retaining TMDB as a
   // fallback when the source and AniList artwork are unavailable.
   const wideSources = new Set([
+    curatedBackdrop,
     ...sourceBackdrops,
     show.images?.backdrop, show.images?.banner,
     show.tmdbBackdrop, show.adultCinematicBackdrop, show.highQualityBackground, show.banner, show.bannerImage,
@@ -10563,6 +10601,7 @@ function applyWatchBackdrop(show, season) {
   // treatment: measured on ONE PIECE, whose 3840x2160 TMDB backdrop was in
   // verticalArt, so the hero showed a contained image with dead space either side.
   const wideArtFields = new Set([
+    curatedBackdrop,
     ...sourceBackdrops,
     show.images?.backdrop, show.images?.banner,
     show.tmdbBackdrop, show.adultCinematicBackdrop, show.highQualityBackground, show.banner, show.bannerImage,
@@ -10591,6 +10630,7 @@ function applyWatchBackdrop(show, season) {
   // "final", so the page committed to it instead of waiting the moment it takes
   // the TMDB backdrop to land.
   const highResSources = new Set([
+    curatedBackdrop,
     show.tmdbBackdrop, show.adultCinematicBackdrop, show.highQualityBackground,
     season?.tmdbBackdrop, season?.highQualityBackground,
     seasonNum && show.tmdbSeasonBackdropsBySeason ? show.tmdbSeasonBackdropsBySeason[seasonNum] : ""
@@ -10840,7 +10880,7 @@ function applyWatchBackdrop(show, season) {
   let currentFailed = false;
   try { currentFailed = Boolean(currentUrl && typeof ImageResolver !== "undefined" && ImageResolver.isImageFailed(currentUrl)); }
   catch { currentFailed = false; }
-  if (currentKey === key && currentUrl && !currentFailed && art && art !== currentUrl) {
+  if (currentKey === key && currentUrl && !currentFailed && art && art !== currentUrl && !curatedBackdrop) {
     // Once the chosen artwork is visible, metadata hydration must not swap it.
     art = currentUrl;
   }
@@ -10872,7 +10912,7 @@ function applyWatchBackdrop(show, season) {
   showBackdropPreview(art);
   const probe = new Image();
   probe.referrerPolicy = "no-referrer";
-  probe.crossOrigin = "anonymous";
+  if (art !== curatedBackdrop) probe.crossOrigin = "anonymous";
   // The TMDB backdrop shipped with the catalogue is THE chosen background for
   // every title, and it is official key art - so judge it on dimensions alone.
   // backdropPixelsLookUseful() vetoes intentionally dark frames (measured: ~8% of
@@ -10880,7 +10920,7 @@ function applyWatchBackdrop(show, season) {
   // a portrait poster in the composed layout - which reads as the background
   // suddenly not covering.
   const isChosenTmdbBackdrop = Boolean(art)
-    && art === hqImage(String(show.tmdbBackdrop || "").trim());
+    && (art === curatedBackdrop || art === hqImage(String(show.tmdbBackdrop || "").trim()));
   probe.onload = () => {
     // A carousel image has already loaded successfully at this exact URL. Trust
     // that result; the pixel-contrast heuristic can reject intentionally dark
@@ -11242,7 +11282,24 @@ function revealLatestSelectedEpisode() {
       behavior: "instant"
     });
   } else {
-    selectedRow.scrollIntoView({ block: "center", behavior: "instant" });
+    // On the stacked phone/tablet layout, scrollIntoView() scrolls every
+    // eligible ancestor. Both .watch-panel and the fixed .watch-overlay are
+    // programmatically scrollable, so the old call moved them both and exposed
+    // a strip of the blurred backdrop below the episode panel. Move only the
+    // actual panel and keep its fixed outer shell at the viewport origin.
+    const panel = selectedRow.closest?.(".watch-panel");
+    if (panel && ["auto", "scroll"].includes(getComputedStyle(panel).overflowY)) {
+      const outer = panel.closest?.(".watch-overlay");
+      if (outer) outer.scrollTop = 0;
+      const rowRect = selectedRow.getBoundingClientRect();
+      const panelRect = panel.getBoundingClientRect();
+      panel.scrollTo({
+        top: panel.scrollTop + rowRect.top - panelRect.top - (panel.clientHeight - rowRect.height) / 2,
+        behavior: "instant"
+      });
+    } else {
+      selectedRow.scrollIntoView({ block: "center", behavior: "instant" });
+    }
   }
 }
 
@@ -12340,6 +12397,15 @@ function isApiFullscreen() {
   );
 }
 
+function isTouchFullscreenSurface() {
+  try {
+    const touchPoints = typeof navigator !== "undefined" ? Number(navigator.maxTouchPoints || 0) : 0;
+    const coarsePointer = Boolean(window.matchMedia?.("(pointer: coarse)").matches);
+    return touchPoints > 0 || coarsePointer;
+  } catch (e) {}
+  return false;
+}
+
 // True when the *browser* is fullscreen via F11 (separate from the Fullscreen
 // API — it never sets document.fullscreenElement and never fires
 // fullscreenchange). Modern browsers expose F11 through the display-mode media
@@ -12349,11 +12415,17 @@ function isBrowserNativeFullscreen() {
   try {
     if (window.matchMedia && window.matchMedia("(display-mode: fullscreen)").matches) return true;
   } catch (e) {}
-  // Fallback heuristic: the window covers (almost) the whole screen and there is
-  // no browser chrome height. Tolerance covers rounding / sub-pixel differences.
+  // Mobile browser bars collapse while scrolling and can make innerHeight match
+  // screen.height. That is not fullscreen, and treating it as F11 leaves the
+  // button stuck on "Exit fullscreen" with no page fullscreen to exit.
+  if (isTouchFullscreenSurface()) return false;
+  // Desktop fallback: the viewport must cover both axes and have no browser
+  // chrome. Checking width as well as height avoids maximized-window false hits.
   try {
-    const noChrome = (window.outerHeight - window.innerHeight) <= 1;
-    const fillsScreen = Math.abs(window.innerHeight - screen.height) <= 2;
+    const noChrome = Math.abs(window.outerHeight - window.innerHeight) <= 2
+      && Math.abs(window.outerWidth - window.innerWidth) <= 2;
+    const fillsScreen = Math.abs(window.innerHeight - screen.height) <= 2
+      && Math.abs(window.innerWidth - screen.width) <= 2;
     return noChrome && fillsScreen;
   } catch (e) {}
   return false;
@@ -12364,7 +12436,16 @@ function isAnyFullscreen() {
   return isApiFullscreen() || isBrowserNativeFullscreen();
 }
 
-function toggleNativeFullscreen(el) {
+function callFullscreenMethod(method, receiver) {
+  try {
+    // Older WebKit fullscreen methods return void rather than a Promise.
+    return Promise.resolve(method.call(receiver));
+  } catch (error) {
+    return Promise.reject(error);
+  }
+}
+
+async function toggleNativeFullscreen(el) {
   const isFs = isApiFullscreen();
 
   // F11 browser fullscreen can't be exited from JS (only the user can, via
@@ -12383,7 +12464,11 @@ function toggleNativeFullscreen(el) {
       document.msExitFullscreen
     );
     if (exitFs) {
-      exitFs.call(document).catch(() => {});
+      try {
+        await callFullscreenMethod(exitFs, document);
+      } catch (error) {
+        showToast("Fullscreen could not be closed.");
+      }
     }
   } else {
     let target = null;
@@ -12409,9 +12494,13 @@ function toggleNativeFullscreen(el) {
     );
 
     if (requestFs) {
-      requestFs.call(target, { navigationUI: "hide" }).catch(() =>
-        showToast("Fullscreen blocked by this browser.")
-      );
+      try {
+        // Passing FullscreenOptions breaks older mobile WebKit implementations.
+        // The no-argument form is supported by both current and prefixed APIs.
+        await callFullscreenMethod(requestFs, target);
+      } catch (error) {
+        showToast("Fullscreen blocked by this browser.");
+      }
     } else {
       showToast("Fullscreen is not supported by this browser.");
     }
@@ -16002,12 +16091,14 @@ function fetchDeduped(url, init) {
 }
 
 let visibleMetadataWarmGeneration = 0;
+let visibleMetadataWarmActiveKey = "";
 
 // Both workers re-check the generation on every iteration, so bumping it lands
 // them after the show they are on rather than mid-cascade. Used to hand the
 // browser's connections to a show the moment it is opened - see openShow.
 function pauseVisibleMetadataWarm() {
   visibleMetadataWarmGeneration += 1;
+  visibleMetadataWarmActiveKey = "";
 }
 
 // Warms requested while a show was open, replayed once it closes. Stored as
@@ -16072,7 +16163,6 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
     _deferredMetadataWarm.limit = Math.max(_deferredMetadataWarm.limit, limit || 0);
     return;
   }
-  const generation = ++visibleMetadataWarmGeneration;
   const providedShows = Array.isArray(shows) ? shows : [];
   // Catalog cards already have their baked poster and metadata. Warm only the
   // first few; the rest hydrate on open, leaving connections free for clicks.
@@ -16089,13 +16179,23 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
       .filter((show) => show)
       .map((show) => [String(show.id || getShowKey(show)), show])
   ).values()].slice(0, warmLimit);
+  const queueKey = `${state.route}:${queue.map((show) => String(show.id || getShowKey(show))).join(",")}`;
+  if (visibleMetadataWarmActiveKey === queueKey) return;
+  visibleMetadataWarmActiveKey = queueKey;
+  const generation = ++visibleMetadataWarmGeneration;
   let cursor = 0;
 
   let changed = false;
   const worker = async () => {
     while (cursor < queue.length && generation === visibleMetadataWarmGeneration) {
       const show = queue[cursor++];
-      if (!show || show._metadataPreloadComplete || show.adultDetailsLoaded) continue;
+      if (!show || show._metadataPreloadComplete || show._metadataPreloadStarted || show.adultDetailsLoaded) continue;
+      // The daily snapshot already has these cards' canonical identity and art.
+      // Their episode extras still hydrate on open, where the user needs them.
+      if (hasBakedCanonicalMetadata(show)) {
+        show._metadataPreloadComplete = true;
+        continue;
+      }
       // Bounded retry. Previously a failure reset _metadataPreloadStarted, so a
       // show whose metadata kept failing (Jikan 429 / AniList 502 / TMDB 429) was
       // re-requested on EVERY render - effectively an endless request loop.
@@ -16141,6 +16241,7 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
   // hammering external APIs (jikan 429s, anilist 502s seen in production).
   Promise.allSettled([worker(), worker()]).then(() => {
     if (generation !== visibleMetadataWarmGeneration) return;
+    visibleMetadataWarmActiveKey = "";
     // This batch may have stamped AniList ids onto scraped rows, which is what
     // reveals a duplicate pair. Collapse once per batch - never from render().
     const collapsed = dedupeCatalogShows();
@@ -19103,6 +19204,11 @@ document.getElementById("clearContinueBtn")?.addEventListener("click", () => cle
 document.getElementById("clearContinueBtnAdult")?.addEventListener("click", () => clearContinueWatchingList(true));
 
 closeOverlay.addEventListener("click", closeShow);
+document.getElementById("watchDescriptionToggle")?.addEventListener("click", () => {
+  watchDescriptionExpanded = !watchDescriptionExpanded;
+  updateWatchDescriptionToggle();
+  if (!watchDescriptionExpanded) document.querySelector("#watchDescription")?.scrollTo?.(0, 0);
+});
 favoriteButton.addEventListener("click", toggleFavorite);
 fakePlay.addEventListener("click", () => {
   const ep = state.activeEpisode;
@@ -19271,7 +19377,7 @@ shareButton?.addEventListener("click", async () => {
 // Global fullscreen toggle (top-right, every screen). Reuses the player's
 // document-level fullscreen helper; the icon swaps via the body class below.
 const fullscreenToggle = document.querySelector("#fullscreenToggle");
-fullscreenToggle?.addEventListener("click", toggleNativeFullscreen);
+fullscreenToggle?.addEventListener("click", () => toggleNativeFullscreen());
 
 const adultRandomToggle = document.querySelector("#adultRandomToggle");
 let lastRandomAdultShowId = "";
@@ -19340,6 +19446,7 @@ function syncFullscreenToggleState() {
   if (fullscreenToggle) {
     fullscreenToggle.setAttribute("aria-label", active ? "Exit fullscreen" : "Toggle fullscreen");
     fullscreenToggle.dataset.tip = active ? "Exit fullscreen" : "Fullscreen";
+    fullscreenToggle.title = active ? "Exit fullscreen" : "Fullscreen";
     // Only replay the pulse when the state actually flips (avoid spurious
     // pulses from resize events that don't change fullscreen state).
     if (active !== _lastFullscreenActive) {
@@ -19397,11 +19504,6 @@ function setupTvTextInputs() {
 }
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "F11") {
-    event.preventDefault();
-    toggleNativeFullscreen();
-    return;
-  }
   lastInputWasPointer = false;
 
   // Intercept player shortcuts
@@ -20171,7 +20273,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=818");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=827");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

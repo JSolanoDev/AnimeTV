@@ -324,6 +324,41 @@ checkNoThrow("undefined show resolves", () => ensure(undefined, 1));
   check("continuous Naruto titles continue past physical TMDB Season 1", ImageResolver.getSeasonEpisodeMeta(continuous, 1, 101)?.title, "Global One Hundred One");
 }
 
+{
+  const requests = [];
+  const anime = { id: "long-series-cache-test", anilistId: 987654321, tmdbId: 123456789, title: "Long Series Fixture", totalEpisodes: 120, format: "TV" };
+  const fetchLongSeason = async (url) => {
+    const path = String(url);
+    requests.push(path);
+    if (path.includes("/api/tmdb/tv?")) return { ok: true, json: async () => ({ show: {
+      id: 123456789, poster_path: "/poster.jpg", backdrop_path: "/backdrop.jpg", number_of_episodes: 120,
+      seasons: [1, 2, 3].map((number) => ({ season_number: number, episode_count: 40, name: `Season ${number}` }))
+    } }) };
+    const number = Number(new URL(path, "http://localhost").searchParams.get("season"));
+    return { ok: true, json: async () => ({ season: { episodes: Array.from({ length: 40 }, (_, index) => ({
+      episode_number: index + 1, name: `S${number} E${index + 1}`, overview: "", air_date: "2026-01-01", still_path: `/s${number}-e${index + 1}.jpg`
+    })) } }) };
+  };
+  const longStore = new Map();
+  const longCtx = {
+    console: { debug() {}, log() {}, warn() {}, error() {} },
+    localStorage: {
+      getItem: (key) => longStore.get(key) || null,
+      setItem: (key, value) => longStore.set(key, String(value)),
+      removeItem: (key) => longStore.delete(key)
+    },
+    fetch: fetchLongSeason, fetchWithTimeout: fetchLongSeason,
+    setTimeout, clearTimeout, Promise, Date, Math, JSON, URL
+  };
+  longCtx.window = longCtx;
+  longCtx.globalThis = longCtx;
+  vm.createContext(longCtx);
+  vm.runInContext(src, longCtx);
+  await vm.runInContext("ImageResolver", longCtx).hydrateTmdbImages(anime);
+  check("long series fetches each TMDB season only once", requests.filter((url) => url.includes("/api/tmdb/season?")).length, 3);
+  check("long series keeps global episode titles", anime.tmdbEpisodesByNum?.[41]?.title, "S2 E1");
+}
+
 console.log(rows.join("\n"));
 const failed = rows.filter((r) => r.startsWith("FAIL")).length;
 console.log(failed ? `\n${failed} FAILED` : "\nall season-stills checks passed");

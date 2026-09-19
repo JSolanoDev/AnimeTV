@@ -8691,11 +8691,33 @@ body.reduce-motion .watch-detail-progress { opacity: 1; }
   font-size: clamp(0.92rem, 1.1vw, 1.04rem);
   line-height: 1.5;
   display: block;
-  max-height: 25dvh;
-  overflow-y: auto;
+  max-height: 6em;
+  overflow: hidden;
   scrollbar-width: thin;
   overscroll-behavior: contain;
   text-shadow: 0 0.2rem 0.8rem rgba(0,0,0,0.45);
+}
+.watch-summary.is-expanded {
+  max-height: min(28dvh, 18rem);
+  overflow-y: auto;
+}
+.watch-summary-toggle {
+  align-self: flex-start;
+  margin: -0.4rem 0 0;
+  padding: 0.2rem 0.1rem;
+  border: 0;
+  background: transparent;
+  color: #bb9cff;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.watch-summary-toggle[hidden] { display: none; }
+.watch-summary-toggle:is(:hover, :focus-visible, .is-tv-focused) {
+  color: #e0d0ff;
+  text-decoration: underline;
+  outline-offset: 0.2rem;
 }
 .watch-summary:focus-visible {
   outline: 0.12rem solid var(--accent, #8955ff);
@@ -9199,10 +9221,17 @@ body.has-embedded-player .watch-side {
 
 /* ── Mobile: stack backdrop + content, source panel becomes a bottom sheet ── */
 @media (max-width: 860px) {
+  /* .watch-panel is the sole vertical scroller on compact layouts. `hidden`
+     still permits programmatic scrolling, so scrollIntoView could also move
+     this fixed outer shell and reveal the blurred backdrop below the panel. */
+  .watch-overlay.cinematic { overflow: clip; }
+
   .watch-overlay.cinematic .watch-panel {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr auto;
-    height: 100dvh;
+    height: 100%;
+    max-height: 100%;
+    margin: 0;
   }
   .watch-backdrop { background-position: center 8%; }
   .watch-backdrop::after {
@@ -9226,7 +9255,7 @@ body.has-embedded-player .watch-side {
     box-shadow: 0 -1.4rem 3rem rgba(0,0,0,0.5);
   }
   .watch-overlay.cinematic .watch-title { font-size: clamp(1.7rem, 7vw, 2.6rem); }
-  .watch-summary { max-height: 20dvh; }
+  .watch-summary.is-expanded { max-height: 20dvh; }
 }
 
 /* Small tablets keep the cinematic hero and episode browser in one viewport.
@@ -9236,18 +9265,18 @@ body.has-embedded-player .watch-side {
    for the tablet band between those two designs. */
 @media (min-width: 761px) and (max-width: 860px) {
   .watch-overlay.cinematic .watch-panel {
-    grid-template-rows: minmax(0, 54dvh) minmax(0, 46dvh);
+    grid-template-rows: minmax(0, 54%) minmax(0, 46%);
     overflow: hidden;
   }
   .watch-overlay.cinematic .watch-stage {
-    height: 54dvh;
+    height: 100%;
     min-height: 0;
     padding: 3.2rem 1.4rem 1.2rem;
   }
   .watch-overlay.cinematic .watch-side {
-    height: 46dvh;
+    height: 100%;
     min-height: 0;
-    max-height: 46dvh;
+    max-height: 100%;
     margin: 0;
     overflow: hidden;
   }
@@ -11679,8 +11708,9 @@ body.is-tv .topbar-auth {
   .watch-overlay .watch-panel {
     display: block;
     width: 100%;
-    height: auto;
-    max-height: 100dvh;
+    height: 100%;
+    max-height: 100%;
+    margin: 0;
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
@@ -12674,6 +12704,9 @@ body.player-cinema-open .watch-overlay .close-button {
 
   .watch-stage-body .watch-summary {
     font-size: 0.84rem;
+  }
+
+  .watch-stage-body .watch-summary.is-expanded {
     max-height: none;
     overflow: visible;
   }
@@ -12896,8 +12929,9 @@ main {
   body.player-cinema-open .watch-overlay.cinematic .watch-panel {
     display: block;
     width: 100%;
-    height: auto;
-    max-height: 100dvh;
+    height: 100%;
+    max-height: 100%;
+    margin: 0;
     overflow-y: auto;
     overflow-x: hidden;
     transform: none;

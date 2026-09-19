@@ -84,6 +84,71 @@ test("Latest Episodes click opens its selected episode without autoplay", () => 
   assert.equal(click(false).revealLatestEpisode, false);
 });
 
+test("latest episode reveal scrolls only the compact detail panel", () => {
+  const scrolls = [];
+  const overlay = { scrollTop: 175 };
+  const panel = {
+    scrollTop: 200,
+    clientHeight: 1000,
+    closest: (selector) => selector === ".watch-overlay" ? overlay : null,
+    getBoundingClientRect: () => ({ top: 0 }),
+    scrollTo: (options) => scrolls.push(options)
+  };
+  const selectedRow = {
+    closest: (selector) => selector === ".watch-panel" ? panel : null,
+    getBoundingClientRect: () => ({ top: 800, height: 80 }),
+    scrollIntoView: () => assert.fail("must not scroll both compact ancestors")
+  };
+  const rows = { querySelector: () => selectedRow };
+  const c = vm.createContext({
+    state: { pendingLatestEpisodeReveal: "open-1", activeOpenToken: "open-1", playIntent: false },
+    episodeList: { querySelector: () => rows },
+    getComputedStyle: (node) => ({ overflowY: node === panel ? "auto" : "visible" })
+  });
+  vm.runInContext(section("let _latestEpisodeRowsObserver = null;", "function observeLatestEpisodeRows()"), c);
+  c.revealLatestSelectedEpisode();
+  assert.equal(overlay.scrollTop, 0);
+  assert.equal(scrolls.length, 1);
+  assert.equal(scrolls[0].top, 540);
+  assert.equal(scrolls[0].behavior, "instant");
+});
+
+test("fullscreen toggle stays usable on touch browsers and void-returning WebKit", async () => {
+  const toasts = [];
+  let entered = 0;
+  let exited = 0;
+  const document = {
+    fullscreenElement: null,
+    webkitFullscreenElement: null,
+    webkitExitFullscreen: () => { exited += 1; }
+  };
+  const window = {
+    innerWidth: 390,
+    innerHeight: 844,
+    outerWidth: 390,
+    outerHeight: 844,
+    matchMedia: (query) => ({ matches: query === "(pointer: coarse)" })
+  };
+  const c = vm.createContext({
+    document,
+    window,
+    navigator: { maxTouchPoints: 5 },
+    screen: { width: 390, height: 844 },
+    showToast: (message) => toasts.push(message)
+  });
+  vm.runInContext(section("function isApiFullscreen()", "function getCleanHostName("), c);
+
+  assert.equal(c.isBrowserNativeFullscreen(), false);
+  await c.toggleNativeFullscreen({ webkitRequestFullscreen: () => { entered += 1; } });
+  assert.equal(entered, 1);
+  assert.deepEqual(toasts, []);
+
+  document.webkitFullscreenElement = {};
+  await c.toggleNativeFullscreen();
+  assert.equal(exited, 1);
+  assert.deepEqual(toasts, []);
+});
+
 test("Continue Watching sanitizes only the visible saved entries", () => {
   const map = Object.fromEntries(Array.from({ length: 1000 }, (_, index) => [String(index), {
     episodeKey: String(index), lastWatchedAt: index, progress: 20

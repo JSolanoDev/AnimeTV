@@ -633,6 +633,7 @@ const ImageResolver = (function () {
     let seasonPoster = "";
     const episodeStills = {};
     const episodesByNum = {};
+    const fetchedSeasonPayloads = new Map();
     if (show) {
       const { season, reason } = pickTmdbSeason(anime, show);
       if (season) {
@@ -644,6 +645,7 @@ const ImageResolver = (function () {
             {}, 12000
           );
           const payload = resp.ok ? await resp.json() : null;
+          if (payload?.season) fetchedSeasonPayloads.set(Number(season.season_number), payload);
           const tmdbEpisodes = payload?.season?.episodes || [];
 
           // Check if we need to offset episodes (e.g. all seasons grouped under Season 1 on TMDB)
@@ -710,11 +712,14 @@ const ImageResolver = (function () {
       });
       const fetchSeasonJob = async ({ s, offset }) => {
         try {
-          const r = await fetchWithTimeout(
-            `/api/tmdb/season?id=${encodeURIComponent(tmdbId)}&season=${encodeURIComponent(s.season_number)}`,
-            {}, 10000
-          );
-          const payload = r.ok ? await r.json() : null;
+          let payload = fetchedSeasonPayloads.get(Number(s.season_number)) || null;
+          if (!payload) {
+            const r = await fetchWithTimeout(
+              `/api/tmdb/season?id=${encodeURIComponent(tmdbId)}&season=${encodeURIComponent(s.season_number)}`,
+              {}, 10000
+            );
+            payload = r.ok ? await r.json() : null;
+          }
           const episodes = payload?.season?.episodes || [];
           const numbers = episodes.map(ep => Number(ep.episode_number)).filter(number => number > 0);
           const alreadyAbsolute = offset > 0 && numbers.length && Math.min(...numbers) > offset;

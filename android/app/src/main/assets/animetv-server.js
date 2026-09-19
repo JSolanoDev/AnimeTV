@@ -490,6 +490,7 @@ const ANIPUB_CATALOG_PAGE_SIZE = 100;
 const DAILY_REFRESH_INTERVAL_MS = Math.max(1000 * 60 * 60, Number(process.env.DAILY_REFRESH_INTERVAL_MS || 1000 * 60 * 60 * 24));
 const DAILY_REFRESH_START_DELAY_MS = Math.max(5000, Number(process.env.DAILY_REFRESH_START_DELAY_MS || 15000));
 const LOG_LEVEL = String(process.env.LOG_LEVEL || "info").toLowerCase();
+const API_PERF_DEBUG = process.env.API_PERF_DEBUG === "1" && !HOSTED_RUNTIME;
 const SERVER_CACHE_DIR = path.join(root, ".cache", "server");
 const RATE_LIMIT_WINDOW_MS = Math.max(1000, Number(process.env.RATE_LIMIT_WINDOW_MS || 60000));
 const RATE_LIMIT_MAX_REQUESTS = Math.max(20, Number(process.env.RATE_LIMIT_MAX_REQUESTS || 240));
@@ -606,8 +607,7 @@ function mediaCorsHeaders() {
 function corsHeaders() {
   const base = {
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Vary": "Origin"
+    "Access-Control-Allow-Headers": "Content-Type, Authorization"
   };
   if (!HOSTED_RUNTIME) {
     return { ...base, "Access-Control-Allow-Origin": "*" };
@@ -750,6 +750,12 @@ function loadLocalEnv() {
 function handleRequest(request, response) {
   requestMetrics.total += 1;
   const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
+  if (API_PERF_DEBUG && url.pathname.startsWith("/api/")) {
+    const startedAt = performance.now();
+    response.once("finish", () => console.debug(
+      `[api-perf] route=${url.pathname} status=${response.statusCode} originCache=${response.getHeader("X-Origin-Cache") || "n/a"} totalMs=${Math.round(performance.now() - startedAt)}`
+    ));
+  }
 
   try {
     if (request.method === "OPTIONS") {
@@ -1570,7 +1576,7 @@ function checkRateLimit(request, url) {
   }
   // Catalog reads are cacheable and happen during startup. Keep them separate
   // from metadata/detail traffic so a busy page cannot starve its own catalog.
-  if (/^\/api\/adult\/(?:underhentai|hentaiocean)\/catalog$/.test(url.pathname)) {
+  if (url.pathname === "/api/catalog" || /^\/api\/adult\/(?:underhentai|hentaiocean)\/catalog$/.test(url.pathname)) {
     const catalogLimit = Math.max(600, RATE_LIMIT_API_MAX_REQUESTS * 5);
     const key = `${getClientIp(request)}:adult-catalog`;
     const now = Date.now();
@@ -2014,6 +2020,7 @@ async function buildCatalogPayload() {
 async function handleCatalog(response) {
   const now = Date.now();
   if (catalogResponseCache && now - catalogResponseCache.ts < CATALOG_RESPONSE_TTL_MS) {
+    if (typeof API_PERF_DEBUG !== "undefined" && API_PERF_DEBUG) response.setHeader("X-Origin-Cache", "HIT");
     sendJson(response, { ...catalogResponseCache.payload, cached: true }, 200, CATALOG_RESPONSE_CACHE_HEADERS);
     return;
   }
@@ -2029,11 +2036,13 @@ async function handleCatalog(response) {
         .finally(() => { catalogResponseInflight = null; });
     }
     const payload = await catalogResponseInflight;
+    if (typeof API_PERF_DEBUG !== "undefined" && API_PERF_DEBUG) response.setHeader("X-Origin-Cache", "MISS");
     sendJson(response, payload, 200, CATALOG_RESPONSE_CACHE_HEADERS);
   } catch (error) {
     log("warn", "Catalog build failed", { error: error.message });
     if (catalogResponseCache) {
       // Stale beats broken: keep the homepage populated through an outage.
+      if (typeof API_PERF_DEBUG !== "undefined" && API_PERF_DEBUG) response.setHeader("X-Origin-Cache", "STALE");
       sendJson(response, { ...catalogResponseCache.payload, cached: true, stale: true }, 200, CATALOG_RESPONSE_CACHE_HEADERS);
       return;
     }
@@ -2241,12 +2250,15 @@ function compactCatalogPayload(payload) {
   return {
     ...payload,
     items: (payload.items || []).map((item) => {
+      // The client normalizer never reads scrape timestamps; omit 4,000+
+      // repeated values from the shared catalog response.
+      const { lastScrapedAt, ...publicItem } = item;
       const description = String(item.description || "");
-      if (description.length <= 320) return item;
+      if (description.length <= 320) return publicItem;
       const cutoff = description.slice(0, 320);
       const lastSpace = cutoff.lastIndexOf(" ");
       const preview = (lastSpace > 160 ? cutoff.slice(0, lastSpace) : cutoff).trimEnd();
-      return { ...item, description: `${preview}…` };
+      return { ...publicItem, description: `${preview}…` };
     })
   };
 }
@@ -9901,10 +9913,18 @@ async function fetchWithRetry(url, options = {}, attempts = 3) {
       const response = await fetchWithTimeout(url, options, 12000);
       if (response.ok || ![408, 429, 500, 502, 503, 504].includes(response.status)) return response;
       lastError = new Error(`HTTP ${response.status}`);
+      if (response.status === 429) {
+        lastError = upstreamHttpError("Upstream", response, 30000);
+        try { await response.body?.cancel?.(); } catch { /* already closed */ }
+        throw lastError;
+      }
+      try { await response.body?.cancel?.(); } catch { /* already closed */ }
     } catch (error) {
       lastError = error;
+      // Let the caller use its stale/fallback data until Retry-After has passed.
+      if (error.retryAfterMs != null) throw error;
     }
-    await wait(Math.min(12000, 650 * (2 ** attempt)));
+    if (attempt + 1 < attempts) await wait(Math.min(12000, 650 * (2 ** attempt)));
   }
   throw lastError || new Error("Request failed");
 }
@@ -9912,8 +9932,19 @@ async function fetchWithRetry(url, options = {}, attempts = 3) {
 async function fetchWithTimeout(url, options = {}, timeout = 12000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
+  const startedAt = API_PERF_DEBUG ? performance.now() : 0;
+  const upstreamHost = API_PERF_DEBUG ? new URL(String(url), "http://local").hostname : "";
   try {
-    return await fetch(url, { ...options, signal: controller.signal });
+    const result = await fetch(url, { ...options, signal: controller.signal });
+    if (API_PERF_DEBUG) console.debug(
+      `[api-perf] upstream=${upstreamHost} status=${result.status} headersMs=${Math.round(performance.now() - startedAt)}`
+    );
+    return result;
+  } catch (error) {
+    if (API_PERF_DEBUG) console.debug(
+      `[api-perf] upstream=${upstreamHost} error=${error.name || "Error"} headersMs=${Math.round(performance.now() - startedAt)}`
+    );
+    throw error;
   } finally {
     clearTimeout(timer);
   }

@@ -14,6 +14,29 @@ android {
         versionName "1.2"
     }
 
+    flavorDimensions "device"
+    productFlavors {
+        mobile {
+            dimension "device"
+            applicationIdSuffix ".mobile"
+            manifestPlaceholders = [
+                mainOrientation: "unspecified",
+                playerOrientation: "unspecified",
+                touchscreenRequired: "true",
+                leanbackRequired: "false"
+            ]
+        }
+        tv {
+            dimension "device"
+            manifestPlaceholders = [
+                mainOrientation: "landscape",
+                playerOrientation: "landscape",
+                touchscreenRequired: "false",
+                leanbackRequired: "true"
+            ]
+        }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
