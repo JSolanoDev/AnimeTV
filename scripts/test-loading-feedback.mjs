@@ -527,6 +527,17 @@ test("the anime detail view has visible, reduced-motion-safe hydration feedback"
   assert.match(css, /body\.reduce-motion \.watch-detail-progress[\s\S]*?animation: none/);
 });
 
+test("the adult phone gallery uses the watch panel scroller and compact tabs", () => {
+  const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+  const tabs = css.match(/\.watch-overlay \.watch-side #episodeList\.is-adult-detail \.detail-tabs\.detail-tabs-2\s*\{[^}]+\}/g)?.at(-1) || "";
+  assert.match(tabs, /margin:\s*0\.35rem 0\.25rem 0\.7rem/);
+  assert.match(tabs, /background:\s*#171a2b/);
+  assert.match(tabs, /backdrop-filter:\s*none/);
+  assert.doesNotMatch(tabs, /margin:\s*0\s+-/);
+  assert.match(css, /#episodeList\.is-adult-detail \.adult-detail-gallery\s*\{[^}]*overflow:\s*visible;[^}]*overscroll-behavior:\s*auto;[^}]*touch-action:\s*pan-y;/);
+  assert.match(css, /#episodeList\.is-adult-detail \.adult-detail-gallery-group,[\s\S]*?#episodeList\.is-adult-detail \.adult-detail-gallery-thumb\s*\{[^}]*overflow:\s*clip;/);
+});
+
 // The splash coordinator, run against a fake clock that starts at time origin.
 function splashHarness({ route = "home", pathname = "/" } = {}) {
   const clock = scheduler();

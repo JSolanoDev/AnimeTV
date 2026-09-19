@@ -11735,7 +11735,10 @@ body.is-tv .topbar-auth {
     margin: 0;
     overflow: visible;
   }
-  .watch-overlay .watch-side { padding: 0 0.7rem 1.2rem; }
+  .watch-overlay .watch-side {
+    padding: 0 0.7rem 1.2rem;
+    overscroll-behavior: auto;
+  }
   /* The player/poster frame must keep its own height (don't let it collapse). */
   .watch-overlay .watch-side .video-frame {
     height: auto;
@@ -11806,18 +11809,42 @@ body.is-tv .topbar-auth {
     backdrop-filter: none;
   }
 
-  /* Carry the adult segmented control to both edges of the phone panel. The
-     translucent sticky band now shares the detail surface and its inset with
-     episode rows, instead of reading as a black box nested inside another box. */
+  /* Keep the adult selector inside the same gutter and surface language as the
+     episode browser. A solid compact track is cheaper to paint than another
+     blurred full-width layer and stays legible while rows pass underneath. */
   .watch-overlay .watch-side #episodeList.is-adult-detail .detail-tabs.detail-tabs-2 {
-    margin: 0 -0.7rem 0.65rem;
-    padding: 0.42rem 0.7rem;
-    border-width: 0.06rem 0;
-    border-radius: 0;
-    background: rgba(13, 15, 29, 0.9);
-    box-shadow: 0 0.45rem 1.1rem rgba(0, 0, 0, 0.22);
-    -webkit-backdrop-filter: blur(16px) saturate(1.08);
-    backdrop-filter: blur(16px) saturate(1.08);
+    margin: 0.35rem 0.25rem 0.7rem;
+    padding: 0.22rem;
+    border: 0.06rem solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    background: #171a2b;
+    box-shadow: 0 0.35rem 0.9rem rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .watch-overlay .watch-side #episodeList.is-adult-detail .detail-tab {
+    min-height: 2.5rem;
+    border-radius: 0.38rem;
+  }
+
+  /* The watch panel is the only vertical scroller on phones. The desktop
+     gallery's auto overflow plus overscroll containment consumed touch/wheel
+     gestures even when the gallery had no overflow of its own, so the parent
+     panel never moved. Let gestures bubble directly to that parent scroller. */
+  .watch-overlay .watch-side #episodeList.is-adult-detail .detail-pane[data-detail-pane="gallery"].is-active,
+  .watch-overlay .watch-side #episodeList.is-adult-detail .adult-detail-gallery {
+    flex: 0 0 auto;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    overscroll-behavior: auto;
+    touch-action: pan-y;
+  }
+
+  .watch-overlay .watch-side #episodeList.is-adult-detail .adult-detail-gallery-group,
+  .watch-overlay .watch-side #episodeList.is-adult-detail .adult-detail-gallery-thumb {
+    overflow: clip;
   }
 
   /* Pin Back to the viewport so it stays reachable while the panel scrolls
