@@ -83,6 +83,11 @@
     <script defer src="js/router.js?v=827"></script>
     <script defer src="js/source-classification.js?v=827"></script>
     <script defer src="client.js?v=827"></script>
+    <!-- Vercel Web Analytics -->
+    <script>
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="https://cdn.vercel-insights.com/v1/script.js"></script>
   </head>
   <body>
     <script>(function(){var p=location.pathname.replace(/\/+$/,"")||"/";var h=(location.hash||"").replace(/^#/,"");var r=p==="/search"||p==="/browse"||/^\/(genre|year|season|studio)\//.test(p)?"library":p==="/schedule"?"schedule":p==="/releases"?"releases":p==="/favorites"?"favorites":p==="/settings"?"settings":p==="/sources"?"sources":p==="/profile"||p==="/login"?"profile":"home";var m={search:"library",browse:"library",library:"library",home:"home",schedule:"schedule",releases:"releases",favorites:"favorites",settings:"settings",sources:"sources",profile:"profile"};if(p==="/"&&m[h])r=m[h];document.body.dataset.route=r;try{if(localStorage.getItem("animetv-sidebar-collapsed")!=="false")document.body.classList.add("sidebar-collapsed")}catch(e){document.body.classList.add("sidebar-collapsed")}})()</script>
