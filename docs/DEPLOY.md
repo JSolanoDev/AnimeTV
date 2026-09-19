@@ -1,75 +1,86 @@
-# Deploying ZenkaiTV online
+# Deployment
 
-ZenkaiTV is **two services**:
+## Recommended: Vercel
 
-| Service | Folder | Runtime | Purpose |
-|---|---|---|---|
-| **Web app** | this repo (`AnimeTV/`) | Node 20 | UI + metadata (AniList/Jikan) + AniPub + proxy to the scraper |
-| **Scraper** | the Python project (`app.py`, `scraper.py`, …) | Python 3.12 | TioAnime + AnimeAV1 episode sources |
+ZenkaiTV is a static application plus one catch-all Node Function. The repository already contains:
 
-The browser only ever talks to the **Web app** (relative `/api/...` calls), so it works on any
-domain with zero code changes. The Web app talks to the Scraper server‑to‑server via `TIOANIME_API`.
+- `vercel.json` with SPA rewrites, security headers, and CDN cache policies
+- `api/[...path].js` as the serverless adapter
+- `scripts/build-static.mjs` as the production build
+- `dist/` as the configured output directory
 
----
+### Deploy from GitHub
 
-## Recommended: Render (persistent Node + Python)
+1. Import `JSolanoDev/AnimeTV` into Vercel.
+2. Keep the framework preset as **Other**.
+3. Use `npm run vercel-build` as the build command.
+4. Use `dist` as the output directory.
+5. Add only the optional environment variables the deployment needs.
+6. Deploy. Future pushes to `main` can deploy automatically through the Git integration.
 
-### 1. Deploy the scraper first
-1. Push the Python project to its own Git repo (it already has `requirements.txt`, `Procfile`, `render.yaml`).
-2. On <https://render.com> → **New → Blueprint** → pick that repo.
-3. It deploys as `zenkaitv-scraper`. Wait for **Live**, then copy its URL, e.g.
-   `https://zenkaitv-scraper.onrender.com`.
-4. Sanity check: open `…/api/health` → `{"ok":true,"service":"tioanime-finder"}`.
+The live production site is <https://zenkaitv.com>.
 
-### 2. Deploy the web app
-1. Push this `AnimeTV/` repo to Git.
-2. Render → **New → Blueprint** → pick this repo (uses `render.yaml`).
-3. Before/after first deploy, set the env var **`TIOANIME_API`** to the scraper URL from step 1.
-4. Wait for **Live**. Open the service URL → the app loads, `…/api/health` returns ok.
+### Environment variables
 
-That's it — the site is fully online. AniList/Jikan/AniPub work immediately; TioAnime/AnimeAV1
-sources work because `TIOANIME_API` points at the live scraper.
+The bundled catalog and base UI do not require a private key. Common optional settings are:
 
-> **Free tier note:** Render free web services sleep after ~15 min idle and cold‑start on the next
-> request (a few seconds). Fine for personal use; upgrade to a paid instance to keep it always warm.
+| Variable | Purpose |
+| --- | --- |
+| `TMDB_API_KEY` or `TMDB_READ_ACCESS_TOKEN` | TMDB artwork and episode stills |
+| `SUPABASE_URL` and `SUPABASE_KEY` | Public Supabase authentication configuration |
+| `TIOANIME_API` | Hosted TioAnime/AnimeAV1-compatible bridge |
+| `ANIME1V_API` and `ANIME1V_API_KEY` | Optional Anime1v provider |
+| `CONSUMET_API` | Optional self-hosted Consumet provider |
+| `RAPIDAPI_ANIME_HOST` and `RAPIDAPI_ANIME_KEY` | Optional RapidAPI provider |
+| `API_PERF_DEBUG` | Local API timing logs; keep disabled in production |
 
----
+See `.env.example` for the full list and accepted Supabase aliases. Do not put private service-role credentials in browser-readable variables.
 
-## Alternatives (same two‑service shape)
+## CDN and Function behavior
 
-**Railway** — create two services from the repos. Railway injects `PORT` automatically.
-Start commands: `node animetv-local.js` (web) and `gunicorn app:app --bind 0.0.0.0:$PORT` (scraper).
-Set `TIOANIME_API` on the web service to the scraper's public URL.
+Shared metadata uses Vercel edge caching where it is safe. In particular, `/api/catalog` is public, cached, and served with stale-while-revalidate so repeated users do not each rebuild the same catalog. AniList, Jikan, TMDB, image, and provider-index routes have route-appropriate cache policies and in-flight request coalescing.
 
-**Fly.io** — `fly launch` in each folder. The Node `Dockerfile` already exists; for the scraper,
-Fly can use the buildpack (`requirements.txt` + `Procfile`). Set `TIOANIME_API` as a Fly secret.
+Playback URLs, media relays, resolver calls, mutations, and user-specific data are not broadly shared-cached because they can be short-lived or request-dependent.
 
-**Self‑host (VPS / Docker)** — run the Node `Dockerfile` (port 4173) and run the scraper with
-`gunicorn app:app --bind 0.0.0.0:5000`, then start the web container with
-`TIOANIME_API=http://<vps-ip>:5000`.
+Do not increase Function memory or duration to hide slow upstream work. Check caching, duplicate callers, response size, and provider health first. The current route audit is in [vercel-function-audit.md](vercel-function-audit.md).
 
----
+## Verification
 
-## Environment variables (web app)
+Before pushing:
 
-| Var | Required | Notes |
-|---|---|---|
-| `PORT` | host sets it | Server binds `0.0.0.0:$PORT`. |
-| `TIOANIME_API` | for TioAnime/AnimeAV1 | URL of the deployed scraper. |
-| `ANIME1V_AUTO_START` | recommended `false` | Never spawn the local Anime1v addon on a host. |
-| `CONSUMET_API`, `RAPIDAPI_*` | optional | See `.env.example`. Skipped gracefully if unset. |
+```bash
+npm run check
+npm test
+npm run vercel-build
+```
 
----
+After deployment:
 
-## Custom domain
-Add your domain in the host dashboard and point DNS as instructed. HTTPS/HSTS is enabled
-automatically when a hosted‑runtime env var is present (Render/Railway/Fly/Vercel detected).
+```bash
+curl -I https://zenkaitv.com/
+curl -I https://zenkaitv.com/api/catalog
+curl https://zenkaitv.com/api/health
+```
 
----
+Verify the homepage, search, title details, seasons, episode selection, playback, Cast controls, schedule, favorites, adult-mode isolation, and a mobile viewport. A warm `/api/catalog` request should report an edge cache hit in Vercel response headers.
 
-## Android TV
-The Android app bundles its own on‑device Node server (`android/app/src/main/assets/`), so the
-TV app does **not** depend on the website being up — except for the scraper sources, which are
-Python‑only and not bundled. Set `TIOANIME_API` in the app's env (or hardcode your hosted scraper
-URL in the bundled `animetv-server.js`) so TioAnime/AnimeAV1 work on the TV too. Build the APK with
-`npm run android:build` (outputs `android/app/build/outputs/apk/debug/app-debug.apk`).
+## Self-hosting
+
+Run the Node server directly or use the included `Dockerfile`:
+
+```bash
+npm install
+npm start
+```
+
+The server binds to `0.0.0.0` and uses `PORT` when supplied, otherwise port `4173`. Put a reverse proxy with HTTPS in front of it for public use. Optional provider bridges may run as separate services and be configured through `.env.local`.
+
+## Android clients
+
+The Android variants currently point at `https://zenkaitv.com` from `MainActivity.java`, keeping mobile and TV clients on the same deployed application and API behavior. Build both with:
+
+```powershell
+npm run android:build
+```
+
+See [ANDROID_TV.md](ANDROID_TV.md) for output paths and ADB installation.
