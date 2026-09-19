@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-18T10:48:35.892Z",
+  "generatedAt": "2026-09-19T10:29:56.671Z",
   "count": 1658,
   "entries": {
     "animeav1-one-piece": {
@@ -197,8 +197,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 9,
-      "lastEpisodeAt": "2026-09-11T16:18:48.634Z"
+      "sourceEpisodeCount": 10,
+      "lastEpisodeAt": "2026-09-18T16:13:08.427Z"
     },
     "animeav1-katainaka-no-ossan-kensei-ni-naru-ii": {
       "anilistId": 194829,
@@ -637,8 +637,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-11T18:57:57.480Z"
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-18T19:13:43.624Z"
     },
     "animeav1-yani-neko": {
       "anilistId": 207141,
@@ -1364,8 +1364,8 @@
           "order": 6
         }
       ],
-      "sourceEpisodeCount": 22,
-      "lastEpisodeAt": "2026-09-11T15:18:22.002Z"
+      "sourceEpisodeCount": 23,
+      "lastEpisodeAt": "2026-09-18T15:16:46.133Z"
     },
     "animeav1-dr-stone-science-future-part-3": {
       "anilistId": 199221,
@@ -11070,8 +11070,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-11T18:57:57.480Z"
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-18T19:13:43.624Z"
     },
     "anilist-21355": {
       "anilistId": 21355,
@@ -13979,8 +13979,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 9,
-      "lastEpisodeAt": "2026-09-11T16:18:48.634Z"
+      "sourceEpisodeCount": 10,
+      "lastEpisodeAt": "2026-09-18T16:13:08.427Z"
     },
     "anilist-179955": {
       "anilistId": 179955,
@@ -22704,8 +22704,8 @@
           "order": 6
         }
       ],
-      "sourceEpisodeCount": 22,
-      "lastEpisodeAt": "2026-09-11T15:18:22.002Z"
+      "sourceEpisodeCount": 23,
+      "lastEpisodeAt": "2026-09-18T15:16:46.133Z"
     },
     "mal-63129": {
       "anilistId": "mal-63129",
@@ -58597,18 +58597,6 @@
       "sourceEpisodeCount": 11,
       "lastEpisodeAt": "2026-09-16T14:47:45.748Z"
     },
-    "animeav1-ryoumin-0-nin-start-no-henkyou-ryoushu-sama": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-11T13:36:27.501Z"
-    },
     "animeav1-youjo-senki-ii": {
       "anilistId": null,
       "airingStatus": "RELEASING",
@@ -58656,18 +58644,6 @@
       "franchiseSeasons": [],
       "sourceEpisodeCount": 11,
       "lastEpisodeAt": "2026-09-16T00:36:48.749Z"
-    },
-    "animeav1-koko-wa-ore-ni-makasete-saki-ni-ike-to-itte-kara-10-nen-ga-tattara-densetsu-ni-natteita": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-11T14:10:07.599Z"
     },
     "animeav1-saikyou-degarashi-ouji-no-anyaku-teii-arasoi": {
       "anilistId": null,
@@ -58858,8 +58834,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-11T16:52:16.864Z"
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-18T17:09:27.240Z"
     },
     "animeav1-black-torch": {
       "anilistId": null,
@@ -58894,8 +58870,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 10,
-      "lastEpisodeAt": "2026-09-11T16:13:00.547Z"
+      "sourceEpisodeCount": 11,
+      "lastEpisodeAt": "2026-09-18T15:50:48.609Z"
     },
     "animeav1-tsuihou-sareta-tensei-juukishi-wa-game-chishiki-de-musou-suru": {
       "anilistId": null,
@@ -58944,18 +58920,6 @@
       "franchiseSeasons": [],
       "sourceEpisodeCount": 23,
       "lastEpisodeAt": "2026-09-13T15:20:44.600Z"
-    },
-    "animeav1-kami-no-shizuku": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 23,
-      "lastEpisodeAt": "2026-09-11T16:12:29.752Z"
     },
     "animeav1-liar-game": {
       "anilistId": null,
@@ -59028,6 +58992,18 @@
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1
     },
+    "animeav1-ryoumin-0-nin-start-no-henkyou-ryoushu-sama": {
+      "anilistId": 196218,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-11T13:36:27.501Z"
+    },
     "animeav1-tefuda-ga-oome-no-victoria": {
       "anilistId": 198709,
       "airingStatus": "RELEASING",
@@ -59051,6 +59027,18 @@
       "franchiseSeasons": [],
       "sourceEpisodeCount": 10,
       "lastEpisodeAt": "2026-09-01T15:05:23.771Z"
+    },
+    "animeav1-koko-wa-ore-ni-makasete-saki-ni-ike-to-itte-kara-10-nen-ga-tattara-densetsu-ni-natteita": {
+      "anilistId": 199748,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-11T14:10:07.599Z"
     },
     "animeav1-neko-to-ryuu": {
       "anilistId": 186863,
@@ -59235,6 +59223,18 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 12
+    },
+    "animeav1-kami-no-shizuku": {
+      "anilistId": 202508,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 24,
+      "lastEpisodeAt": "2026-09-11T16:12:29.752Z"
     },
     "animeav1-kujima-utaeba-ie-hororo": {
       "anilistId": 177508,
