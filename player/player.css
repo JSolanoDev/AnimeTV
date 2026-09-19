@@ -1224,38 +1224,16 @@ body.ztv-chrome-hidden .ztv-corner-toggle svg {
   .ztv-mascot { display: none !important; }
 }
 
-/* Phone/tablet playback title: one quiet line inside the picture. ArtPlayer's
-   .art-mobile marker survives rotation and fullscreen, unlike a width query. */
-.art-mobile .ztv-player-topbar {
-  /* Match the 44px corner controls: 12px top + 44px lane + 12px bottom.
-     The safe-area inset is included in both the bar and its top padding so the
-     title keeps the same center line beside a notch. */
-  min-height: calc(68px + env(safe-area-inset-top));
-  gap: 0.4rem;
-  padding:
-    calc(12px + env(safe-area-inset-top))
-    calc(56px + env(safe-area-inset-right))
-    12px
-    calc(56px + env(safe-area-inset-left));
-}
-
-.art-mobile .ztv-kicker,
-.art-mobile .ztv-player-brand,
-.art-mobile .ztv-mascot {
-  display: none;
-}
-
-.art-mobile .ztv-title-block h1 {
-  display: block;
-  overflow: hidden;
-  font-size: 0.82rem;
-  line-height: 1.15;
-  letter-spacing: 0;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Phones always use the compact episode/title pill beside Back. Artplayer's
+   .art-mobile marker survives rotation and fullscreen, unlike a width query,
+   so a landscape phone never falls back to the desktop bar or its chevron. */
+.art-mobile .ztv-player-topbar,
+.art-mobile .ztv-corner-toggle {
+  display: none !important;
 }
 
 .art-mobile .ztv-floating-label {
+  display: flex;
   font-size: 0.7rem;
 }
 

@@ -47,6 +47,7 @@
   // has no selectable quality" - never a fabricated ladder.
   let hlsLevels = [];
   let sheet = null;
+  let syncChromeForDevice = () => {};
 
   const elements = {
     player: document.getElementById("player"),
@@ -159,18 +160,22 @@
     // stored preference is left untouched, so a desktop-sized window still opens
     // the bar if that is what was chosen there.
     const phone = window.matchMedia ? window.matchMedia("(max-width: 760px)") : null;
-    const applyForWidth = () => {
-      const onPhone = Boolean(phone?.matches);
+    const applyForDevice = () => {
+      // Once Artplayer exists, its mobile marker is authoritative and survives
+      // rotation. Keep the width query as the pre-construction fallback so a
+      // portrait phone starts compact before the player libraries are ready.
+      const onPhone = isPhonePlayer() || Boolean(phone?.matches);
       chromeToggle.hidden = onPhone;
       apply(onPhone ? true : stored, false);
     };
-    applyForWidth();
-    if (phone?.addEventListener) phone.addEventListener("change", applyForWidth);
-    else if (phone?.addListener) phone.addListener(applyForWidth);
+    syncChromeForDevice = applyForDevice;
+    applyForDevice();
+    if (phone?.addEventListener) phone.addEventListener("change", applyForDevice);
+    else if (phone?.addListener) phone.addListener(applyForDevice);
     // The media-query change event does not always arrive when the viewport is
     // resized programmatically, and rotating a phone to landscape crosses this
     // breakpoint. resize is cheap here and covers both.
-    window.addEventListener("resize", applyForWidth);
+    window.addEventListener("resize", applyForDevice);
 
     // One button, both directions - it never moves, so the same press point
     // opens and closes the bar.
@@ -1586,6 +1591,10 @@
     wireArtEvents();
     wireVolumePanelLinger();
     attachChromeToPlayer();
+    // A landscape phone is wider than the pre-player 760px fallback. Re-run
+    // after Artplayer has added .art-mobile so it still gets the compact label
+    // and never receives the desktop header toggle.
+    syncChromeForDevice();
     followControlVisibility();
     wireTapToHideControls();
     watchPictureInsets();

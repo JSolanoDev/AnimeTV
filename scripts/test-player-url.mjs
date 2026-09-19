@@ -72,12 +72,13 @@ check("portrait detection follows the host page rather than the 16:9 iframe",
   /function getPlayerHostWindow\(\)[\s\S]*?window\.parent[\s\S]*?function isPortraitPlayerHost\(\)/.test(playerJs), true);
 check("portrait fullscreen keeps the controls visible",
   /const enterPortraitFullscreen = \(\) => \{[\s\S]*?showPlayerControls\(\);[\s\S]*?request\.call\(player\)/.test(playerJs), true);
-check("phone titles are one compact ellipsized line",
-  /\.art-mobile \.ztv-title-block h1\s*\{[\s\S]*?font-size:\s*0\.82rem;[\s\S]*?text-overflow:\s*ellipsis;[\s\S]*?white-space:\s*nowrap;/.test(playerCss), true);
-check("phone top bar shares the corner controls' 44px alignment lane",
-  /\.art-mobile \.ztv-player-topbar\s*\{[\s\S]*?min-height:\s*calc\(68px \+ env\(safe-area-inset-top\)\);[\s\S]*?calc\(12px \+ env\(safe-area-inset-top\)\)[\s\S]*?12px/.test(playerCss), true);
-check("desktop mascot cannot expand the mobile top bar",
-  /\.art-mobile \.ztv-player-brand,\s*\.art-mobile \.ztv-mascot\s*\{\s*display:\s*none;/.test(playerCss), true);
+check("phone players hide the full title bar and its chevron",
+  /\.art-mobile \.ztv-player-topbar,\s*\.art-mobile \.ztv-corner-toggle\s*\{\s*display:\s*none\s*!important;/.test(playerCss), true);
+check("phone players always show the compact title pill",
+  /\.art-mobile \.ztv-floating-label\s*\{\s*display:\s*flex;[\s\S]*?font-size:\s*0\.7rem;/.test(playerCss), true);
+check("landscape phones resync chrome after Artplayer device detection",
+  /const onPhone = isPhonePlayer\(\) \|\| Boolean\(phone\?\.matches\);/.test(playerJs)
+    && /attachChromeToPlayer\(\);[\s\S]{0,320}?syncChromeForDevice\(\);/.test(playerJs), true);
 check("source resolution uses the current player loader without provider copy",
   /class="ztv-stream-loader"[\s\S]*?Loading stream\.\.\.[\s\S]*?:\s*`<div class="play-symbol"/.test(src), true);
 check("source resolution loader stays compact and quick",
