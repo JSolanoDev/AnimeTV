@@ -58,6 +58,12 @@ check("no unguarded poster assignment remains",
   /searchParams\.set\("poster", options\.poster\)/.test(src), false);
 check("mobile playback stacks the player before episodes",
   /body\.player-cinema-open \.watch-overlay\.cinematic \.watch-stage\s*\{\s*display:\s*none;/.test(appCss), true);
+check("portrait playback locks the compact panel and hides episodes until Back",
+  /@media \(max-width:\s*860px\) and \(orientation:\s*portrait\)[\s\S]*?\.watch-panel\s*\{[\s\S]*?overflow:\s*hidden\s*!important;[\s\S]*?\.episode-list\s*\{\s*display:\s*none\s*!important;/.test(appCss), true);
+check("cinema state locks both the root and body scrollports",
+  /function setPlayerCinemaOpen\(enabled\)[\s\S]*?document\.documentElement\?\.classList\.toggle\("player-cinema-open", enabled\);[\s\S]*?document\.body\?\.classList\.toggle\("player-cinema-open", enabled\);/.test(src), true);
+check("player Back exits fullscreen before rebuilding the episode browser",
+  /function exitPlayerToSources\(\)[\s\S]*?exitApiFullscreenQuietly\(\)[\s\S]*?resetVideoFrame\(\);[\s\S]*?showEpisodeListTab\(\{ skipFullscreenExit: true \}\)/.test(src), true);
 check("mobile Latest Episodes does not force a blank viewport",
   /#latest\.is-last-band\s*\{\s*min-height:\s*0;\s*justify-content:\s*flex-start;/.test(appCss), true);
 check("compact player labels hug text and obey both corner insets",

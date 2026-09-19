@@ -113,6 +113,50 @@ test("latest episode reveal scrolls only the compact detail panel", () => {
   assert.equal(scrolls[0].behavior, "instant");
 });
 
+test("player Back reveals episodes without scrolling the fixed overlay", () => {
+  const scrolls = [];
+  const overlay = { scrollTop: 140 };
+  const panel = {
+    scrollTop: 120,
+    getBoundingClientRect: () => ({ top: 20 }),
+    closest: (selector) => selector === ".watch-overlay" ? overlay : null,
+    scrollTo: (options) => scrolls.push(options)
+  };
+  const side = {
+    getBoundingClientRect: () => ({ top: 520 }),
+    closest: (selector) => selector === ".watch-panel" ? panel : null,
+    scrollTo: () => assert.fail("the panel is the compact layout scroller")
+  };
+  const c = vm.createContext({
+    episodeList: { closest: (selector) => selector === ".watch-side" ? side : null },
+    getComputedStyle: (node) => ({ overflowY: node === panel ? "auto" : "visible" })
+  });
+  vm.runInContext(section("function revealEpisodeBrowserPanel()", "function showEpisodeListTab("), c);
+  c.revealEpisodeBrowserPanel();
+
+  assert.equal(overlay.scrollTop, 0);
+  assert.equal(scrolls.length, 1);
+  assert.equal(scrolls[0].top, 620);
+  assert.equal(scrolls[0].behavior, "auto");
+});
+
+test("the visible watch Back button exits playback before closing the anime", () => {
+  let exits = 0;
+  let closes = 0;
+  const c = vm.createContext({
+    document: {
+      body: { classList: { contains: (name) => name === "player-cinema-open" } },
+      querySelector: () => null
+    },
+    exitPlayerToSources: () => { exits += 1; },
+    closeShow: () => { closes += 1; }
+  });
+  vm.runInContext(section("function handleWatchBack()", "function hideAdultGalleryPanel("), c);
+  c.handleWatchBack();
+  assert.equal(exits, 1);
+  assert.equal(closes, 0);
+});
+
 test("fullscreen toggle stays usable on touch browsers and void-returning WebKit", async () => {
   const toasts = [];
   let entered = 0;

@@ -4507,7 +4507,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=831";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=832";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -9926,7 +9926,7 @@ function closeShow() {
   state.pendingLatestEpisodeReveal = null;
   state.latestEpisodeOpenToken = null;
   _latestEpisodeRowsObserver?.disconnect();
-  document.body.classList.remove("player-cinema-open");
+  setPlayerCinemaOpen(false);
   document.body.classList.remove("has-embedded-player");
   setWatchDetailLoading(false, state.activeOpenToken);
   overlay.classList.add("is-closing");
@@ -9973,6 +9973,29 @@ function closeShow() {
     // a show once _metadataPreloadComplete is set, so nothing is stranded.
     resumeVisibleMetadataWarm();
   }, 200);
+}
+
+function handleWatchBack() {
+  const frame = document.querySelector("#videoFrame");
+  if (
+    document.body.classList.contains("player-cinema-open") ||
+    document.body.classList.contains("has-embedded-player") ||
+    frame?.querySelector(".source-picker")
+  ) {
+    exitPlayerToSources();
+    return;
+  }
+
+  const epList = document.querySelector("#episodeList");
+  if (epList?.querySelector(".side-source-picker")) {
+    hideAdultGalleryPanel?.();
+    if (state.activeShow) renderEpisodeList(state.activeShow);
+    else showEpisodeListTab();
+    refreshFocusables();
+    return;
+  }
+
+  closeShow();
 }
 
 function hideAdultGalleryPanel() {
@@ -12383,8 +12406,16 @@ function renderVidstreamControls() {
 function setPlayerCinema(container, enabled, options = {}) {
   if (!container) return;
   container.classList.toggle("is-cinema", enabled);
-  document.body.classList.toggle("player-cinema-open", enabled);
+  setPlayerCinemaOpen(enabled);
   if (!options.silent) showToast(enabled ? "Cinema mode" : "Normal player");
+}
+
+// Mobile browsers do not consistently treat body overflow as the viewport
+// scroll lock. Mirror the state on <html> so portrait playback cannot move the
+// document behind the fixed detail overlay.
+function setPlayerCinemaOpen(enabled) {
+  document.documentElement?.classList.toggle("player-cinema-open", enabled);
+  document.body?.classList.toggle("player-cinema-open", enabled);
 }
 
 // True when the Fullscreen API put us in fullscreen (in-app button / player).
@@ -12443,6 +12474,18 @@ function callFullscreenMethod(method, receiver) {
   } catch (error) {
     return Promise.reject(error);
   }
+}
+
+function exitApiFullscreenQuietly() {
+  if (!isApiFullscreen()) return Promise.resolve();
+  const exitFs = (
+    document.exitFullscreen ||
+    document.webkitExitFullscreen ||
+    document.mozCancelFullScreen ||
+    document.msExitFullscreen
+  );
+  if (!exitFs) return Promise.resolve();
+  return callFullscreenMethod(exitFs, document).catch(() => {});
 }
 
 async function toggleNativeFullscreen(el) {
@@ -13282,26 +13325,33 @@ function renderSourcePickerIn(frame) {
   refreshFocusables();
 }
 
+let playerExitToEpisodesPromise = null;
 function exitPlayerToSources() {
-  stopActivePlayback();
-  document.body.classList.remove("player-cinema-open");
+  if (playerExitToEpisodesPromise) return playerExitToEpisodesPromise;
+
+  const openToken = state.activeOpenToken;
+  setPlayerCinemaOpen(false);
   document.body.classList.remove("has-embedded-player");
 
-  if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
-    const exitFs = (
-      document.exitFullscreen ||
-      document.webkitExitFullscreen ||
-      document.mozCancelFullScreen ||
-      document.msExitFullscreen
-    );
-    if (exitFs) exitFs.call(document).catch(() => {});
-  }
-
-  const frame = document.querySelector("#videoFrame");
-  if (!frame) return;
-
-  resetVideoFrame();
-  showEpisodeListTab();
+  // Removing a fullscreen iframe before the browser has finished leaving
+  // fullscreen can strand mobile Chrome on a blank surface. Exit first, then
+  // rebuild the ordinary episode view. The token prevents a late completion
+  // from repainting a show that the user has already closed or replaced.
+  playerExitToEpisodesPromise = exitApiFullscreenQuietly()
+    .then(() => {
+      if (openToken !== state.activeOpenToken || !state.activeShow) return;
+      const frame = document.querySelector("#videoFrame");
+      if (!frame) return;
+      appRouter()?.replace?.(animePathForShow(state.activeShow), { silent: true });
+      state.currentRouteInfo = appRouter()?.parsePath?.(location.pathname) || state.currentRouteInfo;
+      updateRouteMeta(state.currentRouteInfo || {}, state.activeShow);
+      resetVideoFrame();
+      showEpisodeListTab({ skipFullscreenExit: true });
+    })
+    .finally(() => {
+      playerExitToEpisodesPromise = null;
+    });
+  return playerExitToEpisodesPromise;
 }
 
 let hlsScriptPromise = null;
@@ -14874,7 +14924,7 @@ function selectEpisodeByPosition(seasonIndex, episodeIndex, shouldPlay = true) {
     const show = state.activeShow;
     if (frame && show) {
       stopActivePlayback();
-      document.body.classList.remove("player-cinema-open");
+      setPlayerCinemaOpen(false);
       const background = getWatchBackdropArtwork(show, season);
       frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
       // Give the click immediate visual feedback while the primary source lookup
@@ -14901,34 +14951,42 @@ function selectEpisodeByPosition(seasonIndex, episodeIndex, shouldPlay = true) {
 }
 
 
-function showEpisodeListTab() {
+function revealEpisodeBrowserPanel() {
+  const sidePanel = episodeList?.closest?.(".watch-side") || document.querySelector(".watch-side");
+  const panel = sidePanel?.closest?.(".watch-panel");
+  const outer = panel?.closest?.(".watch-overlay");
+  if (outer) outer.scrollTop = 0;
+
+  if (panel && ["auto", "scroll"].includes(getComputedStyle(panel).overflowY)) {
+    const panelRect = panel.getBoundingClientRect();
+    const sideRect = sidePanel.getBoundingClientRect();
+    panel.scrollTo({
+      top: Math.max(0, panel.scrollTop + sideRect.top - panelRect.top),
+      behavior: "auto"
+    });
+    return;
+  }
+
+  if (sidePanel && ["auto", "scroll"].includes(getComputedStyle(sidePanel).overflowY)) {
+    sidePanel.scrollTo({ top: 0, behavior: "auto" });
+  }
+}
+
+function showEpisodeListTab(options = {}) {
   // If in cinema / fullscreen mode, exit it first so the episode panel is visible
   if (document.body.classList.contains("player-cinema-open")) {
     const container = document.querySelector(".vidstream-player");
-    if (container) {
-      container.classList.remove("is-cinema");
-      document.body.classList.remove("player-cinema-open");
-    }
+    container?.classList.remove("is-cinema");
   }
+  setPlayerCinemaOpen(false);
 
-  if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
-    const exitFs = (
-      document.exitFullscreen ||
-      document.webkitExitFullscreen ||
-      document.mozCancelFullScreen ||
-      document.msExitFullscreen
-    );
-    if (exitFs) exitFs.call(document).catch(() => {});
-  }
+  if (!options.skipFullscreenExit) void exitApiFullscreenQuietly();
 
   state.activeDetailTab = "episodes";
   renderEpisodeList(state.activeShow);
-  // Scroll the right source/episode panel to the episode list
-  window.setTimeout(() => {
-    const sidePanel = document.querySelector(".watch-side");
-    if (sidePanel) sidePanel.scrollTo({ top: sidePanel.scrollHeight, behavior: "smooth" });
-    episodeList?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, 80);
+  // Move only the detail panel. scrollIntoView() also moved the fixed overlay on
+  // compact layouts, exposing the page behind it instead of the episode rows.
+  window.setTimeout(revealEpisodeBrowserPanel, 0);
   refreshFocusables();
 }
 
@@ -15541,7 +15599,7 @@ async function selectEpisode(season, episode, seasonIndex, episodeIndex) {
   const show = state.activeShow;
   if (frame && show) {
     stopActivePlayback();
-    document.body.classList.remove("player-cinema-open");
+    setPlayerCinemaOpen(false);
     const background = getWatchBackdropArtwork(show, season);
     frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
     const { seasonNumber } = selectedSeasonIdentity(show, state.activeEpisode, seasonIndex);
@@ -19212,7 +19270,7 @@ sidebarToggle?.addEventListener("click", toggleSidebar);
 document.getElementById("clearContinueBtn")?.addEventListener("click", () => clearContinueWatchingList(false));
 document.getElementById("clearContinueBtnAdult")?.addEventListener("click", () => clearContinueWatchingList(true));
 
-closeOverlay.addEventListener("click", closeShow);
+closeOverlay.addEventListener("click", handleWatchBack);
 document.getElementById("watchDescriptionToggle")?.addEventListener("click", () => {
   watchDescriptionExpanded = !watchDescriptionExpanded;
   updateWatchDescriptionToggle();
@@ -19641,23 +19699,7 @@ document.addEventListener("keydown", (event) => {
     }
     if (!overlay.hidden) {
       event.preventDefault();
-      const frame = document.querySelector("#videoFrame");
-      const epList = document.querySelector("#episodeList");
-      // Source picker open in the video frame → exit to episode list
-      if (frame?.querySelector(".source-picker")) {
-        exitPlayerToSources();
-        return;
-      }
-      // Side source picker open in the episode panel → go back to episode list
-      if (epList?.querySelector(".side-source-picker")) {
-        hideAdultGalleryPanel?.();
-        if (state.activeShow) renderEpisodeList(state.activeShow);
-        else showEpisodeListTab();
-        refreshFocusables();
-        return;
-      }
-      // Default: close the whole overlay
-      closeShow();
+      handleWatchBack();
     }
   }
 
@@ -20282,7 +20324,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=831");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=832");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

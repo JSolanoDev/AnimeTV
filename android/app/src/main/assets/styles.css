@@ -5199,8 +5199,11 @@ body.adult-mode .vid-loader-text {
   bottom: 0.8rem;
 }
 
+html.player-cinema-open,
 body.player-cinema-open {
+  height: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 /*
@@ -12660,11 +12663,6 @@ body.player-cinema-open .watch-overlay .close-button {
     aspect-ratio: 16 / 9;
   }
 
-  /* The fixed shell needed the page frozen underneath it. In flow it does not,
-     and freezing it would strand the episode list below the player. */
-  body.player-cinema-open {
-    overflow: visible;
-  }
 }
 
 /* ── Phone: give the watch header some restraint ─────────────────────────────
@@ -13041,6 +13039,41 @@ main {
     z-index: 3;
     /* Opaque, or the episode rows show through as they slide under it. */
     background: #000 !important;
+  }
+}
+
+/* Portrait playback is a dedicated player view. The compact watch panel used to
+   remain its own scroller with the episode list below a sticky player, which let
+   the whole surface drift and exposed the page behind the overlay. Keep the same
+   16:9 player, lock every eligible scroll container, and reveal the episode
+   browser only after the in-player Back action clears cinema mode. */
+@media (max-width: 860px) and (orientation: portrait) {
+  html.player-cinema-open,
+  body.player-cinema-open {
+    width: 100%;
+    height: 100%;
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+
+  body.player-cinema-open .watch-overlay.cinematic,
+  body.player-cinema-open .watch-overlay.cinematic .watch-panel {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+
+  body.player-cinema-open .watch-overlay.cinematic .watch-side {
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+
+  body.player-cinema-open .watch-overlay .watch-side .episode-list {
+    display: none !important;
   }
 }
 

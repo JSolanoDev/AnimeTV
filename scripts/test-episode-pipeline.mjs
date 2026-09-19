@@ -782,6 +782,7 @@ test("21. an episode-row click reaches source scheduling with canonical season i
       body: { classList: { remove() {} } },
       querySelector: (selector) => selector === "#videoFrame" ? frame : null
     },
+    setPlayerCinemaOpen() {},
     stopActivePlayback() {},
     getWatchBackdropArtwork: () => "",
     currentEpisodeLabel: () => "Season 2 Part 1 Episode 3",
