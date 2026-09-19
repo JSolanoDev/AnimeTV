@@ -4507,7 +4507,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=830";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=831";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -16454,6 +16454,7 @@ function mergeTioAnimeSourcesIntoEpisode(show, episode, data, slug, epNum) {
 
 const _animeAv1SlugCache = new Map();
 const _animeAv1MissCache = new Map();
+const _animeAv1SlugSearchInflight = new Map();
 const _animeAv1EpisodeSourceCache = new Map();
 const _animeAv1EpisodeSourceInflight = new Map();
 let _animeAv1SlugCatalogPromise = null;
@@ -16508,22 +16509,30 @@ async function fetchAnimeAv1SlugSearch(paramName, value, cacheKey) {
   const missedAt = _animeAv1MissCache.get(cacheKey) || 0;
   if (!value || (missedAt && Date.now() - missedAt < 90 * 1000)) return "";
   if (_animeAv1SlugCache.has(cacheKey)) return _animeAv1SlugCache.get(cacheKey);
-  const qs = `${paramName}=${encodeURIComponent(value)}`;
-  const res = await fetchWithTimeout(`/api/animeav1/search?${qs}`, { cache: "no-store" }, ANIMEAV1_SEARCH_TIMEOUT_MS);
-  if (!res.ok) {
-    // A title miss can be retried shortly after the daily source refresh. A
-    // transport/5xx failure is transient and is never cached as "not found".
-    if (res.status === 404) _animeAv1MissCache.set(cacheKey, Date.now());
-    return "";
+
+  // Rendering and prewarming can resolve the same title concurrently. Coalesce
+  // those requests so one miss creates one 404 instead of a burst of identical
+  // provider lookups.
+  let lookup = _animeAv1SlugSearchInflight.get(cacheKey);
+  if (!lookup) {
+    lookup = (async () => {
+      const qs = `${paramName}=${encodeURIComponent(value)}`;
+      const res = await fetchWithTimeout(`/api/animeav1/search?${qs}`, { cache: "no-store" }, ANIMEAV1_SEARCH_TIMEOUT_MS);
+      if (!res.ok) {
+        // A title miss can be retried shortly after the daily source refresh. A
+        // transport/5xx failure is transient and is never cached as "not found".
+        if (res.status === 404) _animeAv1MissCache.set(cacheKey, Date.now());
+        return "";
+      }
+      const data = await res.json();
+      const slug = data.ok ? animeAv1SlugFromSearchPayload(data) : "";
+      if (slug) _animeAv1SlugCache.set(cacheKey, slug);
+      else _animeAv1MissCache.set(cacheKey, Date.now());
+      return slug;
+    })().finally(() => _animeAv1SlugSearchInflight.delete(cacheKey));
+    _animeAv1SlugSearchInflight.set(cacheKey, lookup);
   }
-  const data = await res.json();
-  const slug = data.ok ? animeAv1SlugFromSearchPayload(data) : "";
-  if (slug) {
-    _animeAv1SlugCache.set(cacheKey, slug);
-    return slug;
-  }
-  _animeAv1MissCache.set(cacheKey, Date.now());
-  return "";
+  return lookup;
 }
 
 async function ensureAnimeAv1SlugCatalog() {
@@ -20273,7 +20282,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=830");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=831");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
