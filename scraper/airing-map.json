@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-19T10:29:56.671Z",
+  "generatedAt": "2026-09-20T10:50:36.135Z",
   "count": 1658,
   "entries": {
     "animeav1-one-piece": {
@@ -602,8 +602,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 10,
-      "lastEpisodeAt": "2026-09-12T17:44:24.477Z"
+      "sourceEpisodeCount": 11,
+      "lastEpisodeAt": "2026-09-19T17:37:03.180Z"
     },
     "animeav1-hell-mode-yarikomizuki-no-gamer-wa-hai-settei-no-isekai-de-musou-suru-2nd-season": {
       "anilistId": 209983,
@@ -1160,8 +1160,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 21,
-      "lastEpisodeAt": "2026-09-12T11:07:23.592Z"
+      "sourceEpisodeCount": 22,
+      "lastEpisodeAt": "2026-09-19T12:07:22.558Z"
     },
     "animeav1-mairimashita-iruma-kun-4th-season": {
       "anilistId": 184492,
@@ -1217,8 +1217,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 22,
-      "lastEpisodeAt": "2026-09-12T12:18:27.494Z"
+      "sourceEpisodeCount": 23,
+      "lastEpisodeAt": "2026-09-19T12:10:33.557Z"
     },
     "animeav1-akane-banashi": {
       "anilistId": 196935,
@@ -2345,8 +2345,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 47,
-      "lastEpisodeAt": "2026-09-13T09:56:26.709Z"
+      "sourceEpisodeCount": 48,
+      "lastEpisodeAt": "2026-09-20T10:15:49.427Z"
     },
     "animeav1-uma-musume-cinderella-gray-part-2": {
       "anilistId": 195240,
@@ -11918,8 +11918,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 21,
-      "lastEpisodeAt": "2026-09-12T11:07:23.592Z"
+      "sourceEpisodeCount": 22,
+      "lastEpisodeAt": "2026-09-19T12:07:22.558Z"
     },
     "anilist-166873": {
       "anilistId": 166873,
@@ -21372,8 +21372,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 10,
-      "lastEpisodeAt": "2026-09-12T17:44:24.477Z"
+      "sourceEpisodeCount": 11,
+      "lastEpisodeAt": "2026-09-19T17:37:03.180Z"
     },
     "anilist-158898": {
       "anilistId": 158898,
@@ -22337,8 +22337,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 22,
-      "lastEpisodeAt": "2026-09-12T12:18:27.494Z"
+      "sourceEpisodeCount": 23,
+      "lastEpisodeAt": "2026-09-19T12:10:33.557Z"
     },
     "anilist-196935": {
       "anilistId": 196935,
@@ -58546,8 +58546,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 10,
-      "lastEpisodeAt": "2026-09-12T17:41:54.251Z"
+      "sourceEpisodeCount": 11,
+      "lastEpisodeAt": "2026-09-19T17:43:00.705Z"
     },
     "animeav1-mebius-dust": {
       "anilistId": null,
@@ -58729,18 +58729,6 @@
       "sourceEpisodeCount": 11,
       "lastEpisodeAt": "2026-09-13T13:22:30.444Z"
     },
-    "animeav1-mahou-shoujo-lyrical-nanoha-exceeds-gun-blaze-vengeance": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-12T17:18:52.374Z"
-    },
     "animeav1-grow-up-show-himawari-no-circus-dan": {
       "anilistId": null,
       "airingStatus": "RELEASING",
@@ -58750,44 +58738,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-12T16:28:28.599Z"
-    },
-    "animeav1-oni-no-hanayome": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-12T17:18:35.285Z"
-    },
-    "animeav1-tetsunabe-no-jan": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-13T09:57:50.840Z"
-    },
-    "animeav1-kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-12T17:18:12.594Z"
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-19T16:19:41.810Z"
     },
     "animeav1-lets-go-kaiki-gumi": {
       "anilistId": null,
@@ -58800,18 +58752,6 @@
       "franchiseSeasons": [],
       "sourceEpisodeCount": 11,
       "lastEpisodeAt": "2026-09-13T09:56:52.983Z"
-    },
-    "animeav1-saijo-no-osewa-takane-no-hanadarake-na-meimonkou-de-gakuin-ichi-no-ojousama-seikatsu-nouryoku-kaimu-wo-kagenagara-osewa-suru-koto-ni-narimashita": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-12T18:18:56.198Z"
     },
     "animeav1-nijusseiki-denki-mokuroku-eureka-evrika": {
       "anilistId": null,
@@ -58836,30 +58776,6 @@
       "franchiseSeasons": [],
       "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-18T17:09:27.240Z"
-    },
-    "animeav1-black-torch": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-12T13:13:12.200Z"
-    },
-    "animeav1-iwamoto-senpai-no-suisen": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-12T14:11:14.768Z"
     },
     "animeav1-kore-kaite-shine": {
       "anilistId": null,
@@ -58933,18 +58849,6 @@
       "sourceEpisodeCount": 24,
       "lastEpisodeAt": "2026-09-14T16:33:57.982Z"
     },
-    "animeav1-yomi-no-tsugai": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 23,
-      "lastEpisodeAt": "2026-09-12T16:28:55.637Z"
-    },
     "animeav1-mao": {
       "anilistId": null,
       "airingStatus": "RELEASING",
@@ -58954,8 +58858,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 24,
-      "lastEpisodeAt": "2026-09-12T22:07:51.291Z"
+      "sourceEpisodeCount": 25,
+      "lastEpisodeAt": "2026-09-19T22:02:13.492Z"
     },
     "animeav1-yamato-yo-towa-ni-rebel-3199": {
       "anilistId": null,
@@ -58978,8 +58882,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-09-12T11:13:12.832Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-09-19T12:07:37.134Z"
     },
     "animeav1-boku-no-hero-academia-i-am-a-hero-too": {
       "anilistId": 211711,
@@ -59040,6 +58944,66 @@
       "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-11T14:10:07.599Z"
     },
+    "animeav1-mahou-shoujo-lyrical-nanoha-exceeds-gun-blaze-vengeance": {
+      "anilistId": 185875,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-12T17:18:52.374Z"
+    },
+    "animeav1-oni-no-hanayome": {
+      "anilistId": 194219,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-12T17:18:35.285Z"
+    },
+    "animeav1-tetsunabe-no-jan": {
+      "anilistId": 204060,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-13T09:57:50.840Z"
+    },
+    "animeav1-kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu": {
+      "anilistId": 208225,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-12T17:18:12.594Z"
+    },
+    "animeav1-saijo-no-osewa-takane-no-hanadarake-na-meimonkou-de-gakuin-ichi-no-ojousama-seikatsu-nouryoku-kaimu-wo-kagenagara-osewa-suru-koto-ni-narimashita": {
+      "anilistId": 201514,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-12T18:18:56.198Z"
+    },
     "animeav1-neko-to-ryuu": {
       "anilistId": 186863,
       "airingStatus": "RELEASING",
@@ -59063,6 +59027,30 @@
       "franchiseSeasons": [],
       "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-05T16:12:49.416Z"
+    },
+    "animeav1-black-torch": {
+      "anilistId": 187538,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-12T13:13:12.200Z"
+    },
+    "animeav1-iwamoto-senpai-no-suisen": {
+      "anilistId": 206249,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-12T14:11:14.768Z"
     },
     "animeav1-bai-ri-cheng-wang": {
       "anilistId": 213484,
@@ -59477,6 +59465,18 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 12
+    },
+    "animeav1-yomi-no-tsugai": {
+      "anilistId": 195600,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 24,
+      "lastEpisodeAt": "2026-09-12T16:28:55.637Z"
     },
     "animeav1-saikyou-no-shokugyou-wa-yuusha-demo-kenja-demo-naku-kanteishi-kari-rashii-desu-yo": {
       "anilistId": 200769,
