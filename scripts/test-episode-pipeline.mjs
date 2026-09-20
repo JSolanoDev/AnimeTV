@@ -223,6 +223,10 @@ function animeAv1SourceContext() {
     }
   });
   vm.runInContext(
+    section(clientSource, "async function fetchAnimeAv1EpisodeSourcePayload(", "async function buildAnimeAv1CastCandidate("),
+    sandbox
+  );
+  vm.runInContext(
     section(clientSource, "let _playerShellPrefetched", "function mergeAnimeAv1SourcesIntoEpisode("),
     sandbox
   );

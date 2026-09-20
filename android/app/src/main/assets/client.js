@@ -3666,7 +3666,7 @@ function isRetiredAdultArtwork(url = "") {
   }
 }
 
-function imageDeliveryUrl(url, width = 360, quality = 70, height = 0, fit = "") {
+function imageDeliveryUrl(url, width = 360, quality = 70, height = 0, fit = "", forceProxy = false) {
   const raw = String(url || "").trim();
   if (!raw || raw.startsWith("data:") || raw.startsWith("blob:") || raw.startsWith("./") || raw.startsWith("/")) return raw;
   if (!/^https?:$/i.test(location.protocol)) return raw;
@@ -3704,9 +3704,9 @@ function imageDeliveryUrl(url, width = 360, quality = 70, height = 0, fit = "") 
     //
     // Above 780 the proxy keeps its job, because there the transcode is worth
     // real bytes: the hero at w=2560 q=92 is 336 KB of WebP against a 976 KB
-    // TMDB original. Every non-TMDB host is untouched - AnimeAV1 answers 403 to
-    // a direct request, and the adult hosts stay proxied as before.
-    if ((host === "image.tmdb.org" || host === "media.themoviedb.org") && Number(width) > 0 && Number(width) <= 780) {
+    // TMDB original. Other regular CDNs are handled below; adult hosts remain
+    // proxied exactly as before.
+    if (!forceProxy && (host === "image.tmdb.org" || host === "media.themoviedb.org") && Number(width) > 0 && Number(width) <= 780) {
       // Only rewrite a path that really is /t/p/<size>/<file>; anything else
       // keeps the proxy rather than having a size invented for it.
       const sized = parsed.pathname.match(/^(\/t\/p\/)[^/]+(\/.+)$/);
@@ -3715,6 +3715,21 @@ function imageDeliveryUrl(url, width = 360, quality = 70, height = 0, fit = "") 
         parsed.pathname = `${sized[1]}${native}${sized[2]}`;
         return parsed.toString();
       }
+    }
+    // These regular-catalog hosts are image CDNs and are browser-readable
+    // without ZenkaiTV headers. Card and thumbnail requests can therefore go
+    // straight to their edge instead of paying for a Vercel function plus a
+    // Sharp transcode. Keep tiny blur previews (<180px), cinematic artwork,
+    // explicit crops, and all adult hosts on /api/image so their behavior and
+    // visual quality remain unchanged.
+    const directRegularArtwork = host === "cdn.myanimelist.net"
+      || host === "s4.anilist.co"
+      || host === "s4.anilistcdn.com"
+      || host === "cdn.animeav1.com";
+    if (!forceProxy && directRegularArtwork
+      && Number(width) >= 180 && Number(width) <= 780
+      && Number(quality) >= 70 && !Number(height) && !fit) {
+      return parsed.toString();
     }
     const proxy = new URL("/api/image", location.origin);
     proxy.searchParams.set("src", parsed.toString());
@@ -4508,7 +4523,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=839";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=840";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -6297,25 +6312,29 @@ function cardTemplate(show, index = 0) {
       ? { aspectRatio: 2 / 3, fit: "cover" }
       : null
   );
-  const deliverPoster = (url, width) => {
+  const deliverPoster = (url, width, forceProxy = false) => {
     const options = adultPosterOptions(url);
     return imageDeliveryUrl(
       url,
       width,
       90,
       options ? Math.round(width / options.aspectRatio) : 0,
-      options?.fit || ""
+      options?.fit || "",
+      forceProxy
     );
   };
   const deliveredCandidates = [...new Set(posterCandidates.flatMap((url) => {
     const delivered = deliverPoster(url, 400);
     const raw = String(url || "").trim();
     const isAnimeAv1Cover = /^https:\/\/cdn\.animeav1\.com\/covers\//i.test(raw);
-    if (delivered === raw) return [raw];
+    if (delivered === raw) {
+      const proxyFallback = deliverPoster(url, 400, true);
+      return proxyFallback && proxyFallback !== raw ? [raw, proxyFallback] : [raw];
+    }
     // AnimeAV1 covers are already tiny, card-sized JPEGs. Loading them directly
     // is faster and avoids making every phone poster depend on a serverless image
-    // resize. Other hosts keep the optimized proxy first, but always retain the
-    // original URL so a transient proxy failure can recover instead of showing Z.
+    // resize. Proxied hosts still retain the original, while direct CDN hosts
+    // retain a forced proxy fallback so either delivery path can recover.
     return isAnimeAv1Cover ? [raw, delivered] : [delivered, raw];
   }).filter(Boolean))];
   const posterUrl = deliveredCandidates[0] || "";
@@ -13656,6 +13675,28 @@ function castEmbedPreference(source = {}) {
   return 10 + (Number(source.sourceRank) || 0);
 }
 
+async function fetchAnimeAv1EpisodeSourcePayload(slug, episodeNumber) {
+  const cacheKey = `${slug}:${episodeNumber}:SUB`;
+  const cached = _animeAv1EpisodeSourceCache.get(cacheKey);
+  if (cached) return cached;
+
+  let lookup = _animeAv1EpisodeSourceInflight.get(cacheKey);
+  if (!lookup) {
+    const endpoint = `/api/animeav1/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(episodeNumber)}&variant=SUB`;
+    lookup = fetchWithTimeout(endpoint, { cache: "default" }, ANIMEAV1_SOURCE_TIMEOUT_MS)
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const data = await response.json();
+        if (!data?.ok || (!Array.isArray(data.sources) && !Array.isArray(data.castSources))) return null;
+        _animeAv1EpisodeSourceCache.set(cacheKey, data);
+        return data;
+      })
+      .finally(() => _animeAv1EpisodeSourceInflight.delete(cacheKey));
+    _animeAv1EpisodeSourceInflight.set(cacheKey, lookup);
+  }
+  return lookup;
+}
+
 async function buildAnimeAv1CastCandidate() {
   const show = state.activeShow;
   const episode = state.activeEpisode?.episode;
@@ -13673,45 +13714,41 @@ async function buildAnimeAv1CastCandidate() {
   const episodeNumber = Number(rawEpisodeNumber);
   if (!Number.isFinite(episodeNumber) || episodeNumber < 0) return null;
 
-  let payload;
   try {
-    const endpoint = `/api/animeav1/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(episodeNumber)}&variant=SUB`;
-    const response = await fetchWithTimeout(endpoint, { cache: "default" }, 4000);
-    if (!response.ok) return null;
-    payload = await response.json();
+    const payload = await fetchAnimeAv1EpisodeSourcePayload(slug, episodeNumber);
+    if (!payload?.ok || !Array.isArray(payload.castSources)) return null;
+
+    const embeds = payload.castSources
+      .filter((source) => source?.type !== "direct" && (source?.externalUrl || source?.url))
+      .sort((a, b) => castEmbedPreference(a) - castEmbedPreference(b))
+      .slice(0, 6);
+    const siteReferer = payload.episodeUrl
+      || `https://animeav1.com/media/${encodeURIComponent(slug)}/${encodeURIComponent(episodeNumber)}`;
+
+    for (const source of embeds) {
+      const embedUrl = source.externalUrl || source.url;
+      const resolved = await attemptResolveEmbed(embedUrl, siteReferer, CAST_EMBED_RESOLVE_TIMEOUT_MS);
+      if (!resolved?.url) continue;
+      try {
+        const mediaUrl = new URL(resolved.url, location.origin);
+        if (mediaUrl.port && mediaUrl.port !== "80" && mediaUrl.port !== "443") continue;
+      } catch (error) { continue; }
+      const playbackUrl = proxiedStreamUrl(resolved.url, resolved.mediaReferer || embedUrl);
+      const resolvedType = String(resolved.type || "").toLowerCase();
+      const type = streamTypeFromUrl(playbackUrl)
+        || (resolvedType === "hls" ? "hls" : (resolvedType === "mp4" ? "file" : ""));
+      if (!playbackUrl || !type) continue;
+      return {
+        label: `AnimeAV1 - ${source.provider || "Cast mirror"}`,
+        url: playbackUrl,
+        type
+      };
+    }
+    return null;
   } catch (error) {
     console.warn("AnimeAV1 Cast mirror lookup failed:", error);
     return null;
   }
-  if (!payload?.ok || !Array.isArray(payload.castSources)) return null;
-
-  const embeds = payload.castSources
-    .filter((source) => source?.type !== "direct" && (source?.externalUrl || source?.url))
-    .sort((a, b) => castEmbedPreference(a) - castEmbedPreference(b))
-    .slice(0, 6);
-  const siteReferer = payload.episodeUrl
-    || `https://animeav1.com/media/${encodeURIComponent(slug)}/${encodeURIComponent(episodeNumber)}`;
-
-  for (const source of embeds) {
-    const embedUrl = source.externalUrl || source.url;
-    const resolved = await attemptResolveEmbed(embedUrl, siteReferer, CAST_EMBED_RESOLVE_TIMEOUT_MS);
-    if (!resolved?.url) continue;
-    try {
-      const mediaUrl = new URL(resolved.url, location.origin);
-      if (mediaUrl.port && mediaUrl.port !== "80" && mediaUrl.port !== "443") continue;
-    } catch (error) { continue; }
-    const playbackUrl = proxiedStreamUrl(resolved.url, resolved.mediaReferer || embedUrl);
-    const resolvedType = String(resolved.type || "").toLowerCase();
-    const type = streamTypeFromUrl(playbackUrl)
-      || (resolvedType === "hls" ? "hls" : (resolvedType === "mp4" ? "file" : ""));
-    if (!playbackUrl || !type) continue;
-    return {
-      label: `AnimeAV1 - ${source.provider || "Cast mirror"}`,
-      url: playbackUrl,
-      type
-    };
-  }
-  return null;
 }
 
 async function buildCastBackupCandidate() {
@@ -16801,36 +16838,12 @@ async function attachAnimeAv1Sources(show, episode) {
     episode.animeAv1SourcesChecked = true;
     return;
   }
-  const cacheKey = `${slug}:${epNum}:SUB`;
-  const cached = _animeAv1EpisodeSourceCache.get(cacheKey);
-  if (cached) {
-    mergeAnimeAv1SourcesIntoEpisode(show, episode, cached, slug, epNum);
-    episode.animeAv1SourcesChecked = true;
-    return;
-  }
   try {
-    let lookup = _animeAv1EpisodeSourceInflight.get(cacheKey);
-    if (!lookup) {
-      lookup = fetchWithTimeout(
-        `/api/animeav1/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}&variant=SUB`,
-        { cache: "default" }, ANIMEAV1_SOURCE_TIMEOUT_MS
-      )
-        .then(async (res) => {
-          if (!res.ok) return null;
-          const data = await res.json();
-          return data.ok && Array.isArray(data.sources) ? data : null;
-        })
-        .finally(() => {
-          _animeAv1EpisodeSourceInflight.delete(cacheKey);
-        });
-      _animeAv1EpisodeSourceInflight.set(cacheKey, lookup);
-    }
-    const data = await lookup;
-    if (!data) {
+    const data = await fetchAnimeAv1EpisodeSourcePayload(slug, epNum);
+    if (!data || !Array.isArray(data.sources)) {
       episode.animeAv1SourcesChecked = true;
       return;
     }
-    _animeAv1EpisodeSourceCache.set(cacheKey, data);
     mergeAnimeAv1SourcesIntoEpisode(show, episode, data, slug, epNum);
   } catch (error) {
     console.warn("AnimeAV1 episode sources unavailable:", error);
@@ -20554,7 +20567,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=839");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=840");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

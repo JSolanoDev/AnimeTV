@@ -221,6 +221,15 @@ let tioAnimeSlugCatalogMemoryAt = 0;
 let tioAnimeSlugCatalogPromise = null;
 const animeAv1SourceCache = new Map(); // "slug:ep:variant" -> { data, ts }
 const animeAv1SourceInflight = new Map(); // coalesce concurrent cold lookups
+// The sender, codec probe, and Cast receiver can request the same AnimeAV1
+// manifest almost simultaneously. Vercel's edge cache only helps after the
+// first invocation finishes, so keep a very short origin-side copy and share
+// the cold fetch. This is deliberately limited to manifests; media fragments
+// and direct video responses are never buffered here.
+const sourcePlaylistCache = new Map();
+const sourcePlaylistInflight = new Map();
+const SOURCE_PLAYLIST_MEMORY_TTL_MS = 15 * 1000;
+const SOURCE_PLAYLIST_CACHE_MAX = 100;
 const animeAv1SlugSearchCache = new Map(); // normalized query -> { data, ts }
 const animeAv1CatalogSearchCache = new Map(); // normalized query -> { data, ts }
 let animeAv1LatestCache = null;          // [{ slug, episode, title, image }]
@@ -452,10 +461,18 @@ function noteJikanSuccess(key) {
 // that vercel.json is schema-validated and supports NO comments - adding one
 // there fails the deployment before it builds, which is exactly how v491 was
 // lost - so the rationale lives here instead.
-const JIKAN_OK_CACHE = {
+const JIKAN_SEARCH_CACHE = Object.freeze({
   "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800",
   "Vary": "Accept-Encoding"
-};
+});
+const JIKAN_FULL_CACHE = Object.freeze({
+  "Cache-Control": "public, max-age=1800, s-maxage=86400, stale-while-revalidate=604800, stale-if-error=604800",
+  "Vary": "Accept-Encoding"
+});
+const JIKAN_EPISODES_CACHE = Object.freeze({
+  "Cache-Control": "public, max-age=600, s-maxage=21600, stale-while-revalidate=86400, stale-if-error=604800",
+  "Vary": "Accept-Encoding"
+});
 const JIKAN_UNAVAILABLE_CACHE = {
   "Cache-Control": "public, max-age=10, s-maxage=60",
   "Vary": "Accept-Encoding"
@@ -2051,6 +2068,51 @@ async function handleCatalog(response) {
   }
 }
 
+function sourcePlaylistIsVod(text) {
+  return /^#EXT-X-PLAYLIST-TYPE:VOD\s*$/mi.test(String(text || ""))
+    || /^#EXT-X-ENDLIST\s*$/mi.test(String(text || ""));
+}
+
+function sourcePlaylistResponse(snapshot) {
+  return new Response(snapshot.body, {
+    status: snapshot.status,
+    statusText: snapshot.statusText,
+    headers: snapshot.headers
+  });
+}
+
+async function fetchCoalescedSourcePlaylist(target, headers, cacheKey) {
+  const cached = sourcePlaylistCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < SOURCE_PLAYLIST_MEMORY_TTL_MS) {
+    return sourcePlaylistResponse(cached);
+  }
+  if (cached) sourcePlaylistCache.delete(cacheKey);
+
+  let pending = sourcePlaylistInflight.get(cacheKey);
+  if (!pending) {
+    pending = (async () => {
+      const upstream = await fetchWithTimeout(target, { headers }, 12000);
+      const body = await upstream.text();
+      const snapshot = {
+        status: upstream.status,
+        statusText: upstream.statusText,
+        headers: Object.fromEntries(upstream.headers.entries()),
+        body,
+        ts: Date.now()
+      };
+      if (upstream.ok && sourcePlaylistIsVod(body)) {
+        while (sourcePlaylistCache.size >= SOURCE_PLAYLIST_CACHE_MAX) {
+          sourcePlaylistCache.delete(sourcePlaylistCache.keys().next().value);
+        }
+        sourcePlaylistCache.set(cacheKey, snapshot);
+      }
+      return snapshot;
+    })().finally(() => sourcePlaylistInflight.delete(cacheKey));
+    sourcePlaylistInflight.set(cacheKey, pending);
+  }
+  return sourcePlaylistResponse(await pending);
+}
+
 async function handleSourceProxy(request, url, response) {
   const target = url.searchParams.get("url");
   if (!target || !/^https?:\/\//i.test(target)) {
@@ -2134,7 +2196,17 @@ async function handleSourceProxy(request, url, response) {
     }
     if (request.headers.range) headers.Range = request.headers.range;
     else if (isHeadRequest) headers.Range = "bytes=0-0";
-    const upstream = await fetchWithTimeout(target, { headers }, 12000);
+    const targetLooksLikePlaylist = (isZilla && /^\/m3u8\/[^/]+/i.test(targetUrl.pathname))
+      || /\.m3u8$/i.test(targetUrl.pathname);
+    const canCoalescePlaylist = String(request.method || "GET").toUpperCase() === "GET"
+      && !request.headers.range
+      && targetLooksLikePlaylist;
+    const playlistCacheKey = canCoalescePlaylist
+      ? `${target}\n${headers.Referer || ""}\n${headers["User-Agent"] || ""}`
+      : "";
+    const upstream = canCoalescePlaylist
+      ? await fetchCoalescedSourcePlaylist(target, headers, playlistCacheKey)
+      : await fetchWithTimeout(target, { headers }, 12000);
     if (!upstream.ok) {
       log("warn", "Source relay upstream rejected request", {
         providerHost: targetHost,
@@ -12346,7 +12418,7 @@ async function handleJikanFull(url, response) {
   const cached = jikanFullCache.get(String(malId));
   try {
     if (cached && Date.now() - cached.ts < JIKAN_EPISODE_CACHE_TTL_MS) {
-      return sendJson(response, { data: cached.data, cached: true }, 200, JIKAN_OK_CACHE);
+      return sendJson(response, { data: cached.data, cached: true }, 200, JIKAN_FULL_CACHE);
     }
     if (jikanCoolingDown(fullKey)) {
       return sendJikanUnavailable(response, cached?.data, null);
@@ -12358,12 +12430,12 @@ async function handleJikanFull(url, response) {
       return found;
     });
     noteJikanSuccess(fullKey);
-    sendJson(response, { data, ok: true, notFound: !data }, 200, JIKAN_OK_CACHE);
+    sendJson(response, { data, ok: true, notFound: !data }, 200, JIKAN_FULL_CACHE);
   } catch (error) {
     if (isPermanentJikanError(error)) {
       jikanFullCache.set(String(malId), { data: null, ts: Date.now() });
       noteJikanSuccess(fullKey);
-      return sendJson(response, { data: null, ok: true, notFound: true }, 200, JIKAN_OK_CACHE);
+      return sendJson(response, { data: null, ok: true, notFound: true }, 200, JIKAN_FULL_CACHE);
     }
     noteJikanFailure(fullKey, error);
     sendJikanUnavailable(response, cached?.data, null, error);
@@ -12377,7 +12449,7 @@ async function handleJikanSearch(url, response) {
   const cached = jikanSearchCache.get(cacheKey);
   try {
     if (cached && Date.now() - cached.ts < JIKAN_EPISODE_CACHE_TTL_MS) {
-      return sendJson(response, { data: cached.data, cached: true }, 200, JIKAN_OK_CACHE);
+      return sendJson(response, { data: cached.data, cached: true }, 200, JIKAN_SEARCH_CACHE);
     }
     // Serve whatever we have rather than re-hitting an upstream we just saw fail.
     if (jikanCoolingDown(cacheKey)) {
@@ -12392,14 +12464,14 @@ async function handleJikanSearch(url, response) {
     noteJikanSuccess(cacheKey);
     // ok:true with an empty array means "Jikan has no such title" - a real
     // answer, distinct from unavailable:true which means "we could not ask".
-    sendJson(response, { data, ok: true, notFound: data.length === 0 }, 200, JIKAN_OK_CACHE);
+    sendJson(response, { data, ok: true, notFound: data.length === 0 }, 200, JIKAN_SEARCH_CACHE);
   } catch (error) {
     if (isPermanentJikanError(error)) {
       // A definitive "not found" is a result, so cache it like one rather than
       // burning a cooldown slot and re-asking every 60s.
       jikanSearchCache.set(cacheKey, { data: [], ts: Date.now() });
       noteJikanSuccess(cacheKey);
-      return sendJson(response, { data: [], ok: true, notFound: true }, 200, JIKAN_OK_CACHE);
+      return sendJson(response, { data: [], ok: true, notFound: true }, 200, JIKAN_SEARCH_CACHE);
     }
     noteJikanFailure(cacheKey, error);
     sendJikanUnavailable(response, cached?.data, [], error);
@@ -12421,7 +12493,7 @@ async function handleJikanEpisodes(url, response) {
       Number(episode?.episode) === expectedEpisode
     );
     if (cached && Date.now() - cached.ts < JIKAN_EPISODE_CACHE_TTL_MS && cacheHasExpectedEpisode) {
-      return sendJson(response, { data: cached.data, cached: true }, 200, JIKAN_OK_CACHE);
+      return sendJson(response, { data: cached.data, cached: true }, 200, JIKAN_EPISODES_CACHE);
     }
     if (jikanCoolingDown(episodesKey)) {
       return sendJikanUnavailable(response, cached?.data, []);
@@ -12450,12 +12522,12 @@ async function handleJikanEpisodes(url, response) {
     });
     const { episodes, pageCount } = result;
     noteJikanSuccess(episodesKey);
-    sendJson(response, { data: episodes, pages: pageCount, ok: true, notFound: episodes.length === 0 }, 200, JIKAN_OK_CACHE);
+    sendJson(response, { data: episodes, pages: pageCount, ok: true, notFound: episodes.length === 0 }, 200, JIKAN_EPISODES_CACHE);
   } catch (error) {
     if (isPermanentJikanError(error)) {
       jikanEpisodeCache.set(String(malId), { data: [], ts: Date.now() });
       noteJikanSuccess(episodesKey);
-      return sendJson(response, { data: [], ok: true, notFound: true }, 200, JIKAN_OK_CACHE);
+      return sendJson(response, { data: [], ok: true, notFound: true }, 200, JIKAN_EPISODES_CACHE);
     }
     noteJikanFailure(episodesKey, error);
     sendJikanUnavailable(response, cached?.data, [], error);

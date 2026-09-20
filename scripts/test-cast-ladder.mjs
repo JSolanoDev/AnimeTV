@@ -590,6 +590,9 @@ const TWO = [
     animeAv1CatalogSlugForShow: (show) => show.animeAv1Slug,
     getInventoryProviderEpisodeId: (_show, episode) => episode.providerEpisodeId,
     getCanonicalEpisodeNumber: (episode) => episode.episode,
+    _animeAv1EpisodeSourceCache: new Map(),
+    _animeAv1EpisodeSourceInflight: new Map(),
+    ANIMEAV1_SOURCE_TIMEOUT_MS: 6500,
     fetchWithTimeout: async (endpoint) => {
       calls.push(["lookup", endpoint]);
       if (endpoint.startsWith("/api/animeav1/sources")) {
@@ -668,7 +671,7 @@ const TWO = [
   check("17d. the AnimeAV1 mirror is ahead of JKAnime", prepared.map((candidate) => candidate.label),
     ["AnimeAV1", "AnimeAV1 - UPNShare", "JKAnime - Streamwish"]);
   check("17e. UPNShare and segmented JKAnime HLS are both resolved",
-    resolves.map((call) => new URL(call[1]).host), ["animeav1.uns.bio", "sfastwish.com"]);
+    resolves.map((call) => new URL(call[1]).host).sort(), ["animeav1.uns.bio", "sfastwish.com"]);
   check("17f. both resolvers are tightly bounded", resolves.every((call) => call[3] === 5000), true);
   check("17g. AnimeAV1 HLS stays on the short-request media relay", new URL(prepared[1].url).pathname, "/api/source");
   check("17g2. the relay uses AnimeAV1 UPNShare as Referer",

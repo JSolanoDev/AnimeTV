@@ -51,9 +51,16 @@ check("already-sized input normalises", imageDeliveryUrl(TMDB780, 200, 90), "htt
 check(">780 stays PROXIED (hero)", imageDeliveryUrl(TMDB, 2560, 92).startsWith("/api/image"), true);
 check("781 stays proxied", imageDeliveryUrl(TMDB, 781, 90).startsWith("/api/image"), true);
 
-/* ---- non-TMDB hosts unchanged ---- */
-check("AniList stays proxied", imageDeliveryUrl("https://s4.anilist.co/file/x.jpg", 360, 88).startsWith("/api/image"), true);
-check("AnimeAV1 stays proxied", imageDeliveryUrl("https://cdn.animeav1.com/covers/x.jpg", 360, 88).startsWith("/api/image"), true);
+/* ---- regular image CDNs go direct only for normal card/thumbnail sizes ---- */
+const ANILIST = "https://s4.anilist.co/file/x.jpg";
+const ANIMEAV1 = "https://cdn.animeav1.com/covers/x.jpg";
+const MAL = "https://cdn.myanimelist.net/images/anime/x.jpg";
+check("AniList card artwork goes direct", imageDeliveryUrl(ANILIST, 360, 88), ANILIST);
+check("AnimeAV1 card artwork goes direct", imageDeliveryUrl(ANIMEAV1, 360, 88), ANIMEAV1);
+check("MyAnimeList card artwork goes direct", imageDeliveryUrl(MAL, 360, 88), MAL);
+check("tiny AniList blur preview stays proxied", imageDeliveryUrl(ANILIST, 160, 50).startsWith("/api/image"), true);
+check("AniList hero stays proxied", imageDeliveryUrl(ANILIST, 1920, 92).startsWith("/api/image"), true);
+check("direct CDN can retain a proxy fallback", imageDeliveryUrl(ANILIST, 360, 88, 0, "", true).startsWith("/api/image"), true);
 check("adult host stays proxied", imageDeliveryUrl("https://static.underhentai.net/x.jpg", 360, 88).startsWith("/api/image"), true);
 check("Bangumi adult fallback stays proxied", imageDeliveryUrl("https://lain.bgm.tv/pic/cover/l/x.jpg", 360, 88).startsWith("/api/image"), true);
 check("Shikimori adult fallback stays proxied", imageDeliveryUrl("https://shikimori.one/system/animes/original/x.jpg", 360, 88).startsWith("/api/image"), true);
@@ -73,7 +80,8 @@ check("srcset labels w342 as 342w", ss.includes("/t/p/w342/abc.jpg 342w"), true)
 check("srcset labels w500 as 500w", ss.includes("/t/p/w500/abc.jpg 500w"), true);
 check("srcset deduplicated to 2 candidates", ss.split(",").length, 2);
 check("srcset never labels a file by the requested width", /342w|500w/.test(ss) && !/200w|280w|360w|400w|480w/.test(ss), true);
-const ssProxy = imageDeliverySrcSet("https://s4.anilist.co/file/x.jpg", [200, 360, 480], 90);
+check("direct CDN needs no synthetic srcset", imageDeliverySrcSet(ANILIST, [200, 360, 480], 90), "");
+const ssProxy = imageDeliverySrcSet("https://static.underhentai.net/x.jpg", [200, 360, 480], 90);
 check("proxy srcset still uses requested widths", ssProxy.includes("200w") && ssProxy.includes("480w"), true);
 const ssAdult = imageDeliverySrcSet(
   "https://static.underhentai.net/assets/title.jpg",
