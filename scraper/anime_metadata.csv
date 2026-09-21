@@ -1,7 +1,7 @@
 id,title,type,status,year,season,genre,rating,totalEpisodes,source,siteUrl
 animeav1-one-piece,One Piece,TV,,1999,,action,87,1178,AnimeAV1,https://animeav1.com/media/one-piece
 animeav1-sousou-no-frieren-2nd-season,Sousou no Frieren 2nd Season,TV,,2026,,anime,89,10,AnimeAV1,https://animeav1.com/media/sousou-no-frieren-2nd-season
-animeav1-kaijuu-8-gou-narumi-no-heijitsu,Kaijuu 8-gou: Narumi no Heijitsu,ONA,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/kaijuu-8-gou-narumi-no-heijitsu
+animeav1-kaijuu-8-gou-narumi-no-heijitsu,Kaijuu 8-gou: Narumi no Heijitsu,ONA,,2026,,anime,,3,AnimeAV1,https://animeav1.com/media/kaijuu-8-gou-narumi-no-heijitsu
 animeav1-kidou-senshi-gundam-senkou-no-hathaway-circe-no-majo,Kidou Senshi Gundam: Senkou no Hathaway - Circe no Majo,Movie,,2026,,anime,79,1,AnimeAV1,https://animeav1.com/media/kidou-senshi-gundam-senkou-no-hathaway-circe-no-majo
 animeav1-gintama-movie-3-yoshiwara-daienjou,Gintama Movie 3: Yoshiwara Daienjou,MOVIE,,2026,,anime,88,1,AnimeAV1,https://animeav1.com/media/gintama-movie-3-yoshiwara-daienjou
 animeav1-shiguang-dailiren-iii,Shiguang Dailiren III,ONA,,2026,,anime,86,7,AnimeAV1,https://animeav1.com/media/shiguang-dailiren-iii
@@ -13,7 +13,7 @@ animeav1-bleach-sennen-kessen-hen-kashin-tan,Bleach: Sennen Kessen-hen - Kashin-
 animeav1-ansatsu-kyoushitsu-movie-minna-no-jikan,Ansatsu Kyoushitsu Movie: Minna no Jikan,MOVIE,,2026,,anime,76,1,AnimeAV1,https://animeav1.com/media/ansatsu-kyoushitsu-movie-minna-no-jikan
 animeav1-nige-jouzu-no-wakagimi-2nd-season,Nige Jouzu no Wakagimi 2nd Season,TV,,2026,,anime,76,10,AnimeAV1,https://animeav1.com/media/nige-jouzu-no-wakagimi-2nd-season
 animeav1-futsutsuka-na-akujo-dewa-gozaimasu-ga-suuguu-chouso-torikae-den,Futsutsuka na Akujo dewa Gozaimasu ga: Suuguu Chouso Torikae Den,TV,,2026,,anime,82,10,AnimeAV1,https://animeav1.com/media/futsutsuka-na-akujo-dewa-gozaimasu-ga-suuguu-chouso-torikae-den
-animeav1-hanaori-san-wa-tensei-shitemo-kenka-ga-shitai,Hanaori-san wa Tensei shitemo Kenka ga Shitai,TV,,2026,,anime,70,10,AnimeAV1,https://animeav1.com/media/hanaori-san-wa-tensei-shitemo-kenka-ga-shitai
+animeav1-hanaori-san-wa-tensei-shitemo-kenka-ga-shitai,Hanaori-san wa Tensei shitemo Kenka ga Shitai,TV,,2026,,anime,70,11,AnimeAV1,https://animeav1.com/media/hanaori-san-wa-tensei-shitemo-kenka-ga-shitai
 animeav1-super-no-ura-de-yani-suu-futari,Super no Ura de Yani Suu Futari,TV,,2026,,anime,83,11,AnimeAV1,https://animeav1.com/media/super-no-ura-de-yani-suu-futari
 animeav1-mebius-dust,Mebius Dust,TV,,2026,,anime,53,11,AnimeAV1,https://animeav1.com/media/mebius-dust
 animeav1-thunder-3,Thunder 3,TV,,2026,,anime,60,11,AnimeAV1,https://animeav1.com/media/thunder-3
@@ -21,7 +21,7 @@ animeav1-dogulwang,Dogulwang,TV,,2026,,anime,67,11,AnimeAV1,https://animeav1.com
 animeav1-katainaka-no-ossan-kensei-ni-naru-ii,"Katainaka no Ossan, Kensei ni Naru II",TV,,2026,,anime,72,11,AnimeAV1,https://animeav1.com/media/katainaka-no-ossan-kensei-ni-naru-ii
 animeav1-otome-game-sekai-wa-mob-ni-kibishii-sekai-desu-2,Otome Game Sekai wa Mob ni Kibishii Sekai desu 2,TV,,2026,,anime,67,11,AnimeAV1,https://animeav1.com/media/otome-game-sekai-wa-mob-ni-kibishii-sekai-desu-2
 animeav1-ibitte-konai-gibo-to-gishi,Ibitte Konai Gibo to Gishi,TV,,2026,,anime,68,11,AnimeAV1,https://animeav1.com/media/ibitte-konai-gibo-to-gishi
-animeav1-kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu,"""Kimi wo Aisuru Ki wa Nai"" to Itta Jiki Koushaku-sama ga Nazeka Dekiai shitekimasu",TV,,2026,,anime,68,11,AnimeAV1,https://animeav1.com/media/kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu
+animeav1-kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu,"""Kimi wo Aisuru Ki wa Nai"" to Itta Jiki Koushaku-sama ga Nazeka Dekiai shitekimasu",TV,,2026,,anime,68,12,AnimeAV1,https://animeav1.com/media/kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu
 animeav1-oshi-no-ko-3rd-season,[Oshi no Ko] 3rd Season,TV,,2026,,anime,87,11,AnimeAV1,https://animeav1.com/media/oshi-no-ko-3rd-season
 animeav1-omae-gotoki-ga-maou-ni-kateru-to-omouna-to-yuusha-party-wo-tsuihou-sareta-node-outo-de-kimama-ni-kurashitai,"""Omae Gotoki ga Maou ni Kateru to Omouna"" to Yuusha Party wo Tsuihou sareta node, Outo de Kimama ni Kurashitai",TV,,2026,,anime,62,12,AnimeAV1,https://animeav1.com/media/omae-gotoki-ga-maou-ni-kateru-to-omouna-to-yuusha-party-wo-tsuihou-sareta-node-outo-de-kimama-ni-kurashitai
 animeav1-29-sai-dokushin-chuuken-boukensha-no-nichijou,29-sai Dokushin Chuuken Boukensha no Nichijou,TV,,2026,,anime,66,12,AnimeAV1,https://animeav1.com/media/29-sai-dokushin-chuuken-boukensha-no-nichijou
@@ -325,7 +325,7 @@ animeav1-akage-no-anne,Akage no Anne,TV,,1979,,anime,79,50,AnimeAV1,https://anim
 animeav1-ace-wo-nerae,Ace wo Nerae!,TV,,1973,,anime,72,26,AnimeAV1,https://animeav1.com/media/ace-wo-nerae
 animeav1-ashita-no-joe,Ashita no Joe,TV,,1970,,anime,84,79,AnimeAV1,https://animeav1.com/media/ashita-no-joe
 animeav1-buchigire-reijou-wa-houfuku-wo-chikaimashita-madousho-no-chikara-de-sokoku-wo-tatakitsubushimasu,Buchigire Reijou wa Houfuku wo Chikaimashita. Madousho no Chikara de Sokoku wo Tatakitsubushimasu,TV,,2026,,anime,69,11,AnimeAV1,https://animeav1.com/media/buchigire-reijou-wa-houfuku-wo-chikaimashita-madousho-no-chikara-de-sokoku-wo-tatakitsubushimasu
-animeav1-black-torch,Black Torch,TV,,2026,,anime,70,11,AnimeAV1,https://animeav1.com/media/black-torch
+animeav1-black-torch,Black Torch,TV,,2026,,anime,70,12,AnimeAV1,https://animeav1.com/media/black-torch
 animeav1-bai-ri-cheng-wang,Bai Ri Cheng Wang,ONA,,2026,,anime,67,25,AnimeAV1,https://animeav1.com/media/bai-ri-cheng-wang
 animeav1-bang-dream-yumemita,BanG Dream! Yume∞Mita,TV,,2026,,anime,75,13,AnimeAV1,https://animeav1.com/media/bang-dream-yumemita
 animeav1-bungou-stray-dogs-wan-2,Bungou Stray Dogs Wan! 2,TV,,2026,,anime,73,12,AnimeAV1,https://animeav1.com/media/bungou-stray-dogs-wan-2
@@ -772,7 +772,7 @@ animeav1-douse-koishite-shimaunda-2nd-season,"Douse, Koishite Shimaunda. 2nd Sea
 animeav1-darwin-jihen,Darwin Jihen,TV,,2026,,anime,71,13,AnimeAV1,https://animeav1.com/media/darwin-jihen
 animeav1-disney-twisted-wonderland-the-animation-episode-of-heartslabyul,Disney Twisted-Wonderland The Animation: Episode of Heartslabyul,ONA,,2025,,anime,68,8,AnimeAV1,https://animeav1.com/media/disney-twisted-wonderland-the-animation-episode-of-heartslabyul
 animeav1-debu-to-love-to-ayamachi-to,Debu to Love to Ayamachi to!,TV,,2025,,anime,67,12,AnimeAV1,https://animeav1.com/media/debu-to-love-to-ayamachi-to
-animeav1-digimon-beatbreak,Digimon Beatbreak,TV,,2025,,anime,71,47,AnimeAV1,https://animeav1.com/media/digimon-beatbreak
+animeav1-digimon-beatbreak,Digimon Beatbreak,TV,,2025,,anime,71,48,AnimeAV1,https://animeav1.com/media/digimon-beatbreak
 animeav1-dr-stone-science-future-part-2,Dr. Stone: Science Future Part 2,TV,,2025,,anime,85,12,AnimeAV1,https://animeav1.com/media/dr-stone-science-future-part-2
 animeav1-dekin-no-mogura,Dekin no Mogura,TV,,2025,,anime,69,12,AnimeAV1,https://animeav1.com/media/dekin-no-mogura
 animeav1-dandadan-2nd-season,Dandadan 2nd Season,TV,,2025,,anime,84,12,AnimeAV1,https://animeav1.com/media/dandadan-2nd-season
@@ -1196,7 +1196,7 @@ animeav1-fushigi-no-umi-no-nadia,Fushigi no Umi no Nadia,TV,,1990,,anime,75,39,A
 animeav1-five-star-stories,Five Star Stories,Movie,,1989,,anime,67,1,AnimeAV1,https://animeav1.com/media/five-star-stories
 animeav1-grand-blue-season-3,Grand Blue Season 3,TV,,2026,,anime,84,11,AnimeAV1,https://animeav1.com/media/grand-blue-season-3
 animeav1-gaikotsu-kishi-sama-tadaima-isekai-e-odekakechuu-ii,"Gaikotsu Kishi-sama, Tadaima Isekai e Odekakechuu II",TV,,2026,,fantasy,66,11,AnimeAV1,https://animeav1.com/media/gaikotsu-kishi-sama-tadaima-isekai-e-odekakechuu-ii
-animeav1-grow-up-show-himawari-no-circus-dan,Grow Up Show: Himawari no Circus-dan,TV,,2026,,anime,72,11,AnimeAV1,https://animeav1.com/media/grow-up-show-himawari-no-circus-dan
+animeav1-grow-up-show-himawari-no-circus-dan,Grow Up Show: Himawari no Circus-dan,TV,,2026,,anime,72,12,AnimeAV1,https://animeav1.com/media/grow-up-show-himawari-no-circus-dan
 animeav1-ghost-concert-missing-songs,Ghost Concert: Missing Songs,TV,,2026,,anime,54,12,AnimeAV1,https://animeav1.com/media/ghost-concert-missing-songs
 animeav1-ganbare-nakamura-kun,Ganbare! Nakamura-kun!!,TV,,2026,,anime,82,13,AnimeAV1,https://animeav1.com/media/ganbare-nakamura-kun
 animeav1-golden-kamuy-saishuushou,Golden Kamuy: Saishuushou,TV,,2026,,anime,84,13,AnimeAV1,https://animeav1.com/media/golden-kamuy-saishuushou
@@ -1469,7 +1469,7 @@ animeav1-himekishi-wa-barbaroi-no-yome,Himekishi wa Barbaroi no Yome,TV,,2026,,a
 animeav1-hidarikiki-no-eren,Hidarikiki no Eren,TV,,2026,,anime,63,13,AnimeAV1,https://animeav1.com/media/hidarikiki-no-eren
 animeav1-hyakki-yakoushou,Hyakki Yakoushou,TV,,2026,,anime,54,12,AnimeAV1,https://animeav1.com/media/hyakki-yakoushou
 animeav1-higeki-no-genkyou-to-naru-saikyou-gedou-last-boss-joou-wa-tami-no-tame-ni-tsukushimasu-season-2,Higeki no Genkyou to Naru Saikyou Gedou Last Boss Joou wa Tami no Tame ni Tsukushimasu. Season 2,TV,,2026,,anime,69,12,AnimeAV1,https://animeav1.com/media/higeki-no-genkyou-to-naru-saikyou-gedou-last-boss-joou-wa-tami-no-tame-ni-tsukushimasu-season-2
-animeav1-honzuki-no-gekokujou-shisho-ni-naru-tame-ni-wa-shudan-wo-erandeiraremasen-ryoushu-no-youjo,Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen - Ryoushu no Youjo,TV,,2026,,anime,78,21,AnimeAV1,https://animeav1.com/media/honzuki-no-gekokujou-shisho-ni-naru-tame-ni-wa-shudan-wo-erandeiraremasen-ryoushu-no-youjo
+animeav1-honzuki-no-gekokujou-shisho-ni-naru-tame-ni-wa-shudan-wo-erandeiraremasen-ryoushu-no-youjo,Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen - Ryoushu no Youjo,TV,,2026,,anime,78,22,AnimeAV1,https://animeav1.com/media/honzuki-no-gekokujou-shisho-ni-naru-tame-ni-wa-shudan-wo-erandeiraremasen-ryoushu-no-youjo
 animeav1-haibara-kun-no-tsuyokute-seishun-new-game,Haibara-kun no Tsuyokute Seishun New Game,TV,,2026,,anime,66,12,AnimeAV1,https://animeav1.com/media/haibara-kun-no-tsuyokute-seishun-new-game
 animeav1-himesama-goumon-no-jikan-desu-2nd-season,"Himesama ""Goumon"" no Jikan desu 2nd Season",TV,,2026,,anime,77,12,AnimeAV1,https://animeav1.com/media/himesama-goumon-no-jikan-desu-2nd-season
 animeav1-hikuidori-ushuu-boro-tobi-gumi,Hikuidori: Ushuu Boro Tobi-gumi,TV,,2026,,anime,55,12,AnimeAV1,https://animeav1.com/media/hikuidori-ushuu-boro-tobi-gumi
@@ -1694,7 +1694,7 @@ animeav1-hotaru-no-haka,Hotaru no Haka,Movie,,1988,,anime,85,1,AnimeAV1,https://
 animeav1-hokuto-no-ken-2,Hokuto no Ken 2,TV,,1987,,anime,76,43,AnimeAV1,https://animeav1.com/media/hokuto-no-ken-2
 animeav1-hokuto-no-ken-movie,Hokuto no Ken Movie,MOVIE,,1986,,anime,72,1,AnimeAV1,https://animeav1.com/media/hokuto-no-ken-movie
 animeav1-hokuto-no-ken,Hokuto no Ken,TV,,1984,,anime,80,109,AnimeAV1,https://animeav1.com/media/hokuto-no-ken
-animeav1-iwamoto-senpai-no-suisen,Iwamoto-senpai no Suisen,TV,,2026,,anime,57,11,AnimeAV1,https://animeav1.com/media/iwamoto-senpai-no-suisen
+animeav1-iwamoto-senpai-no-suisen,Iwamoto-senpai no Suisen,TV,,2026,,anime,57,12,AnimeAV1,https://animeav1.com/media/iwamoto-senpai-no-suisen
 animeav1-ichijouma-mankitsugurashi,Ichijouma Mankitsugurashi!,TV,,2026,,anime,67,11,AnimeAV1,https://animeav1.com/media/ichijouma-mankitsugurashi
 animeav1-ingoku-danchi,Ingoku Danchi,TV,,2026,,anime,48,12,AnimeAV1,https://animeav1.com/media/ingoku-danchi
 animeav1-isekai-nonbiri-nouka-2,Isekai Nonbiri Nouka 2,TV,,2026,,fantasy,73,12,AnimeAV1,https://animeav1.com/media/isekai-nonbiri-nouka-2
@@ -1886,7 +1886,7 @@ animeav1-kimi-ga-shinu-made-koi-wo-shitai,Kimi ga Shinu made Koi wo Shitai,TV,,2
 animeav1-koukaku-kidoutai-tv,Koukaku Kidoutai (TV),TV,,2026,,anime,80,10,AnimeAV1,https://animeav1.com/media/koukaku-kidoutai-tv
 animeav1-koko-wa-ore-ni-makasete-saki-ni-ike-to-itte-kara-10-nen-ga-tattara-densetsu-ni-natteita,Koko wa Ore ni Makasete Saki ni Ike to Itte kara 10-nen ga Tattara Densetsu ni Natteita.,TV,,2026,,anime,64,12,AnimeAV1,https://animeav1.com/media/koko-wa-ore-ni-makasete-saki-ni-ike-to-itte-kara-10-nen-ga-tattara-densetsu-ni-natteita
 animeav1-kimi-no-koto-ga-daidaidaidaidaisuki-na-100-nin-no-kanojo-3rd-season,Kimi no Koto ga Daidaidaidaidaisuki na 100-nin no Kanojo 3rd Season,TV,,2026,,anime,81,11,AnimeAV1,https://animeav1.com/media/kimi-no-koto-ga-daidaidaidaidaisuki-na-100-nin-no-kanojo-3rd-season
-animeav1-kabushikigaisha-magi-lumiere-2nd-season,Kabushikigaisha Magi-Lumière 2nd Season,TV,,2026,,anime,71,10,AnimeAV1,https://animeav1.com/media/kabushikigaisha-magi-lumiere-2nd-season
+animeav1-kabushikigaisha-magi-lumiere-2nd-season,Kabushikigaisha Magi-Lumière 2nd Season,TV,,2026,,anime,71,11,AnimeAV1,https://animeav1.com/media/kabushikigaisha-magi-lumiere-2nd-season
 animeav1-kore-kaite-shine,Kore Kaite Shine,TV,,2026,,anime,77,11,AnimeAV1,https://animeav1.com/media/kore-kaite-shine
 animeav1-kuroneko-to-majo-no-kyoushitsu,Kuroneko to Majo no Kyoushitsu,TV,,2026,,anime,65,23,AnimeAV1,https://animeav1.com/media/kuroneko-to-majo-no-kyoushitsu
 animeav1-kanojo-okarishimasu-5th-season,"Kanojo, Okarishimasu 5th Season",TV,,2026,,anime,63,12,AnimeAV1,https://animeav1.com/media/kanojo-okarishimasu-5th-season
@@ -2459,14 +2459,14 @@ animeav1-lupin-iii-part-ii,Lupin III: Part II,TV,,1977,,anime,78,155,AnimeAV1,ht
 animeav1-lupin-iii,Lupin III,TV,,1971,,anime,76,23,AnimeAV1,https://animeav1.com/media/lupin-iii
 animeav1-lupin-iii-pilot-film,Lupin III: Pilot Film,Movie,,1969,,anime,64,1,AnimeAV1,https://animeav1.com/media/lupin-iii-pilot-film
 animeav1-mushoku-tensei-iii-isekai-ittara-honki-dasu,Mushoku Tensei III: Isekai Ittara Honki Dasu,TV,,2026,,fantasy,86,12,AnimeAV1,https://animeav1.com/media/mushoku-tensei-iii-isekai-ittara-honki-dasu
-animeav1-mahou-shoujo-lyrical-nanoha-exceeds-gun-blaze-vengeance,Mahou Shoujo Lyrical Nanoha EXCEEDS: Gun Blaze Vengeance,TV,,2026,,romance,70,11,AnimeAV1,https://animeav1.com/media/mahou-shoujo-lyrical-nanoha-exceeds-gun-blaze-vengeance
+animeav1-mahou-shoujo-lyrical-nanoha-exceeds-gun-blaze-vengeance,Mahou Shoujo Lyrical Nanoha EXCEEDS: Gun Blaze Vengeance,TV,,2026,,romance,70,12,AnimeAV1,https://animeav1.com/media/mahou-shoujo-lyrical-nanoha-exceeds-gun-blaze-vengeance
 animeav1-mujikaku-seijo-wa-kyou-mo-muishiki-ni-chikara-wo-tare-nagasu,Mujikaku Seijo wa Kyou mo Muishiki ni Chikara wo Tare Nagasu,TV,,2026,,anime,65,12,AnimeAV1,https://animeav1.com/media/mujikaku-seijo-wa-kyou-mo-muishiki-ni-chikara-wo-tare-nagasu
 animeav1-megami-isekai-tensei-nani-ni-naritai-desu-ka-ore-yuusha-no-rokkotsu-de,"Megami ""Isekai Tensei Nani ni Naritai desu ka"" Ore ""Yuusha no Rokkotsu de""",TV,,2026,,fantasy,74,12,AnimeAV1,https://animeav1.com/media/megami-isekai-tensei-nani-ni-naritai-desu-ka-ore-yuusha-no-rokkotsu-de
 animeav1-marriagetoxin,Marriagetoxin,TV,,2026,,anime,76,13,AnimeAV1,https://animeav1.com/media/marriagetoxin
 animeav1-marika-chan-no-koukando-wa-bukkowareteiru,Marika-chan no Koukando wa Bukkowareteiru,TV,,2026,,anime,51,8,AnimeAV1,https://animeav1.com/media/marika-chan-no-koukando-wa-bukkowareteiru
 animeav1-maid-san-wa-taberu-dake,Maid-san wa Taberu dake,TV,,2026,,anime,69,12,AnimeAV1,https://animeav1.com/media/maid-san-wa-taberu-dake
-animeav1-mairimashita-iruma-kun-4th-season,Mairimashita! Iruma-kun 4th Season,TV,,2026,,anime,81,22,AnimeAV1,https://animeav1.com/media/mairimashita-iruma-kun-4th-season
-animeav1-mao,Mao,TV,,2026,,anime,70,24,AnimeAV1,https://animeav1.com/media/mao
+animeav1-mairimashita-iruma-kun-4th-season,Mairimashita! Iruma-kun 4th Season,TV,,2026,,anime,81,23,AnimeAV1,https://animeav1.com/media/mairimashita-iruma-kun-4th-season
+animeav1-mao,Mao,TV,,2026,,anime,70,25,AnimeAV1,https://animeav1.com/media/mao
 animeav1-mata-korosarete-shimatta-no-desu-ne-tantei-sama,"Mata Korosarete Shimatta no desu ne, Tantei-sama",TV,,2026,,anime,62,12,AnimeAV1,https://animeav1.com/media/mata-korosarete-shimatta-no-desu-ne-tantei-sama
 animeav1-mamonogurai-no-boukensha-ore-dake-mamono-wo-kuratte-tsuyoku-naru,Mamonogurai no Boukensha: Ore dake Mamono wo Kuratte Tsuyoku Naru,TV,,2026,,anime,61,12,AnimeAV1,https://animeav1.com/media/mamonogurai-no-boukensha-ore-dake-mamono-wo-kuratte-tsuyoku-naru
 animeav1-medalist-2nd-season,Medalist 2nd Season,TV,,2026,,anime,84,9,AnimeAV1,https://animeav1.com/media/medalist-2nd-season
@@ -2931,7 +2931,7 @@ animeav1-niea-under-7,NieA Under 7,TV,,2000,,anime,69,13,AnimeAV1,https://animea
 animeav1-nanako-kaitai-shinsho,Nanako Kaitai Shinsho,OVA,,1999,,anime,56,6,AnimeAV1,https://animeav1.com/media/nanako-kaitai-shinsho
 animeav1-night-walker-mayonaka-no-tantei,Night Walker: Mayonaka no Tantei,TV,,1998,,anime,69,12,AnimeAV1,https://animeav1.com/media/night-walker-mayonaka-no-tantei
 animeav1-neo-ranga,Neo Ranga,TV,,1998,,anime,66,48,AnimeAV1,https://animeav1.com/media/neo-ranga
-animeav1-oni-no-hanayome,Oni no Hanayome,TV,,2026,,anime,69,11,AnimeAV1,https://animeav1.com/media/oni-no-hanayome
+animeav1-oni-no-hanayome,Oni no Hanayome,TV,,2026,,anime,69,12,AnimeAV1,https://animeav1.com/media/oni-no-hanayome
 animeav1-one-piece-heroines,One Piece: Heroines,ESPECIAL,,2026,,anime,76,1,AnimeAV1,https://animeav1.com/media/one-piece-heroines
 animeav1-otome-kaijuu-carameliser,Otome Kaijuu Caraméliser,TV,,2026,,anime,75,12,AnimeAV1,https://animeav1.com/media/otome-kaijuu-carameliser
 animeav1-otaku-ni-yasashii-gal-wa-inai,Otaku ni Yasashii Gal wa Inai!?,TV,,2026,,anime,75,12,AnimeAV1,https://animeav1.com/media/otaku-ni-yasashii-gal-wa-inai
@@ -3311,7 +3311,7 @@ animeav1-saikyou-degarashi-ouji-no-anyaku-teii-arasoi,Saikyou Degarashi Ouji no 
 animeav1-sayonara-lara,Sayonara Lara,TV,,2026,,anime,79,11,AnimeAV1,https://animeav1.com/media/sayonara-lara
 animeav1-sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha,Sekai Saikyou no Kouei: Meikyuukoku no Shinjin Tansakusha,TV,,2026,,anime,57,11,AnimeAV1,https://animeav1.com/media/sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha
 animeav1-seihantai-na-kimi-to-boku-2nd-season,Seihantai na Kimi to Boku 2nd Season,TV,,2026,,anime,85,11,AnimeAV1,https://animeav1.com/media/seihantai-na-kimi-to-boku-2nd-season
-animeav1-saijo-no-osewa-takane-no-hanadarake-na-meimonkou-de-gakuin-ichi-no-ojousama-seikatsu-nouryoku-kaimu-wo-kagenagara-osewa-suru-koto-ni-narimashita,"Saijo no Osewa: Takane no Hanadarake na Meimonkou de, Gakuin Ichi no Ojousama (Seikatsu Nouryoku Kaimu) wo Kagenagara Osewa suru Koto ni Narimashita",TV,,2026,,anime,72,11,AnimeAV1,https://animeav1.com/media/saijo-no-osewa-takane-no-hanadarake-na-meimonkou-de-gakuin-ichi-no-ojousama-seikatsu-nouryoku-kaimu-wo-kagenagara-osewa-suru-koto-ni-narimashita
+animeav1-saijo-no-osewa-takane-no-hanadarake-na-meimonkou-de-gakuin-ichi-no-ojousama-seikatsu-nouryoku-kaimu-wo-kagenagara-osewa-suru-koto-ni-narimashita,"Saijo no Osewa: Takane no Hanadarake na Meimonkou de, Gakuin Ichi no Ojousama (Seikatsu Nouryoku Kaimu) wo Kagenagara Osewa suru Koto ni Narimashita",TV,,2026,,anime,72,12,AnimeAV1,https://animeav1.com/media/saijo-no-osewa-takane-no-hanadarake-na-meimonkou-de-gakuin-ichi-no-ojousama-seikatsu-nouryoku-kaimu-wo-kagenagara-osewa-suru-koto-ni-narimashita
 animeav1-super-no-ura-de-yani-suu-futari-mini,Super no Ura de Yani Suu Futari Mini,TV,,2026,,anime,85,12,AnimeAV1,https://animeav1.com/media/super-no-ura-de-yani-suu-futari-mini
 animeav1-saikyou-no-shokugyou-wa-yuusha-demo-kenja-demo-naku-kanteishi-kari-rashii-desu-yo,Saikyou no Shokugyou wa Yuusha demo Kenja demo Naku Kanteishi (Kari) Rashii desu yo?,TV,,2026,,anime,58,12,AnimeAV1,https://animeav1.com/media/saikyou-no-shokugyou-wa-yuusha-demo-kenja-demo-naku-kanteishi-kari-rashii-desu-yo
 animeav1-snowball-earth,Snowball Earth,TV,,2026,,anime,70,13,AnimeAV1,https://animeav1.com/media/snowball-earth
@@ -3808,7 +3808,7 @@ animeav1-tefuda-ga-oome-no-victoria,Tefuda ga Oome no Victoria,TV,,2026,,anime,7
 animeav1-tai-ari-deshita-ojousama-wa-kakutou-game-nante-shinai,Tai-Ari deshita. Ojousama wa Kakutou Game nante Shinai,TV,,2026,,anime,75,11,AnimeAV1,https://animeav1.com/media/tai-ari-deshita-ojousama-wa-kakutou-game-nante-shinai
 animeav1-tenkou-saki-no-seiso-karen-na-bishoujo-ga-mukashi-danshi-to-omotte-issho-ni-asonda-osananajimi-datta-ken,"Tenkou-saki no Seiso Karen na Bishoujo ga, Mukashi Danshi to Omotte Issho ni Asonda Osananajimi Datta Ken",TV,,2026,,anime,70,11,AnimeAV1,https://animeav1.com/media/tenkou-saki-no-seiso-karen-na-bishoujo-ga-mukashi-danshi-to-omotte-issho-ni-asonda-osananajimi-datta-ken
 animeav1-toumei-na-yoru-ni-kakeru-kimi-to-me-ni-mienai-koi-wo-shita,"Toumei na Yoru ni Kakeru Kimi to, Me ni Mienai Koi wo Shita.",TV,,2026,,anime,81,11,AnimeAV1,https://animeav1.com/media/toumei-na-yoru-ni-kakeru-kimi-to-me-ni-mienai-koi-wo-shita
-animeav1-tetsunabe-no-jan,Tetsunabe no Jan!,TV,,2026,,anime,73,11,AnimeAV1,https://animeav1.com/media/tetsunabe-no-jan
+animeav1-tetsunabe-no-jan,Tetsunabe no Jan!,TV,,2026,,anime,73,12,AnimeAV1,https://animeav1.com/media/tetsunabe-no-jan
 animeav1-tenmaku-no-jaadugar,Tenmaku no Jaadugar,TV,,2026,,anime,85,12,AnimeAV1,https://animeav1.com/media/tenmaku-no-jaadugar
 animeav1-tsuihou-sareta-tensei-juukishi-wa-game-chishiki-de-musou-suru,Tsuihou sareta Tensei Juukishi wa Game Chishiki de Musou suru,TV,,2026,,anime,68,12,AnimeAV1,https://animeav1.com/media/tsuihou-sareta-tensei-juukishi-wa-game-chishiki-de-musou-suru
 animeav1-tsue-to-tsurugi-no-wistoria-season-2,Tsue to Tsurugi no Wistoria Season 2,TV,,2026,,anime,82,12,AnimeAV1,https://animeav1.com/media/tsue-to-tsurugi-no-wistoria-season-2
@@ -4247,7 +4247,7 @@ animeav1-yoroi-shin-den-samurai-troopers-part-2,Yoroi Shin Den Samurai Troopers 
 animeav1-yani-neko,Yani Neko,TV,,2026,,anime,71,11,AnimeAV1,https://animeav1.com/media/yani-neko
 animeav1-yozakura-san-chi-no-daisakusen-2nd-season,Yozakura-san Chi no Daisakusen 2nd Season,TV,,2026,,anime,75,12,AnimeAV1,https://animeav1.com/media/yozakura-san-chi-no-daisakusen-2nd-season
 animeav1-yowayowa-sensei,Yowayowa Sensei,TV,,2026,,anime,66,12,AnimeAV1,https://animeav1.com/media/yowayowa-sensei
-animeav1-yomi-no-tsugai,Yomi no Tsugai,TV,,2026,,anime,78,23,AnimeAV1,https://animeav1.com/media/yomi-no-tsugai
+animeav1-yomi-no-tsugai,Yomi no Tsugai,TV,,2026,,anime,78,24,AnimeAV1,https://animeav1.com/media/yomi-no-tsugai
 animeav1-youkoso-jitsuryoku-shijou-shugi-no-kyoushitsu-e-4th-season-2-nensei-hen-1-gakki,Youkoso Jitsuryoku Shijou Shugi no Kyoushitsu e 4th Season: 2-nensei-hen 1 Gakki,TV,,2026,,anime,78,16,AnimeAV1,https://animeav1.com/media/youkoso-jitsuryoku-shijou-shugi-no-kyoushitsu-e-4th-season-2-nensei-hen-1-gakki
 animeav1-yami-shibai-16,Yami Shibai 16,TV,,2026,,anime,58,13,AnimeAV1,https://animeav1.com/media/yami-shibai-16
 animeav1-yuusha-no-kuzu,Yuusha no Kuzu,TV,,2026,,anime,69,24,AnimeAV1,https://animeav1.com/media/yuusha-no-kuzu

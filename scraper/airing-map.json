@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-20T10:50:36.135Z",
+  "generatedAt": "2026-09-21T11:59:00.712Z",
   "count": 1658,
   "entries": {
     "animeav1-one-piece": {
@@ -11,8 +11,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1178,
-      "lastEpisodeAt": "2026-09-13T17:10:18.677Z",
+      "sourceEpisodeCount": 1179,
+      "lastEpisodeAt": "2026-09-20T16:57:20.355Z",
       "broadcastDay": "Sundays",
       "broadcastTime": "23:15",
       "broadcastTimezone": "Asia/Tokyo"
@@ -383,7 +383,7 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 11,
+      "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-13T16:53:18.383Z"
     },
     "animeav1-mushoku-tensei-iii-isekai-ittara-honki-dasu": {
@@ -451,8 +451,8 @@
           "order": 5
         }
       ],
-      "sourceEpisodeCount": 12,
-      "lastEpisodeAt": "2026-09-13T15:18:49.956Z"
+      "sourceEpisodeCount": 13,
+      "lastEpisodeAt": "2026-09-20T15:18:08.303Z"
     },
     "animeav1-gaikotsu-kishi-sama-tadaima-isekai-e-odekakechuu-ii": {
       "anilistId": 185542,
@@ -532,7 +532,7 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 11,
+      "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-13T14:10:55.131Z"
     },
     "animeav1-seihantai-na-kimi-to-boku-2nd-season": {
@@ -14353,7 +14353,7 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 11,
+      "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-13T16:53:18.383Z"
     },
     "anilist-146065": {
@@ -14487,8 +14487,8 @@
           "order": 5
         }
       ],
-      "sourceEpisodeCount": 12,
-      "lastEpisodeAt": "2026-09-13T15:18:49.956Z"
+      "sourceEpisodeCount": 13,
+      "lastEpisodeAt": "2026-09-20T15:18:08.303Z"
     },
     "anilist-132474": {
       "anilistId": 132474,
@@ -24990,7 +24990,7 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 11,
+      "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-13T14:10:55.131Z"
     },
     "anilist-200927": {
@@ -58513,18 +58513,6 @@
         }
       ]
     },
-    "animeav1-futsutsuka-na-akujo-dewa-gozaimasu-ga-suuguu-chouso-torikae-den": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 10,
-      "lastEpisodeAt": "2026-09-13T16:07:09.378Z"
-    },
     "animeav1-super-no-ura-de-yani-suu-futari": {
       "anilistId": null,
       "airingStatus": "RELEASING",
@@ -58669,18 +58657,6 @@
       "sourceEpisodeCount": 11,
       "lastEpisodeAt": "2026-09-14T15:21:18.839Z"
     },
-    "animeav1-sayonara-lara": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-13T15:44:02.990Z"
-    },
     "animeav1-suterare-seijo-no-isekai-gohan-tabi-kakure-skill-de-camping-car-wo-shoukan-shimashita": {
       "anilistId": null,
       "airingStatus": "RELEASING",
@@ -58717,18 +58693,6 @@
       "sourceEpisodeCount": 11,
       "lastEpisodeAt": "2026-09-14T12:45:54.801Z"
     },
-    "animeav1-sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-13T13:22:30.444Z"
-    },
     "animeav1-grow-up-show-himawari-no-circus-dan": {
       "anilistId": null,
       "airingStatus": "RELEASING",
@@ -58762,8 +58726,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-13T14:21:37.824Z"
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-20T14:20:41.168Z"
     },
     "animeav1-uchi-no-otouto-domo-ga-sumimasen": {
       "anilistId": null,
@@ -58825,18 +58789,6 @@
       "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-14T14:57:01.343Z"
     },
-    "animeav1-kuroneko-to-majo-no-kyoushitsu": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 23,
-      "lastEpisodeAt": "2026-09-13T15:20:44.600Z"
-    },
     "animeav1-liar-game": {
       "anilistId": null,
       "airingStatus": "RELEASING",
@@ -58896,6 +58848,18 @@
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1
     },
+    "animeav1-futsutsuka-na-akujo-dewa-gozaimasu-ga-suuguu-chouso-torikae-den": {
+      "anilistId": 188139,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 11,
+      "lastEpisodeAt": "2026-09-13T16:07:09.378Z"
+    },
     "animeav1-ryoumin-0-nin-start-no-henkyou-ryoushu-sama": {
       "anilistId": 196218,
       "airingStatus": "RELEASING",
@@ -58943,6 +58907,30 @@
       "franchiseSeasons": [],
       "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-11T14:10:07.599Z"
+    },
+    "animeav1-sayonara-lara": {
+      "anilistId": 177637,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-13T15:44:02.990Z"
+    },
+    "animeav1-sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha": {
+      "anilistId": 198409,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-13T13:22:30.444Z"
     },
     "animeav1-mahou-shoujo-lyrical-nanoha-exceeds-gun-blaze-vengeance": {
       "anilistId": 185875,
@@ -59167,6 +59155,18 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 11
+    },
+    "animeav1-kuroneko-to-majo-no-kyoushitsu": {
+      "anilistId": 196974,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 24,
+      "lastEpisodeAt": "2026-09-13T15:20:44.600Z"
     },
     "animeav1-yowayowa-sensei": {
       "anilistId": 185211,
