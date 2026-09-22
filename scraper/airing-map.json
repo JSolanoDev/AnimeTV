@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-21T11:59:00.712Z",
+  "generatedAt": "2026-09-22T11:07:42.578Z",
   "count": 1658,
   "entries": {
     "animeav1-one-piece": {
@@ -348,7 +348,7 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 11,
+      "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-14T15:52:16.244Z"
     },
     "animeav1-azur-lane-bisoku-zenshin-ni": {
@@ -486,7 +486,7 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 11,
+      "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-14T13:12:50.878Z"
     },
     "animeav1-kimi-no-koto-ga-daidaidaidaidaisuki-na-100-nin-no-kanojo-3rd-season": {
@@ -14285,7 +14285,7 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 11,
+      "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-14T15:52:16.244Z"
     },
     "anilist-114473": {
@@ -14555,7 +14555,7 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 11,
+      "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-14T13:12:50.878Z"
     },
     "anilist-184951": {
@@ -58633,66 +58633,6 @@
       "sourceEpisodeCount": 11,
       "lastEpisodeAt": "2026-09-16T00:36:48.749Z"
     },
-    "animeav1-saikyou-degarashi-ouji-no-anyaku-teii-arasoi": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-14T13:12:35.065Z"
-    },
-    "animeav1-tenkou-saki-no-seiso-karen-na-bishoujo-ga-mukashi-danshi-to-omotte-issho-ni-asonda-osananajimi-datta-ken": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-14T15:21:18.839Z"
-    },
-    "animeav1-suterare-seijo-no-isekai-gohan-tabi-kakure-skill-de-camping-car-wo-shoukan-shimashita": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-14T17:38:20.792Z"
-    },
-    "animeav1-buchigire-reijou-wa-houfuku-wo-chikaimashita-madousho-no-chikara-de-sokoku-wo-tatakitsubushimasu": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-14T14:48:43.842Z"
-    },
-    "animeav1-toumei-na-yoru-ni-kakeru-kimi-to-me-ni-mienai-koi-wo-shita": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-14T12:45:54.801Z"
-    },
     "animeav1-grow-up-show-himawari-no-circus-dan": {
       "anilistId": null,
       "airingStatus": "RELEASING",
@@ -58777,18 +58717,6 @@
       "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-17T13:17:23.216Z"
     },
-    "animeav1-world-is-dancing": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 12,
-      "lastEpisodeAt": "2026-09-14T14:57:01.343Z"
-    },
     "animeav1-liar-game": {
       "anilistId": null,
       "airingStatus": "RELEASING",
@@ -58798,8 +58726,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 24,
-      "lastEpisodeAt": "2026-09-14T16:33:57.982Z"
+      "sourceEpisodeCount": 25,
+      "lastEpisodeAt": "2026-09-21T16:21:26.158Z"
     },
     "animeav1-mao": {
       "anilistId": null,
@@ -58908,6 +58836,30 @@
       "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-11T14:10:07.599Z"
     },
+    "animeav1-saikyou-degarashi-ouji-no-anyaku-teii-arasoi": {
+      "anilistId": 169582,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-14T13:12:35.065Z"
+    },
+    "animeav1-tenkou-saki-no-seiso-karen-na-bishoujo-ga-mukashi-danshi-to-omotte-issho-ni-asonda-osananajimi-datta-ken": {
+      "anilistId": 169583,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-14T15:21:18.839Z"
+    },
     "animeav1-sayonara-lara": {
       "anilistId": 177637,
       "airingStatus": "RELEASING",
@@ -58919,6 +58871,42 @@
       "franchiseSeasons": [],
       "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-13T15:44:02.990Z"
+    },
+    "animeav1-suterare-seijo-no-isekai-gohan-tabi-kakure-skill-de-camping-car-wo-shoukan-shimashita": {
+      "anilistId": 209504,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-14T17:38:20.792Z"
+    },
+    "animeav1-buchigire-reijou-wa-houfuku-wo-chikaimashita-madousho-no-chikara-de-sokoku-wo-tatakitsubushimasu": {
+      "anilistId": 199408,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-14T14:48:43.842Z"
+    },
+    "animeav1-toumei-na-yoru-ni-kakeru-kimi-to-me-ni-mienai-koi-wo-shita": {
+      "anilistId": 202269,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-14T12:45:54.801Z"
     },
     "animeav1-sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha": {
       "anilistId": 198409,
@@ -59087,6 +59075,18 @@
       "franchiseSeasons": [],
       "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-02T16:18:44.647Z"
+    },
+    "animeav1-world-is-dancing": {
+      "anilistId": 206521,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 13,
+      "lastEpisodeAt": "2026-09-14T14:57:01.343Z"
     },
     "animeav1-heroine-seijo-iie-all-works-maid-desu-hokori": {
       "anilistId": 192800,
