@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-22T11:07:42.578Z",
+  "generatedAt": "2026-09-23T11:02:45.671Z",
   "count": 1658,
   "entries": {
     "animeav1-one-piece": {
@@ -58606,8 +58606,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-15T17:46:23.937Z"
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-22T17:59:22.360Z"
     },
     "animeav1-kimi-ga-shinu-made-koi-wo-shitai": {
       "anilistId": null,
@@ -58618,20 +58618,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-15T12:41:28.112Z"
-    },
-    "animeav1-tai-ari-deshita-ojousama-wa-kakutou-game-nante-shinai": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-16T00:36:48.749Z"
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-22T12:46:23.889Z"
     },
     "animeav1-grow-up-show-himawari-no-circus-dan": {
       "anilistId": null,
@@ -58823,6 +58811,18 @@
       "franchiseSeasons": [],
       "sourceEpisodeCount": 10,
       "lastEpisodeAt": "2026-09-01T15:05:23.771Z"
+    },
+    "animeav1-tai-ari-deshita-ojousama-wa-kakutou-game-nante-shinai": {
+      "anilistId": 128757,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-16T00:36:48.749Z"
     },
     "animeav1-koko-wa-ore-ni-makasete-saki-ni-ike-to-itte-kara-10-nen-ga-tattara-densetsu-ni-natteita": {
       "anilistId": 199748,
