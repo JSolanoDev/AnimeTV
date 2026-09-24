@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-23T11:02:45.671Z",
+  "generatedAt": "2026-09-24T11:23:33.412Z",
   "count": 1658,
   "entries": {
     "animeav1-one-piece": {
@@ -232,7 +232,7 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 11,
+      "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-16T15:40:12.703Z"
     },
     "animeav1-otome-game-sekai-wa-mob-ni-kibishii-sekai-desu-2": {
@@ -267,7 +267,7 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 11,
+      "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-16T15:44:44.631Z"
     },
     "animeav1-clevatess-ii-majuu-no-ou-to-itsuwari-no-yuusha-denshou": {
@@ -302,8 +302,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-16T12:25:00.635Z"
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-23T12:47:24.469Z"
     },
     "animeav1-grand-blue-season-3": {
       "anilistId": 199111,
@@ -1001,8 +1001,8 @@
           "order": 5
         }
       ],
-      "sourceEpisodeCount": 17,
-      "lastEpisodeAt": "2026-09-16T14:20:47.232Z"
+      "sourceEpisodeCount": 18,
+      "lastEpisodeAt": "2026-09-23T14:10:28.211Z"
     },
     "animeav1-higeki-no-genkyou-to-naru-saikyou-gedou-last-boss-joou-wa-tami-no-tame-ni-tsukushimasu-season-2": {
       "anilistId": 195268,
@@ -14047,7 +14047,7 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 11,
+      "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-16T15:40:12.703Z"
     },
     "anilist-159309": {
@@ -14082,7 +14082,7 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 11,
+      "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-16T15:44:44.631Z"
     },
     "anilist-178869": {
@@ -14150,8 +14150,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-16T12:25:00.635Z"
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-23T12:47:24.469Z"
     },
     "anilist-100922": {
       "anilistId": 100922,
@@ -14995,8 +14995,8 @@
           "order": 5
         }
       ],
-      "sourceEpisodeCount": 17,
-      "lastEpisodeAt": "2026-09-16T14:20:47.232Z"
+      "sourceEpisodeCount": 18,
+      "lastEpisodeAt": "2026-09-23T14:10:28.211Z"
     },
     "mal-53273": {
       "anilistId": "mal-53273",
@@ -58585,18 +58585,6 @@
       "sourceEpisodeCount": 11,
       "lastEpisodeAt": "2026-09-16T14:47:45.748Z"
     },
-    "animeav1-youjo-senki-ii": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-16T13:38:29.670Z"
-    },
     "animeav1-sora-wa-akai-kawa-no-hotori": {
       "anilistId": null,
       "airingStatus": "RELEASING",
@@ -58787,6 +58775,18 @@
       "franchiseSeasons": [],
       "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-11T13:36:27.501Z"
+    },
+    "animeav1-youjo-senki-ii": {
+      "anilistId": 135865,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-16T13:38:29.670Z"
     },
     "animeav1-tefuda-ga-oome-no-victoria": {
       "anilistId": 198709,
