@@ -11,6 +11,7 @@ const sourceClassification = require("../js/source-classification.js");
 const normalizeSource = readFileSync(new URL("../js/normalize.js", import.meta.url), "utf8");
 const routerSource = readFileSync(new URL("../js/router.js", import.meta.url), "utf8");
 const clientSource = readFileSync(new URL("../client.js", import.meta.url), "utf8");
+const playerSource = readFileSync(new URL("../player/player.js", import.meta.url), "utf8");
 
 function section(source, start, end) {
   const from = source.indexOf(start);
@@ -148,6 +149,7 @@ function playbackFallbackContext({ primaryFound }) {
     isJKAnimeSource: sourceMatches.jkanime,
     isTioAnimeSource: sourceMatches.tioanime,
     isHlsSource: () => true,
+    isAdFreeFallbackCandidate: () => true,
     sourcePreferenceScore: () => 0,
     getKnownSourceServer: (key) => ({ match: sourceMatches[key] || (() => false) }),
     isScraperEnabled: () => true,
@@ -156,12 +158,15 @@ function playbackFallbackContext({ primaryFound }) {
     refreshFocusables() {},
     promoteResolvedEpisodeSource: () => resolveCompleted(),
     wait: () => Promise.resolve(),
-    attachAnimeAv1Sources: async (_show, episode) => {
-      calls.push("animeav1:start");
+    attachAnimeAv1Sources: async (_show, episode, options = {}) => {
+      const phase = options.includeFallbacks ? "fallback" : "primary";
+      calls.push(`animeav1:${phase}:start`);
       await Promise.resolve();
-      if (primaryFound) episode.sourceOptions = [{ id: "primary", provider: "AnimeAV1" }];
+      if (primaryFound && !(episode.sourceOptions || []).some((source) => source.id === "primary")) {
+        episode.sourceOptions = [...(episode.sourceOptions || []), { id: "primary", provider: "AnimeAV1" }];
+      }
       episode.animeAv1SourcesChecked = true;
-      calls.push("animeav1:end");
+      calls.push(`animeav1:${phase}:end`);
     },
     attachJKAnimeSources: async (_show, episode) => {
       calls.push("jkanime");
@@ -417,7 +422,7 @@ test("7c. regular backups stay dormant when AnimeAV1 resolves", async () => {
   const episode = { sourceOptions: [] };
   await sandbox.attachPlaybackSourceOptions({ title: "Primary title" }, episode, 1);
   await completed;
-  assert.deepEqual(calls, ["animeav1:start", "animeav1:end"]);
+  assert.deepEqual(calls, ["animeav1:primary:start", "animeav1:primary:end"]);
   assert.equal(episode.playbackSourceLookupComplete, true);
   assert.equal(episode.sourceOptions[0].provider, "AnimeAV1");
 });
@@ -427,7 +432,7 @@ test("7d. regular backups run only after a confirmed AnimeAV1 miss", async () =>
   const episode = { sourceOptions: [] };
   await sandbox.attachPlaybackSourceOptions({ title: "Missing primary title" }, episode, 1);
   await completed;
-  const primaryEnd = calls.indexOf("animeav1:end");
+  const primaryEnd = calls.indexOf("animeav1:primary:end");
   assert.ok(primaryEnd >= 0);
   assert.ok(calls.indexOf("jkanime") > primaryEnd);
   assert.ok(calls.indexOf("tioanime") > primaryEnd);
@@ -443,10 +448,68 @@ test("7e. a verified OVA fallback cannot be replaced by a fuzzy parent-series ma
     verifiedFallbackKey: "tioanime"
   }, episode, 1);
   await completed;
-  assert.deepEqual(calls, ["animeav1:start", "animeav1:end", "tioanime"]);
+  assert.deepEqual(calls, ["animeav1:primary:start", "animeav1:primary:end", "tioanime"]);
   assert.equal(episode.sourceOptions.length, 1);
   assert.equal(episode.sourceOptions[0].provider, "TioAnime");
   assert.equal(episode.playbackSourceLookupComplete, true);
+});
+
+test("7f. a confirmed playback failure expands backups once and coalesces concurrent requests", async () => {
+  const { sandbox, calls } = playbackFallbackContext({ primaryFound: true });
+  const episode = {
+    sourceOptions: [{ id: "failed-primary", provider: "AnimeAV1" }],
+    serverChecks: { animeav1: "found" }
+  };
+  const show = { title: "Fallback example" };
+
+  const first = sandbox.attachPlaybackFailureFallbacks(show, episode);
+  const second = sandbox.attachPlaybackFailureFallbacks(show, episode);
+  await Promise.all([first, second]);
+
+  assert.equal(calls.filter((value) => value === "animeav1:fallback:start").length, 1);
+  assert.equal(calls.filter((value) => value === "tioanime").length, 1);
+  assert.equal(calls.filter((value) => value === "jkanime").length, 1);
+  assert.equal(episode.playbackFailureFallbacksComplete, true);
+  assert.equal(episode.sourceOptionsPending, false);
+  assert.equal(episode._playbackFailureFallbackPromise, null);
+  assert.equal(episode._playbackFailureFastPromise, null);
+  assert.equal(episode.serverChecks.animeav1, "found");
+  assert.equal(episode.serverChecks.tioanime, "found");
+  assert.equal(episode.serverChecks.jkanime, "found");
+
+  const callCount = calls.length;
+  await sandbox.attachPlaybackFailureFallbacks(show, episode);
+  assert.equal(calls.length, callCount);
+});
+
+test("7g. AnimeAV1 embed backups stay hidden until playback failure expansion", () => {
+  const sandbox = vm.createContext({
+    normalizeTitle: (value) => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+    simpleHash: (value) => String(value || "").length,
+    embedProviderRank: (provider) => String(provider || "").toLowerCase().includes("voe") ? 1 : 2,
+    isBlockedPlaybackSource: () => false
+  });
+  vm.runInContext(
+    section(clientSource, "function mergeAnimeAv1SourcesIntoEpisode(", "// ── JKAnime source integration"),
+    sandbox
+  );
+  const episode = { sourceOptions: [] };
+  const data = {
+    episodeUrl: "https://animeav1.com/media/example/12",
+    sources: [{ provider: "HLS", type: "direct", url: "/api/source?url=primary" }],
+    castSources: [
+      { provider: "HLS", type: "direct", url: "/api/source?url=primary" },
+      { provider: "Voe", type: "iframe", url: "https://voe.example/embed" },
+      { provider: "MP4Upload", type: "iframe", url: "https://mp4upload.example/embed" }
+    ]
+  };
+
+  sandbox.mergeAnimeAv1SourcesIntoEpisode({}, episode, data, "example", 12);
+  assert.deepEqual(Array.from(episode.sourceOptions, (source) => source.provider), ["HLS"]);
+
+  sandbox.mergeAnimeAv1SourcesIntoEpisode({}, episode, data, "example", 12, { includeFallbacks: true });
+  assert.deepEqual(Array.from(episode.sourceOptions, (source) => source.provider), ["HLS", "Voe", "MP4Upload"]);
+  assert.ok(episode.sourceOptions.every((source) => source.siteUrl === data.episodeUrl));
 });
 
 test("8. missing episode numbers are explicitly position-derived", () => {
@@ -501,6 +564,170 @@ test("11. a failed first source advances once to the next untried source", () =>
   assert.equal(sandbox.getSelectedEpisodeSource(episode).id, "second");
   episode._failedSourceIds.add("second");
   assert.equal(sandbox.getSelectedEpisodeSource(episode), null);
+});
+
+test("11b. choosing a fallback retries only that source and preserves other failures", () => {
+  const sandbox = vm.createContext({
+    state: { activeEpisodeUrl: "stale" },
+    getEpisodePlaybackSources: (episode) => episode.sourceOptions
+  });
+  vm.runInContext(
+    section(clientSource, "function selectEpisodePlaybackSource(", "function renderPlayerSourceOptions("),
+    sandbox
+  );
+  const episode = {
+    sourceOptions: [
+      { id: "primary", type: "direct", videoUrl: "https://video.test/primary.m3u8" },
+      { id: "fallback", type: "direct", videoUrl: "https://video.test/fallback.mp4" }
+    ],
+    _failedSourceIds: new Set(["primary", "fallback"]),
+    _playbackFallbackPromptActive: true
+  };
+
+  assert.equal(sandbox.selectEpisodePlaybackSource(episode, "fallback").id, "fallback");
+  assert.equal(episode._failedSourceIds.has("primary"), true);
+  assert.equal(episode._failedSourceIds.has("fallback"), false);
+  assert.equal(episode._playbackFallbackPromptActive, false);
+});
+
+test("11c. player reports manifest HTTP errors and timeouts before the normal HLS retry loop", () => {
+  const handler = section(
+    playerSource,
+    "hls.on(window.Hls.Events.ERROR, (_, data) => {",
+    "function scheduleHlsReload("
+  );
+  assert.ok(handler.indexOf("manifestUnavailable") < handler.indexOf("if (!data?.fatal) return"));
+  assert.match(handler, /responseCode >= 400/);
+  assert.match(handler, /\(\?:error\|timeout\)/);
+  assert.match(playerSource, /manifestLoadingMaxRetry:\s*0/);
+  const playerManifestTimeout = Number(playerSource.match(/manifestLoadingTimeOut:\s*(\d+)/)?.[1]);
+  const clientManifestTimeout = Number(clientSource.match(/manifestLoadingTimeOut:\s*(\d+)/)?.[1]);
+  assert.ok(playerManifestTimeout >= 4000 && playerManifestTimeout <= 6000);
+  assert.ok(clientManifestTimeout >= 4000 && clientManifestTimeout <= 6000);
+  assert.match(handler, /send\("error", "manifest-upstream-unavailable"\)/);
+});
+
+test("11d. mounting HLS preconnects without issuing a duplicate manifest probe", () => {
+  const renderer = section(
+    clientSource,
+    "function renderDirectVideoPlayer(",
+    "function renderPlaybackError("
+  );
+  assert.match(renderer, /preconnectOnly:\s*streamType\s*===\s*"hls"/);
+  assert.match(clientSource, /options\.preconnectOnly \|\| streamTypeFromUrl\(resolved\) === "hls"/);
+  const warmupWiring = section(
+    clientSource,
+    "function wireSourceButtonWarmups(",
+    "function isLocalSourceProxyUrl("
+  );
+  assert.match(warmupWiring, /if \(sourceButtons\.length\) warmTopEpisodeSources/);
+});
+
+test("11e. fallback selection leaves the zero-size cinema mount for the visible side panel", () => {
+  const panelHelper = section(
+    clientSource,
+    "function showSourcePickerPanel(",
+    "function wirePlayerChrome("
+  );
+  assert.match(panelHelper, /showEpisodeListTab\(\)/);
+  assert.match(panelHelper, /renderSourcePickerInSidePanel\(\)/);
+
+  const errorRenderer = section(
+    clientSource,
+    "function renderPlaybackError(",
+    "function playEpisodeByPosition("
+  );
+  assert.match(errorRenderer, /data-try-another[^\n]*addEventListener\("click", showSourcePickerPanel\)/);
+  assert.doesNotMatch(errorRenderer, /data-try-another[^\n]*renderSourcePickerIn\(frame\)/);
+});
+
+test("11f. recovery offers exactly one verified source", () => {
+  const sandbox = vm.createContext({
+    getEpisodePlaybackSources: (episode) => episode.sourceOptions
+  });
+  vm.runInContext(
+    section(clientSource, "function getSourcePickerPlaybackSources(", "function getSourcePickerServerDefinitions("),
+    sandbox
+  );
+  const episode = {
+    sourceOptions: [
+      { id: "failed" },
+      { id: "verified", verifiedPlayable: true },
+      { id: "unverified" }
+    ],
+    _failedSourceIds: new Set(["failed"]),
+    _playbackFallbackPromptActive: true,
+    _verifiedFallbackSourceId: "verified"
+  };
+  assert.deepEqual(Array.from(sandbox.getSourcePickerPlaybackSources(episode), (source) => source.id), ["verified"]);
+});
+
+test("11g. fallback verification rejects ad-walled and unknown embeds", () => {
+  const sandbox = vm.createContext({
+    sourceDirectUrl: (source) => source.videoUrl || "",
+    embedProviderRank: (identity) => {
+      const value = String(identity).toLowerCase();
+      if (value.includes("yourupload") || value.includes("mp4upload")) return 0;
+      if (value.includes("voe")) return 2;
+      return 1;
+    }
+  });
+  vm.runInContext(
+    section(clientSource, "function fallbackSourceIdentity(", "function verifiedFallbackPreference("),
+    sandbox
+  );
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "YourUpload", externalUrl: "https://yourupload.test/embed" }), true);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Voe", externalUrl: "https://voe.test/embed", adWalled: true }), false);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Unknown", externalUrl: "https://unknown.test/embed" }), false);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "direct", videoUrl: "https://video.test/episode.mp4" }), true);
+});
+
+test("11h. playback failure verifies and opens the backup without asking", () => {
+  const renderer = section(
+    clientSource,
+    "function renderDirectVideoPlayer(",
+    "function renderPlaybackError("
+  );
+  assert.match(renderer, /findVerifiedAdFreeFallbackSource\(episode\)/);
+  assert.match(renderer, /selectEpisodePlaybackSource\(episode, verifiedFallback\.id\)/);
+  assert.match(renderer, /playActiveShow\(\{ allowSourceLookup: false \}\)/);
+  assert.match(renderer, /selectedSource\.id !== activeSource\.id/);
+  assert.doesNotMatch(renderer, /Use verified source/);
+  assert.match(clientSource, /await probePlayableFallback\(resolved\)/);
+});
+
+test("11i. fallback verification races three diverse providers and returns the first success", async () => {
+  const sandbox = vm.createContext({
+    URL,
+    location: { origin: "https://app.test", hostname: "app.test" },
+    fallbackSourceIdentity: (source = {}) => [source.id, source.provider, source.videoUrl].filter(Boolean).join(" "),
+    sourceDirectUrl: (source = {}) => source.videoUrl || "",
+    originalStreamUrlFromProxy: (value) => value
+  });
+  vm.runInContext(
+    section(clientSource, "function fallbackCandidateFamily(", "async function resolveFallbackCandidateToDirect("),
+    sandbox
+  );
+
+  const candidates = [
+    { id: "yourupload-1", provider: "YourUpload" },
+    { id: "yourupload-2", provider: "YourUpload" },
+    { id: "mp4upload", provider: "MP4Upload" },
+    { id: "okru", provider: "OK.ru" }
+  ];
+  assert.deepEqual(
+    Array.from(sandbox.pickFallbackRaceCandidates(candidates, 3), (source) => source.id),
+    ["yourupload-1", "mp4upload", "okru"]
+  );
+
+  const winner = await sandbox.firstSuccessfulFallback([
+    Promise.resolve(null),
+    Promise.resolve({ id: "working" }),
+    new Promise((resolve) => setTimeout(() => resolve({ id: "slower" }), 10))
+  ]);
+  assert.equal(winner.id, "working");
+  assert.match(clientSource, /const FALLBACK_RACE_LIMIT = 3/);
+  assert.match(clientSource, /_verifiedFallbackSourceIds/);
 });
 
 test("12. HLS sources retain manifest MIME and container", () => {

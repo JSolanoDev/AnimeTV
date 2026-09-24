@@ -80,8 +80,9 @@ const fallbackShows = [
 }));
 
 // AnimeAV1 is the regular catalog's primary source. JKAnime and TioAnime are
-// queried only after a confirmed AnimeAV1 miss. Adult playback stays isolated
-// behind the UnderHentai adapter and its resolved providers.
+// queried after a confirmed AnimeAV1 miss, or lazily after a real playback
+// failure so a healthy primary path never pays for backup lookups. Adult
+// playback stays isolated behind the UnderHentai adapter and its providers.
 const KNOWN_SOURCE_SERVERS = [
   {
     key: "underhentai",
@@ -115,7 +116,7 @@ const KNOWN_SOURCE_SERVERS = [
   {
     key: "jkanime",
     label: "JKAnime Backup",
-    desc: "Backup source used only when AnimeAV1 has no episode",
+    desc: "Backup source checked after an AnimeAV1 miss or playback failure",
     match: (s) =>
       (s.id || "").includes("jkanime") ||
       (s.label || "").toLowerCase().includes("jkanime") ||
@@ -124,7 +125,7 @@ const KNOWN_SOURCE_SERVERS = [
   {
     key: "tioanime",
     label: "TioAnime Backup",
-    desc: "Last regular-anime backup after an AnimeAV1 miss",
+    desc: "Backup source checked after an AnimeAV1 miss or playback failure",
     match: (s) =>
       (s.id || "").includes("tioanime") ||
       (s.label || "").toLowerCase().includes("tioanime") ||
@@ -147,14 +148,14 @@ const PLAYBACK_SCRAPERS = [
   {
     id: "jkanime",
     name: "JKAnime Backup",
-    desc: "Backup embeds requested only when AnimeAV1 has no source.",
+    desc: "Backup embeds requested after an AnimeAV1 miss or playback failure.",
     endpoint: "/api/jkanime/sources",
     health: "/api/jkanime/health"
   },
   {
     id: "tioanime",
     name: "TioAnime Backup",
-    desc: "Final backup embeds requested only after an AnimeAV1 miss.",
+    desc: "Backup embeds requested after an AnimeAV1 miss or playback failure.",
     endpoint: "/api/tioanime/sources",
     health: "/api/tioanime/health"
   }
@@ -4523,7 +4524,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=840";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=852";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -8029,6 +8030,80 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
   episode.sourceOptionsChecked = lookupKey;
   episode.sourceOptions = normalizeEpisodeSourceOptions(episode);
   return episode;
+}
+
+async function attachPlaybackFailureFallbacks(show, episode) {
+  if (!show || !episode) return episode;
+  if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) return episode;
+  if (episode.playbackFailureFallbacksComplete) return episode;
+  if (episode._playbackFailureFallbackPromise) return episode._playbackFailureFallbackPromise;
+
+  episode.sourceOptionsPending = true;
+  episode.serverChecks = episode.serverChecks || {};
+  const lookup = (async () => {
+    const tasks = [];
+    if (isScraperEnabled("animeav1")) {
+      tasks.push(attachAnimeAv1Sources(show, episode, { includeFallbacks: true }));
+    }
+    if (isScraperEnabled("tioanime")) {
+      tasks.push(attachTioAnimeSources(show, episode));
+    }
+    if (isScraperEnabled("jkanime")) {
+      tasks.push(attachJKAnimeSources(show, episode));
+    }
+
+    let releaseFirstCandidate;
+    let firstCandidateReleased = false;
+    const firstCandidateReady = new Promise((resolve) => {
+      releaseFirstCandidate = resolve;
+    });
+    const releaseWhenCandidateReady = () => {
+      if (firstCandidateReleased) return;
+      const hasCandidate = getEpisodePlaybackSources(episode)
+        .filter((source) => !episode._failedSourceIds?.has(source.id))
+        .some(isAdFreeFallbackCandidate);
+      if (!hasCandidate) return;
+      firstCandidateReleased = true;
+      releaseFirstCandidate(episode);
+    };
+    episode._playbackFailureFastPromise = firstCandidateReady;
+    releaseWhenCandidateReady();
+
+    let pendingProviders = tasks.length;
+    if (!pendingProviders) {
+      firstCandidateReleased = true;
+      releaseFirstCandidate(episode);
+    } else {
+      const providerSettled = () => {
+        pendingProviders -= 1;
+        releaseWhenCandidateReady();
+        if (!pendingProviders && !firstCandidateReleased) {
+          firstCandidateReleased = true;
+          releaseFirstCandidate(episode);
+        }
+      };
+      tasks.forEach((task) => Promise.resolve(task).then(providerSettled, providerSettled));
+    }
+    await Promise.allSettled(tasks);
+
+    episode.sourceOptions = normalizeEpisodeSourceOptions(episode);
+    episode.serverReadyAt = episode.serverReadyAt || {};
+    for (const def of KNOWN_SOURCE_SERVERS) {
+      if (def.key === "underhentai") continue;
+      const found = getEpisodePlaybackSources(episode).some(def.match);
+      episode.serverChecks[def.key] = found ? "found" : "notfound";
+      if (found && !episode.serverReadyAt[def.key]) episode.serverReadyAt[def.key] = Date.now();
+    }
+    episode.playbackFailureFallbacksComplete = true;
+    return episode;
+  })().finally(() => {
+    episode.sourceOptionsPending = false;
+    episode._playbackFailureFallbackPromise = null;
+    episode._playbackFailureFastPromise = null;
+  });
+
+  episode._playbackFailureFallbackPromise = lookup;
+  return lookup;
 }
 
 function playbackLookupKey(show, episode, seasonNumber = 1) {
@@ -12234,8 +12309,12 @@ function selectEpisodePlaybackSource(episode, sourceId) {
     state.activeEpisodeUrl = "";
   }
   if (episode._failedSourceIds) {
-    episode._failedSourceIds.clear();
+    // A manual choice retries only the source the viewer selected. Keep the
+    // other confirmed failures out of the picker so a dead primary cannot
+    // immediately re-enter the fallback loop.
+    episode._failedSourceIds.delete(sourceId);
   }
+  episode._playbackFallbackPromptActive = false;
   return selected;
 }
 
@@ -12729,7 +12808,7 @@ function applySourcePickerFilter(root, rawValue = "preferred:best-servers", sele
 function renderSourcePickerInSidePanel() {
   if (!episodeList) return;
   const episode = state.activeEpisode?.episode || {};
-  const allSources = getEpisodePlaybackSources(episode);
+  const allSources = getSourcePickerPlaybackSources(episode);
   const serverChecks = episode.serverChecks || {};
   const isPending = Boolean(episode.sourceOptionsPending);
   const show = state.activeShow;
@@ -12745,11 +12824,7 @@ function renderSourcePickerInSidePanel() {
 
   const claimedIds = new Set();
 
-  const pickerServerDefinitions = (
-    typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)
-  )
-    ? KNOWN_SOURCE_SERVERS.filter((def) => def.key === "underhentai")
-    : KNOWN_SOURCE_SERVERS.filter((def) => def.key !== "underhentai");
+  const pickerServerDefinitions = getSourcePickerServerDefinitions(show, episode, allSources);
 
   const readyAt = episode.serverReadyAt || {};
   const orderedServers = pickerServerDefinitions
@@ -12772,7 +12847,7 @@ function renderSourcePickerInSidePanel() {
     const res = detectResolution(source);
     const peers = source.type === "direct" ? "999+" : "450";
     const sizeStr = source.type === "direct" ? "HLS Stream" : "Web Embed";
-    const adsStr = source.adWalled ? "May have ads" : "Ad-free";
+    const adsStr = source.verifiedPlayable ? "Verified ad-free" : source.adWalled ? "May have ads" : "Ad-free";
     return `
       <button class="source-picker-option source-picker-option-found focusable"
         data-player-source="${escapeHtml(source.id)}"
@@ -12857,7 +12932,9 @@ function renderSourcePickerInSidePanel() {
     if (isPending && serverChecks[def.key] === undefined) uniqueProviders.add(def.label);
   });
   let filterSelectHtml = "";
-  const primaryFilterOptions = getPrimarySourceFilterOptions(show);
+  const primaryFilterOptions = episode._playbackFallbackPromptActive
+    ? []
+    : getPrimarySourceFilterOptions(show);
   if ((allSources.length > 0 || isPending) && (uniqueProviders.size > 1 || uniqueTypes.size > 1 || primaryFilterOptions.length > 0)) {
     let optionsHtml = sourceFilterOption("all", "All sources");
     optionsHtml += primaryFilterOptions
@@ -13097,7 +13174,7 @@ function renderSourcePickerInSidePanel() {
 // broken player content in the way.
 function renderSourcePickerIn(frame) {
   const episode = state.activeEpisode?.episode || {};
-  const allSources = getEpisodePlaybackSources(episode);
+  const allSources = getSourcePickerPlaybackSources(episode);
   const serverChecks = episode.serverChecks || {};
   const isPending = Boolean(episode.sourceOptionsPending);
   const show = state.activeShow;
@@ -13119,11 +13196,7 @@ function renderSourcePickerIn(frame) {
   // before AniPub). This makes whichever of TioAnime/AnimeAV1 resolves first
   // appear at the very top.
   const readyAt = episode.serverReadyAt || {};
-  const pickerServerDefinitions = (
-    typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)
-  )
-    ? KNOWN_SOURCE_SERVERS.filter((def) => def.key === "underhentai")
-    : KNOWN_SOURCE_SERVERS.filter((def) => def.key !== "underhentai");
+  const pickerServerDefinitions = getSourcePickerServerDefinitions(show, episode, allSources);
   const orderedServers = pickerServerDefinitions
     .map((def, knownIndex) => {
       const matching = allSources.filter(def.match);
@@ -13161,7 +13234,7 @@ function renderSourcePickerIn(frame) {
         const res = detectResolution(source);
         const peers = source.type === "direct" ? "999+" : "450";
         const sizeStr = source.type === "direct" ? "HLS Stream" : "Web Embed";
-        const adsStr = source.adWalled ? "May have ads" : "Ad-free";
+        const adsStr = source.verifiedPlayable ? "Verified ad-free" : source.adWalled ? "May have ads" : "Ad-free";
 
         return `
           <button class="source-picker-option source-picker-option-found focusable" 
@@ -13235,7 +13308,7 @@ function renderSourcePickerIn(frame) {
       const res = detectResolution(source);
       const peers = source.type === "direct" ? "999+" : "450";
       const sizeStr = source.type === "direct" ? "HLS Stream" : "Web Embed";
-      const adsStr = source.adWalled ? "May have ads" : "Ad-free";
+      const adsStr = source.verifiedPlayable ? "Verified ad-free" : source.adWalled ? "May have ads" : "Ad-free";
 
       return `
         <button class="source-picker-option source-picker-option-found focusable" 
@@ -13287,7 +13360,9 @@ function renderSourcePickerIn(frame) {
   });
 
   let filterSelectHtml = "";
-  const primaryFilterOptions = getPrimarySourceFilterOptions(show);
+  const primaryFilterOptions = episode._playbackFallbackPromptActive
+    ? []
+    : getPrimarySourceFilterOptions(show);
   if (foundCount > 0 || isPending) {
     let optionsHtml = sourceFilterOption("all", "All sources");
     optionsHtml += primaryFilterOptions
@@ -13371,6 +13446,9 @@ function exitPlayerToSources() {
   if (playerExitToEpisodesPromise) return playerExitToEpisodesPromise;
 
   const openToken = state.activeOpenToken;
+  if (state.activeEpisode?.episode) {
+    state.activeEpisode.episode._playbackFallbackPromptActive = false;
+  }
   setPlayerCinemaOpen(false);
   document.body.classList.remove("has-embedded-player");
 
@@ -13502,6 +13580,9 @@ function warmPlayableStream(url = "", options = {}) {
   const original = originalStreamUrlFromProxy(resolved);
   preconnectStreamOrigin(original);
   preconnectStreamOrigin(location.origin);
+  // Live/signed manifests are deliberately no-store. Fetching one here cannot
+  // be reused by the iframe and only duplicates the real /api/source request.
+  if (options.preconnectOnly || streamTypeFromUrl(resolved) === "hls") return Promise.resolve(null);
 
   const probeUrl = proxiedStreamUrl(resolved);
   if (!probeUrl) return Promise.resolve(null);
@@ -13556,13 +13637,14 @@ function warmTopEpisodeSources(episode, limit = 2) {
 
 function wireSourceButtonWarmups(root, episode) {
   if (!root || !episode) return;
-  root.querySelectorAll("[data-player-source]").forEach((button) => {
+  const sourceButtons = [...root.querySelectorAll("[data-player-source]")];
+  sourceButtons.forEach((button) => {
     const warm = () => warmEpisodeSourceById(episode, button.dataset.playerSource, { timeoutMs: 1800 });
     button.addEventListener("pointerenter", warm, { once: true, passive: true });
     button.addEventListener("focus", warm, { once: true });
     button.addEventListener("pointerdown", warm, { once: true, passive: true });
   });
-  warmTopEpisodeSources(episode, 2);
+  if (sourceButtons.length) warmTopEpisodeSources(episode, 2);
 }
 
 function isLocalSourceProxyUrl(url = "") {
@@ -14368,6 +14450,8 @@ class VideoPlayer {
             enableWorker: true,
             lowLatencyMode: false,
             backBufferLength: 60,
+            manifestLoadingTimeOut: 4500,
+            manifestLoadingMaxRetry: 0,
             xhrSetup: (xhr) => {
               const proxyHost = streamProxyHost(url);
               if (proxyHost) xhr.setRequestHeader("X-Stream-Prox", proxyHost);
@@ -14409,6 +14493,19 @@ class VideoPlayer {
           };
 
           hls.on(Hls.Events?.ERROR || "hlsError", (event, data) => {
+            const responseCode = Number(data?.response?.code || data?.response?.status || 0);
+            const manifestDetails = String(data?.details || "");
+            const manifestUnavailable = /manifest/i.test(manifestDetails)
+              && (
+                responseCode >= 400
+                || /(?:error|timeout)/i.test(manifestDetails)
+              );
+            if (manifestUnavailable) {
+              console.error(`[VideoPlayer] HLS manifest unavailable (${responseCode || manifestDetails}). Triggering fallback.`);
+              try { hls.stopLoad?.(); } catch (error) {}
+              failPlayback();
+              return;
+            }
             if (data.fatal) {
               console.error(`[VideoPlayer] Fatal HLS error: ${data.type} - ${data.details}`, data);
               switch (data.type) {
@@ -15049,6 +15146,32 @@ function showEpisodeListTab(options = {}) {
   refreshFocusables();
 }
 
+function getSourcePickerPlaybackSources(episode = {}) {
+  const available = getEpisodePlaybackSources(episode)
+    .filter((source) => !episode._failedSourceIds?.has(source.id));
+  if (!episode._playbackFallbackPromptActive) return available;
+  const verifiedId = episode._verifiedFallbackSourceId;
+  return verifiedId ? available.filter((source) => source.id === verifiedId) : [];
+}
+
+function getSourcePickerServerDefinitions(show, episode, sources) {
+  const definitions = (
+    typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)
+  )
+    ? KNOWN_SOURCE_SERVERS.filter((def) => def.key === "underhentai")
+    : KNOWN_SOURCE_SERVERS.filter((def) => def.key !== "underhentai");
+  if (!episode?._playbackFallbackPromptActive) return definitions;
+  return definitions.filter((def) => sources.some(def.match));
+}
+
+function showSourcePickerPanel() {
+  // The video-frame is intentionally a zero-size mount point outside cinema
+  // mode. Leave cinema first, then place the chooser in the visible side panel.
+  showEpisodeListTab();
+  renderSourcePickerInSidePanel();
+  window.setTimeout(revealEpisodeBrowserPanel, 0);
+}
+
 function wirePlayerChrome(frame) {
   wireSourceButtonWarmups(frame, state.activeEpisode?.episode);
   frame.querySelectorAll("[data-player-source]").forEach((button) => {
@@ -15094,7 +15217,7 @@ function wirePlayerChrome(frame) {
   frame.querySelectorAll("[data-player-sources]").forEach((button) => {
     button.addEventListener("click", () => {
       if (episodeList?.querySelector(".side-source-picker")) showEpisodeListTab();
-      else renderSourcePickerInSidePanel();
+      else showSourcePickerPanel();
     });
   });
 }
@@ -16544,11 +16667,14 @@ function mergeTioAnimeSourcesIntoEpisode(show, episode, data, slug, epNum) {
       return {
         id:          `tioanime-${normalizeTitle(s.provider || "source")}-${simpleHash(`${slug}:${epNum}:${s.provider || index}:${s.url}`)}`,
         label:       `TioAnime - ${s.provider || `Source ${index + 1}`}${rank === 2 ? " (ads)" : ""}`,
+        provider:    s.provider || "TioAnime",
         type:        "iframe",
         externalUrl: s.url,
         videoUrl:    "",
         downloadUrl: "",
         streamResolver: null,
+        siteUrl:     s.siteUrl || data.episodeUrl || `https://tioanime.com/ver/${slug}-${epNum}`,
+        referer:     s.referer || s.referrer || s.siteUrl || data.episodeUrl || "https://tioanime.com/",
         sourceRank:  rank,
         adWalled:    rank === 2,
       };
@@ -16825,7 +16951,7 @@ function warmAnimeAv1PlaybackIntent(show, target = {}) {
     .catch(() => null);
 }
 
-async function attachAnimeAv1Sources(show, episode) {
+async function attachAnimeAv1Sources(show, episode, options = {}) {
   if (!show || !episode) return;
   if (!episode.providerAnimeSlug && !show.animeAv1Slug) await hydrateAnimeAv1Slug(show, { force: true });
   const slug = episode.providerAnimeSlug || show.animeAv1Slug;
@@ -16844,18 +16970,21 @@ async function attachAnimeAv1Sources(show, episode) {
       episode.animeAv1SourcesChecked = true;
       return;
     }
-    mergeAnimeAv1SourcesIntoEpisode(show, episode, data, slug, epNum);
+    mergeAnimeAv1SourcesIntoEpisode(show, episode, data, slug, epNum, options);
   } catch (error) {
     console.warn("AnimeAV1 episode sources unavailable:", error);
   }
   episode.animeAv1SourcesChecked = true;
 }
 
-function mergeAnimeAv1SourcesIntoEpisode(show, episode, data, slug, epNum) {
+function mergeAnimeAv1SourcesIntoEpisode(show, episode, data, slug, epNum, options = {}) {
   if (!episode || !Array.isArray(data?.sources)) return;
   episode.sourceOptions = (episode.sourceOptions || []).filter((source) => !isBlockedPlaybackSource(source));
   const existing = new Set(episode.sourceOptions.map(s => s.videoUrl || s.externalUrl));
-  const newOptions = data.sources
+  const payloadSources = options.includeFallbacks
+    ? [...data.sources, ...(Array.isArray(data.castSources) ? data.castSources : [])]
+    : data.sources;
+  const newOptions = payloadSources
     .filter(s => !isBlockedPlaybackSource(s) && (s.url || s.videoUrl || s.externalUrl) && !existing.has(s.url || s.videoUrl || s.externalUrl))
     .map((s, index) => {
       const url = s.videoUrl || s.externalUrl || s.url || "";
@@ -16872,6 +17001,7 @@ function mergeAnimeAv1SourcesIntoEpisode(show, episode, data, slug, epNum) {
         videoUrl:    direct ? url : "",
         downloadUrl: "",
         streamResolver: null,
+        siteUrl:     s.siteUrl || data.episodeUrl || `https://animeav1.com/media/${slug}/${epNum}`,
         providerAnimeId: slug,
         providerAnimeSlug: slug,
         providerEpisodeId: data.providerEpisodeId ?? epNum,
@@ -18019,8 +18149,326 @@ async function attemptResolveEmbed(embedUrl, siteReferer = "", timeoutMs = 7000)
   return null;
 }
 
+function fallbackSourceIdentity(source = {}) {
+  return [
+    source.id,
+    source.label,
+    source.provider,
+    source.videoUrl,
+    source.externalUrl,
+    source.streamResolver?.type,
+    source.streamResolver?.endpoint
+  ].filter(Boolean).join(" ");
+}
+
+function isAdFreeFallbackCandidate(source = {}) {
+  const directUrl = sourceDirectUrl(source);
+  const hasResolver = Boolean(source.streamResolver?.endpoint || source.type === "resolver");
+  const hasEmbed = Boolean(source.externalUrl && source.type === "iframe");
+  if (!directUrl && !hasResolver && !hasEmbed) return false;
+  const providerRank = embedProviderRank(fallbackSourceIdentity(source));
+  if (source.adWalled === true || providerRank === 2) return false;
+  if (directUrl || hasResolver) return true;
+  return hasEmbed && providerRank === 0;
+}
+
+function verifiedFallbackPreference(source = {}) {
+  const identity = fallbackSourceIdentity(source).toLowerCase();
+  if (identity.includes("yourupload") || identity.includes("youupload")) return 0;
+  if (identity.includes("mp4upload")) return 1;
+  if (source.type === "direct" && sourceDirectUrl(source)) return 2;
+  if (identity.includes("okru") || identity.includes("ok.ru")) return 3;
+  return 10 + sourcePreferenceScore(source);
+}
+
+function fallbackReferer(source = {}) {
+  if (source.referer) return source.referer;
+  try {
+    return source.siteUrl ? `${new URL(source.siteUrl).origin}/` : "";
+  } catch {
+    return "";
+  }
+}
+
+const FALLBACK_RESOLVE_TIMEOUT_MS = 4500;
+const FALLBACK_PROBE_TIMEOUT_MS = 4000;
+const FALLBACK_RACE_LIMIT = 3;
+
+function fallbackCandidateFamily(source = {}) {
+  const identity = fallbackSourceIdentity(source).toLowerCase();
+  for (const provider of ["yourupload", "youupload", "mp4upload", "okru", "ok.ru", "streamwish", "streamtape"]) {
+    if (identity.includes(provider)) return provider.replace(".", "");
+  }
+
+  for (const candidateUrl of [sourceDirectUrl(source), source.externalUrl, source.streamResolver?.endpoint]) {
+    if (!candidateUrl) continue;
+    try {
+      const originalUrl = originalStreamUrlFromProxy(candidateUrl);
+      const parsed = new URL(originalUrl, location.origin);
+      const nestedUrl = parsed.searchParams.get("url");
+      if (nestedUrl) return new URL(nestedUrl, location.origin).hostname.toLowerCase();
+      if (parsed.hostname && parsed.hostname !== location.hostname) return parsed.hostname.toLowerCase();
+    } catch {
+      // The provider label below is still enough to avoid duplicate checks.
+    }
+  }
+
+  return String(source.provider || source.label || source.type || source.id || "fallback").toLowerCase();
+}
+
+function pickFallbackRaceCandidates(candidates = [], limit = FALLBACK_RACE_LIMIT) {
+  const selected = [];
+  const deferred = [];
+  const families = new Set();
+  for (const source of candidates) {
+    const family = fallbackCandidateFamily(source);
+    if (families.has(family)) {
+      deferred.push(source);
+      continue;
+    }
+    families.add(family);
+    selected.push(source);
+    if (selected.length >= limit) return selected;
+  }
+  for (const source of deferred) {
+    selected.push(source);
+    if (selected.length >= limit) break;
+  }
+  return selected;
+}
+
+function firstSuccessfulFallback(tasks = []) {
+  return new Promise((resolve) => {
+    if (!tasks.length) {
+      resolve(null);
+      return;
+    }
+    let remaining = tasks.length;
+    let resolved = false;
+    const finishAttempt = (value = null) => {
+      if (value && !resolved) {
+        resolved = true;
+        resolve(value);
+        return;
+      }
+      remaining -= 1;
+      if (!remaining && !resolved) resolve(null);
+    };
+    tasks.forEach((task) => Promise.resolve(task).then(finishAttempt, () => finishAttempt()));
+  });
+}
+
+async function resolveFallbackCandidateToDirect(source = {}) {
+  const directUrl = sourceDirectUrl(source);
+  if (directUrl && !isBlockedPlaybackUrl(directUrl)) {
+    return { url: directUrl, referer: fallbackReferer(source), type: streamTypeFromUrl(directUrl) };
+  }
+
+  if (source.streamResolver?.endpoint || source.type === "resolver") {
+    const endpoint = withAnime1vApiKey(source.streamResolver?.endpoint || "");
+    if (!endpoint) return null;
+    try {
+      const response = await fetchWithTimeout(endpoint, { cache: "no-store" }, FALLBACK_RESOLVE_TIMEOUT_MS);
+      if (!response.ok) return null;
+      const payload = await response.json();
+      let url = pickPlayableUrl(payload);
+      if (!url) {
+        const payloadSources = [
+          ...(Array.isArray(payload.sourceOptions) ? payload.sourceOptions : []),
+          ...(Array.isArray(payload.sources) ? payload.sources : []),
+          ...(Array.isArray(payload.streams) ? payload.streams : []),
+          ...(Array.isArray(payload.files) ? payload.files : [])
+        ];
+        const direct = normalizeEpisodeSourceOptions({ sourceOptions: payloadSources })
+          .find((candidate) => candidate.type === "direct" && candidate.videoUrl && !isBlockedPlaybackUrl(candidate.videoUrl));
+        url = direct?.videoUrl || "";
+      }
+      if (url && !isBlockedPlaybackUrl(url)) {
+        return {
+          url,
+          referer: payload.mediaReferer || payload.referer || fallbackReferer(source),
+          type: payload.type || streamTypeFromUrl(url),
+          payload
+        };
+      }
+      if (payload.externalUrl && embedProviderRank(fallbackSourceIdentity(source)) === 0) {
+        return attemptResolveEmbed(payload.externalUrl, fallbackReferer(source), FALLBACK_RESOLVE_TIMEOUT_MS);
+      }
+    } catch (error) {
+      console.info("Ad-free fallback resolver did not respond.");
+    }
+    return null;
+  }
+
+  if (source.type === "iframe" && source.externalUrl) {
+    return attemptResolveEmbed(source.externalUrl, fallbackReferer(source), FALLBACK_RESOLVE_TIMEOUT_MS);
+  }
+  return null;
+}
+
+function manifestChildUrl(value = "", parentUrl = "") {
+  const child = String(value || "").trim();
+  if (!child) return "";
+  try {
+    if (child.startsWith("/api/")) return new URL(child, location.origin).href;
+    return new URL(child, originalStreamUrlFromProxy(parentUrl)).href;
+  } catch {
+    return "";
+  }
+}
+
+async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROBE_TIMEOUT_MS) {
+  const target = proxiedStreamUrl(url, referer);
+  if (!target) return false;
+  try {
+    const response = await fetchWithTimeout(target, {
+      cache: "no-store",
+      credentials: "omit",
+      headers: { Range: "bytes=0-1023" }
+    }, timeoutMs);
+    const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+    const contentRange = response.headers.get("content-range") || "";
+    const acceptedType = /^(video|audio)\//.test(contentType)
+      || /application\/(?:octet-stream|mp4)/.test(contentType)
+      || /video|audio|octet-stream|mp4/i.test(contentRange);
+    const acceptedUrl = /\.(?:mp4|m4v|webm|mov|ts|m4s|aac)(?:$|[?#])/i.test(originalStreamUrlFromProxy(url));
+    const playable = response.ok && !contentType.includes("text/html") && (acceptedType || Boolean(contentRange) || acceptedUrl);
+    await response.body?.cancel().catch(() => {});
+    return playable;
+  } catch {
+    return false;
+  }
+}
+
+async function probeHlsManifest(url = "", referer = "", depth = 0) {
+  const target = proxiedStreamUrl(url, referer);
+  if (!target || depth > 1) return false;
+  try {
+    const response = await fetchWithTimeout(target, {
+      cache: "no-store",
+      credentials: "omit"
+    }, FALLBACK_PROBE_TIMEOUT_MS);
+    if (!response.ok) return false;
+    const manifest = await response.text();
+    if (!manifest.includes("#EXTM3U")) return false;
+    const childLine = manifest.split(/\r?\n/)
+      .map((line) => line.trim())
+      .find((line) => line && !line.startsWith("#"));
+    const childUrl = manifestChildUrl(childLine, url);
+    if (!childUrl) return false;
+    if (/\.m3u8(?:$|[?#])/i.test(originalStreamUrlFromProxy(childUrl))) {
+      return probeHlsManifest(childUrl, referer, depth + 1);
+    }
+    return probeMediaBytes(childUrl, referer, FALLBACK_PROBE_TIMEOUT_MS);
+  } catch {
+    return false;
+  }
+}
+
+async function probePlayableFallback(resolved = {}) {
+  const url = resolved.url || "";
+  if (!url || isBlockedPlaybackUrl(url)) return false;
+  const type = String(resolved.type || streamTypeFromUrl(url)).toLowerCase();
+  if (type === "hls" || type.includes("mpegurl") || streamTypeFromUrl(url) === "hls") {
+    return probeHlsManifest(url, resolved.mediaReferer || resolved.referer || "");
+  }
+  return probeMediaBytes(url, resolved.mediaReferer || resolved.referer || "");
+}
+
+function persistVerifiedFallbackSource(episode, source, resolved) {
+  const verifiedAt = Date.now();
+  const verified = {
+    ...source,
+    type: "direct",
+    videoUrl: resolved.url,
+    externalUrl: "",
+    streamResolver: null,
+    referer: resolved.mediaReferer || resolved.referer || source.referer || "",
+    adWalled: false,
+    verifiedPlayable: true,
+    verifiedAt
+  };
+  let replaced = false;
+  episode.sourceOptions = (episode.sourceOptions || []).map((candidate) => {
+    const candidateId = candidate.id || candidate.sourceId || candidate.originalSourceId || candidate.source;
+    if (candidateId !== source.id) return candidate;
+    replaced = true;
+    return { ...candidate, ...verified };
+  });
+  if (!replaced) episode.sourceOptions.push(verified);
+  episode.sourceOptions = normalizeEpisodeSourceOptions(episode);
+  const verifiedIds = Array.isArray(episode._verifiedFallbackSourceIds)
+    ? episode._verifiedFallbackSourceIds
+    : [];
+  if (!verifiedIds.includes(source.id)) verifiedIds.push(source.id);
+  episode._verifiedFallbackSourceIds = verifiedIds;
+  if (!episode._verifiedFallbackSourceId || episode._failedSourceIds?.has(episode._verifiedFallbackSourceId)) {
+    episode._verifiedFallbackSourceId = source.id;
+  }
+  return getEpisodePlaybackSources(episode).find((candidate) => candidate.id === source.id) || verified;
+}
+
+function verifyFallbackCandidate(episode, source) {
+  const key = source.id || fallbackSourceIdentity(source);
+  const inFlight = episode._fallbackVerificationPromises instanceof Map
+    ? episode._fallbackVerificationPromises
+    : new Map();
+  episode._fallbackVerificationPromises = inFlight;
+  if (inFlight.has(key)) return inFlight.get(key);
+
+  const verification = (async () => {
+    const resolved = await resolveFallbackCandidateToDirect(source);
+    if (!resolved?.url || !(await probePlayableFallback(resolved))) return null;
+    if (resolved.payload) {
+      const subtitles = normalizeSubtitleTracks(resolved.payload);
+      if (subtitles.length) episode.subtitles = subtitles;
+    }
+    return persistVerifiedFallbackSource(episode, source, resolved);
+  })().finally(() => {
+    inFlight.delete(key);
+  });
+  inFlight.set(key, verification);
+  return verification;
+}
+
+async function findVerifiedAdFreeFallbackSource(episode = {}) {
+  const playbackSources = getEpisodePlaybackSources(episode);
+  const preferredIds = [
+    episode._verifiedFallbackSourceId,
+    ...(Array.isArray(episode._verifiedFallbackSourceIds) ? episode._verifiedFallbackSourceIds : []),
+    ...playbackSources.filter((source) => source.verifiedPlayable).map((source) => source.id)
+  ].filter((id, index, ids) => id && ids.indexOf(id) === index);
+  const existing = preferredIds
+    .map((id) => playbackSources.find((source) => source.id === id))
+    .find((source) => (
+      source?.verifiedPlayable
+      && Date.now() - Number(source.verifiedAt || 0) < 90000
+      && !episode._failedSourceIds?.has(source.id)
+    ));
+  if (existing) episode._verifiedFallbackSourceId = existing.id;
+  if (existing) return existing;
+  if (episode._verifiedFallbackPromise) return episode._verifiedFallbackPromise;
+
+  episode._verifiedFallbackSourceId = "";
+  const verification = (async () => {
+    const candidates = playbackSources
+      .filter((source) => !episode._failedSourceIds?.has(source.id))
+      .filter(isAdFreeFallbackCandidate)
+      .sort((a, b) => verifiedFallbackPreference(a) - verifiedFallbackPreference(b));
+    const raceCandidates = pickFallbackRaceCandidates(candidates);
+    return firstSuccessfulFallback(raceCandidates.map((source) => verifyFallbackCandidate(episode, source)));
+  })().finally(() => {
+    episode._verifiedFallbackPromise = null;
+  });
+  episode._verifiedFallbackPromise = verification;
+  return verification;
+}
+
 function renderDirectVideoPlayer(frame, url, episode) {
-  warmPlayableStream(url, { timeoutMs: 2000 });
+  const streamType = streamTypeFromUrl(url);
+  // The player is about to request an HLS manifest itself. A parallel no-store
+  // probe cannot be reused and doubles /api/source work when that host is down.
+  warmPlayableStream(url, { timeoutMs: 2000, preconnectOnly: streamType === "hls" });
   const skipShow = state.activeShow;
   const skipShowKey = String(skipShow?.id || getShowKey(skipShow || {}));
   const skipEpisodeKey = episodeSkipKey(episode);
@@ -18031,7 +18479,6 @@ function renderDirectVideoPlayer(frame, url, episode) {
     ? null
     : preferredTrack || tracks.find((track) => isSpanishLanguage(track.language || track.label));
   const selectedSource = getSelectedEpisodeSource(episode);
-  const streamType = streamTypeFromUrl(url);
   const useApkPlayer = state.uiPreferences.playerEngine !== "native";
   const fit = state.uiPreferences.playerFit || "contain";
   const useNativeControls = !useApkPlayer && state.uiPreferences.playerInterface === "native";
@@ -18142,22 +18589,77 @@ function renderDirectVideoPlayer(frame, url, episode) {
       console.error("[VideoPlayer] Video source setup failed", { url, error });
     });
   }
-  player?.addEventListener("error", () => {
+  player?.addEventListener("error", async () => {
+    const activeEpisode = state.activeEpisode?.episode;
+    const sameEpisode = activeEpisode === episode
+      || Boolean(activeEpisode?.id && episode.id && activeEpisode.id === episode.id);
+    const activeSource = getSelectedEpisodeSource(episode);
+    if (!sameEpisode || (selectedSource?.id && activeSource?.id && selectedSource.id !== activeSource.id)) return;
+
     console.error("[VideoPlayer] Direct video playback failed", { url, episode });
-    
+
+    if (episode._playbackFallbackPromptActive) return;
+
     // Mark current source as failed
-    const selectedSource = getSelectedEpisodeSource(episode);
-    if (selectedSource) {
+    if (activeSource) {
       episode._failedSourceIds = episode._failedSourceIds || new Set();
-      episode._failedSourceIds.add(selectedSource.id);
+      episode._failedSourceIds.add(activeSource.id);
     }
-    
+
+    const isAdultShow = Boolean(
+      typeof AdultMode !== "undefined"
+      && AdultMode.isAdultContent(state.activeShow)
+    );
+    if (!isAdultShow) {
+      episode._playbackFallbackPromptActive = true;
+      renderPlayerPopupMessage(
+        frame,
+        "Checking backup sources...",
+        "The selected server is not responding. Preparing other available sources."
+      );
+      const fallbackLookup = attachPlaybackFailureFallbacks(state.activeShow, episode);
+      const firstCandidateReady = episode._playbackFailureFastPromise || fallbackLookup;
+      await firstCandidateReady;
+
+      renderPlayerPopupMessage(
+        frame,
+        "Verifying an ad-free backup...",
+        "Testing direct media sources and switching automatically."
+      );
+      let verifiedFallback = await findVerifiedAdFreeFallbackSource(episode);
+      if (!verifiedFallback && !episode.playbackFailureFallbacksComplete) {
+        await fallbackLookup;
+        verifiedFallback = await findVerifiedAdFreeFallbackSource(episode);
+      }
+
+      const activeEpisode = state.activeEpisode?.episode;
+      const stillActive = activeEpisode === episode
+        || Boolean(activeEpisode?.id && episode.id && activeEpisode.id === episode.id);
+      if (!stillActive) {
+        episode._playbackFallbackPromptActive = false;
+        return;
+      }
+
+      if (verifiedFallback) {
+        selectEpisodePlaybackSource(episode, verifiedFallback.id);
+        showToast("AnimeAV1 is unavailable. Playing a verified backup.");
+        await playActiveShow({ allowSourceLookup: false });
+        return;
+      }
+
+      renderPlaybackError(frame, episode, {
+        title: "Playback source unavailable",
+        message: "AnimeAV1 did not respond and no verified ad-free backup is available for this episode. You can retry after a provider recovers."
+      });
+      return;
+    }
+
     // Find if there is another source we haven't tried yet
     const allSources = getEpisodePlaybackSources(episode);
     const nextSource = allSources.find(s => !episode._failedSourceIds?.has(s.id));
     
     if (nextSource) {
-      console.log(`[VideoPlayer] Source ${selectedSource?.id || "unknown"} failed. Trying next source: ${nextSource.id} (${nextSource.label})`);
+      console.log(`[VideoPlayer] Source ${activeSource?.id || "unknown"} failed. Trying next source: ${nextSource.id} (${nextSource.label})`);
       showToast(`Playback failed. Trying server: ${nextSource.label}`);
       episode.selectedSourceId = nextSource.id;
       state.preferredSource = nextSource.id;
@@ -18197,15 +18699,14 @@ function renderDirectVideoPlayer(frame, url, episode) {
   refreshFocusables();
 }
 
-// Full-screen playback-error overlay. Shown only after auto-failover has
-// exhausted every available server. Stays in cinema mode (the old code
-// replaced frame.innerHTML with a bare block, dropping out of full-screen)
-// and offers "Try another source" (re-opens the source picker) + Retry.
+// Full-screen playback-error overlay. The source action leaves cinema mode and
+// opens the chooser in the visible episode side panel; Retry stays in place.
 function renderPlaybackError(frame, episode, options = {}) {
   const title = options.title || "Playback failed";
   const message = options.message
     || "We couldn't play any of the available servers for this episode. Try another source or retry.";
-  const sources = getEpisodePlaybackSources(episode);
+  const sources = getSourcePickerPlaybackSources(episode);
+  const actionLabel = options.actionLabel || "Try another source";
   frame.innerHTML = `
     <div class="video-player-shell vidstream-player is-error">
       <div class="vid-player-stage">
@@ -18215,7 +18716,7 @@ function renderPlaybackError(frame, episode, options = {}) {
           <p class="vid-error-message">${escapeHtml(message)}</p>
           <div class="vid-error-actions">
             ${sources.length
-              ? `<button class="external-play-button focusable" type="button" data-try-another>Try another source</button>`
+              ? `<button class="external-play-button focusable" type="button" data-try-another>${escapeHtml(actionLabel)}</button>`
               : ""}
             <button class="vid-error-retry focusable" type="button" data-retry-episode>Retry episode</button>
           </div>
@@ -18227,9 +18728,10 @@ function renderPlaybackError(frame, episode, options = {}) {
   `;
   const shell = frame.querySelector(".vidstream-player");
   setPlayerCinema(shell, true, { silent: true });
-  frame.querySelector("[data-try-another]")?.addEventListener("click", () => renderSourcePickerIn(frame));
+  frame.querySelector("[data-try-another]")?.addEventListener("click", showSourcePickerPanel);
   frame.querySelector("[data-retry-episode]")?.addEventListener("click", () => {
     if (episode._failedSourceIds) episode._failedSourceIds.clear();
+    episode._playbackFallbackPromptActive = false;
     playActiveShow();
   });
   frame.querySelector("[data-player-exit]")?.addEventListener("click", exitPlayerToSources);
@@ -20567,7 +21069,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=840");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=852");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

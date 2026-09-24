@@ -2393,8 +2393,10 @@
       maxMaxBufferLength: 120,
       maxBufferHole: 0.5,
       capLevelToPlayerSize: false,
-      manifestLoadingTimeOut: 10000,
-      manifestLoadingMaxRetry: 3,
+      manifestLoadingTimeOut: 4500,
+      // A failed manifest cannot play anything. Start the automatic fallback
+      // promptly instead of spending four Function calls on the same dead URL.
+      manifestLoadingMaxRetry: 0,
       manifestLoadingRetryDelay: 600,
       levelLoadingTimeOut: 10000,
       levelLoadingMaxRetry: 4,
@@ -2425,6 +2427,21 @@
       startPlayback(video);
     });
     hls.on(window.Hls.Events.ERROR, (_, data) => {
+      const responseCode = Number(data?.response?.code || data?.response?.status || 0);
+      const manifestDetails = String(data?.details || "");
+      const manifestUnavailable = /manifest/i.test(manifestDetails)
+        && (
+          responseCode >= 400
+          || /(?:error|timeout)/i.test(manifestDetails)
+        );
+      if (manifestUnavailable) {
+        console.error(`[ZenkaiPlayer] HLS manifest unavailable (${responseCode || manifestDetails})`);
+        clearStartupWatchdog();
+        try { hls.stopLoad(); } catch (error) {}
+        showError("Source unavailable", "This server is not responding. Choose another available source.");
+        send("error", "manifest-upstream-unavailable");
+        return;
+      }
       if (!data?.fatal) return;
       console.error("[ZenkaiPlayer] HLS fatal error", JSON.stringify({
         type: data.type,
