@@ -512,6 +512,33 @@ test("7g. AnimeAV1 embed backups stay hidden until playback failure expansion", 
   assert.ok(episode.sourceOptions.every((source) => source.siteUrl === data.episodeUrl));
 });
 
+test("7h. latest releases fall back to session cache when local storage is full", () => {
+  const sessionValues = new Map();
+  const sandbox = vm.createContext({
+    localStorage: {
+      getItem: () => null,
+      setItem: () => { throw new DOMException("Quota exceeded", "QuotaExceededError"); },
+      removeItem() {}
+    },
+    sessionStorage: {
+      getItem: (key) => sessionValues.get(key) || null,
+      setItem: (key, value) => sessionValues.set(key, value),
+      removeItem: (key) => sessionValues.delete(key)
+    }
+  });
+  vm.runInContext(
+    section(clientSource, "const ANIMEAV1_LATEST_CACHE_KEY", "async function loadAnimeAv1Latest("),
+    sandbox
+  );
+
+  assert.equal(sandbox.writeAnimeAv1LatestCache([{ id: "latest-1" }], 1234), true);
+  const cached = sandbox.readAnimeAv1LatestCache();
+  assert.deepEqual(JSON.parse(JSON.stringify(cached)), {
+    items: [{ id: "latest-1" }],
+    cachedAt: 1234
+  });
+});
+
 test("8. missing episode numbers are explicitly position-derived", () => {
   const { pipeline } = normalizationContext();
   const episodes = pipeline.normalizeEpisodes({ episodes: [{ title: "Pilot" }, { title: "Second" }] });
@@ -680,6 +707,32 @@ test("11g. fallback verification rejects ad-walled and unknown embeds", () => {
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Voe", externalUrl: "https://voe.test/embed", adWalled: true }), false);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Unknown", externalUrl: "https://unknown.test/embed" }), false);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "direct", videoUrl: "https://video.test/episode.mp4" }), true);
+});
+
+test("11g2. verified fallback playback keeps the same referer-aware proxy used by its probe", () => {
+  const sandbox = vm.createContext({
+    Date,
+    proxiedStreamUrl: (url, referer) => `/api/source?url=${encodeURIComponent(url)}&referer=${encodeURIComponent(referer)}`,
+    normalizeEpisodeSourceOptions: (episode) => episode.sourceOptions,
+    getEpisodePlaybackSources: (episode) => episode.sourceOptions
+  });
+  vm.runInContext(
+    section(clientSource, "function persistVerifiedFallbackSource(", "function verifyFallbackCandidate("),
+    sandbox
+  );
+  const episode = {
+    sourceOptions: [{ id: "backup", type: "iframe", externalUrl: "https://embed.test/e/1" }]
+  };
+  const source = episode.sourceOptions[0];
+  const selected = sandbox.persistVerifiedFallbackSource(episode, source, {
+    url: "https://media.test:183/video.mp4",
+    mediaReferer: "https://embed.test/e/1"
+  });
+
+  assert.equal(selected.type, "direct");
+  assert.equal(selected.externalUrl, "");
+  assert.match(selected.videoUrl, /^\/api\/source\?/);
+  assert.match(selected.videoUrl, /referer=https%3A%2F%2Fembed\.test%2Fe%2F1/);
 });
 
 test("11h. playback failure verifies and opens the backup without asking", () => {

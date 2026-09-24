@@ -3583,17 +3583,60 @@ function buildLatestEpisodesList(limit = HOME_CARD_LIMIT) {
   return list;
 }
 
+const ANIMEAV1_LATEST_CACHE_KEY = "zenkaitv-av1-latest-cache";
+const ANIMEAV1_LATEST_CACHE_AT_KEY = "zenkaitv-av1-latest-cache-at";
+
+function readAnimeAv1LatestCache() {
+  for (const storageName of ["localStorage", "sessionStorage"]) {
+    let storage;
+    try { storage = globalThis[storageName]; } catch { continue; }
+    if (!storage) continue;
+    try {
+      const cached = storage.getItem(ANIMEAV1_LATEST_CACHE_KEY);
+      if (!cached) continue;
+      return {
+        items: JSON.parse(cached),
+        cachedAt: Number(storage.getItem(ANIMEAV1_LATEST_CACHE_AT_KEY)) || 0
+      };
+    } catch {
+      // A full or disabled storage area must not block the in-memory feed.
+    }
+  }
+  return null;
+}
+
+function writeAnimeAv1LatestCache(items, cachedAt) {
+  const encoded = JSON.stringify(items);
+  for (const storageName of ["localStorage", "sessionStorage"]) {
+    let storage;
+    try { storage = globalThis[storageName]; } catch { continue; }
+    if (!storage) continue;
+    try {
+      storage.setItem(ANIMEAV1_LATEST_CACHE_KEY, encoded);
+      storage.setItem(ANIMEAV1_LATEST_CACHE_AT_KEY, String(cachedAt));
+      return true;
+    } catch {
+      try {
+        storage.removeItem(ANIMEAV1_LATEST_CACHE_KEY);
+        storage.removeItem(ANIMEAV1_LATEST_CACHE_AT_KEY);
+      } catch {
+        // Continue to the next storage area.
+      }
+    }
+  }
+  return false;
+}
+
 async function loadAnimeAv1Latest(force = false) {
   if (state.av1LatestLoading) return;
 
   // 1. Try to load from localStorage cache first if state is empty
   if (!state.av1Latest || !state.av1Latest.length) {
     try {
-      const cached = localStorage.getItem("zenkaitv-av1-latest-cache");
-      const cachedAt = localStorage.getItem("zenkaitv-av1-latest-cache-at");
-      if (cached) {
-        state.av1Latest = JSON.parse(cached);
-        state.av1LatestAt = Number(cachedAt) || 0;
+      const cached = readAnimeAv1LatestCache();
+      if (cached?.items) {
+        state.av1Latest = cached.items;
+        state.av1LatestAt = cached.cachedAt;
         reconcileAnimeAv1LatestInventory(state.av1Latest, state.shows);
         // Paint immediately with cached data. Deeper metadata hydration is
         // delayed by scheduleVisibleMetadataWarm so it cannot compete with
@@ -3621,9 +3664,9 @@ async function loadAnimeAv1Latest(force = false) {
       state.av1LatestAt = Date.now();
       reconcileAnimeAv1LatestInventory(state.av1Latest, state.shows);
 
-      // Save to cache
-      localStorage.setItem("zenkaitv-av1-latest-cache", JSON.stringify(json.items));
-      localStorage.setItem("zenkaitv-av1-latest-cache-at", String(state.av1LatestAt));
+      // Keep the memory update even when a device has exhausted localStorage.
+      // sessionStorage is a reload-safe fallback with an independent quota.
+      writeAnimeAv1LatestCache(json.items, state.av1LatestAt);
 
       if (isChanged) {
         resetReleaseCarouselLineup();
@@ -4524,7 +4567,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=852";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=854";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -18377,13 +18420,19 @@ async function probePlayableFallback(resolved = {}) {
 
 function persistVerifiedFallbackSource(episode, source, resolved) {
   const verifiedAt = Date.now();
+  const referer = resolved.mediaReferer || resolved.referer || source.referer || "";
+  // Verification probes the media through /api/source so the upstream receives
+  // its required Referer and the browser gets same-origin CORS headers. Keep
+  // that exact route for playback; handing ArtPlayer the raw upstream URL can
+  // pass the probe and then fail immediately in the real player.
+  const playbackUrl = proxiedStreamUrl(resolved.url, referer);
   const verified = {
     ...source,
     type: "direct",
-    videoUrl: resolved.url,
+    videoUrl: playbackUrl,
     externalUrl: "",
     streamResolver: null,
-    referer: resolved.mediaReferer || resolved.referer || source.referer || "",
+    referer,
     adWalled: false,
     verifiedPlayable: true,
     verifiedAt
@@ -21069,7 +21118,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=852");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=854");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
