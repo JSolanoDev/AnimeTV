@@ -12,6 +12,7 @@ const normalizeSource = readFileSync(new URL("../js/normalize.js", import.meta.u
 const routerSource = readFileSync(new URL("../js/router.js", import.meta.url), "utf8");
 const clientSource = readFileSync(new URL("../client.js", import.meta.url), "utf8");
 const playerSource = readFileSync(new URL("../player/player.js", import.meta.url), "utf8");
+const serverSource = readFileSync(new URL("../animetv-server.js", import.meta.url), "utf8");
 
 function section(source, start, end) {
   const from = source.indexOf(start);
@@ -480,6 +481,99 @@ test("7f. a confirmed playback failure expands backups once and coalesces concur
   const callCount = calls.length;
   await sandbox.attachPlaybackFailureFallbacks(show, episode);
   assert.equal(calls.length, callCount);
+});
+
+test("7f2. play-intent health checking promotes a verified backup automatically", async () => {
+  const primary = { id: "primary", type: "direct", videoUrl: "https://dead.test/episode.m3u8" };
+  const backup = { id: "backup", type: "direct", videoUrl: "https://media.test/episode.mp4" };
+  const episode = { sourceOptions: [primary], selectedSourceId: "primary" };
+  let fallbackLookups = 0;
+  const sandbox = vm.createContext({
+    Date,
+    Set,
+    RELIABLE_PLAYBACK_TOTAL_BUDGET_MS: 2000,
+    RELIABLE_PLAYBACK_PRIMARY_PROBE_MS: 900,
+    RELIABLE_PLAYBACK_BACKUP_DELAY_MS: 450,
+    AdultMode: { isAdultContent: () => false },
+    wait: async () => {},
+    getSelectedEpisodeSource: (value) => value.sourceOptions.find((source) => (
+      source.id === value.selectedSourceId && !value._failedSourceIds?.has(source.id)
+    )) || value.sourceOptions.find((source) => !value._failedSourceIds?.has(source.id)) || null,
+    hasFreshVerifiedPlaybackSource: () => false,
+    verifyReliablePlaybackCandidate: async (_value, source) => source.id === "backup" ? source : null,
+    attachPlaybackFailureFallbacks: async (_show, value) => {
+      fallbackLookups += 1;
+      if (!value.sourceOptions.some((source) => source.id === "backup")) value.sourceOptions.push(backup);
+      return value;
+    },
+    getEpisodePlaybackSources: (value) => value.sourceOptions,
+    isAdFreeFallbackCandidate: () => true,
+    verifiedFallbackPreference: (source) => source.id === "backup" ? 0 : 1,
+    pickFallbackRaceCandidates: (sources) => sources.slice(0, 3),
+    firstSuccessfulFallback: async (tasks) => {
+      for (const task of tasks) {
+        const value = await task;
+        if (value) return value;
+      }
+      return null;
+    },
+    selectEpisodePlaybackSource: (value, id) => {
+      value.selectedSourceId = id;
+      return value.sourceOptions.find((source) => source.id === id) || null;
+    }
+  });
+  vm.runInContext(
+    section(clientSource, "async function prepareReliablePlaybackSource(", "function renderDirectVideoPlayer("),
+    sandbox
+  );
+
+  const selected = await sandbox.prepareReliablePlaybackSource({ title: "Example" }, episode);
+  assert.equal(selected.id, "backup");
+  assert.equal(episode.selectedSourceId, "backup");
+  assert.equal(episode._failedSourceIds.has("primary"), true);
+  assert.equal(fallbackLookups, 1);
+});
+
+test("7f2b. a failed primary is not retried when no backup verifies", async () => {
+  const primary = { id: "primary", type: "direct", videoUrl: "https://dead.test/episode.m3u8" };
+  const episode = { sourceOptions: [primary], selectedSourceId: "primary" };
+  const sandbox = vm.createContext({
+    Date,
+    Set,
+    RELIABLE_PLAYBACK_TOTAL_BUDGET_MS: 2000,
+    RELIABLE_PLAYBACK_PRIMARY_PROBE_MS: 900,
+    RELIABLE_PLAYBACK_BACKUP_DELAY_MS: 450,
+    AdultMode: { isAdultContent: () => false },
+    wait: async () => {},
+    getSelectedEpisodeSource: (value) => value.sourceOptions.find((source) => (
+      source.id === value.selectedSourceId && !value._failedSourceIds?.has(source.id)
+    )) || null,
+    hasFreshVerifiedPlaybackSource: () => false,
+    verifyReliablePlaybackCandidate: async () => null,
+    attachPlaybackFailureFallbacks: async (_show, value) => value,
+    getEpisodePlaybackSources: (value) => value.sourceOptions,
+    isAdFreeFallbackCandidate: () => true,
+    verifiedFallbackPreference: () => 0,
+    pickFallbackRaceCandidates: (sources) => sources,
+    firstSuccessfulFallback: async () => null,
+    selectEpisodePlaybackSource: () => null
+  });
+  vm.runInContext(
+    section(clientSource, "async function prepareReliablePlaybackSource(", "function renderDirectVideoPlayer("),
+    sandbox
+  );
+
+  const selected = await sandbox.prepareReliablePlaybackSource({ title: "Example" }, episode);
+  assert.equal(selected, null);
+  assert.equal(episode._failedSourceIds.has("primary"), true);
+});
+
+test("7f3. regular backup source routes share CDN cache and cold in-flight work", () => {
+  assert.match(serverSource, /const tioAnimeSourceInflight = new Map\(\)/);
+  assert.match(serverSource, /const jkAnimeSourceInflight = new Map\(\)/);
+  assert.match(serverSource, /coalesceInflight\(tioAnimeSourceInflight, cacheKey/);
+  assert.match(serverSource, /coalesceInflight\(\s*jkAnimeSourceInflight,/);
+  assert.match(serverSource, /s-maxage=300, stale-while-revalidate=600/);
 });
 
 test("7g. AnimeAV1 embed backups stay hidden until playback failure expansion", () => {

@@ -4567,7 +4567,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=854";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=856";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -7905,6 +7905,7 @@ function playbackLookupWithTimeout(label, promise, timeoutMs = 6500) {
 
 const SOURCE_FAST_FIRST_PASS_MS = 1800;
 const SOURCE_FAST_SECOND_PASS_MS = 900;
+const SOURCE_EAGER_FALLBACK_DELAY_MS = 450;
 
 function hasFastPreferredPlaybackSource(episode) {
   return getEpisodePlaybackSources(episode).some((source) => {
@@ -7914,7 +7915,7 @@ function hasFastPreferredPlaybackSource(episode) {
   });
 }
 
-async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
+async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1, options = {}) {
   if (!show || !episode) return episode;
   const episodeNumber = getCanonicalEpisodeNumber(episode, 1);
   const lookupKey = playbackLookupKey(show, episode, seasonNumber);
@@ -7967,8 +7968,10 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
     refreshPicker();
   };
 
-  // Respect the user's per-scraper enable toggles (Sources tab). Task factories
-  // keep fallback network requests dormant until the primary lookup has ended.
+  // Respect the user's per-scraper enable toggles (Sources tab). Ordinary detail
+  // browsing keeps backups dormant. An explicit play intent may start them after
+  // a short grace period, so a stalled primary cannot add several seconds before
+  // the app even begins preparing another provider.
   const runLookup = (key, label, taskFactory) => {
     const def = getKnownSourceServer(key);
     return Promise.resolve()
@@ -7989,14 +7992,7 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
     primaryLookup = Promise.resolve();
   }
 
-  const fallbackLookup = primaryLookup.then(async () => {
-    const animeAv1Ready = getEpisodePlaybackSources(episode).some(isAnimeAv1Source);
-    if (animeAv1Ready) {
-      episode.jkAnimeSourcesChecked = true;
-      episode.tioAnimeSourcesChecked = true;
-      return;
-    }
-
+  const runFallbackLookups = async () => {
     // A catalogued fallback is an exact canonical-episode -> provider-episode
     // mapping verified in scraper/regular-source-fallbacks.json. Use only that
     // provider for this release: a fuzzy lookup for an OVA can otherwise land on
@@ -8031,7 +8027,28 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1) {
       episode.serverChecks.tioanime = "notfound";
     }
     await Promise.allSettled(fallbacks);
-  });
+  };
+
+  const fallbackLookup = (async () => {
+    if (options.eagerFallbacks) {
+      await Promise.race([primaryLookup, wait(SOURCE_EAGER_FALLBACK_DELAY_MS)]);
+    } else {
+      await primaryLookup;
+    }
+
+    const animeAv1Ready = getEpisodePlaybackSources(episode).some(isAnimeAv1Source);
+    if (animeAv1Ready) {
+      episode.jkAnimeSourcesChecked = true;
+      episode.tioAnimeSourcesChecked = true;
+      return;
+    }
+
+    const backups = runFallbackLookups();
+    episode._eagerFallbackLookupPromise = backups;
+    // If the grace-period timer won, the primary request is still alive. Await
+    // both branches before declaring the server sweep complete.
+    await Promise.allSettled([primaryLookup, backups]);
+  })();
 
   const completeBackgroundLookup = fallbackLookup
     .then(() => {
@@ -8190,7 +8207,9 @@ function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options 
   }
 
   episode.sourceOptionsPending = true;
-  const promise = attachPlaybackSourceOptions(show, episode, seasonNumber)
+  const promise = attachPlaybackSourceOptions(show, episode, seasonNumber, {
+    eagerFallbacks: Boolean(options.eagerFallbacks || options.autoReplay || state.playIntent)
+  })
     .catch((error) => {
       console.warn("Playback source lookup failed:", error);
       return episode;
@@ -16167,6 +16186,7 @@ function getFranchiseSeasonList(show, alreadyEnsured = false) {
 const _tioAnimeSlugCache = new Map(); // anilistId/showKey → slug
 const _tioAnimeMissCache = new Set();
 const _tioAnimeEpisodeSourceCache = new Map();
+const _tioAnimeEpisodeSourceInflight = new Map();
 let _tioAnimeSlugCatalogPromise = null;
 let _tioAnimeSlugTitleMap = null;
 let _tioAnimeWarmStarted = false;
@@ -16659,21 +16679,28 @@ async function attachTioAnimeSources(show, episode) {
     return;
   }
   try {
-    const res = await fetchWithTimeout(
-      `/api/tioanime/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}`,
-      { cache: "no-store" }, TIOANIME_SOURCE_TIMEOUT_MS
-    );
-    if (!res.ok) {
-      if (res.status >= 500) markTioAnimeDown();
+    let lookup = _tioAnimeEpisodeSourceInflight.get(cacheKey);
+    if (!lookup) {
+      lookup = fetchWithTimeout(
+        `/api/tioanime/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}`,
+        { cache: "default" }, TIOANIME_SOURCE_TIMEOUT_MS
+      ).then(async (res) => {
+        if (!res.ok) {
+          if (res.status >= 500) markTioAnimeDown();
+          return null;
+        }
+        const data = await res.json();
+        if (!data.ok || !Array.isArray(data.sources)) return null;
+        _tioAnimeEpisodeSourceCache.set(cacheKey, data);
+        return data;
+      }).finally(() => _tioAnimeEpisodeSourceInflight.delete(cacheKey));
+      _tioAnimeEpisodeSourceInflight.set(cacheKey, lookup);
+    }
+    const data = await lookup;
+    if (!data) {
       episode.tioAnimeSourcesChecked = true;
       return;
     }
-    const data = await res.json();
-    if (!data.ok || !Array.isArray(data.sources)) {
-      episode.tioAnimeSourcesChecked = true;
-      return;
-    }
-    _tioAnimeEpisodeSourceCache.set(cacheKey, data);
     mergeTioAnimeSourcesIntoEpisode(show, episode, data, slug, epNum);
   } catch (error) {
     markTioAnimeDown();
@@ -17078,6 +17105,7 @@ function mergeAnimeAv1SourcesIntoEpisode(show, episode, data, slug, epNum, optio
 const _jkAnimeSlugCache = new Map();
 const _jkAnimeMissCache = new Set();
 const _jkAnimeEpisodeSourceCache = new Map();
+const _jkAnimeEpisodeSourceInflight = new Map();
 let _jkAnimeSlugCatalogPromise = null;
 let _jkAnimeSlugTitleMap = null;
 let _jkAnimeWarmStarted = false;
@@ -17264,20 +17292,25 @@ async function attachJKAnimeSources(show, episode) {
     return;
   }
   try {
-    const res = await fetchWithTimeout(
-      `/api/jkanime/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}`,
-      { cache: "no-store" }, JKANIME_SOURCE_TIMEOUT_MS
-    );
-    if (!res.ok) {
+    let lookup = _jkAnimeEpisodeSourceInflight.get(cacheKey);
+    if (!lookup) {
+      lookup = fetchWithTimeout(
+        `/api/jkanime/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}`,
+        { cache: "default" }, JKANIME_SOURCE_TIMEOUT_MS
+      ).then(async (res) => {
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (!data.ok || !Array.isArray(data.sources)) return null;
+        _jkAnimeEpisodeSourceCache.set(cacheKey, data);
+        return data;
+      }).finally(() => _jkAnimeEpisodeSourceInflight.delete(cacheKey));
+      _jkAnimeEpisodeSourceInflight.set(cacheKey, lookup);
+    }
+    const data = await lookup;
+    if (!data) {
       episode.jkAnimeSourcesChecked = true;
       return;
     }
-    const data = await res.json();
-    if (!data.ok || !Array.isArray(data.sources)) {
-      episode.jkAnimeSourcesChecked = true;
-      return;
-    }
-    _jkAnimeEpisodeSourceCache.set(cacheKey, data);
     mergeJKAnimeSourcesIntoEpisode(show, episode, data, slug, epNum);
   } catch (error) {
     console.warn("JKAnime episode sources unavailable:", error);
@@ -18031,6 +18064,25 @@ async function playActiveShow(options = {}) {
     renderEpisodeList(show);
   }
 
+  if (
+    activeEpisode
+    && state.playIntent
+    && !(typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show))
+  ) {
+    const reliableSource = await prepareReliablePlaybackSource(show, activeEpisode);
+    const currentEpisode = state.activeEpisode?.episode;
+    const stillSelected = currentEpisode === activeEpisode
+      || Boolean(currentEpisode?.id && activeEpisode.id && currentEpisode.id === activeEpisode.id);
+    if (!stillSelected || state.activeShow !== show) return;
+    if (!reliableSource) {
+      renderPlaybackError(frame, activeEpisode, {
+        title: "Playback source unavailable",
+        message: "No verified ad-free source responded for this episode. Retry to check AnimeAV1, TioAnime, and JKAnime again."
+      });
+      return;
+    }
+  }
+
   let source = getSelectedEpisodeSource(activeEpisode);
   let url = "";
   if (!source || source.type === "direct") {
@@ -18236,6 +18288,12 @@ function fallbackReferer(source = {}) {
 const FALLBACK_RESOLVE_TIMEOUT_MS = 4500;
 const FALLBACK_PROBE_TIMEOUT_MS = 4000;
 const FALLBACK_RACE_LIMIT = 3;
+const RELIABLE_PLAYBACK_TOTAL_BUDGET_MS = 2000;
+const RELIABLE_PLAYBACK_PRIMARY_PROBE_MS = 900;
+const RELIABLE_PLAYBACK_BACKUP_DELAY_MS = 450;
+const PLAYBACK_SOURCE_HEALTH_OK_TTL_MS = 90 * 1000;
+const PLAYBACK_SOURCE_HEALTH_FAIL_TTL_MS = 15 * 1000;
+const playbackSourceHealthCache = new Map();
 
 function fallbackCandidateFamily(source = {}) {
   const identity = fallbackSourceIdentity(source).toLowerCase();
@@ -18301,7 +18359,8 @@ function firstSuccessfulFallback(tasks = []) {
   });
 }
 
-async function resolveFallbackCandidateToDirect(source = {}) {
+async function resolveFallbackCandidateToDirect(source = {}, options = {}) {
+  const timeoutMs = Math.max(250, Number(options.timeoutMs) || FALLBACK_RESOLVE_TIMEOUT_MS);
   const directUrl = sourceDirectUrl(source);
   if (directUrl && !isBlockedPlaybackUrl(directUrl)) {
     return { url: directUrl, referer: fallbackReferer(source), type: streamTypeFromUrl(directUrl) };
@@ -18311,7 +18370,7 @@ async function resolveFallbackCandidateToDirect(source = {}) {
     const endpoint = withAnime1vApiKey(source.streamResolver?.endpoint || "");
     if (!endpoint) return null;
     try {
-      const response = await fetchWithTimeout(endpoint, { cache: "no-store" }, FALLBACK_RESOLVE_TIMEOUT_MS);
+      const response = await fetchWithTimeout(endpoint, { cache: "no-store" }, timeoutMs);
       if (!response.ok) return null;
       const payload = await response.json();
       let url = pickPlayableUrl(payload);
@@ -18335,7 +18394,7 @@ async function resolveFallbackCandidateToDirect(source = {}) {
         };
       }
       if (payload.externalUrl && embedProviderRank(fallbackSourceIdentity(source)) === 0) {
-        return attemptResolveEmbed(payload.externalUrl, fallbackReferer(source), FALLBACK_RESOLVE_TIMEOUT_MS);
+        return attemptResolveEmbed(payload.externalUrl, fallbackReferer(source), timeoutMs);
       }
     } catch (error) {
       console.info("Ad-free fallback resolver did not respond.");
@@ -18344,7 +18403,7 @@ async function resolveFallbackCandidateToDirect(source = {}) {
   }
 
   if (source.type === "iframe" && source.externalUrl) {
-    return attemptResolveEmbed(source.externalUrl, fallbackReferer(source), FALLBACK_RESOLVE_TIMEOUT_MS);
+    return attemptResolveEmbed(source.externalUrl, fallbackReferer(source), timeoutMs);
   }
   return null;
 }
@@ -18360,12 +18419,12 @@ function manifestChildUrl(value = "", parentUrl = "") {
   }
 }
 
-async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROBE_TIMEOUT_MS) {
+async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROBE_TIMEOUT_MS, cacheMode = "no-store") {
   const target = proxiedStreamUrl(url, referer);
   if (!target) return false;
   try {
     const response = await fetchWithTimeout(target, {
-      cache: "no-store",
+      cache: cacheMode,
       credentials: "omit",
       headers: { Range: "bytes=0-1023" }
     }, timeoutMs);
@@ -18383,14 +18442,18 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
   }
 }
 
-async function probeHlsManifest(url = "", referer = "", depth = 0) {
+async function probeHlsManifest(url = "", referer = "", depth = 0, options = {}) {
   const target = proxiedStreamUrl(url, referer);
   if (!target || depth > 1) return false;
+  const timeoutMs = Math.max(250, Number(options.timeoutMs) || FALLBACK_PROBE_TIMEOUT_MS);
+  const deadlineAt = Number(options.deadlineAt) || 0;
+  const remainingMs = deadlineAt ? Math.max(0, deadlineAt - Date.now()) : timeoutMs;
+  if (remainingMs < 150) return false;
   try {
     const response = await fetchWithTimeout(target, {
-      cache: "no-store",
+      cache: options.cacheMode || "no-store",
       credentials: "omit"
-    }, FALLBACK_PROBE_TIMEOUT_MS);
+    }, Math.min(timeoutMs, remainingMs));
     if (!response.ok) return false;
     const manifest = await response.text();
     if (!manifest.includes("#EXTM3U")) return false;
@@ -18399,23 +18462,37 @@ async function probeHlsManifest(url = "", referer = "", depth = 0) {
       .find((line) => line && !line.startsWith("#"));
     const childUrl = manifestChildUrl(childLine, url);
     if (!childUrl) return false;
+    if (options.manifestOnly) return true;
     if (/\.m3u8(?:$|[?#])/i.test(originalStreamUrlFromProxy(childUrl))) {
-      return probeHlsManifest(childUrl, referer, depth + 1);
+      return probeHlsManifest(childUrl, referer, depth + 1, { ...options, deadlineAt });
     }
-    return probeMediaBytes(childUrl, referer, FALLBACK_PROBE_TIMEOUT_MS);
+    const childTimeout = deadlineAt ? Math.max(0, deadlineAt - Date.now()) : timeoutMs;
+    if (childTimeout < 150) return false;
+    return probeMediaBytes(childUrl, referer, Math.min(timeoutMs, childTimeout), options.cacheMode || "no-store");
   } catch {
     return false;
   }
 }
 
-async function probePlayableFallback(resolved = {}) {
+async function probePlayableFallback(resolved = {}, options = {}) {
   const url = resolved.url || "";
   if (!url || isBlockedPlaybackUrl(url)) return false;
+  const timeoutMs = Math.max(250, Number(options.timeoutMs) || FALLBACK_PROBE_TIMEOUT_MS);
   const type = String(resolved.type || streamTypeFromUrl(url)).toLowerCase();
   if (type === "hls" || type.includes("mpegurl") || streamTypeFromUrl(url) === "hls") {
-    return probeHlsManifest(url, resolved.mediaReferer || resolved.referer || "");
+    return probeHlsManifest(url, resolved.mediaReferer || resolved.referer || "", 0, {
+      timeoutMs,
+      deadlineAt: options.deadlineAt || (options.timeoutMs ? Date.now() + timeoutMs : 0),
+      cacheMode: options.cacheMode || "no-store",
+      manifestOnly: Boolean(options.manifestOnly)
+    });
   }
-  return probeMediaBytes(url, resolved.mediaReferer || resolved.referer || "");
+  return probeMediaBytes(
+    url,
+    resolved.mediaReferer || resolved.referer || "",
+    timeoutMs,
+    options.cacheMode || "no-store"
+  );
 }
 
 function persistVerifiedFallbackSource(episode, source, resolved) {
@@ -18511,6 +18588,172 @@ async function findVerifiedAdFreeFallbackSource(episode = {}) {
   });
   episode._verifiedFallbackPromise = verification;
   return verification;
+}
+
+function playbackSourceHealthKey(source = {}) {
+  return [
+    source.id || source.originalSourceId || "source",
+    sourceDirectUrl(source),
+    source.externalUrl,
+    source.streamResolver?.endpoint,
+    fallbackReferer(source)
+  ].filter(Boolean).join("|");
+}
+
+function hasFreshVerifiedPlaybackSource(source = {}) {
+  return Boolean(
+    source.verifiedPlayable
+    && Date.now() - Number(source.verifiedAt || 0) < PLAYBACK_SOURCE_HEALTH_OK_TTL_MS
+  );
+}
+
+function inspectPlaybackSourceHealth(source = {}, options = {}) {
+  const key = playbackSourceHealthKey(source);
+  if (!key) return Promise.resolve(null);
+  const now = Date.now();
+  const cached = playbackSourceHealthCache.get(key);
+  if (cached?.promise) return cached.promise;
+  if (cached && now < cached.expiresAt) return Promise.resolve(cached.ok ? cached.resolved : null);
+  if (cached) playbackSourceHealthCache.delete(key);
+
+  const timeoutMs = Math.max(350, Number(options.timeoutMs) || RELIABLE_PLAYBACK_PRIMARY_PROBE_MS);
+  const deadlineAt = now + timeoutMs;
+  const verification = (async () => {
+    const resolved = await resolveFallbackCandidateToDirect(source, { timeoutMs });
+    const remainingMs = Math.max(0, deadlineAt - Date.now());
+    const playable = Boolean(
+      resolved?.url
+      && remainingMs >= 150
+      && await probePlayableFallback(resolved, {
+        timeoutMs: remainingMs,
+        deadlineAt,
+        // Let the browser and Vercel reuse a successful VOD-manifest check when
+        // the player requests that same URL immediately afterward.
+        cacheMode: "default",
+        manifestOnly: true
+      })
+    );
+    playbackSourceHealthCache.set(key, {
+      ok: playable,
+      resolved: playable ? resolved : null,
+      expiresAt: Date.now() + (playable ? PLAYBACK_SOURCE_HEALTH_OK_TTL_MS : PLAYBACK_SOURCE_HEALTH_FAIL_TTL_MS)
+    });
+    return playable ? resolved : null;
+  })().catch(() => {
+    playbackSourceHealthCache.set(key, {
+      ok: false,
+      resolved: null,
+      expiresAt: Date.now() + PLAYBACK_SOURCE_HEALTH_FAIL_TTL_MS
+    });
+    return null;
+  });
+
+  playbackSourceHealthCache.set(key, { promise: verification, expiresAt: deadlineAt });
+  return verification;
+}
+
+async function verifyReliablePlaybackCandidate(episode, source, options = {}) {
+  if (!episode || !source || !isAdFreeFallbackCandidate(source)) return null;
+  if (hasFreshVerifiedPlaybackSource(source)) return source;
+  const resolved = await inspectPlaybackSourceHealth(source, options);
+  if (!resolved?.url) {
+    if (source.id) {
+      episode._failedSourceIds = episode._failedSourceIds || new Set();
+      episode._failedSourceIds.add(source.id);
+    }
+    return null;
+  }
+  return persistVerifiedFallbackSource(episode, source, resolved);
+}
+
+async function prepareReliablePlaybackSource(show, episode, options = {}) {
+  if (!show || !episode) return null;
+  if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) {
+    return getSelectedEpisodeSource(episode);
+  }
+  if (episode._reliablePlaybackSourcePromise) return episode._reliablePlaybackSourcePromise;
+
+  const preparation = (async () => {
+    const startedAt = Date.now();
+    const totalBudgetMs = Math.max(900, Number(options.timeoutMs) || RELIABLE_PLAYBACK_TOTAL_BUDGET_MS);
+    const deadlineAt = startedAt + totalBudgetMs;
+    const initialSource = getSelectedEpisodeSource(episode);
+    if (hasFreshVerifiedPlaybackSource(initialSource)) return initialSource;
+
+    let primaryFinished = false;
+    let backupLookup = null;
+    const startBackups = () => {
+      if (backupLookup) return backupLookup;
+      backupLookup = episode._eagerFallbackLookupPromise
+        || episode._playbackFailureFallbackPromise
+        || attachPlaybackFailureFallbacks(show, episode);
+      return backupLookup;
+    };
+
+    // A fast/cached primary wins without touching the other providers. If its
+    // media check is slow, prepare backups concurrently instead of waiting for a
+    // multi-second player failure first.
+    void wait(RELIABLE_PLAYBACK_BACKUP_DELAY_MS).then(() => {
+      if (!primaryFinished) return startBackups();
+      return null;
+    }).catch(() => {});
+
+    const primaryTimeout = Math.min(
+      RELIABLE_PLAYBACK_PRIMARY_PROBE_MS,
+      Math.max(350, deadlineAt - Date.now())
+    );
+    const verifiedPrimary = initialSource
+      ? await verifyReliablePlaybackCandidate(episode, initialSource, { timeoutMs: primaryTimeout })
+      : null;
+    primaryFinished = true;
+    if (verifiedPrimary) {
+      selectEpisodePlaybackSource(episode, verifiedPrimary.id);
+      return verifiedPrimary;
+    }
+
+    if (initialSource?.id) {
+      episode._failedSourceIds = episode._failedSourceIds || new Set();
+      episode._failedSourceIds.add(initialSource.id);
+    }
+
+    startBackups();
+    const discoveryWaitMs = Math.min(650, Math.max(0, deadlineAt - Date.now()));
+    if (discoveryWaitMs > 0) {
+      await Promise.race([backupLookup, wait(discoveryWaitMs)]);
+    }
+
+    const candidates = getEpisodePlaybackSources(episode)
+      .filter((source) => source.id !== initialSource?.id)
+      .filter((source) => !episode._failedSourceIds?.has(source.id))
+      .filter(isAdFreeFallbackCandidate)
+      .sort((a, b) => verifiedFallbackPreference(a) - verifiedFallbackPreference(b));
+    const remainingMs = Math.max(0, deadlineAt - Date.now());
+    const raceCandidates = pickFallbackRaceCandidates(candidates);
+    let verifiedBackup = null;
+    if (raceCandidates.length && remainingMs >= 250) {
+      const race = firstSuccessfulFallback(raceCandidates.map((source) => (
+        verifyReliablePlaybackCandidate(episode, source, { timeoutMs: remainingMs })
+      )));
+      verifiedBackup = await Promise.race([
+        race,
+        wait(remainingMs).then(() => null)
+      ]);
+    }
+
+    if (verifiedBackup) {
+      selectEpisodePlaybackSource(episode, verifiedBackup.id);
+      return verifiedBackup;
+    }
+
+    // Never hand a source that just failed its live media check to the player.
+    // Retry clears this short-lived result and performs a fresh provider sweep.
+    return null;
+  })().finally(() => {
+    episode._reliablePlaybackSourcePromise = null;
+  });
+
+  episode._reliablePlaybackSourcePromise = preparation;
+  return preparation;
 }
 
 function renderDirectVideoPlayer(frame, url, episode) {
@@ -18780,6 +19023,9 @@ function renderPlaybackError(frame, episode, options = {}) {
   frame.querySelector("[data-try-another]")?.addEventListener("click", showSourcePickerPanel);
   frame.querySelector("[data-retry-episode]")?.addEventListener("click", () => {
     if (episode._failedSourceIds) episode._failedSourceIds.clear();
+    for (const source of getEpisodePlaybackSources(episode)) {
+      playbackSourceHealthCache.delete(playbackSourceHealthKey(source));
+    }
     episode._playbackFallbackPromptActive = false;
     playActiveShow();
   });
@@ -21118,7 +21364,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=854");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=856");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

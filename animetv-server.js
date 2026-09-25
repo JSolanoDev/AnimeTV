@@ -214,6 +214,7 @@ const settingsFile = path.join(root, "animetv-settings.json");
 // TioAnime Python service (python app.py in C:\Users\juank\test)
 const TIOANIME_SERVICE = process.env.TIOANIME_API || "http://localhost:5000";
 const tioAnimeSourceCache = new Map(); // "slug:ep" -> { data, ts }
+const tioAnimeSourceInflight = new Map();
 const TIOANIME_CACHE_TTL_MS = 1000 * 60 * 30; // 30 min
 const TIOANIME_MISS_CACHE_TTL_MS = 1000 * 60 * 8;
 let tioAnimeSlugCatalogMemory = null;
@@ -240,6 +241,7 @@ let animeAv1SlugCatalogMemory = null;
 let animeAv1SlugCatalogMemoryAt = 0;
 let animeAv1SlugCatalogPromise = null;
 const jkAnimeSourceCache = new Map(); // "slug:ep" -> { data, ts }
+const jkAnimeSourceInflight = new Map();
 const jkAnimeSlugSearchCache = new Map(); // normalized query -> { data, ts }
 let jkAnimeSlugCatalogMemory = null;
 const ANIMEONLINE_BASE = "https://ww3.animeonline.ninja";
@@ -259,6 +261,14 @@ let jkAnimeSlugCatalogPromise = null;
 const JKANIME_SLUG_CACHE_TTL_MS = 1000 * 60 * 60 * 12;
 const JKANIME_CACHE_TTL_MS = 1000 * 60 * 30;
 const JKANIME_MISS_CACHE_TTL_MS = 1000 * 60 * 8;
+const REGULAR_SOURCE_SUCCESS_CACHE_HEADERS = Object.freeze({
+  "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=600, stale-if-error=1800",
+  "Vary": "Accept-Encoding"
+});
+const REGULAR_SOURCE_MISS_CACHE_HEADERS = Object.freeze({
+  "Cache-Control": "public, max-age=15, s-maxage=60, stale-while-revalidate=120",
+  "Vary": "Accept-Encoding"
+});
 
 const ANILIST_MEDIA_CACHE_TTL_MS  = 1000 * 60 * 60 * 24;  // 24 h ΓÇö stable metadata
 const ANILIST_SEARCH_CACHE_TTL_MS = 1000 * 60 * 60;       // 1 h
@@ -7134,36 +7144,38 @@ async function handleTioAnimeSources(url, response) {
   const cached   = tioAnimeSourceCache.get(cacheKey);
   const cachedTtl = cached?.data?.ok ? TIOANIME_CACHE_TTL_MS : TIOANIME_MISS_CACHE_TTL_MS;
   if (cached && Date.now() - cached.ts < cachedTtl) {
-    sendJson(response, cached.data);
+    const status = cached.data.ok ? 200 : 404;
+    sendJson(response, cached.data, status, cached.data.ok ? REGULAR_SOURCE_SUCCESS_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS);
     return;
   }
 
   try {
-    const data = await fetchTioAnimeEpisodeSourcesDirect(slug, episode);
-    tioAnimeSourceCache.set(cacheKey, { data, ts: Date.now() });
-    sendJson(response, data, data.ok ? 200 : 404);
-  } catch (err) {
-    if (!HOSTED_RUNTIME && !isLoopbackUrl(TIOANIME_SERVICE)) {
+    const result = await coalesceInflight(tioAnimeSourceInflight, cacheKey, async () => {
       try {
-        const upstream = await fetchWithTimeout(
-          `${TIOANIME_SERVICE}/api/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(episode)}`,
-          {}, 9000
-        );
-        const data = await upstream.json();
-        if (data.ok) tioAnimeSourceCache.set(cacheKey, { data, ts: Date.now() });
-        sendJson(response, data, upstream.status);
-        return;
-      } catch (proxyError) {
-        log("warn", `TioAnime proxy fallback failed: ${proxyError.message}`);
+        const data = await fetchTioAnimeEpisodeSourcesDirect(slug, episode);
+        return { data, status: data.ok ? 200 : 404 };
+      } catch (err) {
+        if (!HOSTED_RUNTIME && !isLoopbackUrl(TIOANIME_SERVICE)) {
+          const upstream = await fetchWithTimeout(
+            `${TIOANIME_SERVICE}/api/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(episode)}`,
+            {}, 9000
+          );
+          return { data: await upstream.json(), status: upstream.status };
+        }
+        throw err;
       }
-    }
+    });
+    const { data, status } = result;
+    tioAnimeSourceCache.set(cacheKey, { data, ts: Date.now() });
+    sendJson(response, data, status, data.ok ? REGULAR_SOURCE_SUCCESS_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS);
+  } catch (err) {
     sendJson(response, {
       ok: false,
       error: "TioAnime sources unavailable.",
       detail: err.message,
       slug,
       episode
-    }, 503);
+    }, 503, REGULAR_SOURCE_MISS_CACHE_HEADERS);
   }
 }
 
@@ -7637,14 +7649,28 @@ async function handleJKAnimeSources(url, response) {
   const cached = jkAnimeSourceCache.get(cacheKey);
   const cachedTtl = cached?.data?.ok ? JKANIME_CACHE_TTL_MS : JKANIME_MISS_CACHE_TTL_MS;
   if (cached && Date.now() - cached.ts < cachedTtl) {
-    sendJson(response, cached.data, cached.data.ok ? 200 : 404);
+    sendJson(
+      response,
+      cached.data,
+      cached.data.ok ? 200 : 404,
+      cached.data.ok ? REGULAR_SOURCE_SUCCESS_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS
+    );
     return;
   }
 
   try {
-    const data = await fetchJKAnimeEpisodeSourcesDirect(safeSlug, epNum);
+    const data = await coalesceInflight(
+      jkAnimeSourceInflight,
+      cacheKey,
+      () => fetchJKAnimeEpisodeSourcesDirect(safeSlug, epNum)
+    );
     jkAnimeSourceCache.set(cacheKey, { data, ts: Date.now() });
-    sendJson(response, data, data.ok ? 200 : 404);
+    sendJson(
+      response,
+      data,
+      data.ok ? 200 : 404,
+      data.ok ? REGULAR_SOURCE_SUCCESS_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS
+    );
   } catch (error) {
     const status = /HTTP 404|not found|No JKAnime/i.test(error.message) ? 404 : 503;
     const data = {
@@ -7657,7 +7683,7 @@ async function handleJKAnimeSources(url, response) {
       sources: []
     };
     jkAnimeSourceCache.set(cacheKey, { data, ts: Date.now() });
-    sendJson(response, data, status);
+    sendJson(response, data, status, REGULAR_SOURCE_MISS_CACHE_HEADERS);
   }
 }
 
