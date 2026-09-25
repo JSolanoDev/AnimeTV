@@ -38,6 +38,7 @@
   let recoveryCount = 0;
   let networkRecoveryCount = 0;
   let mediaRecoveryCount = 0;
+  const PLAYBACK_STARTUP_DEADLINE_MS = 6500;
   let seekRecoveryUntil = 0;
   let lastProgressPosition = -1;
   let lastSeekToast = 0;
@@ -2738,16 +2739,14 @@
     startupTimer = setTimeout(() => {
       const video = art?.video;
       if (!video || elements.error.hidden === false) return;
-      if (video.readyState >= 3 || bufferedAhead(video) > 1 || !video.paused) {
+      if (video.readyState >= 2 || bufferedAhead(video) > 0.5) {
         hideLoading();
         return;
       }
-      scheduleRecovery("startup");
-      if (recoveryCount >= 3) {
-        showError("Stream is taking too long", "The server is buffering too slowly. Retry this episode or choose another source.");
-        send("error", "startup-timeout");
-      }
-    }, 18000);
+      cancelScheduledRecovery();
+      showError("Stream is taking too long", "The server is buffering too slowly. Trying another verified source.");
+      send("error", "startup-timeout");
+    }, PLAYBACK_STARTUP_DEADLINE_MS);
   }
 
   function clearStartupWatchdog() {

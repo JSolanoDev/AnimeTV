@@ -4567,7 +4567,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=858";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=863";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -6580,7 +6580,7 @@ let _scheduleControlsWired = false;
 // Keep corrections identity-scoped so similarly named seasons are untouched.
 const WEEKLY_SCHEDULE_DAY_OVERRIDES = Object.freeze({
   "show:animeav1-bleach-sennen-kessen-hen-kashin-tan": "Fri",
-  "anilist:185874": "Fri",
+  "anilist:185974": "Fri",
   "mal:60636": "Fri"
 });
 
@@ -7904,15 +7904,20 @@ function playbackLookupWithTimeout(label, promise, timeoutMs = 6500) {
 }
 
 const SOURCE_FAST_FIRST_PASS_MS = 1800;
-const SOURCE_FAST_SECOND_PASS_MS = 900;
+const SOURCE_FAST_SECOND_PASS_MS = 1400;
 const SOURCE_EAGER_FALLBACK_DELAY_MS = 450;
 
+function isFastPreferredPlaybackSource(source = {}) {
+  const directUrl = source.videoUrl || source.streamUrl || source.file || source.playUrl || "";
+  const identity = `${source.id || ""} ${source.label || ""} ${source.provider || ""} ${source.externalUrl || ""} ${directUrl}`.toLowerCase();
+  if (/(?:mp4upload|streamwish|sfastwish|streamtape|voe\.sx|voe\.si)/.test(identity)) return false;
+  if (identity.includes("yourupload") || identity.includes("youupload")) return true;
+  if (source.type === "direct" && directUrl) return true;
+  return false;
+}
+
 function hasFastPreferredPlaybackSource(episode) {
-  return getEpisodePlaybackSources(episode).some((source) => {
-    return sourcePreferenceScore(source) <= 1
-      || (isAnimeAv1Source(source) && isHlsSource(source))
-      || isAnimeAv1Source(source);
-  });
+  return getEpisodePlaybackSources(episode).some(isFastPreferredPlaybackSource);
 }
 
 async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1, options = {}) {
@@ -7949,7 +7954,7 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1, opti
   const firstSourceReady = new Promise((resolve) => {
     releaseFirstSource = (force = false) => {
       if (firstSourceReleased) return;
-      if (!force && !getEpisodePlaybackSources(episode).length) return;
+      if (!force && !hasFastPreferredPlaybackSource(episode)) return;
       firstSourceReleased = true;
       resolve(episode);
     };
@@ -8095,7 +8100,7 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1, opti
     firstSourceReady,
     wait(SOURCE_FAST_FIRST_PASS_MS)
   ]);
-  if (!hasFastPreferredPlaybackSource(episode) && !getEpisodePlaybackSources(episode).length) {
+  if (!hasFastPreferredPlaybackSource(episode)) {
     await Promise.race([
       firstSourceReady,
       completeBackgroundLookup,
@@ -18325,8 +18330,8 @@ function fallbackReferer(source = {}) {
 const FALLBACK_RESOLVE_TIMEOUT_MS = 4500;
 const FALLBACK_PROBE_TIMEOUT_MS = 4000;
 const FALLBACK_RACE_LIMIT = 3;
-const RELIABLE_PLAYBACK_TOTAL_BUDGET_MS = 2000;
-const RELIABLE_PLAYBACK_PRIMARY_PROBE_MS = 900;
+const RELIABLE_PLAYBACK_TOTAL_BUDGET_MS = 4200;
+const RELIABLE_PLAYBACK_PRIMARY_PROBE_MS = 1600;
 const RELIABLE_PLAYBACK_BACKUP_DELAY_MS = 450;
 const PLAYBACK_SOURCE_HEALTH_OK_TTL_MS = 90 * 1000;
 const PLAYBACK_SOURCE_HEALTH_FAIL_TTL_MS = 15 * 1000;
@@ -18714,8 +18719,21 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
     const startedAt = Date.now();
     const totalBudgetMs = Math.max(900, Number(options.timeoutMs) || RELIABLE_PLAYBACK_TOTAL_BUDGET_MS);
     const deadlineAt = startedAt + totalBudgetMs;
-    const initialSource = getSelectedEpisodeSource(episode);
-    if (hasFreshVerifiedPlaybackSource(initialSource)) return initialSource;
+    const selectedSource = getSelectedEpisodeSource(episode);
+    const availableSources = getEpisodePlaybackSources(episode)
+      .filter((source) => !episode._failedSourceIds?.has(source.id))
+      .filter(isAdFreeFallbackCandidate);
+    const reliableFirst = availableSources
+      .filter(isFastPreferredPlaybackSource)
+      .sort((a, b) => verifiedFallbackPreference(a) - verifiedFallbackPreference(b));
+    const initialCandidates = pickFallbackRaceCandidates(
+      reliableFirst.length ? reliableFirst : [selectedSource].filter(Boolean)
+    );
+    const alreadyVerified = initialCandidates.find(hasFreshVerifiedPlaybackSource);
+    if (alreadyVerified) {
+      selectEpisodePlaybackSource(episode, alreadyVerified.id);
+      return alreadyVerified;
+    }
 
     let primaryFinished = false;
     let backupLookup = null;
@@ -18739,18 +18757,26 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
       RELIABLE_PLAYBACK_PRIMARY_PROBE_MS,
       Math.max(350, deadlineAt - Date.now())
     );
-    const verifiedPrimary = initialSource
-      ? await verifyReliablePlaybackCandidate(episode, initialSource, { timeoutMs: primaryTimeout })
-      : null;
+    const primaryResult = initialCandidates.length
+      ? await Promise.race([
+          firstSuccessfulFallback(initialCandidates.map((source) => (
+            verifyReliablePlaybackCandidate(episode, source, { timeoutMs: primaryTimeout })
+          ))).then((source) => ({ completed: true, source })),
+          wait(primaryTimeout).then(() => ({ completed: false, source: null }))
+        ])
+      : { completed: true, source: null };
+    const verifiedPrimary = primaryResult.source;
     primaryFinished = true;
     if (verifiedPrimary) {
       selectEpisodePlaybackSource(episode, verifiedPrimary.id);
       return verifiedPrimary;
     }
 
-    if (initialSource?.id) {
+    if (primaryResult.completed) {
       episode._failedSourceIds = episode._failedSourceIds || new Set();
-      episode._failedSourceIds.add(initialSource.id);
+      initialCandidates.forEach((source) => {
+        if (source.id) episode._failedSourceIds.add(source.id);
+      });
     }
 
     startBackups();
@@ -18760,7 +18786,10 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
     }
 
     const candidates = getEpisodePlaybackSources(episode)
-      .filter((source) => source.id !== initialSource?.id)
+      .filter((source) => (
+        !primaryResult.completed
+        || !initialCandidates.some((initial) => initial.id === source.id)
+      ))
       .filter((source) => !episode._failedSourceIds?.has(source.id))
       .filter(isAdFreeFallbackCandidate)
       .sort((a, b) => verifiedFallbackPreference(a) - verifiedFallbackPreference(b));
@@ -21406,7 +21435,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=858");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=863");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

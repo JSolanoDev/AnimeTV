@@ -169,7 +169,12 @@ function playbackFallbackContext({ primaryFound, slowJk = false }) {
       calls.push(`animeav1:${phase}:start`);
       await Promise.resolve();
       if (primaryFound && !(episode.sourceOptions || []).some((source) => source.id === "primary")) {
-        episode.sourceOptions = [...(episode.sourceOptions || []), { id: "primary", provider: "AnimeAV1" }];
+        episode.sourceOptions = [...(episode.sourceOptions || []), {
+          id: "primary",
+          provider: "AnimeAV1",
+          type: "direct",
+          videoUrl: "https://media.test/primary.m3u8"
+        }];
       }
       episode.animeAv1SourcesChecked = true;
       calls.push(`animeav1:${phase}:end`);
@@ -177,18 +182,28 @@ function playbackFallbackContext({ primaryFound, slowJk = false }) {
     attachJKAnimeSources: async (_show, episode) => {
       calls.push("jkanime");
       await slowJkGate;
-      episode.sourceOptions = [...(episode.sourceOptions || []), { id: "jk", provider: "JKAnime" }];
+      episode.sourceOptions = [...(episode.sourceOptions || []), {
+        id: "jk",
+        provider: "JKAnime",
+        type: "iframe",
+        externalUrl: "https://mp4upload.test/embed"
+      }];
       episode.jkAnimeSourcesChecked = true;
     },
     attachTioAnimeSources: async (_show, episode) => {
       calls.push("tioanime");
-      episode.sourceOptions = [...(episode.sourceOptions || []), { id: "tio", provider: "TioAnime" }];
+      episode.sourceOptions = [...(episode.sourceOptions || []), {
+        id: "tio-yourupload",
+        provider: "TioAnime",
+        type: "iframe",
+        externalUrl: "https://www.yourupload.com/embed/example"
+      }];
       episode.tioAnimeSourcesChecked = true;
     },
     KNOWN_SOURCE_SERVERS: Object.entries(sourceMatches).map(([key, match]) => ({ key, match }))
   });
   vm.runInContext(
-    section(clientSource, "function hasFastPreferredPlaybackSource(", "function playbackLookupKey("),
+    section(clientSource, "function isFastPreferredPlaybackSource(", "function playbackLookupKey("),
     sandbox
   );
   return { sandbox, calls, completed, releaseSlowJk };
@@ -447,6 +462,22 @@ test("7d. regular backups run only after a confirmed AnimeAV1 miss", async () =>
   assert.equal(episode.playbackSourceLookupComplete, true);
 });
 
+test("7d1. a low-confidence embed cannot become primary only because it answered first", () => {
+  const { sandbox } = playbackFallbackContext({ primaryFound: false });
+  assert.equal(sandbox.hasFastPreferredPlaybackSource({
+    sourceOptions: [{ id: "early-mp4upload", type: "iframe", externalUrl: "https://mp4upload.test/embed" }]
+  }), false);
+  assert.equal(sandbox.hasFastPreferredPlaybackSource({
+    sourceOptions: [{ id: "resolved-mp4upload", type: "direct", videoUrl: "https://a4.mp4upload.com/video.mp4" }]
+  }), false);
+  assert.equal(sandbox.hasFastPreferredPlaybackSource({
+    sourceOptions: [{ id: "tio-yourupload", type: "iframe", externalUrl: "https://www.yourupload.com/embed/example" }]
+  }), true);
+  assert.equal(sandbox.hasFastPreferredPlaybackSource({
+    sourceOptions: [{ id: "direct", type: "direct", videoUrl: "https://media.test/episode.m3u8" }]
+  }), true);
+});
+
 test("7d2. the first usable backup releases playback while another provider is slow", async () => {
   const { sandbox, calls, completed, releaseSlowJk } = playbackFallbackContext({
     primaryFound: false,
@@ -517,15 +548,16 @@ test("7f2. play-intent health checking promotes a verified backup automatically"
   const sandbox = vm.createContext({
     Date,
     Set,
-    RELIABLE_PLAYBACK_TOTAL_BUDGET_MS: 2000,
-    RELIABLE_PLAYBACK_PRIMARY_PROBE_MS: 900,
+    RELIABLE_PLAYBACK_TOTAL_BUDGET_MS: 4200,
+    RELIABLE_PLAYBACK_PRIMARY_PROBE_MS: 1600,
     RELIABLE_PLAYBACK_BACKUP_DELAY_MS: 450,
     AdultMode: { isAdultContent: () => false },
-    wait: async () => {},
+    wait: () => new Promise(() => {}),
     getSelectedEpisodeSource: (value) => value.sourceOptions.find((source) => (
       source.id === value.selectedSourceId && !value._failedSourceIds?.has(source.id)
     )) || value.sourceOptions.find((source) => !value._failedSourceIds?.has(source.id)) || null,
     hasFreshVerifiedPlaybackSource: () => false,
+    isFastPreferredPlaybackSource: () => true,
     verifyReliablePlaybackCandidate: async (_value, source) => source.id === "backup" ? source : null,
     attachPlaybackFailureFallbacks: async (_show, value) => {
       fallbackLookups += 1;
@@ -560,21 +592,70 @@ test("7f2. play-intent health checking promotes a verified backup automatically"
   assert.equal(fallbackLookups, 1);
 });
 
+test("7f2a. reliable candidates are verified before a selected low-confidence embed", async () => {
+  const mp4Upload = { id: "mp4upload", type: "iframe", externalUrl: "https://mp4upload.test/embed" };
+  const yourUpload = { id: "yourupload", type: "iframe", externalUrl: "https://www.yourupload.com/embed/example" };
+  const episode = { sourceOptions: [mp4Upload, yourUpload], selectedSourceId: "mp4upload" };
+  const verified = [];
+  const sandbox = vm.createContext({
+    Date,
+    Set,
+    RELIABLE_PLAYBACK_TOTAL_BUDGET_MS: 4200,
+    RELIABLE_PLAYBACK_PRIMARY_PROBE_MS: 1600,
+    RELIABLE_PLAYBACK_BACKUP_DELAY_MS: 450,
+    AdultMode: { isAdultContent: () => false },
+    wait: () => new Promise(() => {}),
+    getSelectedEpisodeSource: (value) => value.sourceOptions.find((source) => source.id === value.selectedSourceId) || null,
+    getEpisodePlaybackSources: (value) => value.sourceOptions,
+    isAdFreeFallbackCandidate: () => true,
+    hasFreshVerifiedPlaybackSource: () => false,
+    isFastPreferredPlaybackSource: (source) => source.id === "yourupload",
+    verifiedFallbackPreference: (source) => source.id === "yourupload" ? 0 : 1,
+    pickFallbackRaceCandidates: (sources) => sources.slice(0, 3),
+    verifyReliablePlaybackCandidate: async (_value, source) => {
+      verified.push(source.id);
+      return source.id === "yourupload" ? source : null;
+    },
+    firstSuccessfulFallback: async (tasks) => {
+      for (const task of tasks) {
+        const value = await task;
+        if (value) return value;
+      }
+      return null;
+    },
+    attachPlaybackFailureFallbacks: async (_show, value) => value,
+    selectEpisodePlaybackSource: (value, id) => {
+      value.selectedSourceId = id;
+      return value.sourceOptions.find((source) => source.id === id) || null;
+    }
+  });
+  vm.runInContext(
+    section(clientSource, "async function prepareReliablePlaybackSource(", "function renderDirectVideoPlayer("),
+    sandbox
+  );
+
+  const selected = await sandbox.prepareReliablePlaybackSource({ title: "Example" }, episode);
+  assert.equal(selected.id, "yourupload");
+  assert.deepEqual(verified, ["yourupload"]);
+  assert.equal(episode.selectedSourceId, "yourupload");
+});
+
 test("7f2b. a failed primary is not retried when no backup verifies", async () => {
   const primary = { id: "primary", type: "direct", videoUrl: "https://dead.test/episode.m3u8" };
   const episode = { sourceOptions: [primary], selectedSourceId: "primary" };
   const sandbox = vm.createContext({
     Date,
     Set,
-    RELIABLE_PLAYBACK_TOTAL_BUDGET_MS: 2000,
-    RELIABLE_PLAYBACK_PRIMARY_PROBE_MS: 900,
+    RELIABLE_PLAYBACK_TOTAL_BUDGET_MS: 4200,
+    RELIABLE_PLAYBACK_PRIMARY_PROBE_MS: 1600,
     RELIABLE_PLAYBACK_BACKUP_DELAY_MS: 450,
     AdultMode: { isAdultContent: () => false },
-    wait: async () => {},
+    wait: () => new Promise(() => {}),
     getSelectedEpisodeSource: (value) => value.sourceOptions.find((source) => (
       source.id === value.selectedSourceId && !value._failedSourceIds?.has(source.id)
     )) || null,
     hasFreshVerifiedPlaybackSource: () => false,
+    isFastPreferredPlaybackSource: () => true,
     verifyReliablePlaybackCandidate: async () => null,
     attachPlaybackFailureFallbacks: async (_show, value) => value,
     getEpisodePlaybackSources: (value) => value.sourceOptions,
@@ -592,6 +673,53 @@ test("7f2b. a failed primary is not retried when no backup verifies", async () =
   const selected = await sandbox.prepareReliablePlaybackSource({ title: "Example" }, episode);
   assert.equal(selected, null);
   assert.equal(episode._failedSourceIds.has("primary"), true);
+});
+
+test("7f2c. a preferred source remains eligible after only the short probe times out", async () => {
+  const yourUpload = { id: "yourupload", type: "iframe", externalUrl: "https://www.yourupload.com/embed/example" };
+  const episode = { sourceOptions: [yourUpload], selectedSourceId: "yourupload" };
+  let checks = 0;
+  const never = new Promise(() => {});
+  const sandbox = vm.createContext({
+    Date,
+    Set,
+    RELIABLE_PLAYBACK_TOTAL_BUDGET_MS: 4200,
+    RELIABLE_PLAYBACK_PRIMARY_PROBE_MS: 1600,
+    RELIABLE_PLAYBACK_BACKUP_DELAY_MS: 450,
+    AdultMode: { isAdultContent: () => false },
+    wait: (ms) => ms === 1600 ? Promise.resolve() : never,
+    getSelectedEpisodeSource: (value) => value.sourceOptions.find((source) => source.id === value.selectedSourceId) || null,
+    getEpisodePlaybackSources: (value) => value.sourceOptions,
+    isAdFreeFallbackCandidate: () => true,
+    hasFreshVerifiedPlaybackSource: () => false,
+    isFastPreferredPlaybackSource: () => true,
+    verifiedFallbackPreference: () => 0,
+    pickFallbackRaceCandidates: (sources) => sources,
+    verifyReliablePlaybackCandidate: async (_value, source) => {
+      checks += 1;
+      return checks === 1 ? never : source;
+    },
+    firstSuccessfulFallback: async (tasks) => {
+      for (const task of tasks) {
+        const value = await task;
+        if (value) return value;
+      }
+      return null;
+    },
+    attachPlaybackFailureFallbacks: async (_show, value) => value,
+    selectEpisodePlaybackSource: (value, id) => {
+      value.selectedSourceId = id;
+      return value.sourceOptions.find((source) => source.id === id) || null;
+    }
+  });
+  vm.runInContext(
+    section(clientSource, "async function prepareReliablePlaybackSource(", "function renderDirectVideoPlayer("),
+    sandbox
+  );
+
+  const selected = await sandbox.prepareReliablePlaybackSource({ title: "Example" }, episode);
+  assert.equal(selected.id, "yourupload");
+  assert.equal(checks, 2);
 });
 
 test("7f3. regular backup source routes share CDN cache and cold in-flight work", () => {
@@ -754,6 +882,19 @@ test("11c. player reports manifest HTTP errors and timeouts before the normal HL
   assert.ok(playerManifestTimeout >= 4000 && playerManifestTimeout <= 6000);
   assert.ok(clientManifestTimeout >= 4000 && clientManifestTimeout <= 6000);
   assert.match(handler, /send\("error", "manifest-upstream-unavailable"\)/);
+});
+
+test("11c2. a pending play request cannot suppress the startup fallback watchdog", () => {
+  const watchdog = section(
+    playerSource,
+    "function armStartupWatchdog()",
+    "function clearStartupWatchdog()"
+  );
+  const deadline = Number(playerSource.match(/PLAYBACK_STARTUP_DEADLINE_MS\s*=\s*(\d+)/)?.[1]);
+  assert.ok(deadline >= 4000 && deadline <= 8000);
+  assert.doesNotMatch(watchdog, /!video\.paused/);
+  assert.match(watchdog, /video\.readyState >= 2/);
+  assert.match(watchdog, /send\("error", "startup-timeout"\)/);
 });
 
 test("11d. mounting HLS preconnects without issuing a duplicate manifest probe", () => {
