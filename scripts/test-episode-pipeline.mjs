@@ -119,10 +119,14 @@ function searchContext(shows, query) {
   return sandbox;
 }
 
-function playbackFallbackContext({ primaryFound }) {
+function playbackFallbackContext({ primaryFound, slowJk = false }) {
   const calls = [];
   let resolveCompleted;
   const completed = new Promise((resolve) => { resolveCompleted = resolve; });
+  let releaseSlowJk = () => {};
+  const slowJkGate = slowJk
+    ? new Promise((resolve) => { releaseSlowJk = resolve; })
+    : Promise.resolve();
   const sourceOptionsBackgroundLookups = new Map();
   const sourceMatches = {
     animeav1: (source) => source.provider === "AnimeAV1",
@@ -135,6 +139,7 @@ function playbackFallbackContext({ primaryFound }) {
     Date,
     SOURCE_FAST_FIRST_PASS_MS: 0,
     SOURCE_FAST_SECOND_PASS_MS: 0,
+    SOURCE_EAGER_FALLBACK_DELAY_MS: 450,
     AdultMode: { isAdultContent: () => false },
     episodeList: null,
     document: { querySelector: () => null },
@@ -171,6 +176,7 @@ function playbackFallbackContext({ primaryFound }) {
     },
     attachJKAnimeSources: async (_show, episode) => {
       calls.push("jkanime");
+      await slowJkGate;
       episode.sourceOptions = [...(episode.sourceOptions || []), { id: "jk", provider: "JKAnime" }];
       episode.jkAnimeSourcesChecked = true;
     },
@@ -185,7 +191,7 @@ function playbackFallbackContext({ primaryFound }) {
     section(clientSource, "function hasFastPreferredPlaybackSource(", "function playbackLookupKey("),
     sandbox
   );
-  return { sandbox, calls, completed };
+  return { sandbox, calls, completed, releaseSlowJk };
 }
 
 function animeAv1SourceContext() {
@@ -441,6 +447,26 @@ test("7d. regular backups run only after a confirmed AnimeAV1 miss", async () =>
   assert.equal(episode.playbackSourceLookupComplete, true);
 });
 
+test("7d2. the first usable backup releases playback while another provider is slow", async () => {
+  const { sandbox, calls, completed, releaseSlowJk } = playbackFallbackContext({
+    primaryFound: false,
+    slowJk: true
+  });
+  const episode = { sourceOptions: [] };
+  const lookup = sandbox.attachPlaybackSourceOptions({ title: "Fast backup title" }, episode, 1, {
+    eagerFallbacks: true
+  });
+  const released = await Promise.race([
+    lookup.then(() => true),
+    new Promise((resolve) => setTimeout(() => resolve(false), 50))
+  ]);
+  assert.equal(released, true);
+  assert.ok(calls.includes("tioanime"));
+  assert.equal(episode.sourceOptions.some((source) => source.provider === "TioAnime"), true);
+  releaseSlowJk();
+  await completed;
+});
+
 test("7e. a verified OVA fallback cannot be replaced by a fuzzy parent-series match", async () => {
   const { sandbox, calls, completed } = playbackFallbackContext({ primaryFound: false });
   const episode = { sourceOptions: [] };
@@ -574,6 +600,8 @@ test("7f3. regular backup source routes share CDN cache and cold in-flight work"
   assert.match(serverSource, /coalesceInflight\(tioAnimeSourceInflight, cacheKey/);
   assert.match(serverSource, /coalesceInflight\(\s*jkAnimeSourceInflight,/);
   assert.match(serverSource, /s-maxage=300, stale-while-revalidate=600/);
+  const jkAttach = section(clientSource, "function fetchJKAnimeEpisodeSourcePayload(", "function mergeJKAnimeSourcesIntoEpisode(");
+  assert.ok(jkAttach.indexOf("animeAv1CatalogSlugForShow(show)") < jkAttach.indexOf("hydrateJKAnimeSlug(show"));
 });
 
 test("7g. AnimeAV1 embed backups stay hidden until playback failure expansion", () => {
@@ -735,6 +763,7 @@ test("11d. mounting HLS preconnects without issuing a duplicate manifest probe",
     "function renderPlaybackError("
   );
   assert.match(renderer, /preconnectOnly:\s*streamType\s*===\s*"hls"/);
+  assert.match(renderer, /hasFreshVerifiedPlaybackSource\(selectedSource\)/);
   assert.match(clientSource, /options\.preconnectOnly \|\| streamTypeFromUrl\(resolved\) === "hls"/);
   const warmupWiring = section(
     clientSource,

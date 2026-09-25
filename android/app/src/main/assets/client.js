@@ -4567,7 +4567,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=856";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=858";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -7944,6 +7944,17 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1, opti
   episode.serverChecks = {};
 
   const beforeCount = getEpisodePlaybackSources(episode).length;
+  let firstSourceReleased = false;
+  let releaseFirstSource;
+  const firstSourceReady = new Promise((resolve) => {
+    releaseFirstSource = (force = false) => {
+      if (firstSourceReleased) return;
+      if (!force && !getEpisodePlaybackSources(episode).length) return;
+      firstSourceReleased = true;
+      resolve(episode);
+    };
+  });
+  releaseFirstSource();
 
   const refreshPicker = () => {
     const frame = document.querySelector("#videoFrame");
@@ -7964,6 +7975,7 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1, opti
     if (found) {
       episode.serverReadyAt = episode.serverReadyAt || {};
       if (!episode.serverReadyAt[key]) episode.serverReadyAt[key] = Date.now();
+      releaseFirstSource();
     }
     refreshPicker();
   };
@@ -8062,8 +8074,10 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1, opti
       if (episode.sourceOptions.length > beforeCount) {
         console.info(`Loaded ${episode.sourceOptions.length} playback server option(s) for ${show.title} episode ${episodeNumber}.`);
       }
+      releaseFirstSource(true);
     })
     .finally(() => {
+      releaseFirstSource(true);
       sourceOptionsBackgroundLookups.delete(lookupKey);
       episode.sourceOptionsPending = false;
       refreshPicker();
@@ -8078,10 +8092,12 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1, opti
 
   await Promise.race([
     primaryLookup,
+    firstSourceReady,
     wait(SOURCE_FAST_FIRST_PASS_MS)
   ]);
   if (!hasFastPreferredPlaybackSource(episode) && !getEpisodePlaybackSources(episode).length) {
     await Promise.race([
+      firstSourceReady,
       completeBackgroundLookup,
       wait(SOURCE_FAST_SECOND_PASS_MS)
     ]);
@@ -17266,52 +17282,73 @@ async function hydrateJKAnimeSlug(show, options = {}) {
   return show;
 }
 
+function fetchJKAnimeEpisodeSourcePayload(slug, epNum) {
+  const cacheKey = `${slug}:${epNum}`;
+  const cached = _jkAnimeEpisodeSourceCache.get(cacheKey);
+  if (cached) return Promise.resolve(cached);
+  let lookup = _jkAnimeEpisodeSourceInflight.get(cacheKey);
+  if (!lookup) {
+    lookup = fetchWithTimeout(
+      `/api/jkanime/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}`,
+      { cache: "default" }, JKANIME_SOURCE_TIMEOUT_MS
+    ).then(async (res) => {
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data.ok || !Array.isArray(data.sources)) return null;
+      _jkAnimeEpisodeSourceCache.set(cacheKey, data);
+      return data;
+    }).finally(() => _jkAnimeEpisodeSourceInflight.delete(cacheKey));
+    _jkAnimeEpisodeSourceInflight.set(cacheKey, lookup);
+  }
+  return lookup;
+}
+
 async function attachJKAnimeSources(show, episode) {
   if (!show || !episode) return;
   const verifiedFallback = getVerifiedFallbackSourceEpisode(show, episode, "jkanime");
-  if (!verifiedFallback && !show.jkAnimeSlug) await hydrateJKAnimeSlug(show, { force: true });
-  const slug = verifiedFallback?.providerAnimeSlug || show.jkAnimeSlug;
-  if (slug && !show.jkAnimeSlug) {
-    show.jkAnimeSlug = slug;
-    show.jkAnimeSlugSource = "verified-release-fallback";
-  }
-  if (!slug) {
-    episode.jkAnimeSourcesChecked = true;
-    return;
-  }
   const epNum = verifiedFallback?.providerEpisodeId ?? episode.episode ?? episode.number;
-  if (!epNum) {
+  let slug = verifiedFallback?.providerAnimeSlug
+    || show.jkAnimeSlug
+    || animeAv1CatalogSlugForShow(show)
+    || episode.providerAnimeSlug
+    || "";
+  if (!slug || !epNum) {
     episode.jkAnimeSourcesChecked = true;
     return;
   }
-  const cacheKey = `${slug}:${epNum}`;
-  const cached = _jkAnimeEpisodeSourceCache.get(cacheKey);
-  if (cached) {
-    mergeJKAnimeSourcesIntoEpisode(show, episode, cached, slug, epNum);
-    episode.jkAnimeSourcesChecked = true;
-    return;
-  }
+
+  let data = null;
   try {
-    let lookup = _jkAnimeEpisodeSourceInflight.get(cacheKey);
-    if (!lookup) {
-      lookup = fetchWithTimeout(
-        `/api/jkanime/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}`,
-        { cache: "default" }, JKANIME_SOURCE_TIMEOUT_MS
-      ).then(async (res) => {
-        if (!res.ok) return null;
-        const data = await res.json();
-        if (!data.ok || !Array.isArray(data.sources)) return null;
-        _jkAnimeEpisodeSourceCache.set(cacheKey, data);
-        return data;
-      }).finally(() => _jkAnimeEpisodeSourceInflight.delete(cacheKey));
-      _jkAnimeEpisodeSourceInflight.set(cacheKey, lookup);
+    data = await fetchJKAnimeEpisodeSourcePayload(slug, epNum);
+    if (
+      data
+      && !verifiedFallback
+      && !show.jkAnimeSlug
+      && data.title
+      && titleMatchScore(show, { title: data.title }) <= 0
+    ) {
+      data = null;
     }
-    const data = await lookup;
-    if (!data) {
-      episode.jkAnimeSourcesChecked = true;
-      return;
+
+    // Most AnimeAV1 and JKAnime routes share an exact slug. Try that cheap route
+    // first; only pay for the broader title search when the direct candidate
+    // really missed or returned a different title.
+    if (!data && !verifiedFallback && !show.jkAnimeSlug) {
+      await hydrateJKAnimeSlug(show, { force: true });
+      const searchedSlug = show.jkAnimeSlug || "";
+      if (searchedSlug && searchedSlug !== slug) {
+        slug = searchedSlug;
+        data = await fetchJKAnimeEpisodeSourcePayload(slug, epNum);
+      }
     }
-    mergeJKAnimeSourcesIntoEpisode(show, episode, data, slug, epNum);
+
+    if (data) {
+      if (!show.jkAnimeSlug) {
+        show.jkAnimeSlug = slug;
+        show.jkAnimeSlugSource = verifiedFallback ? "verified-release-fallback" : "animeav1-slug-probe";
+      }
+      mergeJKAnimeSourcesIntoEpisode(show, episode, data, slug, epNum);
+    }
   } catch (error) {
     console.warn("JKAnime episode sources unavailable:", error);
   }
@@ -18758,9 +18795,15 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
 
 function renderDirectVideoPlayer(frame, url, episode) {
   const streamType = streamTypeFromUrl(url);
+  const selectedSource = getSelectedEpisodeSource(episode);
   // The player is about to request an HLS manifest itself. A parallel no-store
-  // probe cannot be reused and doubles /api/source work when that host is down.
-  warmPlayableStream(url, { timeoutMs: 2000, preconnectOnly: streamType === "hls" });
+  // probe cannot be reused and doubles /api/source work. A source that just
+  // passed the live availability check needs only a warm connection here; the
+  // iframe should own the first playback request.
+  warmPlayableStream(url, {
+    timeoutMs: 2000,
+    preconnectOnly: streamType === "hls" || hasFreshVerifiedPlaybackSource(selectedSource)
+  });
   const skipShow = state.activeShow;
   const skipShowKey = String(skipShow?.id || getShowKey(skipShow || {}));
   const skipEpisodeKey = episodeSkipKey(episode);
@@ -18770,7 +18813,6 @@ function renderDirectVideoPlayer(frame, url, episode) {
   const spanishTrack = preferences.subtitles === "spanish-translated"
     ? null
     : preferredTrack || tracks.find((track) => isSpanishLanguage(track.language || track.label));
-  const selectedSource = getSelectedEpisodeSource(episode);
   const useApkPlayer = state.uiPreferences.playerEngine !== "native";
   const fit = state.uiPreferences.playerFit || "contain";
   const useNativeControls = !useApkPlayer && state.uiPreferences.playerInterface === "native";
@@ -21364,7 +21406,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=856");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=858");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
