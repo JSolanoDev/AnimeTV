@@ -4567,7 +4567,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=873";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=875";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -7916,10 +7916,12 @@ function isDirectMediaResolverCandidate(source = {}) {
 function isFastPreferredPlaybackSource(source = {}) {
   const directUrl = source.videoUrl || source.streamUrl || source.file || source.playUrl || "";
   const identity = `${source.id || ""} ${source.label || ""} ${source.provider || ""} ${source.externalUrl || ""} ${directUrl}`.toLowerCase();
-  if (/(?:mp4upload|streamwish|sfastwish|streamtape)/.test(identity)) return false;
+  // A freshly resolved VOE URL is signed HLS and has proven substantially more
+  // consistent than the playlist-only UPN mirror. Keep progressive hosts and
+  // UPN in the verified fallback ladder instead of letting a quick header or
+  // master manifest make them the first player the viewer sees.
   if (isDirectMediaResolverCandidate(source)) return true;
-  if (identity.includes("upnshare") || identity.includes("animeav1.uns.bio")) return true;
-  if (identity.includes("yourupload") || identity.includes("youupload")) return true;
+  if (/(?:upnshare|animeav1\.uns\.bio|mp4upload|streamwish|sfastwish|streamtape|yourupload|youupload)/.test(identity)) return false;
   if (source.type === "direct" && directUrl) return true;
   return false;
 }
@@ -18329,12 +18331,35 @@ async function runActivePlaybackAttempt(options = {}, playbackContext) {
     && state.playIntent
     && !(typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show))
   ) {
-    const reliableSource = await prepareReliablePlaybackSource(show, activeEpisode);
+    let reliableSource = await prepareReliablePlaybackSource(show, activeEpisode);
     if (!isPlaybackAttemptCurrent(playbackContext, show, activeEpisode)) return;
     const currentEpisode = state.activeEpisode?.episode;
     const stillSelected = currentEpisode === activeEpisode
       || Boolean(currentEpisode?.id && activeEpisode.id && currentEpisode.id === activeEpisode.id);
     if (!stillSelected || state.activeShow !== show) return;
+    if (!reliableSource) {
+      // The primary verification can finish just before JKAnime/TioAnime adds a
+      // usable stream. Keep the already-running provider sweep alive for one
+      // short handoff window, then verify the first new candidate instead of
+      // presenting a final error while a valid backup is arriving.
+      renderPlayerPopupMessage(
+        frame,
+        "Checking backup servers...",
+        "The first server did not respond. Testing the fastest available backup."
+      );
+      const fallbackLookup = attachPlaybackFailureFallbacks(show, activeEpisode);
+      const firstCandidateReady = activeEpisode._playbackFailureFastPromise || fallbackLookup;
+      await Promise.race([
+        firstCandidateReady,
+        fallbackLookup,
+        wait(RELIABLE_PLAYBACK_HANDOFF_WAIT_MS)
+      ]);
+      if (!isPlaybackAttemptCurrent(playbackContext, show, activeEpisode)) return;
+      reliableSource = await prepareReliablePlaybackSource(show, activeEpisode, {
+        timeoutMs: RELIABLE_PLAYBACK_HANDOFF_VERIFY_MS
+      });
+      if (!isPlaybackAttemptCurrent(playbackContext, show, activeEpisode)) return;
+    }
     if (!reliableSource) {
       renderPlaybackError(frame, activeEpisode, {
         title: "Playback source unavailable",
@@ -18538,16 +18563,17 @@ function isAdFreeFallbackCandidate(source = {}) {
 function verifiedFallbackPreference(source = {}) {
   const identity = fallbackSourceIdentity(source).toLowerCase();
   let preference = 10 + sourcePreferenceScore(source);
-  // Segmented HLS hosts consistently reach a browser's first frame sooner than
-  // large MP4Upload files. MP4Upload can answer a tiny range probe immediately
-  // while being too slow to sustain playback, so keep it as a later fallback.
-  if (identity.includes("upnshare") || identity.includes("animeav1.uns.bio")) preference = 0;
-  else if (identity.includes("voe")) preference = 1;
-  else if (identity.includes("streamwish") || identity.includes("sfastwish")) preference = 2;
-  else if (identity.includes("yourupload") || identity.includes("youupload")) preference = 3;
-  else if (identity.includes("mp4upload")) preference = 4;
-  else if (source.type === "direct" && sourceDirectUrl(source)) preference = 5;
-  else if (identity.includes("okru") || identity.includes("ok.ru")) preference = 6;
+  // Prefer signed VOE HLS before UPN. UPN can expose a healthy master playlist
+  // while its media fragments are already 404/502, and large progressive files
+  // can answer a small range before falling behind playback.
+  if (identity.includes("voe")) preference = 0;
+  else if (source.type === "direct" && streamTypeFromUrl(sourceDirectUrl(source)) === "hls") preference = 1;
+  else if (identity.includes("upnshare") || identity.includes("animeav1.uns.bio")) preference = 2;
+  else if (identity.includes("streamwish") || identity.includes("sfastwish")) preference = 3;
+  else if (identity.includes("yourupload") || identity.includes("youupload")) preference = 4;
+  else if (identity.includes("mp4upload")) preference = 5;
+  else if (source.type === "direct" && sourceDirectUrl(source)) preference = 6;
+  else if (identity.includes("okru") || identity.includes("ok.ru")) preference = 7;
   return preference + playbackFamilyHealthAdjustment(source);
 }
 
@@ -18566,6 +18592,8 @@ const FALLBACK_RACE_LIMIT = 3;
 const RELIABLE_PLAYBACK_TOTAL_BUDGET_MS = 5200;
 const RELIABLE_PLAYBACK_PRIMARY_PROBE_MS = 3200;
 const RELIABLE_PLAYBACK_BACKUP_DELAY_MS = 450;
+const RELIABLE_PLAYBACK_HANDOFF_WAIT_MS = 1800;
+const RELIABLE_PLAYBACK_HANDOFF_VERIFY_MS = 3200;
 const PLAYBACK_SOURCE_HEALTH_OK_TTL_MS = 90 * 1000;
 const PLAYBACK_SOURCE_HEALTH_FAIL_TTL_MS = 15 * 1000;
 const PLAYBACK_FAMILY_HEALTH_OK_TTL_MS = 3 * 60 * 1000;
@@ -18629,12 +18657,15 @@ function hasRecentlyFailedPlaybackFamily(source = {}) {
 function canStartResolvedAdFreeFallback(source = {}, resolved = {}) {
   if (!resolved.url || isBlockedPlaybackUrl(resolved.url) || !isAdFreeFallbackCandidate(source)) return false;
   const identity = fallbackSourceIdentity(source).toLowerCase();
-  const trustedProvider = /(?:upnshare|animeav1\.uns\.bio|voe|mp4upload|streamwish|sfastwish|yourupload|youupload|okru|ok\.ru)/.test(identity);
-  // Skipping the media probe is safe only after this host family has produced
-  // bytes recently. A fresh signed embed can resolve successfully while its
-  // media URL is already dead; mounting that false positive costs the player's
-  // entire startup watchdog before fallback begins.
-  return trustedProvider && playbackFamilyHealth(source) === true;
+  const resolvedType = String(resolved.type || streamTypeFromUrl(resolved.url)).toLowerCase();
+  const isHls = resolvedType === "hls"
+    || resolvedType.includes("mpegurl")
+    || streamTypeFromUrl(resolved.url) === "hls";
+  // Resolving a VOE embed produces a fresh signed Cloudwindow HLS URL. Starting
+  // that URL immediately avoids a duplicate manifest Function call and keeps a
+  // cold episode near one second. UPN and progressive mirrors still have to
+  // deliver bytes for this exact episode before they may replace it.
+  return isHls && identity.includes("voe");
 }
 
 function pickFallbackRaceCandidates(candidates = [], limit = FALLBACK_RACE_LIMIT) {
@@ -18743,12 +18774,15 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
   const target = proxiedStreamUrl(url, referer);
   if (!target) return false;
   const startedAt = Date.now();
+  const originalUrl = originalStreamUrlFromProxy(url);
+  const requiresSustainedProbe = /(?:mp4upload|yourupload|youupload)/i.test(originalUrl);
+  const rangeEnd = requiresSustainedProbe ? (256 * 1024) - 1 : (64 * 1024) - 1;
   let reader = null;
   try {
     const response = await fetchWithTimeout(target, {
       cache: cacheMode,
       credentials: "omit",
-      headers: { Range: "bytes=0-65535" }
+      headers: { Range: `bytes=0-${rangeEnd}` }
     }, timeoutMs);
     const contentType = String(response.headers.get("content-type") || "").toLowerCase();
     const contentRange = response.headers.get("content-range") || "";
@@ -18769,7 +18803,7 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
     // giving it to the player. The request remains bounded and is cancelled as
     // soon as a small sample arrives.
     reader = response.body.getReader();
-    const minimumBytes = 32 * 1024;
+    const minimumBytes = requiresSustainedProbe ? 192 * 1024 : 32 * 1024;
     let receivedBytes = 0;
     let streamEnded = false;
     while (receivedBytes < minimumBytes && !streamEnded) {
@@ -18787,7 +18821,11 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
       streamEnded = Boolean(chunk.done);
       receivedBytes += Number(chunk.value?.byteLength || 0);
     }
-    return receivedBytes >= minimumBytes || (streamEnded && receivedBytes > 0);
+    const deliveredEnough = receivedBytes >= minimumBytes || (!requiresSustainedProbe && streamEnded && receivedBytes > 0);
+    if (!deliveredEnough) return false;
+    if (!requiresSustainedProbe) return true;
+    const bytesPerSecond = receivedBytes / Math.max(0.001, (Date.now() - startedAt) / 1000);
+    return bytesPerSecond >= 192 * 1024;
   } catch {
     return false;
   } finally {
@@ -19011,10 +19049,6 @@ function inspectPlaybackSourceHealth(source = {}, options = {}) {
       return provisional;
     }
     const remainingMs = Math.max(0, deadlineAt - Date.now());
-    const resolvedType = String(resolved?.type || streamTypeFromUrl(resolved?.url || "")).toLowerCase();
-    const isHlsCandidate = resolvedType === "hls"
-      || resolvedType.includes("mpegurl")
-      || streamTypeFromUrl(resolved?.url || "") === "hls";
     const playable = Boolean(
       resolved?.url
       && remainingMs >= 150
@@ -19024,11 +19058,10 @@ function inspectPlaybackSourceHealth(source = {}, options = {}) {
         // Let the browser and Vercel reuse a successful VOD-manifest check when
         // the player requests that same URL immediately afterward.
         cacheMode: "default",
-        // HLS playback is allowed after a valid child rendition is found; its
-        // first fragment remains protected by the player's startup watchdog.
-        // Progressive files must deliver body bytes here because several MP4
-        // hosts return fast headers and then stall indefinitely.
-        manifestOnly: isHlsCandidate
+        // A master playlist alone is not proof of playback: some UPN episodes
+        // publish one while their first fragment is already gone. VOE takes the
+        // fast signed-HLS path above; every other candidate proves media bytes.
+        manifestOnly: false
       })
     );
     playbackSourceHealthCache.set(key, {
@@ -21932,7 +21965,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=873");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=875");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

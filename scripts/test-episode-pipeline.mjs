@@ -468,7 +468,7 @@ test("7d. regular backups run only after a confirmed AnimeAV1 miss", async () =>
   assert.equal(episode.playbackSourceLookupComplete, true);
 });
 
-test("7d1. slow MP4 embeds stay deferred while proven fast sources enter verification", () => {
+test("7d1. progressive embeds stay deferred while proven fast sources enter verification", () => {
   const { sandbox } = playbackFallbackContext({ primaryFound: false });
   assert.equal(sandbox.hasFastPreferredPlaybackSource({
     sourceOptions: [{ id: "early-mp4upload", type: "iframe", externalUrl: "https://mp4upload.test/embed" }]
@@ -481,6 +481,12 @@ test("7d1. slow MP4 embeds stay deferred while proven fast sources enter verific
   }), false);
   assert.equal(sandbox.hasFastPreferredPlaybackSource({
     sourceOptions: [{ id: "tio-yourupload", type: "iframe", externalUrl: "https://www.yourupload.com/embed/example" }]
+  }), false);
+  assert.equal(sandbox.hasFastPreferredPlaybackSource({
+    sourceOptions: [{ id: "animeav1-upn", type: "iframe", externalUrl: "https://animeav1.uns.bio/#episode" }]
+  }), false);
+  assert.equal(sandbox.hasFastPreferredPlaybackSource({
+    sourceOptions: [{ id: "animeav1-voe", type: "iframe", externalUrl: "https://voe.sx/e/episode" }]
   }), true);
   assert.equal(sandbox.hasFastPreferredPlaybackSource({
     sourceOptions: [{ id: "direct", type: "direct", videoUrl: "https://media.test/episode.m3u8" }]
@@ -770,6 +776,7 @@ test("7f4. a failed host family is demoted for the next episode until it recover
   const voeEmbed = { id: "animeav1-voe-e2", provider: "Voe", externalUrl: "https://voe.sx/e/e2" };
   const resolvedVoe = { id: "animeav1-voe-e2", provider: "Voe", videoUrl: "https://media.test/master.m3u8" };
 
+  assert.ok(sandbox.verifiedFallbackPreference(voeEmbed) < sandbox.verifiedFallbackPreference(freshHls));
   assert.ok(sandbox.verifiedFallbackPreference(freshHls) < sandbox.verifiedFallbackPreference(alternative));
   assert.ok(sandbox.verifiedFallbackPreference(voeEmbed) < sandbox.verifiedFallbackPreference(alternative));
   assert.equal(sandbox.fallbackCandidateFamily(voeEmbed), "voe");
@@ -781,7 +788,7 @@ test("7f4. a failed host family is demoted for the next episode until it recover
   assert.equal(sandbox.hasRecentlyFailedPlaybackFamily(nextEpisodeSameHost), false);
 });
 
-test("7f5. a fresh resolver is byte-checked while a recently healthy family can start immediately", () => {
+test("7f5. VOE starts from fresh signed HLS while weaker mirrors prove episode bytes", () => {
   const inspection = section(
     clientSource,
     "function inspectPlaybackSourceHealth(",
@@ -794,16 +801,41 @@ test("7f5. a fresh resolver is byte-checked while a recently healthy family can 
   );
   assert.ok(inspection.indexOf("canStartResolvedAdFreeFallback") < inspection.indexOf("probePlayableFallback"));
   assert.match(inspection, /provisional:\s*true/);
-  assert.match(clientSource, /trustedProvider\s*&&\s*playbackFamilyHealth\(source\)\s*===\s*true/);
-  assert.match(clientSource, /trustedProvider\s*=\s*\/\(\?:upnshare\|animeav1\\\.uns\\\.bio\|voe\|/);
-  assert.match(inspection, /manifestOnly:\s*isHlsCandidate/);
-  assert.match(inspection, /const isHlsCandidate\s*=/);
-  assert.match(clientSource, /\(\?:mp4upload\|streamwish[\s\S]+return false/);
-  assert.match(clientSource, /Range:\s*"bytes=0-65535"/);
+  assert.match(clientSource, /return isHls\s*&&\s*identity\.includes\("voe"\)/);
+  assert.doesNotMatch(clientSource, /trustedProvider\s*&&\s*playbackFamilyHealth\(source\)\s*===\s*true/);
+  assert.match(inspection, /manifestOnly:\s*false/);
+  assert.match(clientSource, /requiresSustainedProbe\s*=\s*\/\(\?:mp4upload\|yourupload\|youupload\)/);
+  assert.match(clientSource, /rangeEnd\s*=\s*requiresSustainedProbe\s*\?\s*\(256\s*\*\s*1024\)/);
   assert.match(clientSource, /reader\.read\(\)/);
-  assert.match(clientSource, /minimumBytes\s*=\s*32\s*\*\s*1024/);
+  assert.match(clientSource, /minimumBytes\s*=\s*requiresSustainedProbe\s*\?\s*192\s*\*\s*1024\s*:\s*32\s*\*\s*1024/);
+  assert.match(clientSource, /bytesPerSecond\s*>=\s*192\s*\*\s*1024/);
   assert.match(preparation, /allowResolvedFallback:\s*true/);
   assert.match(clientSource, /verified:\s*resolved\.provisional !== true/);
+});
+
+test("7f6. VOE VOD fragments use a short shared CDN cache", () => {
+  assert.match(serverSource, /const isCloudwindowVodSegment\s*=/);
+  assert.match(serverSource, /isCloudwindowVodSegment[\s\S]+Vercel-CDN-Cache-Control/);
+  assert.match(serverSource, /s-maxage=1800, stale-while-revalidate=3600/);
+});
+
+test("7f7. a failed primary gets one bounded backup-provider handoff before the final error", () => {
+  const playback = section(
+    clientSource,
+    "function playActiveShow(",
+    "function isExternalIframeEpisode("
+  );
+  const firstVerification = playback.indexOf("prepareReliablePlaybackSource(show, activeEpisode)");
+  const backupLookup = playback.indexOf("attachPlaybackFailureFallbacks(show, activeEpisode)");
+  const boundedWait = playback.indexOf("wait(RELIABLE_PLAYBACK_HANDOFF_WAIT_MS)");
+  const secondVerification = playback.indexOf("timeoutMs: RELIABLE_PLAYBACK_HANDOFF_VERIFY_MS");
+  const finalError = playback.indexOf('title: "Playback source unavailable"');
+
+  assert.ok(firstVerification >= 0);
+  assert.ok(backupLookup > firstVerification);
+  assert.ok(boundedWait > backupLookup);
+  assert.ok(secondVerification > boundedWait);
+  assert.ok(finalError > secondVerification);
 });
 
 test("7g. AnimeAV1 embed backups stay hidden until playback failure expansion", () => {

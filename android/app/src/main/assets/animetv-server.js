@@ -2166,6 +2166,8 @@ async function handleSourceProxy(request, url, response) {
       && /^\/segs\/[a-f0-9]{32}\/.+$/i.test(targetUrl.pathname)
       && !/\.(m3u8|html)$/i.test(targetUrl.pathname);
     const isGuploadSegment = isGupload && /^\/data\/e\/hls\/[a-z0-9_-]+\/[^/]+\.jpg$/i.test(targetUrl.pathname);
+    const isCloudwindowVodSegment = /(?:^|\.)cloudwindow-route\.com$/i.test(targetHost)
+      && /\.(?:ts|m4s|mp4|aac)$/i.test(targetUrl.pathname);
     const isDirectMp4 = /\.(?:mp4|m4v)$/i.test(targetUrl.pathname);
     const headers = {
       "User-Agent": String(request.headers["user-agent"] || UNDERHENTAI_HEADERS["User-Agent"])
@@ -2310,6 +2312,13 @@ async function handleSourceProxy(request, url, response) {
       // init fragment before the receiver asks for it, so caching here removes a
       // duplicate serverless hop and gives every following viewer a CDN hit.
       responseHeaders["Cache-Control"] = "public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000, immutable";
+    }
+    if (upstream.ok && !request.headers.range && isCloudwindowVodSegment) {
+      // VOE uses signed URLs for immutable VOD fragments. Keep the browser TTL
+      // short, but let Vercel share a hot fragment for 30 minutes so popular
+      // episodes and immediate retries do not relay identical bytes repeatedly.
+      responseHeaders["Cache-Control"] = "public, max-age=300, stale-while-revalidate=60";
+      responseHeaders["Vercel-CDN-Cache-Control"] = "public, s-maxage=1800, stale-while-revalidate=3600";
     }
     response.writeHead(upstream.status, responseHeaders);
     if (!upstream.body) {
