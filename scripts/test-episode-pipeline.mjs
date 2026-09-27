@@ -872,13 +872,12 @@ test("7f5. signed VOE HLS starts promptly while progressive mirrors prove bytes"
     "function setupAdjacentEpisodeWarmup("
   );
   assert.ok(inspection.indexOf("canStartResolvedAdFreeFallback") < inspection.indexOf("probePlayableFallback"));
-  assert.ok(inspection.indexOf("isIpBoundCloudwindowStream") < inspection.indexOf("canStartResolvedAdFreeFallback"));
   assert.match(inspection, /provisional:\s*true/);
   assert.match(clientSource, /return isHls\s*&&\s*identity\.includes\("voe"\)/);
   assert.match(clientSource, /requiresSustainedProbe\s*\?\s*\(128 \* 1024\) - 1/);
   assert.match(clientSource, /bytesPerSecond >= 96 \* 1024/);
   assert.match(clientSource, /function isIpBoundCloudwindowStream\(/);
-  assert.match(inspection, /!isLocalPlaybackRelay\(\)\s*&&\s*isIpBoundCloudwindowStream\(resolved\.url\)/);
+  assert.doesNotMatch(inspection, /isIpBoundCloudwindowStream\(resolved\.url\)[\s\S]{0,500}return null/);
   assert.doesNotMatch(clientSource, /trustedProvider\s*&&\s*playbackFamilyHealth\(source\)\s*===\s*true/);
   assert.match(inspection, /manifestOnly:\s*false/);
   assert.match(clientSource, /requiresSustainedProbe\s*=\s*\/\(\?:mp4upload\|yourupload\|youupload\|streamtape\)/);
