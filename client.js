@@ -4567,7 +4567,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=872";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=873";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -7907,10 +7907,17 @@ const SOURCE_FAST_FIRST_PASS_MS = 1800;
 const SOURCE_FAST_SECOND_PASS_MS = 1400;
 const SOURCE_EAGER_FALLBACK_DELAY_MS = 450;
 
+function isDirectMediaResolverCandidate(source = {}) {
+  const externalUrl = String(source.externalUrl || "").trim().toLowerCase();
+  return source.type === "iframe"
+    && /^https?:\/\/(?:www\.)?voe\.[a-z]{2,}(?::\d+)?(?:\/|$)/i.test(externalUrl);
+}
+
 function isFastPreferredPlaybackSource(source = {}) {
   const directUrl = source.videoUrl || source.streamUrl || source.file || source.playUrl || "";
   const identity = `${source.id || ""} ${source.label || ""} ${source.provider || ""} ${source.externalUrl || ""} ${directUrl}`.toLowerCase();
-  if (/(?:mp4upload|streamwish|sfastwish|streamtape|voe\.sx|voe\.si)/.test(identity)) return false;
+  if (/(?:mp4upload|streamwish|sfastwish|streamtape)/.test(identity)) return false;
+  if (isDirectMediaResolverCandidate(source)) return true;
   if (identity.includes("upnshare") || identity.includes("animeav1.uns.bio")) return true;
   if (identity.includes("yourupload") || identity.includes("youupload")) return true;
   if (source.type === "direct" && directUrl) return true;
@@ -18518,9 +18525,13 @@ function isAdFreeFallbackCandidate(source = {}) {
   const hasResolver = Boolean(source.streamResolver?.endpoint || source.type === "resolver");
   const hasEmbed = Boolean(source.externalUrl && source.type === "iframe");
   if (!directUrl && !hasResolver && !hasEmbed) return false;
+  // VOE's page is ad-walled, but /api/resolve extracts a direct H.264/AAC HLS
+  // stream. Admit only that verified media path; the iframe is never mounted.
+  if (isDirectMediaResolverCandidate(source)) return true;
+  if (directUrl) return source.adWalled !== true;
   const providerRank = embedProviderRank(fallbackSourceIdentity(source));
   if (source.adWalled === true || providerRank === 2) return false;
-  if (directUrl || hasResolver) return true;
+  if (hasResolver) return true;
   return hasEmbed && providerRank === 0;
 }
 
@@ -18531,11 +18542,12 @@ function verifiedFallbackPreference(source = {}) {
   // large MP4Upload files. MP4Upload can answer a tiny range probe immediately
   // while being too slow to sustain playback, so keep it as a later fallback.
   if (identity.includes("upnshare") || identity.includes("animeav1.uns.bio")) preference = 0;
-  else if (identity.includes("streamwish") || identity.includes("sfastwish")) preference = 1;
-  else if (identity.includes("yourupload") || identity.includes("youupload")) preference = 2;
-  else if (identity.includes("mp4upload")) preference = 3;
-  else if (source.type === "direct" && sourceDirectUrl(source)) preference = 4;
-  else if (identity.includes("okru") || identity.includes("ok.ru")) preference = 5;
+  else if (identity.includes("voe")) preference = 1;
+  else if (identity.includes("streamwish") || identity.includes("sfastwish")) preference = 2;
+  else if (identity.includes("yourupload") || identity.includes("youupload")) preference = 3;
+  else if (identity.includes("mp4upload")) preference = 4;
+  else if (source.type === "direct" && sourceDirectUrl(source)) preference = 5;
+  else if (identity.includes("okru") || identity.includes("ok.ru")) preference = 6;
   return preference + playbackFamilyHealthAdjustment(source);
 }
 
@@ -18563,7 +18575,7 @@ const playbackFamilyHealthCache = new Map();
 
 function fallbackCandidateFamily(source = {}) {
   const identity = fallbackSourceIdentity(source).toLowerCase();
-  for (const provider of ["yourupload", "youupload", "mp4upload", "okru", "ok.ru", "streamwish", "streamtape"]) {
+  for (const provider of ["yourupload", "youupload", "mp4upload", "okru", "ok.ru", "voe", "streamwish", "streamtape"]) {
     if (identity.includes(provider)) return provider.replace(".", "");
   }
 
@@ -18617,7 +18629,7 @@ function hasRecentlyFailedPlaybackFamily(source = {}) {
 function canStartResolvedAdFreeFallback(source = {}, resolved = {}) {
   if (!resolved.url || isBlockedPlaybackUrl(resolved.url) || !isAdFreeFallbackCandidate(source)) return false;
   const identity = fallbackSourceIdentity(source).toLowerCase();
-  const trustedProvider = /(?:upnshare|animeav1\.uns\.bio|mp4upload|streamwish|sfastwish|yourupload|youupload|okru|ok\.ru)/.test(identity);
+  const trustedProvider = /(?:upnshare|animeav1\.uns\.bio|voe|mp4upload|streamwish|sfastwish|yourupload|youupload|okru|ok\.ru)/.test(identity);
   // Skipping the media probe is safe only after this host family has produced
   // bytes recently. A fresh signed embed can resolve successfully while its
   // media URL is already dead; mounting that false positive costs the player's
@@ -18847,6 +18859,7 @@ function persistVerifiedFallbackSource(episode, source, resolved, options = {}) 
   const playbackUrl = proxiedStreamUrl(resolved.url, referer);
   const verified = {
     ...source,
+    label: String(source.label || "").replace(/\s*\(ads\)\s*$/i, ""),
     type: "direct",
     videoUrl: playbackUrl,
     externalUrl: "",
@@ -21919,7 +21932,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=872");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=873");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

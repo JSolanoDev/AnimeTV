@@ -203,7 +203,7 @@ function playbackFallbackContext({ primaryFound, slowJk = false }) {
     KNOWN_SOURCE_SERVERS: Object.entries(sourceMatches).map(([key, match]) => ({ key, match }))
   });
   vm.runInContext(
-    section(clientSource, "function isFastPreferredPlaybackSource(", "function playbackLookupKey("),
+    section(clientSource, "function isDirectMediaResolverCandidate(", "function playbackLookupKey("),
     sandbox
   );
   return { sandbox, calls, completed, releaseSlowJk };
@@ -767,8 +767,13 @@ test("7f4. a failed host family is demoted for the next episode until it recover
   const nextEpisodeSameHost = { id: "animeav1-yourupload-e2", provider: "YourUpload", externalUrl: "https://www.yourupload.com/embed/e2" };
   const alternative = { id: "jkanime-mp4upload-e2", provider: "MP4Upload", externalUrl: "https://mp4upload.com/embed/e2" };
   const freshHls = { id: "animeav1-upn-e2", provider: "UPNShare", externalUrl: "https://animeav1.uns.bio/e/e2" };
+  const voeEmbed = { id: "animeav1-voe-e2", provider: "Voe", externalUrl: "https://voe.sx/e/e2" };
+  const resolvedVoe = { id: "animeav1-voe-e2", provider: "Voe", videoUrl: "https://media.test/master.m3u8" };
 
   assert.ok(sandbox.verifiedFallbackPreference(freshHls) < sandbox.verifiedFallbackPreference(alternative));
+  assert.ok(sandbox.verifiedFallbackPreference(voeEmbed) < sandbox.verifiedFallbackPreference(alternative));
+  assert.equal(sandbox.fallbackCandidateFamily(voeEmbed), "voe");
+  assert.equal(sandbox.fallbackCandidateFamily(resolvedVoe), "voe");
   sandbox.recordPlaybackFamilyHealth(failedEpisode, false);
   assert.equal(sandbox.hasRecentlyFailedPlaybackFamily(nextEpisodeSameHost), true);
   assert.ok(sandbox.verifiedFallbackPreference(nextEpisodeSameHost) > sandbox.verifiedFallbackPreference(alternative));
@@ -790,6 +795,7 @@ test("7f5. a fresh resolver is byte-checked while a recently healthy family can 
   assert.ok(inspection.indexOf("canStartResolvedAdFreeFallback") < inspection.indexOf("probePlayableFallback"));
   assert.match(inspection, /provisional:\s*true/);
   assert.match(clientSource, /trustedProvider\s*&&\s*playbackFamilyHealth\(source\)\s*===\s*true/);
+  assert.match(clientSource, /trustedProvider\s*=\s*\/\(\?:upnshare\|animeav1\\\.uns\\\.bio\|voe\|/);
   assert.match(inspection, /manifestOnly:\s*isHlsCandidate/);
   assert.match(inspection, /const isHlsCandidate\s*=/);
   assert.match(clientSource, /\(\?:mp4upload\|streamwish[\s\S]+return false/);
@@ -1135,7 +1141,7 @@ test("11f. recovery offers exactly one verified source", () => {
   assert.deepEqual(Array.from(sandbox.getSourcePickerPlaybackSources(episode), (source) => source.id), ["verified"]);
 });
 
-test("11g. fallback verification rejects ad-walled and unknown embeds", () => {
+test("11g. fallback verification admits VOE only through direct media resolution", () => {
   const sandbox = vm.createContext({
     sourceDirectUrl: (source) => source.videoUrl || "",
     embedProviderRank: (identity) => {
@@ -1146,13 +1152,15 @@ test("11g. fallback verification rejects ad-walled and unknown embeds", () => {
     }
   });
   vm.runInContext(
-    section(clientSource, "function fallbackSourceIdentity(", "function verifiedFallbackPreference("),
+    `${section(clientSource, "function isDirectMediaResolverCandidate(", "function isFastPreferredPlaybackSource(")}\n${section(clientSource, "function fallbackSourceIdentity(", "function verifiedFallbackPreference(")}`,
     sandbox
   );
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "YourUpload", externalUrl: "https://yourupload.test/embed" }), true);
-  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Voe", externalUrl: "https://voe.test/embed", adWalled: true }), false);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Voe", externalUrl: "https://voe.sx/e/working", adWalled: true }), true);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Voe", externalUrl: "https://unknown.test/embed", adWalled: true }), false);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Unknown", externalUrl: "https://unknown.test/embed" }), false);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "direct", videoUrl: "https://video.test/episode.mp4" }), true);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "direct", provider: "Voe", videoUrl: "https://video.test/master.m3u8", adWalled: false }), true);
 });
 
 test("11g2. verified fallback playback keeps the same referer-aware proxy used by its probe", () => {
