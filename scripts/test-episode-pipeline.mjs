@@ -573,6 +573,7 @@ test("7f2. play-intent health checking promotes a verified backup automatically"
     )) || value.sourceOptions.find((source) => !value._failedSourceIds?.has(source.id)) || null,
     hasFreshVerifiedPlaybackSource: () => false,
     hasRecentlyFailedPlaybackFamily: () => false,
+    isLocalPlaybackRelay: () => true,
     isFastPreferredPlaybackSource: () => true,
     verifyReliablePlaybackCandidate: async (_value, source) => source.id === "backup" ? source : null,
     attachPlaybackFailureFallbacks: async (_show, value) => {
@@ -608,10 +609,10 @@ test("7f2. play-intent health checking promotes a verified backup automatically"
   assert.equal(fallbackLookups, 1);
 });
 
-test("7f2a. reliable candidates are verified before a selected low-confidence embed", async () => {
+test("7f2a. production races a portable backup alongside an IP-bound VOE candidate", async () => {
   const mp4Upload = { id: "mp4upload", type: "iframe", externalUrl: "https://mp4upload.test/embed" };
-  const yourUpload = { id: "yourupload", type: "iframe", externalUrl: "https://www.yourupload.com/embed/example" };
-  const episode = { sourceOptions: [mp4Upload, yourUpload], selectedSourceId: "mp4upload" };
+  const voe = { id: "voe", type: "iframe", externalUrl: "https://voe.test/embed" };
+  const episode = { sourceOptions: [mp4Upload, voe], selectedSourceId: "mp4upload" };
   const verified = [];
   const sandbox = vm.createContext({
     Date,
@@ -626,12 +627,14 @@ test("7f2a. reliable candidates are verified before a selected low-confidence em
     isAdFreeFallbackCandidate: () => true,
     hasFreshVerifiedPlaybackSource: () => false,
     hasRecentlyFailedPlaybackFamily: () => false,
-    isFastPreferredPlaybackSource: (source) => source.id === "yourupload",
-    verifiedFallbackPreference: (source) => source.id === "yourupload" ? 0 : 1,
+    isLocalPlaybackRelay: () => false,
+    fallbackSourceIdentity: (source) => source.id,
+    isFastPreferredPlaybackSource: (source) => source.id === "voe",
+    verifiedFallbackPreference: (source) => source.id === "voe" ? 0 : 1,
     pickFallbackRaceCandidates: (sources) => sources.slice(0, 3),
     verifyReliablePlaybackCandidate: async (_value, source) => {
       verified.push(source.id);
-      return source.id === "yourupload" ? source : null;
+      return source.id === "mp4upload" ? source : null;
     },
     firstSuccessfulFallback: async (tasks) => {
       for (const task of tasks) {
@@ -652,9 +655,9 @@ test("7f2a. reliable candidates are verified before a selected low-confidence em
   );
 
   const selected = await sandbox.prepareReliablePlaybackSource({ title: "Example" }, episode);
-  assert.equal(selected.id, "yourupload");
-  assert.deepEqual(verified, ["yourupload"]);
-  assert.equal(episode.selectedSourceId, "yourupload");
+  assert.equal(selected.id, "mp4upload");
+  assert.deepEqual(verified, ["voe", "mp4upload"]);
+  assert.equal(episode.selectedSourceId, "mp4upload");
 });
 
 test("7f2b. a failed primary is not retried when no backup verifies", async () => {
@@ -673,6 +676,7 @@ test("7f2b. a failed primary is not retried when no backup verifies", async () =
     )) || null,
     hasFreshVerifiedPlaybackSource: () => false,
     hasRecentlyFailedPlaybackFamily: () => false,
+    isLocalPlaybackRelay: () => true,
     isFastPreferredPlaybackSource: () => true,
     verifyReliablePlaybackCandidate: async () => null,
     attachPlaybackFailureFallbacks: async (_show, value) => value,
@@ -711,6 +715,7 @@ test("7f2c. a preferred source remains eligible after only the short probe times
     isAdFreeFallbackCandidate: () => true,
     hasFreshVerifiedPlaybackSource: () => false,
     hasRecentlyFailedPlaybackFamily: () => false,
+    isLocalPlaybackRelay: () => true,
     isFastPreferredPlaybackSource: () => true,
     verifiedFallbackPreference: () => 0,
     pickFallbackRaceCandidates: (sources) => sources,

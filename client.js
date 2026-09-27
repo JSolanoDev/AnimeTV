@@ -4567,7 +4567,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=877";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=878";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -19149,10 +19149,21 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
     const reliableFirst = healthySources
       .filter(isFastPreferredPlaybackSource)
       .sort((a, b) => verifiedFallbackPreference(a) - verifiedFallbackPreference(b));
+    const needsPortableBackupRace = !isLocalPlaybackRelay()
+      && reliableFirst.some((source) => fallbackSourceIdentity(source).toLowerCase().includes("voe"));
+    const primaryCandidates = reliableFirst.length
+      ? (needsPortableBackupRace
+          ? [...reliableFirst, ...healthySources].sort((a, b) => verifiedFallbackPreference(a) - verifiedFallbackPreference(b))
+          : reliableFirst)
+      : [selectedSource].filter((source) => source && !hasRecentlyFailedPlaybackFamily(source));
+    const uniquePrimaryCandidates = primaryCandidates.filter((source, index, sources) => {
+      const key = source.id || fallbackSourceIdentity(source);
+      return sources.findIndex((candidate) => (
+        (candidate.id || fallbackSourceIdentity(candidate)) === key
+      )) === index;
+    });
     const initialCandidates = pickFallbackRaceCandidates(
-      reliableFirst.length
-        ? reliableFirst
-        : [selectedSource].filter((source) => source && !hasRecentlyFailedPlaybackFamily(source))
+      uniquePrimaryCandidates
     );
     const alreadyVerified = initialCandidates.find(hasFreshVerifiedPlaybackSource);
     if (alreadyVerified) {
@@ -21994,7 +22005,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=877");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=878");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
