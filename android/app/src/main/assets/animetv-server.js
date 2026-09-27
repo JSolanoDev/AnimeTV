@@ -2824,6 +2824,29 @@ function stripSeasonWordsForSlugLookup(title = "") {
     .trim();
 }
 
+function explicitSourceInstallmentIdentity(title = "") {
+  const text = String(title || "");
+  const seasonMatch = text.match(/\bseason\s*(\d+)\b/i) || text.match(/\b(\d+)(?:st|nd|rd|th)\s*season\b/i);
+  if (seasonMatch && Number(seasonMatch[1]) > 1) return `season:${Number(seasonMatch[1])}`;
+  const partMatch = text.match(/\bpart\s*(\d+)\b/i);
+  if (partMatch && Number(partMatch[1]) > 1) return `part:${Number(partMatch[1])}`;
+  return "";
+}
+
+function seasonSafeSourceTitleCandidates(titles = []) {
+  const raw = titles.filter(Boolean).map((title) => String(title).trim()).filter(Boolean);
+  const expectedInstallment = raw.map(explicitSourceInstallmentIdentity).find(Boolean) || "";
+  const expanded = [];
+  raw.forEach((title) => {
+    const installment = explicitSourceInstallmentIdentity(title);
+    if (expectedInstallment && installment !== expectedInstallment) return;
+    expanded.push(title);
+    if (!expectedInstallment) expanded.push(stripSeasonWordsForSlugLookup(title));
+    seasonTitleVariants(title).forEach((variant) => expanded.push(variant));
+  });
+  return [...new Set(expanded.filter(Boolean))];
+}
+
 function readBundledTioAnimeSlugSnapshot() {
   try {
     if (!fs.existsSync(TIOANIME_SLUG_SNAPSHOT_FILE)) return [];
@@ -7239,11 +7262,8 @@ async function findTioAnimeSlugFromCatalog(title) {
     force: false,
     pages: HOSTED_RUNTIME ? TIOANIME_HOSTED_SLUG_MAX_PAGES : 6
   });
-  const candidates = [
-    title,
-    stripSeasonWordsForSlugLookup(title),
-    ...seasonTitleVariants(title)
-  ].map(normalizeTitle).filter(Boolean);
+  const expectedInstallment = explicitSourceInstallmentIdentity(title);
+  const candidates = seasonSafeSourceTitleCandidates([title]).map(normalizeTitle).filter(Boolean);
   const itemsBySlug = new Map((payload.items || []).map((entry) => [entry.slug, entry]));
   for (const key of candidates) {
     const slug = payload.byTitle?.[key];
@@ -7252,11 +7272,10 @@ async function findTioAnimeSlugFromCatalog(title) {
       return { slug, title: item?.title || title, match: "exact-title-key" };
     }
   }
-  const stripped = normalizeTitle(stripSeasonWordsForSlugLookup(title));
+  const candidateSet = new Set(candidates);
   const found = (payload.items || []).find((item) => {
     const itemTitle = normalizeTitle(item.title);
-    return itemTitle === normalized
-      || (stripped && normalizeTitle(stripSeasonWordsForSlugLookup(item.title)) === stripped);
+    return candidateSet.has(itemTitle);
   });
   if (found) return { slug: found.slug, title: found.title, match: "normalized-title" };
 
@@ -7278,16 +7297,17 @@ async function findTioAnimeSlugFromCatalog(title) {
     ...(Array.isArray(aniListMatch?.synonyms) ? aniListMatch.synonyms : [])
   ].filter(Boolean);
   for (const translatedTitle of translatedTitles) {
-    const translatedKey = normalizeTitle(translatedTitle);
-    const translatedSlug = payload.byTitle?.[translatedKey]
-      || payload.byTitle?.[normalizeTitle(stripSeasonWordsForSlugLookup(translatedTitle))];
-    if (translatedSlug) {
-      const item = payload.items.find((entry) => entry.slug === translatedSlug);
-      return {
-        slug: translatedSlug,
-        title: item?.title || translatedTitle,
-        match: "anilist-title"
-      };
+    if (expectedInstallment && explicitSourceInstallmentIdentity(translatedTitle) !== expectedInstallment) continue;
+    for (const translatedCandidate of seasonSafeSourceTitleCandidates([translatedTitle])) {
+      const translatedSlug = payload.byTitle?.[normalizeTitle(translatedCandidate)];
+      if (translatedSlug) {
+        const item = payload.items.find((entry) => entry.slug === translatedSlug);
+        return {
+          slug: translatedSlug,
+          title: item?.title || translatedTitle,
+          match: "anilist-title"
+        };
+      }
     }
   }
   return null;
@@ -7865,7 +7885,7 @@ async function findJKAnimeSlugForShow(show = {}) {
   if (!catalog) getJKAnimeSlugCatalog().catch(() => null);
   const byTitle = catalog?.byTitle || {};
   for (const title of jkAnimeTitleCandidates(show)) {
-    const direct = byTitle[normalizeTitle(title)] || byTitle[normalizeTitle(stripSeasonWordsForSlugLookup(title))];
+    const direct = byTitle[normalizeTitle(title)];
     if (direct) return { slug: direct, title, match: "catalog" };
   }
 
@@ -7909,12 +7929,7 @@ function jkAnimeTitleCandidates(show = {}) {
     ...(show.synonyms || []),
     ...(media.synonyms || [])
   ];
-  const expanded = [];
-  candidates.filter(Boolean).forEach((title) => {
-    expanded.push(title);
-    expanded.push(stripSeasonWordsForSlugLookup(title));
-    seasonTitleVariants(title).forEach((variant) => expanded.push(variant));
-  });
+  const expanded = seasonSafeSourceTitleCandidates(candidates);
   const seen = new Set();
   return expanded
     .map((title) => cleanJKAnimeTitle(title))
@@ -7931,12 +7946,10 @@ function jkAnimeSlugCandidates(show = {}) {
   const out = [];
   const seen = new Set();
   for (const title of jkAnimeTitleCandidates(show)) {
-    for (const variant of [title, stripSeasonWordsForSlugLookup(title)]) {
-      const slug = jkAnimeSlugify(variant);
-      if (!slug || seen.has(slug)) continue;
-      seen.add(slug);
-      out.push({ slug, title, match: "generated" });
-    }
+    const slug = jkAnimeSlugify(title);
+    if (!slug || seen.has(slug)) continue;
+    seen.add(slug);
+    out.push({ slug, title, match: "generated" });
   }
   return out.slice(0, 14);
 }

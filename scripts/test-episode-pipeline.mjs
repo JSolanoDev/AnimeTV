@@ -209,6 +209,36 @@ function playbackFallbackContext({ primaryFound, slowJk = false }) {
   return { sandbox, calls, completed, releaseSlowJk };
 }
 
+function regularSourceSlugContext() {
+  const sandbox = vm.createContext({
+    Map,
+    normalizeTitle: utils.normalizeTitle,
+    getShowTitle: (show = {}) => show.title || ""
+  });
+  vm.runInContext(
+    section(clientSource, "function stripSeasonFromTitle(", "async function attachAniPubFallback("),
+    sandbox
+  );
+  vm.runInContext(
+    section(clientSource, "function sourceTitleValues(", "function tioAnimeSlugFromSearchPayload("),
+    sandbox
+  );
+  sandbox._tioAnimeSlugCache = new Map();
+  sandbox._tioAnimeSlugTitleMap = {};
+  vm.runInContext(
+    section(clientSource, "function applyTioAnimeSlugFromMap(", "async function resolveTioAnimeSlugFromCatalog("),
+    sandbox
+  );
+  sandbox.jkAnimeSearchCandidates = sandbox.tioAnimeSearchCandidates;
+  sandbox._jkAnimeSlugCache = new Map();
+  sandbox._jkAnimeSlugTitleMap = {};
+  vm.runInContext(
+    section(clientSource, "function applyJKAnimeSlugFromMap(", "async function resolveJKAnimeSlugFromCatalog("),
+    sandbox
+  );
+  return sandbox;
+}
+
 function animeAv1SourceContext() {
   let fetchCount = 0;
   let lastFetchUrl = "";
@@ -271,6 +301,37 @@ function animeAv1SourceContext() {
     getLastFetchOptions: () => lastFetchOptions
   };
 }
+
+test("0. explicit sequel source matching cannot fall back to the parent season", () => {
+  const sandbox = regularSourceSlugContext();
+  const title = "Nige Jouzu no Wakagimi 2nd Season";
+  const parentTitle = "Nige Jouzu no Wakagimi";
+  const parentKey = utils.normalizeTitle(parentTitle);
+  const secondSeasonKey = utils.normalizeTitle(`${parentTitle} 2`);
+  const sequel = { title, aliases: [parentTitle] };
+
+  const candidates = [...sandbox.tioAnimeSearchCandidates(sequel)].map(utils.normalizeTitle);
+  assert.equal(candidates.includes(parentKey), false);
+  assert.equal(sandbox.applyTioAnimeSlugFromMap({ ...sequel }, { [parentKey]: "parent-season" }), null);
+  assert.equal(sandbox.applyJKAnimeSlugFromMap({ ...sequel }, { [parentKey]: "parent-season" }), null);
+
+  const tioMatch = sandbox.applyTioAnimeSlugFromMap({ ...sequel }, { [secondSeasonKey]: "second-season" });
+  const jkMatch = sandbox.applyJKAnimeSlugFromMap({ ...sequel }, { [secondSeasonKey]: "second-season" });
+  assert.equal(tioMatch?.slug, "second-season");
+  assert.equal(jkMatch?.slug, "second-season");
+
+  const firstSeason = { title: parentTitle };
+  assert.equal(sandbox.applyTioAnimeSlugFromMap(firstSeason, { [parentKey]: "parent-season" })?.slug, "parent-season");
+
+  const serverSandbox = vm.createContext({});
+  vm.runInContext(
+    section(serverSource, "function seasonTitleVariants(", "function readBundledTioAnimeSlugSnapshot("),
+    serverSandbox
+  );
+  const serverCandidates = [...serverSandbox.seasonSafeSourceTitleCandidates([title])].map(utils.normalizeTitle);
+  assert.equal(serverCandidates.includes(parentKey), false);
+  assert.equal(serverCandidates.includes(secondSeasonKey), true);
+});
 
 test("1. single-season episode selection retains canonical identity", () => {
   const { pipeline } = normalizationContext();
@@ -487,6 +548,12 @@ test("7d1. progressive embeds stay deferred while proven fast sources enter veri
   }), false);
   assert.equal(sandbox.hasFastPreferredPlaybackSource({
     sourceOptions: [{ id: "animeav1-voe", type: "iframe", externalUrl: "https://voe.sx/e/episode" }]
+  }), true);
+  assert.equal(sandbox.hasFastPreferredPlaybackSource({
+    sourceOptions: [{ id: "jkanime-streamwish", type: "iframe", externalUrl: "https://sfastwish.com/e/episode" }]
+  }), true);
+  assert.equal(sandbox.hasFastPreferredPlaybackSource({
+    sourceOptions: [{ id: "jkanime-vidhide", type: "iframe", externalUrl: "https://vidhidevip.com/embed/episode" }]
   }), true);
   assert.equal(sandbox.hasFastPreferredPlaybackSource({
     sourceOptions: [{ id: "direct", type: "direct", videoUrl: "https://media.test/episode.m3u8" }]
@@ -1189,7 +1256,7 @@ test("11g. fallback verification admits ad-walled hosts only through direct medi
     embedProviderRank: (identity) => {
       const value = String(identity).toLowerCase();
       if (value.includes("yourupload") || value.includes("mp4upload")) return 0;
-      if (value.includes("voe")) return 2;
+      if (value.includes("voe") || value.includes("vidhide")) return 2;
       return 1;
     }
   });
@@ -1200,6 +1267,8 @@ test("11g. fallback verification admits ad-walled hosts only through direct medi
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "YourUpload", externalUrl: "https://yourupload.test/embed" }), true);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Voe", externalUrl: "https://voe.sx/e/working", adWalled: true }), true);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Streamtape", externalUrl: "https://streamtape.com/e/working/video.mp4" }), true);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Streamwish", externalUrl: "https://sfastwish.com/e/working", adWalled: true }), true);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Vidhide", externalUrl: "https://vidhidevip.com/embed/working", adWalled: true }), true);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Voe", externalUrl: "https://unknown.test/embed", adWalled: true }), false);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Unknown", externalUrl: "https://unknown.test/embed" }), false);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "direct", videoUrl: "https://video.test/episode.mp4" }), true);

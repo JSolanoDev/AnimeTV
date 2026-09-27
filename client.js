@@ -4567,7 +4567,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=883";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=884";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -7913,14 +7913,16 @@ function isDirectMediaResolverCandidate(source = {}) {
     && (
       /^https?:\/\/(?:www\.)?voe\.[a-z]{2,}(?::\d+)?(?:\/|$)/i.test(externalUrl)
       || /^https?:\/\/(?:www\.)?streamtape\.com\/e\//i.test(externalUrl)
+      || /^https?:\/\/[^/]*(?:streamwish|sfastwish|playerwish|wishfast)[^/]*\/e\//i.test(externalUrl)
+      || /^https?:\/\/[^/]*vidhide[^/]*\/(?:embed|e)\//i.test(externalUrl)
     );
 }
 
 function isFastPreferredPlaybackSource(source = {}) {
   const directUrl = source.videoUrl || source.streamUrl || source.file || source.playUrl || "";
   const identity = `${source.id || ""} ${source.label || ""} ${source.provider || ""} ${source.externalUrl || ""} ${directUrl}`.toLowerCase();
-  // VOE and Streamtape expose media through the resolver without mounting their
-  // ad pages. Streamtape still has to sustain the progressive byte probe before
+  // These hosts expose media through the resolver without mounting their ad
+  // pages. Progressive results still have to sustain the byte probe before
   // selection; other progressive hosts and UPN remain in the fallback ladder.
   if (isDirectMediaResolverCandidate(source)) return true;
   if (/(?:upnshare|animeav1\.uns\.bio|mp4upload|streamwish|sfastwish|streamtape|yourupload|youupload)/.test(identity)) return false;
@@ -16329,8 +16331,8 @@ let _tioAnimeDownUntil = 0;
 function tioAnimeIsDown() { return Date.now() < _tioAnimeDownUntil; }
 function markTioAnimeDown() { _tioAnimeDownUntil = Date.now() + TIOANIME_COOLDOWN_MS; }
 
-function tioAnimeSearchCandidates(show = {}) {
-  const candidates = [
+function sourceTitleValues(show = {}) {
+  return [
     show.title,
     getShowTitle(show),
     show.romajiTitle,
@@ -16340,12 +16342,41 @@ function tioAnimeSearchCandidates(show = {}) {
     ...(show.aliases || []),
     ...(show.alternativeTitles || []),
     ...(show.synonyms || [])
-  ];
+  ].filter(Boolean);
+}
+
+function explicitSourceInstallmentIdentity(title = "") {
+  const text = String(title || "");
+  const seasonMatch = text.match(/\bseason\s*(\d+)\b/i) || text.match(/\b(\d+)(?:st|nd|rd|th)\s*season\b/i);
+  if (seasonMatch && Number(seasonMatch[1]) > 1) return `season:${Number(seasonMatch[1])}`;
+  const partMatch = text.match(/\bpart\s*(\d+)\b/i);
+  if (partMatch && Number(partMatch[1]) > 1) return `part:${Number(partMatch[1])}`;
+  return "";
+}
+
+function sourceInstallmentIdentityForShow(show = {}) {
+  return sourceTitleValues(show).map(explicitSourceInstallmentIdentity).find(Boolean) || "";
+}
+
+function stripExplicitSourceInstallment(title = "") {
+  return String(title || "")
+    .replace(/\bseason\s*\d+\b/ig, " ")
+    .replace(/\b\d+(?:st|nd|rd|th)\s*season\b/ig, " ")
+    .replace(/\bpart\s*\d+\b/ig, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tioAnimeSearchCandidates(show = {}) {
+  const candidates = sourceTitleValues(show);
+  const expectedInstallment = sourceInstallmentIdentityForShow(show);
   const withCleaned = [];
-  candidates.filter(Boolean).forEach((title) => {
+  candidates.forEach((title) => {
+    const installment = explicitSourceInstallmentIdentity(title);
+    if (expectedInstallment && installment !== expectedInstallment) return;
     withCleaned.push(title);
     withCleaned.push(String(title).replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim());
-    withCleaned.push(stripSeasonFromTitle(title));
+    if (!expectedInstallment) withCleaned.push(stripSeasonFromTitle(title));
     tioAnimeSeasonTitleVariants(title).forEach((variant) => withCleaned.push(variant));
   });
 
@@ -16370,7 +16401,7 @@ function tioAnimeSeasonTitleVariants(title = "") {
     const clean = String(value || "").replace(/\s+/g, " ").trim();
     if (clean) variants.add(clean);
   };
-  const base = stripSeasonFromTitle(text);
+  const base = stripExplicitSourceInstallment(text);
   const seasonMatch = text.match(/\bseason\s*(\d+)\b/i) || text.match(/\b(\d+)(?:st|nd|rd|th)\s*season\b/i);
   const partMatch = text.match(/\bpart\s*(\d+)\b/i);
   if (base && seasonMatch) {
@@ -16458,6 +16489,7 @@ async function ensureTioAnimeSlugCatalog() {
 function applyTioAnimeSlugFromMap(show, slugMap = _tioAnimeSlugTitleMap || {}) {
   if (!show || !slugMap) return null;
   if (show.tioAnimeSlug) return { slug: show.tioAnimeSlug, matchedTitle: show.tioAnimeSlugSource || show.title || "", key: "cached-show" };
+  const expectedInstallment = sourceInstallmentIdentityForShow(show);
   for (const title of tioAnimeSearchCandidates(show)) {
     const key = normalizeTitle(title);
     const slug = slugMap[key];
@@ -16468,7 +16500,7 @@ function applyTioAnimeSlugFromMap(show, slugMap = _tioAnimeSlugTitleMap || {}) {
       return { slug, matchedTitle: title, key };
     }
     const strippedKey = normalizeTitle(stripSeasonFromTitle(title));
-    if (strippedKey && slugMap[strippedKey]) {
+    if (!expectedInstallment && strippedKey && slugMap[strippedKey]) {
       show.tioAnimeSlug = slugMap[strippedKey];
       show.tioAnimeSlugSource = title;
       _tioAnimeSlugCache.set(`t:${strippedKey}`, show.tioAnimeSlug);
@@ -17302,6 +17334,7 @@ async function ensureJKAnimeSlugCatalog() {
 function applyJKAnimeSlugFromMap(show, slugMap = _jkAnimeSlugTitleMap || {}) {
   if (!show || !slugMap) return null;
   if (show.jkAnimeSlug) return { slug: show.jkAnimeSlug, matchedTitle: show.jkAnimeSlugSource || show.title || "", key: "cached-show" };
+  const expectedInstallment = sourceInstallmentIdentityForShow(show);
   for (const title of jkAnimeSearchCandidates(show)) {
     const key = normalizeTitle(title);
     const slug = slugMap[key];
@@ -17312,7 +17345,7 @@ function applyJKAnimeSlugFromMap(show, slugMap = _jkAnimeSlugTitleMap || {}) {
       return { slug, matchedTitle: title, key };
     }
     const strippedKey = normalizeTitle(stripSeasonFromTitle(title));
-    if (strippedKey && slugMap[strippedKey]) {
+    if (!expectedInstallment && strippedKey && slugMap[strippedKey]) {
       show.jkAnimeSlug = slugMap[strippedKey];
       show.jkAnimeSlugSource = title;
       _jkAnimeSlugCache.set(`t:${strippedKey}`, show.jkAnimeSlug);
@@ -18570,18 +18603,19 @@ function isAdFreeFallbackCandidate(source = {}) {
 function verifiedFallbackPreference(source = {}) {
   const identity = fallbackSourceIdentity(source).toLowerCase();
   let preference = 10 + sourcePreferenceScore(source);
-  // Prefer signed VOE HLS before UPN. UPN can expose a healthy master playlist
-  // while its media fragments are already 404/502, and large progressive files
-  // can answer a small range before falling behind playback.
+  // Prefer segmented adaptive streams. UPN can expose a healthy master playlist
+  // while its media fragments are already 404/502, and progressive files can
+  // answer a small range before falling behind sustained playback.
   if (identity.includes("voe")) preference = 0;
-  else if (identity.includes("streamtape")) preference = 1;
-  else if (source.type === "direct" && streamTypeFromUrl(sourceDirectUrl(source)) === "hls") preference = 2;
-  else if (identity.includes("upnshare") || identity.includes("animeav1.uns.bio")) preference = 3;
-  else if (identity.includes("streamwish") || identity.includes("sfastwish")) preference = 4;
-  else if (identity.includes("yourupload") || identity.includes("youupload")) preference = 5;
-  else if (identity.includes("mp4upload")) preference = 6;
-  else if (source.type === "direct" && sourceDirectUrl(source)) preference = 7;
-  else if (identity.includes("okru") || identity.includes("ok.ru")) preference = 8;
+  else if (source.type === "direct" && streamTypeFromUrl(sourceDirectUrl(source)) === "hls") preference = 1;
+  else if (identity.includes("streamwish") || identity.includes("sfastwish")) preference = 2;
+  else if (identity.includes("vidhide")) preference = 3;
+  else if (identity.includes("streamtape")) preference = 4;
+  else if (identity.includes("upnshare") || identity.includes("animeav1.uns.bio")) preference = 5;
+  else if (identity.includes("yourupload") || identity.includes("youupload")) preference = 6;
+  else if (identity.includes("mp4upload")) preference = 7;
+  else if (source.type === "direct" && sourceDirectUrl(source)) preference = 8;
+  else if (identity.includes("okru") || identity.includes("ok.ru")) preference = 9;
   return preference + playbackFamilyHealthAdjustment(source);
 }
 
@@ -18611,7 +18645,7 @@ const playbackFamilyHealthCache = new Map();
 
 function fallbackCandidateFamily(source = {}) {
   const identity = fallbackSourceIdentity(source).toLowerCase();
-  for (const provider of ["yourupload", "youupload", "mp4upload", "okru", "ok.ru", "voe", "streamwish", "streamtape"]) {
+  for (const provider of ["yourupload", "youupload", "mp4upload", "okru", "ok.ru", "voe", "streamwish", "vidhide", "streamtape"]) {
     if (identity.includes(provider)) return provider.replace(".", "");
   }
 
@@ -22013,7 +22047,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=883");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=884");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
