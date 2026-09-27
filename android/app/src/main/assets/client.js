@@ -4567,7 +4567,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=894";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=895";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -17581,6 +17581,22 @@ function regularSourceProviderMatch(providerKey, source = {}) {
   return false;
 }
 
+function playbackRecoveryProviderKeys(episode = {}, activeSource = null) {
+  const failedIds = episode._failedSourceIds instanceof Set
+    ? episode._failedSourceIds
+    : new Set();
+  const activeProvider = regularSourceProviderKey(activeSource || {});
+  const sources = getEpisodePlaybackSources(episode);
+  return ["animeav1", "jkanime", "tioanime"].filter((providerKey) => {
+    if (!isScraperEnabled(providerKey)) return false;
+    if (providerKey === activeProvider) return true;
+    const providerSources = sources.filter((source) => regularSourceProviderMatch(providerKey, source));
+    return !providerSources.length || providerSources.every((source) => (
+      failedIds.has(source.id) || hasRecentlyFailedPlaybackFamily(source)
+    ));
+  });
+}
+
 function claimEpisodeProviderRefresh(episode, providerKey) {
   if (!episode || !["animeav1", "jkanime", "tioanime"].includes(providerKey)) return false;
   const refreshedAt = episode._providerSourceRefreshedAt || {};
@@ -18655,7 +18671,10 @@ function fallbackReferer(source = {}) {
 
 const FALLBACK_RESOLVE_TIMEOUT_MS = 4500;
 const FALLBACK_PROBE_TIMEOUT_MS = 4000;
-const FALLBACK_RACE_LIMIT = 3;
+// A failed AnimeAV1 episode commonly exposes three dead HLS mirrors before a
+// healthy progressive backup. Race one additional provider family so the first
+// source handed to the player is the first one that proves real media bytes.
+const FALLBACK_RACE_LIMIT = 4;
 const RELIABLE_PLAYBACK_TOTAL_BUDGET_MS = 5200;
 const RELIABLE_PLAYBACK_PRIMARY_PROBE_MS = 3200;
 const RELIABLE_PLAYBACK_BACKUP_DELAY_MS = 450;
@@ -18721,34 +18740,16 @@ function hasRecentlyFailedPlaybackFamily(source = {}) {
   return playbackFamilyHealth(source) === false;
 }
 
+function isProgressiveFallbackCandidate(source = {}) {
+  const identity = fallbackSourceIdentity(source).toLowerCase();
+  const directUrl = originalStreamUrlFromProxy(sourceDirectUrl(source)).toLowerCase();
+  return /(?:mp4upload|yourupload|youupload)/i.test(identity)
+    || /\.(?:mp4|m4v|webm|mov)(?:$|[?#])/i.test(directUrl);
+}
+
 function isLocalPlaybackRelay() {
   const hostname = String(location.hostname || "").toLowerCase();
   return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
-}
-
-function isIpBoundCloudwindowStream(value = "") {
-  try {
-    const parsed = new URL(originalStreamUrlFromProxy(value), location.origin);
-    return /(?:^|\.)cloudwindow-route\.com$/i.test(parsed.hostname)
-      && parsed.searchParams.has("i");
-  } catch {
-    return false;
-  }
-}
-
-function canStartResolvedAdFreeFallback(source = {}, resolved = {}) {
-  if (!resolved.url || isBlockedPlaybackUrl(resolved.url) || !isAdFreeFallbackCandidate(source)) return false;
-  if (!isLocalPlaybackRelay() && isIpBoundCloudwindowStream(resolved.url)) return false;
-  const identity = fallbackSourceIdentity(source).toLowerCase();
-  const resolvedType = String(resolved.type || streamTypeFromUrl(resolved.url)).toLowerCase();
-  const isHls = resolvedType === "hls"
-    || resolvedType.includes("mpegurl")
-    || streamTypeFromUrl(resolved.url) === "hls";
-  // Resolving a VOE embed produces a fresh signed HLS URL. Progressive mirrors
-  // are never accepted from resolution alone: some return a valid MP4 URL while
-  // delivering no media bytes for that particular episode. Their short byte
-  // probe below distinguishes a healthy episode from a dead mirror quickly.
-  return isHls && identity.includes("voe");
 }
 
 function pickFallbackRaceCandidates(candidates = [], limit = FALLBACK_RACE_LIMIT) {
@@ -18763,13 +18764,24 @@ function pickFallbackRaceCandidates(candidates = [], limit = FALLBACK_RACE_LIMIT
     }
     families.add(family);
     selected.push(source);
-    if (selected.length >= limit) return selected;
-  }
-  for (const source of deferred) {
-    selected.push(source);
     if (selected.length >= limit) break;
   }
-  return selected;
+  for (const source of deferred) {
+    if (selected.length >= limit) break;
+    selected.push(source);
+  }
+
+  // Some providers list several dead HLS/embed mirrors before a healthy MP4.
+  // Keep the race bounded, but reserve one slot for a progressive source so a
+  // working continuation-checked fallback cannot be hidden behind bad mirrors.
+  if (limit > 1 && !selected.some(isProgressiveFallbackCandidate)) {
+    const progressive = candidates.find(isProgressiveFallbackCandidate);
+    if (progressive && !selected.includes(progressive)) {
+      if (selected.length >= limit) selected[selected.length - 1] = progressive;
+      else selected.push(progressive);
+    }
+  }
+  return selected.slice(0, limit);
 }
 
 function firstSuccessfulFallback(tasks = []) {
@@ -18861,11 +18873,13 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
   const requiresSustainedProbe = /(?:mp4upload|yourupload|youupload|streamtape)/i.test(originalUrl);
   const cacheCompleteSegment = Boolean(options.cacheCompleteSegment) && !requiresSustainedProbe;
   const maxCachedSegmentBytes = 12 * 1024 * 1024;
-  const rangeEnd = requiresSustainedProbe ? (128 * 1024) - 1 : (64 * 1024) - 1;
+  const rangeStart = Math.max(0, Number(options.rangeStart) || 0);
+  const rangeSize = requiresSustainedProbe ? 128 * 1024 : 64 * 1024;
+  const rangeEnd = rangeStart + rangeSize - 1;
   let reader = null;
   let streamEnded = false;
   try {
-    const requestHeaders = cacheCompleteSegment ? {} : { Range: `bytes=0-${rangeEnd}` };
+    const requestHeaders = cacheCompleteSegment ? {} : { Range: `bytes=${rangeStart}-${rangeEnd}` };
     const response = await fetchWithTimeout(target, {
       cache: cacheMode,
       credentials: "omit",
@@ -18926,14 +18940,19 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
 }
 
 function hlsManifestChildLine(manifest = "", startTime = 0) {
+  return hlsManifestMediaLines(manifest, startTime, 1)[0] || "";
+}
+
+function hlsManifestMediaLines(manifest = "", startTime = 0, count = 2) {
   const lines = String(manifest || "").split(/\r?\n/).map((line) => line.trim());
   const firstUri = lines.find((line) => line && !line.startsWith("#")) || "";
   const targetTime = Math.max(0, Number(startTime) || 0);
-  if (!targetTime || !lines.some((line) => /^#EXTINF:/i.test(line))) return firstUri;
+  const wanted = Math.max(1, Number(count) || 1);
+  if (!lines.some((line) => /^#EXTINF:/i.test(line))) return firstUri ? [firstUri] : [];
 
   let elapsed = 0;
   let pendingDuration = null;
-  let lastMediaUri = firstUri;
+  const media = [];
   for (const line of lines) {
     const durationMatch = line.match(/^#EXTINF:([\d.]+)/i);
     if (durationMatch) {
@@ -18941,12 +18960,14 @@ function hlsManifestChildLine(manifest = "", startTime = 0) {
       continue;
     }
     if (!line || line.startsWith("#") || pendingDuration === null) continue;
-    lastMediaUri = line;
-    if (targetTime < elapsed + pendingDuration) return line;
+    media.push({ uri: line, start: elapsed, duration: pendingDuration });
     elapsed += pendingDuration;
     pendingDuration = null;
   }
-  return lastMediaUri;
+  if (!media.length) return firstUri ? [firstUri] : [];
+  const targetIndex = media.findIndex((entry) => targetTime < entry.start + entry.duration);
+  const startIndex = targetIndex >= 0 ? targetIndex : media.length - 1;
+  return media.slice(startIndex, startIndex + wanted).map((entry) => entry.uri);
 }
 
 async function probeHlsManifest(url = "", referer = "", depth = 0, options = {}) {
@@ -18964,7 +18985,8 @@ async function probeHlsManifest(url = "", referer = "", depth = 0, options = {})
     if (!response.ok) return false;
     const manifest = await response.text();
     if (!manifest.includes("#EXTM3U")) return false;
-    const childLine = hlsManifestChildLine(manifest, options.startTime);
+    const childLines = hlsManifestMediaLines(manifest, options.startTime, 2);
+    const childLine = childLines[0] || "";
     const childUrl = manifestChildUrl(childLine, url);
     if (!childUrl) return false;
     if (options.manifestOnly) return true;
@@ -18973,13 +18995,18 @@ async function probeHlsManifest(url = "", referer = "", depth = 0, options = {})
     }
     const childTimeout = deadlineAt ? Math.max(0, deadlineAt - Date.now()) : timeoutMs;
     if (childTimeout < 150) return false;
-    return probeMediaBytes(
-      childUrl,
+    const mediaUrls = childLines
+      .map((line) => manifestChildUrl(line, url))
+      .filter((line, index, values) => line && values.indexOf(line) === index);
+    const probes = mediaUrls.map((mediaUrl, index) => probeMediaBytes(
+      mediaUrl,
       referer,
       Math.min(timeoutMs, childTimeout),
       options.cacheMode || "no-store",
-      { cacheCompleteSegment: Boolean(options.prefetchSegment) }
-    );
+      { cacheCompleteSegment: index === 0 && Boolean(options.prefetchSegment) }
+    ));
+    const results = await Promise.all(probes);
+    return results.length > 0 && results.every(Boolean);
   } catch {
     return false;
   }
@@ -19000,12 +19027,21 @@ async function probePlayableFallback(resolved = {}, options = {}) {
       prefetchSegment: Boolean(options.prefetchSegment)
     });
   }
-  return probeMediaBytes(
-    url,
-    resolved.mediaReferer || resolved.referer || "",
-    timeoutMs,
-    options.cacheMode || "no-store"
+  const referer = resolved.mediaReferer || resolved.referer || "";
+  const needsContinuationProof = /(?:mp4upload|yourupload|youupload|streamtape)/i.test(
+    originalStreamUrlFromProxy(url)
   );
+  const firstProbe = probeMediaBytes(url, referer, timeoutMs, options.cacheMode || "no-store");
+  if (!needsContinuationProof) return firstProbe;
+  const continuationProbe = probeMediaBytes(
+    url,
+    referer,
+    timeoutMs,
+    options.cacheMode || "no-store",
+    { rangeStart: 1024 * 1024 }
+  );
+  const results = await Promise.all([firstProbe, continuationProbe]);
+  return results.every(Boolean);
 }
 
 function persistVerifiedFallbackSource(episode, source, resolved, options = {}) {
@@ -19069,7 +19105,7 @@ function markPlaybackSourceVerified(episode, source) {
 }
 
 function verifyFallbackCandidate(episode, source, options = {}) {
-  const key = `${source.id || fallbackSourceIdentity(source)}:${options.allowResolvedFallback ? "resolved" : "verified"}`;
+  const key = `${source.id || fallbackSourceIdentity(source)}:verified`;
   const inFlight = episode._fallbackVerificationPromises instanceof Map
     ? episode._fallbackVerificationPromises
     : new Map();
@@ -19079,16 +19115,12 @@ function verifyFallbackCandidate(episode, source, options = {}) {
   const verification = (async () => {
     const resolved = await resolveFallbackCandidateToDirect(source);
     if (!resolved?.url) return null;
-    const provisional = options.allowResolvedFallback
-      && canStartResolvedAdFreeFallback(source, resolved);
-    if (!provisional && !(await probePlayableFallback(resolved))) return null;
+    if (!(await probePlayableFallback(resolved, options))) return null;
     if (resolved.payload) {
       const subtitles = normalizeSubtitleTracks(resolved.payload);
       if (subtitles.length) episode.subtitles = subtitles;
     }
-    return persistVerifiedFallbackSource(episode, source, resolved, {
-      verified: !provisional
-    });
+    return persistVerifiedFallbackSource(episode, source, resolved, { verified: true });
   })().finally(() => {
     inFlight.delete(key);
   });
@@ -19121,9 +19153,7 @@ async function findVerifiedAdFreeFallbackSource(episode = {}) {
       .filter(isAdFreeFallbackCandidate)
       .sort((a, b) => verifiedFallbackPreference(a) - verifiedFallbackPreference(b));
     const raceCandidates = pickFallbackRaceCandidates(candidates);
-    return firstSuccessfulFallback(raceCandidates.map((source) => verifyFallbackCandidate(episode, source, {
-      allowResolvedFallback: true
-    })));
+    return firstSuccessfulFallback(raceCandidates.map((source) => verifyFallbackCandidate(episode, source)));
   })().finally(() => {
     episode._verifiedFallbackPromise = null;
   });
@@ -19161,18 +19191,6 @@ function inspectPlaybackSourceHealth(source = {}, options = {}) {
   const deadlineAt = now + timeoutMs;
   const verification = (async () => {
     const resolved = await resolveFallbackCandidateToDirect(source, { timeoutMs });
-    // A signed Cloudwindow URL is not trusted from resolution alone in hosted
-    // mode. Let the normal full probe below fetch its child playlist and real
-    // media bytes; this proves the current Vercel relay can actually play it.
-    if (options.allowResolvedFallback && canStartResolvedAdFreeFallback(source, resolved || {})) {
-      const provisional = { ...resolved, provisional: true };
-      playbackSourceHealthCache.set(key, {
-        ok: true,
-        resolved: provisional,
-        expiresAt: Date.now() + PLAYBACK_SOURCE_HEALTH_FAIL_TTL_MS
-      });
-      return provisional;
-    }
     const remainingMs = Math.max(0, deadlineAt - Date.now());
     const playable = Boolean(
       resolved?.url
@@ -19185,9 +19203,9 @@ function inspectPlaybackSourceHealth(source = {}, options = {}) {
         cacheMode: "default",
         startTime: Math.max(0, Number(options.startTime) || 0),
         prefetchSegment: Boolean(options.prefetchSegment),
-        // A master playlist alone is not proof of playback: some UPN episodes
-        // publish one while their first fragment is already gone. VOE takes the
-        // fast signed-HLS path above; every other candidate proves media bytes.
+        // A master playlist alone is not proof of playback: some providers
+        // publish one while its media fragments are already gone. Every HLS
+        // candidate must prove consecutive media segments before selection.
         manifestOnly: false
       })
     );
@@ -19226,9 +19244,7 @@ async function verifyReliablePlaybackCandidate(episode, source, options = {}) {
     }
     return null;
   }
-  return persistVerifiedFallbackSource(episode, source, resolved, {
-    verified: resolved.provisional !== true
-  });
+  return persistVerifiedFallbackSource(episode, source, resolved, { verified: true });
 }
 
 async function prepareReliablePlaybackSource(show, episode, options = {}) {
@@ -19287,7 +19303,12 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
       if (backupLookup) return backupLookup;
       backupLookup = episode._eagerFallbackLookupPromise
         || episode._playbackFailureFallbackPromise
-        || attachPlaybackFailureFallbacks(show, episode);
+        || attachPlaybackFailureFallbacks(show, episode, {
+          // This path runs only after a real Play intent and a slow/failing
+          // primary. Bypass a stale provider miss once so a transient scraper
+          // timeout cannot hide a healthy episode mirror.
+          refreshProviderKeys: playbackRecoveryProviderKeys(episode)
+        });
       return backupLookup;
     };
 
@@ -19310,10 +19331,6 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
           firstSuccessfulFallback(initialCandidates.map((source) => (
             verifyReliablePlaybackCandidate(episode, source, {
               timeoutMs: primaryTimeout,
-              // A background intent warmup has time to prove and warm real
-              // media. The foreground fallback path may still accept a freshly
-              // resolved VOE URL provisionally to avoid blocking playback.
-              allowResolvedFallback: !primaryOnly,
               prefetchSegment: Boolean(options.prefetchSegment)
             })
           ))).then((source) => ({ completed: true, source })),
@@ -19359,8 +19376,7 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
     if (raceCandidates.length && remainingMs >= 250) {
       const race = firstSuccessfulFallback(raceCandidates.map((source) => (
         verifyReliablePlaybackCandidate(episode, source, {
-          timeoutMs: remainingMs,
-          allowResolvedFallback: true
+          timeoutMs: remainingMs
         })
       )));
       verifiedBackup = await Promise.race([
@@ -19688,9 +19704,8 @@ function renderDirectVideoPlayer(frame, url, episode, playbackContext = null) {
         "Checking backup sources...",
         "The selected server is not responding. Preparing other available sources."
       );
-      const failedProviderKey = regularSourceProviderKey(activeSource);
       const fallbackLookup = attachPlaybackFailureFallbacks(state.activeShow, episode, {
-        refreshProviderKey: failedProviderKey
+        refreshProviderKeys: playbackRecoveryProviderKeys(episode, activeSource)
       });
       const firstCandidateReady = episode._playbackFailureFastPromise || fallbackLookup;
       renderPlayerPopupMessage(
@@ -22182,7 +22197,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=894");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=895");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

@@ -643,6 +643,7 @@ test("7f2. play-intent health checking promotes a verified backup automatically"
     isLocalPlaybackRelay: () => true,
     isFastPreferredPlaybackSource: () => true,
     verifyReliablePlaybackCandidate: async (_value, source) => source.id === "backup" ? source : null,
+    playbackRecoveryProviderKeys: () => [],
     attachPlaybackFailureFallbacks: async (_show, value) => {
       fallbackLookups += 1;
       if (!value.sourceOptions.some((source) => source.id === "backup")) value.sourceOptions.push(backup);
@@ -710,6 +711,7 @@ test("7f2a. production races a portable backup alongside an IP-bound VOE candida
       }
       return null;
     },
+    playbackRecoveryProviderKeys: () => [],
     attachPlaybackFailureFallbacks: async (_show, value) => value,
     selectEpisodePlaybackSource: (value, id) => {
       value.selectedSourceId = id;
@@ -746,6 +748,7 @@ test("7f2b. a failed primary is not retried when no backup verifies", async () =
     isLocalPlaybackRelay: () => true,
     isFastPreferredPlaybackSource: () => true,
     verifyReliablePlaybackCandidate: async () => null,
+    playbackRecoveryProviderKeys: () => [],
     attachPlaybackFailureFallbacks: async (_show, value) => value,
     getEpisodePlaybackSources: (value) => value.sourceOptions,
     isAdFreeFallbackCandidate: () => true,
@@ -797,6 +800,7 @@ test("7f2c. a preferred source remains eligible after only the short probe times
       }
       return null;
     },
+    playbackRecoveryProviderKeys: () => [],
     attachPlaybackFailureFallbacks: async (_show, value) => value,
     selectEpisodePlaybackSource: (value, id) => {
       value.selectedSourceId = id;
@@ -848,6 +852,7 @@ test("7f2d. intent warming verifies only the best primary and never fans out to 
       }
       return null;
     },
+    playbackRecoveryProviderKeys: () => [],
     attachPlaybackFailureFallbacks: async (_show, value) => {
       backupLookups += 1;
       return value;
@@ -880,7 +885,7 @@ test("7f2e. episode intent and adjacent playback warm the shared source path bef
   assert.match(renderer, /warmEpisodePlaybackIntent\(show, episode, seasonNumber\)/);
   assert.match(warmup, /primaryOnly:\s*true/);
   assert.match(warmup, /prefetchSegment:\s*Boolean\(options\.prefetchSegment\)/);
-  assert.match(clientSource, /allowResolvedFallback:\s*!primaryOnly/);
+  assert.doesNotMatch(clientSource, /allowResolvedFallback/);
   assert.match(clientSource, /prefetchSegment:\s*true/);
   assert.match(warmup, /bufferedAhead >= 12/);
   assert.match(warmup, /position >= 3/);
@@ -936,7 +941,7 @@ test("7f4. a failed host family is demoted for the next episode until it recover
   assert.equal(sandbox.hasRecentlyFailedPlaybackFamily(nextEpisodeSameHost), false);
 });
 
-test("7f5. signed VOE HLS starts promptly while progressive mirrors prove bytes", () => {
+test("7f5. every selected source proves media and progressive mirrors prove continuation", () => {
   const inspection = section(
     clientSource,
     "function inspectPlaybackSourceHealth(",
@@ -947,22 +952,22 @@ test("7f5. signed VOE HLS starts promptly while progressive mirrors prove bytes"
     "async function prepareReliablePlaybackSource(",
     "function setupAdjacentEpisodeWarmup("
   );
-  assert.ok(inspection.indexOf("canStartResolvedAdFreeFallback") < inspection.indexOf("probePlayableFallback"));
-  assert.match(inspection, /provisional:\s*true/);
-  assert.match(clientSource, /return isHls\s*&&\s*identity\.includes\("voe"\)/);
-  assert.match(clientSource, /requiresSustainedProbe\s*\?\s*\(128 \* 1024\) - 1/);
+  assert.doesNotMatch(clientSource, /canStartResolvedAdFreeFallback/);
+  assert.doesNotMatch(inspection, /provisional:\s*true/);
+  assert.match(clientSource, /const FALLBACK_RACE_LIMIT = 4/);
+  assert.match(clientSource, /rangeSize\s*=\s*requiresSustainedProbe\s*\?\s*128 \* 1024\s*:\s*64 \* 1024/);
   assert.match(clientSource, /bytesPerSecond >= 96 \* 1024/);
-  assert.match(clientSource, /function isIpBoundCloudwindowStream\(/);
-  assert.doesNotMatch(inspection, /isIpBoundCloudwindowStream\(resolved\.url\)[\s\S]{0,500}return null/);
   assert.doesNotMatch(clientSource, /trustedProvider\s*&&\s*playbackFamilyHealth\(source\)\s*===\s*true/);
   assert.match(inspection, /manifestOnly:\s*false/);
   assert.match(clientSource, /requiresSustainedProbe\s*=\s*\/\(\?:mp4upload\|yourupload\|youupload\|streamtape\)/);
-  assert.match(clientSource, /rangeEnd\s*=\s*requiresSustainedProbe\s*\?\s*\(128\s*\*\s*1024\)/);
+  assert.match(clientSource, /rangeEnd\s*=\s*rangeStart \+ rangeSize - 1/);
   assert.match(clientSource, /reader\.read\(\)/);
   assert.match(clientSource, /minimumBytes\s*=\s*requiresSustainedProbe\s*\?\s*128\s*\*\s*1024\s*:\s*32\s*\*\s*1024/);
   assert.match(clientSource, /bytesPerSecond\s*>=\s*96\s*\*\s*1024/);
-  assert.match(preparation, /allowResolvedFallback:\s*true/);
-  assert.match(clientSource, /verified:\s*resolved\.provisional !== true/);
+  assert.match(clientSource, /rangeStart:\s*1024 \* 1024/);
+  assert.match(clientSource, /Promise\.all\(\[firstProbe, continuationProbe\]\)/);
+  assert.doesNotMatch(preparation, /allowResolvedFallback/);
+  assert.match(clientSource, /persistVerifiedFallbackSource\(episode, source, resolved, \{ verified: true \}\)/);
 });
 
 test("7f5b. HLS verification warms the segment used by a resumed episode", () => {
@@ -984,6 +989,12 @@ test("7f5b. HLS verification warms the segment used by a resumed episode", () =>
   assert.equal(sandbox.hlsManifestChildLine(manifest, 0), "segment-0.ts");
   assert.equal(sandbox.hlsManifestChildLine(manifest, 8), "segment-1.ts");
   assert.equal(sandbox.hlsManifestChildLine(manifest, 15), "segment-2.ts");
+  assert.deepEqual(
+    [...sandbox.hlsManifestMediaLines(manifest, 8, 2)],
+    ["segment-1.ts", "segment-2.ts"]
+  );
+  assert.match(clientSource, /const results = await Promise\.all\(probes\)/);
+  assert.match(clientSource, /results\.length > 0 && results\.every\(Boolean\)/);
   assert.match(clientSource, /startTime:\s*Math\.max\(0, Number\(getResumePosition\(episode\)\)/);
   assert.match(clientSource, /cacheCompleteSegment\s*\?\s*\{\}\s*:\s*\{ Range:/);
   assert.match(clientSource, /maxCachedSegmentBytes\s*=\s*12 \* 1024 \* 1024/);
@@ -1422,11 +1433,12 @@ test("11h. playback failure verifies and opens the backup without asking", () =>
   assert.match(renderer, /playActiveShow\(\{ allowSourceLookup: false \}\)/);
   assert.match(renderer, /selectedSource\.id !== activeSource\.id/);
   assert.doesNotMatch(renderer, /Use verified source/);
-  assert.match(clientSource, /await probePlayableFallback\(resolved\)/);
-  assert.match(clientSource, /verifyFallbackCandidate\(episode, source, \{\s*allowResolvedFallback:\s*true/);
+  assert.match(clientSource, /await probePlayableFallback\(resolved, options\)/);
+  assert.match(clientSource, /verifyFallbackCandidate\(episode, source\)/);
+  assert.match(renderer, /refreshProviderKeys:\s*playbackRecoveryProviderKeys\(episode, activeSource\)/);
 });
 
-test("11i. fallback verification races three diverse providers and returns the first success", async () => {
+test("11i. fallback verification stays diverse and reserves a progressive candidate", async () => {
   const sandbox = vm.createContext({
     URL,
     location: { origin: "https://app.test", hostname: "app.test" },
@@ -1449,6 +1461,17 @@ test("11i. fallback verification races three diverse providers and returns the f
     Array.from(sandbox.pickFallbackRaceCandidates(candidates, 3), (source) => source.id),
     ["yourupload-1", "mp4upload", "okru"]
   );
+  const hlsHeavyCandidates = [
+    { id: "voe", provider: "VOE" },
+    { id: "streamwish", provider: "Streamwish" },
+    { id: "vidhide", provider: "Vidhide" },
+    { id: "streamtape", provider: "Streamtape" },
+    { id: "mp4upload-working", provider: "MP4Upload" }
+  ];
+  assert.deepEqual(
+    Array.from(sandbox.pickFallbackRaceCandidates(hlsHeavyCandidates, 4), (source) => source.id),
+    ["voe", "streamwish", "vidhide", "mp4upload-working"]
+  );
 
   const winner = await sandbox.firstSuccessfulFallback([
     Promise.resolve(null),
@@ -1456,7 +1479,7 @@ test("11i. fallback verification races three diverse providers and returns the f
     new Promise((resolve) => setTimeout(() => resolve({ id: "slower" }), 10))
   ]);
   assert.equal(winner.id, "working");
-  assert.match(clientSource, /const FALLBACK_RACE_LIMIT = 3/);
+  assert.match(clientSource, /const FALLBACK_RACE_LIMIT = 4/);
   assert.match(clientSource, /_verifiedFallbackSourceIds/);
 });
 
