@@ -4567,7 +4567,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=875";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=876";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -18654,8 +18654,24 @@ function hasRecentlyFailedPlaybackFamily(source = {}) {
   return playbackFamilyHealth(source) === false;
 }
 
+function isLocalPlaybackRelay() {
+  const hostname = String(location.hostname || "").toLowerCase();
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
+function isIpBoundCloudwindowStream(value = "") {
+  try {
+    const parsed = new URL(originalStreamUrlFromProxy(value), location.origin);
+    return /(?:^|\.)cloudwindow-route\.com$/i.test(parsed.hostname)
+      && parsed.searchParams.has("i");
+  } catch {
+    return false;
+  }
+}
+
 function canStartResolvedAdFreeFallback(source = {}, resolved = {}) {
   if (!resolved.url || isBlockedPlaybackUrl(resolved.url) || !isAdFreeFallbackCandidate(source)) return false;
+  if (!isLocalPlaybackRelay() && isIpBoundCloudwindowStream(resolved.url)) return false;
   const identity = fallbackSourceIdentity(source).toLowerCase();
   const resolvedType = String(resolved.type || streamTypeFromUrl(resolved.url)).toLowerCase();
   const isHls = resolvedType === "hls"
@@ -19039,6 +19055,19 @@ function inspectPlaybackSourceHealth(source = {}, options = {}) {
   const deadlineAt = now + timeoutMs;
   const verification = (async () => {
     const resolved = await resolveFallbackCandidateToDirect(source, { timeoutMs });
+    if (resolved?.url && !isLocalPlaybackRelay() && isIpBoundCloudwindowStream(resolved.url)) {
+      // Cloudwindow signs VOE media to the resolver's egress IP. Vercel may
+      // execute /api/resolve and the later /api/source request on different
+      // instances, which turns an otherwise valid manifest into HTTP 403. Skip
+      // that production-only false positive and verify a portable source.
+      playbackSourceHealthCache.set(key, {
+        ok: false,
+        resolved: null,
+        expiresAt: Date.now() + PLAYBACK_SOURCE_HEALTH_FAIL_TTL_MS
+      });
+      recordPlaybackFamilyHealth(source, false);
+      return null;
+    }
     if (options.allowResolvedFallback && canStartResolvedAdFreeFallback(source, resolved || {})) {
       const provisional = { ...resolved, provisional: true };
       playbackSourceHealthCache.set(key, {
@@ -21965,7 +21994,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=875");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=876");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

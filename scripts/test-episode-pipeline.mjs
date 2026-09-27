@@ -800,8 +800,11 @@ test("7f5. VOE starts from fresh signed HLS while weaker mirrors prove episode b
     "function setupAdjacentEpisodeWarmup("
   );
   assert.ok(inspection.indexOf("canStartResolvedAdFreeFallback") < inspection.indexOf("probePlayableFallback"));
+  assert.ok(inspection.indexOf("isIpBoundCloudwindowStream") < inspection.indexOf("canStartResolvedAdFreeFallback"));
   assert.match(inspection, /provisional:\s*true/);
   assert.match(clientSource, /return isHls\s*&&\s*identity\.includes\("voe"\)/);
+  assert.match(clientSource, /function isIpBoundCloudwindowStream\(/);
+  assert.match(inspection, /!isLocalPlaybackRelay\(\)\s*&&\s*isIpBoundCloudwindowStream\(resolved\.url\)/);
   assert.doesNotMatch(clientSource, /trustedProvider\s*&&\s*playbackFamilyHealth\(source\)\s*===\s*true/);
   assert.match(inspection, /manifestOnly:\s*false/);
   assert.match(clientSource, /requiresSustainedProbe\s*=\s*\/\(\?:mp4upload\|yourupload\|youupload\)/);
