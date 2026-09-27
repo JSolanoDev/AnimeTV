@@ -4567,7 +4567,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=876";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=877";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -18819,7 +18819,7 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
     // giving it to the player. The request remains bounded and is cancelled as
     // soon as a small sample arrives.
     reader = response.body.getReader();
-    const minimumBytes = requiresSustainedProbe ? 192 * 1024 : 32 * 1024;
+    const minimumBytes = requiresSustainedProbe ? 128 * 1024 : 32 * 1024;
     let receivedBytes = 0;
     let streamEnded = false;
     while (receivedBytes < minimumBytes && !streamEnded) {
@@ -18841,7 +18841,7 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
     if (!deliveredEnough) return false;
     if (!requiresSustainedProbe) return true;
     const bytesPerSecond = receivedBytes / Math.max(0.001, (Date.now() - startedAt) / 1000);
-    return bytesPerSecond >= 192 * 1024;
+    return bytesPerSecond >= 128 * 1024;
   } catch {
     return false;
   } finally {
@@ -21994,7 +21994,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=876");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=877");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

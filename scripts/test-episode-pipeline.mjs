@@ -810,8 +810,8 @@ test("7f5. VOE starts from fresh signed HLS while weaker mirrors prove episode b
   assert.match(clientSource, /requiresSustainedProbe\s*=\s*\/\(\?:mp4upload\|yourupload\|youupload\)/);
   assert.match(clientSource, /rangeEnd\s*=\s*requiresSustainedProbe\s*\?\s*\(256\s*\*\s*1024\)/);
   assert.match(clientSource, /reader\.read\(\)/);
-  assert.match(clientSource, /minimumBytes\s*=\s*requiresSustainedProbe\s*\?\s*192\s*\*\s*1024\s*:\s*32\s*\*\s*1024/);
-  assert.match(clientSource, /bytesPerSecond\s*>=\s*192\s*\*\s*1024/);
+  assert.match(clientSource, /minimumBytes\s*=\s*requiresSustainedProbe\s*\?\s*128\s*\*\s*1024\s*:\s*32\s*\*\s*1024/);
+  assert.match(clientSource, /bytesPerSecond\s*>=\s*128\s*\*\s*1024/);
   assert.match(preparation, /allowResolvedFallback:\s*true/);
   assert.match(clientSource, /verified:\s*resolved\.provisional !== true/);
 });
