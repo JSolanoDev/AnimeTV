@@ -1517,7 +1517,7 @@ test("20. a resolved URL mounts after the first episode-row click", async () => 
     console: { debug() {} },
     document: { querySelector: (selector) => selector === "#videoFrame" ? frame : null },
     getEpisodeUrl: (value) => value.videoUrl || "",
-    getSelectedEpisodeSource: () => null,
+    getSelectedEpisodeSource: (value) => value.sourceOptions?.[0] || null,
     playActiveShow: async () => { plays += 1; }
   });
   vm.runInContext(section(clientSource, "function debugPromotion(", "function getSelectedEpisodeSource("), sandbox);
@@ -1530,6 +1530,17 @@ test("20. a resolved URL mounts after the first episode-row click", async () => 
   assert.equal(sandbox.promoteResolvedEpisodeSource(episode), false);
   await Promise.resolve();
   assert.equal(plays, 1);
+
+  const lateSourceEpisode = {
+    id: "show-s2-e4",
+    sourceOptions: [{ id: "backup", type: "direct", videoUrl: "https://media.example/late.mp4" }]
+  };
+  sandbox.state.activeEpisode = { episode: lateSourceEpisode };
+  sandbox.state.activeEpisodeUrl = "";
+  assert.equal(sandbox.promoteResolvedEpisodeSource(lateSourceEpisode), false);
+  await Promise.resolve();
+  assert.equal(plays, 1);
+  assert.equal(lateSourceEpisode.videoUrl, undefined);
 });
 
 test("21. an episode-row click reaches source scheduling with canonical season identity", () => {
