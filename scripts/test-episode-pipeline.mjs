@@ -1604,6 +1604,42 @@ test("AnimeAV1 source warmup coalesces concurrent requests for one episode", asy
   assert.equal(sandbox._animeAv1EpisodeSourceInflight.size, 0);
 });
 
+test("a late source lookup never remounts an already buffered player", async () => {
+  const show = { id: "show" };
+  const episode = {
+    id: "episode",
+    sourceOptionsChecked: "lookup",
+    playbackSourceLookupComplete: true
+  };
+  let mounted = true;
+  let replayCount = 0;
+  const sandbox = vm.createContext({
+    Promise,
+    state: { activeEpisode: { episode }, activeShow: show, playIntent: true },
+    document: {
+      querySelector: (selector) => selector === "#videoFrame"
+        ? { querySelector: () => mounted ? {} : null }
+        : null
+    },
+    playbackLookupKey: () => "lookup",
+    sourceOptionsBackgroundLookups: new Map(),
+    pendingSourceLookups: new Map(),
+    playActiveShow: () => { replayCount += 1; }
+  });
+  vm.runInContext(
+    section(clientSource, "function schedulePlaybackSourceOptions(", "function stripSeasonFromTitle("),
+    sandbox
+  );
+
+  await sandbox.schedulePlaybackSourceOptions(show, episode, 1, { autoReplay: true });
+  assert.equal(replayCount, 0);
+
+  mounted = false;
+  await sandbox.schedulePlaybackSourceOptions(show, episode, 1, { autoReplay: true });
+  await Promise.resolve();
+  assert.equal(replayCount, 1);
+});
+
 test("AnimeAV1 card intent warms the exact provider episode for later playback", async () => {
   const { sandbox, releaseFetch, prefetched, getFetchCount, getLastFetchUrl } = animeAv1SourceContext();
   const show = { animeAv1Slug: "movie-example" };

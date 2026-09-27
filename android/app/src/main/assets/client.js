@@ -4567,7 +4567,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=878";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=879";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -8234,7 +8234,9 @@ function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options 
       const activeEpisode = state.activeEpisode?.episode;
       const sameEpisode = activeEpisode === episode
         || Boolean(activeEpisode?.id && episode?.id && activeEpisode.id === episode.id);
-      if (state.playIntent && state.activeShow === show && sameEpisode) {
+      const mountedPlayer = document.querySelector("#videoFrame")
+        ?.querySelector("#animePlayerFrame, #animePlayer, #anipubEmbeddedPlayer");
+      if (state.playIntent && state.activeShow === show && sameEpisode && !mountedPlayer) {
         Promise.resolve(playActiveShow({ allowSourceLookup: false })).catch(() => {});
       }
       return resolvedEpisode;
@@ -22005,7 +22007,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=878");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=879");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
