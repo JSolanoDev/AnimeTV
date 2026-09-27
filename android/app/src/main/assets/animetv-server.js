@@ -269,6 +269,10 @@ const REGULAR_SOURCE_MISS_CACHE_HEADERS = Object.freeze({
   "Cache-Control": "public, max-age=15, s-maxage=60, stale-while-revalidate=120",
   "Vary": "Accept-Encoding"
 });
+const SOURCE_REFRESH_CACHE_HEADERS = Object.freeze({
+  "Cache-Control": "private, no-store, max-age=0",
+  "Vary": "Accept-Encoding"
+});
 
 const ANILIST_MEDIA_CACHE_TTL_MS  = 1000 * 60 * 60 * 24;  // 24 h ΓÇö stable metadata
 const ANILIST_SEARCH_CACHE_TTL_MS = 1000 * 60 * 60;       // 1 h
@@ -7133,6 +7137,7 @@ async function handleTioAnimeSearch(url, response) {
 async function handleTioAnimeSources(url, response) {
   const slug    = url.searchParams.get("slug")    || "";
   const episode = url.searchParams.get("episode") || "";
+  const forceRefresh = url.searchParams.get("refresh") === "1";
 
   if (!slug || !episode) {
     sendJson(response, { ok: false, error: "slug and episode are required." }, 400);
@@ -7143,14 +7148,15 @@ async function handleTioAnimeSources(url, response) {
   const cacheKey = `${slug}:${episode}`;
   const cached   = tioAnimeSourceCache.get(cacheKey);
   const cachedTtl = cached?.data?.ok ? TIOANIME_CACHE_TTL_MS : TIOANIME_MISS_CACHE_TTL_MS;
-  if (cached && Date.now() - cached.ts < cachedTtl) {
+  if (!forceRefresh && cached && Date.now() - cached.ts < cachedTtl) {
     const status = cached.data.ok ? 200 : 404;
     sendJson(response, cached.data, status, cached.data.ok ? REGULAR_SOURCE_SUCCESS_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS);
     return;
   }
 
   try {
-    const result = await coalesceInflight(tioAnimeSourceInflight, cacheKey, async () => {
+    const inflightKey = forceRefresh ? `${cacheKey}:refresh` : cacheKey;
+    const result = await coalesceInflight(tioAnimeSourceInflight, inflightKey, async () => {
       try {
         const data = await fetchTioAnimeEpisodeSourcesDirect(slug, episode);
         return { data, status: data.ok ? 200 : 404 };
@@ -7167,7 +7173,9 @@ async function handleTioAnimeSources(url, response) {
     });
     const { data, status } = result;
     tioAnimeSourceCache.set(cacheKey, { data, ts: Date.now() });
-    sendJson(response, data, status, data.ok ? REGULAR_SOURCE_SUCCESS_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS);
+    sendJson(response, data, status, forceRefresh
+      ? SOURCE_REFRESH_CACHE_HEADERS
+      : (data.ok ? REGULAR_SOURCE_SUCCESS_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS));
   } catch (err) {
     sendJson(response, {
       ok: false,
@@ -7175,7 +7183,7 @@ async function handleTioAnimeSources(url, response) {
       detail: err.message,
       slug,
       episode
-    }, 503, REGULAR_SOURCE_MISS_CACHE_HEADERS);
+    }, 503, forceRefresh ? SOURCE_REFRESH_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS);
   }
 }
 
@@ -7633,6 +7641,7 @@ async function handleJKAnimeSources(url, response) {
   const episode = url.searchParams.get("episode") || "";
   const title = url.searchParams.get("title") || "";
   const id = url.searchParams.get("id") || "";
+  const forceRefresh = url.searchParams.get("refresh") === "1";
   if (!slug && (title || id)) {
     const match = await findJKAnimeSlugForShow({ title, anilistId: id }).catch(() => null);
     slug = match?.slug || "";
@@ -7648,7 +7657,7 @@ async function handleJKAnimeSources(url, response) {
   const cacheKey = `${safeSlug}:${epNum}`;
   const cached = jkAnimeSourceCache.get(cacheKey);
   const cachedTtl = cached?.data?.ok ? JKANIME_CACHE_TTL_MS : JKANIME_MISS_CACHE_TTL_MS;
-  if (cached && Date.now() - cached.ts < cachedTtl) {
+  if (!forceRefresh && cached && Date.now() - cached.ts < cachedTtl) {
     sendJson(
       response,
       cached.data,
@@ -7659,9 +7668,10 @@ async function handleJKAnimeSources(url, response) {
   }
 
   try {
+    const inflightKey = forceRefresh ? `${cacheKey}:refresh` : cacheKey;
     const data = await coalesceInflight(
       jkAnimeSourceInflight,
-      cacheKey,
+      inflightKey,
       () => fetchJKAnimeEpisodeSourcesDirect(safeSlug, epNum)
     );
     jkAnimeSourceCache.set(cacheKey, { data, ts: Date.now() });
@@ -7669,7 +7679,9 @@ async function handleJKAnimeSources(url, response) {
       response,
       data,
       data.ok ? 200 : 404,
-      data.ok ? REGULAR_SOURCE_SUCCESS_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS
+      forceRefresh
+        ? SOURCE_REFRESH_CACHE_HEADERS
+        : (data.ok ? REGULAR_SOURCE_SUCCESS_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS)
     );
   } catch (error) {
     const status = /HTTP 404|not found|No JKAnime/i.test(error.message) ? 404 : 503;
@@ -7683,7 +7695,7 @@ async function handleJKAnimeSources(url, response) {
       sources: []
     };
     jkAnimeSourceCache.set(cacheKey, { data, ts: Date.now() });
-    sendJson(response, data, status, REGULAR_SOURCE_MISS_CACHE_HEADERS);
+    sendJson(response, data, status, forceRefresh ? SOURCE_REFRESH_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS);
   }
 }
 
@@ -8911,6 +8923,7 @@ async function handleAnimeAv1Sources(url, response) {
   const slug = url.searchParams.get("slug") || "";
   const episode = url.searchParams.get("episode") || "";
   const variant = String(url.searchParams.get("variant") || "SUB").toUpperCase();
+  const forceRefresh = url.searchParams.get("refresh") === "1";
   if (!slug || !episode) {
     sendJson(response, { ok: false, error: "slug and episode are required." }, 400);
     return;
@@ -8926,14 +8939,15 @@ async function handleAnimeAv1Sources(url, response) {
   const cacheKey = `${safeSlug}:${providerEpisodeId}:${variant}`;
   const cached = animeAv1SourceCache.get(cacheKey);
   const cachedTtl = cached?.data?.ok ? ANIMEAV1_CACHE_TTL_MS : ANIMEAV1_MISS_CACHE_TTL_MS;
-  if (cached && Date.now() - cached.ts < cachedTtl) {
+  if (!forceRefresh && cached && Date.now() - cached.ts < cachedTtl) {
     const status = animeAv1CachedSourceStatus(cached);
     sendJson(response, cached.data, status, animeAv1SourceResponseHeaders(status));
     return;
   }
 
   try {
-    let lookup = animeAv1SourceInflight.get(cacheKey);
+    const inflightKey = forceRefresh ? `${cacheKey}:refresh` : cacheKey;
+    let lookup = animeAv1SourceInflight.get(inflightKey);
     if (!lookup) {
       lookup = fetchAnimeAv1EpisodeSourcesDirect(safeSlug, providerEpisodeId, variant)
         .then((data) => {
@@ -8942,12 +8956,12 @@ async function handleAnimeAv1Sources(url, response) {
           return { data, status };
         })
         .finally(() => {
-          animeAv1SourceInflight.delete(cacheKey);
+          animeAv1SourceInflight.delete(inflightKey);
         });
-      animeAv1SourceInflight.set(cacheKey, lookup);
+      animeAv1SourceInflight.set(inflightKey, lookup);
     }
     const { data, status } = await lookup;
-    sendJson(response, data, status, animeAv1SourceResponseHeaders(status));
+    sendJson(response, data, status, forceRefresh ? SOURCE_REFRESH_CACHE_HEADERS : animeAv1SourceResponseHeaders(status));
   } catch (error) {
     const status = /HTTP 404|not found/i.test(error.message) ? 404 : 503;
     const data = {
@@ -8966,7 +8980,7 @@ async function handleAnimeAv1Sources(url, response) {
     if (shouldCacheAnimeAv1SourceStatus(status)) {
       animeAv1SourceCache.set(cacheKey, { data, status, ts: Date.now() });
     }
-    sendJson(response, data, status, animeAv1SourceResponseHeaders(status));
+    sendJson(response, data, status, forceRefresh ? SOURCE_REFRESH_CACHE_HEADERS : animeAv1SourceResponseHeaders(status));
   }
 }
 
@@ -9300,7 +9314,9 @@ async function fetchAnimeAv1EpisodeSourcesDirect(slug, episode, variant = "SUB")
   const normalizedCastSources = normalizeAnimeAv1SourceList(sources, episodeUrl, { includeEmbeds: true });
   const normalizedDownloads = normalizeAnimeAv1SourceList(downloads, episodeUrl, { downloads: true });
   return {
-    ok: normalizedSources.length > 0,
+    // AnimeAV1 often publishes only iframe mirrors. Those are still playable
+    // through /api/resolve and must not be mislabeled as a missing episode.
+    ok: normalizedCastSources.length > 0,
     source: "AnimeAV1 Direct",
     slug: safeSlug,
     episode: Number(providerEpisodeId),

@@ -33,12 +33,18 @@
   let hls = null;
   let statusTimer = null;
   let startupTimer = null;
+  let stallTimer = null;
   let recoveryTimer = null;
   let hlsRecoveryTimer = null;
   let recoveryCount = 0;
   let networkRecoveryCount = 0;
   let mediaRecoveryCount = 0;
-  const PLAYBACK_STARTUP_DEADLINE_MS = 6500;
+  const sourceIsHls = streamType(sourceUrl, params.get("type")) === "m3u8";
+  const sourceNeedsSlowManifestGrace = /(?:animeav1\.uns\.bio|premilkyway\.com|aurorapathcreative\.(?:space|shop))/i.test(sourceUrl);
+  const HLS_MANIFEST_LOADING_TIMEOUT_MS = sourceNeedsSlowManifestGrace ? 9000 : 4500;
+  const PLAYBACK_STARTUP_DEADLINE_MS = sourceIsHls ? 12000 : 7500;
+  const PLAYBACK_STALL_DEADLINE_MS = sourceIsHls ? 7000 : 5500;
+  let playbackHasStarted = false;
   let seekRecoveryUntil = 0;
   let lastProgressPosition = -1;
   let lastSeekToast = 0;
@@ -2254,6 +2260,7 @@
       send("canplaythrough", getStatus());
     });
     art.on("video:playing", () => {
+      playbackHasStarted = true;
       clearStartupWatchdog();
       cancelScheduledRecovery();
       seekRecoveryUntil = 0;
@@ -2263,6 +2270,7 @@
       startStatusLoop();
     });
     art.on("video:pause", () => {
+      clearStallWatchdog();
       send("pause", getStatus());
       stopStatusLoop();
     });
@@ -2270,12 +2278,15 @@
       if (bufferedEnd(video) - (video.currentTime || 0) < 0.35) showLoading();
       send("waiting", getStatus());
       scheduleRecovery("waiting");
+      armStallWatchdog("waiting");
     });
     art.on("video:stalled", () => {
       send("stalled", getStatus());
       scheduleRecovery("stalled");
+      armStallWatchdog("stalled");
     });
     art.on("video:seeked", () => {
+      clearStallWatchdog();
       syncSkipSegments(video.currentTime || 0);
     });
     art.on("video:loadedmetadata", () => {
@@ -2293,6 +2304,7 @@
     art.on("video:timeupdate", () => {
       const position = video.currentTime || 0;
       if (position > lastProgressPosition + 0.2 || position < lastProgressPosition) {
+        clearStallWatchdog();
         recoveryCount = 0;
         networkRecoveryCount = 0;
         mediaRecoveryCount = 0;
@@ -2394,7 +2406,7 @@
       maxMaxBufferLength: 120,
       maxBufferHole: 0.5,
       capLevelToPlayerSize: false,
-      manifestLoadingTimeOut: 4500,
+      manifestLoadingTimeOut: HLS_MANIFEST_LOADING_TIMEOUT_MS,
       // A failed manifest cannot play anything. Start the automatic fallback
       // promptly instead of spending four Function calls on the same dead URL.
       manifestLoadingMaxRetry: 0,
@@ -2752,6 +2764,38 @@
   function clearStartupWatchdog() {
     if (startupTimer) clearTimeout(startupTimer);
     startupTimer = null;
+  }
+
+  function armStallWatchdog(reason) {
+    // Slow HLS providers can emit waiting/stalled while their master, rendition,
+    // init fragment, and first media fragment are still arriving. The startup
+    // watchdog owns that phase; the shorter stall deadline begins after a frame
+    // has actually played.
+    if (!playbackHasStarted) return;
+    if (stallTimer) return;
+    const startedAt = Date.now();
+    const startedPosition = Number(art?.video?.currentTime || 0);
+    const check = () => {
+      stallTimer = null;
+      const video = art?.video;
+      if (!video || video.paused || video.ended || elements.error.hidden === false) return;
+      const seekGraceRemaining = seekRecoveryUntil - Date.now();
+      if (seekGraceRemaining > 0) {
+        stallTimer = setTimeout(check, seekGraceRemaining + 100);
+        return;
+      }
+      const progressed = Number(video.currentTime || 0) - startedPosition > 0.35;
+      if (progressed || bufferedAhead(video) > 0.75) return;
+      cancelScheduledRecovery();
+      showError("Stream stopped responding", "This server stalled. Trying another verified source.");
+      send("error", `playback-stalled:${reason}:${Date.now() - startedAt}`);
+    };
+    stallTimer = setTimeout(check, PLAYBACK_STALL_DEADLINE_MS);
+  }
+
+  function clearStallWatchdog() {
+    if (stallTimer) clearTimeout(stallTimer);
+    stallTimer = null;
   }
 
   function scheduleRecovery(reason) {
@@ -3156,6 +3200,7 @@
   function destroyPlayer() {
     stopStatusLoop();
     clearStartupWatchdog();
+    clearStallWatchdog();
     cancelScheduledRecovery();
     if (hlsRecoveryTimer) clearTimeout(hlsRecoveryTimer);
     hlsRecoveryTimer = null;

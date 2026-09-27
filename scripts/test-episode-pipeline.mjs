@@ -212,10 +212,13 @@ function playbackFallbackContext({ primaryFound, slowJk = false }) {
 function animeAv1SourceContext() {
   let fetchCount = 0;
   let lastFetchUrl = "";
+  let lastFetchOptions = null;
+  let now = 1000;
   let releaseFetch;
   const prefetched = [];
   const gate = new Promise((resolve) => { releaseFetch = resolve; });
   const sandbox = vm.createContext({
+    Date: { now: () => now },
     console: { warn() {} },
     document: {
       createElement: () => ({}),
@@ -233,9 +236,10 @@ function animeAv1SourceContext() {
     },
     getInventoryProviderEpisodeId: (_show, episode) => episode.providerEpisodeId,
     hydrateAnimeAv1Slug: async () => {},
-    fetchWithTimeout: async (url) => {
+    fetchWithTimeout: async (url, options) => {
       fetchCount += 1;
       lastFetchUrl = url;
+      lastFetchOptions = options;
       await gate;
       return {
         ok: true,
@@ -250,7 +254,7 @@ function animeAv1SourceContext() {
     }
   });
   vm.runInContext(
-    section(clientSource, "async function fetchAnimeAv1EpisodeSourcePayload(", "async function buildAnimeAv1CastCandidate("),
+    section(clientSource, "const EPISODE_SOURCE_PAYLOAD_TTL_MS", "async function buildAnimeAv1CastCandidate("),
     sandbox
   );
   vm.runInContext(
@@ -261,8 +265,10 @@ function animeAv1SourceContext() {
     sandbox,
     releaseFetch,
     prefetched,
+    advanceTime: (milliseconds) => { now += milliseconds; },
     getFetchCount: () => fetchCount,
-    getLastFetchUrl: () => lastFetchUrl
+    getLastFetchUrl: () => lastFetchUrl,
+    getLastFetchOptions: () => lastFetchOptions
   };
 }
 
@@ -557,6 +563,7 @@ test("7f2. play-intent health checking promotes a verified backup automatically"
       source.id === value.selectedSourceId && !value._failedSourceIds?.has(source.id)
     )) || value.sourceOptions.find((source) => !value._failedSourceIds?.has(source.id)) || null,
     hasFreshVerifiedPlaybackSource: () => false,
+    hasRecentlyFailedPlaybackFamily: () => false,
     isFastPreferredPlaybackSource: () => true,
     verifyReliablePlaybackCandidate: async (_value, source) => source.id === "backup" ? source : null,
     attachPlaybackFailureFallbacks: async (_show, value) => {
@@ -609,6 +616,7 @@ test("7f2a. reliable candidates are verified before a selected low-confidence em
     getEpisodePlaybackSources: (value) => value.sourceOptions,
     isAdFreeFallbackCandidate: () => true,
     hasFreshVerifiedPlaybackSource: () => false,
+    hasRecentlyFailedPlaybackFamily: () => false,
     isFastPreferredPlaybackSource: (source) => source.id === "yourupload",
     verifiedFallbackPreference: (source) => source.id === "yourupload" ? 0 : 1,
     pickFallbackRaceCandidates: (sources) => sources.slice(0, 3),
@@ -655,6 +663,7 @@ test("7f2b. a failed primary is not retried when no backup verifies", async () =
       source.id === value.selectedSourceId && !value._failedSourceIds?.has(source.id)
     )) || null,
     hasFreshVerifiedPlaybackSource: () => false,
+    hasRecentlyFailedPlaybackFamily: () => false,
     isFastPreferredPlaybackSource: () => true,
     verifyReliablePlaybackCandidate: async () => null,
     attachPlaybackFailureFallbacks: async (_show, value) => value,
@@ -692,6 +701,7 @@ test("7f2c. a preferred source remains eligible after only the short probe times
     getEpisodePlaybackSources: (value) => value.sourceOptions,
     isAdFreeFallbackCandidate: () => true,
     hasFreshVerifiedPlaybackSource: () => false,
+    hasRecentlyFailedPlaybackFamily: () => false,
     isFastPreferredPlaybackSource: () => true,
     verifiedFallbackPreference: () => 0,
     pickFallbackRaceCandidates: (sources) => sources,
@@ -725,11 +735,57 @@ test("7f2c. a preferred source remains eligible after only the short probe times
 test("7f3. regular backup source routes share CDN cache and cold in-flight work", () => {
   assert.match(serverSource, /const tioAnimeSourceInflight = new Map\(\)/);
   assert.match(serverSource, /const jkAnimeSourceInflight = new Map\(\)/);
-  assert.match(serverSource, /coalesceInflight\(tioAnimeSourceInflight, cacheKey/);
+  assert.match(serverSource, /coalesceInflight\(tioAnimeSourceInflight, inflightKey/);
   assert.match(serverSource, /coalesceInflight\(\s*jkAnimeSourceInflight,/);
   assert.match(serverSource, /s-maxage=300, stale-while-revalidate=600/);
+  assert.match(serverSource, /const forceRefresh = url\.searchParams\.get\("refresh"\) === "1"/);
+  assert.match(serverSource, /SOURCE_REFRESH_CACHE_HEADERS/);
   const jkAttach = section(clientSource, "function fetchJKAnimeEpisodeSourcePayload(", "function mergeJKAnimeSourcesIntoEpisode(");
   assert.ok(jkAttach.indexOf("animeAv1CatalogSlugForShow(show)") < jkAttach.indexOf("hydrateJKAnimeSlug(show"));
+});
+
+test("7f4. a failed host family is demoted for the next episode until it recovers", () => {
+  const sandbox = vm.createContext({
+    Date,
+    Map,
+    URL,
+    location: { origin: "https://zenkaitv.test", hostname: "zenkaitv.test" },
+    fallbackSourceIdentity: (source = {}) => [source.id, source.provider, source.videoUrl, source.externalUrl].filter(Boolean).join(" "),
+    sourceDirectUrl: (source = {}) => source.videoUrl || "",
+    sourcePreferenceScore: () => 5,
+    originalStreamUrlFromProxy: (value) => value
+  });
+  vm.runInContext(
+    section(clientSource, "function verifiedFallbackPreference(", "function pickFallbackRaceCandidates("),
+    sandbox
+  );
+
+  const failedEpisode = { id: "animeav1-yourupload-e1", provider: "YourUpload", externalUrl: "https://www.yourupload.com/embed/e1" };
+  const nextEpisodeSameHost = { id: "animeav1-yourupload-e2", provider: "YourUpload", externalUrl: "https://www.yourupload.com/embed/e2" };
+  const alternative = { id: "jkanime-mp4upload-e2", provider: "MP4Upload", externalUrl: "https://mp4upload.com/embed/e2" };
+
+  sandbox.recordPlaybackFamilyHealth(failedEpisode, false);
+  assert.equal(sandbox.hasRecentlyFailedPlaybackFamily(nextEpisodeSameHost), true);
+  assert.ok(sandbox.verifiedFallbackPreference(nextEpisodeSameHost) > sandbox.verifiedFallbackPreference(alternative));
+  sandbox.recordPlaybackFamilyHealth(nextEpisodeSameHost, true);
+  assert.equal(sandbox.hasRecentlyFailedPlaybackFamily(nextEpisodeSameHost), false);
+});
+
+test("7f5. a trusted ad-free resolver can start before the redundant media probe finishes", () => {
+  const inspection = section(
+    clientSource,
+    "function inspectPlaybackSourceHealth(",
+    "async function verifyReliablePlaybackCandidate("
+  );
+  const preparation = section(
+    clientSource,
+    "async function prepareReliablePlaybackSource(",
+    "function setupAdjacentEpisodeWarmup("
+  );
+  assert.ok(inspection.indexOf("canStartResolvedAdFreeFallback") < inspection.indexOf("probePlayableFallback"));
+  assert.match(inspection, /provisional:\s*true/);
+  assert.match(preparation, /allowResolvedFallback:\s*true/);
+  assert.match(clientSource, /verified:\s*resolved\.provisional !== true/);
 });
 
 test("7g. AnimeAV1 embed backups stay hidden until playback failure expansion", () => {
@@ -760,6 +816,13 @@ test("7g. AnimeAV1 embed backups stay hidden until playback failure expansion", 
   sandbox.mergeAnimeAv1SourcesIntoEpisode({}, episode, data, "example", 12, { includeFallbacks: true });
   assert.deepEqual(Array.from(episode.sourceOptions, (source) => source.provider), ["HLS", "Voe", "MP4Upload"]);
   assert.ok(episode.sourceOptions.every((source) => source.siteUrl === data.episodeUrl));
+});
+
+test("7g2. AnimeAV1 embed-only episodes remain eligible for automatic playback", () => {
+  const attachSection = section(clientSource, "async function attachAnimeAv1Sources(", "function mergeAnimeAv1SourcesIntoEpisode(");
+  assert.match(attachSection, /const embedOnlyEpisode = data\.sources\.length === 0/);
+  assert.match(attachSection, /includeFallbacks: Boolean\(options\.includeFallbacks \|\| embedOnlyEpisode\)/);
+  assert.match(serverSource, /ok: normalizedCastSources\.length > 0/);
 });
 
 test("7h. latest releases fall back to session cache when local storage is full", () => {
@@ -877,10 +940,12 @@ test("11c. player reports manifest HTTP errors and timeouts before the normal HL
   assert.match(handler, /responseCode >= 400/);
   assert.match(handler, /\(\?:error\|timeout\)/);
   assert.match(playerSource, /manifestLoadingMaxRetry:\s*0/);
-  const playerManifestTimeout = Number(playerSource.match(/manifestLoadingTimeOut:\s*(\d+)/)?.[1]);
-  const clientManifestTimeout = Number(clientSource.match(/manifestLoadingTimeOut:\s*(\d+)/)?.[1]);
-  assert.ok(playerManifestTimeout >= 4000 && playerManifestTimeout <= 6000);
-  assert.ok(clientManifestTimeout >= 4000 && clientManifestTimeout <= 6000);
+  const playerManifestTimeout = playerSource.match(/HLS_MANIFEST_LOADING_TIMEOUT_MS\s*=\s*sourceNeedsSlowManifestGrace\s*\?\s*(\d+)\s*:\s*(\d+)/);
+  const clientManifestTimeout = clientSource.match(/manifestLoadingTimeOut:\s*streamNeedsSlowManifestGrace\(sourceUrl\)\s*\?\s*(\d+)\s*:\s*(\d+)/);
+  assert.ok(Number(playerManifestTimeout?.[1]) >= 8000 && Number(playerManifestTimeout?.[1]) <= 10000);
+  assert.ok(Number(playerManifestTimeout?.[2]) >= 4000 && Number(playerManifestTimeout?.[2]) <= 6000);
+  assert.equal(Number(clientManifestTimeout?.[1]), Number(playerManifestTimeout?.[1]));
+  assert.equal(Number(clientManifestTimeout?.[2]), Number(playerManifestTimeout?.[2]));
   assert.match(handler, /send\("error", "manifest-upstream-unavailable"\)/);
 });
 
@@ -890,11 +955,85 @@ test("11c2. a pending play request cannot suppress the startup fallback watchdog
     "function armStartupWatchdog()",
     "function clearStartupWatchdog()"
   );
-  const deadline = Number(playerSource.match(/PLAYBACK_STARTUP_DEADLINE_MS\s*=\s*(\d+)/)?.[1]);
-  assert.ok(deadline >= 4000 && deadline <= 8000);
+  const deadlines = playerSource.match(/PLAYBACK_STARTUP_DEADLINE_MS\s*=\s*sourceIsHls\s*\?\s*(\d+)\s*:\s*(\d+)/);
+  const hlsDeadline = Number(deadlines?.[1]);
+  const directDeadline = Number(deadlines?.[2]);
+  assert.ok(hlsDeadline >= 9000 && hlsDeadline <= 15000);
+  assert.ok(directDeadline >= 4000 && directDeadline <= 8000);
   assert.doesNotMatch(watchdog, /!video\.paused/);
   assert.match(watchdog, /video\.readyState >= 2/);
   assert.match(watchdog, /send\("error", "startup-timeout"\)/);
+});
+
+test("11c3. a stream that stalls after startup escalates to automatic fallback", () => {
+  const watchdog = section(
+    playerSource,
+    "function armStallWatchdog(",
+    "function clearStallWatchdog()"
+  );
+  const deadlines = playerSource.match(/PLAYBACK_STALL_DEADLINE_MS\s*=\s*sourceIsHls\s*\?\s*(\d+)\s*:\s*(\d+)/);
+  const hlsDeadline = Number(deadlines?.[1]);
+  const directDeadline = Number(deadlines?.[2]);
+  const bufferingHandlers = section(
+    playerSource,
+    'art.on("video:waiting"',
+    'art.on("video:seeked"'
+  );
+  const destroy = section(playerSource, "function destroyPlayer()", "function cssUrl(");
+  assert.ok(hlsDeadline >= 5000 && hlsDeadline <= 9000);
+  assert.ok(directDeadline >= 4000 && directDeadline <= 7000);
+  assert.match(watchdog, /if \(!playbackHasStarted\) return/);
+  assert.match(playerSource, /art\.on\("video:playing", \(\) => \{\s*playbackHasStarted = true/);
+  assert.match(bufferingHandlers, /armStallWatchdog\("waiting"\)/);
+  assert.match(bufferingHandlers, /armStallWatchdog\("stalled"\)/);
+  assert.match(watchdog, /send\("error", `playback-stalled:/);
+  assert.match(destroy, /clearStallWatchdog\(\)/);
+});
+
+test("11c4. one episode has one active playback run and stale runs are rejected", async () => {
+  const show = { id: "show-1" };
+  const firstEpisode = { id: "show-1-s1-e1", canonicalSeason: 1, canonicalEpisode: 1 };
+  const secondEpisode = { id: "show-1-s1-e2", canonicalSeason: 1, canonicalEpisode: 2 };
+  const state = {
+    activeShow: show,
+    activeEpisode: { season: { season: 1 }, episode: firstEpisode, seasonIndex: 0, episodeIndex: 0 }
+  };
+  const contexts = [];
+  const pending = [];
+  const sandbox = vm.createContext({
+    state,
+    getShowKey: (value = {}) => value.id || "show",
+    getCanonicalEpisodeNumber: (episode = {}, fallback = 1) => (
+      Number(episode.canonicalEpisode ?? episode.episode ?? fallback)
+    ),
+    runActivePlaybackAttempt: (_options, context) => {
+      contexts.push(context);
+      return new Promise((resolve) => pending.push(resolve));
+    }
+  });
+  vm.runInContext(
+    section(clientSource, "let activePlaybackAttemptSequence", "function stopActivePlayback()"),
+    sandbox
+  );
+  vm.runInContext(
+    section(clientSource, "function playActiveShow(", "async function runActivePlaybackAttempt("),
+    sandbox
+  );
+
+  const first = sandbox.playActiveShow();
+  const duplicate = sandbox.playActiveShow();
+  assert.equal(first, duplicate);
+  assert.equal(contexts.length, 1);
+
+  state.activeEpisode = { season: { season: 1 }, episode: secondEpisode, seasonIndex: 0, episodeIndex: 1 };
+  const second = sandbox.playActiveShow();
+  assert.notEqual(second, first);
+  assert.equal(contexts.length, 2);
+  assert.equal(sandbox.isPlaybackAttemptCurrent(contexts[0], show, firstEpisode), false);
+  assert.equal(sandbox.isPlaybackAttemptCurrent(contexts[1], show, secondEpisode), true);
+
+  pending.forEach((resolve) => resolve());
+  await Promise.all([first, second]);
 });
 
 test("11d. mounting HLS preconnects without issuing a duplicate manifest probe", () => {
@@ -1011,6 +1150,7 @@ test("11h. playback failure verifies and opens the backup without asking", () =>
   assert.match(renderer, /selectedSource\.id !== activeSource\.id/);
   assert.doesNotMatch(renderer, /Use verified source/);
   assert.match(clientSource, /await probePlayableFallback\(resolved\)/);
+  assert.match(clientSource, /verifyFallbackCandidate\(episode, source, \{\s*allowResolvedFallback:\s*true/);
 });
 
 test("11i. fallback verification races three diverse providers and returns the first success", async () => {
@@ -1400,6 +1540,34 @@ test("AnimeAV1 card intent warms the exact provider episode for later playback",
       "https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js"
     ]
   );
+});
+
+test("AnimeAV1 episode payloads expire and a confirmed failure bypasses cached source metadata", async () => {
+  const {
+    sandbox,
+    releaseFetch,
+    advanceTime,
+    getFetchCount,
+    getLastFetchUrl,
+    getLastFetchOptions
+  } = animeAv1SourceContext();
+  const show = { animeAv1Slug: "expiring-example" };
+
+  const first = sandbox.attachAnimeAv1Sources(show, { providerEpisodeId: 4 });
+  await Promise.resolve();
+  releaseFetch();
+  await first;
+  await sandbox.attachAnimeAv1Sources(show, { providerEpisodeId: 4 });
+  assert.equal(getFetchCount(), 1);
+
+  advanceTime((5 * 60 * 1000) + 1);
+  await sandbox.attachAnimeAv1Sources(show, { providerEpisodeId: 4 });
+  assert.equal(getFetchCount(), 2, "expired payload should be fetched again");
+
+  await sandbox.attachAnimeAv1Sources(show, { providerEpisodeId: 4 }, { forceRefresh: true });
+  assert.equal(getFetchCount(), 3, "confirmed failure should bypass a still-fresh payload");
+  assert.match(getLastFetchUrl(), /refresh=1/);
+  assert.equal(getLastFetchOptions().cache, "no-store");
 });
 
 test("the main Play action marks intent before scheduling source resolution", () => {

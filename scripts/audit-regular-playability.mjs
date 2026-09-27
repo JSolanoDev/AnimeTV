@@ -373,7 +373,15 @@ async function resolveEpisodeCached(providerKey, slug, providerEpisodeId) {
       try {
         const response = await fetchWithDeadline(url);
         const payload = await response.json().catch(() => null);
-        const sources = Array.isArray(payload?.sources) ? payload.sources : [];
+        const sources = [
+          ...(Array.isArray(payload?.sources) ? payload.sources : []),
+          ...(providerKey === "animeav1" && Array.isArray(payload?.castSources) ? payload.castSources : [])
+        ].filter((source, index, list) => {
+          const identity = source?.videoUrl || source?.url || source?.externalUrl || source?.id || "";
+          return identity && list.findIndex((candidate) => (
+            (candidate?.videoUrl || candidate?.url || candidate?.externalUrl || candidate?.id || "") === identity
+          )) === index;
+        });
         if (!response.ok || !payload?.ok || !sources.length) {
           return {
             resolverOk: false,

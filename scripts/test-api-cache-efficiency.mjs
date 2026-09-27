@@ -89,7 +89,7 @@ test("normal playback and Cast share one AnimeAV1 source lookup", async () => {
   let release;
   const gate = new Promise((resolve) => { release = resolve; });
   const context = vm.createContext({
-    Array, Map, Promise, encodeURIComponent,
+    Array, Date, Map, Promise, encodeURIComponent,
     ANIMEAV1_SOURCE_TIMEOUT_MS: 6500,
     _animeAv1EpisodeSourceCache: new Map(),
     _animeAv1EpisodeSourceInflight: new Map(),
@@ -100,7 +100,7 @@ test("normal playback and Cast share one AnimeAV1 source lookup", async () => {
   });
   vm.runInContext(section(
     client,
-    "async function fetchAnimeAv1EpisodeSourcePayload(",
+    "const EPISODE_SOURCE_PAYLOAD_TTL_MS",
     "async function buildAnimeAv1CastCandidate("
   ), context);
 
