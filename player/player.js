@@ -42,7 +42,10 @@
   const sourceIsHls = streamType(sourceUrl, params.get("type")) === "m3u8";
   const sourceNeedsSlowManifestGrace = /(?:animeav1\.uns\.bio|premilkyway\.com|aurorapathcreative\.(?:space|shop))/i.test(sourceUrl);
   const HLS_MANIFEST_LOADING_TIMEOUT_MS = sourceNeedsSlowManifestGrace ? 9000 : 4500;
-  const PLAYBACK_STARTUP_DEADLINE_MS = sourceIsHls ? 12000 : 7500;
+  // Sources are byte-checked before mounting. Keep a modest allowance for slow
+  // networks, but do not leave viewers staring at a dead server for 8-12s before
+  // the already-prepared fallback can take over.
+  const PLAYBACK_STARTUP_DEADLINE_MS = sourceIsHls ? 6500 : 5000;
   const PLAYBACK_STALL_DEADLINE_MS = sourceIsHls ? 7000 : 5500;
   let playbackHasStarted = false;
   let seekRecoveryUntil = 0;

@@ -468,13 +468,16 @@ test("7d. regular backups run only after a confirmed AnimeAV1 miss", async () =>
   assert.equal(episode.playbackSourceLookupComplete, true);
 });
 
-test("7d1. a low-confidence embed cannot become primary only because it answered first", () => {
+test("7d1. slow MP4 embeds stay deferred while proven fast sources enter verification", () => {
   const { sandbox } = playbackFallbackContext({ primaryFound: false });
   assert.equal(sandbox.hasFastPreferredPlaybackSource({
     sourceOptions: [{ id: "early-mp4upload", type: "iframe", externalUrl: "https://mp4upload.test/embed" }]
   }), false);
   assert.equal(sandbox.hasFastPreferredPlaybackSource({
     sourceOptions: [{ id: "resolved-mp4upload", type: "direct", videoUrl: "https://a4.mp4upload.com/video.mp4" }]
+  }), false);
+  assert.equal(sandbox.hasFastPreferredPlaybackSource({
+    sourceOptions: [{ id: "unknown-embed", type: "iframe", externalUrl: "https://unknown.test/embed" }]
   }), false);
   assert.equal(sandbox.hasFastPreferredPlaybackSource({
     sourceOptions: [{ id: "tio-yourupload", type: "iframe", externalUrl: "https://www.yourupload.com/embed/example" }]
@@ -763,7 +766,9 @@ test("7f4. a failed host family is demoted for the next episode until it recover
   const failedEpisode = { id: "animeav1-yourupload-e1", provider: "YourUpload", externalUrl: "https://www.yourupload.com/embed/e1" };
   const nextEpisodeSameHost = { id: "animeav1-yourupload-e2", provider: "YourUpload", externalUrl: "https://www.yourupload.com/embed/e2" };
   const alternative = { id: "jkanime-mp4upload-e2", provider: "MP4Upload", externalUrl: "https://mp4upload.com/embed/e2" };
+  const freshHls = { id: "animeav1-upn-e2", provider: "UPNShare", externalUrl: "https://animeav1.uns.bio/e/e2" };
 
+  assert.ok(sandbox.verifiedFallbackPreference(freshHls) < sandbox.verifiedFallbackPreference(alternative));
   sandbox.recordPlaybackFamilyHealth(failedEpisode, false);
   assert.equal(sandbox.hasRecentlyFailedPlaybackFamily(nextEpisodeSameHost), true);
   assert.ok(sandbox.verifiedFallbackPreference(nextEpisodeSameHost) > sandbox.verifiedFallbackPreference(alternative));
@@ -771,7 +776,7 @@ test("7f4. a failed host family is demoted for the next episode until it recover
   assert.equal(sandbox.hasRecentlyFailedPlaybackFamily(nextEpisodeSameHost), false);
 });
 
-test("7f5. a trusted ad-free resolver can start before the redundant media probe finishes", () => {
+test("7f5. a fresh resolver is byte-checked while a recently healthy family can start immediately", () => {
   const inspection = section(
     clientSource,
     "function inspectPlaybackSourceHealth(",
@@ -784,6 +789,13 @@ test("7f5. a trusted ad-free resolver can start before the redundant media probe
   );
   assert.ok(inspection.indexOf("canStartResolvedAdFreeFallback") < inspection.indexOf("probePlayableFallback"));
   assert.match(inspection, /provisional:\s*true/);
+  assert.match(clientSource, /trustedProvider\s*&&\s*playbackFamilyHealth\(source\)\s*===\s*true/);
+  assert.match(inspection, /manifestOnly:\s*isHlsCandidate/);
+  assert.match(inspection, /const isHlsCandidate\s*=/);
+  assert.match(clientSource, /\(\?:mp4upload\|streamwish[\s\S]+return false/);
+  assert.match(clientSource, /Range:\s*"bytes=0-65535"/);
+  assert.match(clientSource, /reader\.read\(\)/);
+  assert.match(clientSource, /minimumBytes\s*=\s*32\s*\*\s*1024/);
   assert.match(preparation, /allowResolvedFallback:\s*true/);
   assert.match(clientSource, /verified:\s*resolved\.provisional !== true/);
 });
@@ -958,7 +970,7 @@ test("11c2. a pending play request cannot suppress the startup fallback watchdog
   const deadlines = playerSource.match(/PLAYBACK_STARTUP_DEADLINE_MS\s*=\s*sourceIsHls\s*\?\s*(\d+)\s*:\s*(\d+)/);
   const hlsDeadline = Number(deadlines?.[1]);
   const directDeadline = Number(deadlines?.[2]);
-  assert.ok(hlsDeadline >= 9000 && hlsDeadline <= 15000);
+  assert.ok(hlsDeadline >= 5500 && hlsDeadline <= 8000);
   assert.ok(directDeadline >= 4000 && directDeadline <= 8000);
   assert.doesNotMatch(watchdog, /!video\.paused/);
   assert.match(watchdog, /video\.readyState >= 2/);
@@ -1145,6 +1157,7 @@ test("11h. playback failure verifies and opens the backup without asking", () =>
     "function renderPlaybackError("
   );
   assert.match(renderer, /findVerifiedAdFreeFallbackSource\(episode\)/);
+  assert.ok(renderer.indexOf("prepareReliablePlaybackSource(") < renderer.indexOf("await Promise.race([firstCandidateReady"));
   assert.match(renderer, /selectEpisodePlaybackSource\(episode, verifiedFallback\.id\)/);
   assert.match(renderer, /playActiveShow\(\{ allowSourceLookup: false \}\)/);
   assert.match(renderer, /selectedSource\.id !== activeSource\.id/);

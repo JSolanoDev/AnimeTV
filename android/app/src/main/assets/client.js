@@ -4567,7 +4567,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=868";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=871";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -18527,6 +18527,9 @@ function isAdFreeFallbackCandidate(source = {}) {
 function verifiedFallbackPreference(source = {}) {
   const identity = fallbackSourceIdentity(source).toLowerCase();
   let preference = 10 + sourcePreferenceScore(source);
+  // Segmented HLS hosts consistently reach a browser's first frame sooner than
+  // large MP4Upload files. MP4Upload can answer a tiny range probe immediately
+  // while being too slow to sustain playback, so keep it as a later fallback.
   if (identity.includes("upnshare") || identity.includes("animeav1.uns.bio")) preference = 0;
   else if (identity.includes("streamwish") || identity.includes("sfastwish")) preference = 1;
   else if (identity.includes("yourupload") || identity.includes("youupload")) preference = 2;
@@ -18614,7 +18617,12 @@ function hasRecentlyFailedPlaybackFamily(source = {}) {
 function canStartResolvedAdFreeFallback(source = {}, resolved = {}) {
   if (!resolved.url || isBlockedPlaybackUrl(resolved.url) || !isAdFreeFallbackCandidate(source)) return false;
   const identity = fallbackSourceIdentity(source).toLowerCase();
-  return /(?:upnshare|animeav1\.uns\.bio|mp4upload|streamwish|sfastwish|yourupload|youupload|okru|ok\.ru)/.test(identity);
+  const trustedProvider = /(?:upnshare|animeav1\.uns\.bio|mp4upload|streamwish|sfastwish|yourupload|youupload|okru|ok\.ru)/.test(identity);
+  // Skipping the media probe is safe only after this host family has produced
+  // bytes recently. A fresh signed embed can resolve successfully while its
+  // media URL is already dead; mounting that false positive costs the player's
+  // entire startup watchdog before fallback begins.
+  return trustedProvider && playbackFamilyHealth(source) === true;
 }
 
 function pickFallbackRaceCandidates(candidates = [], limit = FALLBACK_RACE_LIMIT) {
@@ -18722,11 +18730,13 @@ function manifestChildUrl(value = "", parentUrl = "") {
 async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROBE_TIMEOUT_MS, cacheMode = "no-store") {
   const target = proxiedStreamUrl(url, referer);
   if (!target) return false;
+  const startedAt = Date.now();
+  let reader = null;
   try {
     const response = await fetchWithTimeout(target, {
       cache: cacheMode,
       credentials: "omit",
-      headers: { Range: "bytes=0-1023" }
+      headers: { Range: "bytes=0-65535" }
     }, timeoutMs);
     const contentType = String(response.headers.get("content-type") || "").toLowerCase();
     const contentRange = response.headers.get("content-range") || "";
@@ -18734,11 +18744,42 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
       || /application\/(?:octet-stream|mp4)/.test(contentType)
       || /video|audio|octet-stream|mp4/i.test(contentRange);
     const acceptedUrl = /\.(?:mp4|m4v|webm|mov|ts|m4s|aac)(?:$|[?#])/i.test(originalStreamUrlFromProxy(url));
-    const playable = response.ok && !contentType.includes("text/html") && (acceptedType || Boolean(contentRange) || acceptedUrl);
-    await response.body?.cancel().catch(() => {});
-    return playable;
+    const plausible = response.ok
+      && !contentType.includes("text/html")
+      && (acceptedType || Boolean(contentRange) || acceptedUrl);
+    if (!plausible || !response.body?.getReader) {
+      await response.body?.cancel().catch(() => {});
+      return false;
+    }
+
+    // Waiting only for response headers lets a stalled host look healthy. Read
+    // enough body data to prove the server is actually delivering media before
+    // giving it to the player. The request remains bounded and is cancelled as
+    // soon as a small sample arrives.
+    reader = response.body.getReader();
+    const minimumBytes = 32 * 1024;
+    let receivedBytes = 0;
+    let streamEnded = false;
+    while (receivedBytes < minimumBytes && !streamEnded) {
+      const remainingMs = Math.max(0, timeoutMs - (Date.now() - startedAt));
+      if (remainingMs < 50) return false;
+      let timeoutId = 0;
+      const chunk = await Promise.race([
+        reader.read(),
+        new Promise((resolve) => {
+          timeoutId = window.setTimeout(() => resolve(null), remainingMs);
+        })
+      ]);
+      if (timeoutId) window.clearTimeout(timeoutId);
+      if (!chunk) return false;
+      streamEnded = Boolean(chunk.done);
+      receivedBytes += Number(chunk.value?.byteLength || 0);
+    }
+    return receivedBytes >= minimumBytes || (streamEnded && receivedBytes > 0);
   } catch {
     return false;
+  } finally {
+    await reader?.cancel().catch(() => {});
   }
 }
 
@@ -18957,6 +18998,10 @@ function inspectPlaybackSourceHealth(source = {}, options = {}) {
       return provisional;
     }
     const remainingMs = Math.max(0, deadlineAt - Date.now());
+    const resolvedType = String(resolved?.type || streamTypeFromUrl(resolved?.url || "")).toLowerCase();
+    const isHlsCandidate = resolvedType === "hls"
+      || resolvedType.includes("mpegurl")
+      || streamTypeFromUrl(resolved?.url || "") === "hls";
     const playable = Boolean(
       resolved?.url
       && remainingMs >= 150
@@ -18966,7 +19011,11 @@ function inspectPlaybackSourceHealth(source = {}, options = {}) {
         // Let the browser and Vercel reuse a successful VOD-manifest check when
         // the player requests that same URL immediately afterward.
         cacheMode: "default",
-        manifestOnly: true
+        // HLS playback is allowed after a valid child rendition is found; its
+        // first fragment remains protected by the player's startup watchdog.
+        // Progressive files must deliver body bytes here because several MP4
+        // hosts return fast headers and then stall indefinitely.
+        manifestOnly: isHlsCandidate
       })
     );
     playbackSourceHealthCache.set(key, {
@@ -19381,19 +19430,28 @@ function renderDirectVideoPlayer(frame, url, episode, playbackContext = null) {
         refreshProviderKey: failedProviderKey
       });
       const firstCandidateReady = episode._playbackFailureFastPromise || fallbackLookup;
-      await firstCandidateReady;
-
-      if (playbackContext && !isPlaybackAttemptCurrent(playbackContext, skipShow, episode)) {
-        episode._playbackFallbackPromptActive = false;
-        return;
-      }
-
       renderPlayerPopupMessage(
         frame,
         "Verifying an ad-free backup...",
         "Testing direct media sources and switching automatically."
       );
-      let verifiedFallback = await findVerifiedAdFreeFallbackSource(episode);
+
+      // The normal startup path already begins backup discovery after 450 ms.
+      // Verify those existing candidates immediately instead of blocking on a
+      // fresh provider request after the player reports an error.
+      let verifiedFallback = await prepareReliablePlaybackSource(
+        state.activeShow,
+        episode,
+        { timeoutMs: 2800 }
+      );
+      if (!verifiedFallback && !episode.playbackFailureFallbacksComplete) {
+        await Promise.race([firstCandidateReady, wait(650)]);
+        verifiedFallback = await prepareReliablePlaybackSource(
+          state.activeShow,
+          episode,
+          { timeoutMs: 2800 }
+        );
+      }
       if (!verifiedFallback && !episode.playbackFailureFallbacksComplete) {
         await fallbackLookup;
         verifiedFallback = await findVerifiedAdFreeFallbackSource(episode);
@@ -21861,7 +21919,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=868");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=871");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
