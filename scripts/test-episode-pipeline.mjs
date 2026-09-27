@@ -793,7 +793,7 @@ test("7f4. a failed host family is demoted for the next episode until it recover
   assert.equal(sandbox.hasRecentlyFailedPlaybackFamily(nextEpisodeSameHost), false);
 });
 
-test("7f5. known ad-free resolved streams start promptly while unknown mirrors prove bytes", () => {
+test("7f5. signed VOE HLS starts promptly while progressive mirrors prove bytes", () => {
   const inspection = section(
     clientSource,
     "function inspectPlaybackSourceHealth(",
@@ -807,17 +807,18 @@ test("7f5. known ad-free resolved streams start promptly while unknown mirrors p
   assert.ok(inspection.indexOf("canStartResolvedAdFreeFallback") < inspection.indexOf("probePlayableFallback"));
   assert.ok(inspection.indexOf("isIpBoundCloudwindowStream") < inspection.indexOf("canStartResolvedAdFreeFallback"));
   assert.match(inspection, /provisional:\s*true/);
-  assert.match(clientSource, /isProgressive\s*&&\s*isKnownProgressiveFallback/);
-  assert.match(clientSource, /mp4upload\|yourupload\|youupload\|streamtape/);
+  assert.match(clientSource, /return isHls\s*&&\s*identity\.includes\("voe"\)/);
+  assert.match(clientSource, /requiresSustainedProbe\s*\?\s*\(128 \* 1024\) - 1/);
+  assert.match(clientSource, /bytesPerSecond >= 96 \* 1024/);
   assert.match(clientSource, /function isIpBoundCloudwindowStream\(/);
   assert.match(inspection, /!isLocalPlaybackRelay\(\)\s*&&\s*isIpBoundCloudwindowStream\(resolved\.url\)/);
   assert.doesNotMatch(clientSource, /trustedProvider\s*&&\s*playbackFamilyHealth\(source\)\s*===\s*true/);
   assert.match(inspection, /manifestOnly:\s*false/);
   assert.match(clientSource, /requiresSustainedProbe\s*=\s*\/\(\?:mp4upload\|yourupload\|youupload\)/);
-  assert.match(clientSource, /rangeEnd\s*=\s*requiresSustainedProbe\s*\?\s*\(256\s*\*\s*1024\)/);
+  assert.match(clientSource, /rangeEnd\s*=\s*requiresSustainedProbe\s*\?\s*\(128\s*\*\s*1024\)/);
   assert.match(clientSource, /reader\.read\(\)/);
   assert.match(clientSource, /minimumBytes\s*=\s*requiresSustainedProbe\s*\?\s*128\s*\*\s*1024\s*:\s*32\s*\*\s*1024/);
-  assert.match(clientSource, /bytesPerSecond\s*>=\s*128\s*\*\s*1024/);
+  assert.match(clientSource, /bytesPerSecond\s*>=\s*96\s*\*\s*1024/);
   assert.match(preparation, /allowResolvedFallback:\s*true/);
   assert.match(clientSource, /verified:\s*resolved\.provisional !== true/);
 });
