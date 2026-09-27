@@ -2127,6 +2127,19 @@ async function fetchCoalescedSourcePlaylist(target, headers, cacheKey) {
   return sourcePlaylistResponse(await pending);
 }
 
+const SOURCE_PROGRESSIVE_CHUNK_BYTES = 4 * 1024 * 1024;
+
+function boundedProgressiveRange(value = "", isProgressiveMedia = false) {
+  const range = String(value || "").trim();
+  if (!isProgressiveMedia) return range;
+  const openEnded = range.match(/^bytes=(\d+)-$/i);
+  if (!openEnded) return range;
+  const start = Number(openEnded[1]);
+  if (!Number.isSafeInteger(start) || start < 0) return range;
+  const end = Math.min(Number.MAX_SAFE_INTEGER, start + SOURCE_PROGRESSIVE_CHUNK_BYTES - 1);
+  return `bytes=${start}-${end}`;
+}
+
 async function handleSourceProxy(request, url, response) {
   const target = url.searchParams.get("url");
   if (!target || !/^https?:\/\//i.test(target)) {
@@ -2169,6 +2182,9 @@ async function handleSourceProxy(request, url, response) {
     const isCloudwindowVodSegment = /(?:^|\.)cloudwindow-route\.com$/i.test(targetHost)
       && /\.(?:ts|m4s|mp4|aac)$/i.test(targetUrl.pathname);
     const isDirectMp4 = /\.(?:mp4|m4v)$/i.test(targetUrl.pathname);
+    const isProgressiveMedia = isDirectMp4
+      || isStreamTapeMedia
+      || /(?:mp4upload|yourupload|youupload)/i.test(`${targetHost} ${refererHost}`);
     const headers = {
       "User-Agent": String(request.headers["user-agent"] || UNDERHENTAI_HEADERS["User-Agent"])
     };
@@ -2210,7 +2226,15 @@ async function handleSourceProxy(request, url, response) {
       headers.Referer = `https://${refererHost}/`;
       headers.Origin = `https://${refererHost}`;
     }
-    if (request.headers.range) headers.Range = request.headers.range;
+    if (request.headers.range) {
+      // Chrome normally asks for bytes=N-, which turns a progressive movie into
+      // one very long serverless response. Some hosts deliver the first few MB
+      // quickly and then let that connection decay until playback drains its
+      // buffer. End each response on a useful boundary; the media element follows
+      // Content-Range with the next request and keeps several short transfers
+      // moving instead of depending on one fragile connection for 25 minutes.
+      headers.Range = boundedProgressiveRange(request.headers.range, isProgressiveMedia);
+    }
     else if (isHeadRequest) headers.Range = "bytes=0-0";
     const targetLooksLikePlaylist = (isZilla && /^\/m3u8\/[^/]+/i.test(targetUrl.pathname))
       || /\.m3u8$/i.test(targetUrl.pathname);

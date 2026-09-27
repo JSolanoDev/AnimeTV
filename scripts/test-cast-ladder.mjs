@@ -466,6 +466,10 @@ const TWO = [
     /isStreamTapeEmbed[\s\S]*?!isStreamTapeEmbed/.test(server), true);
   check("15t. Cast HEAD probes become bounded one-byte upstream requests",
     /isHeadRequest[\s\S]*?headers\.Range = "bytes=0-0"/.test(server), true);
+  check("15t2. open-ended progressive requests are bounded for reliable buffering",
+    /SOURCE_PROGRESSIVE_CHUNK_BYTES = 4 \* 1024 \* 1024[\s\S]*?boundedProgressiveRange\(request\.headers\.range, isProgressiveMedia\)/.test(server), true);
+  check("15t3. explicit byte ranges remain untouched",
+    /if \(!openEnded\) return range/.test(server), true);
   check("15u. HEAD probes close without draining the media body",
     /if \(isHeadRequest\)[\s\S]*?upstream\.body\?\.cancel\?\.\(\)[\s\S]*?response\.end\(\)/.test(server), true);
   check("15v. partial media responses advertise byte-range support",
