@@ -11,6 +11,28 @@
       "siteUrl": "https://tioanime.com/ver/deadman-wonderland-13",
       "verified": true,
       "verifiedAt": "2026-09-08T18:45:00.000Z"
+    },
+    "animeav1-fuuun-ishin-daishougun": {
+      "title": "Fuuun Ishin Dai Shougun",
+      "provider": "TioAnime",
+      "providerAnimeSlug": "fuuun-ishin-dai-shougun",
+      "episodeMap": {
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5,
+        "6": 6,
+        "7": 7,
+        "8": 8,
+        "9": 9,
+        "10": 10,
+        "11": 11,
+        "12": 12
+      },
+      "siteUrl": "https://tioanime.com/anime/fuuun-ishin-dai-shougun",
+      "verified": true,
+      "verifiedAt": "2026-09-27T00:34:51.031Z"
     }
   }
 }
