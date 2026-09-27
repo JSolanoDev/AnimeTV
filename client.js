@@ -4567,7 +4567,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=895";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=896";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -17613,6 +17613,9 @@ function resetEpisodeProviderSource(show, episode, providerKey) {
   const removed = existingSources.filter((source) => regularSourceProviderMatch(providerKey, source));
   const removedIds = new Set(removed.map((source) => source.id).filter(Boolean));
   removed.forEach((source) => playbackSourceHealthCache.delete(playbackSourceHealthKey(source)));
+  if (episode._failedSourceIds instanceof Set) {
+    removedIds.forEach((sourceId) => episode._failedSourceIds.delete(sourceId));
+  }
   episode.sourceOptions = existingSources.filter((source) => !regularSourceProviderMatch(providerKey, source));
 
   if (removedIds.has(episode.selectedSourceId)) {
@@ -17648,6 +17651,48 @@ function resetEpisodeProviderSource(show, episode, providerKey) {
   }
 
   episode.playbackFailureFallbacksComplete = false;
+}
+
+function refreshFailedPlaybackProviders(show, episode, providerKeys = []) {
+  if (!show || !episode) return Promise.resolve(episode);
+  const requested = [...new Set(providerKeys)]
+    .filter((providerKey) => ["animeav1", "jkanime", "tioanime"].includes(providerKey))
+    .filter((providerKey) => isScraperEnabled(providerKey))
+    .filter((providerKey) => claimEpisodeProviderRefresh(episode, providerKey));
+  if (!requested.length) {
+    return episode._playbackFailureFallbackPromise || Promise.resolve(episode);
+  }
+
+  const inFlight = episode._providerPlaybackRefreshPromises instanceof Map
+    ? episode._providerPlaybackRefreshPromises
+    : new Map();
+  episode._providerPlaybackRefreshPromises = inFlight;
+  const tasks = requested.map((providerKey) => {
+    if (inFlight.has(providerKey)) return inFlight.get(providerKey);
+    resetEpisodeProviderSource(show, episode, providerKey);
+    let task;
+    if (providerKey === "animeav1") {
+      task = attachAnimeAv1Sources(show, episode, { includeFallbacks: true, forceRefresh: true });
+    } else if (providerKey === "jkanime") {
+      task = attachJKAnimeSources(show, episode, { forceRefresh: true });
+    } else {
+      task = attachTioAnimeSources(show, episode, { forceRefresh: true });
+    }
+    const refresh = Promise.resolve(task).finally(() => inFlight.delete(providerKey));
+    inFlight.set(providerKey, refresh);
+    return refresh;
+  });
+
+  return Promise.allSettled(tasks).then(() => {
+    episode.sourceOptions = normalizeEpisodeSourceOptions(episode);
+    for (const providerKey of requested) {
+      const def = getKnownSourceServer(providerKey);
+      const found = getEpisodePlaybackSources(episode).some(def.match);
+      episode.serverChecks = episode.serverChecks || {};
+      episode.serverChecks[providerKey] = found ? "found" : "notfound";
+    }
+    return episode;
+  });
 }
 
 function resetRegularEpisodeSourceResolution(show, episode) {
@@ -18680,6 +18725,7 @@ const RELIABLE_PLAYBACK_PRIMARY_PROBE_MS = 3200;
 const RELIABLE_PLAYBACK_BACKUP_DELAY_MS = 450;
 const RELIABLE_PLAYBACK_HANDOFF_WAIT_MS = 1800;
 const RELIABLE_PLAYBACK_HANDOFF_VERIFY_MS = 3200;
+const RELIABLE_PLAYBACK_REFRESH_RECOVERY_MS = 5000;
 const PLAYBACK_SOURCE_HEALTH_OK_TTL_MS = 90 * 1000;
 const PLAYBACK_SOURCE_HEALTH_FAIL_TTL_MS = 15 * 1000;
 const PLAYBACK_FAMILY_HEALTH_OK_TTL_MS = 3 * 60 * 1000;
@@ -19266,7 +19312,7 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
   const preparation = (async () => {
     const startedAt = Date.now();
     const totalBudgetMs = Math.max(900, Number(options.timeoutMs) || RELIABLE_PLAYBACK_TOTAL_BUDGET_MS);
-    const deadlineAt = startedAt + totalBudgetMs;
+    let deadlineAt = startedAt + totalBudgetMs;
     const selectedSource = getSelectedEpisodeSource(episode);
     const availableSources = getEpisodePlaybackSources(episode)
       .filter((source) => !episode._failedSourceIds?.has(source.id))
@@ -19344,11 +19390,22 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
       return verifiedPrimary;
     }
 
+    let failedPrimaryRefresh = null;
     if (primaryResult.completed) {
       episode._failedSourceIds = episode._failedSourceIds || new Set();
       initialCandidates.forEach((source) => {
         if (source.id) episode._failedSourceIds.add(source.id);
       });
+      const failedProviderKeys = [...new Set(initialCandidates
+        .map((source) => regularSourceProviderKey(source))
+        .filter(Boolean))];
+      if (!primaryOnly && failedProviderKeys.length) {
+        // The first source list can be valid while its signed media URL has
+        // expired. Refresh only the provider that just failed, clear its stale
+        // health result, and verify the replacement during this same Play.
+        failedPrimaryRefresh = refreshFailedPlaybackProviders(show, episode, failedProviderKeys);
+        deadlineAt = Math.max(deadlineAt, Date.now() + RELIABLE_PLAYBACK_REFRESH_RECOVERY_MS);
+      }
     }
 
     // Intent warming is deliberately primary-only. It verifies the exact
@@ -19357,14 +19414,21 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
     if (primaryOnly) return null;
 
     startBackups();
-    const discoveryWaitMs = Math.min(650, Math.max(0, deadlineAt - Date.now()));
+    const discoveryWaitMs = Math.min(
+      failedPrimaryRefresh ? 2200 : 650,
+      Math.max(0, deadlineAt - Date.now())
+    );
     if (discoveryWaitMs > 0) {
-      await Promise.race([backupLookup, wait(discoveryWaitMs)]);
+      await Promise.race([
+        failedPrimaryRefresh || backupLookup,
+        wait(discoveryWaitMs)
+      ]);
     }
 
     const candidates = getEpisodePlaybackSources(episode)
       .filter((source) => (
         !primaryResult.completed
+        || failedPrimaryRefresh
         || !initialCandidates.some((initial) => initial.id === source.id)
       ))
       .filter((source) => !episode._failedSourceIds?.has(source.id))
@@ -22197,7 +22261,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=895");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=896");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

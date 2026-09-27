@@ -644,6 +644,8 @@ test("7f2. play-intent health checking promotes a verified backup automatically"
     isFastPreferredPlaybackSource: () => true,
     verifyReliablePlaybackCandidate: async (_value, source) => source.id === "backup" ? source : null,
     playbackRecoveryProviderKeys: () => [],
+    refreshFailedPlaybackProviders: async (_show, value) => value,
+    regularSourceProviderKey: (source = {}) => source.providerKey || "",
     attachPlaybackFailureFallbacks: async (_show, value) => {
       fallbackLookups += 1;
       if (!value.sourceOptions.some((source) => source.id === "backup")) value.sourceOptions.push(backup);
@@ -675,6 +677,72 @@ test("7f2. play-intent health checking promotes a verified backup automatically"
   assert.equal(episode.selectedSourceId, "backup");
   assert.equal(episode._failedSourceIds.has("primary"), true);
   assert.equal(fallbackLookups, 1);
+});
+
+test("7f2aa. a failed signed source refreshes and verifies again during the same Play", async () => {
+  const stale = {
+    id: "animeav1-upn",
+    providerKey: "animeav1",
+    generation: "stale",
+    type: "iframe",
+    externalUrl: "https://embed.test/episode"
+  };
+  const episode = { sourceOptions: [stale], selectedSourceId: stale.id };
+  let refreshes = 0;
+  const sandbox = vm.createContext({
+    Date,
+    Set,
+    RELIABLE_PLAYBACK_TOTAL_BUDGET_MS: 4200,
+    RELIABLE_PLAYBACK_PRIMARY_PROBE_MS: 1600,
+    RELIABLE_PLAYBACK_BACKUP_DELAY_MS: 450,
+    RELIABLE_PLAYBACK_REFRESH_RECOVERY_MS: 5000,
+    AdultMode: { isAdultContent: () => false },
+    wait: () => new Promise(() => {}),
+    getSelectedEpisodeSource: (value) => value.sourceOptions.find((source) => (
+      source.id === value.selectedSourceId && !value._failedSourceIds?.has(source.id)
+    )) || value.sourceOptions.find((source) => !value._failedSourceIds?.has(source.id)) || null,
+    getEpisodePlaybackSources: (value) => value.sourceOptions,
+    hasFreshVerifiedPlaybackSource: () => false,
+    hasRecentlyFailedPlaybackFamily: () => false,
+    isLocalPlaybackRelay: () => true,
+    isFastPreferredPlaybackSource: () => true,
+    isAdFreeFallbackCandidate: () => true,
+    verifiedFallbackPreference: () => 0,
+    pickFallbackRaceCandidates: (sources) => sources,
+    firstSuccessfulFallback: async (tasks) => {
+      for (const task of tasks) {
+        const value = await task;
+        if (value) return value;
+      }
+      return null;
+    },
+    verifyReliablePlaybackCandidate: async (_value, source) => (
+      source.generation === "fresh" ? source : null
+    ),
+    regularSourceProviderKey: (source = {}) => source.providerKey || "",
+    refreshFailedPlaybackProviders: async (_show, value) => {
+      refreshes += 1;
+      value._failedSourceIds.delete(stale.id);
+      value.sourceOptions = [{ ...stale, generation: "fresh" }];
+      return value;
+    },
+    playbackRecoveryProviderKeys: () => [],
+    attachPlaybackFailureFallbacks: async (_show, value) => value,
+    selectEpisodePlaybackSource: (value, id) => {
+      value.selectedSourceId = id;
+      return value.sourceOptions.find((source) => source.id === id) || null;
+    }
+  });
+  vm.runInContext(
+    section(clientSource, "async function prepareReliablePlaybackSource(", "function renderDirectVideoPlayer("),
+    sandbox
+  );
+
+  const selected = await sandbox.prepareReliablePlaybackSource({ title: "Example" }, episode);
+  assert.equal(selected.generation, "fresh");
+  assert.equal(refreshes, 1);
+  assert.equal(episode.selectedSourceId, stale.id);
+  assert.equal(episode._failedSourceIds.has(stale.id), false);
 });
 
 test("7f2a. production races a portable backup alongside an IP-bound VOE candidate", async () => {
@@ -712,6 +780,8 @@ test("7f2a. production races a portable backup alongside an IP-bound VOE candida
       return null;
     },
     playbackRecoveryProviderKeys: () => [],
+    refreshFailedPlaybackProviders: async (_show, value) => value,
+    regularSourceProviderKey: (source = {}) => source.providerKey || "",
     attachPlaybackFailureFallbacks: async (_show, value) => value,
     selectEpisodePlaybackSource: (value, id) => {
       value.selectedSourceId = id;
@@ -749,6 +819,8 @@ test("7f2b. a failed primary is not retried when no backup verifies", async () =
     isFastPreferredPlaybackSource: () => true,
     verifyReliablePlaybackCandidate: async () => null,
     playbackRecoveryProviderKeys: () => [],
+    refreshFailedPlaybackProviders: async (_show, value) => value,
+    regularSourceProviderKey: (source = {}) => source.providerKey || "",
     attachPlaybackFailureFallbacks: async (_show, value) => value,
     getEpisodePlaybackSources: (value) => value.sourceOptions,
     isAdFreeFallbackCandidate: () => true,
@@ -801,6 +873,8 @@ test("7f2c. a preferred source remains eligible after only the short probe times
       return null;
     },
     playbackRecoveryProviderKeys: () => [],
+    refreshFailedPlaybackProviders: async (_show, value) => value,
+    regularSourceProviderKey: (source = {}) => source.providerKey || "",
     attachPlaybackFailureFallbacks: async (_show, value) => value,
     selectEpisodePlaybackSource: (value, id) => {
       value.selectedSourceId = id;
@@ -853,6 +927,8 @@ test("7f2d. intent warming verifies only the best primary and never fans out to 
       return null;
     },
     playbackRecoveryProviderKeys: () => [],
+    refreshFailedPlaybackProviders: async (_show, value) => value,
+    regularSourceProviderKey: (source = {}) => source.providerKey || "",
     attachPlaybackFailureFallbacks: async (_show, value) => {
       backupLookups += 1;
       return value;
