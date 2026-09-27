@@ -999,7 +999,38 @@ test("11c3. a stream that stalls after startup escalates to automatic fallback",
   assert.match(bufferingHandlers, /armStallWatchdog\("waiting"\)/);
   assert.match(bufferingHandlers, /armStallWatchdog\("stalled"\)/);
   assert.match(watchdog, /send\("error", `playback-stalled:/);
+  assert.doesNotMatch(watchdog, /progressed \|\| bufferedAhead/);
   assert.match(destroy, /clearStallWatchdog\(\)/);
+});
+
+test("11c3b. silent freezes and repeated short rebuffers replace an unhealthy source", () => {
+  const healthMonitor = section(
+    playerSource,
+    "function resetPlaybackHealth(",
+    "function startStatusLoop()"
+  );
+  const statusLoop = section(
+    playerSource,
+    "function startStatusLoop()",
+    "function stopStatusLoop()"
+  );
+  const bufferingHandlers = section(
+    playerSource,
+    'art.on("video:waiting"',
+    'art.on("video:seeked"'
+  );
+
+  assert.match(playerSource, /PLAYBACK_REBUFFER_WINDOW_MS\s*=\s*45 \* 1000/);
+  assert.match(playerSource, /PLAYBACK_REBUFFER_EVENT_LIMIT\s*=\s*3/);
+  assert.match(healthMonitor, /document\.hidden \|\| video\.seeking/);
+  assert.match(playerSource, /visibilitychange", onPlaybackVisibilityChange/);
+  assert.match(healthMonitor, /function onPlaybackVisibilityChange\(\) \{\s*clearStallWatchdog\(\);\s*cancelRebufferObservation\(\);\s*resetPlaybackHealth/);
+  assert.match(healthMonitor, /reportPlaybackStall\("progress-watchdog"/);
+  assert.match(healthMonitor, /rebufferHistory\.length >= PLAYBACK_REBUFFER_EVENT_LIMIT/);
+  assert.match(bufferingHandlers, /beginRebufferObservation\(\)/);
+  assert.match(statusLoop, /monitorPlaybackHealth\(art\?\.video\)/);
+  assert.match(playerSource, /finishRebufferObservation\(video\)/);
+  assert.match(playerSource, /cancelRebufferObservation\(\);\s*resetPlaybackHealth\(art\?\.video\)/);
 });
 
 test("11c4. one episode has one active playback run and stale runs are rejected", async () => {

@@ -47,9 +47,17 @@
   // the already-prepared fallback can take over.
   const PLAYBACK_STARTUP_DEADLINE_MS = sourceIsHls ? 6500 : 5000;
   const PLAYBACK_STALL_DEADLINE_MS = sourceIsHls ? 7000 : 5500;
+  const PLAYBACK_REBUFFER_WINDOW_MS = 45 * 1000;
+  const PLAYBACK_REBUFFER_EVENT_LIMIT = 3;
+  const PLAYBACK_REBUFFER_TOTAL_MS = 6000;
   let playbackHasStarted = false;
+  let playbackFailureReported = false;
   let seekRecoveryUntil = 0;
   let lastProgressPosition = -1;
+  let healthLastPosition = -1;
+  let healthLastProgressAt = 0;
+  let rebufferStartedAt = 0;
+  let rebufferHistory = [];
   let lastSeekToast = 0;
   let artworkFrameCaptured = false;
   // Streams report their renditions once, in HLS MANIFEST_PARSED. The phone
@@ -94,6 +102,7 @@
 
   window.addEventListener("message", onParentCommand);
   window.addEventListener("keydown", onKeydown, true);
+  document.addEventListener("visibilitychange", onPlaybackVisibilityChange);
   // The "..." control is CSS-hidden above 760px, where the desktop gear takes
   // over. Rotating a phone or widening a window while the sheet is open would
   // otherwise leave it stranded with no way back to it.
@@ -105,6 +114,7 @@
   }
   window.addEventListener("beforeunload", () => {
     window.removeEventListener("keydown", onKeydown, true);
+    document.removeEventListener("visibilitychange", onPlaybackVisibilityChange);
     destroyPlayer();
   });
 
@@ -272,8 +282,14 @@
     recoveryCount = 0;
     networkRecoveryCount = 0;
     mediaRecoveryCount = 0;
+    playbackHasStarted = false;
+    playbackFailureReported = false;
     seekRecoveryUntil = 0;
     lastProgressPosition = -1;
+    healthLastPosition = -1;
+    healthLastProgressAt = 0;
+    rebufferStartedAt = 0;
+    rebufferHistory = [];
     armStartupWatchdog();
 
     const type = streamType(sourceUrl, params.get("type"));
@@ -2264,6 +2280,7 @@
     });
     art.on("video:playing", () => {
       playbackHasStarted = true;
+      finishRebufferObservation(video);
       clearStartupWatchdog();
       cancelScheduledRecovery();
       seekRecoveryUntil = 0;
@@ -2274,22 +2291,26 @@
     });
     art.on("video:pause", () => {
       clearStallWatchdog();
+      cancelRebufferObservation();
       send("pause", getStatus());
       stopStatusLoop();
     });
     art.on("video:waiting", () => {
       if (bufferedEnd(video) - (video.currentTime || 0) < 0.35) showLoading();
       send("waiting", getStatus());
+      beginRebufferObservation();
       scheduleRecovery("waiting");
       armStallWatchdog("waiting");
     });
     art.on("video:stalled", () => {
       send("stalled", getStatus());
+      beginRebufferObservation();
       scheduleRecovery("stalled");
       armStallWatchdog("stalled");
     });
     art.on("video:seeked", () => {
       clearStallWatchdog();
+      cancelRebufferObservation();
       syncSkipSegments(video.currentTime || 0);
     });
     art.on("video:loadedmetadata", () => {
@@ -2301,6 +2322,7 @@
       armSeekRecoveryGrace();
     });
     art.on("video:ended", () => {
+      cancelRebufferObservation();
       send("complete", getStatus());
       stopStatusLoop();
     });
@@ -2308,6 +2330,7 @@
       const position = video.currentTime || 0;
       if (position > lastProgressPosition + 0.2 || position < lastProgressPosition) {
         clearStallWatchdog();
+        finishRebufferObservation(video);
         recoveryCount = 0;
         networkRecoveryCount = 0;
         mediaRecoveryCount = 0;
@@ -2619,9 +2642,73 @@
     return Math.max(0, bufferedEnd(video) - (video?.currentTime || 0));
   }
 
+  function resetPlaybackHealth(video) {
+    healthLastPosition = Number(video?.currentTime || 0);
+    healthLastProgressAt = Date.now();
+  }
+
+  function onPlaybackVisibilityChange() {
+    clearStallWatchdog();
+    cancelRebufferObservation();
+    resetPlaybackHealth(art?.video);
+  }
+
+  function monitorPlaybackHealth(video) {
+    if (!playbackHasStarted || !video || video.paused || video.ended || video.error) {
+      resetPlaybackHealth(video);
+      return;
+    }
+    if (document.hidden || video.seeking || Date.now() < seekRecoveryUntil) {
+      resetPlaybackHealth(video);
+      return;
+    }
+
+    const position = Number(video.currentTime || 0);
+    if (healthLastPosition < 0 || position > healthLastPosition + 0.2 || position < healthLastPosition) {
+      healthLastPosition = position;
+      healthLastProgressAt = Date.now();
+      finishRebufferObservation(video);
+      return;
+    }
+
+    const stalledFor = Date.now() - healthLastProgressAt;
+    if (stalledFor < PLAYBACK_STALL_DEADLINE_MS) return;
+    reportPlaybackStall("progress-watchdog", stalledFor);
+  }
+
+  function beginRebufferObservation() {
+    const video = art?.video;
+    if (!playbackHasStarted || !video || video.paused || video.ended || video.seeking) return;
+    if (Date.now() < seekRecoveryUntil || rebufferStartedAt) return;
+    rebufferStartedAt = Date.now();
+  }
+
+  function finishRebufferObservation(video) {
+    if (!rebufferStartedAt) return;
+    const now = Date.now();
+    const duration = now - rebufferStartedAt;
+    rebufferStartedAt = 0;
+    if (!video || video.paused || video.ended || video.seeking || now < seekRecoveryUntil || duration < 700) return;
+
+    rebufferHistory = rebufferHistory.filter((entry) => now - entry.endedAt <= PLAYBACK_REBUFFER_WINDOW_MS);
+    rebufferHistory.push({ duration, endedAt: now });
+    const total = rebufferHistory.reduce((sum, entry) => sum + entry.duration, 0);
+    if (rebufferHistory.length >= PLAYBACK_REBUFFER_EVENT_LIMIT && total >= PLAYBACK_REBUFFER_TOTAL_MS) {
+      reportPlaybackStall("repeated-buffering", total);
+    }
+  }
+
+  function cancelRebufferObservation() {
+    rebufferStartedAt = 0;
+  }
+
   function startStatusLoop() {
     stopStatusLoop();
-    statusTimer = setInterval(() => send("time", getStatus()), 1000);
+    resetPlaybackHealth(art?.video);
+    statusTimer = setInterval(() => {
+      monitorPlaybackHealth(art?.video);
+      send("time", getStatus());
+    }, 1000);
   }
 
   function stopStatusLoop() {
@@ -2782,18 +2869,26 @@
       stallTimer = null;
       const video = art?.video;
       if (!video || video.paused || video.ended || elements.error.hidden === false) return;
+      if (document.hidden) return;
       const seekGraceRemaining = seekRecoveryUntil - Date.now();
       if (seekGraceRemaining > 0) {
         stallTimer = setTimeout(check, seekGraceRemaining + 100);
         return;
       }
       const progressed = Number(video.currentTime || 0) - startedPosition > 0.35;
-      if (progressed || bufferedAhead(video) > 0.75) return;
-      cancelScheduledRecovery();
-      showError("Stream stopped responding", "This server stalled. Trying another verified source.");
-      send("error", `playback-stalled:${reason}:${Date.now() - startedAt}`);
+      if (progressed) return;
+      reportPlaybackStall(reason, Date.now() - startedAt);
     };
     stallTimer = setTimeout(check, PLAYBACK_STALL_DEADLINE_MS);
+  }
+
+  function reportPlaybackStall(reason, elapsed) {
+    if (playbackFailureReported || elements.error.hidden === false) return;
+    playbackFailureReported = true;
+    clearStallWatchdog();
+    cancelScheduledRecovery();
+    showError("Stream stopped responding", "This server cannot sustain smooth playback. Trying another verified source.");
+    send("error", `playback-stalled:${reason}:${Math.max(0, Number(elapsed) || 0)}`);
   }
 
   function clearStallWatchdog() {
@@ -2831,6 +2926,8 @@
 
   function armSeekRecoveryGrace() {
     seekRecoveryUntil = Date.now() + 8000;
+    cancelRebufferObservation();
+    resetPlaybackHealth(art?.video);
     cancelScheduledRecovery();
   }
 
