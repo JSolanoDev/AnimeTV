@@ -793,7 +793,7 @@ test("7f4. a failed host family is demoted for the next episode until it recover
   assert.equal(sandbox.hasRecentlyFailedPlaybackFamily(nextEpisodeSameHost), false);
 });
 
-test("7f5. VOE starts from fresh signed HLS while weaker mirrors prove episode bytes", () => {
+test("7f5. known ad-free resolved streams start promptly while unknown mirrors prove bytes", () => {
   const inspection = section(
     clientSource,
     "function inspectPlaybackSourceHealth(",
@@ -807,7 +807,8 @@ test("7f5. VOE starts from fresh signed HLS while weaker mirrors prove episode b
   assert.ok(inspection.indexOf("canStartResolvedAdFreeFallback") < inspection.indexOf("probePlayableFallback"));
   assert.ok(inspection.indexOf("isIpBoundCloudwindowStream") < inspection.indexOf("canStartResolvedAdFreeFallback"));
   assert.match(inspection, /provisional:\s*true/);
-  assert.match(clientSource, /return isHls\s*&&\s*identity\.includes\("voe"\)/);
+  assert.match(clientSource, /isProgressive\s*&&\s*isKnownProgressiveFallback/);
+  assert.match(clientSource, /mp4upload\|yourupload\|youupload\|streamtape/);
   assert.match(clientSource, /function isIpBoundCloudwindowStream\(/);
   assert.match(inspection, /!isLocalPlaybackRelay\(\)\s*&&\s*isIpBoundCloudwindowStream\(resolved\.url\)/);
   assert.doesNotMatch(clientSource, /trustedProvider\s*&&\s*playbackFamilyHealth\(source\)\s*===\s*true/);

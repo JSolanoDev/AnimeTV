@@ -2127,6 +2127,7 @@ async function fetchCoalescedSourcePlaylist(target, headers, cacheKey) {
   return sourcePlaylistResponse(await pending);
 }
 
+const SOURCE_PROGRESSIVE_INITIAL_CHUNK_BYTES = 1024 * 1024;
 const SOURCE_PROGRESSIVE_CHUNK_BYTES = 4 * 1024 * 1024;
 
 function boundedProgressiveRange(value = "", isProgressiveMedia = false) {
@@ -2136,7 +2137,13 @@ function boundedProgressiveRange(value = "", isProgressiveMedia = false) {
   if (!openEnded) return range;
   const start = Number(openEnded[1]);
   if (!Number.isSafeInteger(start) || start < 0) return range;
-  const end = Math.min(Number.MAX_SAFE_INTEGER, start + SOURCE_PROGRESSIVE_CHUNK_BYTES - 1);
+  // Finish the first response quickly so Chrome can parse the MP4 metadata and
+  // start. Once playback is established, larger chunks keep the invocation count
+  // low while still rotating away from connections whose throughput decays.
+  const chunkBytes = start === 0
+    ? SOURCE_PROGRESSIVE_INITIAL_CHUNK_BYTES
+    : SOURCE_PROGRESSIVE_CHUNK_BYTES;
+  const end = Math.min(Number.MAX_SAFE_INTEGER, start + chunkBytes - 1);
   return `bytes=${start}-${end}`;
 }
 

@@ -4567,7 +4567,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=880";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=881";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -18682,11 +18682,18 @@ function canStartResolvedAdFreeFallback(source = {}, resolved = {}) {
   const isHls = resolvedType === "hls"
     || resolvedType.includes("mpegurl")
     || streamTypeFromUrl(resolved.url) === "hls";
-  // Resolving a VOE embed produces a fresh signed Cloudwindow HLS URL. Starting
-  // that URL immediately avoids a duplicate manifest Function call and keeps a
-  // cold episode near one second. UPN and progressive mirrors still have to
-  // deliver bytes for this exact episode before they may replace it.
-  return isHls && identity.includes("voe");
+  const isProgressive = resolvedType === "mp4"
+    || resolvedType === "file"
+    || streamTypeFromUrl(resolved.url) === "file";
+  const isKnownProgressiveFallback = /(?:mp4upload|yourupload|youupload|streamtape)/.test(identity);
+  // Resolving a VOE embed produces a fresh signed Cloudwindow HLS URL. Known
+  // progressive mirrors are also safe to mount immediately because they are
+  // extracted into the ad-free custom player and /api/source now serves their
+  // open-ended requests as short, self-renewing byte ranges. The player remains
+  // the final health check and automatically leaves a stream that cannot sustain
+  // playback; unknown direct files still have to prove media bytes first.
+  return (isHls && identity.includes("voe"))
+    || (isProgressive && isKnownProgressiveFallback);
 }
 
 function pickFallbackRaceCandidates(candidates = [], limit = FALLBACK_RACE_LIMIT) {
@@ -22010,7 +22017,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=880");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=881");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
