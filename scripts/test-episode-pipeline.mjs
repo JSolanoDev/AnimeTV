@@ -813,6 +813,82 @@ test("7f2c. a preferred source remains eligible after only the short probe times
   assert.equal(checks, 2);
 });
 
+test("7f2d. intent warming verifies only the best primary and never fans out to backup providers", async () => {
+  const voe = { id: "voe", type: "iframe", externalUrl: "https://voe.test/embed" };
+  const mp4Upload = { id: "mp4upload", type: "iframe", externalUrl: "https://mp4upload.test/embed" };
+  const episode = { sourceOptions: [voe, mp4Upload], selectedSourceId: "mp4upload" };
+  const checked = [];
+  let backupLookups = 0;
+  const sandbox = vm.createContext({
+    Date,
+    Set,
+    RELIABLE_PLAYBACK_TOTAL_BUDGET_MS: 4200,
+    RELIABLE_PLAYBACK_PRIMARY_PROBE_MS: 1600,
+    RELIABLE_PLAYBACK_BACKUP_DELAY_MS: 450,
+    AdultMode: { isAdultContent: () => false },
+    wait: () => new Promise(() => {}),
+    getSelectedEpisodeSource: (value) => value.sourceOptions.find((source) => source.id === value.selectedSourceId) || null,
+    getEpisodePlaybackSources: (value) => value.sourceOptions,
+    isAdFreeFallbackCandidate: () => true,
+    hasFreshVerifiedPlaybackSource: () => false,
+    hasRecentlyFailedPlaybackFamily: () => false,
+    isLocalPlaybackRelay: () => false,
+    fallbackSourceIdentity: (source) => source.id,
+    isFastPreferredPlaybackSource: (source) => source.id === "voe",
+    verifiedFallbackPreference: (source) => source.id === "voe" ? 0 : 7,
+    pickFallbackRaceCandidates: (sources) => sources.slice(0, 3),
+    verifyReliablePlaybackCandidate: async (_value, source) => {
+      checked.push(source.id);
+      return source;
+    },
+    firstSuccessfulFallback: async (tasks) => {
+      for (const task of tasks) {
+        const value = await task;
+        if (value) return value;
+      }
+      return null;
+    },
+    attachPlaybackFailureFallbacks: async (_show, value) => {
+      backupLookups += 1;
+      return value;
+    },
+    selectEpisodePlaybackSource: (value, id) => {
+      value.selectedSourceId = id;
+      return value.sourceOptions.find((source) => source.id === id) || null;
+    }
+  });
+  vm.runInContext(
+    section(clientSource, "async function prepareReliablePlaybackSource(", "function renderDirectVideoPlayer("),
+    sandbox
+  );
+
+  const selected = await sandbox.prepareReliablePlaybackSource({ title: "Example" }, episode, {
+    primaryOnly: true
+  });
+  assert.equal(selected.id, "voe");
+  assert.deepEqual(checked, ["voe"]);
+  assert.equal(backupLookups, 0);
+  assert.equal(episode._reliablePrimaryWarmPromise, null);
+});
+
+test("7f2e. episode intent and adjacent playback warm the shared source path before a click", () => {
+  const renderer = section(clientSource, "function renderEpisodeList(", "function episodeDisplaySubtitle(");
+  const warmup = section(clientSource, "function warmEpisodePlaybackIntent(", "function renderDirectVideoPlayer(");
+  const playback = section(clientSource, "async function runActivePlaybackAttempt(", "function isExternalIframeEpisode(");
+  assert.match(renderer, /button\.addEventListener\("pointerenter", warm/);
+  assert.match(renderer, /button\.addEventListener\("pointerdown", warm/);
+  assert.match(renderer, /warmEpisodePlaybackIntent\(show, episode, seasonNumber\)/);
+  assert.match(warmup, /primaryOnly:\s*true/);
+  assert.match(warmup, /prefetchSegment:\s*Boolean\(options\.prefetchSegment\)/);
+  assert.match(clientSource, /allowResolvedFallback:\s*!primaryOnly/);
+  assert.match(clientSource, /prefetchSegment:\s*true/);
+  assert.match(warmup, /bufferedAhead >= 12/);
+  assert.match(warmup, /position >= 3/);
+  assert.match(warmup, /timeoutMs:\s*8000/);
+  assert.match(warmup, /if \(!source\) verifyNearTransition\(\)/);
+  assert.match(playback, /lookupPromise\s*&&\s*!alreadyPlayable\s*&&\s*!getSelectedEpisodeSource/);
+});
+
 test("7f3. regular backup source routes share CDN cache and cold in-flight work", () => {
   assert.match(serverSource, /const tioAnimeSourceInflight = new Map\(\)/);
   assert.match(serverSource, /const jkAnimeSourceInflight = new Map\(\)/);
@@ -887,6 +963,31 @@ test("7f5. signed VOE HLS starts promptly while progressive mirrors prove bytes"
   assert.match(clientSource, /bytesPerSecond\s*>=\s*96\s*\*\s*1024/);
   assert.match(preparation, /allowResolvedFallback:\s*true/);
   assert.match(clientSource, /verified:\s*resolved\.provisional !== true/);
+});
+
+test("7f5b. HLS verification warms the segment used by a resumed episode", () => {
+  const sandbox = vm.createContext({});
+  vm.runInContext(
+    section(clientSource, "function hlsManifestChildLine(", "async function probeHlsManifest("),
+    sandbox
+  );
+  const manifest = [
+    "#EXTM3U",
+    "#EXTINF:6.0,",
+    "segment-0.ts",
+    "#EXTINF:6.0,",
+    "segment-1.ts",
+    "#EXTINF:6.0,",
+    "segment-2.ts",
+    "#EXT-X-ENDLIST"
+  ].join("\n");
+  assert.equal(sandbox.hlsManifestChildLine(manifest, 0), "segment-0.ts");
+  assert.equal(sandbox.hlsManifestChildLine(manifest, 8), "segment-1.ts");
+  assert.equal(sandbox.hlsManifestChildLine(manifest, 15), "segment-2.ts");
+  assert.match(clientSource, /startTime:\s*Math\.max\(0, Number\(getResumePosition\(episode\)\)/);
+  assert.match(clientSource, /cacheCompleteSegment\s*\?\s*\{\}\s*:\s*\{ Range:/);
+  assert.match(clientSource, /maxCachedSegmentBytes\s*=\s*12 \* 1024 \* 1024/);
+  assert.match(clientSource, /if \(!streamEnded\) await reader\?\.cancel/);
 });
 
 test("7f6. VOE VOD fragments use a short shared CDN cache", () => {
@@ -1145,6 +1246,15 @@ test("11c3b. silent freezes and repeated short rebuffers replace an unhealthy so
   assert.match(statusLoop, /monitorPlaybackHealth\(art\?\.video\)/);
   assert.match(playerSource, /finishRebufferObservation\(video\)/);
   assert.match(playerSource, /cancelRebufferObservation\(\);\s*resetPlaybackHealth\(art\?\.video\)/);
+});
+
+test("11c3c. adaptive playback keeps a conservative rendition and a larger forward buffer", () => {
+  assert.match(playerSource, /maxBufferLength:\s*90/);
+  assert.match(playerSource, /maxMaxBufferLength:\s*180/);
+  assert.match(playerSource, /abrBandWidthFactor:\s*0\.75/);
+  assert.match(playerSource, /abrBandWidthUpFactor:\s*0\.5/);
+  assert.match(playerSource, /maxStarvationDelay:\s*2/);
+  assert.match(playerSource, /maxLoadingDelay:\s*2/);
 });
 
 test("11c4. one episode has one active playback run and stale runs are rejected", async () => {

@@ -2087,6 +2087,14 @@ function sourcePlaylistIsVod(text) {
     || /^#EXT-X-ENDLIST\s*$/mi.test(String(text || ""));
 }
 
+function sourcePlaylistIsMaster(text) {
+  return /^#EXT-X-STREAM-INF:/mi.test(String(text || ""));
+}
+
+function sourcePlaylistIsReusable(text) {
+  return sourcePlaylistIsVod(text) || sourcePlaylistIsMaster(text);
+}
+
 function sourcePlaylistResponse(snapshot) {
   return new Response(snapshot.body, {
     status: snapshot.status,
@@ -2114,7 +2122,7 @@ async function fetchCoalescedSourcePlaylist(target, headers, cacheKey) {
         body,
         ts: Date.now()
       };
-      if (upstream.ok && sourcePlaylistIsVod(body)) {
+      if (upstream.ok && sourcePlaylistIsReusable(body)) {
         while (sourcePlaylistCache.size >= SOURCE_PLAYLIST_CACHE_MAX) {
           sourcePlaylistCache.delete(sourcePlaylistCache.keys().next().value);
         }
@@ -2305,8 +2313,8 @@ async function handleSourceProxy(request, url, response) {
     }
     if (isPlaylist) {
       let playlist = rewriteM3u8Playlist(await upstream.text(), target, refererHost);
-      const playlistIsVod = /^#EXT-X-PLAYLIST-TYPE:VOD\s*$/mi.test(playlist)
-        || /^#EXT-X-ENDLIST\s*$/mi.test(playlist);
+      const playlistIsVod = sourcePlaylistIsVod(playlist);
+      const playlistIsMaster = sourcePlaylistIsMaster(playlist);
       // Google Cast defaults HLS without a master CODECS declaration to H.264.
       // AnimeAV1 exposes an AV1 media playlist directly, so a Cast-only request
       // gets a tiny one-variant master that identifies the real decoder. Normal
@@ -2331,6 +2339,10 @@ async function handleSourceProxy(request, url, response) {
         // VOD playlist. A short shared cache lets the first request warm the
         // second without risking stale live manifests.
         responseHeaders["Cache-Control"] = "public, max-age=60, s-maxage=900, stale-while-revalidate=3600, stale-if-error=21600";
+      } else if (upstream.ok && playlistIsMaster) {
+        // The player immediately repeats the master request already made by its
+        // health check. Reuse it briefly, well inside signed-source lifetimes.
+        responseHeaders["Cache-Control"] = "public, max-age=30, s-maxage=300, stale-while-revalidate=600, stale-if-error=1800";
       }
       responseHeaders["Content-Length"] = String(Buffer.byteLength(playlist));
       response.writeHead(upstream.status, responseHeaders);

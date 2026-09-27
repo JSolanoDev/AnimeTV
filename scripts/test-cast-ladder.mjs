@@ -447,7 +447,9 @@ const TWO = [
     /#EXT-X-STREAM-INF:BANDWIDTH=5000000,CODECS/.test(server), true);
   check("15o. VOD manifests warm the receiver through a bounded shared cache",
     /playlistIsVod[\s\S]*?s-maxage=900/.test(server), true);
-  check("15p. immutable CMAF fragments are CDN cached",
+  check("15p. HLS masters briefly reuse the health-check response",
+    /sourcePlaylistIsReusable[\s\S]*?sourcePlaylistIsMaster[\s\S]*?s-maxage=300/.test(server), true);
+  check("15q. immutable CMAF fragments are CDN cached",
     /isZillaDisguisedSegment \|\| isZillaOtherSegment \|\| isGuploadSegment[\s\S]*?s-maxage=604800/.test(server), true);
 
   const embedStart = server.indexOf("function unpackPackedJs(");
@@ -459,12 +461,12 @@ const TWO = [
     '<script>//streamtape.com/get_vi id=abc&expires=2&ip=ip2&token=working</script>'
   ].join("\n");
   const streamTape = vm.runInContext(`extractStreamFromEmbed(${JSON.stringify(streamTapeFixture)})`, embedCtx);
-  check("15q. Streamtape's disguised .mp4 embed resolves to get_video", streamTape?.type, "mp4");
-  check("15r. the final scripted Streamtape token wins over decoys",
+  check("15r. Streamtape's disguised .mp4 embed resolves to get_video", streamTape?.type, "mp4");
+  check("15s. the final scripted Streamtape token wins over decoys",
     new URL(streamTape?.url).searchParams.get("token"), "working");
-  check("15s. a Streamtape /e/*.mp4 URL is treated as an embed page",
+  check("15t. a Streamtape /e/*.mp4 URL is treated as an embed page",
     /isStreamTapeEmbed[\s\S]*?!isStreamTapeEmbed/.test(server), true);
-  check("15t. Cast HEAD probes become bounded one-byte upstream requests",
+  check("15t1. Cast HEAD probes become bounded one-byte upstream requests",
     /isHeadRequest[\s\S]*?headers\.Range = "bytes=0-0"/.test(server), true);
   check("15t2. open-ended progressive requests are bounded for reliable buffering",
     /SOURCE_PROGRESSIVE_CHUNK_BYTES = 4 \* 1024 \* 1024[\s\S]*?boundedProgressiveRange\(request\.headers\.range, isProgressiveMedia\)/.test(server), true);

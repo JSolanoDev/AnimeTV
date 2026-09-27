@@ -4567,7 +4567,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=885";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=894";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -9524,7 +9524,14 @@ async function openShow(id, target = {}) {
         && (targetEpisode.providerAnimeSlug || show.animeAv1Slug)
       ) {
         Promise.resolve(attachAnimeAv1Sources(show, targetEpisode))
-          .then(() => warmTopEpisodeSources(targetEpisode, 1))
+          .then(() => {
+            warmTopEpisodeSources(targetEpisode, 1);
+            const { seasonNumber } = selectedSeasonIdentity(show, state.activeEpisode);
+            return warmEpisodePlaybackIntent(show, targetEpisode, seasonNumber, {
+              timeoutMs: 6500,
+              prefetchSegment: true
+            });
+          })
           .catch(() => {});
       }
 
@@ -12203,6 +12210,23 @@ function renderEpisodeList(show, options = {}) {
 
   // ── Episode selection ────────────────────────────────────────────────────
   episodeList.querySelectorAll("[data-season-index][data-episode-index]").forEach((button) => {
+    const warm = () => {
+      const seasonIndex = Number(button.dataset.seasonIndex);
+      const episodeIndex = Number(button.dataset.episodeIndex);
+      const season = seasons[seasonIndex];
+      const episode = season?.episodes?.[episodeIndex];
+      if (!season || !episode) return;
+      const { seasonNumber } = selectedSeasonIdentity(show, {
+        season,
+        episode,
+        seasonIndex,
+        episodeIndex
+      }, seasonIndex);
+      Promise.resolve(warmEpisodePlaybackIntent(show, episode, seasonNumber)).catch(() => {});
+    };
+    button.addEventListener("pointerenter", warm, { once: true, passive: true });
+    button.addEventListener("focus", warm, { once: true });
+    button.addEventListener("pointerdown", warm, { once: true, passive: true });
     button.addEventListener("click", () => {
       const season = seasons[Number(button.dataset.seasonIndex)];
       const episode = season?.episodes?.[Number(button.dataset.episodeIndex)];
@@ -18352,6 +18376,7 @@ async function runActivePlaybackAttempt(options = {}, playbackContext) {
   if (
     activeEpisode
     && lookupPromise
+    && !alreadyPlayable
     && !getSelectedEpisodeSource(activeEpisode)
     && !getPlayableUrl(show)
   ) {
@@ -18828,19 +18853,23 @@ function manifestChildUrl(value = "", parentUrl = "") {
   }
 }
 
-async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROBE_TIMEOUT_MS, cacheMode = "no-store") {
+async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROBE_TIMEOUT_MS, cacheMode = "no-store", options = {}) {
   const target = proxiedStreamUrl(url, referer);
   if (!target) return false;
   const startedAt = Date.now();
   const originalUrl = originalStreamUrlFromProxy(url);
   const requiresSustainedProbe = /(?:mp4upload|yourupload|youupload|streamtape)/i.test(originalUrl);
+  const cacheCompleteSegment = Boolean(options.cacheCompleteSegment) && !requiresSustainedProbe;
+  const maxCachedSegmentBytes = 12 * 1024 * 1024;
   const rangeEnd = requiresSustainedProbe ? (128 * 1024) - 1 : (64 * 1024) - 1;
   let reader = null;
+  let streamEnded = false;
   try {
+    const requestHeaders = cacheCompleteSegment ? {} : { Range: `bytes=0-${rangeEnd}` };
     const response = await fetchWithTimeout(target, {
       cache: cacheMode,
       credentials: "omit",
-      headers: { Range: `bytes=0-${rangeEnd}` }
+      headers: requestHeaders
     }, timeoutMs);
     const contentType = String(response.headers.get("content-type") || "").toLowerCase();
     const contentRange = response.headers.get("content-range") || "";
@@ -18863,10 +18892,15 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
     reader = response.body.getReader();
     const minimumBytes = requiresSustainedProbe ? 128 * 1024 : 32 * 1024;
     let receivedBytes = 0;
-    let streamEnded = false;
-    while (receivedBytes < minimumBytes && !streamEnded) {
+    while (
+      !streamEnded
+      && (
+        receivedBytes < minimumBytes
+        || (cacheCompleteSegment && receivedBytes < maxCachedSegmentBytes)
+      )
+    ) {
       const remainingMs = Math.max(0, timeoutMs - (Date.now() - startedAt));
-      if (remainingMs < 50) return false;
+      if (remainingMs < 50) break;
       let timeoutId = 0;
       const chunk = await Promise.race([
         reader.read(),
@@ -18875,7 +18909,7 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
         })
       ]);
       if (timeoutId) window.clearTimeout(timeoutId);
-      if (!chunk) return false;
+      if (!chunk) break;
       streamEnded = Boolean(chunk.done);
       receivedBytes += Number(chunk.value?.byteLength || 0);
     }
@@ -18887,8 +18921,32 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
   } catch {
     return false;
   } finally {
-    await reader?.cancel().catch(() => {});
+    if (!streamEnded) await reader?.cancel().catch(() => {});
   }
+}
+
+function hlsManifestChildLine(manifest = "", startTime = 0) {
+  const lines = String(manifest || "").split(/\r?\n/).map((line) => line.trim());
+  const firstUri = lines.find((line) => line && !line.startsWith("#")) || "";
+  const targetTime = Math.max(0, Number(startTime) || 0);
+  if (!targetTime || !lines.some((line) => /^#EXTINF:/i.test(line))) return firstUri;
+
+  let elapsed = 0;
+  let pendingDuration = null;
+  let lastMediaUri = firstUri;
+  for (const line of lines) {
+    const durationMatch = line.match(/^#EXTINF:([\d.]+)/i);
+    if (durationMatch) {
+      pendingDuration = Math.max(0, Number(durationMatch[1]) || 0);
+      continue;
+    }
+    if (!line || line.startsWith("#") || pendingDuration === null) continue;
+    lastMediaUri = line;
+    if (targetTime < elapsed + pendingDuration) return line;
+    elapsed += pendingDuration;
+    pendingDuration = null;
+  }
+  return lastMediaUri;
 }
 
 async function probeHlsManifest(url = "", referer = "", depth = 0, options = {}) {
@@ -18906,9 +18964,7 @@ async function probeHlsManifest(url = "", referer = "", depth = 0, options = {})
     if (!response.ok) return false;
     const manifest = await response.text();
     if (!manifest.includes("#EXTM3U")) return false;
-    const childLine = manifest.split(/\r?\n/)
-      .map((line) => line.trim())
-      .find((line) => line && !line.startsWith("#"));
+    const childLine = hlsManifestChildLine(manifest, options.startTime);
     const childUrl = manifestChildUrl(childLine, url);
     if (!childUrl) return false;
     if (options.manifestOnly) return true;
@@ -18917,7 +18973,13 @@ async function probeHlsManifest(url = "", referer = "", depth = 0, options = {})
     }
     const childTimeout = deadlineAt ? Math.max(0, deadlineAt - Date.now()) : timeoutMs;
     if (childTimeout < 150) return false;
-    return probeMediaBytes(childUrl, referer, Math.min(timeoutMs, childTimeout), options.cacheMode || "no-store");
+    return probeMediaBytes(
+      childUrl,
+      referer,
+      Math.min(timeoutMs, childTimeout),
+      options.cacheMode || "no-store",
+      { cacheCompleteSegment: Boolean(options.prefetchSegment) }
+    );
   } catch {
     return false;
   }
@@ -18933,7 +18995,9 @@ async function probePlayableFallback(resolved = {}, options = {}) {
       timeoutMs,
       deadlineAt: options.deadlineAt || (options.timeoutMs ? Date.now() + timeoutMs : 0),
       cacheMode: options.cacheMode || "no-store",
-      manifestOnly: Boolean(options.manifestOnly)
+      manifestOnly: Boolean(options.manifestOnly),
+      startTime: Math.max(0, Number(options.startTime) || 0),
+      prefetchSegment: Boolean(options.prefetchSegment)
     });
   }
   return probeMediaBytes(
@@ -19119,6 +19183,8 @@ function inspectPlaybackSourceHealth(source = {}, options = {}) {
         // Let the browser and Vercel reuse a successful VOD-manifest check when
         // the player requests that same URL immediately afterward.
         cacheMode: "default",
+        startTime: Math.max(0, Number(options.startTime) || 0),
+        prefetchSegment: Boolean(options.prefetchSegment),
         // A master playlist alone is not proof of playback: some UPN episodes
         // publish one while their first fragment is already gone. VOE takes the
         // fast signed-HLS path above; every other candidate proves media bytes.
@@ -19149,7 +19215,10 @@ function inspectPlaybackSourceHealth(source = {}, options = {}) {
 async function verifyReliablePlaybackCandidate(episode, source, options = {}) {
   if (!episode || !source || !isAdFreeFallbackCandidate(source)) return null;
   if (hasFreshVerifiedPlaybackSource(source)) return source;
-  const resolved = await inspectPlaybackSourceHealth(source, options);
+  const resolved = await inspectPlaybackSourceHealth(source, {
+    ...options,
+    startTime: Math.max(0, Number(getResumePosition(episode)) || 0)
+  });
   if (!resolved?.url) {
     if (source.id) {
       episode._failedSourceIds = episode._failedSourceIds || new Set();
@@ -19167,7 +19236,16 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
   if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) {
     return getSelectedEpisodeSource(episode);
   }
-  if (episode._reliablePlaybackSourcePromise) return episode._reliablePlaybackSourcePromise;
+  const primaryOnly = Boolean(options.primaryOnly);
+  const promiseKey = primaryOnly
+    ? "_reliablePrimaryWarmPromise"
+    : "_reliablePlaybackSourcePromise";
+  if (!primaryOnly && episode._reliablePlaybackSourcePromise) {
+    return episode._reliablePlaybackSourcePromise;
+  }
+  if (primaryOnly && episode._reliablePrimaryWarmPromise) {
+    return episode._reliablePrimaryWarmPromise;
+  }
 
   const preparation = (async () => {
     const startedAt = Date.now();
@@ -19194,9 +19272,9 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
         (candidate.id || fallbackSourceIdentity(candidate)) === key
       )) === index;
     });
-    const initialCandidates = pickFallbackRaceCandidates(
-      uniquePrimaryCandidates
-    );
+    const initialCandidates = primaryOnly
+      ? uniquePrimaryCandidates.slice(0, 1)
+      : pickFallbackRaceCandidates(uniquePrimaryCandidates);
     const alreadyVerified = initialCandidates.find(hasFreshVerifiedPlaybackSource);
     if (alreadyVerified) {
       selectEpisodePlaybackSource(episode, alreadyVerified.id);
@@ -19216,10 +19294,12 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
     // A fast/cached primary wins without touching the other providers. If its
     // media check is slow, prepare backups concurrently instead of waiting for a
     // multi-second player failure first.
-    void wait(RELIABLE_PLAYBACK_BACKUP_DELAY_MS).then(() => {
-      if (!primaryFinished) return startBackups();
-      return null;
-    }).catch(() => {});
+    if (!primaryOnly) {
+      void wait(RELIABLE_PLAYBACK_BACKUP_DELAY_MS).then(() => {
+        if (!primaryFinished) return startBackups();
+        return null;
+      }).catch(() => {});
+    }
 
     const primaryTimeout = Math.min(
       RELIABLE_PLAYBACK_PRIMARY_PROBE_MS,
@@ -19230,7 +19310,11 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
           firstSuccessfulFallback(initialCandidates.map((source) => (
             verifyReliablePlaybackCandidate(episode, source, {
               timeoutMs: primaryTimeout,
-              allowResolvedFallback: true
+              // A background intent warmup has time to prove and warm real
+              // media. The foreground fallback path may still accept a freshly
+              // resolved VOE URL provisionally to avoid blocking playback.
+              allowResolvedFallback: !primaryOnly,
+              prefetchSegment: Boolean(options.prefetchSegment)
             })
           ))).then((source) => ({ completed: true, source })),
           wait(primaryTimeout).then(() => ({ completed: false, source: null }))
@@ -19249,6 +19333,11 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
         if (source.id) episode._failedSourceIds.add(source.id);
       });
     }
+
+    // Intent warming is deliberately primary-only. It verifies the exact
+    // episode the user is viewing or pointing at without waking every backup
+    // provider. A real Play attempt still runs the full fallback ladder.
+    if (primaryOnly) return null;
 
     startBackups();
     const discoveryWaitMs = Math.min(650, Math.max(0, deadlineAt - Date.now()));
@@ -19289,17 +19378,48 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
     // Retry clears this short-lived result and performs a fresh provider sweep.
     return null;
   })().finally(() => {
-    episode._reliablePlaybackSourcePromise = null;
+    episode[promiseKey] = null;
   });
 
-  episode._reliablePlaybackSourcePromise = preparation;
+  episode[promiseKey] = preparation;
   return preparation;
+}
+
+function warmEpisodePlaybackIntent(show, episode, seasonNumber = 1, options = {}) {
+  prefetchPlayerShell();
+  if (!show || !episode) return Promise.resolve(null);
+  if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) {
+    warmTopEpisodeSources(episode, 1);
+    return Promise.resolve(getSelectedEpisodeSource(episode));
+  }
+  if (episode._playbackIntentWarmPromise) return episode._playbackIntentWarmPromise;
+
+  const warm = Promise.resolve()
+    .then(async () => {
+      const hasPrimary = getEpisodePlaybackSources(episode).some(isAnimeAv1Source);
+      if (!hasPrimary && isScraperEnabled("animeav1")) {
+        await attachAnimeAv1Sources(show, episode);
+      }
+      warmTopEpisodeSources(episode, 1);
+      return prepareReliablePlaybackSource(show, episode, {
+        primaryOnly: true,
+        timeoutMs: Math.max(900, Number(options.timeoutMs) || RELIABLE_PLAYBACK_PRIMARY_PROBE_MS),
+        prefetchSegment: Boolean(options.prefetchSegment)
+      });
+    })
+    .catch(() => null)
+    .finally(() => {
+      episode._playbackIntentWarmPromise = null;
+    });
+  episode._playbackIntentWarmPromise = warm;
+  return warm;
 }
 
 function setupAdjacentEpisodeWarmup(player, show, episode, playbackContext) {
   if (!player || !show || !episode || !playbackContext) return;
   let metadataPromise = null;
-  let verificationStarted = false;
+  let primaryVerificationStarted = false;
+  let fallbackVerificationStarted = false;
 
   const adjacentTarget = () => {
     if (!isPlaybackAttemptCurrent(playbackContext, show, episode)) return null;
@@ -19315,24 +19435,17 @@ function setupAdjacentEpisodeWarmup(player, show, episode, playbackContext) {
     if (metadataPromise) return metadataPromise;
     const target = adjacentTarget();
     if (!target) return Promise.resolve(null);
-    const { seasonNumber } = selectedSeasonIdentity(
-      show,
-      {
-        season: target.season,
-        episode: target.episode,
-        seasonIndex: target.seasonIndex,
-        episodeIndex: target.episodeIndex
-      },
-      target.seasonIndex
-    );
-    metadataPromise = schedulePlaybackSourceOptions(show, target.episode, seasonNumber, {
-      backgroundWarmup: true
-    }).catch(() => null);
+    const isAdultShow = typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show);
+    metadataPromise = isAdultShow
+      ? Promise.resolve(target.episode)
+      : Promise.resolve(attachAnimeAv1Sources(show, target.episode))
+          .then(() => target.episode)
+          .catch(() => null);
     return metadataPromise;
   };
 
-  const verifyNearTransition = () => {
-    if (verificationStarted) return;
+  const verifyPrimary = () => {
+    if (primaryVerificationStarted) return;
     const target = adjacentTarget();
     if (!target) return;
     const targetKey = playbackSelectionKey(show, {
@@ -19341,7 +19454,7 @@ function setupAdjacentEpisodeWarmup(player, show, episode, playbackContext) {
       seasonIndex: target.seasonIndex,
       episodeIndex: target.episodeIndex
     });
-    verificationStarted = true;
+    primaryVerificationStarted = true;
     Promise.resolve(warmMetadata())
       .then(() => {
         const currentTarget = adjacentTarget();
@@ -19354,20 +19467,52 @@ function setupAdjacentEpisodeWarmup(player, show, episode, playbackContext) {
             })
           : "";
         if (!currentTarget || currentTargetKey !== targetKey) return null;
-        return prepareReliablePlaybackSource(show, target.episode, { timeoutMs: 2800 });
+        const { seasonNumber } = selectedSeasonIdentity(
+          show,
+          {
+            season: target.season,
+            episode: target.episode,
+            seasonIndex: target.seasonIndex,
+            episodeIndex: target.episodeIndex
+          },
+          target.seasonIndex
+        );
+        return warmEpisodePlaybackIntent(show, target.episode, seasonNumber, {
+          timeoutMs: 8000,
+          prefetchSegment: true
+        }).then((source) => {
+          if (!source) verifyNearTransition();
+          return source;
+        });
       })
+      .catch(() => null);
+  };
+
+  const verifyNearTransition = () => {
+    verifyPrimary();
+    if (fallbackVerificationStarted) return;
+    const target = adjacentTarget();
+    if (!target) return;
+    fallbackVerificationStarted = true;
+    Promise.resolve(warmMetadata())
+      .then(() => prepareReliablePlaybackSource(show, target.episode, { timeoutMs: 4500 }))
       .catch(() => null);
   };
 
   player.addEventListener("canplay", () => {
     window.setTimeout(() => {
-      if (isPlaybackAttemptCurrent(playbackContext, show, episode)) warmMetadata();
-    }, 500);
+      if (!isPlaybackAttemptCurrent(playbackContext, show, episode)) return;
+      warmMetadata();
+      const bufferedAhead = Math.max(0, Number(player.bufferedEnd || 0) - Number(player.currentTime || 0));
+      if (bufferedAhead >= 8) verifyPrimary();
+    }, 350);
   }, { once: true });
 
   player.addEventListener("timeupdate", () => {
     const duration = Number(player.duration || 0);
     const position = Number(player.currentTime || 0);
+    const bufferedAhead = Math.max(0, Number(player.bufferedEnd || 0) - position);
+    if (position >= 3 || bufferedAhead >= 12) verifyPrimary();
     if (duration > 0 && position > 0 && (duration - position <= 120 || position / duration >= 0.85)) {
       verifyNearTransition();
     }
@@ -22037,7 +22182,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=885");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=894");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

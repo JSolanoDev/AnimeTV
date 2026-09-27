@@ -2428,10 +2428,19 @@
       lowLatencyMode: false,
       startFragPrefetch: true,
       backBufferLength: 60,
-      maxBufferLength: 60,
-      maxMaxBufferLength: 120,
+      // Keep a larger forward cushion for inconsistent third-party VOD hosts,
+      // while conservative ABR prevents a brief bandwidth spike from selecting
+      // a rendition the connection cannot sustain.
+      maxBufferLength: 90,
+      maxMaxBufferLength: 180,
+      maxBufferSize: 96 * 1000 * 1000,
       maxBufferHole: 0.5,
       capLevelToPlayerSize: false,
+      abrBandWidthFactor: 0.75,
+      abrBandWidthUpFactor: 0.5,
+      abrEwmaDefaultEstimate: 500000,
+      maxStarvationDelay: 2,
+      maxLoadingDelay: 2,
       manifestLoadingTimeOut: HLS_MANIFEST_LOADING_TIMEOUT_MS,
       // A failed manifest cannot play anything. Start the automatic fallback
       // promptly instead of spending four Function calls on the same dead URL.
