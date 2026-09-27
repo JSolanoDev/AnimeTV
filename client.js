@@ -4567,7 +4567,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=882";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=883";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -7910,16 +7910,18 @@ const SOURCE_EAGER_FALLBACK_DELAY_MS = 450;
 function isDirectMediaResolverCandidate(source = {}) {
   const externalUrl = String(source.externalUrl || "").trim().toLowerCase();
   return source.type === "iframe"
-    && /^https?:\/\/(?:www\.)?voe\.[a-z]{2,}(?::\d+)?(?:\/|$)/i.test(externalUrl);
+    && (
+      /^https?:\/\/(?:www\.)?voe\.[a-z]{2,}(?::\d+)?(?:\/|$)/i.test(externalUrl)
+      || /^https?:\/\/(?:www\.)?streamtape\.com\/e\//i.test(externalUrl)
+    );
 }
 
 function isFastPreferredPlaybackSource(source = {}) {
   const directUrl = source.videoUrl || source.streamUrl || source.file || source.playUrl || "";
   const identity = `${source.id || ""} ${source.label || ""} ${source.provider || ""} ${source.externalUrl || ""} ${directUrl}`.toLowerCase();
-  // A freshly resolved VOE URL is signed HLS and has proven substantially more
-  // consistent than the playlist-only UPN mirror. Keep progressive hosts and
-  // UPN in the verified fallback ladder instead of letting a quick header or
-  // master manifest make them the first player the viewer sees.
+  // VOE and Streamtape expose media through the resolver without mounting their
+  // ad pages. Streamtape still has to sustain the progressive byte probe before
+  // selection; other progressive hosts and UPN remain in the fallback ladder.
   if (isDirectMediaResolverCandidate(source)) return true;
   if (/(?:upnshare|animeav1\.uns\.bio|mp4upload|streamwish|sfastwish|streamtape|yourupload|youupload)/.test(identity)) return false;
   if (source.type === "direct" && directUrl) return true;
@@ -18555,8 +18557,8 @@ function isAdFreeFallbackCandidate(source = {}) {
   const hasResolver = Boolean(source.streamResolver?.endpoint || source.type === "resolver");
   const hasEmbed = Boolean(source.externalUrl && source.type === "iframe");
   if (!directUrl && !hasResolver && !hasEmbed) return false;
-  // VOE's page is ad-walled, but /api/resolve extracts a direct H.264/AAC HLS
-  // stream. Admit only that verified media path; the iframe is never mounted.
+  // VOE and Streamtape pages are never mounted. /api/resolve extracts their
+  // direct media, which still has to pass the health policy below.
   if (isDirectMediaResolverCandidate(source)) return true;
   if (directUrl) return source.adWalled !== true;
   const providerRank = embedProviderRank(fallbackSourceIdentity(source));
@@ -18572,13 +18574,14 @@ function verifiedFallbackPreference(source = {}) {
   // while its media fragments are already 404/502, and large progressive files
   // can answer a small range before falling behind playback.
   if (identity.includes("voe")) preference = 0;
-  else if (source.type === "direct" && streamTypeFromUrl(sourceDirectUrl(source)) === "hls") preference = 1;
-  else if (identity.includes("upnshare") || identity.includes("animeav1.uns.bio")) preference = 2;
-  else if (identity.includes("streamwish") || identity.includes("sfastwish")) preference = 3;
-  else if (identity.includes("yourupload") || identity.includes("youupload")) preference = 4;
-  else if (identity.includes("mp4upload")) preference = 5;
-  else if (source.type === "direct" && sourceDirectUrl(source)) preference = 6;
-  else if (identity.includes("okru") || identity.includes("ok.ru")) preference = 7;
+  else if (identity.includes("streamtape")) preference = 1;
+  else if (source.type === "direct" && streamTypeFromUrl(sourceDirectUrl(source)) === "hls") preference = 2;
+  else if (identity.includes("upnshare") || identity.includes("animeav1.uns.bio")) preference = 3;
+  else if (identity.includes("streamwish") || identity.includes("sfastwish")) preference = 4;
+  else if (identity.includes("yourupload") || identity.includes("youupload")) preference = 5;
+  else if (identity.includes("mp4upload")) preference = 6;
+  else if (source.type === "direct" && sourceDirectUrl(source)) preference = 7;
+  else if (identity.includes("okru") || identity.includes("ok.ru")) preference = 8;
   return preference + playbackFamilyHealthAdjustment(source);
 }
 
@@ -18796,7 +18799,7 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
   if (!target) return false;
   const startedAt = Date.now();
   const originalUrl = originalStreamUrlFromProxy(url);
-  const requiresSustainedProbe = /(?:mp4upload|yourupload|youupload)/i.test(originalUrl);
+  const requiresSustainedProbe = /(?:mp4upload|yourupload|youupload|streamtape)/i.test(originalUrl);
   const rangeEnd = requiresSustainedProbe ? (128 * 1024) - 1 : (64 * 1024) - 1;
   let reader = null;
   try {
@@ -22010,7 +22013,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=882");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=883");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

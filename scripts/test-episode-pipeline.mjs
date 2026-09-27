@@ -814,7 +814,7 @@ test("7f5. signed VOE HLS starts promptly while progressive mirrors prove bytes"
   assert.match(inspection, /!isLocalPlaybackRelay\(\)\s*&&\s*isIpBoundCloudwindowStream\(resolved\.url\)/);
   assert.doesNotMatch(clientSource, /trustedProvider\s*&&\s*playbackFamilyHealth\(source\)\s*===\s*true/);
   assert.match(inspection, /manifestOnly:\s*false/);
-  assert.match(clientSource, /requiresSustainedProbe\s*=\s*\/\(\?:mp4upload\|yourupload\|youupload\)/);
+  assert.match(clientSource, /requiresSustainedProbe\s*=\s*\/\(\?:mp4upload\|yourupload\|youupload\|streamtape\)/);
   assert.match(clientSource, /rangeEnd\s*=\s*requiresSustainedProbe\s*\?\s*\(128\s*\*\s*1024\)/);
   assert.match(clientSource, /reader\.read\(\)/);
   assert.match(clientSource, /minimumBytes\s*=\s*requiresSustainedProbe\s*\?\s*128\s*\*\s*1024\s*:\s*32\s*\*\s*1024/);
@@ -1183,7 +1183,7 @@ test("11f. recovery offers exactly one verified source", () => {
   assert.deepEqual(Array.from(sandbox.getSourcePickerPlaybackSources(episode), (source) => source.id), ["verified"]);
 });
 
-test("11g. fallback verification admits VOE only through direct media resolution", () => {
+test("11g. fallback verification admits ad-walled hosts only through direct media resolution", () => {
   const sandbox = vm.createContext({
     sourceDirectUrl: (source) => source.videoUrl || "",
     embedProviderRank: (identity) => {
@@ -1199,6 +1199,7 @@ test("11g. fallback verification admits VOE only through direct media resolution
   );
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "YourUpload", externalUrl: "https://yourupload.test/embed" }), true);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Voe", externalUrl: "https://voe.sx/e/working", adWalled: true }), true);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Streamtape", externalUrl: "https://streamtape.com/e/working/video.mp4" }), true);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Voe", externalUrl: "https://unknown.test/embed", adWalled: true }), false);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Unknown", externalUrl: "https://unknown.test/embed" }), false);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "direct", videoUrl: "https://video.test/episode.mp4" }), true);
