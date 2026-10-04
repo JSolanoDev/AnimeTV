@@ -1,7 +1,9 @@
 id,title,type,status,year,season,genre,rating,totalEpisodes,source,siteUrl
-animeav1-one-piece,One Piece,TV,,1999,,action,87,1179,AnimeAV1,https://animeav1.com/media/one-piece
+animeav1-one-piece,One Piece,TV,,1999,,action,87,1180,AnimeAV1,https://animeav1.com/media/one-piece
 animeav1-sousou-no-frieren-2nd-season,Sousou no Frieren 2nd Season,TV,,2026,,anime,89,10,AnimeAV1,https://animeav1.com/media/sousou-no-frieren-2nd-season
-animeav1-seitokai-ni-mo-ana-wa-aru,Seitokai ni mo Ana wa Aru!,TV,,,,anime,,,AnimeAV1,https://animeav1.com/media/seitokai-ni-mo-ana-wa-aru
+animeav1-ao-ashi-season-2,Ao Ashi Season 2,TV,,,,anime,,,AnimeAV1,https://animeav1.com/media/ao-ashi-season-2
+animeav1-ao-no-hako-season-2,Ao no Hako Season 2,TV,,,,anime,,,AnimeAV1,https://animeav1.com/media/ao-no-hako-season-2
+animeav1-seitokai-ni-mo-ana-wa-aru,Seitokai ni mo Ana wa Aru!,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/seitokai-ni-mo-ana-wa-aru
 animeav1-gensou-suikoden,Gensou Suikoden,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/gensou-suikoden
 animeav1-kashita-maryoku-wa-revo-barai-de-kyousei-choushuu,"Kashita Maryoku wa ""Revo Barai"" de Kyousei Choushuu",TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/kashita-maryoku-wa-revo-barai-de-kyousei-choushuu
 animeav1-marronnier-oukoku-no-shichinin-no-kishi,Marronnier Oukoku no Shichinin no Kishi,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/marronnier-oukoku-no-shichinin-no-kishi
@@ -19,8 +21,6 @@ animeav1-tokyo-revengers-santen-sensou-hen,Tokyo Revengers: Santen Sensou-hen,TV
 animeav1-koori-no-jouheki-2nd-season,Koori no Jouheki 2nd Season,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/koori-no-jouheki-2nd-season
 animeav1-fx-senshi-kurumi-chan,FX Senshi Kurumi-chan,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/fx-senshi-kurumi-chan
 animeav1-shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen,Shin Tennis no Oujisama: U-17 World Cup Kesshou Member Ketteisen,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen
-animeav1-tensei-shitara-ken-deshita-ii,Tensei shitara Ken deshita II,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/tensei-shitara-ken-deshita-ii
-animeav1-mononoke-movie-3-hebigami,Mononoke Movie 3: Hebigami,MOVIE,,2026,,anime,72,1,AnimeAV1,https://animeav1.com/media/mononoke-movie-3-hebigami
 animeav1-kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu,"""Kimi wo Aisuru Ki wa Nai"" to Itta Jiki Koushaku-sama ga Nazeka Dekiai shitekimasu",TV,,2026,,anime,68,12,AnimeAV1,https://animeav1.com/media/kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu
 animeav1-oshi-no-ko-3rd-season,[Oshi no Ko] 3rd Season,TV,,2026,,anime,87,11,AnimeAV1,https://animeav1.com/media/oshi-no-ko-3rd-season
 animeav1-omae-gotoki-ga-maou-ni-kateru-to-omouna-to-yuusha-party-wo-tsuihou-sareta-node-outo-de-kimama-ni-kurashitai,"""Omae Gotoki ga Maou ni Kateru to Omouna"" to Yuusha Party wo Tsuihou sareta node, Outo de Kimama ni Kurashitai",TV,,2026,,anime,62,12,AnimeAV1,https://animeav1.com/media/omae-gotoki-ga-maou-ni-kateru-to-omouna-to-yuusha-party-wo-tsuihou-sareta-node-outo-de-kimama-ni-kurashitai
@@ -1476,7 +1476,7 @@ animeav1-himekishi-wa-barbaroi-no-yome,Himekishi wa Barbaroi no Yome,TV,,2026,,a
 animeav1-hidarikiki-no-eren,Hidarikiki no Eren,TV,,2026,,anime,63,13,AnimeAV1,https://animeav1.com/media/hidarikiki-no-eren
 animeav1-hyakki-yakoushou,Hyakki Yakoushou,TV,,2026,,anime,54,12,AnimeAV1,https://animeav1.com/media/hyakki-yakoushou
 animeav1-higeki-no-genkyou-to-naru-saikyou-gedou-last-boss-joou-wa-tami-no-tame-ni-tsukushimasu-season-2,Higeki no Genkyou to Naru Saikyou Gedou Last Boss Joou wa Tami no Tame ni Tsukushimasu. Season 2,TV,,2026,,anime,69,12,AnimeAV1,https://animeav1.com/media/higeki-no-genkyou-to-naru-saikyou-gedou-last-boss-joou-wa-tami-no-tame-ni-tsukushimasu-season-2
-animeav1-honzuki-no-gekokujou-shisho-ni-naru-tame-ni-wa-shudan-wo-erandeiraremasen-ryoushu-no-youjo,Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen - Ryoushu no Youjo,TV,,2026,,anime,78,23,AnimeAV1,https://animeav1.com/media/honzuki-no-gekokujou-shisho-ni-naru-tame-ni-wa-shudan-wo-erandeiraremasen-ryoushu-no-youjo
+animeav1-honzuki-no-gekokujou-shisho-ni-naru-tame-ni-wa-shudan-wo-erandeiraremasen-ryoushu-no-youjo,Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen - Ryoushu no Youjo,TV,,2026,,anime,78,24,AnimeAV1,https://animeav1.com/media/honzuki-no-gekokujou-shisho-ni-naru-tame-ni-wa-shudan-wo-erandeiraremasen-ryoushu-no-youjo
 animeav1-haibara-kun-no-tsuyokute-seishun-new-game,Haibara-kun no Tsuyokute Seishun New Game,TV,,2026,,anime,66,12,AnimeAV1,https://animeav1.com/media/haibara-kun-no-tsuyokute-seishun-new-game
 animeav1-himesama-goumon-no-jikan-desu-2nd-season,"Himesama ""Goumon"" no Jikan desu 2nd Season",TV,,2026,,anime,77,12,AnimeAV1,https://animeav1.com/media/himesama-goumon-no-jikan-desu-2nd-season
 animeav1-hikuidori-ushuu-boro-tobi-gumi,Hikuidori: Ushuu Boro Tobi-gumi,TV,,2026,,anime,55,12,AnimeAV1,https://animeav1.com/media/hikuidori-ushuu-boro-tobi-gumi
@@ -2780,6 +2780,7 @@ animeav1-maison-ikkoku,Maison Ikkoku,TV,,1986,,anime,82,96,AnimeAV1,https://anim
 animeav1-macross-do-you-remember-love,Macross: Do You Remember Love?,Movie,,1984,,anime,80,1,AnimeAV1,https://animeav1.com/media/macross-do-you-remember-love
 animeav1-macross,Macross,TV,,1982,,anime,79,36,AnimeAV1,https://animeav1.com/media/macross
 animeav1-mazinger-z,Mazinger Z,TV,,1972,,anime,73,92,AnimeAV1,https://animeav1.com/media/mazinger-z
+animeav1-mononoke-movie-3-hebigami,Mononoke Movie 3: Hebigami,MOVIE,,2026,,anime,72,1,AnimeAV1,https://animeav1.com/media/mononoke-movie-3-hebigami
 animeav1-nige-jouzu-no-wakagimi-2nd-season,Nige Jouzu no Wakagimi 2nd Season,TV,,2026,,anime,76,12,AnimeAV1,https://animeav1.com/media/nige-jouzu-no-wakagimi-2nd-season
 animeav1-nijusseiki-denki-mokuroku-eureka-evrika,Nijusseiki Denki Mokuroku: Eureka Evrika,TV,,2026,,anime,76,13,AnimeAV1,https://animeav1.com/media/nijusseiki-denki-mokuroku-eureka-evrika
 animeav1-neko-to-ryuu,Neko to Ryuu,TV,,2026,,anime,77,12,AnimeAV1,https://animeav1.com/media/neko-to-ryuu
@@ -4109,6 +4110,7 @@ animeav1-touch,Touch,TV,,1985,,anime,80,101,AnimeAV1,https://animeav1.com/media/
 animeav1-terra-e,Terra e...,Movie,,1980,,anime,65,1,AnimeAV1,https://animeav1.com/media/terra-e
 animeav1-tempal-item-no-chikara,Tempal: Item no Chikara,TV,RELEASING,2026,,anime,72,1,AnimeAV1,https://animeav1.com/media/tempal-item-no-chikara
 animeav1-tensei-kizoku-kantei-skill-de-nariagaru-3rd-season,"Tensei Kizoku, Kantei Skill de Nariagaru 3rd Season",TV,RELEASING,2026,,anime,69,1,AnimeAV1,https://animeav1.com/media/tensei-kizoku-kantei-skill-de-nariagaru-3rd-season
+animeav1-tensei-shitara-ken-deshita-ii,Tensei shitara Ken deshita II,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/tensei-shitara-ken-deshita-ii
 animeav1-uchi-no-otouto-domo-ga-sumimasen,Uchi no Otouto-domo ga Sumimasen,TV,,2026,,anime,70,13,AnimeAV1,https://animeav1.com/media/uchi-no-otouto-domo-ga-sumimasen
 animeav1-uruwashi-no-yoi-no-tsuki,Uruwashi no Yoi no Tsuki,TV,,2026,,anime,75,12,AnimeAV1,https://animeav1.com/media/uruwashi-no-yoi-no-tsuki
 animeav1-undead-unluck-winter-hen,Undead Unluck: Winter-hen,ESPECIAL,,2025,,anime,76,1,AnimeAV1,https://animeav1.com/media/undead-unluck-winter-hen
