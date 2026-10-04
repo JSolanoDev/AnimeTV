@@ -1052,7 +1052,7 @@ test("one hundred identical catalog requests share one cold build", async () => 
     sendJson: (response, body, status = 200, headers = {}) => Object.assign(response, { body, status, headers }),
     log() {}
   });
-  vm.runInContext(section(server, "async function handleCatalog(", "async function handleSourceProxy("), c);
+  vm.runInContext(section(server, "const catalogGzipCache =", "async function handleSourceProxy("), c);
 
   const responses = Array.from({ length: 100 }, () => ({}));
   const requests = responses.map((response) => c.handleCatalog(response));

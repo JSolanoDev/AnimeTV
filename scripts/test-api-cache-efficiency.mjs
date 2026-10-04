@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
+import { gzip, gunzipSync } from "node:zlib";
 
 const server = readFileSync(new URL("../animetv-server.js", import.meta.url), "utf8");
 const client = readFileSync(new URL("../client.js", import.meta.url), "utf8");
@@ -491,4 +492,212 @@ test("different image transforms stay isolated and blocked hosts never reach the
   await h.context.handleImageProxy(new URL("https://app.test/api/image?src=http%3A%2F%2F127.0.0.1%2Fsecret"), blocked);
   assert.equal(blocked.status, 403);
   assert.equal(h.calls.length, 2);
+});
+
+function playbackCooldownHarness(extra = {}) {
+  let now = 1000000;
+  const context = vm.createContext({
+    Date: class extends Date { static now() { return now; } },
+    Map, URL, Response, Promise,
+    ...extra
+  });
+  vm.runInContext(section(server, "function coalesceInflight(", "async function fetchAniListJson("), context);
+  return { context, advance: ms => { now += ms; } };
+}
+
+test("source-provider cooldowns honor Retry-After without extending on cache hits", () => {
+  const h = playbackCooldownHarness();
+  const limited = h.context.upstreamHttpError("fixture", new Response("limited", {
+    status: 429, headers: { "retry-after": "120" }
+  }));
+  assert.equal(h.context.recordPlaybackProviderFailure("animeneon", limited), 120000);
+  h.advance(10000);
+  const cooldown = h.context.playbackProviderCooldownError("animeneon");
+  assert.equal(cooldown.status, 429);
+  assert.equal(h.context.recordPlaybackProviderFailure("animeneon", cooldown), 110000);
+  h.advance(110000);
+  assert.equal(h.context.playbackProviderCooldownError("animeneon"), null);
+  assert.equal(h.context.recordPlaybackProviderFailure("jkanime", { status: 404 }), 0);
+  assert.equal(h.context.playbackProviderCooldownError("jkanime"), null);
+});
+
+test("AnimeNeon blocking stops search and episode requests across titles until recovery", async () => {
+  let calls = 0;
+  let blocked = true;
+  const h = playbackCooldownHarness({
+    animeNeonSearchCache: new Map(), animeNeonSearchInflight: new Map(),
+    animeNeonSourceCache: new Map(), animeNeonSourceInflight: new Map(),
+    ANIMENEON_SEARCH_CACHE_TTL_MS: 60000, ANIMENEON_SEARCH_MISS_TTL_MS: 1000,
+    ANIMENEON_SOURCE_CACHE_TTL_MS: 60000, ANIMENEON_SOURCE_MISS_TTL_MS: 1000,
+    ANIMENEON_BASE: "https://provider.test", ANIMENEON_HEADERS: {}, HOSTED_RUNTIME: true,
+    normalizeTitle: value => String(value).toLowerCase(),
+    setAnimeNeonCache: (map, key, value) => map.set(key, value),
+    animeNeonDataNode: value => value,
+    fetchWithTimeout: async () => {
+      calls++;
+      return blocked
+        ? new Response("blocked", { status: 403 })
+        : new Response(JSON.stringify({ animes: [{ title: "Fixture" }] }));
+    }
+  });
+  vm.runInContext(section(server, "async function fetchAnimeNeonSearch(", "function animeNeonMultiserverEntries("), h.context);
+  vm.runInContext(section(server, "async function fetchAnimeNeonEpisode(", "async function handleAnimeNeonHealth("), h.context);
+  await assert.rejects(h.context.fetchAnimeNeonSearch("Fixture", "Sub"), { status: 403 });
+  await assert.rejects(h.context.fetchAnimeNeonSearch("Another title", "Lat", true), { status: 403 });
+  await assert.rejects(h.context.fetchAnimeNeonEpisode({ slug: "fixture", nanoid: "id" }, 2, true), { status: 403 });
+  assert.equal(calls, 1);
+  blocked = false;
+  h.advance(60000);
+  assert.equal((await h.context.fetchAnimeNeonSearch("Fixture", "Sub"))[0].title, "Fixture");
+  assert.equal(calls, 2);
+});
+
+test("AnimeNeon episode blocking is not cached as a missing episode", async () => {
+  const h = playbackCooldownHarness({
+    animeNeonSourceCache: new Map(), animeNeonSourceInflight: new Map(),
+    ANIMENEON_SOURCE_CACHE_TTL_MS: 60000, ANIMENEON_SOURCE_MISS_TTL_MS: 1000,
+    ANIMENEON_BASE: "https://provider.test", ANIMENEON_HEADERS: {}, HOSTED_RUNTIME: true,
+    setAnimeNeonCache: (map, key, value) => map.set(key, value),
+    fetchWithTimeout: async () => new Response("blocked", { status: 403 })
+  });
+  vm.runInContext(section(server, "async function fetchAnimeNeonEpisode(", "async function handleAnimeNeonHealth("), h.context);
+  await assert.rejects(h.context.fetchAnimeNeonEpisode({ slug: "fixture", nanoid: "id" }, 2), { status: 403 });
+  assert.equal(h.context.animeNeonSourceCache.size, 0);
+});
+
+test("JKAnime outages preserve errors and suppress redundant upstream calls", async () => {
+  let calls = 0;
+  let blocked = true;
+  const h = playbackCooldownHarness({
+    jkAnimeSourceCache: new Map(), jkAnimeSourceInflight: new Map(),
+    JKANIME_CACHE_TTL_MS: 60000, JKANIME_MISS_CACHE_TTL_MS: 1000,
+    REGULAR_SOURCE_SUCCESS_CACHE_HEADERS: { "Cache-Control": "public" },
+    REGULAR_SOURCE_MISS_CACHE_HEADERS: { "Cache-Control": "public" },
+    SOURCE_REFRESH_CACHE_HEADERS: { "Cache-Control": "private, no-store" },
+    cleanJKAnimeSlug: value => value,
+    sendJson: (response, body, status, headers) => Object.assign(response, { body, status, headers }),
+    fetchJKAnimeEpisodeSourcesDirect: async () => {
+      calls++;
+      if (blocked) throw Object.assign(new Error("JKAnime episode HTTP 403"), { status: 403 });
+      return { ok: true, sources: [{ url: "https://media.test/fixture.mp4" }] };
+    }
+  });
+  vm.runInContext(section(server, "async function handleJKAnimeSources(", "async function fetchJKAnimeEpisodeSourcesDirect("), h.context);
+  const responses = [{}, {}];
+  await h.context.handleJKAnimeSources(new URL("https://app.test/api/jkanime/sources?slug=fixture&episode=1"), responses[0]);
+  await h.context.handleJKAnimeSources(new URL("https://app.test/api/jkanime/sources?slug=fixture&episode=2&refresh=1"), responses[1]);
+  assert.equal(calls, 1);
+  assert.equal(responses.every(response => response.status === 503 && response.body.upstreamStatus === 403), true);
+  assert.equal(responses[0].headers["Retry-After"], "60");
+  assert.match(responses[0].headers["Cache-Control"], /no-store/);
+  blocked = false;
+  h.advance(60000);
+  const recovered = {};
+  await h.context.handleJKAnimeSources(new URL("https://app.test/api/jkanime/sources?slug=fixture&episode=2"), recovered);
+  assert.equal(calls, 2);
+  assert.equal(recovered.status, 200);
+});
+
+function clientPlaybackCooldownHarness(fetchImpl) {
+  let now = 1000000;
+  const calls = [];
+  const context = vm.createContext({
+    Date: class extends Date { static now() { return now; } },
+    URL, Map, Promise, Response,
+    location: { origin: "https://app.test" },
+    _animeNeonEpisodeSourceCache: new Map(), _animeNeonEpisodeSourceInflight: new Map(),
+    ANIMENEON_CLIENT_CACHE_TTL_MS: 600000, ANIMENEON_CLIENT_MISS_TTL_MS: 60000,
+    ANIMENEON_SOURCE_TIMEOUT_MS: 8500, JKANIME_SOURCE_TIMEOUT_MS: 6500,
+    _jkAnimeEpisodeSourceCache: new Map(), _jkAnimeEpisodeSourceInflight: new Map(),
+    preferredWatchLanguageForEpisode: () => "sub",
+    getCanonicalEpisodeNumber: episode => episode.number,
+    animeNeonSearchCandidates: show => [show.title], normalizeTitle: value => value.toLowerCase(),
+    readEpisodeSourcePayloadCache: (map, key) => map.get(key) || null,
+    writeEpisodeSourcePayloadCache: (map, key, value) => { map.set(key, value); return value; },
+    fetchWithTimeout: async (...args) => { calls.push(args); return fetchImpl(...args); }
+  });
+  vm.runInContext(section(client, "const playbackProviderRetryAt =", "function animeNeonSearchCandidates("), context);
+  vm.runInContext(section(client, "function animeNeonEpisodeSourceCacheKey(", "async function attachAnimeNeonSources("), context);
+  vm.runInContext(section(client, "function fetchJKAnimeEpisodeSourcePayload(", "async function attachJKAnimeSources("), context);
+  return { context, calls, advance: ms => { now += ms; } };
+}
+
+test("episode changes during an outage avoid additional Vercel source requests", async () => {
+  let blocked = true;
+  const h = clientPlaybackCooldownHarness(() => blocked
+    ? new Response("outage", { status: 502, headers: { "retry-after": "60" } })
+    : new Response(JSON.stringify({ ok: true, sources: [{ url: "https://media.test/fixture.mp4" }] })));
+  await assert.rejects(h.context.fetchAnimeNeonEpisodeSources({ title: "Fixture" }, { number: 1 }));
+  for (let number = 2; number <= 100; number++) {
+    assert.equal(await h.context.fetchAnimeNeonEpisodeSources({ title: "Fixture" }, { number }, { forceRefresh: true }), null);
+  }
+  assert.equal(h.calls.length, 1);
+  blocked = false;
+  h.advance(60000);
+  assert.equal((await h.context.fetchAnimeNeonEpisodeSources({ title: "Fixture" }, { number: 2 })).ok, true);
+  assert.equal(h.calls.length, 2);
+});
+
+test("JKAnime cooldown retains cached success, isolates 404s, and expires", async () => {
+  let status = 404;
+  const h = clientPlaybackCooldownHarness(() => new Response("failed", {
+    status, headers: { "retry-after": "30" }
+  }));
+  await h.context.fetchJKAnimeEpisodeSourcePayload("fixture", 1);
+  assert.equal(h.context.playbackProviderIsCoolingDown("jkanime"), false);
+  status = 503;
+  await h.context.fetchJKAnimeEpisodeSourcePayload("fixture", 2);
+  const good = { ok: true, sources: [{ url: "https://media.test/fixture.mp4" }] };
+  h.context._jkAnimeEpisodeSourceCache.set("fixture:3", good);
+  assert.equal(await h.context.fetchJKAnimeEpisodeSourcePayload("fixture", 3, { forceRefresh: true }), good);
+  await h.context.fetchJKAnimeEpisodeSourcePayload("fixture", 4, { forceRefresh: true });
+  assert.equal(h.calls.length, 2);
+  h.advance(30000);
+  await h.context.fetchJKAnimeEpisodeSourcePayload("fixture", 4);
+  assert.equal(h.calls.length, 3);
+});
+
+test("client source cooldown understands HTTP-date Retry-After", () => {
+  const h = clientPlaybackCooldownHarness(() => null);
+  const date = new Date(1120000).toUTCString();
+  h.context.deferPlaybackProviderOnFailure("animeneon", new Response("limited", {
+    status: 429, headers: { "retry-after": date }
+  }));
+  h.advance(119999);
+  assert.equal(h.context.playbackProviderIsCoolingDown("animeneon"), true);
+  h.advance(1);
+  assert.equal(h.context.playbackProviderIsCoolingDown("animeneon"), false);
+});
+
+test("catalog gzip is negotiated, coalesced, and preserves every JSON field", async () => {
+  let compressions = 0;
+  const payload = { ok: true, items: [{ title: "Fixture", sourceEpisodeIds: [1, 2], franchiseSeasons: [{ title: "Season 2" }] }] };
+  const context = vm.createContext({
+    Buffer, Map, WeakMap, Promise,
+    SECURITY_HEADERS: {}, corsHeaders: () => ({}),
+    CATALOG_RESPONSE_CACHE_HEADERS: { "Cache-Control": "public, s-maxage=600", Vary: "Accept-Encoding" },
+    catalogResponseCache: { payload },
+    gzip: (...args) => { compressions++; gzip(...args); }
+  });
+  vm.runInContext(section(server, "const catalogGzipCache =", "async function handleCatalog("), context);
+  vm.runInContext(section(server, "function sendJson(", "function sendCorsPreflight("), context);
+  const request = { headers: { "accept-encoding": "br, gzip, deflate" } };
+  const responses = Array.from({ length: 100 }, imageResponse);
+  await Promise.all(responses.map(response => context.sendCatalogJson(response, payload, request)));
+  assert.equal(compressions, 1);
+  for (const response of responses) {
+    assert.equal(response.headers["Content-Encoding"], "gzip");
+    assert.equal(Number(response.headers["Content-Length"]), response.body.length);
+    assert.deepEqual(JSON.parse(gunzipSync(response.body)), payload);
+  }
+  const cached = imageResponse();
+  await context.sendCatalogJson(cached, { ...payload, cached: true }, request);
+  assert.equal(compressions, 2);
+  assert.equal(JSON.parse(gunzipSync(cached.body)).cached, true);
+  const plain = imageResponse();
+  await context.sendCatalogJson(plain, payload, { headers: { "accept-encoding": "gzip;q=0, *;q=1" } });
+  assert.equal(plain.headers["Content-Encoding"], undefined);
+  assert.deepEqual(JSON.parse(plain.body), payload);
+  assert.equal(context.acceptsCatalogGzip({ headers: { "accept-encoding": "*;q=0" } }), false);
+  assert.equal(context.acceptsCatalogGzip({ headers: { "accept-encoding": "gzip;q=0.5" } }), true);
 });

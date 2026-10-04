@@ -7,6 +7,7 @@ const path = require("path");
 const vm = require("vm");
 const { spawn } = require("child_process");
 const { Readable } = require("stream");
+const { gzip } = require("zlib");
 let sharp = null;
 try {
   sharp = require("sharp");
@@ -365,6 +366,33 @@ function upstreamHttpError(provider, response, fallbackRetryMs = 0) {
     fallbackRetryMs
   );
   return error;
+}
+
+const playbackProviderCooldowns = new Map();
+
+function playbackProviderCooldownError(provider) {
+  const cooldown = playbackProviderCooldowns.get(provider);
+  if (!cooldown) return null;
+  const retryAfterMs = cooldown.retryAt - Date.now();
+  if (retryAfterMs <= 0) {
+    playbackProviderCooldowns.delete(provider);
+    return null;
+  }
+  const error = new Error(`${provider} upstream cooldown after HTTP ${cooldown.status}`);
+  error.status = cooldown.status;
+  error.retryAfterMs = retryAfterMs;
+  error.providerCooldown = true;
+  return error;
+}
+
+function recordPlaybackProviderFailure(provider, error) {
+  if (error?.providerCooldown) return Math.max(0, Number(error.retryAfterMs) || 0);
+  const status = Number(error?.status) || 503;
+  if (status !== 403 && status !== 429 && status < 500) return 0;
+  const delayMs = Math.max(Number(error?.retryAfterMs) || 0, status === 403 || status === 429 ? 60000 : 15000);
+  const retryAt = Math.max(Date.now() + delayMs, playbackProviderCooldowns.get(provider)?.retryAt || 0);
+  playbackProviderCooldowns.set(provider, { status, retryAt });
+  return retryAt - Date.now();
 }
 
 async function fetchAniListJson(query, variables, timeout = 14000) {
@@ -897,7 +925,7 @@ function handleRequest(request, response) {
   }
 
   if (url.pathname === "/api/catalog") {
-    handleCatalog(response);
+    handleCatalog(response, request);
     return;
   }
 
@@ -1899,6 +1927,7 @@ const CATALOG_RESPONSE_TTL_MS = Math.max(
 );
 const CATALOG_RESPONSE_CACHE_HEADERS = Object.freeze({
   "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800",
+  "Vercel-CDN-Cache-Control": "public, s-maxage=600, stale-while-revalidate=86400",
   "Vary": "Accept-Encoding"
 });
 let catalogResponseCache = null;   // { payload, ts }
@@ -2143,11 +2172,58 @@ async function buildCatalogPayload() {
   };
 }
 
-async function handleCatalog(response) {
+const catalogGzipCache = new WeakMap();
+
+function acceptsCatalogGzip(request) {
+  const encodings = String(request?.headers?.["accept-encoding"] || "")
+    .toLowerCase().split(",").map((value) => value.trim().split(";"));
+  const selected = encodings.find(([name]) => name.trim() === "gzip")
+    || encodings.find(([name]) => name.trim() === "*");
+  if (!selected) return false;
+  const quality = selected.slice(1).find((value) => value.trim().startsWith("q="));
+  return !quality || Number(quality.trim().slice(2)) > 0;
+}
+
+async function sendCatalogJson(response, payload, request) {
+  if (!acceptsCatalogGzip(request)) {
+    sendJson(response, payload, 200, CATALOG_RESPONSE_CACHE_HEADERS);
+    return;
+  }
+  const snapshot = catalogResponseCache?.payload || payload;
+  let variants = catalogGzipCache.get(snapshot);
+  if (!variants) {
+    variants = new Map();
+    catalogGzipCache.set(snapshot, variants);
+  }
+  const key = payload.stale ? "stale" : payload.cached ? "cached" : "fresh";
+  let pending = variants.get(key);
+  if (!pending) {
+    // Compress once per snapshot/variant, not once per user. Besides bandwidth,
+    // this keeps the complete catalog below the CDN's cacheable response limit.
+    pending = new Promise((resolve, reject) => gzip(JSON.stringify(payload), { level: 4 }, (error, body) => {
+      if (error) reject(error);
+      else resolve(body);
+    }));
+    variants.set(key, pending);
+  }
+  try {
+    const body = await pending;
+    sendJson(response, payload, 200, {
+      ...CATALOG_RESPONSE_CACHE_HEADERS,
+      "Content-Encoding": "gzip",
+      "Content-Length": String(body.length)
+    }, body);
+  } catch {
+    variants.delete(key);
+    sendJson(response, payload, 200, CATALOG_RESPONSE_CACHE_HEADERS);
+  }
+}
+
+async function handleCatalog(response, request) {
   const now = Date.now();
   if (catalogResponseCache && now - catalogResponseCache.ts < CATALOG_RESPONSE_TTL_MS) {
     if (typeof API_PERF_DEBUG !== "undefined" && API_PERF_DEBUG) response.setHeader("X-Origin-Cache", "HIT");
-    sendJson(response, { ...catalogResponseCache.payload, cached: true }, 200, CATALOG_RESPONSE_CACHE_HEADERS);
+    await sendCatalogJson(response, { ...catalogResponseCache.payload, cached: true }, request);
     return;
   }
 
@@ -2163,13 +2239,13 @@ async function handleCatalog(response) {
     }
     const payload = await catalogResponseInflight;
     if (typeof API_PERF_DEBUG !== "undefined" && API_PERF_DEBUG) response.setHeader("X-Origin-Cache", "MISS");
-    sendJson(response, payload, 200, CATALOG_RESPONSE_CACHE_HEADERS);
+    await sendCatalogJson(response, payload, request);
   } catch (error) {
     log("warn", "Catalog build failed", { error: error.message });
     if (catalogResponseCache) {
       // Stale beats broken: keep the homepage populated through an outage.
       if (typeof API_PERF_DEBUG !== "undefined" && API_PERF_DEBUG) response.setHeader("X-Origin-Cache", "STALE");
-      sendJson(response, { ...catalogResponseCache.payload, cached: true, stale: true }, 200, CATALOG_RESPONSE_CACHE_HEADERS);
+      await sendCatalogJson(response, { ...catalogResponseCache.payload, cached: true, stale: true }, request);
       return;
     }
     sendJson(response, { ok: false, error: "Metadata APIs unavailable" }, 502);
@@ -7968,7 +8044,11 @@ async function handleJKAnimeSources(url, response) {
     const data = await coalesceInflight(
       jkAnimeSourceInflight,
       inflightKey,
-      () => fetchJKAnimeEpisodeSourcesDirect(safeSlug, epNum)
+      () => {
+        const cooldown = playbackProviderCooldownError("jkanime");
+        if (cooldown) throw cooldown;
+        return fetchJKAnimeEpisodeSourcesDirect(safeSlug, epNum);
+      }
     );
     jkAnimeSourceCache.set(cacheKey, { data, ts: Date.now() });
     sendJson(
@@ -7987,17 +8067,22 @@ async function handleJKAnimeSources(url, response) {
       return;
     }
     const status = /HTTP 404|not found|No JKAnime/i.test(error.message) ? 404 : 503;
+    const retryAfterMs = status === 404 ? 0 : recordPlaybackProviderFailure("jkanime", error);
     const data = {
       ok: false,
       source: "JKAnime",
       error: "JKAnime sources unavailable.",
       detail: error.message,
+      retryAfterMs,
+      upstreamStatus: Number(error.status) || undefined,
       slug: safeSlug,
       episode: epNum,
       sources: []
     };
     if (status === 404) jkAnimeSourceCache.set(cacheKey, { data, ts: Date.now() });
-    sendJson(response, data, status, forceRefresh ? SOURCE_REFRESH_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS);
+    sendJson(response, data, status, status === 404 && !forceRefresh
+      ? REGULAR_SOURCE_MISS_CACHE_HEADERS
+      : { ...SOURCE_REFRESH_CACHE_HEADERS, ...(retryAfterMs ? { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) } : {}) });
   }
 }
 
@@ -8466,6 +8551,8 @@ async function fetchAnimeNeonSearch(title, language, forceRefresh = false) {
   if (!forceRefresh && cached && Date.now() - cached.ts < ttl) return cached.items;
 
   try {
+    const cooldown = playbackProviderCooldownError("animeneon");
+    if (cooldown) throw cooldown;
     const items = await coalesceInflight(animeNeonSearchInflight, key, async () => {
       const endpoint = new URL("/browse/__data.json", ANIMENEON_BASE);
       endpoint.searchParams.set("q", query);
@@ -8480,6 +8567,7 @@ async function fetchAnimeNeonSearch(title, language, forceRefresh = false) {
     });
     return items;
   } catch (error) {
+    recordPlaybackProviderFailure("animeneon", error);
     if (cached?.items?.length) return cached.items;
     throw error;
   }
@@ -8573,6 +8661,8 @@ async function fetchAnimeNeonEpisode(identity, episodeNumber, forceRefresh = fal
   if (!forceRefresh && cached && Date.now() - cached.ts < ttl) return cached.data;
 
   try {
+    const cooldown = playbackProviderCooldownError("animeneon");
+    if (cooldown) throw cooldown;
     return await coalesceInflight(animeNeonSourceInflight, key, async () => {
       const route = `/ver/${identity.slug}-${episodeNumber}.${identity.nanoid}`;
       const endpoint = `${ANIMENEON_BASE}${route}/__data.json`;
@@ -8581,6 +8671,7 @@ async function fetchAnimeNeonEpisode(identity, episodeNumber, forceRefresh = fal
         headers: { ...ANIMENEON_HEADERS, Referer: `${ANIMENEON_BASE}/anime/${identity.slug}.${identity.nanoid}` }
       }, HOSTED_RUNTIME ? 6500 : 9000);
       if (!upstream.ok) {
+        if (upstream.status !== 404) throw upstreamHttpError("AnimeNeon episode", upstream);
         const miss = { ok: false, notFound: upstream.status === 404, sources: [], status: upstream.status };
         setAnimeNeonCache(animeNeonSourceCache, key, { data: miss, ts: Date.now() });
         return miss;
@@ -8653,6 +8744,7 @@ async function fetchAnimeNeonEpisode(identity, episodeNumber, forceRefresh = fal
       return result;
     });
   } catch (error) {
+    recordPlaybackProviderFailure("animeneon", error);
     if (cached?.data?.ok) return cached.data;
     throw error;
   }
@@ -8733,13 +8825,16 @@ async function handleAnimeNeonSources(url, response) {
     }, 404, forceRefresh ? SOURCE_REFRESH_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS);
   } catch (error) {
     log("warn", "AnimeNeon source lookup failed", { error: error.message, episode: episodeNumber });
+    const retryAfterMs = Math.max(0, Number(error.retryAfterMs) || playbackProviderCooldownError("animeneon")?.retryAfterMs || 0);
     sendJson(response, {
       ok: false,
       source: "AnimeNeon",
       error: "AnimeNeon sources are temporarily unavailable.",
       detail: error.message,
+      retryAfterMs,
+      upstreamStatus: Number(error.status) || undefined,
       sources: []
-    }, 502, SOURCE_REFRESH_CACHE_HEADERS);
+    }, 502, { ...SOURCE_REFRESH_CACHE_HEADERS, ...(retryAfterMs ? { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) } : {}) });
   }
 }
 
@@ -13188,7 +13283,7 @@ async function handleUnderHentaiStream(url, response) {
   }
 }
 
-function sendJson(response, payload, status = 200, extraHeaders = {}) {
+function sendJson(response, payload, status = 200, extraHeaders = {}, encodedBody = null) {
   const cors = corsHeaders();
   const vary = [...new Set(
     [cors.Vary, extraHeaders.Vary]
@@ -13208,7 +13303,7 @@ function sendJson(response, payload, status = 200, extraHeaders = {}) {
     ...cors,
     ...(vary ? { "Vary": vary } : {})
   });
-  response.end(JSON.stringify(payload));
+  response.end(encodedBody ?? JSON.stringify(payload));
 }
 
 function sendCorsPreflight(response) {

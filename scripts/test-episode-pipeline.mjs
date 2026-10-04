@@ -1991,11 +1991,11 @@ test("7f7. a failed primary gets one bounded backup-provider handoff before the 
   assert.ok(finalError > secondVerification);
 });
 
-test("7g. UPNShare is available with the primary payload without eagerly adding other embeds", () => {
+test("7g. all AnimeAV1 mirrors are available from one payload without duplicates", () => {
   const sandbox = vm.createContext({
     normalizeTitle: (value) => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
     simpleHash: (value) => String(value || "").length,
-    embedProviderRank: (provider) => String(provider || "").toLowerCase().includes("voe") ? 1 : 2,
+    embedProviderRank: (provider) => /upn/i.test(provider) ? 0 : /voe/i.test(provider) ? 1 : 2,
     isBlockedPlaybackSource: () => false,
     isUpnShareSource: sourceClassification.isUpnShareSource
   });
@@ -2011,23 +2011,60 @@ test("7g. UPNShare is available with the primary payload without eagerly adding 
       { provider: "HLS", type: "direct", url: "/api/source?url=primary" },
       { provider: "UPNShare", type: "iframe", externalUrl: "https://animeav1.uns.bio/#primary" },
       { provider: "Voe", type: "iframe", url: "https://voe.example/embed" },
-      { provider: "MP4Upload", type: "iframe", url: "https://mp4upload.example/embed" }
+      { provider: "MP4Upload", type: "iframe", url: "https://mp4upload.example/embed" },
+      { provider: "MP4Upload duplicate", type: "iframe", url: "https://mp4upload.example/embed" },
+      { provider: "Mega", type: "iframe", url: "https://mega.nz/file/download-only" },
+      { provider: "MediaFire", type: "iframe", url: "https://mediafire.com/file/download-only" }
     ]
   };
 
   sandbox.mergeAnimeAv1SourcesIntoEpisode({}, episode, data, "example", 12);
-  assert.deepEqual(Array.from(episode.sourceOptions, (source) => source.provider), ["HLS", "UPNShare"]);
+  assert.deepEqual(Array.from(episode.sourceOptions, (source) => source.provider), ["HLS", "UPNShare", "Voe", "MP4Upload"]);
 
   sandbox.mergeAnimeAv1SourcesIntoEpisode({}, episode, data, "example", 12, { includeFallbacks: true });
   assert.deepEqual(Array.from(episode.sourceOptions, (source) => source.provider), ["HLS", "UPNShare", "Voe", "MP4Upload"]);
   assert.ok(episode.sourceOptions.every((source) => source.siteUrl === data.episodeUrl));
+  assert.equal(new Set(episode.sourceOptions.map((source) => source.videoUrl || source.externalUrl)).size, 4);
 });
 
 test("7g2. AnimeAV1 embed-only episodes remain eligible for automatic playback", () => {
   const attachSection = section(clientSource, "async function attachAnimeAv1Sources(", "function mergeAnimeAv1SourcesIntoEpisode(");
-  assert.match(attachSection, /const embedOnlyEpisode = data\.sources\.length === 0/);
-  assert.match(attachSection, /includeFallbacks: Boolean\(options\.includeFallbacks \|\| embedOnlyEpisode\)/);
+  assert.match(attachSection, /!Array\.isArray\(data\.sources\) && !Array\.isArray\(data\.castSources\)/);
+  assert.match(attachSection, /mergeAnimeAv1SourcesIntoEpisode\(show, episode, data, slug, epNum\)/);
   assert.match(serverSource, /ok: normalizedCastSources\.length > 0/);
+});
+
+test("7g3. TioAnime keeps every unique playable option and preserves direct-media metadata", () => {
+  const sandbox = vm.createContext({
+    normalizeTitle: (value) => String(value || "").toLowerCase(),
+    simpleHash: (value) => value,
+    embedProviderRank: () => 0,
+    isBlockedPlaybackSource: (source) => source.provider === "Blocked"
+  });
+  vm.runInContext(section(clientSource, "function mergeTioAnimeSourcesIntoEpisode(", "// AnimeNeon is queried first"), sandbox);
+  const data = {
+    episodeUrl: "https://tioanime.com/ver/example-13",
+    sources: [
+      { provider: "MP4Upload", type: "iframe", url: "https://mp4upload.test/embed" },
+      { provider: "Duplicate", type: "iframe", externalUrl: "https://mp4upload.test/embed" },
+      { provider: "HLS", type: "direct", videoUrl: "https://media.test/master.m3u8", mimeType: "application/vnd.apple.mpegurl", container: "hls", codec: "avc1.42E01E", headers: { Referer: "https://tioanime.com/" } },
+      { provider: "YourUpload", type: "iframe", externalUrl: "https://yourupload.test/embed" },
+      { provider: "Blocked", type: "iframe", url: "https://blocked.test/" },
+      { provider: "Mega", type: "iframe", url: "https://mega.nz/file/download-only" }
+    ],
+    mega: ["https://mega.nz/file/download-only"]
+  };
+  const episode = { sourceOptions: [] };
+  sandbox.mergeTioAnimeSourcesIntoEpisode({}, episode, data, "example", 13);
+  sandbox.mergeTioAnimeSourcesIntoEpisode({}, episode, data, "example", 13);
+  assert.equal(episode.sourceOptions.length, 3);
+  const direct = episode.sourceOptions.find((source) => source.type === "direct");
+  assert.equal(direct.videoUrl, "https://media.test/master.m3u8");
+  assert.equal(direct.externalUrl, "");
+  assert.equal(direct.codec, "avc1.42E01E");
+  assert.equal(direct.providerEpisodeId, 13);
+  assert.equal(direct.headers.Referer, "https://tioanime.com/");
+  assert.equal(episode.downloadUrl, data.mega[0]);
 });
 
 test("7h. latest releases fall back to session cache when local storage is full", () => {
@@ -2339,6 +2376,8 @@ test("11f. recovery offers exactly one verified source", () => {
 
 test("11g. fallback verification admits ad-walled hosts only through direct media resolution", () => {
   const sandbox = vm.createContext({
+    isAnimeAv1Source: sourceClassification.isAnimeAv1Source,
+    isTioAnimeSource: sourceClassification.isTioAnimeSource,
     location: { hostname: "zenkaitv.com" },
     originalStreamUrlFromProxy: (value) => value,
     sourceDirectUrl: (source) => source.videoUrl || "",
@@ -2360,6 +2399,11 @@ test("11g. fallback verification admits ad-walled hosts only through direct medi
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Vidhide", externalUrl: "https://vidhidevip.com/embed/working", adWalled: true }), true);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Voe", externalUrl: "https://unknown.test/embed", adWalled: true }), false);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Unknown", externalUrl: "https://unknown.test/embed" }), false);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ id: "animeav1-byse", type: "iframe", provider: "Byse", externalUrl: "https://byselapuix.test/embed" }), true);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ id: "tioanime-mirror", type: "iframe", provider: "Mirror", externalUrl: "https://mirror.test/embed", adWalled: true }), true);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ id: "animeav1-mirror", type: "iframe", externalUrl: "javascript:alert(1)" }), false);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Mega", externalUrl: "https://mega.nz/file/download-only" }), false);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "MediaFire", externalUrl: "https://mediafire.com/file/download-only" }), false);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "direct", videoUrl: "https://video.test/episode.mp4" }), true);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "direct", provider: "Voe", videoUrl: "https://video.test/master.m3u8", adWalled: false }), false);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "direct", videoUrl: "https://ugc.cloudwindow-route.com/master.m3u8" }), false);
@@ -2414,9 +2458,112 @@ test("11h. playback failure verifies and opens the backup without asking", () =>
   assert.match(renderer, /playActiveShow\(\{ allowSourceLookup: false, restart: true \}\)/);
   assert.match(renderer, /selectedSource\.id !== activeSource\.id/);
   assert.doesNotMatch(renderer, /Use verified source/);
-  assert.match(clientSource, /await probePlayableFallback\(resolved, options\)/);
-  assert.match(clientSource, /verifyFallbackCandidate\(episode, source\)/);
+  assert.match(clientSource, /probePlayableFallback\(resolved, \{/);
+  assert.match(clientSource, /verifyFallbackCandidate\(episode, source, \{/);
   assert.match(renderer, /refreshProviderKeys:\s*playbackRecoveryProviderKeys\(episode, activeSource\)/);
+});
+
+function lastResortFallbackContext(overrides = {}) {
+  const sandbox = vm.createContext({
+    Date, Set,
+    RELIABLE_PLAYBACK_TOTAL_BUDGET_MS: 14000,
+    RELIABLE_PLAYBACK_PRIMARY_PROBE_MS: 5000,
+    getEpisodePlaybackSources: (episode) => episode.sourceOptions,
+    isAdFreeFallbackCandidate: () => true,
+    verifiedFallbackPreference: () => 0,
+    pickFallbackRaceCandidates: (sources) => sources.slice(0, 4),
+    firstSuccessfulFallback: (tasks) => Promise.any(tasks.map(async (task) => {
+      const result = await task;
+      if (!result) throw new Error("unavailable");
+      return result;
+    })).catch(() => null),
+    ...overrides
+  });
+  vm.runInContext(section(clientSource, "async function findVerifiedAdFreeFallbackSource(", "function playbackSourceHealthKey("), sandbox);
+  return sandbox;
+}
+
+test("11h2. last-resort recovery refills failed slots beyond the first four mirrors", async () => {
+  const sources = Array.from({ length: 11 }, (_, index) => ({ id: `mirror-${index}` }));
+  const checked = new Set();
+  let active = 0;
+  let peak = 0;
+  const sandbox = lastResortFallbackContext({
+    verifyFallbackCandidate: async (_episode, source, options) => {
+      assert.ok(!checked.has(source.id));
+      checked.add(source.id);
+      assert.ok(options.timeoutMs <= 5000);
+      assert.ok(options.deadlineAt > Date.now());
+      peak = Math.max(peak, ++active);
+      await new Promise((resolve) => setTimeout(resolve, 2));
+      active--;
+      return source === sources[9] ? source : null;
+    }
+  });
+  const episode = { sourceOptions: sources };
+  const first = sandbox.findVerifiedAdFreeFallbackSource(episode);
+  const second = sandbox.findVerifiedAdFreeFallbackSource(episode);
+  assert.equal((await first)?.id, "mirror-9");
+  assert.equal((await second)?.id, "mirror-9");
+  assert.ok(peak <= 4);
+  assert.equal(episode._verifiedFallbackPromise, null);
+});
+
+test("11h3. last-resort recovery stops queueing work after success or deadline", async () => {
+  const checked = [];
+  const sandbox = lastResortFallbackContext({
+    verifyFallbackCandidate: async (_episode, source) => {
+      checked.push(source.id);
+      if (source.id === "mirror-0") return source;
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      return null;
+    }
+  });
+  const episode = { sourceOptions: Array.from({ length: 12 }, (_, index) => ({ id: `mirror-${index}` })) };
+  assert.equal((await sandbox.findVerifiedAdFreeFallbackSource(episode)).id, "mirror-0");
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(checked.length, 4);
+
+  let now = 1000;
+  const expiredChecks = [];
+  const expired = lastResortFallbackContext({
+    Date: { now: () => now },
+    RELIABLE_PLAYBACK_TOTAL_BUDGET_MS: 900,
+    verifyFallbackCandidate: async (_episode, source) => {
+      expiredChecks.push(source.id);
+      now += 1000;
+      return null;
+    }
+  });
+  assert.equal(await expired.findVerifiedAdFreeFallbackSource(episode), null);
+  assert.equal(expiredChecks.length, 1);
+});
+
+test("11h4. last-resort verification reuses shared health checks and the resume position", async () => {
+  let checks = 0;
+  let release;
+  const resolved = { url: "https://media.test/episode.mp4" };
+  const sandbox = vm.createContext({
+    Map,
+    getResumePosition: () => 45,
+    inspectPlaybackSourceHealth: async (_source, options) => {
+      checks++;
+      assert.equal(options.startTime, 45);
+      await new Promise((resolve) => { release = resolve; });
+      return resolved;
+    },
+    persistVerifiedFallbackSource: (_episode, source) => source
+  });
+  vm.runInContext(section(clientSource, "function verifyFallbackCandidate(", "async function findVerifiedAdFreeFallbackSource("), sandbox);
+  const episode = {};
+  const source = { id: "backup" };
+  const first = sandbox.verifyFallbackCandidate(episode, source);
+  const second = sandbox.verifyFallbackCandidate(episode, source);
+  assert.equal(first, second);
+  release();
+  assert.equal(await first, source);
+  assert.equal(checks, 1);
+  assert.equal(episode._fallbackVerificationPromises.size, 0);
 });
 
 test("11i. fallback verification stays diverse and reserves a progressive candidate", async () => {

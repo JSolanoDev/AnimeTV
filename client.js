@@ -4873,7 +4873,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=945";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=948";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -17606,27 +17606,37 @@ function embedProviderRank(provider = "") {
 
 function mergeTioAnimeSourcesIntoEpisode(show, episode, data, slug, epNum) {
   if (!episode || !Array.isArray(data?.sources)) return;
-  const existing = new Set((episode.sourceOptions || []).map(s => s.videoUrl || s.externalUrl));
+  const existing = new Set((episode.sourceOptions || []).map(s => s.videoUrl || s.externalUrl || s.url));
   const newOptions = data.sources
-    .filter(s => s.url && !existing.has(s.url))
-    .filter(s => {
-      const urlLow = String(s.url).toLowerCase();
-      const provLow = String(s.provider).toLowerCase();
-      return !urlLow.includes("mega.nz") && !urlLow.includes("mediafire.com") && !provLow.includes("mega") && !provLow.includes("mediafire");
+    .filter((s) => {
+      const url = s.videoUrl || s.externalUrl || s.url || "";
+      if (!url || existing.has(url) || isBlockedPlaybackSource(s)) return false;
+      // Download pages cannot be handed to the built-in video player.
+      if (/mega\.nz|mediafire\.com/i.test(url) || /^(?:mega|mediafire)\b/i.test(s.provider || "")) return false;
+      existing.add(url);
+      return true;
     })
     .map((s, index) => {
-      const rank = embedProviderRank(s.provider);
+      const url = s.videoUrl || s.externalUrl || s.url || "";
+      const direct = s.type === "direct";
+      const rank = direct ? 0 : embedProviderRank(s.provider);
       return {
-        id:          `tioanime-${normalizeTitle(s.provider || "source")}-${simpleHash(`${slug}:${epNum}:${s.provider || index}:${s.url}`)}`,
+        id:          `tioanime-${normalizeTitle(s.provider || "source")}-${simpleHash(`${slug}:${epNum}:${s.provider || index}:${url}`)}`,
         label:       `TioAnime - ${s.provider || `Source ${index + 1}`}${rank === 2 ? " (ads)" : ""}`,
         provider:    s.provider || "TioAnime",
-        type:        "iframe",
-        externalUrl: s.url,
-        videoUrl:    "",
+        type:        direct ? "direct" : "iframe",
+        externalUrl: direct ? "" : url,
+        videoUrl:    direct ? url : "",
         downloadUrl: "",
         streamResolver: null,
         siteUrl:     s.siteUrl || data.episodeUrl || `https://tioanime.com/ver/${slug}-${epNum}`,
         referer:     s.referer || s.referrer || s.siteUrl || data.episodeUrl || "https://tioanime.com/",
+        providerAnimeSlug: slug,
+        providerEpisodeId: epNum,
+        mimeType:    s.mimeType || s.contentType || "",
+        container:   s.container || "",
+        codec:       s.codec || s.codecs || "",
+        headers:     s.headers || null,
         sourceRank:  rank,
         adWalled:    rank === 2,
       };
@@ -17654,6 +17664,29 @@ const ANIMENEON_SOURCE_TIMEOUT_MS = 8500;
 const ANIMENEON_CLIENT_CACHE_TTL_MS = 10 * 60 * 1000;
 const ANIMENEON_CLIENT_MISS_TTL_MS = 60 * 1000;
 
+const playbackProviderRetryAt = new Map();
+
+function playbackProviderIsCoolingDown(provider) {
+  const retryAt = playbackProviderRetryAt.get(provider) || 0;
+  if (retryAt > Date.now()) return true;
+  playbackProviderRetryAt.delete(provider);
+  return false;
+}
+
+function deferPlaybackProviderOnFailure(provider, response) {
+  const status = Number(response?.status) || 0;
+  if (status !== 403 && status !== 429 && status < 500) return;
+  const retryAfter = String(response.headers?.get?.("retry-after") || "").trim();
+  const seconds = retryAfter ? Number(retryAfter) : NaN;
+  const retryMs = Number.isFinite(seconds)
+    ? seconds * 1000
+    : Math.max(0, (Date.parse(retryAfter) || 0) - Date.now());
+  const delayMs = Math.max(retryMs, status === 403 || status === 429 ? 60000 : 15000);
+  playbackProviderRetryAt.set(provider, Math.max(
+    Date.now() + delayMs, playbackProviderRetryAt.get(provider) || 0
+  ));
+}
+
 function animeNeonSearchCandidates(show = {}) {
   return animeAv1SearchCandidates(show).slice(0, 5);
 }
@@ -17673,6 +17706,7 @@ async function fetchAnimeNeonEpisodeSources(show, episode, options = {}) {
   const cached = _animeNeonEpisodeSourceCache.get(cacheKey);
   const cacheTtl = cached?.data?.ok ? ANIMENEON_CLIENT_CACHE_TTL_MS : ANIMENEON_CLIENT_MISS_TTL_MS;
   if (!options.forceRefresh && cached && Date.now() - cached.ts < cacheTtl) return cached.data;
+  if (playbackProviderIsCoolingDown("animeneon")) return cached?.data?.ok && Date.now() - cached.ts < cacheTtl ? cached.data : null;
   if (!options.forceRefresh && _animeNeonEpisodeSourceInflight.has(cacheKey)) {
     return _animeNeonEpisodeSourceInflight.get(cacheKey);
   }
@@ -17691,6 +17725,7 @@ async function fetchAnimeNeonEpisodeSources(show, episode, options = {}) {
       ANIMENEON_SOURCE_TIMEOUT_MS
     );
     if (!response.ok) {
+      deferPlaybackProviderOnFailure("animeneon", response);
       if (response.status === 404) {
         _animeNeonEpisodeSourceCache.set(cacheKey, { data: null, ts: Date.now() });
         return null;
@@ -18073,32 +18108,35 @@ async function attachAnimeAv1Sources(show, episode, options = {}) {
   }
   try {
     const data = await fetchAnimeAv1EpisodeSourcePayload(slug, epNum, options);
-    if (!data || !Array.isArray(data.sources)) {
+    if (!data || (!Array.isArray(data.sources) && !Array.isArray(data.castSources))) {
       episode.animeAv1SourcesChecked = true;
       return;
     }
-    const embedOnlyEpisode = data.sources.length === 0
-      && Array.isArray(data.castSources)
-      && data.castSources.length > 0;
-    mergeAnimeAv1SourcesIntoEpisode(show, episode, data, slug, epNum, {
-      ...options,
-      includeFallbacks: Boolean(options.includeFallbacks || embedOnlyEpisode)
-    });
+    mergeAnimeAv1SourcesIntoEpisode(show, episode, data, slug, epNum);
   } catch (error) {
     console.warn("AnimeAV1 episode sources unavailable:", error);
   }
   episode.animeAv1SourcesChecked = true;
 }
 
-function mergeAnimeAv1SourcesIntoEpisode(show, episode, data, slug, epNum, options = {}) {
-  if (!episode || !Array.isArray(data?.sources)) return;
+function mergeAnimeAv1SourcesIntoEpisode(show, episode, data, slug, epNum) {
+  if (!episode || !data) return;
   episode.sourceOptions = (episode.sourceOptions || []).filter((source) => !isBlockedPlaybackSource(source));
-  const existing = new Set(episode.sourceOptions.map(s => s.videoUrl || s.externalUrl));
-  const payloadSources = options.includeFallbacks
-    ? [...data.sources, ...(Array.isArray(data.castSources) ? data.castSources : [])]
-    : [...data.sources, ...(Array.isArray(data.castSources) ? data.castSources.filter(isUpnShareSource) : [])];
+  const existing = new Set(episode.sourceOptions.map(s => s.videoUrl || s.externalUrl || s.url));
+  // Both lists arrive in the same cached response. Keep mirrors ready without
+  // fetching or probing them until the preferred source actually needs help.
+  const payloadSources = [
+    ...(Array.isArray(data.sources) ? data.sources : []),
+    ...(Array.isArray(data.castSources) ? data.castSources : [])
+  ];
   const newOptions = payloadSources
-    .filter(s => !isBlockedPlaybackSource(s) && (s.url || s.videoUrl || s.externalUrl) && !existing.has(s.url || s.videoUrl || s.externalUrl))
+    .filter((s) => {
+      const url = s.videoUrl || s.externalUrl || s.url || "";
+      if (!url || existing.has(url) || isBlockedPlaybackSource(s)) return false;
+      if (/mega\.nz|mediafire\.com/i.test(url) || /^(?:mega|mediafire)\b/i.test(s.provider || "")) return false;
+      existing.add(url);
+      return true;
+    })
     .map((s, index) => {
       const url = s.videoUrl || s.externalUrl || s.url || "";
       const direct = s.type === "direct" || /\.(m3u8|mp4|webm|m4v)(?:$|[?#])/i.test(url);
@@ -18313,8 +18351,10 @@ async function hydrateJKAnimeSlug(show, options = {}) {
 function fetchJKAnimeEpisodeSourcePayload(slug, epNum, options = {}) {
   const cacheKey = `${slug}:${epNum}`;
   const forceRefresh = Boolean(options.forceRefresh);
-  const cached = forceRefresh ? null : readEpisodeSourcePayloadCache(_jkAnimeEpisodeSourceCache, cacheKey);
-  if (cached) return Promise.resolve(cached);
+  const cached = readEpisodeSourcePayloadCache(_jkAnimeEpisodeSourceCache, cacheKey);
+  const coolingDown = playbackProviderIsCoolingDown("jkanime");
+  if (cached && (!forceRefresh || coolingDown)) return Promise.resolve(cached);
+  if (coolingDown) return Promise.resolve(null);
   if (forceRefresh) _jkAnimeEpisodeSourceCache.delete(cacheKey);
   const inflightKey = forceRefresh ? `${cacheKey}:refresh` : cacheKey;
   let lookup = _jkAnimeEpisodeSourceInflight.get(inflightKey);
@@ -18323,7 +18363,10 @@ function fetchJKAnimeEpisodeSourcePayload(slug, epNum, options = {}) {
       `/api/jkanime/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(epNum)}${forceRefresh ? "&refresh=1" : ""}`,
       { cache: forceRefresh ? "no-store" : "default" }, JKANIME_SOURCE_TIMEOUT_MS
     ).then(async (res) => {
-      if (!res.ok) return null;
+      if (!res.ok) {
+        deferPlaybackProviderOnFailure("jkanime", res);
+        return null;
+      }
       const data = await res.json();
       if (!data.ok || !Array.isArray(data.sources)) return null;
       return writeEpisodeSourcePayloadCache(_jkAnimeEpisodeSourceCache, cacheKey, data);
@@ -18363,7 +18406,7 @@ async function attachJKAnimeSources(show, episode, options = {}) {
     // Most AnimeAV1 and JKAnime routes share an exact slug. Try that cheap route
     // first; only pay for the broader title search when the direct candidate
     // really missed or returned a different title.
-    if (!data && !verifiedFallback && !show.jkAnimeSlug) {
+    if (!data && !verifiedFallback && !show.jkAnimeSlug && !playbackProviderIsCoolingDown("jkanime")) {
       await hydrateJKAnimeSlug(show, { force: true });
       const searchedSlug = show.jkAnimeSlug || "";
       if (searchedSlug && searchedSlug !== slug) {
@@ -19569,6 +19612,7 @@ function fallbackSourceIdentity(source = {}) {
 }
 
 function isAdFreeFallbackCandidate(source = {}) {
+  if (/\bmega\b|mega\.nz|\bmediafire\b|mediafire\.com/i.test(fallbackSourceIdentity(source))) return false;
   const directUrl = sourceDirectUrl(source);
   const hasResolver = Boolean(source.streamResolver?.endpoint || source.type === "resolver");
   const hasEmbed = Boolean(source.externalUrl && source.type === "iframe");
@@ -19577,6 +19621,10 @@ function isAdFreeFallbackCandidate(source = {}) {
   // VOE and Streamtape pages are never mounted. /api/resolve extracts their
   // direct media, which still has to pass the health policy below.
   if (isDirectMediaResolverCandidate(source)) return true;
+  // A catalog mirror may use a newly added host. It is eligible only for direct
+  // resolution and byte verification; its provider iframe is never mounted.
+  if (source.type === "iframe" && /^https?:\/\//i.test(source.externalUrl || "")
+    && (isAnimeAv1Source(source) || isTioAnimeSource(source))) return true;
   if (directUrl) return source.adWalled !== true;
   const providerRank = embedProviderRank(fallbackSourceIdentity(source));
   if (source.adWalled === true || providerRank === 2) return false;
@@ -20094,9 +20142,11 @@ function verifyFallbackCandidate(episode, source, options = {}) {
   if (inFlight.has(key)) return inFlight.get(key);
 
   const verification = (async () => {
-    const resolved = await resolveFallbackCandidateToDirect(source);
+    const resolved = await inspectPlaybackSourceHealth(source, {
+      ...options,
+      startTime: Math.max(0, Number(getResumePosition(episode)) || 0)
+    });
     if (!resolved?.url) return null;
-    if (!(await probePlayableFallback(resolved, options))) return null;
     if (resolved.payload) {
       const subtitles = normalizeSubtitleTracks(resolved.payload);
       if (subtitles.length) episode.subtitles = subtitles;
@@ -20134,7 +20184,27 @@ async function findVerifiedAdFreeFallbackSource(episode = {}) {
       .filter(isAdFreeFallbackCandidate)
       .sort((a, b) => verifiedFallbackPreference(a) - verifiedFallbackPreference(b));
     const raceCandidates = pickFallbackRaceCandidates(candidates);
-    return firstSuccessfulFallback(raceCandidates.map((source) => verifyFallbackCandidate(episode, source)));
+    const firstIds = new Set(raceCandidates.map((source) => source.id));
+    const queue = [...raceCandidates, ...candidates.filter((source) => !firstIds.has(source.id))];
+    const deadlineAt = Date.now() + RELIABLE_PLAYBACK_TOTAL_BUDGET_MS;
+    let finished = false;
+    const worker = async () => {
+      while (!finished && queue.length && deadlineAt - Date.now() >= 250) {
+        const source = queue.shift();
+        const verified = await verifyFallbackCandidate(episode, source, {
+          timeoutMs: Math.min(RELIABLE_PLAYBACK_PRIMARY_PROBE_MS, deadlineAt - Date.now()),
+          deadlineAt
+        }).catch(() => null);
+        if (verified) {
+          finished = true;
+          return verified;
+        }
+      }
+      return null;
+    };
+    const verified = await firstSuccessfulFallback(raceCandidates.map(() => worker()));
+    finished = true;
+    return verified;
   })().finally(() => {
     episode._verifiedFallbackPromise = null;
   });
@@ -23466,7 +23536,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=945");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=948");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
