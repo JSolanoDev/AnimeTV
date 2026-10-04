@@ -55,3 +55,29 @@ produce new adult releases until the provider is reachable again.
 An unrelated existing npm advisory affects pinned `sharp@0.35.2`
 (`GHSA-rgj7-g3m4-5g8c`). No forced dependency upgrades are included in this fix;
 an image-regression-tested patch upgrade should be handled separately.
+
+## Independent Online Adult Check (2026-10-04)
+
+- `refresh-adult-catalog.yml` checks daily at 06:17 UTC and can also be run
+  manually in GitHub Actions. It runs on GitHub, so the computer can be off.
+  GitHub schedules can be delayed; this is a daily target, not an exact 24-hour SLA.
+- Regular and adult refreshes no longer depend on each other's success. They
+  share a publication concurrency group and have separate file allowlists;
+  rebasing preserves newer changes to the other catalog.
+- Complete web/Android snapshots are validated before publication. Timestamp-only
+  refreshes restore the original bytes, skip the commit, and skip deployment.
+  New titles, episode counts, artwork, descriptions, and source changes still
+  qualify as real updates. The provider-check time is saved in the run report.
+- A blocked check retains the last validated catalog, uploads the status report,
+  and fails the dedicated job explicitly. It does not publish stale data as new
+  or block the regular scraper. No immediate retries or protection bypasses are used.
+- Publishing uses the existing Vercel Git integration or the configured
+  `VERCEL_DEPLOY_HOOK_URL` repository secret. No scheduled Vercel Function,
+  per-visitor refresh, or extra compute is added.
+- UnderHentai has returned HTTP 403 to GitHub and Vercel. Scheduling alone cannot
+  fix that restriction: successful new imports require provider-approved cloud
+  access or an authorized feed/API. Do not use proxy rotation or disable protections.
+
+The already-deployed Sharp patch is synchronized with its matching lockfile only
+under the user's explicit one-time approval; no other dependency upgrade is needed
+for this workflow.

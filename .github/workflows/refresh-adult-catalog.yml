@@ -1,0 +1,92 @@
+name: Refresh Adult Mode catalog
+
+on:
+  schedule:
+    # Daily, away from the busier top of the hour. GitHub may delay scheduled jobs.
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/refresh-adult-catalog.yml'
+      - 'scripts/refresh-adult-catalog.mjs'
+      - 'scripts/check-adult-refresh-status.mjs'
+      - 'scripts/commit-catalog-update.sh'
+      - 'scripts/lib/adult-upstream.mjs'
+      - 'scripts/build-underhentai-*.mjs'
+      - 'scripts/build-adult-portrait-map.mjs'
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+permissions:
+  contents: write
+
+# Serialize catalog writers, but do not depend on the regular scraper succeeding.
+concurrency:
+  group: scrape-catalog
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Check, validate, and publish Adult Mode catalog
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 50
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Test transactional refresh and provider outages
+        run: npm run test:adult-refresh
+
+      - name: Refresh Adult Mode catalog
+        run: npm run adult:catalog
+        env:
+          UNDERHENTAI_CRAWL_CONCURRENCY: '2'
+          UNDERHENTAI_DETAIL_CONCURRENCY: '2'
+          UNDERHENTAI_WATCH_CONCURRENCY: '2'
+          UNDERHENTAI_REQUEST_INTERVAL_MS: '550'
+        timeout-minutes: 45
+
+      - name: Require a successful provider check
+        id: refresh-status
+        run: node scripts/check-adult-refresh-status.mjs
+
+      - name: Validate Adult Mode catalog
+        run: npm run adult:verify && npm run test:releases
+
+      - name: Publish changed Adult Mode catalog
+        if: steps.refresh-status.outputs.changes_detected == 'true'
+        id: commit-catalog
+        shell: bash
+        env:
+          CATALOG_UPDATE_SCOPE: adult
+        run: bash scripts/commit-catalog-update.sh
+
+      - name: Trigger Vercel deploy hook
+        if: steps.commit-catalog.outputs.changes_detected == 'true'
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$VERCEL_DEPLOY_HOOK_URL" ]; then
+            echo "VERCEL_DEPLOY_HOOK_URL is not configured; relying on the Vercel Git integration."
+            exit 0
+          fi
+          curl --connect-timeout 10 --max-time 30 -fsS -X POST "$VERCEL_DEPLOY_HOOK_URL"
+
+      - name: Upload refresh status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adult-refresh-status-${{ github.run_id }}
+          path: artifacts/adult-refresh-report.json
+          retention-days: 7
+          if-no-files-found: warn

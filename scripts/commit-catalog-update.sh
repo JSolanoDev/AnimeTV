@@ -8,6 +8,7 @@ max_attempts="${CATALOG_PUSH_MAX_ATTEMPTS:-3}"
 retry_delay="${CATALOG_PUSH_RETRY_DELAY_SECONDS:-2}"
 fetch_depth="${CATALOG_PUSH_FETCH_DEPTH:-50}"
 remote_ref="refs/remotes/${remote}/${branch}"
+scope="${CATALOG_UPDATE_SCOPE:-all}"
 
 catalog_files=(
   "homepage-bootstrap.json"
@@ -35,13 +36,34 @@ catalog_files=(
   "android/app/src/main/assets/scraper/adult_portrait_map.json"
 )
 
+case "$scope" in
+  all|adult|regular) ;;
+  *) echo "::error::Unknown catalog update scope: ${scope}"; exit 1 ;;
+esac
+
+selected_files=()
+for file in "${catalog_files[@]}"; do
+  is_adult=false
+  case "$file" in
+    */underhentai_*.json|*/adult_portrait_map.json) is_adult=true ;;
+  esac
+  if [[ "$scope" == "all" || ( "$scope" == "adult" && "$is_adult" == "true" ) || ( "$scope" == "regular" && "$is_adult" == "false" ) ]]; then
+    selected_files+=("$file")
+  fi
+done
+
 set_output() {
   if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
     printf '%s\n' "$1" >> "$GITHUB_OUTPUT"
   fi
 }
 
-git add -- "${catalog_files[@]}"
+if ! git diff --cached --quiet; then
+  echo "::error::Refusing to publish with unrelated changes already staged."
+  exit 1
+fi
+
+git add -- "${selected_files[@]}"
 
 if git diff --cached --quiet; then
   echo "No catalog changes to commit."
@@ -51,7 +73,9 @@ fi
 
 git config user.name "github-actions[bot]"
 git config user.email "github-actions[bot]@users.noreply.github.com"
-git commit -m "chore: update anime catalog"
+message="chore: update anime catalog"
+if [[ "$scope" == "adult" ]]; then message="chore: update adult catalog"; fi
+git commit -m "$message"
 
 for ((attempt = 1; attempt <= max_attempts; attempt++)); do
   echo "Publishing catalog update (attempt ${attempt}/${max_attempts})..."

@@ -49,7 +49,7 @@ jobs:
   scrape:
     name: Scrape + validate + commit catalog
     runs-on: ubuntu-latest
-    # The individually bounded scrape, artwork, season, skip-time, and adult
+    # The individually bounded scrape, artwork, season, and skip-time
     # refresh steps can legitimately exceed 90 minutes when an upstream is
     # slow. Keep the job bounded, but leave enough room for every validation
     # gate to run instead of cancelling a healthy daily refresh near the end.
@@ -262,18 +262,6 @@ jobs:
         timeout-minutes: 18
         continue-on-error: true
 
-      - name: Refresh Adult Mode catalog
-        run: npm run adult:catalog
-        env:
-          UNDERHENTAI_CRAWL_CONCURRENCY: '2'
-          UNDERHENTAI_DETAIL_CONCURRENCY: '2'
-          UNDERHENTAI_WATCH_CONCURRENCY: '2'
-          UNDERHENTAI_REQUEST_INTERVAL_MS: '550'
-        timeout-minutes: 45
-
-      - name: Validate Adult Mode catalog
-        run: npm run adult:verify && npm run test:releases
-
       - name: Validate regular catalog, playback identity, and seasons
         run: |
           npm run catalog:verify -- --restore-on-failure --report artifacts/catalog-integrity-report.json
@@ -291,6 +279,8 @@ jobs:
       - name: Commit updated catalog
         id: commit-catalog
         shell: bash
+        env:
+          CATALOG_UPDATE_SCOPE: regular
         run: bash scripts/commit-catalog-update.sh
 
       - name: Trigger Vercel deploy hook
@@ -321,9 +311,6 @@ jobs:
             scraper/relations-cache.json
             scraper/regular-source-fallbacks.json
             scraper/animeneon-catalog.json
-            scraper/underhentai_catalog.json
-            scraper/underhentai_details.json
             artifacts/catalog-integrity-report.json
-            artifacts/adult-refresh-report.json
           retention-days: 7
           if-no-files-found: warn

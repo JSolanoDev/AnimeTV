@@ -130,11 +130,13 @@ function adultSafetyMarker(item = {}) {
   if (!allText) return "";
 
   for (const marker of UNSAFE_MINOR_MARKERS) {
-    const escaped = String(marker)
+    const markerText = normalizeSafetyText(marker);
+    if (!markerText) continue;
+    const escaped = markerText
       .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
     if (new RegExp(`\\b${escaped}\\b`, "i").test(allText)) {
-      return marker;
+      return markerText;
     }
   }
 
@@ -322,7 +324,7 @@ async function main() {
   const lastPage = Math.max(1, ...pageNumbers);
   const pageUrls = Array.from({ length: lastPage }, (_, index) => index === 0 ? `${BASE_URL}/` : `${BASE_URL}/page/${index + 1}/`);
   const [pages, sitemapItems] = await Promise.all([
-    mapConcurrent(pageUrls, async (url, index) => parseListing(await fetchText(url), index + 1)),
+    mapConcurrent(pageUrls, async (url, index) => parseListing(index === 0 ? firstHtml : await fetchText(url), index + 1)),
     loadSitemapListings()
   ]);
   throwIfUnavailable();
