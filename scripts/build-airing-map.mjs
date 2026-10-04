@@ -82,6 +82,8 @@ const mediaFields = `
   format status episodes season seasonYear
   startDate { year month day }
   nextAiringEpisode { airingAt episode }
+  coverImage { extraLarge }
+  bannerImage
   relations {
     edges {
       relationType
@@ -89,6 +91,8 @@ const mediaFields = `
         id type format status episodes season seasonYear
         title { romaji english userPreferred }
         startDate { year month day }
+        coverImage { extraLarge }
+        bannerImage
       }
     }
   }`;
@@ -163,6 +167,22 @@ function nodeToEntry(node) {
     // and season 1 is offered as the last tab.
     startedAt: startMs(node.startDate) || (node.seasonYear ? Date.UTC(node.seasonYear, 0, 1) : 0)
   };
+}
+
+function collectSeasonArtwork(media, artwork = {}) {
+  const result = {};
+  for (const item of media) {
+    for (const node of [item, ...(item.relations?.edges || []).map((edge) => edge.node)]) {
+      if (!node?.id) continue;
+      const key = `anilist-${node.id}`;
+      const known = artwork[key] || {};
+      if (known.metadataCover || known.anilistCover || known.tmdbPoster) continue;
+      const metadataCover = node.coverImage?.extraLarge || "";
+      if (!metadataCover) continue;
+      result[key] = { metadataCover, anilistBanner: node.bannerImage || "" };
+    }
+  }
+  return result;
 }
 
 // Adjacency over every media we hold plus every node they name.
@@ -1204,6 +1224,8 @@ async function main() {
     }
   } catch { /* no previous map: writing the first one is correct */ }
 
+  // Build-only identity artwork is stored once, not repeated in runtime chains.
+  out.seasonArtwork = collectSeasonArtwork(fetched, entries);
   fs.writeFileSync(OUT, JSON.stringify(out, null, 2), "utf8");
   log(`wrote ${path.relative(root, OUT)}`);
   return 0;

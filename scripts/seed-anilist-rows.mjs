@@ -50,8 +50,9 @@ if (IDS) {
       const surrogateMalId = (rawAniListId.match(/^mal-(\d+)$/i) || [])[1];
       const anilistId = /^\d+$/.test(rawAniListId) ? Number(rawAniListId) : null;
       const malId = Number(season?.malId || surrogateMalId || 0) || null;
-      if (anilistId) targets.push({ key: `anilist-${anilistId}`, anilistId, malId });
-      else if (malId) targets.push({ key: `mal-${malId}`, anilistId: null, malId });
+      if (anilistId) targets.push({ key: `anilist-${anilistId}`, anilistId, malId,
+        season: { ...season, ...(airing.seasonArtwork?.[`anilist-${anilistId}`] || {}) } });
+      else if (malId) targets.push({ key: `mal-${malId}`, anilistId: null, malId, season });
     }
   }
 } else {
@@ -92,15 +93,36 @@ const entries = raw.entries || {};
 let seeded = 0, already = 0, missing = 0;
 for (const target of targets) {
   const { key } = target;
-  if (entries[key]) { already++; continue; }
+  if (entries[key]) {
+    if (!entries[key].metadataCover && target.season?.metadataCover) entries[key].metadataCover = target.season.metadataCover;
+    if (!entries[key].anilistBanner && target.season?.anilistBanner) entries[key].anilistBanner = target.season.anilistBanner;
+    already++;
+    continue;
+  }
   const hit = found.get(key);
-  if (!hit) { missing++; continue; }
+  if (!hit && !target.season?.title) { missing++; continue; }
   // status "seeded" rather than "ok": no TMDB match has been attempted yet, and
   // add-tmdb-artwork.mjs flips it to "ok" once a backdrop actually lands.
   entries[key] = {
     status: "seeded",
-    anilistId: hit.anilistId || target.anilistId || null,
-    malId: hit.malId || target.malId || null
+    anilistId: hit?.anilistId || target.anilistId || null,
+    malId: hit?.malId || target.malId || null,
+    // Newly announced relations can precede the weekly offline DB release.
+    // Their exact provider id supplies their own cover, never another season's.
+    ...(!hit ? {
+      metadataCover: target.season.metadataCover || "",
+      anilistBanner: target.season.anilistBanner || "",
+      meta: {
+        romajiTitle: target.season.title,
+        format: target.season.format || "",
+        year: target.season.seasonYear || (target.season.startedAt ? new Date(target.season.startedAt).getUTCFullYear() : null),
+        airingStatus: target.season.status || "",
+        episodes: target.season.episodes ?? null,
+        description: "",
+        genres: [],
+        _via: "provider-season-relation"
+      }
+    } : {})
   };
   seeded++;
 }

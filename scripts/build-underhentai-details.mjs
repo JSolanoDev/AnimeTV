@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import { createAdultFetcher, isAdultUpstreamUnavailable } from "./lib/adult-upstream.mjs";
 
 const BASE_URL = "https://www.underhentai.net";
 const CATALOG = resolve("scraper", "underhentai_catalog.json");
@@ -92,57 +93,11 @@ function bestArtwork(...values) {
   return candidates.find((value) => !isPlaceholderArtwork(value)) || candidates[0] || "";
 }
 
-async function fetchText(url, attempts = 3) {
-  let lastError;
-  let retryAfterMs = 0;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    await waitForRequestSlot();
-    const controller = new AbortController();
-    let timer;
-    try {
-      const request = fetch(url, {
-        headers: {
-          "User-Agent": USER_AGENT,
-          Accept: "text/html,application/xhtml+xml",
-          "Accept-Language": "en-US,en;q=0.9",
-          Referer: BASE_URL,
-          Connection: "close"
-        },
-        redirect: "follow",
-        signal: controller.signal
-      }).then(async (response) => ({
-        response,
-        body: response.ok ? await response.text() : ""
-      }));
-      const timeout = new Promise((_, reject) => {
-        timer = setTimeout(() => {
-          controller.abort();
-          reject(new Error(`Timed out fetching ${url}`));
-        }, 20000);
-      });
-      const { response, body } = await Promise.race([request, timeout]);
-      if (response.ok) return body;
-      lastError = new Error(`${response.status} ${response.statusText}`);
-      const retryAfter = Number(response.headers.get("retry-after"));
-      retryAfterMs = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.min(retryAfter * 1000, 30000) : 0;
-    } catch (error) {
-      lastError = error;
-    } finally {
-      if (timer) clearTimeout(timer);
-    }
-    const backoff = Math.max(retryAfterMs, 1200 * (attempt + 1));
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, backoff));
-  }
-  throw lastError || new Error(`Could not fetch ${url}`);
-}
-
-let nextRequestAt = 0;
-async function waitForRequestSlot() {
-  const scheduledAt = Math.max(Date.now(), nextRequestAt);
-  nextRequestAt = scheduledAt + REQUEST_INTERVAL_MS;
-  const delay = scheduledAt - Date.now();
-  if (delay > 0) await new Promise((resolvePromise) => setTimeout(resolvePromise, delay));
-}
+const { fetchText, throwIfUnavailable } = createAdultFetcher({
+  headers: { "User-Agent": USER_AGENT, Accept: "text/html,application/xhtml+xml",
+    "Accept-Language": "en-US,en;q=0.9", Referer: BASE_URL, Connection: "close" },
+  intervalMs: REQUEST_INTERVAL_MS
+});
 
 async function mapConcurrent(items, concurrency, worker, label) {
   const result = new Array(items.length);
@@ -154,6 +109,7 @@ async function mapConcurrent(items, concurrency, worker, label) {
       try {
         result[index] = await worker(items[index], index);
       } catch (error) {
+        if (isAdultUpstreamUnavailable(error)) throw error;
         console.warn(`${label} failed for ${items[index]?.url || items[index]?.watchUrl || index}: ${error.message}`);
         result[index] = null;
       }
@@ -323,6 +279,7 @@ async function main() {
     async (item) => parseTitlePage(await fetchText(item.url), item),
     "Title pages"
   );
+  throwIfUnavailable();
   const parsedBySlug = new Map(parsed.filter(Boolean).map((item) => [item.slug, item]));
   const details = items
     .map((item) => {
@@ -402,7 +359,8 @@ async function resolveKrakenFiles(embedUrl) {
         const watchHtml = await fetchText(job.sourceOption.watchUrl);
         const embeds = parseEmbeds(watchHtml);
         job.sourceOption.embeds = embeds;
-      } catch {
+      } catch (error) {
+        if (isAdultUpstreamUnavailable(error)) throw error;
         if (!Array.isArray(job.sourceOption.embeds)) {
           job.sourceOption.embeds = [];
         }
@@ -411,6 +369,7 @@ async function resolveKrakenFiles(embedUrl) {
     },
     "Watch pages"
   );
+  throwIfUnavailable();
 
   const allSourceOptions = details.flatMap((item) => item.episodes.flatMap((episode) => episode.sourceOptions));
   const allEpisodes = details.flatMap((item) => item.episodes);
@@ -435,5 +394,5 @@ async function resolveKrakenFiles(embedUrl) {
 
 main().catch((error) => {
   console.error(error);
-  process.exitCode = 1;
+  process.exitCode = isAdultUpstreamUnavailable(error) ? 75 : 1;
 });

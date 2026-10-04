@@ -3,6 +3,11 @@ import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import test from "node:test";
 import vm from "node:vm";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const server = require("../animetv-server.js");
@@ -29,6 +34,50 @@ test("airing batches use a single Page query rather than costly Media aliases", 
   assert.doesNotMatch(request.query, /m\d+: Media/);
   assert.match(code, /const PAUSE_MS = 2500/);
   assert.match(code, /\[400, 403, 429\]\.includes\(error.status\)/);
+  assert.match(request.query, /coverImage \{ extraLarge \}/);
+});
+
+test("new season relation artwork stays attached to its exact identity", () => {
+  const code = read("scripts/build-airing-map.mjs");
+  const start = code.indexOf("function nodeToEntry(");
+  const end = code.indexOf("// Adjacency", start);
+  const context = vm.createContext({ titleOf: (title) => title.romaji, startMs: () => 0 });
+  vm.runInContext(code.slice(start, end), context);
+  context.node = { id: 217001, title: { romaji: "New Season" }, format: "TV", status: "NOT_YET_RELEASED",
+    coverImage: { extraLarge: "https://images.test/exact-season.jpg" }, bannerImage: "https://images.test/exact-banner.jpg" };
+  const season = vm.runInContext("nodeToEntry(node)", context);
+  assert.equal(season.anilistId, 217001);
+  assert.equal(season.metadataCover, undefined);
+  const artwork = vm.runInContext("collectSeasonArtwork([node])", context);
+  assert.equal(artwork["anilist-217001"].metadataCover, context.node.coverImage.extraLarge);
+  assert.equal(artwork["anilist-217001"].anilistBanner, context.node.bannerImage);
+  assert.equal(vm.runInContext("Object.keys(collectSeasonArtwork([node], {'anilist-217001': {metadataCover:'keep.jpg'}})).length", context), 0);
+});
+
+test("a season newer than the offline DB is seeded with exact provider artwork and metadata", (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "zenkai-new-season-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const db = join(dir, "offline.jsonl");
+  const map = join(dir, "artwork.json");
+  const airing = join(dir, "airing.json");
+  writeFileSync(db, "");
+  writeFileSync(map, JSON.stringify({ entries: { "anilist-17": { metadataCover: "keep.jpg", meta: { description: "Keep synopsis" } } } }));
+  writeFileSync(airing, JSON.stringify({ seasonArtwork: {
+    "anilist-217001": { metadataCover: "https://images.test/exact-season.jpg", anilistBanner: "https://images.test/exact-banner.jpg" }
+  }, entries: { sample: { franchiseSeasons: [
+    { anilistId: 17, title: "Existing", metadataCover: "replacement.jpg" },
+    { anilistId: 217001, title: "New Season", format: "TV", status: "NOT_YET_RELEASED", seasonYear: 2027 }
+  ] } } }));
+  const child = spawnSync(process.execPath, [fileURLToPath(new URL("./seed-anilist-rows.mjs", import.meta.url)),
+    "--db", db, "--airing", airing, "--artwork", map, "--write"], { encoding: "utf8", timeout: 10000 });
+  assert.equal(child.status, 0, child.stderr);
+  const entries = JSON.parse(readFileSync(map)).entries;
+  assert.equal(entries["anilist-17"].metadataCover, "keep.jpg");
+  assert.equal(entries["anilist-17"].meta.description, "Keep synopsis");
+  assert.equal(entries["anilist-217001"].metadataCover, "https://images.test/exact-season.jpg");
+  assert.equal(entries["anilist-217001"].meta.romajiTitle, "New Season");
+  assert.equal(entries["anilist-217001"].meta.airingStatus, "NOT_YET_RELEASED");
+  assert.equal(entries["anilist-217001"].meta.episodes, null);
 });
 
 test("latest-feed artwork uses only an exact static identity and does not fetch", () => {

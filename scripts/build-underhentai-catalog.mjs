@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import { createAdultFetcher, isAdultUpstreamUnavailable } from "./lib/adult-upstream.mjs";
 
 const BASE_URL = "https://www.underhentai.net";
 const SITEMAP_INDEX_URL = `${BASE_URL}/sitemap.xml`;
@@ -156,45 +157,11 @@ function currentMetaRow(html = "", label = "") {
   return stripHtml(html.match(pattern)?.[3] || "");
 }
 
-let nextRequestAt = 0;
-async function waitForRequestSlot() {
-  const scheduledAt = Math.max(Date.now(), nextRequestAt);
-  nextRequestAt = scheduledAt + REQUEST_INTERVAL_MS;
-  const delay = scheduledAt - Date.now();
-  if (delay > 0) await new Promise((resolvePromise) => setTimeout(resolvePromise, delay));
-}
-
-async function fetchText(url, attempts = 3) {
-  let lastError;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    await waitForRequestSlot();
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 18000);
-    try {
-      const response = await fetch(url, {
-        headers: {
-          "User-Agent": USER_AGENT,
-          Accept: "text/html,application/xhtml+xml",
-          Connection: "close"
-        },
-        redirect: "follow",
-        signal: controller.signal
-      });
-      if (response.ok) return await response.text();
-      lastError = new Error(`${response.status} ${response.statusText}`);
-      const retryAfter = Number(response.headers.get("retry-after"));
-      if (Number.isFinite(retryAfter) && retryAfter > 0) {
-        await new Promise((resolvePromise) => setTimeout(resolvePromise, Math.min(retryAfter * 1000, 30000)));
-      }
-    } catch (error) {
-      lastError = error;
-    } finally {
-      clearTimeout(timer);
-    }
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 1200 * (attempt + 1)));
-  }
-  throw lastError || new Error(`Could not fetch ${url}`);
-}
+const { fetchText, throwIfUnavailable } = createAdultFetcher({
+  headers: { "User-Agent": USER_AGENT, Accept: "text/html,application/xhtml+xml", Connection: "close" },
+  intervalMs: REQUEST_INTERVAL_MS,
+  timeoutMs: 18000
+});
 
 async function mapConcurrent(items, worker) {
   const result = new Array(items.length);
@@ -205,6 +172,7 @@ async function mapConcurrent(items, worker) {
       try {
         result[index] = await worker(items[index], index);
       } catch (error) {
+        if (isAdultUpstreamUnavailable(error)) throw error;
         console.warn(`Skipping ${items[index]?.url || `item ${index}`}: ${error.message}`);
         result[index] = null;
       }
@@ -267,6 +235,7 @@ async function loadSitemapListings() {
     }
     return listings;
   } catch (error) {
+    if (isAdultUpstreamUnavailable(error)) throw error;
     console.warn(`Sitemap discovery unavailable: ${error.message}`);
     return [];
   }
@@ -356,6 +325,7 @@ async function main() {
     mapConcurrent(pageUrls, async (url, index) => parseListing(await fetchText(url), index + 1)),
     loadSitemapListings()
   ]);
+  throwIfUnavailable();
   const seen = new Set();
   const listed = [...pages.flat(), ...sitemapItems]
     .filter((item) => item.slug && !seen.has(item.slug) && seen.add(item.slug))
@@ -447,6 +417,7 @@ async function main() {
   ));
   console.log(`Refreshing ${metadataTargets.length} new, recent, or previously excluded title pages.`);
   const enriched = await mapConcurrent(metadataTargets, async (item) => extractMetadata(await fetchText(item.url), item));
+  throwIfUnavailable();
   const freshBySlug = new Map(enriched.filter(Boolean).map((item) => [item.slug, item]));
   const resolvedItems = mergedListings.map((item) => freshBySlug.get(item.slug) || item);
   const safeItems = [];
@@ -516,5 +487,5 @@ async function main() {
 
 main().catch((error) => {
   console.error(error);
-  process.exitCode = 1;
+  process.exitCode = isAdultUpstreamUnavailable(error) ? 75 : 1;
 });

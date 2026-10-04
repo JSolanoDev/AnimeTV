@@ -89,6 +89,9 @@ jobs:
       - name: Test new-release artwork and metadata batching
         run: node --test scripts/test-new-release-artwork.mjs
 
+      - name: Test transactional adult refresh and provider outages
+        run: npm run test:adult-refresh
+
       # ── 4. Build scraper arguments ─────────────────────────────────────────
       - name: Build scraper arguments
         id: args
@@ -321,5 +324,6 @@ jobs:
             scraper/underhentai_catalog.json
             scraper/underhentai_details.json
             artifacts/catalog-integrity-report.json
+            artifacts/adult-refresh-report.json
           retention-days: 7
           if-no-files-found: warn
