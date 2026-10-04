@@ -152,6 +152,8 @@ test("HLS verification follows extensionless variant playlists", async () => {
   const context = vm.createContext({
     Date,
     URL,
+    TextDecoder,
+    window: { setTimeout, clearTimeout },
     fetchWithTimeout: async (url) => {
       fetched.push(url);
       if (url.includes("opaque-variant")) {
@@ -173,7 +175,7 @@ test("HLS verification follows extensionless variant playlists", async () => {
     }
   });
   vm.runInContext(
-    `${section(client, "function manifestChildUrl(", "async function probeMediaBytes(")}\n${section(client, "function hlsManifestChildLine(", "async function probePlayableFallback(")}`,
+    `${section(client, "function manifestChildUrl(", "async function probeMediaBytes(")}\n${section(client, "function hlsManifestChildLine(", "async function probePlayableFallback(")}\n${section(client, "async function readPlaybackProbeText(", "function persistVerifiedFallbackSource(")}`,
     context
   );
 

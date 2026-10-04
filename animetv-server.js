@@ -11853,7 +11853,10 @@ async function handleUnderHentaiCatalog(url, response) {
     excludedForSafety: snapshot.excludedForSafety || 0,
     incompleteMetadataCount: snapshot.incompleteMetadataCount || 0,
     items: processed
-  }, 200, { "Cache-Control": "public, max-age=900, stale-while-revalidate=21600" });
+  }, 200, {
+    "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
+    "Vercel-CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=600"
+  });
 }
 
 function readXmlValue(block = "", tag = "") {

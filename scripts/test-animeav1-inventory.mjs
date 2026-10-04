@@ -23,6 +23,7 @@ import {
   retainAnimeAv1EpisodeInventory
 } from "./build-animeav1-inventory.mjs";
 import { requiresEmbedResolution, resolutionFailureStatus } from "./source-probe-policy.mjs";
+import { fetchBoundedAuditResponse, probeAuditMediaSource } from "./audit-media-probe.mjs";
 
 const require = createRequire(import.meta.url);
 const server = require("../animetv-server.js");
@@ -121,6 +122,87 @@ test("media probe failures take precedence over a successful resolver response",
     resolverStatus: 200,
     media: { usable: false, httpStatus: 502 }
   }), 502);
+});
+
+function auditResponse(body, status = 200, type = "video/mp2t", extra = {}) {
+  const bytes = Buffer.isBuffer(body) ? body : Buffer.from(body);
+  return {
+    ok: status >= 200 && status < 300, status, bytes, complete: true,
+    headers: new Headers({ "content-type": type, ...extra }),
+    text: async () => bytes.toString(), json: async () => JSON.parse(bytes.toString())
+  };
+}
+
+test("catalog audit: a valid playlist with a dead fragment is not playable", async () => {
+  const result = await probeAuditMediaSource({ type: "direct", container: "hls", url: "https://cdn.test/ep.m3u8" }, {
+    baseUrl: "http://localhost:4173",
+    request: async url => new URL(url).searchParams.get("url").endsWith("m3u8")
+      ? auditResponse("#EXTM3U\n#EXTINF:6,\nmissing.ts\n", 200, "application/x-mpegURL")
+      : auditResponse("not found", 404, "text/plain")
+  });
+  assert.equal(result.usable, false);
+  assert.equal(result.failure, "SOURCE_404");
+});
+
+test("catalog audit: rewritten same-origin HLS references are not sent to the upstream host", async () => {
+  const baseUrl = "http://localhost:4173";
+  const child = "/api/source?url=https%3A%2F%2Fcdn.test%2Ffirst.ts&refererHost=animeav1.uns.bio";
+  const calls = [];
+  const result = await probeAuditMediaSource({ type: "direct", container: "hls", url: "https://cdn.test/ep.m3u8" }, {
+    baseUrl,
+    request: async url => {
+      calls.push(String(url));
+      return calls.length === 1
+        ? auditResponse(`#EXTM3U\n#EXTINF:6,\n${child}\n`, 200, "application/x-mpegURL")
+        : auditResponse(Buffer.alloc(65536));
+    }
+  });
+  assert.equal(result.usable, true);
+  assert.equal(calls[1], `${baseUrl}${child}`);
+});
+
+test("catalog audit: HTML, ignored seek ranges, and download-only options do not pass", async () => {
+  const options = { baseUrl: "http://localhost:4173", request: async () => auditResponse(Buffer.alloc(65536), 200, "video/mp4") };
+  assert.equal((await probeAuditMediaSource({ type: "direct", url: "https://cdn.test/ep.mp4" }, options)).failure, "RANGE_NOT_SUPPORTED");
+  options.request = async () => auditResponse("<html>challenge</html>", 200, "text/html");
+  assert.equal((await probeAuditMediaSource({ type: "direct", url: "https://cdn.test/ep.mp4" }, options)).failure, "INVALID_MEDIA_BYTES");
+  options.request = async () => { throw new Error("download-only sources must not be requested"); };
+  assert.equal((await probeAuditMediaSource({ type: "iframe", provider: "Mega", url: "https://mega.nz/example" }, options)).failure, "DOWNLOAD_ONLY");
+});
+
+test("catalog audit: resolve and playback use the required referer and continuation range", async () => {
+  const urls = [];
+  const result = await probeAuditMediaSource({ type: "iframe", url: "https://www.yourupload.com/embed/example", referer: "https://tioanime.com/" }, {
+    baseUrl: "http://localhost:4173",
+    request: async (url, options) => {
+      const parsed = new URL(url);
+      urls.push(parsed);
+      if (parsed.pathname === "/api/resolve") return auditResponse(JSON.stringify({
+        ok: true, url: "https://vidcache.net/ep.mp4", type: "mp4", mediaReferer: "https://www.yourupload.com/embed/example"
+      }), 200, "application/json");
+      const start = Number(options.headers.Range.match(/bytes=(\d+)/)[1]);
+      return auditResponse(Buffer.alloc(65536), 206, "video/mp4", { "content-range": `bytes ${start}-${start + 65535}/99999999` });
+    }
+  });
+  assert.equal(result.usable, true);
+  assert.equal(urls[0].searchParams.get("referer"), "https://tioanime.com/");
+  assert.equal(urls[1].searchParams.get("refererHost"), "www.yourupload.com");
+  assert.equal(urls[2].searchParams.get("refererHost"), "www.yourupload.com");
+});
+
+test("catalog audit: body reads remain bounded after headers and when Range is ignored", async t => {
+  const fixture = createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "application/octet-stream" });
+    if (req.url === "/stall") res.write("headers arrived, body never finishes");
+    else res.end(Buffer.alloc(1024 * 1024));
+  });
+  await new Promise(resolve => fixture.listen(0, "127.0.0.1", resolve));
+  t.after(() => { fixture.closeAllConnections(); return new Promise(resolve => fixture.close(resolve)); });
+  const base = `http://127.0.0.1:${fixture.address().port}`;
+  const result = await fetchBoundedAuditResponse(`${base}/large`, {}, 1000, 65536);
+  assert.equal(result.bytes.length, 65536);
+  assert.equal(result.complete, false);
+  await assert.rejects(fetchBoundedAuditResponse(`${base}/stall`, {}, 250), /abort/i);
 });
 
 test("YourUpload embed streams retain their required media referer", () => {

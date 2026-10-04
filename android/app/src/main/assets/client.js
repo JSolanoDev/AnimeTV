@@ -4873,7 +4873,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=948";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=951";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -19578,13 +19578,14 @@ function isExternalIframeEpisode(episode) {
 
 async function attemptResolveEmbed(embedUrl, siteReferer = "", timeoutMs = 7000) {
   if (!embedUrl) return null;
+  const deadlineAt = Date.now() + timeoutMs;
   try {
     const api = new URL("/api/resolve", location.origin);
     api.searchParams.set("url", embedUrl);
     if (siteReferer) api.searchParams.set("referer", siteReferer);
     const response = await fetchWithTimeout(api.toString(), {}, timeoutMs);
     if (!response.ok) return null;
-    const payload = await response.json();
+    const payload = JSON.parse(await readPlaybackProbeText(response, deadlineAt));
     if (payload && payload.ok && payload.url) {
       return {
         url: payload.url,
@@ -19804,6 +19805,7 @@ function firstSuccessfulFallback(tasks = []) {
 
 async function resolveFallbackCandidateToDirect(source = {}, options = {}) {
   const timeoutMs = Math.max(250, Number(options.timeoutMs) || FALLBACK_RESOLVE_TIMEOUT_MS);
+  const deadlineAt = Date.now() + timeoutMs;
   const directUrl = sourceDirectUrl(source);
   if (directUrl && !isBlockedPlaybackUrl(directUrl)) {
     return { url: directUrl, referer: fallbackReferer(source), type: streamTypeFromUrl(directUrl) };
@@ -19815,7 +19817,7 @@ async function resolveFallbackCandidateToDirect(source = {}, options = {}) {
     try {
       const response = await fetchWithTimeout(endpoint, { cache: "no-store" }, timeoutMs);
       if (!response.ok) return null;
-      const payload = await response.json();
+      const payload = JSON.parse(await readPlaybackProbeText(response, deadlineAt));
       let url = pickPlayableUrl(payload);
       if (!url) {
         const payloadSources = [
@@ -19837,7 +19839,8 @@ async function resolveFallbackCandidateToDirect(source = {}, options = {}) {
         };
       }
       if (payload.externalUrl && embedProviderRank(fallbackSourceIdentity(source)) === 0) {
-        return attemptResolveEmbed(payload.externalUrl, fallbackReferer(source), timeoutMs);
+        const remainingMs = deadlineAt - Date.now();
+        return remainingMs > 0 ? attemptResolveEmbed(payload.externalUrl, fallbackReferer(source), remainingMs) : null;
       }
     } catch (error) {
       console.info("Ad-free fallback resolver did not respond.");
@@ -19909,7 +19912,11 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
     const plausible = response.ok
       && !contentType.includes("text/html")
       && (acceptedType || Boolean(contentRange) || acceptedUrl);
-    if (!plausible || !response.body?.getReader) {
+    const deliveredRangeStart = contentRange.match(/^bytes\s+(\d+)-/i)?.[1];
+    const continuationMatches = !rangeStart || (
+      response.status === 206 && Number(deliveredRangeStart) === rangeStart
+    );
+    if (!plausible || !continuationMatches || !response.body?.getReader) {
       await response.body?.cancel().catch(() => {});
       return false;
     }
@@ -19945,8 +19952,7 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
     }
     const deliveredEnough = receivedBytes >= minimumBytes || (!requiresSustainedProbe && streamEnded && receivedBytes > 0);
     const completeSegmentDelivered = !cacheCompleteSegment
-      || streamEnded
-      || receivedBytes >= maxCachedSegmentBytes;
+      || streamEnded;
     if (!deliveredEnough || !completeSegmentDelivered) return false;
     if (!requiresSustainedProbe) return true;
     // Startup latency is already bounded by timeoutMs. Measure sustained media
@@ -19996,16 +20002,19 @@ async function probeHlsManifest(url = "", referer = "", depth = 0, options = {})
   const target = proxiedStreamUrl(url, referer);
   if (!target || depth > 1) return false;
   const timeoutMs = Math.max(250, Number(options.timeoutMs) || FALLBACK_PROBE_TIMEOUT_MS);
-  const deadlineAt = Number(options.deadlineAt) || 0;
-  const remainingMs = deadlineAt ? Math.max(0, deadlineAt - Date.now()) : timeoutMs;
+  const deadlineAt = Number(options.deadlineAt) || (Date.now() + timeoutMs);
+  const remainingMs = Math.max(0, deadlineAt - Date.now());
   if (remainingMs < 150) return false;
   try {
     const response = await fetchWithTimeout(target, {
       cache: options.cacheMode || "no-store",
       credentials: "omit"
     }, Math.min(timeoutMs, remainingMs));
-    if (!response.ok) return false;
-    const manifest = await response.text();
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => {});
+      return false;
+    }
+    const manifest = await readPlaybackProbeText(response, deadlineAt);
     if (!manifest.includes("#EXTM3U")) return false;
     const childLines = hlsManifestMediaLines(manifest, options.startTime, 2);
     const childLine = childLines[0] || "";
@@ -20071,6 +20080,45 @@ async function probePlayableFallback(resolved = {}, options = {}) {
   );
   const results = await Promise.all([firstProbe, continuationProbe]);
   return results.every(Boolean);
+}
+
+async function readPlaybackProbeText(response, deadlineAt, maxBytes = 512 * 1024) {
+  const remainingMs = Math.max(0, deadlineAt - Date.now());
+  if (!remainingMs) {
+    response.body?.cancel().catch(() => {});
+    throw new Error("Playback probe deadline exceeded");
+  }
+  const reader = response.body?.getReader();
+  let timer = 0;
+  try {
+    const read = async () => {
+      if (!reader) {
+        const text = await response.text();
+        if (text.length > maxBytes) throw new Error("Playback probe body too large");
+        return text;
+      }
+      const decoder = new TextDecoder();
+      let text = "";
+      let bytes = 0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) return text + decoder.decode();
+        bytes += value.byteLength;
+        if (bytes > maxBytes) throw new Error("Playback probe body too large");
+        text += decoder.decode(value, { stream: true });
+      }
+    };
+    return await Promise.race([
+      read(),
+      new Promise((_, reject) => {
+        timer = window.setTimeout(() => reject(new Error("Playback probe deadline exceeded")), remainingMs);
+      })
+    ]);
+  } finally {
+    if (timer) window.clearTimeout(timer);
+    // A timed-out body must not hold up the fallback race while it is cancelled.
+    if (reader) reader.cancel().catch(() => {});
+  }
 }
 
 function persistVerifiedFallbackSource(episode, source, resolved, options = {}) {
@@ -23536,7 +23584,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=948");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=951");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

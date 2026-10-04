@@ -964,6 +964,7 @@ test("episode rows keep title artwork as a fallback when an episode still is unp
 
 test("local-only retired files cannot change the production catalog total", async () => {
   const results = [];
+  const headers = [];
   for (const hasRetiredFile of [false, true]) {
     let retiredReads = 0;
     const c = vm.createContext({
@@ -976,7 +977,10 @@ test("local-only retired files cannot change the production catalog total", asyn
       chooseUnderHentaiDisplayImage: value => value,
       getUnderHentaiArtwork: () => ({ screenshots: [], backgroundArtwork: "" }),
       UNDERHENTAI_LIVE_CATALOG_ENABLED: false,
-      sendJson: (_response, payload) => results.push(payload),
+      sendJson: (_response, payload, _status, responseHeaders) => {
+        results.push(payload);
+        headers.push(responseHeaders);
+      },
       log() {}
     });
     vm.runInContext(section(server, "async function handleUnderHentaiCatalog(", "function readXmlValue("), c);
@@ -985,6 +989,10 @@ test("local-only retired files cannot change the production catalog total", asyn
   }
   assert.deepEqual(results.map(result => result.count), [1, 1]);
   assert.deepEqual(results.map(result => result.excludedForSafety), [1, 1]);
+  for (const responseHeaders of headers) {
+    assert.equal(responseHeaders["Cache-Control"], "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
+    assert.equal(responseHeaders["Vercel-CDN-Cache-Control"], "public, s-maxage=300, stale-while-revalidate=600");
+  }
   assert.match(client, /multi-source-v14/, "retired browser snapshots must not be restored after upgrading");
 });
 

@@ -512,6 +512,108 @@ test("reliability: proven progressive hosts gain priority but unknown hosts do n
   assert.equal(sandbox.isFastPreferredPlaybackSource(source), false);
 });
 
+function mediaProbeContext(fetchWithTimeout) {
+  const sandbox = vm.createContext({
+    Date, URL, TextDecoder,
+    window: { setTimeout, clearTimeout },
+    FALLBACK_PROBE_TIMEOUT_MS: 4000,
+    fetchWithTimeout,
+    proxiedStreamUrl: (url) => url,
+    originalStreamUrlFromProxy: (url) => url,
+    location: { origin: "https://zenkaitv.com" }
+  });
+  vm.runInContext(section(clientSource, "function manifestChildUrl(", "async function probePlayableFallback("), sandbox);
+  vm.runInContext(section(clientSource, "async function readPlaybackProbeText(", "function persistVerifiedFallbackSource("), sandbox);
+  return sandbox;
+}
+
+test("readiness: HLS headers followed by a stalled body release the fallback race", async () => {
+  let cancelled = 0;
+  const sandbox = mediaProbeContext(async () => ({
+    ok: true,
+    body: { getReader: () => ({
+      read: () => new Promise(() => {}),
+      cancel: async () => { cancelled++; }
+    }) }
+  }));
+  const started = performance.now();
+  assert.equal(await sandbox.probeHlsManifest("https://cdn.test/episode.m3u8", "", 0, { timeoutMs: 250 }), false);
+  assert.ok(performance.now() - started < 750, "response headers must not disable the body deadline");
+  assert.equal(cancelled, 1);
+});
+
+test("readiness: oversized manifests cannot consume unbounded memory", async () => {
+  let cancelled = 0;
+  const sandbox = mediaProbeContext(async () => ({
+    ok: true,
+    body: { getReader: () => ({
+      read: async () => ({ done: false, value: new Uint8Array(513 * 1024) }),
+      cancel: async () => { cancelled++; }
+    }) }
+  }));
+  assert.equal(await sandbox.probeHlsManifest("https://cdn.test/episode.m3u8"), false);
+  assert.equal(cancelled, 1);
+});
+
+test("readiness: embed and resolver JSON bodies share their existing total deadline", async () => {
+  let cancelled = 0;
+  const sandbox = mediaProbeContext(async () => ({
+    ok: true,
+    body: { getReader: () => ({
+      read: () => new Promise(() => {}), cancel: async () => { cancelled++; }
+    }) }
+  }));
+  Object.assign(sandbox, {
+    console: { warn() {}, info() {} },
+    FALLBACK_RESOLVE_TIMEOUT_MS: 4500,
+    sourceDirectUrl: () => "", withAnime1vApiKey: value => value
+  });
+  vm.runInContext(section(clientSource, "async function attemptResolveEmbed(", "function fallbackSourceIdentity("), sandbox);
+  vm.runInContext(section(clientSource, "async function resolveFallbackCandidateToDirect(", "function manifestChildUrl("), sandbox);
+  const started = performance.now();
+  assert.equal(await sandbox.attemptResolveEmbed("https://provider.test/embed", "", 250), null);
+  assert.equal(await sandbox.resolveFallbackCandidateToDirect({ type: "resolver", streamResolver: { endpoint: "/api/resolve" } }, { timeoutMs: 250 }), null);
+  assert.ok(performance.now() - started < 1250);
+  assert.equal(cancelled, 2);
+});
+
+test("readiness: a healthy HLS playlist still verifies two real fragments", async () => {
+  const calls = [];
+  const sandbox = mediaProbeContext(async (url) => {
+    calls.push(url);
+    return url.endsWith("m3u8")
+      ? new Response("#EXTM3U\n#EXTINF:6,\nfirst.ts\n#EXTINF:6,\nsecond.ts\n#EXT-X-ENDLIST\n")
+      : new Response(new Uint8Array(64 * 1024), { headers: { "Content-Type": "video/mp2t" } });
+  });
+  assert.equal(await sandbox.probeHlsManifest("https://cdn.test/episode.m3u8"), true);
+  assert.deepEqual(calls, ["https://cdn.test/episode.m3u8", "https://cdn.test/first.ts", "https://cdn.test/second.ts"]);
+});
+
+test("readiness: servers ignoring a seek range cannot pass continuation verification", async () => {
+  for (const [status, range, expected] of [
+    [200, "", false],
+    [206, "bytes 0-131071/9999999", false],
+    [206, "bytes 1048576-1179647/9999999", true]
+  ]) {
+    const sandbox = mediaProbeContext(async () => new Response(new Uint8Array(128 * 1024), {
+      status,
+      headers: { "Content-Type": "video/mp4", "Content-Range": range }
+    }));
+    assert.equal(await sandbox.probeMediaBytes("https://www.mp4upload.com/example.mp4", "", 500, "no-store", {
+      rangeStart: 1024 * 1024
+    }), expected);
+  }
+});
+
+test("readiness: reaching the segment byte cap is not proof of a complete fragment", async () => {
+  const sandbox = mediaProbeContext(async () => new Response(new Uint8Array(13 * 1024 * 1024), {
+    headers: { "Content-Type": "video/mp2t" }
+  }));
+  assert.equal(await sandbox.probeMediaBytes("https://cdn.test/first.ts", "", 500, "no-store", {
+    cacheCompleteSegment: true
+  }), false);
+});
+
 test("audit: identical media IDs share one live verification without mixing referers or tokens", async () => {
   let resolutions = 0;
   let probes = 0;

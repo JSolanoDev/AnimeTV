@@ -2,7 +2,8 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { createRequire } from "node:module";
-import { requiresEmbedResolution, resolutionFailureStatus } from "./source-probe-policy.mjs";
+import { resolutionFailureStatus } from "./source-probe-policy.mjs";
+import { fetchBoundedAuditResponse, isDownloadOnlyAuditSource, probeAuditMediaSource } from "./audit-media-probe.mjs";
 
 const require = createRequire(import.meta.url);
 const { normalizeTitle } = require("../js/utils.js");
@@ -14,17 +15,25 @@ const args = Object.fromEntries(process.argv.slice(2).map((arg) => {
 }));
 const baseUrl = String(args.base || "http://localhost:4173").replace(/\/$/, "");
 const episodesPerTitle = Math.max(1, Math.min(5, Number(args["episodes-per-title"] || 2)));
-const concurrency = Math.max(1, Math.min(16, Number(args.concurrency || 6)));
+const concurrency = Math.max(1, Math.min(4, Number(args.concurrency || 2)));
 const titleLimit = args.limit ? Math.max(1, Number(args.limit)) : Infinity;
 const probeMedia = args["probe-media"] !== "false";
-const allEpisodes = args["all-episodes"] === "true";
+const inventoryOnly = args["inventory-only"] === "true";
+const allEpisodes = inventoryOnly || args["all-episodes"] === "true";
+const requestedSlugs = new Set(String(args.slugs || "").split(",").map(value => value.trim()).filter(Boolean));
+const compareLegacy = args["compare-legacy"] === "true";
 const failOnUnusable = args["fail-on-unusable"] === "true";
 const requestedFormats = new Set(String(args.formats || "")
   .split(",")
   .map((value) => value.trim().toUpperCase())
   .filter(Boolean));
 const requestTimeoutMs = Math.max(2500, Number(args.timeout || 12000));
-const retryAttempts = Math.max(1, Math.min(4, Number(args.retries || 3)));
+const retryAttempts = Math.max(1, Math.min(2, Number(args.retries || 1)));
+const requestPauseMs = Math.max(250, Number(args["pause-ms"] || 500));
+let requestGate = Promise.resolve();
+let stopReason = "";
+let requestsMade = 0;
+let consecutiveServiceFailures = 0;
 const startedAt = new Date();
 
 function stripSeasonWords(title = "") {
@@ -241,110 +250,29 @@ function failureCode(status, detail = "") {
   return "NO_SOURCE";
 }
 
-async function fetchWithDeadline(url, options = {}, timeoutMs = requestTimeoutMs) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { redirect: "follow", ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
+async function fetchWithDeadline(url, options = {}, timeoutMs = requestTimeoutMs, maxBytes) {
+  const slot = requestGate.then(async () => {
+    if (stopReason) throw new Error(stopReason);
+    await new Promise(resolve => setTimeout(resolve, requestPauseMs));
+  });
+  requestGate = slot.catch(() => {});
+  await slot;
+  if (stopReason) throw new Error(stopReason);
+  requestsMade++;
+  const response = await fetchBoundedAuditResponse(url, options, timeoutMs, maxBytes);
+  if (response.status === 429) {
+    stopReason = `Stopped on HTTP 429; Retry-After=${response.headers.get("retry-after") || "unspecified"}`;
+  } else if (response.status === 403 && /Vercel Security Checkpoint|verify you are human/i.test(await response.text())) {
+    stopReason = "Stopped: Vercel Security Checkpoint prevents application-level testing";
   }
-}
-
-async function fetchJson(url, timeoutMs = requestTimeoutMs) {
-  const response = await fetchWithDeadline(url, {}, timeoutMs);
-  const payload = await response.json().catch(() => null);
-  if (!response.ok || !payload) throw new Error(`${url} returned HTTP ${response.status}`);
-  return payload;
+  if (response.status >= 500) consecutiveServiceFailures++;
+  else consecutiveServiceFailures = 0;
+  if (consecutiveServiceFailures >= 5) stopReason = "Stopped after five consecutive upstream/server failures";
+  return response;
 }
 
 async function validateMediaSource(source = {}) {
-  let candidate = { ...source };
-  let rawUrl = candidate.videoUrl || candidate.url || "";
-  if (!rawUrl) return { usable: false, failure: "NO_SOURCE", httpStatus: null, manifestType: "" };
-  if (requiresEmbedResolution(candidate)) {
-    try {
-      const resolveUrl = new URL("/api/resolve", baseUrl);
-      resolveUrl.searchParams.set("url", rawUrl);
-      const resolvedResponse = await fetchWithDeadline(resolveUrl);
-      const resolved = await resolvedResponse.json().catch(() => null);
-      if (!resolvedResponse.ok || !resolved?.ok || !resolved.url) {
-        return {
-          usable: false,
-          failure: failureCode(resolvedResponse.status, resolved?.error || "Embed did not resolve"),
-          httpStatus: resolvedResponse.status,
-          manifestType: "embed"
-        };
-      }
-      rawUrl = resolved.url;
-      candidate = {
-        ...candidate,
-        type: "direct",
-        videoUrl: rawUrl,
-        container: resolved.type === "hls" ? "hls" : candidate.container,
-        mimeType: resolved.type === "hls" ? "application/x-mpegURL" : candidate.mimeType
-      };
-    } catch (error) {
-      return { usable: false, failure: failureCode(408, error.message), httpStatus: null, manifestType: "embed", detail: error.message };
-    }
-  }
-  const url = new URL(rawUrl, baseUrl).toString();
-  const parsedUrl = new URL(url);
-  const proxiedUpstream = /\/api\/(?:source|stream)/.test(parsedUrl.pathname)
-    ? parsedUrl.searchParams.get("url") || ""
-    : "";
-  const mediaIdentity = proxiedUpstream || url;
-  const hls = candidate.container === "hls"
-    || /mpegurl/i.test(candidate.mimeType || candidate.contentType || "")
-    || /\.m3u8(?:$|[?#])/i.test(mediaIdentity)
-    || /\/m3u8\/[a-f0-9]{16,}(?:$|[?#/])/i.test(mediaIdentity);
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), requestTimeoutMs);
-  try {
-    // Keep the abort signal alive until the body is consumed. A media proxy can
-    // send headers and then stall; timing only fetch() would leave the scanner
-    // waiting forever in response.text()/arrayBuffer().
-    const response = await fetch(url, {
-      redirect: "follow",
-      ...(hls ? {} : { headers: { Range: "bytes=0-1023" } }),
-      signal: controller.signal
-    });
-    if (!response.ok && response.status !== 206) {
-      return { usable: false, failure: failureCode(response.status), httpStatus: response.status, manifestType: "" };
-    }
-    const contentType = response.headers.get("content-type") || "";
-    if (hls || /mpegurl/i.test(contentType)) {
-      const text = await response.text();
-      if (!/^#EXTM3U/m.test(text)) {
-        return { usable: false, failure: "BAD_MANIFEST", httpStatus: response.status, manifestType: "invalid" };
-      }
-      const manifestType = /#EXT-X-STREAM-INF/i.test(text) ? "master" : /#EXTINF/i.test(text) ? "media" : "hls";
-      const firstReference = text.split(/\r?\n/).map((line) => line.trim()).find((line) => line && !line.startsWith("#"));
-      let relativeReferenceResolves = null;
-      if (firstReference) {
-        try {
-          relativeReferenceResolves = Boolean(new URL(firstReference, response.url || url));
-        } catch {
-          relativeReferenceResolves = false;
-        }
-      }
-      if (relativeReferenceResolves === false) {
-        return { usable: false, failure: "BAD_MANIFEST", httpStatus: response.status, manifestType, relativeReferenceResolves };
-      }
-      return { usable: true, failure: "", httpStatus: response.status, manifestType, relativeReferenceResolves };
-    }
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    return {
-      usable: bytes.byteLength > 0,
-      failure: bytes.byteLength ? "" : "BAD_MANIFEST",
-      httpStatus: response.status,
-      manifestType: "file"
-    };
-  } catch (error) {
-    return { usable: false, failure: failureCode(408, error.message), httpStatus: null, manifestType: "", detail: error.message };
-  } finally {
-    clearTimeout(timer);
-  }
+  return probeAuditMediaSource(source, { baseUrl, request: fetchWithDeadline, timeoutMs: requestTimeoutMs });
 }
 
 const sourceResolutionCache = new Map();
@@ -394,14 +322,20 @@ async function resolveEpisodeCached(providerKey, slug, providerEpisodeId) {
             media: null
           };
         }
-        let media = { usable: true, failure: "", httpStatus: null, manifestType: "not-probed" };
+        let media = { usable: false, failure: "NOT_PROBED", httpStatus: null, manifestType: "not-probed" };
         if (probeMedia) {
-          const ranked = sources.filter((source) => source.videoUrl || source.url);
+          const ranked = sources.filter((source) => !isDownloadOnlyAuditSource(source)
+            && (source.videoUrl || source.url || source.externalUrl));
           media = { usable: false, failure: "NO_SOURCE", httpStatus: null, manifestType: "" };
           for (const source of ranked) {
-            const mediaKey = source.videoUrl || source.url;
+            const mediaKey = JSON.stringify([
+              source.videoUrl || source.url || source.externalUrl,
+              source.mediaReferer || source.referer || payload.episodeUrl || ""
+            ]);
             if (!mediaValidationCache.has(mediaKey)) {
-              mediaValidationCache.set(mediaKey, validateMediaSource(source));
+              mediaValidationCache.set(mediaKey, validateMediaSource({
+                ...source, referer: source.referer || payload.episodeUrl || ""
+              }));
             }
             const result = await mediaValidationCache.get(mediaKey);
             if (result.usable) {
@@ -447,8 +381,8 @@ async function resolveEpisode(providerKey, slug, providerEpisodeId) {
   for (let attempt = 1; attempt <= retryAttempts; attempt += 1) {
     if (attempt > 1) sourceResolutionCache.delete(key);
     result = await resolveEpisodeCached(providerKey, slug, providerEpisodeId);
-    if (result?.usable || !isTransientResolutionFailure(result) || attempt === retryAttempts) break;
-    await new Promise((resolve) => setTimeout(resolve, 180 * attempt));
+    if (stopReason || result?.usable || !isTransientResolutionFailure(result) || attempt === retryAttempts) break;
+    await new Promise((resolve) => setTimeout(resolve, 1000 * (2 ** (attempt - 1))));
   }
   return result;
 }
@@ -457,17 +391,17 @@ async function mapConcurrent(items, worker, size = concurrency) {
   const results = new Array(items.length);
   let cursor = 0;
   async function run() {
-    while (cursor < items.length) {
+    while (cursor < items.length && !stopReason) {
       const index = cursor;
       cursor += 1;
       results[index] = await worker(items[index], index);
-      if ((index + 1) % 100 === 0 || index + 1 === items.length) {
-        process.stdout.write(`Audited ${index + 1}/${items.length} episode samples\n`);
+      if ((!inventoryOnly || (index + 1) % 10000 === 0) || index + 1 === items.length) {
+        process.stdout.write(`Audited ${index + 1}/${items.length} episode ${inventoryOnly ? "mappings" : "samples"}\n`);
       }
     }
   }
   await Promise.all(Array.from({ length: Math.min(size, items.length) }, run));
-  return results;
+  return results.filter(Boolean);
 }
 
 function relationMetrics(catalog) {
@@ -529,7 +463,8 @@ function summarize(records, phase) {
     correctlyMapped: correct.length,
     correctlyMappedPercent: Number((correct.length * 100 / Math.max(1, records.length)).toFixed(2)),
     episodesResolvingToSource: withSources.length,
-    zeroSource: correct.filter((record) => record[phase].resolution.sourceCount === 0).length,
+    zeroSource: correct.filter((record) => record[phase].resolution.sourceCount === 0 && record[phase].resolution.failure !== "NOT_PROBED").length,
+    notMediaProbed: correct.filter(record => record[phase].resolution.failure === "NOT_PROBED").length,
     deadOnlySource: deadOnly.length,
     confirmedUsable: usable.length,
     confirmedUsablePercent: Number((usable.length * 100 / Math.max(1, records.length)).toFixed(2)),
@@ -588,6 +523,7 @@ const catalog = catalogWithFallbacks
     };
   })
   .filter((item) => !requestedFormats.size || requestedFormats.has(String(item.format || item.type || "").toUpperCase()))
+  .filter((item) => !requestedSlugs.size || requestedSlugs.has(authoritativeSlug(item)))
   .slice(0, titleLimit);
 const legacyByTitle = new Map();
 slugItems.forEach((item) => {
@@ -610,10 +546,14 @@ const records = await mapConcurrent(tasks, async ({ item, number }) => {
   // a proven old mapping defect.
   const legacySlug = legacyCatalogSlug || expectedSlug;
   const providerNumber = providerEpisodeNumber(item, number);
-  const afterResolution = targetSlug ? await resolveEpisode(targetProviderKey, targetSlug, providerNumber) : {
+  const mappingValid = Boolean(targetSlug) && Number.isFinite(providerNumber) && providerNumber >= 0;
+  const afterResolution = inventoryOnly ? {
+    resolverOk: null, resolverStatus: null, sourceCount: 0, sourceTypes: [], usable: false,
+    failure: "NOT_PROBED", providerEpisodeId: providerNumber, media: null
+  } : mappingValid ? await resolveEpisode(targetProviderKey, targetSlug, providerNumber) : {
     resolverOk: false, resolverStatus: null, sourceCount: 0, sourceTypes: [], usable: false, failure: "BAD_NORMALIZATION", providerEpisodeId: number
   };
-  const beforeResolution = !usesVerifiedFallback && legacySlug && legacySlug !== expectedSlug
+  const beforeResolution = compareLegacy && !inventoryOnly && !usesVerifiedFallback && legacySlug && legacySlug !== expectedSlug
     ? await resolveEpisode("animeav1", legacySlug, providerNumber)
     : afterResolution;
   const internalEpisode = (item.episodes || []).find((episode) => episodeNumber(episode) === number);
@@ -635,7 +575,7 @@ const records = await mapConcurrent(tasks, async ({ item, number }) => {
       resolution: beforeResolution
     },
     after: {
-      correctMapping: Boolean(targetSlug),
+      correctMapping: mappingValid,
       resolution: afterResolution
     }
   };
@@ -652,11 +592,10 @@ const rawDuplicateEpisodes = catalog.reduce((total, item) => {
   }, 0);
 }, 0);
 const sourceGapCount = catalog.reduce((total, item) => {
-  const numbers = new Set((item.episodes || []).map(episodeNumber).filter((number) => Number.isInteger(number) && number > 0));
-  const limit = catalogEpisodeLimit(item) || 0;
-  let missing = 0;
-  for (let number = 1; number <= Math.min(limit, 2000); number += 1) if (!numbers.has(number)) missing += 1;
-  return total + missing;
+  const numbers = new Set((item.episodes || []).map(episodeNumber));
+  // Most rows are generated from the provider inventory by the client. Missing
+  // enriched metadata is not the same as a missing playable episode.
+  return total + sampledEpisodeNumbers(item).filter(number => !numbers.has(number)).length;
 }, 0);
 
 const report = {
@@ -670,15 +609,23 @@ const report = {
     probeMedia,
     requestTimeoutMs,
     retryAttempts,
-    failOnUnusable
+    failOnUnusable, inventoryOnly, compareLegacy, requestPauseMs,
+    requestedSlugs: [...requestedSlugs]
   },
+  evidence: inventoryOnly ? "Full static provider inventory/mapping audit; no remote media tested"
+    : "Bounded metadata/media reachability samples; not a browser decode, complete-stream, or buffering certification",
+  requestsMade,
+  stopReason: stopReason || null,
+  completed: records.length === tasks.length,
   catalog: {
     animeTested: catalog.length,
     seasonsRepresented: new Set(catalog.map((item) => `${item.anilistId || item.id}:${Number(item.seasonNumber) || 1}`)).size,
     logicalEpisodesRepresented: catalog.reduce((sum, item) => sum + (catalogEpisodeLimit(item) || 0), 0),
-    episodeSamplesTested: records.length,
+    episodeMappingsChecked: records.length,
+    episodeSamplesTested: inventoryOnly ? 0 : records.length,
+    episodeSamplesPlanned: inventoryOnly ? 0 : tasks.length,
     rawDuplicateEpisodes,
-    sourceMetadataGaps: sourceGapCount,
+    generatedEpisodeRowsWithoutEnrichment: sourceGapCount,
     titlesWithPoster: catalog.filter((item) => Boolean(item.tmdbPoster || item.coverImageLarge || item.poster || item.image)).length,
     titlesWithBackground: catalog.filter((item) => Boolean(
       item.tmdbBackdrop
@@ -690,10 +637,10 @@ const report = {
       || item.image
     )).length
   },
-  before: summarize(records, "before"),
+  before: compareLegacy ? { ...summarize(records, "before"), evidence: "Counterfactual legacy mapping analysis; NOT a measured before/after performance comparison" } : null,
   after: summarize(records, "after"),
   relations: relationMetrics(catalog),
-  records
+  records: inventoryOnly ? records.filter(record => !record.after.correctMapping) : records
 };
 
 const outputPath = args.output
@@ -707,9 +654,15 @@ process.stdout.write(`${JSON.stringify({
   catalog: report.catalog,
   before: report.before,
   after: report.after,
+  evidence: report.evidence,
+  requestsMade,
+  stopReason: report.stopReason,
+  completed: report.completed,
   relations: report.relations
 }, null, 2)}\n`);
 
-if (failOnUnusable && report.after.confirmedUsable !== records.length) {
+if (failOnUnusable && (stopReason || (inventoryOnly
+  ? report.after.correctlyMapped !== tasks.length
+  : report.after.confirmedUsable !== tasks.length))) {
   process.exitCode = 1;
 }
