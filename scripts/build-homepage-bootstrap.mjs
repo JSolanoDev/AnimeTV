@@ -51,7 +51,12 @@ export function buildHomepageBootstrap(catalog, artwork, airing, limit = 96) {
       sourcePlayableEpisodeCount: row.sourcePlayableEpisodeCount ?? null,
       sourceEpisodeIds: row.sourceEpisodeIds?.length <= 32 ? row.sourceEpisodeIds : undefined,
       sourceInventoryChecked: Boolean(row.sourceInventoryChecked),
-      status: meta.airingStatus || row.status || air.airingStatus || "",
+      sourceInventoryPartial: row.sourceInventoryPartial === true || row.sourceEpisodeIds?.length > 32,
+      // The provider schedule is the freshest authority for an actively
+      // publishing title. Metadata services can model a completed batch as a
+      // separate "stage" and otherwise leave the combined provider page marked
+      // FINISHED after its next episode has already appeared.
+      status: air.airingStatus || meta.airingStatus || row.status || "",
       format: meta.format || row.type || "",
       year: meta.year || row.year || air.seasonYear || "",
       season: air.season || row.season || "",
@@ -68,6 +73,7 @@ export function buildHomepageBootstrap(catalog, artwork, airing, limit = 96) {
       tmdbId: art.tmdbId || null,
       tmdbBackdrop: art.tmdbBackdrop || "",
       tmdbPoster: art.tmdbPoster || "",
+      episodeThumbnailFallback: art.episodeThumbnailFallback || row.episodeThumbnailFallback || "",
       lastEpisodeAt: air.lastEpisodeAt || "",
       nextAiringAt: air.nextAiringAt || null,
       nextAiringEpisodeNumber: air.nextAiringEpisodeNumber || null,

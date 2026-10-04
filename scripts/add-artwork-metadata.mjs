@@ -36,6 +36,8 @@ const argOf = (name, fallback) => {
 };
 const FORCE = args.includes("--force");
 const LIMIT = Number(argOf("--limit", "0")) || 0;
+const ONLY_IDS = new Set(String(argOf("--ids", ""))
+  .split(",").map((value) => value.trim()).filter(Boolean));
 // AniList answered 30/min on 2026-09-02 (x-ratelimit-limit), well below the
 // documented 90. 2500ms keeps a margin even if several runs overlap.
 const INTERVAL = Number(argOf("--interval", "2500"));
@@ -191,6 +193,7 @@ const keys = Object.keys(entries);
 // resolve each id once and fan the result back out.
 const idToKeys = new Map();
 for (const key of keys) {
+  if (ONLY_IDS.size && !ONLY_IDS.has(key)) continue;
   const e = entries[key];
   // Gate on the AniList id, NOT on entry.status. status describes whether the TMDB
   // ARTWORK match succeeded, which is a different question from whether the AniList
@@ -198,7 +201,7 @@ for (const key of keys) {
   // good anilistId and only failed to find a backdrop. Gating on status skipped 73
   // such rows, leaving them with no year/score/genres for no reason.
   if (!e || !e.anilistId) continue;
-  if (e.meta && !FORCE) continue;
+  if (e.meta?.description && e.meta?.genres?.length && !FORCE) continue;
   const id = Number(e.anilistId);
   if (!Number.isFinite(id)) continue;
   if (!idToKeys.has(id)) idToKeys.set(id, []);
@@ -230,7 +233,10 @@ for (let i = 0; i < batches.length && !budget.expired(); i++) {
     seen.add(m.id);
     const meta = toMeta(m);
     for (const key of idToKeys.get(m.id) || []) {
-      entries[key].meta = meta;
+      const saved = entries[key].meta || {};
+      entries[key].meta = { ...saved, ...Object.fromEntries(Object.entries(meta).filter(([field, value]) =>
+        (value !== null && value !== "" && (!Array.isArray(value) || value.length)) || saved[field] == null
+      )) };
       resolved++;
     }
   }
@@ -239,7 +245,7 @@ for (let i = 0; i < batches.length && !budget.expired(); i++) {
   for (const id of batch) {
     if (seen.has(id)) continue;
     missing++;
-    for (const key of idToKeys.get(id) || []) entries[key].meta = null;
+    for (const key of idToKeys.get(id) || []) entries[key].meta ||= null;
   }
   console.log(`batch ${String(i + 1).padStart(2)}/${batches.length}: ${media.length}/${batch.length} ids -> ${resolved} entries so far`);
 }
@@ -253,6 +259,7 @@ for (let i = 0; i < batches.length && !budget.expired(); i++) {
 //     "TV - 2026" with no description, so Jikan fills in what the database cannot.
 // Existing values are never overwritten: only genuinely empty fields are filled.
 const leftover = Object.keys(entries).filter((k) => {
+  if (ONLY_IDS.size && !ONLY_IDS.has(k)) return false;
   const e = entries[k];
   if (!e || !e.malId) return false;
   if (!e.meta) return true;

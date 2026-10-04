@@ -87,8 +87,7 @@ async function _fetchJikanFranchiseMedia(malId, anilistId = null) {
   let media = _readAniListCache(key);
   if (!media) {
     try {
-      const response = await fetchWithTimeout(`/api/jikan/full?id=${encodeURIComponent(malId)}`, {}, 10000);
-      const payload = response.ok ? await response.json() : null;
+      const payload = await fetchMetadataJson(`/api/jikan/full?id=${encodeURIComponent(malId)}`, 10000);
       if (payload?.unavailable || !payload?.data) return null;
       media = jikanFranchiseMedia(payload.data);
       if (media) _writeAniListCache(key, media);
@@ -133,8 +132,7 @@ async function _fetchAniListMedia(anilistId, malId = null) {
       // The server may have this exact ID cached even during an upstream outage.
       // A failure for another title must not suppress these cache reads.
       try {
-        const res = await fetchWithTimeout(`${ANILIST_MEDIA_ENDPOINT}?id=${encodeURIComponent(anilistId)}`, {}, 8000);
-        const json = res.ok ? await res.json() : null;
+        const json = await fetchMetadataJson(`${ANILIST_MEDIA_ENDPOINT}?id=${encodeURIComponent(anilistId)}`, 8000);
         if (json?.ok && json.media && String(json.media.id) === String(anilistId)) {
           _writeAniListCache(key, json.media);
           return json.media;
@@ -154,11 +152,7 @@ async function _searchAniListAnime(title) {
   const cached = _readAniListCache(key);
   if (cached) return cached;
   try {
-    const res = await fetchWithTimeout(
-      `${ANILIST_SEARCH_ENDPOINT}?q=${encodeURIComponent(title)}`, {}, 12000
-    );
-    if (!res.ok) return null;
-    const json = await res.json();
+    const json = await fetchMetadataJson(`${ANILIST_SEARCH_ENDPOINT}?q=${encodeURIComponent(title)}`, 12000);
     if (!json?.ok || !json.media) return null;
     _writeAniListCache(key, json.media, ANILIST_SEARCH_CACHE_TTL);
     return json.media;

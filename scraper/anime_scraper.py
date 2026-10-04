@@ -1638,6 +1638,31 @@ _SITE_EPISODE_FETCHERS = {
 }
 
 
+def merge_saved_episodes(previous: list, incoming: list) -> list:
+    by_episode = {}
+    for episode in (previous or []) + (incoming or []):
+        if not isinstance(episode, dict):
+            continue
+        season = episode.get("canonicalSeason") or episode.get("season") or 1
+        number = episode.get("canonicalEpisode")
+        if number is None:
+            number = episode.get("episode", episode.get("number"))
+        if number is None:
+            continue
+        try:
+            key = (float(season), float(number))
+        except (TypeError, ValueError):
+            continue
+        if not all(0 <= value < float("inf") for value in key):
+            continue
+        existing = by_episode.get(key, {})
+        by_episode[key] = {**existing, **{
+            field: value for field, value in episode.items()
+            if value not in (None, "", []) or field not in existing
+        }}
+    return [episode for _, episode in sorted(by_episode.items())]
+
+
 def enrich_episodes(show: dict, max_eps: int, site_keys: list) -> None:
     """
     Try fetching episodes from the show's own source site first,
@@ -1658,14 +1683,21 @@ def enrich_episodes(show: dict, max_eps: int, site_keys: list) -> None:
             episodes = []
 
         if episodes:
+            # The scraper deliberately fetches only a recent window. That window
+            # is an update, not a replacement for the saved season inventory.
+            episodes = merge_saved_episodes(show.get("episodes") or [], episodes)
             show["episodes"] = episodes
             show["source"]   = site_name
             season_num = show.get("seasonNumber", 1) or 1
-            show["seasons"] = [{
-                "season":   season_num,
-                "title":    f"Season {season_num}",
-                "episodes": episodes,
-            }]
+            seasons = [dict(season) for season in show.get("seasons") or []]
+            current = next((season for season in seasons if season.get("season") == season_num), None)
+            if current is None:
+                current = {"season": season_num, "title": f"Season {season_num}"}
+                seasons.append(current)
+            current["episodes"] = merge_saved_episodes(current.get("episodes") or [], [
+                episode for episode in episodes if episode.get("season", season_num) == season_num
+            ])
+            show["seasons"] = seasons
             log.info("[episodes] %-45s → %d eps from %s",
                      show["title"][:45], len(episodes), site_name)
             return
@@ -2011,20 +2043,18 @@ def preserve_previous_animeav1_metadata(fresh_items: list, previous_catalog: Opt
             seen.add(slug)
         merged.append(row)
 
-    # A complete source crawl should grow or stay level. If it shrinks, retain
-    # yesterday's missing rows so one failed letter/page cannot erase a section
-    # of the library; a later healthy run naturally replaces them.
-    if len(fresh_items) < len(previous_by_slug):
-        recovered = 0
-        for slug, previous in previous_by_slug.items():
-            if slug in seen:
-                continue
-            row = dict(previous)
-            row["_slug"] = slug
-            merged.append(row)
-            recovered += 1
-        if recovered:
-            log.warning("[AnimeAV1] Recovered %d rows from the previous catalog", recovered)
+    # New titles can hide a failed partition in the total count. Retain every
+    # missing identity, even when the fresh crawl is larger than yesterday's.
+    recovered = 0
+    for slug, previous in previous_by_slug.items():
+        if slug in seen:
+            continue
+        row = dict(previous)
+        row["_slug"] = slug
+        merged.append(row)
+        recovered += 1
+    if recovered:
+        log.warning("[AnimeAV1] Recovered %d rows from the previous catalog", recovered)
 
     return _dedup(merged, "_slug")
 

@@ -20,6 +20,7 @@ catalog_files=(
   "scraper/aniskip-map.json"
   "scraper/relations-cache.json"
   "scraper/regular-source-fallbacks.json"
+  "scraper/animeneon-catalog.json"
   "scraper/adult_portrait_map.json"
   "scraper/underhentai_catalog.json"
   "scraper/underhentai_details.json"
@@ -30,6 +31,7 @@ catalog_files=(
   "android/app/src/main/assets/scraper/artwork-map.json"
   "android/app/src/main/assets/scraper/aniskip-map.json"
   "android/app/src/main/assets/scraper/regular-source-fallbacks.json"
+  "android/app/src/main/assets/scraper/animeneon-catalog.json"
   "android/app/src/main/assets/scraper/adult_portrait_map.json"
 )
 

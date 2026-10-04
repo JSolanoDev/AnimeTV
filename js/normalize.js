@@ -117,6 +117,9 @@ function normalizeExternalShow(item, source, index) {
     // present value means the show opens on a real 1080p+ backdrop with no AniList
     // or TMDB round-trip at all.
     tmdbBackdrop: item.tmdbBackdrop || "",
+    // Exact landscape art for standalone releases that have no public episode
+    // stills. It is only used by the episode-row fallback, never as the hero.
+    episodeThumbnailFallback: item.episodeThumbnailFallback || "",
     // The title poster for every show that resolved - see getWatchPosterArtwork
     // and getCardPosterCandidates, both of which rank it above the scraped cover.
     tmdbPoster: item.tmdbPoster || "",
@@ -139,6 +142,16 @@ function normalizeExternalShow(item, source, index) {
       ? item.sourceEpisodeIds.map(Number).filter((number) => Number.isFinite(number) && number >= 0)
       : null,
     sourceInventoryChecked: Boolean(item.sourceInventoryChecked),
+    sourceInventoryPartial: item.sourceInventoryPartial === true
+      || (item.sourceInventoryChecked === true && Number(item.sourceEpisodeCount) > 0 && !item.sourceEpisodeIds?.length),
+    sourceInventoryCheckedAt: item.sourceInventoryCheckedAt || "",
+    sourceUnavailableEpisodeIds: Array.isArray(item.sourceUnavailableEpisodeIds)
+      ? item.sourceUnavailableEpisodeIds.map(Number).filter((number) => Number.isFinite(number) && number >= 0)
+      : [],
+    // Baked from AnimeNeon's static Latino catalog. Keeping this on the normal
+    // catalog row lets every card render the badge with zero per-card requests.
+    hasLatinoDub: item.hasLatinoDub === true,
+    latinoEpisodeCount: Math.max(0, Number(item.latinoEpisodeCount || 0)),
     // A provider listing may exist while its episode route is gone. The server
     // only emits these fields from the versioned, verified fallback registry;
     // keep the canonical display number separate from the fallback provider id.
@@ -852,21 +865,34 @@ function mergeClientCatalogShow(current, show) {
   // A metadata row intentionally has no provider inventory. It must not erase
   // the checked AnimeAV1 row when both identities collapse into one show. This
   // is especially important for movies, whose only real provider id is often 0.
-  const inventoryOwner = show.sourceInventoryChecked === true
-    ? show
-    : current.sourceInventoryChecked === true
-      ? current
-      : null;
+  const inventoryCandidates = [show, current].filter(row => row.sourceInventoryChecked === true)
+    .sort((a, b) => (Date.parse(b.sourceInventoryCheckedAt) || 0) - (Date.parse(a.sourceInventoryCheckedAt) || 0));
+  const inventoryOwner = inventoryCandidates.find(row => !row.sourceInventoryPartial)
+    || inventoryCandidates[0] || null;
   const fallbackOwner = show.sourceFallbackVerified === true
     ? show
     : current.sourceFallbackVerified === true
       ? current
       : null;
-  const sourceEpisodeIds = inventoryOwner
+  let sourceEpisodeIds = inventoryOwner
     ? (Array.isArray(inventoryOwner.sourceEpisodeIds) ? [...inventoryOwner.sourceEpisodeIds] : [])
     : (Array.isArray(show.sourceEpisodeIds)
         ? [...show.sourceEpisodeIds]
         : Array.isArray(current.sourceEpisodeIds) ? [...current.sourceEpisodeIds] : null);
+  const inventorySlug = row => String(row.animeAv1Slug
+    || String(row.siteUrl || "").match(/animeav1\.com\/media\/([^/?#]+)/i)?.[1] || "").toLowerCase();
+  const ownerSlug = inventoryOwner && inventorySlug(inventoryOwner);
+  const matchingInventories = ownerSlug
+    ? inventoryCandidates.filter(row => inventorySlug(row) === ownerSlug) : [];
+  const newestInventory = [...matchingInventories].sort((a, b) =>
+    (Date.parse(b.sourceInventoryCheckedAt) || 0) - (Date.parse(a.sourceInventoryCheckedAt) || 0))[0];
+  const unavailableIds = new Set((newestInventory?.sourceUnavailableEpisodeIds || []).map(Number));
+  if (matchingInventories.length > 1) {
+    // A cached catalog or partial latest-feed row cannot erase routes already
+    // loaded for this exact provider title. Never union different season slugs.
+    sourceEpisodeIds = [...new Set(matchingInventories.flatMap(row => row.sourceEpisodeIds || [])
+      .map(Number).filter(id => Number.isFinite(id) && id >= 0 && !unavailableIds.has(id)))].sort((a, b) => a - b);
+  }
   const currentChain = Array.isArray(current.franchiseSeasons) ? current.franchiseSeasons : [];
   const incomingChain = Array.isArray(show.franchiseSeasons) ? show.franchiseSeasons : [];
   const franchiseSeasons = incomingChain.length > currentChain.length ? incomingChain : currentChain;
@@ -915,6 +941,7 @@ function mergeClientCatalogShow(current, show) {
     tmdbId: current.tmdbId || show.tmdbId || null,
     tmdbBackdrop: current.tmdbBackdrop || show.tmdbBackdrop || "",
     tmdbPoster: current.tmdbPoster || show.tmdbPoster || "",
+    episodeThumbnailFallback: current.episodeThumbnailFallback || show.episodeThumbnailFallback || "",
     animeAv1Slug: show.animeAv1Slug || current.animeAv1Slug || "",
     providerAnimeId: show.providerAnimeId || current.providerAnimeId || null,
     canonicalSeasonNumber: show.canonicalSeasonNumber ?? current.canonicalSeasonNumber ?? null,
@@ -925,17 +952,26 @@ function mergeClientCatalogShow(current, show) {
     normalizedSeasonTitle: show.normalizedSeasonTitle || current.normalizedSeasonTitle || "",
     franchiseSeasons: franchiseSeasons.length ? franchiseSeasons : null,
     sourceEpisodeCount: inventoryOwner
-      ? (inventoryOwner.sourceEpisodeCount ?? inventoryOwner.sourcePlayableEpisodeCount ?? sourceEpisodeIds.length)
+      ? Math.max(inventoryOwner.sourceEpisodeCount ?? inventoryOwner.sourcePlayableEpisodeCount ?? sourceEpisodeIds.length,
+          ...sourceEpisodeIds.map(id => id === 0 ? 1 : id))
       : (show.sourceEpisodeCount ?? current.sourceEpisodeCount ?? null),
     sourcePlayableEpisodeCount: inventoryOwner
-      ? (inventoryOwner.sourcePlayableEpisodeCount ?? sourceEpisodeIds.length)
+      ? (matchingInventories.length > 1 && matchingInventories.some(row => Array.isArray(row.sourceEpisodeIds))
+          ? sourceEpisodeIds.length : (inventoryOwner.sourcePlayableEpisodeCount ?? sourceEpisodeIds.length))
       : (show.sourcePlayableEpisodeCount ?? current.sourcePlayableEpisodeCount ?? null),
     sourceEpisodeIds,
+    sourceUnavailableEpisodeIds: newestInventory?.sourceUnavailableEpisodeIds || inventoryOwner?.sourceUnavailableEpisodeIds || [],
     sourceInventoryChecked: Boolean(inventoryOwner),
+    sourceInventoryPartial: inventoryOwner?.sourceInventoryPartial === true,
     sourceInventoryCheckedAt: inventoryOwner?.sourceInventoryCheckedAt
       || show.sourceInventoryCheckedAt
       || current.sourceInventoryCheckedAt
       || "",
+    hasLatinoDub: Boolean(show.hasLatinoDub || current.hasLatinoDub),
+    latinoEpisodeCount: Math.max(
+      Number(show.latinoEpisodeCount || 0),
+      Number(current.latinoEpisodeCount || 0)
+    ),
     sourceDeclaredEpisodeCount: inventoryOwner
       ? (inventoryOwner.sourceDeclaredEpisodeCount ?? null)
       : (show.sourceDeclaredEpisodeCount ?? current.sourceDeclaredEpisodeCount ?? null),

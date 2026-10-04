@@ -162,6 +162,7 @@ test("direct anime and watch routes bypass the deferred homepage catalog path", 
   const loadSource = section(client, "async function loadAnimeSources(", "function scheduleLazyAddonCatalogLoad(");
   assert.match(loadSource, /isDirectDetailRoute\s*=\s*\/\^\\\/\(\?:anime\|watch\)\\\/\//);
   assert.match(loadSource, /state\.route === "home" && !isDirectDetailRoute/);
+  assert.match(loadSource, /fetchHomepageBootstrapCatalog\(\)[\s\S]*?state\.catalogTier !== "cache"[\s\S]*?regularCatalogSnapshot\(\), \.\.\.bootstrapUpgrade/);
 });
 
 test("the AnimeAV1 catalog join index is reused until the catalog changes", () => {
@@ -254,6 +255,7 @@ test("anime details paint before franchise and episode-list work", async () => {
     watchDetailsReady: () => true,
     pauseVisibleMetadataWarm() {},
     warmAnimeAv1PlaybackIntent() { calls.push("warm-source"); return Promise.resolve(); },
+    warmPrimaryPlaybackIntent() { calls.push("warm-source"); return Promise.resolve(); },
     resetVideoFrame(value) { calls.push(value?.length ? "full-frame" : "opening-frame"); },
     syncWatchHeading(_value, _season, value) { calls.push(value?.length ? "full-heading" : "opening-heading"); },
     renderWatchDescription() {},
@@ -271,7 +273,9 @@ test("anime details paint before franchise and episode-list work", async () => {
       c.state.activeEpisode = { season: seasons[0], episode };
     },
     isScraperEnabled: () => true,
+    selectedSeasonIdentity: () => ({ seasonNumber: 1, seasonPart: 0 }),
     attachAnimeAv1Sources() { calls.push("attach-source"); return Promise.resolve(); },
+    warmEpisodePlaybackIntent() { calls.push("warm-stream"); return Promise.resolve(); },
     warmTopEpisodeSources() { calls.push("warm-stream"); },
     renderEpisodeList(_show, options) {
       calls.push(options?.seasons === seasons ? "render-shared-seasons" : "render-rebuilt-seasons");
@@ -465,13 +469,270 @@ test("latest feed reconciles the episode into the canonical show and season", ()
   };
 
   assert.equal(c.reconcileAnimeAv1LatestInventory([
-    { slug: "current-show", title: "Current Show", episode: 10 }
+    { slug: "current-show", title: "Current Show", episode: 10, releasedAt: "2026-09-08T18:00:00.000Z" }
   ], [show, similarlyNamed]), 1);
   assert.deepEqual([...show.sourceEpisodeIds], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   assert.equal(show.sourceEpisodeCount, 10);
   assert.equal(show.latestAiredEp, 10);
+  assert.equal(show.lastEpisodeAt, "2026-09-08T18:00:00.000Z");
   assert.equal(show.seasons[0].sourceEpisodeCount, 10);
   assert.deepEqual([...similarlyNamed.sourceEpisodeIds], [1]);
+});
+
+test("recent exact schedule releases stay visible and cannot be downgraded by a stale live card", () => {
+  const observed = {
+    id: "animeav1-steel-ball-run",
+    title: "Steel Ball Run",
+    episode: 2,
+    latestAiredEp: 2,
+    totalEpisodes: 2,
+    sourceEpisodeCount: 2,
+    sourcePlayableEpisodeCount: 2,
+    sourceEpisodeIds: [1, 2],
+    lastEpisodeAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  };
+  const feed = [
+    {
+      ...observed,
+      episode: 1,
+      latestAiredEp: 1,
+      totalEpisodes: 1,
+      sourceEpisodeCount: 1,
+      sourcePlayableEpisodeCount: 1,
+      sourceEpisodeIds: [1],
+      _av1Slug: "steel-ball-run",
+      _av1Episode: 1,
+      _av1ProviderEpisode: 1
+    },
+    ...Array.from({ length: 13 }, (_, index) => ({
+      id: `animeav1-live-${index}`,
+      title: `Live ${index}`,
+      episode: index + 1
+    }))
+  ];
+  const c = vm.createContext({
+    Date,
+    HOME_CARD_LIMIT: 54,
+    HOME_INITIAL_CARD_LIMIT: 14,
+    state: {
+      av1Latest: [{}],
+      search: "",
+      bootstrapReleases: [{
+        id: "animeav1-kaijuu-8-gou-narumi-no-heijitsu",
+        title: "Kaijuu 8-gou: Narumi no Heijitsu",
+        episode: 4,
+        latestAiredEp: 4,
+        sourceEpisodeCount: 4,
+        sourcePlayableEpisodeCount: 4,
+        sourceEpisodeIds: [1, 2, 3, 4],
+        lastEpisodeAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString()
+      }]
+    },
+    adultSourceOrderedShows: () => [],
+    latestEpisodeReleases: () => [observed],
+    buildAnimeAv1ReleaseCards: () => feed,
+    normalizeTitle: (value) => String(value || "").toLowerCase(),
+    getShowTitle: (show) => show.title
+  });
+  vm.runInContext(
+    section(client, "function buildLatestEpisodesList(", "const ANIMEAV1_LATEST_CACHE_KEY"),
+    c
+  );
+
+  const latest = c.buildLatestEpisodesList(14);
+  assert.equal(latest.length, 14);
+  const jojo = latest.find((show) => show.id === observed.id);
+  assert.equal(jojo?.episode, 2);
+  assert.equal(jojo?.latestAiredEp, 2);
+  assert.equal(jojo?.totalEpisodes, 2);
+  assert.equal(jojo?._av1Episode, 2);
+  assert.equal(jojo?._av1ProviderEpisode, 2);
+  assert.deepEqual([...jojo.sourceEpisodeIds], [1, 2]);
+  const narumi = latest.find((show) => show.id === "animeav1-kaijuu-8-gou-narumi-no-heijitsu");
+  assert.equal(narumi?.episode, 4);
+  assert.deepEqual([...narumi.sourceEpisodeIds], [1, 2, 3, 4]);
+});
+
+test("bootstrap releases remain visible when the live latest feed is unavailable", () => {
+  const releases = [
+    { id: "animeav1-kaijuu-8-gou-narumi-no-heijitsu", title: "Narumi", episode: 4, lastEpisodeAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString() },
+    { id: "animeav1-steel-ball-run", title: "Steel Ball Run", episode: 2, lastEpisodeAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() }
+  ];
+  const c = vm.createContext({
+    Date,
+    HOME_CARD_LIMIT: 54,
+    state: { av1Latest: [], bootstrapReleases: releases, search: "", filter: "all" },
+    AdultMode: { isEnabled: () => false },
+    adultSourceOrderedShows: () => [],
+    latestEpisodeReleases: () => [],
+    buildAnimeAv1ReleaseCards: () => { throw new Error("live feed should not be read"); },
+    normalizeTitle: (value) => String(value || "").toLowerCase(),
+    getShowTitle: (show) => show.title,
+    matchesShowSearch: () => true
+  });
+  vm.runInContext(
+    section(client, "function buildLatestEpisodesList(", "const ANIMEAV1_LATEST_CACHE_KEY"),
+    c
+  );
+
+  assert.deepEqual(Array.from(c.buildLatestEpisodesList(14), (show) => show.id), releases.map((show) => show.id));
+});
+
+test("bootstrap latest cards rebind to canonical catalog ids after the full catalog loads", () => {
+  const observed = {
+    id: "source-homepage-bootstrap-animeav1-kore-kaite-shine",
+    catalogAnimeId: "animeav1-kore-kaite-shine",
+    animeAv1Slug: "kore-kaite-shine",
+    title: "Kore Kaite Shine",
+    episode: 11,
+    latestAiredEp: 11,
+    sourceEpisodeCount: 11,
+    lastEpisodeAt: new Date(Date.now() - 60 * 60 * 1000).toISOString()
+  };
+  const canonical = {
+    id: "source-animetv-api-animeav1-kore-kaite-shine",
+    animeAv1Slug: "kore-kaite-shine",
+    title: "Kore Kaite Shine",
+    episode: 11,
+    latestAiredEp: 11,
+    sourceEpisodeCount: 11
+  };
+  const fallbackRegistry = new Map();
+  const key = (value) => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+  const c = vm.createContext({
+    Date,
+    HOME_CARD_LIMIT: 54,
+    state: {
+      shows: [canonical],
+      av1Latest: [],
+      bootstrapReleases: [observed],
+      search: "",
+      filter: "all"
+    },
+    AdultMode: { isEnabled: () => false },
+    adultSourceOrderedShows: () => [],
+    latestEpisodeReleases: () => [],
+    buildAnimeAv1ReleaseCards: () => [],
+    buildCatalogKeyIndex: () => new Map([[key(canonical.animeAv1Slug), canonical]]),
+    registerAv1Show: (show) => {
+      fallbackRegistry.set(show.id, show);
+      return show;
+    },
+    av1Key: key,
+    normalizeTitle: (value) => String(value || "").toLowerCase(),
+    getShowTitle: (show) => show.title,
+    matchesShowSearch: () => true
+  });
+  vm.runInContext(
+    section(client, "function buildLatestEpisodesList(", "const ANIMEAV1_LATEST_CACHE_KEY"),
+    c
+  );
+
+  const [card] = c.buildLatestEpisodesList(14);
+  assert.equal(card.id, canonical.id);
+  assert.equal(card.animeAv1Slug, canonical.animeAv1Slug);
+  assert.equal(fallbackRegistry.size, 0);
+});
+
+test("new premieres lead the latest rail even when the saved snapshot fills its limit", () => {
+  const now = Date.now();
+  const saved = Array.from({ length: 54 }, (_, index) => ({
+    id: `animeav1-saved-${index}`, title: `Saved ${index}`, episode: 4,
+    lastEpisodeAt: new Date(now - (index + 2) * 3600000).toISOString()
+  }));
+  const premiere = {
+    id: "animeav1-new-premiere", title: "New Premiere", episode: 1,
+    lastEpisodeAt: new Date(now - 60000).toISOString(), _av1ProviderEpisode: 1
+  };
+  const registry = new Map();
+  const c = vm.createContext({
+    Date, HOME_CARD_LIMIT: 54,
+    state: { av1Latest: [{}], bootstrapReleases: saved, search: "", filter: "all" },
+    latestEpisodeReleases: () => [], buildAnimeAv1ReleaseCards: () => [premiere],
+    registerAv1Show: (show) => { registry.set(show.id, show); return show; },
+    normalizeTitle: (value) => String(value).toLowerCase(), getShowTitle: (show) => show.title,
+    fetch: () => { throw new Error("Ranking must not make requests"); }
+  });
+  vm.runInContext(section(client, "function buildLatestEpisodesList(", "const ANIMEAV1_LATEST_CACHE_KEY"), c);
+  const cards = c.buildLatestEpisodesList(24);
+  assert.equal(cards.length, 24);
+  assert.equal(cards[0].id, premiere.id);
+  assert.equal(cards[0]._av1ProviderEpisode, 1);
+  assert.equal(new Set(cards.map((card) => card.id)).size, 24);
+});
+
+test("live release cards retain publication time instead of an older catalog timestamp", () => {
+  const known = { id: "animeav1-current", title: "Current", episode: 5, lastEpisodeAt: "2026-09-20T10:00:00Z" };
+  const published = "2026-09-30T10:00:00Z";
+  const c = vm.createContext({
+    state: { av1Latest: [{ slug: "current", title: "Current", episode: 6, releasedAt: published }], filter: "all" },
+    buildCatalogKeyIndex: () => new Map([["current", known]]),
+    av1Key: (value) => value.toLowerCase(),
+    animeAv1LatestEpisodeIdentity: (item) => ({ providerEpisodeId: item.episode, displayEpisode: item.episode }),
+    normalizeTitle: (value) => value.toLowerCase(), getShowTitle: (show) => show.title,
+    matchesShowSearch: () => true
+  });
+  vm.runInContext(section(client, "function buildAnimeAv1ReleaseCards(", "function buildLatestEpisodesList("), c);
+  const [card] = c.buildAnimeAv1ReleaseCards(24);
+  assert.equal(card.lastEpisodeAt, published);
+  assert.equal(card.episode, 6);
+  assert.equal(known.episode, 5);
+});
+
+test("a recent completed special is ranked from its publication time", () => {
+  const now = Date.now();
+  const special = { id: "special", title: "Special", status: "FINISHED", image: "poster.jpg", lastEpisodeAt: new Date(now - 60000).toISOString() };
+  const series = { id: "series", title: "Series", status: "RELEASING", image: "poster.jpg", lastEpisodeAt: new Date(now - 3600000).toISOString() };
+  const c = vm.createContext({
+    Date, state: { filter: "all" }, catalogShows: () => [series, special], visibleShows: () => [series, special],
+    matchesShowSearch: () => true, normalizeTitle: (value) => value.toLowerCase(),
+    lastEpisodeAiredMs: (show) => Date.parse(show.lastEpisodeAt)
+  });
+  vm.runInContext(section(client, "function latestEpisodeReleases(", "function adultSourceOrderedShows("), c);
+  assert.equal(c.latestEpisodeReleases(1)[0].id, special.id);
+});
+
+test("a sequel release cannot join an older season through a franchise alias", () => {
+  const previous = {
+    id: "source-animetv-api-animeav1-sword", title: "Sword", aliases: ["Sword II"], episode: 12,
+    catalogAnimeId: "animeav1-sword-ii", animeAv1Slug: "sword-ii"
+  };
+  const item = { slug: "sword-ii", title: "Sword II", episode: 1, releasedAt: new Date(Date.now() - 60000).toISOString() };
+  const key = (value) => String(value).toLowerCase().replace(/[^a-z0-9]/g, "");
+  const c = vm.createContext({
+    Date, HOME_CARD_LIMIT: 54,
+    state: { shows: [previous], av1Latest: [item], bootstrapReleases: [], filter: "all" },
+    av1Key: key, normalizeSearchText: (value) => value.toLowerCase(),
+    normalizeTitle: key, getShowTitle: (show) => show.title,
+    animeAv1ArtworkVariant: (value) => value,
+    animeAv1LatestEpisodeIdentity: (entry) => ({ providerEpisodeId: entry.episode, displayEpisode: entry.episode }),
+    matchesShowSearch: () => true, latestEpisodeReleases: () => []
+  });
+  vm.runInContext(section(client, "let _catalogKeyIndex = null;", "const ANIMEAV1_LATEST_CACHE_KEY"), c);
+  let [card] = c.buildLatestEpisodesList(24);
+  assert.equal(card.id, "animeav1-sword-ii");
+  assert.equal(card.title, "Sword II");
+  assert.equal(card._av1Slug, "sword-ii");
+  assert.ok(c.state.av1Shows.has(card.id));
+
+  // A saved card with a previously mismatched title rebinds by its release slug.
+  c.state.bootstrapReleases = [{ ...card, id: previous.id, title: previous.title }];
+  let cards = c.buildLatestEpisodesList(24);
+  assert.equal(cards.length, 1);
+  assert.equal(cards[0].id, "animeav1-sword-ii");
+
+  // Keep the same identity when only the saved release remains available.
+  c.state.bootstrapReleases = [card];
+  c.state.av1Latest = [];
+  [card] = c.buildLatestEpisodesList(24);
+  assert.equal(card.id, "animeav1-sword-ii");
+
+  // A full-catalog arrival wins over the earlier franchise alias in the index.
+  const canonical = { ...card, id: "source-animetv-api-animeav1-sword-ii" };
+  c.state.shows = [previous, canonical];
+  c.state.av1Latest = [item];
+  [card] = c.buildLatestEpisodesList(24);
+  assert.equal(card.id, canonical.id);
 });
 
 test("published source episodes override only stale future status metadata", () => {
@@ -583,6 +844,122 @@ test("cached canonical metadata cannot mutate the selected title into another se
   assert.equal(c.applyCanonicalAnimeMetadata(selected, staleSeason), false);
   assert.deepEqual(selected, { anilistId: 146065, malId: 51179, title: "Season 2" });
   assert.match(client, /zenkaitv:anime-metadata:v2:/);
+});
+
+function newReleaseMetadataHarness(fetchImpl = async () => ({ ok: false })) {
+  const cache = new Map();
+  const calls = [];
+  const utils = readFileSync(new URL("../js/utils.js", import.meta.url), "utf8");
+  const c = vm.createContext({
+    state: { shows: [] },
+    localStorage: { removeItem() {} },
+    ANIME_METADATA_CACHE_PREFIX: "fixture:",
+    readAnimeMetadataCache: key => cache.get(key),
+    writeAnimeMetadataCache: (key, value) => cache.set(key, value),
+    normalizeTitle: value => String(value).toLowerCase(),
+    hqImage: value => value,
+    effectiveShowStatus: show => show.status,
+    URL,
+    location: { origin: "https://app.test", href: "https://app.test/" },
+    fetchWithTimeout: async url => { calls.push(url); return fetchImpl(url); }
+  });
+  vm.runInContext([
+    section(utils, "const metadataJsonCache =", "async function fetchWithRetry("),
+    section(utils, "function extractSeasonNumber(", "function pickGenre("),
+    section(utils, "function cleanDescription(", "function ").trim(),
+    section(client, "function animeTitleCandidates(", "function findAniPubShowForTitle("),
+    section(client, "function canonicalMetadataTitleKey(", "// Non-blocking TMDB image enrichment.")
+  ].join("\n"), c);
+  return { c, calls, cache };
+}
+
+const newSwordSeason = {
+  id: 159042, idMal: 53913, format: "TV", seasonYear: 2026,
+  title: { romaji: "Tensei Shitara Ken Deshita 2nd Season", english: "Reincarnated as a Sword Season 2" },
+  description: "The second season of Tensei Shitara Ken Deshita.",
+  bannerImage: "https://art.example/sword-season-2.jpg",
+  coverImage: { extraLarge: "https://art.example/sword-season-2-poster.jpg" },
+  genres: ["Fantasy"]
+};
+
+test("fresh release metadata matches Roman seasons without accepting season one", () => {
+  const { c } = newReleaseMetadataHarness();
+  const show = { title: "Tensei shitara Ken deshita II" };
+  assert.ok(c.canonicalMetadataCandidateScore(show, newSwordSeason) >= 100);
+  assert.equal(c.canonicalMetadataCandidateScore(show, {
+    ...newSwordSeason, id: 139587, title: { romaji: "Tensei Shitara Ken Deshita" }
+  }), 0);
+  assert.equal(c.canonicalMetadataCandidateScore({ title: "Tensei Shitara Ken Deshita" }, newSwordSeason), 0);
+  assert.equal(c.canonicalMetadataCandidateScore({ title: "Tensei Shitara Ken Deshita" }, {
+    ...newSwordSeason, synonyms: ["Tensei Shitara Ken Deshita"]
+  }), 0, "a generic franchise synonym cannot override the canonical season number");
+  assert.equal(c.canonicalMetadataCandidateScore({ title: "Unrelated New Anime II" }, newSwordSeason), 0);
+});
+
+test("numbered films require the exact subtitle and movie format", () => {
+  const { c } = newReleaseMetadataHarness();
+  const show = { title: "Mononoke Movie 3: Hebigami" };
+  const movie = { id: 179874, format: "MOVIE", title: { romaji: "Mononoke: Hebigami" } };
+  assert.ok(c.canonicalMetadataCandidateScore(show, movie) >= 100);
+  assert.equal(c.canonicalMetadataCandidateScore(show, { ...movie, format: "TV" }), 0);
+  assert.equal(c.canonicalMetadataCandidateScore(show, { ...movie, title: { romaji: "Mononoke" } }), 0);
+  assert.equal(c.canonicalMetadataCandidateScore(show, { ...movie, title: { romaji: "Mononoke Movie 2: Hebigami" } }), 0);
+  assert.equal(c.canonicalMetadataCandidateScore(show, { ...movie, title: { romaji: "Mononoke: Karakasa" } }), 0);
+  assert.ok(c.canonicalMetadataCandidateScore({ title: "Mononoke Movie III: Hebigami" }, movie) >= 100);
+});
+
+test("cached unnumbered metadata cannot overwrite a fresh sequel with no ids yet", () => {
+  const { c } = newReleaseMetadataHarness();
+  const show = { id: "animeav1-new-title-ii", title: "New Title II" };
+  assert.equal(c.applyCanonicalAnimeMetadata(show, {
+    media: { id: 10, title: { romaji: "New Title" }, description: "Wrong season" }
+  }), false);
+  assert.equal(show.anilistId, undefined);
+  assert.equal(show.description, undefined);
+});
+
+test("fresh releases reuse successful metadata without render or reopen fetches", async () => {
+  const { c, calls } = newReleaseMetadataHarness(async url => ({ ok: true, json: async () =>
+    url.includes("anilist/search") ? { results: [
+      { ...newSwordSeason, id: 139587, title: { romaji: "Tensei Shitara Ken Deshita" } },
+      newSwordSeason
+    ] } : { unavailable: true }
+  }));
+  const show = { id: "animeav1-tensei-shitara-ken-deshita-ii", title: "Tensei shitara Ken deshita II", sourceEpisodeIds: [1] };
+  await c.hydrateCanonicalAnimeMetadata(show);
+  assert.equal(show.anilistId, 159042);
+  assert.equal(show.banner, newSwordSeason.bannerImage);
+  assert.equal(show.description, newSwordSeason.description);
+  assert.equal(show.id, "animeav1-tensei-shitara-ken-deshita-ii");
+  assert.deepEqual(show.sourceEpisodeIds, [1]);
+  assert.equal(calls.length, 2);
+  await c.hydrateCanonicalAnimeMetadata(show);
+  const reopened = { id: show.id, title: "Tensei shitara Ken deshita II" };
+  await c.hydrateCanonicalAnimeMetadata(reopened);
+  assert.equal(calls.length, 2, "successful reopen reads the existing metadata cache");
+  assert.equal(reopened.anilistId, 159042);
+});
+
+test("Jikan search artwork and synopsis survive a failed full-details request", async () => {
+  const jikan = { mal_id: 10, title: "Fixture Season 2", type: "TV", year: 2026,
+    synopsis: "A complete synopsis for the new season.", images: { jpg: { large_image_url: "https://art.example/fixture.jpg" } } };
+  const { c, calls } = newReleaseMetadataHarness(async url => ({ ok: true, json: async () =>
+    url.includes("jikan/search") ? { data: [jikan] } : { unavailable: true }
+  }));
+  const show = { title: "Fixture II", image: "https://provider.example/tiny.jpg" };
+  await c.hydrateCanonicalAnimeMetadata(show);
+  assert.equal(show.malId, 10);
+  assert.equal(show.description, jikan.synopsis);
+  assert.equal(show.coverImageLarge, jikan.images.jpg.large_image_url);
+  assert.equal(show.format, "TV");
+  assert.equal(show.year, 2026);
+  assert.equal(calls.length, 3);
+});
+
+test("episode rows keep title artwork as a fallback when an episode still is unpublished", () => {
+  assert.match(client, /const finalEpImgSrc = deliveredEpFallbacks\[0\] \|\| "";/);
+  assert.match(client, /isFallback \? " is-fallback"/);
+  assert.match(client, /cleanFallback\(tmdbStill\)/);
 });
 
 test("local-only retired files cannot change the production catalog total", async () => {

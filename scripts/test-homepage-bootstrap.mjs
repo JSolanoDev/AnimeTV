@@ -6,12 +6,20 @@ import { buildHomepageBootstrap } from "./build-homepage-bootstrap.mjs";
 
 const client = readFileSync(new URL("../client.js", import.meta.url), "utf8");
 const normalizer = readFileSync(new URL("../js/normalize.js", import.meta.url), "utf8");
+const constants = readFileSync(new URL("../js/constants.js", import.meta.url), "utf8");
 const section = (start, end) => {
   const from = client.indexOf(start);
   const to = client.indexOf(end, from + start.length);
   assert.ok(from >= 0 && to > from);
   return client.slice(from, to);
 };
+
+test("homepage snapshot revalidates as a static file without a Function call", () => {
+  const fetchSource = section("async function fetchHomepageBootstrapCatalog(", "let _latestLoadTimer");
+  assert.match(fetchSource, /HOMEPAGE_BOOTSTRAP_ENDPOINT, \{ cache: "no-cache" \}/);
+  assert.match(fetchSource, /state\.bootstrapReleases = normalized/);
+  assert.doesNotMatch(fetchSource, /\/api\//);
+});
 
 test("home bootstrap follows recent playable releases and includes baked artwork", () => {
   const catalog = {
@@ -27,6 +35,7 @@ test("home bootstrap follows recent playable releases and includes baked artwork
       anilistId: 7, malId: 8, tmdbId: 9,
       tmdbBackdrop: "https://image.tmdb.org/t/p/original/new.jpg",
       tmdbPoster: "https://image.tmdb.org/t/p/original/poster.jpg",
+      episodeThumbnailFallback: "https://cdn.myanimelist.net/images/anime/examplel.jpg",
       meta: { year: 2026, score: 82, genres: ["Action"], studio: "Studio", description: "A complete synopsis. ".repeat(30) }
     }
   } };
@@ -38,9 +47,69 @@ test("home bootstrap follows recent playable releases and includes baked artwork
   assert.deepEqual(payload.items.map((row) => row.id), ["animeav1-new", "animeav1-old"]);
   assert.equal(payload.generatedAt, "2026-09-17T12:00:00.000Z");
   assert.equal(payload.items[0].tmdbBackdrop, artwork.entries["animeav1-new"].tmdbBackdrop);
+  assert.equal(payload.items[0].episodeThumbnailFallback, artwork.entries["animeav1-new"].episodeThumbnailFallback);
   assert.equal(payload.items[0].studios[0], "Studio");
   assert.ok(payload.items[0].description.length <= 321);
   assert.equal(payload.items[1].episodes, undefined);
+});
+
+test("provider release observations override stale completed-stage metadata", () => {
+  const catalog = { items: [{
+    id: "animeav1-steel-ball-run", title: "Steel Ball Run", episode: 2,
+    totalEpisodes: 2, sourceEpisodeCount: 2, sourcePlayableEpisodeCount: 2,
+    sourceEpisodeIds: [1, 2], sourceInventoryChecked: true, status: ""
+  }] };
+  const artwork = { entries: { "animeav1-steel-ball-run": {
+    meta: { episodes: 1, airingStatus: "FINISHED", format: "ONA" }
+  } } };
+  const airing = { entries: { "animeav1-steel-ball-run": {
+    airingStatus: "RELEASING", sourceEpisodeCount: 2,
+    lastEpisodeAt: "2026-09-25T13:33:03.015Z"
+  } } };
+
+  const [row] = buildHomepageBootstrap(catalog, artwork, airing).items;
+  assert.equal(row.status, "RELEASING");
+  assert.equal(row.episode, 2);
+  assert.deepEqual(row.sourceEpisodeIds, [1, 2]);
+  assert.equal(row.lastEpisodeAt, "2026-09-25T13:33:03.015Z");
+});
+
+test("starter inventories stay partial when exact long-series ids are deliberately omitted", () => {
+  const sourceEpisodeIds = Array.from({ length: 40 }, (_, index) => index + 1);
+  const [row] = buildHomepageBootstrap({ items: [{
+    id: "animeav1-long-show", title: "Long Show", sourceInventoryChecked: true,
+    sourceEpisodeCount: 40, sourcePlayableEpisodeCount: 40, sourceEpisodeIds
+  }] }, {}, {}).items;
+  assert.equal(row.sourceEpisodeIds, undefined);
+  assert.equal(row.sourceInventoryPartial, true);
+  assert.equal(row.sourceEpisodeCount, 40);
+});
+
+test("current homepage snapshot retains recent specials behind newer releases", () => {
+  const payload = JSON.parse(readFileSync(new URL("../homepage-bootstrap.json", import.meta.url), "utf8"));
+  const narumiIndex = payload.items.findIndex((row) => /narumi-no-heijitsu/i.test(String(row.id || "")));
+  const jojoIndex = payload.items.findIndex((row) => /steel-ball-run/i.test(String(row.id || "")));
+
+  assert.ok(narumiIndex >= 0);
+  assert.ok(jojoIndex >= 0);
+  assert.ok(payload.items[narumiIndex].episode >= 4);
+  assert.ok(payload.items[jojoIndex].episode >= 2);
+  const dated = payload.items.map(row => Date.parse(row.lastEpisodeAt || "") || 0);
+  for (let i = 1; i < dated.length; i++) assert.ok(dated[i - 1] >= dated[i]);
+  assert.match(constants, /const HOME_INITIAL_CARD_LIMIT = 24;/);
+});
+
+test("latest-release ranking uses an exact provider publication timestamp", () => {
+  const c = vm.createContext({
+    Date,
+    navigator: { languages: ["en-US"], language: "en-US" },
+    Intl,
+    Map,
+    Set
+  });
+  vm.runInContext(section("let _weekdayIndexByName = null;", "function recentlyAiredShows"), c);
+  const releasedAt = Date.parse("2026-09-25T13:33:03.015Z");
+  assert.equal(c.lastEpisodeAiredMs({ lastEpisodeAt: "2026-09-25T13:33:03.015Z" }, releasedAt + 1000), releasedAt);
 });
 
 test("catalog placeholders are deferred while embedded episodes stay available", () => {
@@ -104,7 +173,7 @@ test("full synopsis lookup uses the original AnimeAV1 catalog id", async () => {
 
 test("home release and metadata warmups stay ahead of background work", () => {
   assert.match(client, /const CAROUSEL_PROVISIONAL_HOLD_MS = 1500;/);
-  assert.match(client, /fetchWithTimeout\(HOMEPAGE_BOOTSTRAP_ENDPOINT, \{ cache: "default" \}, 2500\)/);
+  assert.match(client, /fetchWithTimeout\(HOMEPAGE_BOOTSTRAP_ENDPOINT, \{ cache: "no-cache" \}, 2500\)/);
   const load = section("async function loadAnimeSources(", "function scheduleLazyAddonCatalogLoad(");
   assert.match(load, /!preferBootstrap && installCachedCatalog\(\)/);
   assert.match(load, /!hasInitialCatalog && preferBootstrap\) hasInitialCatalog = installCachedCatalog\(\)/);

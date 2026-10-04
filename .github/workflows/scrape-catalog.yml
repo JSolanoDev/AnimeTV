@@ -74,7 +74,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       # ── 3. Install dependencies ────────────────────────────────────────────
       - name: Install Python dependencies
@@ -82,6 +82,12 @@ jobs:
 
       - name: Test AnimeAV1 catalog discovery
         run: python -m unittest discover -s scraper -p 'test_*.py'
+
+      - name: Test episode inventory retention before scraping
+        run: node --test scripts/test-animeav1-inventory.mjs
+
+      - name: Test new-release artwork and metadata batching
+        run: node --test scripts/test-new-release-artwork.mjs
 
       # ── 4. Build scraper arguments ─────────────────────────────────────────
       - name: Build scraper arguments
@@ -159,6 +165,14 @@ jobs:
         run: npm run catalog:inventory
         timeout-minutes: 18
 
+      # Static provider identities make the Latino badge deterministic and let
+      # source lookup skip AnimeNeon's slow title-search request. A failed refresh
+      # keeps the last committed index, so provider downtime cannot blank it.
+      - name: Refresh AnimeNeon language inventory
+        run: npm run catalog:animeneon
+        timeout-minutes: 10
+        continue-on-error: true
+
       # New catalogue rows do not carry MAL/AniList ids. Resolve them against a
       # versioned offline database first, then let the resumable artwork builder
       # add season-specific TMDB imagery. Every step preserves yesterday's map
@@ -205,18 +219,9 @@ jobs:
         run: node scripts/add-artwork-metadata.mjs --max-minutes 9
         timeout-minutes: 12
 
-      # graphql.anilist.co answers 403 to Vercel, to the browser AND to this
-      # runner - run #111 finished this step in 3 seconds, where ~40 batched
-      # requests at a 1200ms pause cannot finish inside a minute. The idea that
-      # Actions is "a different network" was simply wrong.
-      #
-      # So the chains come from Jikan, which labels its relations Prequel/Sequel
-      # exactly as AniList did, plus the manami offline database for each entry's
-      # title, episode count and AniList id. ~600 catalogue rows sit beside
-      # another TV entry, and following each chain outward to the seasons we do
-      # not carry adds more, capped at 1400 requests paced at 1.1s - roughly 26
-      # minutes. The script still cannot fail this job: it exits 0 whatever
-      # happens and always leaves a valid map behind.
+      # A single Page query keeps AniList batches below its complexity limit.
+      # Requests are paced; Jikan/offline relations and the saved schedule remain
+      # available if AniList rejects or rate-limits the refresh.
       - name: Bake airing schedules and season chains
         run: node scripts/build-airing-map.mjs --write --max-minutes 32 --db "$RUNNER_TEMP/anime-offline-database.jsonl"
         timeout-minutes: 40
@@ -241,6 +246,7 @@ jobs:
         run: |
           cp scraper/artwork-map.json android/app/src/main/assets/scraper/artwork-map.json
           cp scraper/regular-source-fallbacks.json android/app/src/main/assets/scraper/regular-source-fallbacks.json
+          cp scraper/animeneon-catalog.json android/app/src/main/assets/scraper/animeneon-catalog.json
 
       - name: Refresh opening and ending skip times
         run: >-
@@ -311,6 +317,7 @@ jobs:
             scraper/aniskip-map.json
             scraper/relations-cache.json
             scraper/regular-source-fallbacks.json
+            scraper/animeneon-catalog.json
             scraper/underhentai_catalog.json
             scraper/underhentai_details.json
             artifacts/catalog-integrity-report.json

@@ -618,8 +618,7 @@ const ImageResolver = (function () {
     const idLabel = anime.anilistId || anime.id;
     let show = null;
     try {
-      const resp = await fetchWithTimeout(`/api/tmdb/tv?id=${encodeURIComponent(tmdbId)}`, {}, 12000);
-      const payload = resp.ok ? await resp.json() : null;
+      const payload = await fetchMetadataJson(`/api/tmdb/tv?id=${encodeURIComponent(tmdbId)}`, 12000);
       show = payload?.show || null;
     } catch { /* keep going with search-level paths below */ }
 
@@ -640,11 +639,10 @@ const ImageResolver = (function () {
         seasonPoster = tmdbPosterUrl(season.poster_path);
         debug(`season mapping for ${idLabel}: TMDB S${season.season_number} (${reason})`);
         try {
-          const resp = await fetchWithTimeout(
+          const payload = await fetchMetadataJson(
             `/api/tmdb/season?id=${encodeURIComponent(tmdbId)}&season=${encodeURIComponent(season.season_number)}`,
-            {}, 12000
+            12000
           );
-          const payload = resp.ok ? await resp.json() : null;
           if (payload?.season) fetchedSeasonPayloads.set(Number(season.season_number), payload);
           const tmdbEpisodes = payload?.season?.episodes || [];
 
@@ -714,11 +712,10 @@ const ImageResolver = (function () {
         try {
           let payload = fetchedSeasonPayloads.get(Number(s.season_number)) || null;
           if (!payload) {
-            const r = await fetchWithTimeout(
+            payload = await fetchMetadataJson(
               `/api/tmdb/season?id=${encodeURIComponent(tmdbId)}&season=${encodeURIComponent(s.season_number)}`,
-              {}, 10000
+              10000
             );
-            payload = r.ok ? await r.json() : null;
           }
           const episodes = payload?.season?.episodes || [];
           const numbers = episodes.map(ep => Number(ep.episode_number)).filter(number => number > 0);
@@ -887,27 +884,24 @@ const ImageResolver = (function () {
         seenTitles.add(key);
         let payload;
         try {
-          let resp = await fetchWithTimeout(
+          payload = await fetchMetadataJson(
             `/api/tmdb/search?q=${encodeURIComponent(title)}${mediaType}${year ? `&year=${encodeURIComponent(year)}` : ""}`,
-            {}, 12000
+            12000
           );
-          payload = resp.ok ? await resp.json() : null;
           if ((!payload || !payload.results || !payload.results.length) && year) {
-            resp = await fetchWithTimeout(
+            payload = await fetchMetadataJson(
               `/api/tmdb/search?q=${encodeURIComponent(title)}${mediaType}`,
-              {}, 12000
+              12000
             );
-            payload = resp.ok ? await resp.json() : null;
           }
           // A film that found nothing in the TV index is worth one more look in the
           // movie index, and vice versa - AniList and TMDB disagree about whether
           // some entries are films or short series.
           if ((!payload || !payload.results || !payload.results.length) && mediaType) {
-            resp = await fetchWithTimeout(
+            payload = await fetchMetadataJson(
               `/api/tmdb/search?q=${encodeURIComponent(title)}`,
-              {}, 12000
+              12000
             );
-            payload = resp.ok ? await resp.json() : null;
           }
         } catch { payload = null; }
         if (payload && payload.configured === false) {
@@ -1167,10 +1161,7 @@ const ImageResolver = (function () {
     try {
       debug(`Lazy fetching TMDB season S${mapping.seasonNumber} for show ${anime.anilistId || anime.id} (contains absolute episode ${episodeNumber})...`);
       const url = `/api/tmdb/season?id=${encodeURIComponent(anime.tmdbId)}&season=${encodeURIComponent(mapping.seasonNumber)}`;
-      const resp = typeof fetchWithTimeout === "function"
-        ? await fetchWithTimeout(url, {}, 12000)
-        : await fetch(url);
-      const payload = resp.ok ? await resp.json() : null;
+      const payload = await fetchMetadataJson(url, 12000);
       const eps = payload?.season?.episodes || [];
       let changed = false;
       const maxEpNum = eps.length ? Math.max(...eps.map(e => Number(e.episode_number || 0))) : 0;
@@ -1306,10 +1297,7 @@ const ImageResolver = (function () {
       const requestTmdbId = String(anime.tmdbId || "");
       try {
         const url = `/api/tmdb/season?id=${encodeURIComponent(anime.tmdbId)}&season=${encodeURIComponent(tmdbSeasonNumber)}`;
-        const resp = typeof fetchWithTimeout === "function"
-          ? await fetchWithTimeout(url, {}, 12000)
-          : await fetch(url);
-        const payload = resp.ok ? await resp.json() : null;
+        const payload = await fetchMetadataJson(url, 12000, { refresh: true });
         const eps = payload?.season?.episodes || [];
         if (!eps.length) return anime;
 

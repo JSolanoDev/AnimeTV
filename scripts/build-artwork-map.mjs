@@ -82,6 +82,17 @@ const TMDB_ID_OVERRIDES = new Map([
   ["animeav1-kinnikuman-kanpeki-choujin-shiso-hen", 236000],
   ["animeav1-devil-may-cry-2025", 235930],
   ["animeav1-devil-may-cry-2026", 235930],
+  // TMDB localizes Sakurada as "Sagrada Reset". Pin the exact 2017 series so
+  // its complete 24-episode still set remains available after every rebuild.
+  ["animeav1-sakurada-reset", 71014],
+  // Narumi's promotional shorts do not have a separate TMDB record. Borrow
+  // only the parent show's 4K key art; episode metadata must remain scoped to
+  // the shorts instead of inheriting Season 1 titles and stills.
+  ["animeav1-kaijuu-8-gou-narumi-no-heijitsu", 207468],
+  // Fresh source rows use spellings that do not line up with their metadata
+  // providers yet. Keep these exact identities stable across nightly rebuilds.
+  ["animeav1-tempal-item-no-chikara", 324502],
+  ["animeav1-tensei-kizoku-kantei-skill-de-nariagaru-3rd-season", 237150],
   ["anilist-126403", 123542],
   ["anilist-136484", 123542],
   ["anilist-170166", 123542],
@@ -96,6 +107,25 @@ const TMDB_ID_OVERRIDES = new Map([
   ["mal-50953", 156898],
   ["mal-51366", 156898]
 ]);
+
+// These rows borrow a verified TMDB backdrop but deliberately do not expose the
+// parent TMDB id to the client. That keeps the runtime resolver from attaching
+// an unrelated season's episode titles/stills to a standalone short.
+const TMDB_ARTWORK_ONLY_OVERRIDES = new Set([
+  "animeav1-kaijuu-8-gou-narumi-no-heijitsu"
+]);
+
+// Preserve the title's own key art instead of replacing it with the parent
+// franchise poster. The exact AniList cover remains the normal poster fallback.
+const TMDB_POSTER_SUPPRESSIONS = new Set([
+  "animeav1-kaijuu-8-gou-narumi-no-heijitsu"
+]);
+
+// Some shorts have no public per-episode stills. A verified, exact landscape
+// image is still much better than generated gradients or a stretched portrait.
+const EPISODE_THUMBNAIL_OVERRIDES = new Map([
+  ["animeav1-kaijuu-8-gou-narumi-no-heijitsu", "https://cdn.myanimelist.net/images/anime/1371/154494l.jpg"]
+]);
 // TMDB stores Bridon as Season 3, which shifts the animated third season to
 // physical Season 4. These values select artwork only; canonical app numbering
 // remains Link Click Seasons 1, 2, and 3.
@@ -107,10 +137,22 @@ const TMDB_SEASON_OVERRIDES = new Map([
   ["animeav1-kinnikuman-kanpeki-choujin-shiso-hen", 1],
   ["animeav1-devil-may-cry-2025", 1],
   ["animeav1-devil-may-cry-2026", 2],
+  // TMDB stores all three Kantei Skill cours in one physical season.
+  ["animeav1-tensei-kizoku-kantei-skill-de-nariagaru-3rd-season", 1],
   ["anilist-126403", 1],
   ["anilist-136484", 2],
   ["anilist-170166", 3],
   ["anilist-191832", 4]
+]);
+
+// Provider episodes restart at 1 for each source page even when TMDB stores the
+// franchise as one continuous season. These values let the client select and
+// rebase the correct slice without weakening season matching globally.
+const CATALOG_IDENTITY_OVERRIDES = new Map([
+  ["animeav1-tensei-kizoku-kantei-skill-de-nariagaru-3rd-season", {
+    canonicalSeasonNumber: 3,
+    providerEpisodeOffset: 24
+  }]
 ]);
 
 const norm = (s) => String(s || "")
@@ -413,12 +455,19 @@ async function resolveOne(item, existing = null) {
   const year = media?.seasonYear || media?.startDate?.year || item.year || null;
   const wantSeason = Number(existing?.canonicalSeasonNumber)
     || seasonNumberOf(media?.title?.romaji || title);
+  const catalogIdentity = {
+    ...(CATALOG_IDENTITY_OVERRIDES.get(item.id) || {}),
+    ...(EPISODE_THUMBNAIL_OVERRIDES.has(item.id)
+      ? { episodeThumbnailFallback: EPISODE_THUMBNAIL_OVERRIDES.get(item.id) }
+      : {})
+  };
   const identityArtwork = media ? {
     anilistId: media.id || existing?.anilistId || null,
     malId: media.idMal || existing?.malId || existing?.meta?.malId || null,
     anilistBanner: media.bannerImage || existing?.anilistBanner || "",
     anilistCover: media.coverImage?.extraLarge || media.coverImage?.large || existing?.anilistCover || "",
-    metadataCover: existing?.metadataCover || ""
+    metadataCover: existing?.metadataCover || "",
+    ...catalogIdentity
   } : hasOverride ? {
     // Explicit values clear a previously merged, wrong identity. The worker
     // preserves unrelated fields by spreading the old record first.
@@ -428,8 +477,9 @@ async function resolveOne(item, existing = null) {
     anilistCover: "",
     metadataCover: "",
     meta: null,
-    identityTitles: []
-  } : {};
+    identityTitles: [],
+    ...catalogIdentity
+  } : catalogIdentity;
 
   // 2. TMDB - search on the strongest titles we now have. TMDB indexes anime as
   // ONE series per franchise, titled in English, with no season suffix, so the
@@ -447,9 +497,11 @@ async function resolveOne(item, existing = null) {
       return {
         status: show.backdrop_path ? "ok" : "poster-only",
         ...identityArtwork,
-        tmdbId: pinnedTmdbId,
+        tmdbId: TMDB_ARTWORK_ONLY_OVERRIDES.has(item.id) ? null : pinnedTmdbId,
         tmdbBackdrop: show.backdrop_path ? `${TMDB_IMG}${show.backdrop_path}` : "",
-        tmdbPoster: posterPath ? `${TMDB_IMG}${posterPath}` : "",
+        tmdbPoster: TMDB_POSTER_SUPPRESSIONS.has(item.id)
+          ? ""
+          : (posterPath ? `${TMDB_IMG}${posterPath}` : ""),
         confidence: 100,
         matchedName: show.name || show.original_name || "pinned TMDB series",
         season: pinnedSeason
@@ -561,6 +613,21 @@ async function main() {
     String(i.source || "").toLowerCase().includes("animeav1")
     || String(i.siteUrl || "").includes("animeav1.com/media/"));
 
+  // Newly published rows can appear in /api/catalog before the scheduled
+  // scraper commit reaches anime_metadata.json. A targeted repair should still
+  // be able to bake their exact artwork immediately; ordinary full builds keep
+  // using the checked-in source and do not add this request.
+  if (ONLY_IDS.size) {
+    const presentIds = new Set(items.map((item) => item.id));
+    const missingIds = [...ONLY_IDS].filter((id) => !presentIds.has(id));
+    if (missingIds.length) {
+      const liveCatalog = await getJson(`${BASE}/api/catalog?limit=5000`);
+      for (const item of liveCatalog?.items || []) {
+        if (missingIds.includes(item.id)) items.push(item);
+      }
+    }
+  }
+
   let map = {};
   // --force means re-resolve the selected rows, not discard every other row in
   // the resumable map. This makes a targeted identity repair safe to run.
@@ -592,10 +659,9 @@ async function main() {
   // Identity corrections must be rebuilt before ordinary rejected artwork
   // retries. This also makes a bounded nightly/manual run repair stale seasons
   // immediately instead of spending its whole budget on older misses first.
-  todo.sort((a, b) =>
-    Number(map[b.id]?.status === "identity-repaired")
-    - Number(map[a.id]?.status === "identity-repaired")
-  );
+  const priority = (item) => map[item.id]?.status === "identity-repaired" ? 2
+    : (!map[item.id]?.status ? 1 : 0);
+  todo.sort((a, b) => priority(b) - priority(a));
   if (LIMIT) todo = todo.slice(0, LIMIT);
   console.log(`${items.length} scraped titles, ${items.length - todo.length} already resolved, ${todo.length} to do`);
 

@@ -51,8 +51,10 @@ test("catalog commit rebases over a concurrent main update without losing either
     configureIdentity(seed);
 
     const paths = catalogPaths();
-    assert.equal(paths.length, 21);
+    assert.equal(paths.length, 23);
     assert.ok(paths.includes("homepage-bootstrap.json"));
+    assert.ok(paths.includes("scraper/animeneon-catalog.json"));
+    assert.ok(paths.includes("android/app/src/main/assets/scraper/animeneon-catalog.json"));
     for (const path of paths) {
       const file = join(seed, path);
       mkdirSync(dirname(file), { recursive: true });
@@ -141,4 +143,7 @@ test("scrape workflow uses the guarded catalog publisher", () => {
   assert.match(workflow, /run: bash scripts\/commit-catalog-update\.sh/);
   assert.doesNotMatch(workflow, /git-auto-commit-action/);
   assert.doesNotMatch(readFileSync(commitScript, "utf8"), /push[^\n]*--force/);
+  assert.match(workflow, /cron: '0 6 \* \* \*'/);
+  assert.match(workflow, /node-version: 24/);
+  assert.ok(workflow.indexOf("node --test scripts/test-animeav1-inventory.mjs") < workflow.indexOf("- name: Run anime scraper"));
 });

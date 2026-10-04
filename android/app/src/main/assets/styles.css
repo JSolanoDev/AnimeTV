@@ -1119,7 +1119,7 @@ main {
   align-items: start;
   gap: clamp(1.4rem, 3vw, 3rem);
   min-height: min(82vh, 56.25vw);
-  margin: -1.2rem calc(clamp(1.4rem, 3.2vw, 3.4rem) * -1) -1.5rem;
+  margin: -1.2rem calc(var(--page-gutter) * -1) -1.5rem;
   padding: 1.2rem clamp(1.4rem, 3.2vw, 3.4rem) 3.2rem;
   padding: 0;
   overflow: hidden;
@@ -1924,6 +1924,23 @@ body:not([data-route="home"]) .section-heading h2 {
   font-size: 0.8rem;
   font-weight: 900;
   text-align: center;
+}
+
+.thumb-art .latino-pill {
+  position: absolute;
+  top: 0.65rem;
+  left: 0.65rem;
+  z-index: 3;
+  padding: 0.25rem 0.48rem;
+  border: 1px solid rgba(103, 232, 249, 0.58);
+  border-radius: 0.3rem;
+  background: rgba(7, 20, 31, 0.86);
+  color: #8be9f5;
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  box-shadow: 0 0.3rem 0.9rem rgba(0, 0, 0, 0.28);
 }
 
 .show-title {
@@ -5941,6 +5958,156 @@ body.player-cinema-open .close-button {
   transition: opacity 220ms ease;
 }
 
+/* First-play language choice. This is entirely local UI; it does not add a
+   metadata request until the viewer has chosen a playback version. */
+body.watch-language-open {
+  overflow: hidden;
+}
+
+.watch-language-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 24000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 5, 14, 0.82);
+  backdrop-filter: blur(12px);
+}
+
+.watch-language-dialog {
+  position: relative;
+  width: min(620px, 100%);
+  overflow: hidden;
+  border: 1px solid rgba(151, 166, 204, 0.24);
+  border-radius: 8px;
+  padding: 28px;
+  background: #0b0f1c;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.56);
+}
+
+.watch-language-dialog::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, #17c8e9, #8754ff 58%, #f04f9c);
+}
+
+.watch-language-mark {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(75, 215, 255, 0.35);
+  border-radius: 6px;
+  color: #66dcff;
+  background: #11192a;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.watch-language-heading > span {
+  color: #9a72ff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.watch-language-heading h2 {
+  margin: 6px 0 8px;
+  color: #f7f8ff;
+  font-size: 32px;
+  line-height: 1.12;
+  letter-spacing: 0;
+}
+
+.watch-language-heading p {
+  max-width: 520px;
+  margin: 0;
+  color: #aeb6ca;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.watch-language-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.watch-language-option {
+  position: relative;
+  min-height: 92px;
+  border: 1px solid rgba(151, 166, 204, 0.2);
+  border-radius: 7px;
+  padding: 17px 58px 17px 17px;
+  color: #f5f7ff;
+  background: #121827;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.watch-language-option:hover,
+.watch-language-option:focus-visible {
+  border-color: rgba(102, 220, 255, 0.75);
+  background: #172034;
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.watch-language-option b,
+.watch-language-option small {
+  display: block;
+  letter-spacing: 0;
+}
+
+.watch-language-option b {
+  font-size: 15px;
+}
+
+.watch-language-option small {
+  margin-top: 5px;
+  color: #9ca6bd;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.watch-language-option > span {
+  position: absolute;
+  top: 17px;
+  right: 16px;
+  color: #65dfff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.watch-language-option.is-recommended > span {
+  color: #ac8aff;
+}
+
+@media (max-width: 560px) {
+  .watch-language-backdrop {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .watch-language-dialog {
+    padding: 23px 18px 18px;
+  }
+
+  .watch-language-heading h2 {
+    font-size: 24px;
+  }
+
+  .watch-language-options {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Browser-native PWA recommendation. It is deliberately static/client-only:
    the card reuses the already-cached app mark and never calls an API route. */
 .install-recommendation {
@@ -8909,6 +9076,7 @@ body.reduce-motion .watch-detail-progress { opacity: 1; }
   font-weight: 900;
 }
 .watch-meta-score { color: #ffd66b; }
+.watch-meta-latino { color: #8be9f5; }
 
 .watch-taglist {
   display: flex;
@@ -8981,6 +9149,56 @@ body.reduce-motion .watch-detail-progress { opacity: 1; }
   align-items: center;
   gap: 0.7rem;
   margin-top: 0.5rem;
+}
+
+.watch-version-toggle {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(3.7rem, auto));
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.22rem;
+  border: 1px solid rgba(160, 177, 215, 0.24);
+  border-radius: 0.5rem;
+  background: rgba(8, 13, 25, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(0.7rem);
+}
+
+.watch-version-toggle[hidden] {
+  display: none;
+}
+
+.watch-version-option {
+  min-width: 0;
+  min-height: 2.25rem;
+  border: 0;
+  border-radius: 0.36rem;
+  padding: 0.45rem 0.72rem;
+  color: #aeb8cc;
+  background: transparent;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, box-shadow 140ms ease;
+}
+
+.watch-version-option.is-selected {
+  color: #fff;
+  background: #7047e8;
+  box-shadow: 0 0.28rem 0.9rem rgba(112, 71, 232, 0.26);
+}
+
+.watch-version-option:is(:hover, :focus-visible):not(:disabled) {
+  color: #fff;
+  outline: 0.12rem solid rgba(101, 221, 255, 0.75);
+  outline-offset: -0.12rem;
+}
+
+.watch-version-option:disabled {
+  color: rgba(174, 184, 204, 0.38);
+  cursor: not-allowed;
 }
 .watch-overlay.cinematic .primary-action {
   display: inline-flex;
@@ -13446,7 +13664,8 @@ main {
 
 @media (min-width: 761px) and (max-width: 1024px) {
   main {
-    padding: 0.8rem 1.1rem 1rem;
+    --page-gutter: 1.1rem;
+    padding: 0.8rem var(--page-gutter) 1rem;
   }
 
   .carousel-stage {
@@ -13461,5 +13680,39 @@ main {
 
   .rail-shell .poster-grid {
     grid-auto-columns: calc((100% - (3 * var(--rail-gap))) / 4);
+  }
+}
+
+/* A source error is content, not a 16:9 picture. Keep its recovery actions
+   reachable without changing the geometry of a working video. */
+.vidstream-player.is-error .vid-error-overlay {
+  overflow-y: auto;
+  justify-content: safe center;
+  padding-top: 4.5rem;
+}
+
+@media (max-width: 860px) and (orientation: portrait) {
+  body.player-cinema-open .watch-overlay.cinematic .video-frame:has(.is-error) {
+    position: relative;
+  }
+
+  body.player-cinema-open .watch-overlay.cinematic .vidstream-player.is-cinema.is-error {
+    aspect-ratio: auto;
+    min-height: 0;
+  }
+
+  .vidstream-player.is-cinema.is-error .vid-player-stage,
+  .vidstream-player.is-error .vid-error-overlay {
+    position: relative;
+    inset: auto;
+    height: auto;
+  }
+
+  .vidstream-player.is-error .vid-error-overlay {
+    padding: 4.5rem 1rem 1.5rem;
+  }
+
+  .vidstream-player.is-error .vid-error-title {
+    font-size: 1.2rem;
   }
 }

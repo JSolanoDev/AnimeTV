@@ -55,7 +55,7 @@
       ]
     },
     {
-      "source": "/api/(animeav1|tioanime|jkanime)/sources",
+      "source": "/api/(animeneon|animeav1|tioanime|jkanime)/sources",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=60, s-maxage=300, stale-while-revalidate=600, stale-if-error=1800" },
         { "key": "Vary", "value": "Accept-Encoding" }

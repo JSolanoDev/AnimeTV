@@ -11,6 +11,7 @@ const metadataSource = readFileSync(new URL("../js/anilist-metadata.js", import.
 const clientSource = readFileSync(new URL("../client.js", import.meta.url), "utf8");
 const imageSource = readFileSync(new URL("../js/image-resolver.js", import.meta.url), "utf8");
 const serverSource = readFileSync(new URL("../animetv-server.js", import.meta.url), "utf8");
+const utilsSource = readFileSync(new URL("../js/utils.js", import.meta.url), "utf8");
 function section(source, start, end) {
   const from = source.indexOf(start);
   const to = source.indexOf(end, from + start.length);
@@ -23,6 +24,7 @@ function context(fetchWithTimeout = async () => ({ ok: false })) {
   const sandbox = vm.createContext({
     console: { log() {}, warn() {}, debug() {} },
     ...utils, SeasonNormalization, URL, Date, fetchWithTimeout,
+    location: { origin: "https://app.test", href: "https://app.test/" },
     ANILIST_META_CACHE_PREFIX: "test:", ANILIST_META_CACHE_TTL: 86400000,
     ANILIST_SEARCH_CACHE_TTL: 60000, ANILIST_MEDIA_ENDPOINT: "/api/anilist/media",
     ANILIST_SEARCH_ENDPOINT: "/api/anilist/search",
@@ -56,6 +58,7 @@ function context(fetchWithTimeout = async () => ({ ok: false })) {
     getEpisodeUrl: episode => episode.videoUrl || ""
   });
   sandbox.catalogShows = () => sandbox.state.shows;
+  vm.runInContext(section(utilsSource, "const metadataJsonCache =", "async function fetchWithRetry("), sandbox);
   vm.runInContext(metadataSource, sandbox);
   vm.runInContext(section(clientSource, "function getShowSlug(", "function ensureNotFoundSection("), sandbox);
   vm.runInContext(section(clientSource, "const bakedChainCache =", "function getFranchiseSeasonList("), sandbox);
@@ -66,6 +69,112 @@ function context(fetchWithTimeout = async () => ({ ok: false })) {
   vm.runInContext(section(clientSource, "function episodeMetadataForNumber(", "function episodeCandidateImage("), sandbox);
   return sandbox;
 }
+
+test("a new season seen first at episode two retains both episode rows", () => {
+  const c = context();
+  vm.runInContext(section(clientSource, "function animeAv1CatalogSlugForShow(", "function queueLiveSearch("), c);
+  vm.runInContext(section(clientSource, "function makeAv1OnlyShow(", "function registerAv1Show("), c);
+  const show = c.makeAv1OnlyShow({
+    slug: "yasei-no-last-boss-ga-arawareta-2nd-season",
+    title: "Yasei no Last Boss ga Arawareta! 2nd Season",
+    episode: 2
+  });
+  const [season] = c.getDetailSeasons(show);
+  assert.equal(season.season, 2);
+  assert.deepEqual(Array.from(season.episodes, episode => episode.providerEpisodeId), [1, 2]);
+  assert.ok(season.episodes.every(episode => episode.needsResolve));
+  assert.deepEqual(Array.from(show.sourceEpisodeIds), [2], "observed IDs are not fabricated");
+  assert.equal(show.sourceInventoryPartial, true);
+
+  c.applyAnimeAv1LatestEpisodeToShow(show, { episode: 3 });
+  assert.equal(show.sourceInventoryPartial, true, "a later feed update is still not a full inventory");
+  assert.deepEqual(Array.from(c.getDetailSeasons(show)[0].episodes, episode => episode.providerEpisodeId), [1, 2, 3]);
+});
+
+test("a complete sparse provider inventory keeps its real gaps after a feed update", () => {
+  const c = context();
+  vm.runInContext(section(clientSource, "function animeAv1CatalogSlugForShow(", "function queueLiveSearch("), c);
+  const show = {
+    id: "animeav1-sparse", title: "Sparse Season", animeAv1Slug: "sparse",
+    sourceInventoryChecked: true, sourceEpisodeCount: 3,
+    sourceEpisodeIds: [1, 3], sourcePlayableEpisodeCount: 2
+  };
+  c.applyAnimeAv1LatestEpisodeToShow(show, { episode: 4 });
+  assert.equal(show.sourceInventoryPartial, false);
+  assert.deepEqual(Array.from(c.makePlaceholderEpisodes(show, 1), episode => episode.providerEpisodeId), [1, 3, 4]);
+});
+
+test("a feed movie at provider episode zero still opens as display episode one", () => {
+  const c = context();
+  vm.runInContext(section(clientSource, "function animeAv1CatalogSlugForShow(", "function queueLiveSearch("), c);
+  vm.runInContext(section(clientSource, "function makeAv1OnlyShow(", "function registerAv1Show("), c);
+  const show = c.makeAv1OnlyShow({ slug: "movie", title: "Movie", episode: 0 });
+  const [episode] = c.makePlaceholderEpisodes(show, 1);
+  assert.equal(episode.providerEpisodeId, 0);
+  assert.equal(episode.canonicalEpisode, 1);
+});
+
+test("catalog normalization preserves partial inventories until a complete inventory arrives", () => {
+  const c = context();
+  vm.runInContext(readFileSync(new URL("../js/normalize.js", import.meta.url), "utf8"), c);
+  const partial = c.normalizeExternalShow({
+    id: "animeav1-new-second-season", title: "New Second Season", episode: 2,
+    source: "AnimeAV1", sourceInventoryChecked: true, sourceInventoryPartial: true,
+    sourceEpisodeIds: [2], sourceEpisodeCount: 2, sourcePlayableEpisodeCount: 1
+  }, { id: "animetv-api", name: "AnimeAV1" }, 0);
+  assert.equal(partial.sourceInventoryPartial, true);
+  assert.deepEqual(Array.from(c.makePlaceholderEpisodes(partial, 2), episode => episode.providerEpisodeId), [1, 2]);
+  const complete = { ...partial, sourceInventoryPartial: false, sourceEpisodeIds: [1, 2], sourcePlayableEpisodeCount: 2 };
+  for (const [current, incoming] of [[partial, complete], [complete, partial]]) {
+    const merged = c.mergeClientCatalogShow(current, incoming);
+    assert.equal(merged.sourceInventoryPartial, false);
+    assert.deepEqual(Array.from(merged.sourceEpisodeIds), [1, 2]);
+  }
+});
+
+test("older same-title catalog responses cannot remove already loaded episode routes", () => {
+  const c = context();
+  vm.runInContext(readFileSync(new URL("../js/normalize.js", import.meta.url), "utf8"), c);
+  const newest = { id: "animeav1-example", title: "Example", animeAv1Slug: "example",
+    sourceInventoryChecked: true, sourceEpisodeIds: [1, 2], sourceEpisodeCount: 2, sourcePlayableEpisodeCount: 2 };
+  const older = { ...newest, sourceEpisodeIds: [1], sourceEpisodeCount: 1, sourcePlayableEpisodeCount: 1 };
+  const feed = { ...newest, sourceInventoryPartial: true, sourceEpisodeIds: [3], sourceEpisodeCount: 3, sourcePlayableEpisodeCount: 1 };
+  for (const [current, incoming] of [[newest, older], [older, newest], [newest, feed], [feed, newest]]) {
+    const merged = c.mergeClientCatalogShow(current, incoming);
+    const expected = current === feed || incoming === feed ? [1, 2, 3] : [1, 2];
+    assert.deepEqual(Array.from(merged.sourceEpisodeIds), expected);
+    assert.equal(merged.sourcePlayableEpisodeCount, expected.length);
+    assert.deepEqual(Array.from(c.makePlaceholderEpisodes(merged, 1), episode => episode.providerEpisodeId), expected);
+  }
+});
+
+test("a long-series starter row does not become latest-episode-only after the live feed arrives", () => {
+  const c = context();
+  vm.runInContext(readFileSync(new URL("../js/normalize.js", import.meta.url), "utf8"), c);
+  vm.runInContext(section(clientSource, "function animeAv1CatalogSlugForShow(", "function queueLiveSearch("), c);
+  const starter = c.normalizeExternalShow({ id: "animeav1-example", title: "Example",
+    sourceInventoryChecked: true, sourceEpisodeCount: 40, sourcePlayableEpisodeCount: 40
+  }, { id: "animetv-api", name: "AnimeAV1" }, 0);
+  assert.equal(starter.sourceInventoryPartial, true);
+  c.applyAnimeAv1LatestEpisodeToShow(starter, { episode: 41 });
+  assert.equal(c.makePlaceholderEpisodes(starter, 1).length, 41);
+});
+
+test("newer explicit removals are respected and different provider slugs never combine inventories", () => {
+  const c = context();
+  vm.runInContext(readFileSync(new URL("../js/normalize.js", import.meta.url), "utf8"), c);
+  const old = { id: "animeav1-example", animeAv1Slug: "example", sourceInventoryChecked: true,
+    sourceEpisodeIds: [1, 2], sourceEpisodeCount: 2, sourcePlayableEpisodeCount: 2, sourceInventoryCheckedAt: "2026-10-01" };
+  const updated = { ...old, sourceEpisodeIds: [1], sourceEpisodeCount: 1, sourcePlayableEpisodeCount: 1,
+    sourceUnavailableEpisodeIds: [2], sourceInventoryCheckedAt: "2026-10-03" };
+  for (const pair of [[old, updated], [updated, old]]) {
+    const merged = c.mergeClientCatalogShow(...pair);
+    assert.deepEqual(Array.from(merged.sourceEpisodeIds), [1]);
+    assert.equal(merged.sourcePlayableEpisodeCount, 1);
+  }
+  const anotherSeason = { ...updated, animeAv1Slug: "example-season-two", sourceEpisodeIds: [5] };
+  assert.deepEqual(Array.from(c.mergeClientCatalogShow(old, anotherSeason).sourceEpisodeIds), [5]);
+});
 
 test("deep links match the exact season rather than a newer title prefix", () => {
   const c = context();

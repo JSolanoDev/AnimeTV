@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-09-24T11:23:33.412Z",
-  "count": 1658,
+  "generatedAt": "2026-10-04T00:35:36.431Z",
+  "count": 1679,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -94,12 +94,12 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-09-18T03:20:37.280Z"
+      "sourceEpisodeCount": 9,
+      "lastEpisodeAt": "2026-10-02T03:06:56.383Z"
     },
     "animeav1-bleach-sennen-kessen-hen-kashin-tan": {
       "anilistId": 185874,
-      "airingStatus": "",
+      "airingStatus": "RELEASING",
       "season": "SUMMER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
@@ -167,7 +167,7 @@
     },
     "animeav1-nige-jouzu-no-wakagimi-2nd-season": {
       "anilistId": 182616,
-      "airingStatus": "",
+      "airingStatus": "RELEASING",
       "season": "SUMMER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
@@ -197,8 +197,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 10,
-      "lastEpisodeAt": "2026-09-18T16:13:08.427Z"
+      "sourceEpisodeCount": 11,
+      "lastEpisodeAt": "2026-09-25T16:12:23.958Z"
     },
     "animeav1-katainaka-no-ossan-kensei-ni-naru-ii": {
       "anilistId": 194829,
@@ -272,7 +272,7 @@
     },
     "animeav1-clevatess-ii-majuu-no-ou-to-itsuwari-no-yuusha-denshou": {
       "anilistId": 198946,
-      "airingStatus": "",
+      "airingStatus": "RELEASING",
       "season": "SUMMER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
@@ -537,7 +537,7 @@
     },
     "animeav1-seihantai-na-kimi-to-boku-2nd-season": {
       "anilistId": 210031,
-      "airingStatus": "",
+      "airingStatus": "RELEASING",
       "season": "SUMMER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
@@ -567,8 +567,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-09-13T09:57:19.379Z"
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-09-27T10:12:19.115Z"
     },
     "animeav1-kabushikigaisha-magi-lumiere-2nd-season": {
       "anilistId": 185692,
@@ -938,7 +938,7 @@
     },
     "animeav1-rezero-kara-hajimeru-isekai-seikatsu-4th-season": {
       "anilistId": 189046,
-      "airingStatus": "",
+      "airingStatus": "RELEASING",
       "season": "SPRING",
       "seasonYear": 2026,
       "anilistEpisodeCount": 19,
@@ -1001,8 +1001,8 @@
           "order": 5
         }
       ],
-      "sourceEpisodeCount": 18,
-      "lastEpisodeAt": "2026-09-23T14:10:28.211Z"
+      "sourceEpisodeCount": 19,
+      "lastEpisodeAt": "2026-09-30T14:15:04.345Z"
     },
     "animeav1-higeki-no-genkyou-to-naru-saikyou-gedou-last-boss-joou-wa-tami-no-tame-ni-tsukushimasu-season-2": {
       "anilistId": 195268,
@@ -1108,7 +1108,7 @@
     },
     "animeav1-honzuki-no-gekokujou-shisho-ni-naru-tame-ni-wa-shudan-wo-erandeiraremasen-ryoushu-no-youjo": {
       "anilistId": 171110,
-      "airingStatus": "",
+      "airingStatus": "RELEASING",
       "season": "SPRING",
       "seasonYear": 2026,
       "anilistEpisodeCount": 24,
@@ -1160,8 +1160,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 22,
-      "lastEpisodeAt": "2026-09-19T12:07:22.558Z"
+      "sourceEpisodeCount": 23,
+      "lastEpisodeAt": "2026-09-26T11:58:39.144Z"
     },
     "animeav1-mairimashita-iruma-kun-4th-season": {
       "anilistId": 184492,
@@ -1560,7 +1560,7 @@
     },
     "animeav1-steel-ball-run-jojo-no-kimyou-na-bouken": {
       "anilistId": 190327,
-      "airingStatus": "",
+      "airingStatus": "RELEASING",
       "season": "WINTER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 1,
@@ -1667,8 +1667,8 @@
           "order": 9
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-03-19T12:31:39.994Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-02T12:30:18.319Z"
     },
     "animeav1-beastars-final-season-part-2": {
       "anilistId": 187267,
@@ -58594,8 +58594,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 12,
-      "lastEpisodeAt": "2026-09-22T17:59:22.360Z"
+      "sourceEpisodeCount": 13,
+      "lastEpisodeAt": "2026-09-29T17:48:13.398Z"
     },
     "animeav1-kimi-ga-shinu-made-koi-wo-shitai": {
       "anilistId": null,
@@ -58654,8 +58654,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 12,
-      "lastEpisodeAt": "2026-09-18T17:09:27.240Z"
+      "sourceEpisodeCount": 13,
+      "lastEpisodeAt": "2026-10-02T16:48:28.956Z"
     },
     "animeav1-kore-kaite-shine": {
       "anilistId": null,
@@ -58678,8 +58678,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 12,
-      "lastEpisodeAt": "2026-09-17T16:23:13.913Z"
+      "sourceEpisodeCount": 14,
+      "lastEpisodeAt": "2026-10-01T16:45:47.661Z"
     },
     "animeav1-reiwa-no-dara-san": {
       "anilistId": null,
@@ -58738,8 +58738,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-09-19T12:07:37.134Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-09-26T21:25:46.581Z"
     },
     "animeav1-boku-no-hero-academia-i-am-a-hero-too": {
       "anilistId": 211711,
@@ -60918,6 +60918,258 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 12
+    },
+    "animeav1-tensei-kizoku-kantei-skill-de-nariagaru-3rd-season": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-09-27T15:13:37.240Z"
+    },
+    "animeav1-tempal-item-no-chikara": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-09-27T14:54:25.222Z"
+    },
+    "animeav1-keroro-gunsou": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-03T02:12:03.129Z"
+    },
+    "animeav1-tougen-anki-nikko-kegon-no-taki-hen": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-02T16:19:15.793Z"
+    },
+    "animeav1-kusuriya-no-hitorigoto-3rd-season": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-02T15:08:06.559Z"
+    },
+    "animeav1-tokyo-revengers-santen-sensou-hen": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-02T12:29:41.634Z"
+    },
+    "animeav1-koori-no-jouheki-2nd-season": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-01T15:53:07.443Z"
+    },
+    "animeav1-fx-senshi-kurumi-chan": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-01T12:58:44.242Z"
+    },
+    "animeav1-shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-09-30T16:23:21.216Z"
+    },
+    "animeav1-tensei-shitara-ken-deshita-ii": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-09-30T19:57:49.334Z"
+    },
+    "animeav1-yasei-no-last-boss-ga-arawareta-2nd-season": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-03T14:25:18.831Z"
+    },
+    "animeav1-gensou-suikoden": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-03T20:21:19.213Z"
+    },
+    "animeav1-kashita-maryoku-wa-revo-barai-de-kyousei-choushuu": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-03T18:37:05.995Z"
+    },
+    "animeav1-ranma-2024-3rd-season": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-03T17:26:09.926Z"
+    },
+    "animeav1-magicalexplorer": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-03T17:03:37.496Z"
+    },
+    "animeav1-vertex-force": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-03T16:13:34.847Z"
+    },
+    "animeav1-black-clover-2nd-season": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-03T15:28:35.192Z"
+    },
+    "animeav1-marronnier-oukoku-no-shichinin-no-kishi": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-03T15:28:17.345Z"
+    },
+    "animeav1-zombie-sagashitemasu": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-03T15:22:32.907Z"
+    },
+    "animeav1-romelia-senki": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-03T14:28:16.457Z"
+    },
+    "animeav1-tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-03T14:28:00.626Z"
     }
   }
 }

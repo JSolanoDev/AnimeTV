@@ -103,6 +103,20 @@ export function auditCatalogIntegrity({
     errors.push(`regular catalog shrank from ${oldItems.length} to ${items.length} titles`);
   }
 
+  const currentBySlug = new Map(allItems.map((item) => [sourceSlug(item), item]));
+  for (const previousItem of oldItems) {
+    const current = currentBySlug.get(sourceSlug(previousItem));
+    if (!current) {
+      errors.push(`saved catalog title ${previousItem.id} disappeared during refresh`);
+      continue;
+    }
+    const retainedIds = new Set((current.sourceEpisodeIds || []).map(Number));
+    const confirmedMissing = new Set((current.sourceUnavailableEpisodeIds || []).map(Number));
+    const lostIds = (previousItem.sourceEpisodeIds || []).map(Number)
+      .filter((id) => !retainedIds.has(id) && !confirmedMissing.has(id));
+    if (lostIds.length) errors.push(`${current.id} lost ${lostIds.length} saved episode route(s) without a confirmed removal`);
+  }
+
   const seenIds = new Set();
   const seenSlugs = new Set();
   let sourceArtwork = 0;

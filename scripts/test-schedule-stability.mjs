@@ -169,7 +169,8 @@ test("client catalog merges preserve useful airing fields", () => {
     lastEpisodeAt: "2026-09-07T20:00:00.000Z",
     broadcastDay: "Mondays",
     broadcastTime: "20:00",
-    broadcastTimezone: "Asia/Tokyo"
+    broadcastTimezone: "Asia/Tokyo",
+    episodeThumbnailFallback: "https://cdn.example.com/exact-landscape.jpg"
   };
   const incoming = {
     id: "metadata-1",
@@ -178,7 +179,8 @@ test("client catalog merges preserve useful airing fields", () => {
     time: "TBA",
     nextAiringAt: null,
     lastEpisodeAt: "",
-    broadcastDay: ""
+    broadcastDay: "",
+    episodeThumbnailFallback: ""
   };
   const merged = context.mergeClientCatalogShow(current, incoming);
 
@@ -187,6 +189,7 @@ test("client catalog merges preserve useful airing fields", () => {
   assert.equal(merged.nextAiringAt, 123456);
   assert.equal(merged.lastEpisodeAt, current.lastEpisodeAt);
   assert.equal(merged.broadcastDay, "Mondays");
+  assert.equal(merged.episodeThumbnailFallback, current.episodeThumbnailFallback);
 });
 
 test("every catalog replacement invalidates schedule data before rendering", () => {

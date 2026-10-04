@@ -2,6 +2,7 @@ const http = require("http");
 const dns = require("dns");
 const crypto = require("crypto");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const vm = require("vm");
 const { spawn } = require("child_process");
@@ -231,6 +232,10 @@ const sourcePlaylistCache = new Map();
 const sourcePlaylistInflight = new Map();
 const SOURCE_PLAYLIST_MEMORY_TTL_MS = 15 * 1000;
 const SOURCE_PLAYLIST_CACHE_MAX = 100;
+const streamTapeRelayCache = new Map();
+const streamTapeRelayInflight = new Map();
+const STREAMTAPE_RELAY_CACHE_TTL_MS = 8 * 1000;
+const STREAMTAPE_RELAY_CACHE_MAX = 50;
 const animeAv1SlugSearchCache = new Map(); // normalized query -> { data, ts }
 const animeAv1CatalogSearchCache = new Map(); // normalized query -> { data, ts }
 let animeAv1LatestCache = null;          // [{ slug, episode, title, image }]
@@ -244,6 +249,21 @@ const jkAnimeSourceCache = new Map(); // "slug:ep" -> { data, ts }
 const jkAnimeSourceInflight = new Map();
 const jkAnimeSlugSearchCache = new Map(); // normalized query -> { data, ts }
 let jkAnimeSlugCatalogMemory = null;
+const ANIMENEON_BASE = "https://animeneon.net";
+const ANIMENEON_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36",
+  Accept: "application/json,text/plain;q=0.9,*/*;q=0.8",
+  "Accept-Language": "es-419,es;q=0.9,en;q=0.5",
+  Referer: `${ANIMENEON_BASE}/browse`
+};
+const ANIMENEON_SEARCH_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
+const ANIMENEON_SEARCH_MISS_TTL_MS = 1000 * 60 * 10;
+const ANIMENEON_SOURCE_CACHE_TTL_MS = 1000 * 60 * 10;
+const ANIMENEON_SOURCE_MISS_TTL_MS = 1000 * 60 * 2;
+const animeNeonSearchCache = new Map();
+const animeNeonSearchInflight = new Map();
+const animeNeonSourceCache = new Map();
+const animeNeonSourceInflight = new Map();
 const ANIMEONLINE_BASE = "https://ww3.animeonline.ninja";
 const ANIMEONLINE_SAIDOCHESTO = "https://saidochesto.top";
 const ANIMEONLINE_CACHE_TTL_MS = 1000 * 60 * 30;
@@ -523,7 +543,9 @@ const DAILY_REFRESH_INTERVAL_MS = Math.max(1000 * 60 * 60, Number(process.env.DA
 const DAILY_REFRESH_START_DELAY_MS = Math.max(5000, Number(process.env.DAILY_REFRESH_START_DELAY_MS || 15000));
 const LOG_LEVEL = String(process.env.LOG_LEVEL || "info").toLowerCase();
 const API_PERF_DEBUG = process.env.API_PERF_DEBUG === "1" && !HOSTED_RUNTIME;
-const SERVER_CACHE_DIR = path.join(root, ".cache", "server");
+const SERVER_CACHE_DIR = HOSTED_RUNTIME
+  ? path.join(os.tmpdir(), "zenkaitv-server-cache")
+  : path.join(root, ".cache", "server");
 const RATE_LIMIT_WINDOW_MS = Math.max(1000, Number(process.env.RATE_LIMIT_WINDOW_MS || 60000));
 const RATE_LIMIT_MAX_REQUESTS = Math.max(20, Number(process.env.RATE_LIMIT_MAX_REQUESTS || 240));
 const RATE_LIMIT_API_MAX_REQUESTS = Math.max(20, Number(process.env.RATE_LIMIT_API_MAX_REQUESTS || 120));
@@ -586,6 +608,7 @@ const IMAGE_PROXY_MAX_WIDTH = 3840;
 const IMAGE_PROXY_MAX_HEIGHT = 3840;
 const IMAGE_PROXY_DEFAULT_WIDTH = 360;
 const IMAGE_PROXY_WEBP_QUALITY = 70;
+const imageProxyInflight = new Map();
 const STRICT_TRANSPORT_SECURITY = "max-age=31536000; includeSubDomains; preload";
 const SECURITY_HEADERS = {
   "Referrer-Policy": "no-referrer",
@@ -1229,6 +1252,16 @@ function handleRequest(request, response) {
     return;
   }
 
+  if (url.pathname === "/api/animeneon/sources") {
+    handleAnimeNeonSources(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/animeneon/health") {
+    handleAnimeNeonHealth(response);
+    return;
+  }
+
   if (url.pathname === "/api/animeav1/search") {
     handleAnimeAv1Search(url, response);
     return;
@@ -1445,7 +1478,7 @@ function handleHealth(response) {
       rapidCatalogItems: rapidCatalogCache?.length || 0,
       rapidCatalogFresh: Boolean(rapidCatalogCacheAt && Date.now() - rapidCatalogCacheAt < RAPID_CATALOG_TTL_MS),
       translations: translationCache.size,
-      persistentCacheDir: ".cache/server"
+      persistentCacheDir: HOSTED_RUNTIME ? "temporary runtime cache" : ".cache/server"
     },
     rateLimit: {
       windowMs: RATE_LIMIT_WINDOW_MS,
@@ -1480,33 +1513,51 @@ async function handleImageProxy(url, response) {
     return;
   }
 
-  const upstream = await fetchWithTimeout(source.toString(), {
+  const cacheKey = JSON.stringify([source.toString(), ...["w", "q", "h", "fit"].map((key) => url.searchParams.get(key))]);
+  const image = await coalesceInflight(imageProxyInflight, cacheKey, () => buildImageProxyPayload(url, source));
+  if (image.error) {
+    sendJson(response, { ok: false, error: image.error }, image.status);
+    return;
+  }
+  response.writeHead(200, {
+    ...SECURITY_HEADERS,
+    "Content-Type": image.type,
+    "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable, stale-while-revalidate=604800",
+    "Content-Length": String(image.buffer.length),
+    "X-Image-Optimized": image.optimized ? "1" : "0"
+  });
+  response.end(image.buffer);
+}
+
+async function buildImageProxyPayload(url, source) {
+  // Keep the deadline active through the body, not just until headers arrive.
+  const upstream = await fetch(source.toString(), {
     headers: {
       Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"
-    }
-  }, 10000);
+    },
+    signal: AbortSignal.timeout(10000)
+  });
   if (!upstream.ok) {
-    sendJson(response, { ok: false, error: `Image upstream returned HTTP ${upstream.status}` }, upstream.status);
-    return;
+    try { await upstream.body?.cancel?.(); } catch { /* already closed */ }
+    return { error: `Image upstream returned HTTP ${upstream.status}`, status: upstream.status };
   }
 
   const contentType = String(upstream.headers.get("content-type") || "image/jpeg").split(";")[0].toLowerCase();
   if (!contentType.startsWith("image/")) {
-    sendJson(response, { ok: false, error: "Upstream response is not an image" }, 415);
-    return;
+    try { await upstream.body?.cancel?.(); } catch { /* already closed */ }
+    return { error: "Upstream response is not an image", status: 415 };
   }
 
   const length = Number(upstream.headers.get("content-length") || 0);
   if (length && length > IMAGE_PROXY_MAX_BYTES) {
-    sendJson(response, { ok: false, error: "Image is too large" }, 413);
-    return;
+    try { await upstream.body?.cancel?.(); } catch { /* already closed */ }
+    return { error: "Image is too large", status: 413 };
   }
 
   const originalBuffer = Buffer.from(await upstream.arrayBuffer());
   if (originalBuffer.length > IMAGE_PROXY_MAX_BYTES) {
-    sendJson(response, { ok: false, error: "Image is too large" }, 413);
-    return;
+    return { error: "Image is too large", status: 413 };
   }
 
   const requestedWidth = Math.max(
@@ -1555,14 +1606,7 @@ async function handleImageProxy(url, response) {
     }
   }
 
-  response.writeHead(200, {
-    ...SECURITY_HEADERS,
-    "Content-Type": outputType,
-    "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable, stale-while-revalidate=604800",
-    "Content-Length": String(outputBuffer.length),
-    "X-Image-Optimized": optimized ? "1" : "0"
-  });
-  response.end(outputBuffer);
+  return { buffer: outputBuffer, type: outputType, optimized };
 }
 
 function handleServerInfo(request, response) {
@@ -1756,8 +1800,13 @@ module.exports.applyRegularSourceFallback = applyRegularSourceFallback;
 module.exports.hasVerifiedRegularSourceFallback = hasVerifiedRegularSourceFallback;
 module.exports.resolvedEmbedPlaybackUrl = resolvedEmbedPlaybackUrl;
 module.exports.applyAnimeAv1LatestInventory = applyAnimeAv1LatestInventory;
+module.exports.parseAnimeAv1Info = parseAnimeAv1Info;
+module.exports.parseAnimeAv1Latest = parseAnimeAv1Latest;
+module.exports.animeAv1RelativeReleaseAt = animeAv1RelativeReleaseAt;
 module.exports.resolveUnderHentaiPortraitArtwork = resolveUnderHentaiPortraitArtwork;
 module.exports.splitDescriptionForTranslation = splitDescriptionForTranslation;
+module.exports.animeNeonStaticCandidates = animeNeonStaticCandidates;
+module.exports.applyAnimeNeonAvailability = applyAnimeNeonAvailability;
 module.exports.cleanServerDescription = cleanDescription;
 module.exports.compactCatalogPayload = compactCatalogPayload;
 module.exports.findArtworkDescription = findArtworkDescription;
@@ -1965,6 +2014,7 @@ function applyAnimeAv1LatestInventory(items = [], latestItems = [], observedAt =
       ...item,
       episode: Math.max(Number(item.episode) || 0, displayEpisode),
       latestAiredEp: sourceEpisodeCount,
+      lastEpisodeAt: latest.releasedAt || item.lastEpisodeAt || "",
       nextAiringEpisodeNumber: Math.max(Number(item.nextAiringEpisodeNumber) || 0, displayEpisode + 1),
       sourceEpisodeIds,
       sourceEpisodeCount,
@@ -1974,6 +2024,8 @@ function applyAnimeAv1LatestInventory(items = [], latestItems = [], observedAt =
       ),
       sourceInventoryChecked: true,
       sourceInventoryCheckedAt: observedAt,
+      sourceInventoryPartial: item.sourceInventoryPartial === true
+        || (item.sourceInventoryChecked !== true && Number.isInteger(providerEpisodeId) && providerEpisodeId > 1),
       sourceUnavailableEpisodeIds: Array.isArray(item.sourceUnavailableEpisodeIds)
         ? item.sourceUnavailableEpisodeIds
           .map(Number)
@@ -1986,7 +2038,7 @@ function applyAnimeAv1LatestInventory(items = [], latestItems = [], observedAt =
     if (seen.has(slug)) continue;
     const providerEpisodeId = Number(latest.episode);
     const displayEpisode = providerEpisodeId === 0 ? 1 : providerEpisodeId;
-    merged.push({
+    merged.push(enrichLatestCatalogItemFromArtwork({
       id: `animeav1-${slug}`,
       title: cleanAnimeAv1Title(latest.title || "") || slugToTitle(slug),
       image: latest.image || "",
@@ -2001,17 +2053,59 @@ function applyAnimeAv1LatestInventory(items = [], latestItems = [], observedAt =
       status: providerEpisodeId === 0 ? "FINISHED" : "RELEASING",
       episode: displayEpisode,
       latestAiredEp: displayEpisode,
+      lastEpisodeAt: latest.releasedAt || "",
       nextAiringEpisodeNumber: displayEpisode + 1,
       sourceEpisodeIds: [providerEpisodeId],
       sourceEpisodeCount: displayEpisode,
       sourcePlayableEpisodeCount: 1,
       sourceInventoryChecked: true,
       sourceInventoryCheckedAt: observedAt,
+      sourceInventoryPartial: Number.isInteger(providerEpisodeId) && providerEpisodeId > 1,
       episodes: []
-    });
+    }));
   }
 
   return merged;
+}
+
+// New releases can appear in AnimeAV1's lightweight homepage feed before the
+// daily catalog snapshot contains them. They still have build-time artwork and
+// metadata keyed by their exact source slug, so attach that static record here
+// instead of leaving a 300x200 provider thumbnail stretched across the detail
+// page. This is a local JSON lookup and adds no runtime upstream/API request.
+function enrichLatestCatalogItemFromArtwork(item = {}) {
+  const art = readArtworkMap()?.[item.id];
+  if (!art) return item;
+  const meta = art.meta || null;
+  return {
+    ...item,
+    anilistId: item.anilistId || art.anilistId || null,
+    malId: item.malId || art.malId || meta?.malId || null,
+    tmdbId: item.tmdbId || art.tmdbId || null,
+    tmdbBackdrop: item.tmdbBackdrop || art.tmdbBackdrop || "",
+    tmdbPoster: item.tmdbPoster || art.tmdbPoster || "",
+    episodeThumbnailFallback: item.episodeThumbnailFallback || art.episodeThumbnailFallback || "",
+    coverImageLarge: item.coverImageLarge || art.anilistCover || art.metadataCover || "",
+    banner: item.banner || art.anilistBanner || "",
+    canonicalSeasonNumber: item.canonicalSeasonNumber || art.canonicalSeasonNumber || undefined,
+    providerEpisodeOffset: Number(item.providerEpisodeOffset || art.providerEpisodeOffset || 0),
+    ...(meta ? {
+      year: item.year || meta.year || "",
+      score: item.score || meta.score || null,
+      duration: item.duration || meta.duration || "",
+      format: String(meta.format || "").toUpperCase() === "MOVIE"
+        ? "MOVIE"
+        : (item.format || item.type || meta.format || ""),
+      anilistEpisodeCount: meta.episodes || null,
+      status: item.status || meta.airingStatus || "",
+      description: item.description || item.synopsis || meta.description || "",
+      studios: meta.studio ? [meta.studio] : (item.studios || []),
+      countryOfOrigin: item.countryOfOrigin || meta.country || "",
+      englishTitle: item.englishTitle || meta.englishTitle || "",
+      romajiTitle: item.romajiTitle || meta.romajiTitle || "",
+      genres: meta.genres?.length ? meta.genres : (item.genres || [])
+    } : {})
+  };
 }
 
 async function buildCatalogPayload() {
@@ -2155,6 +2249,59 @@ function boundedProgressiveRange(value = "", isProgressiveMedia = false) {
   return `bytes=${start}-${end}`;
 }
 
+function streamTapeRelayMediaId(targetUrl) {
+  try {
+    const parsed = targetUrl instanceof URL ? targetUrl : new URL(targetUrl);
+    if (parsed.hostname.toLowerCase() !== "streamtape.com" || parsed.pathname !== "/get_video") return "";
+    return /^[A-Za-z0-9_-]+$/.test(parsed.searchParams.get("id") || "")
+      ? parsed.searchParams.get("id")
+      : "";
+  } catch {
+    return "";
+  }
+}
+
+async function resolveStreamTapeMediaForRelay(targetUrl) {
+  const original = targetUrl instanceof URL ? targetUrl.toString() : String(targetUrl || "");
+  const mediaId = streamTapeRelayMediaId(targetUrl);
+  if (!mediaId) return original;
+  const cached = streamTapeRelayCache.get(mediaId);
+  if (cached && Date.now() - cached.ts < STREAMTAPE_RELAY_CACHE_TTL_MS) return cached.url;
+  if (cached) streamTapeRelayCache.delete(mediaId);
+
+  let pending = streamTapeRelayInflight.get(mediaId);
+  if (!pending) {
+    pending = (async () => {
+      const embedUrl = `https://streamtape.com/e/${encodeURIComponent(mediaId)}/`;
+      const upstream = await fetchWithTimeout(embedUrl, {
+        headers: {
+          ...GENERIC_CRAWL_HEADERS,
+          Referer: "https://streamtape.com/"
+        }
+      }, HOSTED_RUNTIME ? 5000 : 8000);
+      if (!upstream.ok) throw upstreamHttpError("Streamtape embed", upstream);
+      const stream = extractStreamFromEmbed(await upstream.text());
+      const fresh = stream?.url ? new URL(stream.url) : null;
+      if (
+        !fresh
+        || fresh.hostname.toLowerCase() !== "streamtape.com"
+        || fresh.pathname !== "/get_video"
+        || fresh.searchParams.get("id") !== mediaId
+      ) {
+        throw new Error("Streamtape did not return a matching media token.");
+      }
+      while (streamTapeRelayCache.size >= STREAMTAPE_RELAY_CACHE_MAX) {
+        streamTapeRelayCache.delete(streamTapeRelayCache.keys().next().value);
+      }
+      const result = { url: fresh.toString(), ts: Date.now() };
+      streamTapeRelayCache.set(mediaId, result);
+      return result.url;
+    })().finally(() => streamTapeRelayInflight.delete(mediaId));
+    streamTapeRelayInflight.set(mediaId, pending);
+  }
+  return pending;
+}
+
 async function handleSourceProxy(request, url, response) {
   const target = url.searchParams.get("url");
   if (!target || !/^https?:\/\//i.test(target)) {
@@ -2162,6 +2309,9 @@ async function handleSourceProxy(request, url, response) {
     return;
   }
 
+  const relayController = new AbortController();
+  const abortRelay = () => relayController.abort();
+  request.once?.("aborted", abortRelay);
   try {
     const isHeadRequest = String(request.method || "").toUpperCase() === "HEAD";
     const refererHost = String(url.searchParams.get("refererHost") || "").trim();
@@ -2196,6 +2346,10 @@ async function handleSourceProxy(request, url, response) {
     const isGuploadSegment = isGupload && /^\/data\/e\/hls\/[a-z0-9_-]+\/[^/]+\.jpg$/i.test(targetUrl.pathname);
     const isCloudwindowVodSegment = /(?:^|\.)cloudwindow-route\.com$/i.test(targetHost)
       && /\.(?:ts|m4s|mp4|aac)$/i.test(targetUrl.pathname);
+    const isAnimeAv1VodSegment = refererHost.toLowerCase() === "animeav1.uns.bio"
+      && /\/seg-[^/]+\.woff2$/i.test(targetUrl.pathname);
+    const isReusableResolverVodSegment = /(?:vidhide|streamwish|sfastwish|playerwish|wishfast)/i.test(refererHost)
+      && /\/hls2\/.*\/seg-[^/]+\.(?:ts|m4s|mp4|aac)$/i.test(targetUrl.pathname);
     const isDirectMp4 = /\.(?:mp4|m4v)$/i.test(targetUrl.pathname);
     const isProgressiveMedia = isDirectMp4
       || isStreamTapeMedia
@@ -2251,6 +2405,27 @@ async function handleSourceProxy(request, url, response) {
       headers.Range = boundedProgressiveRange(request.headers.range, isProgressiveMedia);
     }
     else if (isHeadRequest) headers.Range = "bytes=0-0";
+    // AnimeAV1's fragment CDN intermittently leaves an ordinary GET waiting
+    // until the relay timeout, while the same complete fragment responds
+    // immediately to an open range. Each URL is one finite HLS fragment, so an
+    // open range still returns the whole fragment and remains valid for hls.js.
+    else if (isAnimeAv1VodSegment) headers.Range = "bytes=0-";
+    let relayTarget = target;
+    if (isStreamTapeMedia) {
+      try {
+        // Streamtape signs get_video for the resolver's public IP. Resolve the
+        // compact embed again inside this same Function invocation so the media
+        // range cannot inherit a token from a different Vercel worker.
+        relayTarget = await resolveStreamTapeMediaForRelay(targetUrl);
+      } catch (error) {
+        // The signed URL supplied by /api/resolve can still be valid on this
+        // worker, so preserve it as the bounded fallback instead of failing here.
+        log("warn", "Streamtape relay token refresh failed", {
+          providerHost: targetHost,
+          error: error?.name === "AbortError" ? "upstream timeout" : error.message
+        });
+      }
+    }
     const targetLooksLikePlaylist = (isZilla && /^\/m3u8\/[^/]+/i.test(targetUrl.pathname))
       || /\.m3u8$/i.test(targetUrl.pathname);
     const canCoalescePlaylist = String(request.method || "GET").toUpperCase() === "GET"
@@ -2261,7 +2436,7 @@ async function handleSourceProxy(request, url, response) {
       : "";
     const upstream = canCoalescePlaylist
       ? await fetchCoalescedSourcePlaylist(target, headers, playlistCacheKey)
-      : await fetchWithTimeout(target, { headers }, 12000);
+      : await fetchWithTimeout(relayTarget, { headers, signal: relayController.signal }, 12000);
     if (!upstream.ok) {
       log("warn", "Source relay upstream rejected request", {
         providerHost: targetHost,
@@ -2363,6 +2538,14 @@ async function handleSourceProxy(request, url, response) {
       responseHeaders["Cache-Control"] = "public, max-age=300, stale-while-revalidate=60";
       responseHeaders["Vercel-CDN-Cache-Control"] = "public, s-maxage=1800, stale-while-revalidate=3600";
     }
+    if (upstream.ok && !request.headers.range && isReusableResolverVodSegment) {
+      // Verification consumes the same immutable VOD fragments that hls.js asks
+      // for moments later. A short cache lets the player reuse those proven
+      // bytes, avoids a duplicate Function relay, and remains well inside the
+      // signed playlist lifetime.
+      responseHeaders["Cache-Control"] = "public, max-age=60, stale-while-revalidate=60";
+      responseHeaders["Vercel-CDN-Cache-Control"] = "public, s-maxage=900, stale-while-revalidate=1800";
+    }
     response.writeHead(upstream.status, responseHeaders);
     if (!upstream.body) {
       response.end();
@@ -2370,6 +2553,7 @@ async function handleSourceProxy(request, url, response) {
     }
     Readable.fromWeb(upstream.body).pipe(response);
   } catch (error) {
+    if (relayController.signal.aborted || request.aborted || response.destroyed) return;
     if (response.headersSent) {
       response.destroy(error);
       return;
@@ -3229,6 +3413,9 @@ function hasVerifiedRegularSourceFallback(item = {}) {
 }
 
 function readScrapedRegularCatalogItems() {
+  const applyAvailability = typeof applyAnimeNeonAvailability === "function"
+    ? applyAnimeNeonAvailability
+    : (item) => item;
   const paths = [
     path.join(root, "scraper", "anime_metadata.json"),
     path.join(root, "scraper", "anime_metadata.previous.json")
@@ -3252,7 +3439,7 @@ function readScrapedRegularCatalogItems() {
       // rest fell back to a 1900x400 strip.
       const artwork = readArtworkMap();
       const airing = readAiringMap();
-      if (!artwork && !airing) return items;
+      if (!artwork && !airing) return items.map(applyAvailability);
       const artworkIndex = buildArtworkIdentityIndex(artwork);
       return items.map((item) => {
         const hit = artwork ? artwork[item.id] : null;
@@ -3289,12 +3476,17 @@ function readScrapedRegularCatalogItems() {
           // alternative is an AnimeAV1 cover at 225x350 or an AniList one at 460x690,
           // both of which are visibly soft on a card grid at 2x density.
           tmdbPoster: item.tmdbPoster || artHit.tmdbPoster || "",
+          episodeThumbnailFallback: item.episodeThumbnailFallback || artHit.episodeThumbnailFallback || "",
           coverImageLarge: item.coverImageLarge || artHit.anilistCover || artHit.metadataCover || "",
           banner: item.banner || artHit.anilistBanner || "",
           // Build-time identity repair also determines the canonical TMDB season.
           // Forward it even when no airing relation row exists; otherwise a
           // standalone sequel such as Honzuki Season 4 is hydrated as Season 1.
           canonicalSeasonNumber: item.canonicalSeasonNumber || artHit.canonicalSeasonNumber || undefined,
+          // Some providers restart episode numbering for each cour while TMDB
+          // keeps one continuous season. Preserve the baked offset so episode 1
+          // can resolve to the correct absolute TMDB still (for example 25 -> 1).
+          providerEpisodeOffset: Number(item.providerEpisodeOffset || artHit.providerEpisodeOffset || 0),
           // The row's own value always wins; this only fills gaps. normalize.js
           // already reads every one of these off the catalogue item, so nothing
           // client-side has to change for them to render.
@@ -3377,7 +3569,7 @@ function readScrapedRegularCatalogItems() {
               : undefined
           } : {})
         };
-      });
+      }).map(applyAvailability);
     } catch {
       // Try the previous daily snapshot.
     }
@@ -7503,13 +7695,45 @@ function jkRankEmbeds(sources) {
   return ranked;
 }
 
-async function fetchJkanimeEpisode(slug, episode) {
+async function fetchJkanimeEpisode(slug, episode, attempt = 0) {
   const epUrl = `${JK_BASE}/${encodeURIComponent(slug)}/${encodeURIComponent(episode)}`;
-  const r = await fetchWithTimeout(epUrl, { headers: JK_HEADERS }, HOSTED_RUNTIME ? 8000 : 12000);
-  if (!r.ok) return null;
+  let r;
+  try {
+    // A shorter first deadline plus one retry recovered measured transient
+    // aborts faster than the previous single eight-second wait.
+    r = await fetchWithTimeout(
+      epUrl,
+      { headers: JK_HEADERS },
+      HOSTED_RUNTIME ? (attempt === 0 ? 5000 : 8000) : 12000
+    );
+  } catch (error) {
+    if (HOSTED_RUNTIME && attempt === 0 && error?.name === "AbortError") {
+      await wait(180);
+      return fetchJkanimeEpisode(slug, episode, 1);
+    }
+    throw error;
+  }
+  if (!r.ok) {
+    if (r.status === 404 || r.status === 410) return null;
+    if (HOSTED_RUNTIME && attempt === 0 && [408, 500, 502, 503, 504].includes(r.status)) {
+      try { await r.body?.cancel?.(); } catch { /* response already closed */ }
+      await wait(180);
+      return fetchJkanimeEpisode(slug, episode, 1);
+    }
+    throw upstreamHttpError("JKAnime episode", r);
+  }
   const html = await r.text();
   const embeds = jkRankEmbeds(parseJkanimeServers(html));
-  if (!embeds.length) return null;
+  // A 200 response without the normal server block is usually a temporary
+  // challenge/interstitial, not proof that the episode is missing. Surface it
+  // as a transient failure so neither memory nor the CDN caches a false miss.
+  if (!embeds.length) {
+    if (HOSTED_RUNTIME && attempt === 0) {
+      await wait(180);
+      return fetchJkanimeEpisode(slug, episode, 1);
+    }
+    throw new Error("JKAnime episode page returned no source embeds.");
+  }
   const ogTitle = (html.match(/property="og:title"\s+content="([^"]+)"/i) || [])[1] || "";
   const ogImage = (html.match(/property="og:image"\s+content="([^"]+)"/i) || [])[1] || "";
   const title = decodeHtmlEntities(ogTitle)
@@ -7756,6 +7980,12 @@ async function handleJKAnimeSources(url, response) {
         : (data.ok ? REGULAR_SOURCE_SUCCESS_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS)
     );
   } catch (error) {
+    if (cached?.data?.ok) {
+      sendJson(response, { ...cached.data, stale: true }, 200, forceRefresh
+        ? SOURCE_REFRESH_CACHE_HEADERS
+        : REGULAR_SOURCE_SUCCESS_CACHE_HEADERS);
+      return;
+    }
     const status = /HTTP 404|not found|No JKAnime/i.test(error.message) ? 404 : 503;
     const data = {
       ok: false,
@@ -7766,7 +7996,7 @@ async function handleJKAnimeSources(url, response) {
       episode: epNum,
       sources: []
     };
-    jkAnimeSourceCache.set(cacheKey, { data, ts: Date.now() });
+    if (status === 404) jkAnimeSourceCache.set(cacheKey, { data, ts: Date.now() });
     sendJson(response, data, status, forceRefresh ? SOURCE_REFRESH_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS);
   }
 }
@@ -8015,6 +8245,503 @@ function jkAnimeSlugify(value = "") {
 //   1. GET /episodio/{slug}-cap-{N}/ ΓåÆ extract nonce + data-post
 //   2. POST /wp-admin/admin-ajax.php (doo_player_ajax) ΓåÆ saidochesto embed URL
 //   3. GET saidochesto.top/embed.php?id=N ΓåÆ parse .OD_LAT server list
+
+function decodeAnimeNeonData(values = []) {
+  const cache = new Map();
+  const decode = (index) => {
+    if (index === -1 || index === -2) return undefined;
+    if (index === -3) return NaN;
+    if (index === -4) return Infinity;
+    if (index === -5) return -Infinity;
+    if (index === -6) return -0;
+    if (typeof index !== "number") return index;
+    if (cache.has(index)) return cache.get(index);
+    const value = values[index];
+    if (Array.isArray(value)) {
+      if (value[0] === "Date") return new Date(value[1]);
+      if (value[0] === "BigInt") return BigInt(value[1]);
+      if (value[0] === "RegExp") return new RegExp(value[1], value[2] || "");
+      const output = [];
+      cache.set(index, output);
+      value.forEach((item) => output.push(decode(item)));
+      return output;
+    }
+    if (value && typeof value === "object") {
+      const output = {};
+      cache.set(index, output);
+      Object.entries(value).forEach(([key, item]) => {
+        output[key] = decode(item);
+      });
+      return output;
+    }
+    return value;
+  };
+  return decode(0);
+}
+
+function animeNeonDataNode(payload = {}) {
+  const nodes = Array.isArray(payload.nodes) ? payload.nodes : [];
+  for (let index = nodes.length - 1; index >= 0; index -= 1) {
+    if (Array.isArray(nodes[index]?.data)) return decodeAnimeNeonData(nodes[index].data);
+  }
+  return null;
+}
+
+function setAnimeNeonCache(map, key, value, maxEntries = 300) {
+  if (map.has(key)) map.delete(key);
+  map.set(key, value);
+  while (map.size > maxEntries) map.delete(map.keys().next().value);
+}
+
+function cleanAnimeNeonTitle(value = "") {
+  return String(value || "")
+    .replace(/\((?:latino|castellano|sub(?:titulado)?(?:\s+espanol)?)\)/ig, " ")
+    .replace(/\b(?:latino|castellano|subtitulado)\b\s*$/ig, " ")
+    .replace(/\btemporada\b/ig, "season")
+    .replace(/\bparte\b/ig, "part")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function animeNeonInstallmentIdentity(value = "") {
+  return explicitSourceInstallmentIdentity(cleanAnimeNeonTitle(value));
+}
+
+function animeNeonFormatKey(value = "") {
+  const text = String(value || "").toLowerCase();
+  if (/movie|film|pel[ií]cula/.test(text)) return "movie";
+  if (/\bova\b/.test(text)) return "ova";
+  if (/\bona\b/.test(text)) return "ona";
+  if (/special|especial/.test(text)) return "special";
+  if (/\btv\b/.test(text)) return "tv";
+  return "";
+}
+
+function animeNeonTitleScore(item = {}, requestedTitles = [], language = "", format = "") {
+  if (language && String(item.language || "").toLowerCase() !== language.toLowerCase()) return -Infinity;
+  const candidateTitle = cleanAnimeNeonTitle(item.title);
+  const candidateKey = normalizeTitle(candidateTitle);
+  const candidateInstallment = animeNeonInstallmentIdentity(candidateTitle);
+  let best = -Infinity;
+  for (const requestedTitle of requestedTitles) {
+    const cleanRequested = cleanAnimeNeonTitle(requestedTitle);
+    const requestedKey = normalizeTitle(cleanRequested);
+    if (!requestedKey || !candidateKey) continue;
+    const requestedInstallment = animeNeonInstallmentIdentity(cleanRequested);
+    if (requestedInstallment && requestedInstallment !== candidateInstallment) continue;
+    if (candidateKey === requestedKey) {
+      best = Math.max(best, 120);
+      continue;
+    }
+    const requestedTokens = new Set(requestedKey.split(" ").filter(Boolean));
+    const candidateTokens = new Set(candidateKey.split(" ").filter(Boolean));
+    const common = [...requestedTokens].filter((token) => candidateTokens.has(token)).length;
+    const coverage = common / Math.max(requestedTokens.size, candidateTokens.size, 1);
+    if (coverage >= 0.9) best = Math.max(best, 90 + coverage * 10);
+  }
+  if (!Number.isFinite(best)) return best;
+  const requestedFormat = animeNeonFormatKey(format);
+  const candidateFormat = animeNeonFormatKey(item.type);
+  if (requestedFormat && candidateFormat && requestedFormat !== candidateFormat) best -= 40;
+  return best;
+}
+
+let _animeNeonCatalogCache;
+
+function animeNeonCatalogTitleKeys(value = "") {
+  const cleaned = cleanAnimeNeonTitle(value);
+  const values = new Set([cleaned]);
+  const withoutParentheses = cleaned.replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+  if (withoutParentheses) values.add(withoutParentheses);
+  for (const match of cleaned.matchAll(/\(([^)]+)\)/g)) {
+    const alias = cleanAnimeNeonTitle(match[1]);
+    if (alias && alias.length >= 3) values.add(alias);
+  }
+  return [...values].map(normalizeTitle).filter(Boolean);
+}
+
+function readAnimeNeonCatalog() {
+  if (_animeNeonCatalogCache !== undefined) return _animeNeonCatalogCache;
+  try {
+    const payload = JSON.parse(fs.readFileSync(path.join(root, "scraper", "animeneon-catalog.json"), "utf8"));
+    const items = (Array.isArray(payload?.items) ? payload.items : []).filter((item) => (
+      item?.title && item?.slug && item?.nanoid && item?.language && Number(item?.episodes || 0) > 0
+    ));
+    const byLanguageTitle = new Map();
+    for (const item of items) {
+      for (const titleKey of animeNeonCatalogTitleKeys(item.title)) {
+        const key = `${String(item.language).toLowerCase()}:${titleKey}`;
+        const list = byLanguageTitle.get(key) || [];
+        list.push(item);
+        byLanguageTitle.set(key, list);
+      }
+    }
+    _animeNeonCatalogCache = { items, byLanguageTitle, generatedAt: payload.generatedAt || "" };
+  } catch {
+    _animeNeonCatalogCache = { items: [], byLanguageTitle: new Map(), generatedAt: "" };
+  }
+  return _animeNeonCatalogCache;
+}
+
+function animeNeonStaticCandidates(requestedTitles = [], language = "", format = "", year = 0) {
+  const catalog = readAnimeNeonCatalog();
+  if (!catalog.items.length) return [];
+  const lang = String(language || "").toLowerCase();
+  const candidates = new Set();
+  const requestedKeys = new Set(requestedTitles.flatMap(animeNeonCatalogTitleKeys));
+  const requestedInstallments = new Set(
+    requestedTitles.map(animeNeonInstallmentIdentity).filter(Boolean)
+  );
+  for (const key of requestedKeys) {
+    for (const item of catalog.byLanguageTitle.get(`${lang}:${key}`) || []) candidates.add(item);
+  }
+  const requestedYear = Number(year || 0);
+  return [...candidates]
+    .map((item) => {
+      const exactAlias = animeNeonCatalogTitleKeys(item.title).some((key) => requestedKeys.has(key));
+      const score = Math.max(
+        exactAlias ? 120 : -Infinity,
+        animeNeonTitleScore(item, requestedTitles, language, format)
+      );
+      const itemYear = Number(item.year || 0);
+      const yearMismatch = requestedYear > 0 && itemYear > 0 && Math.abs(requestedYear - itemYear) > 1;
+      const requestedFormat = animeNeonFormatKey(format);
+      const candidateFormat = animeNeonFormatKey(item.type);
+      const formatMismatch = requestedFormat && candidateFormat && requestedFormat !== candidateFormat;
+      const candidateInstallment = animeNeonInstallmentIdentity(item.title);
+      const installmentMismatch = requestedInstallments.size
+        ? !requestedInstallments.has(candidateInstallment)
+        : Boolean(candidateInstallment);
+      return { item, score: score - (formatMismatch ? 40 : 0), yearMismatch, installmentMismatch };
+    })
+    .filter((entry) => !entry.yearMismatch && !entry.installmentMismatch && entry.score >= 90)
+    .sort((left, right) => (
+      right.score - left.score || Number(right.item.episodes || 0) - Number(left.item.episodes || 0)
+    ))
+    .map((entry) => entry.item);
+}
+
+function applyAnimeNeonAvailability(item = {}) {
+  const titles = [
+    item.title,
+    item.romajiTitle,
+    item.englishTitle,
+    ...(Array.isArray(item.aliases) ? item.aliases : [])
+  ].filter(Boolean);
+  const match = animeNeonStaticCandidates(titles, "Lat", item.format || item.type || "", item.year)[0];
+  if (!match || Number(match.episodes || 0) <= 0) return item;
+  return {
+    ...item,
+    hasLatinoDub: true,
+    latinoEpisodeCount: Number(match.episodes || 0)
+  };
+}
+
+function animeNeonAnimeIdentity(item = {}) {
+  const directSlug = String(item.slug || "").trim();
+  const directNanoid = String(item.nanoid || "").trim();
+  if (/^[a-z0-9-]+$/i.test(directSlug) && /^[a-z0-9_-]+$/i.test(directNanoid)) {
+    return { slug: directSlug, nanoid: directNanoid };
+  }
+  try {
+    const pathname = new URL(item.href || "", ANIMENEON_BASE).pathname;
+    const value = pathname.replace(/^\/anime\//, "").replace(/\/$/, "");
+    const separator = value.lastIndexOf(".");
+    if (separator <= 0) return null;
+    const slug = value.slice(0, separator);
+    const nanoid = value.slice(separator + 1);
+    if (!/^[a-z0-9-]+$/i.test(slug) || !/^[a-z0-9_-]+$/i.test(nanoid)) return null;
+    return { slug, nanoid };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchAnimeNeonSearch(title, language, forceRefresh = false) {
+  const query = String(title || "").trim();
+  const lang = String(language || "Sub").trim();
+  const key = `${normalizeTitle(query)}:${lang.toLowerCase()}`;
+  const cached = animeNeonSearchCache.get(key);
+  const ttl = cached?.items?.length ? ANIMENEON_SEARCH_CACHE_TTL_MS : ANIMENEON_SEARCH_MISS_TTL_MS;
+  if (!forceRefresh && cached && Date.now() - cached.ts < ttl) return cached.items;
+
+  try {
+    const items = await coalesceInflight(animeNeonSearchInflight, key, async () => {
+      const endpoint = new URL("/browse/__data.json", ANIMENEON_BASE);
+      endpoint.searchParams.set("q", query);
+      endpoint.searchParams.set("lang", lang);
+      const upstream = await fetchWithTimeout(endpoint, { headers: ANIMENEON_HEADERS }, HOSTED_RUNTIME ? 6500 : 9000);
+      if (!upstream.ok) throw upstreamHttpError("AnimeNeon search", upstream);
+      const payload = await upstream.json();
+      const data = animeNeonDataNode(payload);
+      const results = Array.isArray(data?.animes) ? data.animes : [];
+      setAnimeNeonCache(animeNeonSearchCache, key, { items: results, ts: Date.now() });
+      return results;
+    });
+    return items;
+  } catch (error) {
+    if (cached?.items?.length) return cached.items;
+    throw error;
+  }
+}
+
+function animeNeonMultiserverEntries(html = "") {
+  const entries = [];
+  const pattern = /<li\b[^>]*go_to_player\(['"]([^'"]+)['"]\)[^>]*>[\s\S]*?<span>\s*([^<]+?)\s*<\/span>/gi;
+  let match;
+  while ((match = pattern.exec(String(html || ""))) !== null) {
+    const encrypted = match[1].trim();
+    const provider = match[2].trim();
+    if (encrypted && !entries.some((entry) => entry.encrypted === encrypted)) {
+      entries.push({ encrypted, provider });
+    }
+  }
+  return entries.sort((a, b) => {
+    const rank = (entry) => /\bvoe\b/i.test(entry.provider)
+      ? 0
+      : /streamtape/i.test(entry.provider) ? 1 : 2;
+    return rank(a) - rank(b);
+  });
+}
+
+function isAnimeNeonMultiserverLink(value = "") {
+  try {
+    return /^(?:www\.)?multiserver\./i.test(new URL(String(value || "")).hostname);
+  } catch {
+    return false;
+  }
+}
+
+async function expandAnimeNeonMultiserver(source = {}, siteUrl = "") {
+  const wrapperUrl = String(source.link || source.externalUrl || "").trim();
+  let wrapper;
+  try {
+    wrapper = new URL(wrapperUrl);
+  } catch {
+    return [];
+  }
+  if (!isAnimeNeonMultiserverLink(wrapperUrl)) return [];
+
+  const page = await fetchWithTimeout(wrapperUrl, {
+    headers: { ...ANIMENEON_HEADERS, Referer: siteUrl || `${ANIMENEON_BASE}/` }
+  }, HOSTED_RUNTIME ? 5500 : 8000);
+  if (!page.ok) throw upstreamHttpError("AnimeNeon multiserver", page);
+
+  const entries = animeNeonMultiserverEntries(await page.text());
+  const preferred = entries.filter((entry) => /\bvoe\b|streamtape/i.test(entry.provider));
+  const selected = (preferred.length ? preferred : entries).slice(0, 3);
+  const decrypted = await Promise.allSettled(selected.map(async (entry) => {
+    if (/^https?:\/\//i.test(entry.encrypted)) {
+      return { provider: entry.provider, externalUrl: entry.encrypted };
+    }
+    const endpoint = new URL("/embed/api/decrypt-stream", wrapper.origin);
+    const result = await fetchWithTimeout(endpoint, {
+      method: "POST",
+      headers: {
+        ...ANIMENEON_HEADERS,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Origin: wrapper.origin,
+        Referer: wrapperUrl
+      },
+      body: JSON.stringify({ encrypted: entry.encrypted })
+    }, HOSTED_RUNTIME ? 4500 : 6500);
+    if (!result.ok) throw upstreamHttpError("AnimeNeon multiserver decrypt", result);
+    const payload = await result.json();
+    if (!/^https?:\/\//i.test(String(payload?.url || ""))) return null;
+    return { provider: entry.provider, externalUrl: payload.url };
+  }));
+
+  return decrypted
+    .filter((result) => result.status === "fulfilled" && result.value?.externalUrl)
+    .map((result) => ({
+      provider: result.value.provider,
+      url: result.value.externalUrl,
+      externalUrl: result.value.externalUrl,
+      videoUrl: "",
+      type: "iframe",
+      score: Number(source.score || 0),
+      siteUrl: wrapperUrl,
+      referer: wrapperUrl
+    }));
+}
+
+async function fetchAnimeNeonEpisode(identity, episodeNumber, forceRefresh = false) {
+  const key = `${identity.slug}.${identity.nanoid}:${episodeNumber}`;
+  const cached = animeNeonSourceCache.get(key);
+  const ttl = cached?.data?.ok ? ANIMENEON_SOURCE_CACHE_TTL_MS : ANIMENEON_SOURCE_MISS_TTL_MS;
+  if (!forceRefresh && cached && Date.now() - cached.ts < ttl) return cached.data;
+
+  try {
+    return await coalesceInflight(animeNeonSourceInflight, key, async () => {
+      const route = `/ver/${identity.slug}-${episodeNumber}.${identity.nanoid}`;
+      const endpoint = `${ANIMENEON_BASE}${route}/__data.json`;
+      const siteUrl = `${ANIMENEON_BASE}${route}`;
+      const upstream = await fetchWithTimeout(endpoint, {
+        headers: { ...ANIMENEON_HEADERS, Referer: `${ANIMENEON_BASE}/anime/${identity.slug}.${identity.nanoid}` }
+      }, HOSTED_RUNTIME ? 6500 : 9000);
+      if (!upstream.ok) {
+        const miss = { ok: false, notFound: upstream.status === 404, sources: [], status: upstream.status };
+        setAnimeNeonCache(animeNeonSourceCache, key, { data: miss, ts: Date.now() });
+        return miss;
+      }
+      const payload = await upstream.json();
+      const data = animeNeonDataNode(payload);
+      const actualEpisode = Number(data?.episode?.number);
+      if (!Number.isFinite(actualEpisode) || actualEpisode !== Number(episodeNumber)) {
+        const miss = { ok: false, notFound: true, sources: [], error: "Episode identity did not match." };
+        setAnimeNeonCache(animeNeonSourceCache, key, { data: miss, ts: Date.now() });
+        return miss;
+      }
+
+      const rawSources = (Array.isArray(data?.groups) ? data.groups : [])
+        .flatMap((group) => Array.isArray(group?.servers) ? group.servers : [])
+        .filter((server) => /^https?:\/\//i.test(String(server?.link || "")));
+      const directServers = rawSources.filter((server) => !isAnimeNeonMultiserverLink(server.link));
+      const wrapperServers = rawSources.filter((server) => isAnimeNeonMultiserverLink(server.link));
+      // Most episodes already expose several independent direct embeds. Waiting
+      // for every optional multiserver page added 2-3 seconds to a cold source
+      // lookup even though the player only needs one verified candidate. Keep
+      // those mirrors for sparse episodes and forced recovery, but return the
+      // normal fast path immediately when three direct families are available.
+      const serversToExpand = forceRefresh || directServers.length < 3 ? wrapperServers : [];
+      const directGroups = directServers.map((server) => [{
+        provider: String(server.label || server.hostKey || "AnimeNeon"),
+        url: server.link,
+        externalUrl: server.link,
+        videoUrl: "",
+        type: "iframe",
+        score: Number(server.score || 0),
+        siteUrl,
+        referer: siteUrl
+      }]);
+      const expandedGroups = await Promise.all(serversToExpand.map(async (server) => {
+        try {
+          const nested = await expandAnimeNeonMultiserver(server, siteUrl);
+          if (nested.length) return nested;
+        } catch (error) {
+          log("warn", "AnimeNeon multiserver expansion failed", { error: error.message });
+        }
+        return [];
+      }));
+      const sourceGroups = [...directGroups, ...expandedGroups];
+      const seen = new Set();
+      const sources = sourceGroups
+        .flat()
+        .filter((source) => {
+          if (!source.externalUrl || seen.has(source.externalUrl)) return false;
+          seen.add(source.externalUrl);
+          return true;
+        })
+        .map((server) => ({
+          ...server,
+          provider: String(server.provider || "AnimeNeon")
+        }));
+      const result = {
+        ok: sources.length > 0,
+        source: "AnimeNeon",
+        title: data?.anime?.title || "",
+        language: data?.anime?.language || "",
+        subtitleType: data?.groups?.[0]?.subtitleType || "",
+        episode: actualEpisode,
+        episodeTitle: data?.episode?.title || "",
+        episodeImage: data?.episode?.image || "",
+        siteUrl,
+        sources
+      };
+      setAnimeNeonCache(animeNeonSourceCache, key, { data: result, ts: Date.now() });
+      return result;
+    });
+  } catch (error) {
+    if (cached?.data?.ok) return cached.data;
+    throw error;
+  }
+}
+
+async function handleAnimeNeonHealth(response) {
+  try {
+    const endpoint = `${ANIMENEON_BASE}/browse/__data.json?q=One%20Piece&lang=Sub`;
+    const upstream = await fetchWithTimeout(endpoint, { headers: ANIMENEON_HEADERS }, 6500);
+    sendJson(response, { ok: upstream.ok, status: upstream.status, source: "AnimeNeon" });
+  } catch (error) {
+    sendJson(response, { ok: false, error: error.message, source: "AnimeNeon" }, 503);
+  }
+}
+
+async function handleAnimeNeonSources(url, response) {
+  const requestedTitles = [...new Set(url.searchParams.getAll("title").map((title) => title.trim()).filter(Boolean))].slice(0, 5);
+  const episodeNumber = Number(url.searchParams.get("episode"));
+  const preferredLanguage = String(url.searchParams.get("language") || "sub").toLowerCase();
+  const format = url.searchParams.get("format") || "";
+  const year = Number(url.searchParams.get("year") || 0);
+  const forceRefresh = url.searchParams.get("refresh") === "1";
+  if (!requestedTitles.length || !Number.isFinite(episodeNumber) || episodeNumber < 0) {
+    sendJson(response, { ok: false, error: "title and numeric episode are required.", sources: [] }, 400);
+    return;
+  }
+
+  const languages = preferredLanguage === "spanish" ? ["Lat", "Cast"] : ["Sub"];
+  const tried = new Set();
+  try {
+    for (const language of languages) {
+      const tryCandidates = async (items = []) => {
+        for (const item of items.slice(0, 3)) {
+          const identity = animeNeonAnimeIdentity(item);
+          if (!identity) continue;
+          if (Number(item.episodes || 0) > 0 && episodeNumber > Number(item.episodes)) continue;
+          const identityKey = `${identity.slug}.${identity.nanoid}:${episodeNumber}`;
+          if (tried.has(identityKey)) continue;
+          tried.add(identityKey);
+          const data = await fetchAnimeNeonEpisode(identity, episodeNumber, forceRefresh);
+          if (!data?.ok || !data.sources?.length) continue;
+          const audio = language === "Lat" ? "es-419" : language === "Cast" ? "es" : "ja";
+          const headers = forceRefresh ? SOURCE_REFRESH_CACHE_HEADERS : REGULAR_SOURCE_SUCCESS_CACHE_HEADERS;
+          sendJson(response, {
+            ...data,
+            match: { slug: identity.slug, nanoid: identity.nanoid, title: item.title, language },
+            requestedLanguage: preferredLanguage,
+            audio,
+            subtitles: language === "Sub" ? "es" : "none"
+          }, 200, headers);
+          return true;
+        }
+        return false;
+      };
+
+      const staticCandidates = animeNeonStaticCandidates(requestedTitles, language, format, year);
+      if (await tryCandidates(staticCandidates)) return;
+      if (staticCandidates.length && staticCandidates.every((item) => (
+        Number(item.episodes || 0) > 0 && episodeNumber > Number(item.episodes)
+      ))) continue;
+
+      for (const title of requestedTitles) {
+        const results = await fetchAnimeNeonSearch(title, language, forceRefresh);
+        const candidates = results
+          .map((item) => ({ item, score: animeNeonTitleScore(item, requestedTitles, language, format) }))
+          .filter((entry) => entry.score >= 90)
+          .sort((a, b) => b.score - a.score || Number(b.item.episodes || 0) - Number(a.item.episodes || 0));
+        if (await tryCandidates(candidates.map((entry) => entry.item))) return;
+      }
+    }
+    sendJson(response, {
+      ok: false,
+      notFound: true,
+      source: "AnimeNeon",
+      requestedLanguage: preferredLanguage,
+      episode: episodeNumber,
+      sources: []
+    }, 404, forceRefresh ? SOURCE_REFRESH_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS);
+  } catch (error) {
+    log("warn", "AnimeNeon source lookup failed", { error: error.message, episode: episodeNumber });
+    sendJson(response, {
+      ok: false,
+      source: "AnimeNeon",
+      error: "AnimeNeon sources are temporarily unavailable.",
+      detail: error.message,
+      sources: []
+    }, 502, SOURCE_REFRESH_CACHE_HEADERS);
+  }
+}
 
 async function handleAnimeOnlineHealth(response) {
   try {
@@ -8861,6 +9588,19 @@ async function handleResolveEmbed(reqUrl, response) {
   }
 }
 
+function animeAv1RelativeReleaseAt(label = "", nowMs = Date.now()) {
+  const normalized = String(label || "").trim().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const match = normalized.match(/^hace\s+(un|una|\d+)\s+(minuto|minutos|hora|horas|dia|dias)$/i);
+  if (!match) return "";
+  const amount = /^(?:un|una)$/i.test(match[1]) ? 1 : Number(match[1]);
+  const unitMs = match[2].startsWith("minuto")
+    ? 60 * 1000
+    : (match[2].startsWith("hora") ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000);
+  if (!Number.isFinite(amount) || amount < 0) return "";
+  return new Date(Number(nowMs) - amount * unitMs).toISOString();
+}
+
 // Parse AnimeAV1's homepage "├Ültimos Episodios" grid in display order. Each card
 // is an <article> with an "Episodio <n>" badge, a title, a thumbnail, and an
 // anchor href="/media/<slug>/<ep>" carrying a sr-only "Ver <title> <ep>" label.
@@ -8878,12 +9618,14 @@ function parseAnimeAv1Latest(html = "", limit = 40) {
     const sr = block.match(/<span class="sr-only">\s*Ver\s+([\s\S]*?)<\/span>/i);
     const epBadge = block.match(/Episodio\s*<span[^>]*>\s*(\d+(?:\.\d+)?)\s*<\/span>/i);
     const img = block.match(/<img[^>]+src="([^"]+)"/i);
+    const relativeLabel = block.match(/>\s*(hace\s+(?:un|una|\d+)\s+(?:minuto|minutos|hora|horas|d[ií]a|d[ií]as))\s*<\/span>/i)?.[1] || "";
+    const releasedAt = animeAv1RelativeReleaseAt(relativeLabel);
     const episode = Number(epBadge?.[1] || link[2] || 0);
     let title = decodeHtmlEntities((sr?.[1] || "").trim());
     title = title.replace(/\s+\d+\s*$/, "").trim();        // drop trailing episode number
     if (!title) continue;
     seen.add(slug);
-    out.push({ slug, episode, title, image: img?.[1] || "" });
+    out.push({ slug, episode, title, image: img?.[1] || "", ...(releasedAt ? { releasedAt } : {}) });
   }
   return out;
 }
@@ -8925,7 +9667,7 @@ async function handleAnimeAv1Latest(response) {
       ok: items.length > 0,
       source: "AnimeAV1",
       count: items.length,
-      items
+      items: items.map(enrichAnimeAv1LatestArtwork)
     }, 200, ANIMEAV1_LATEST_CACHE_HEADERS);
   } catch (error) {
     // Serve a stale cache if we have one, otherwise report the failure.
@@ -8935,13 +9677,25 @@ async function handleAnimeAv1Latest(response) {
         source: "AnimeAV1",
         stale: true,
         count: animeAv1LatestCache.length,
-        items: animeAv1LatestCache
+        items: animeAv1LatestCache.map(enrichAnimeAv1LatestArtwork)
       }, 200, METADATA_STALE_CACHE_HEADERS);
       return;
     }
     sendJson(response, { ok: false, source: "AnimeAV1", error: "AnimeAV1 latest failed.", detail: error.message, items: [] }, 502);
   }
 }
+
+function enrichAnimeAv1LatestArtwork(item) {
+  const enriched = enrichLatestCatalogItemFromArtwork({ id: `animeav1-${item.slug}` });
+  const fields = ["anilistId", "malId", "tmdbId", "tmdbBackdrop", "tmdbPoster", "coverImageLarge", "banner",
+    "description", "genres", "year", "score", "duration", "studios", "countryOfOrigin",
+    "canonicalSeasonNumber", "providerEpisodeOffset", "episodeThumbnailFallback"];
+  return { ...item, ...Object.fromEntries(fields.filter((key) =>
+    enriched[key] != null && enriched[key] !== "" && (!Array.isArray(enriched[key]) || enriched[key].length)
+  ).map((key) => [key, enriched[key]])) };
+}
+
+module.exports.enrichAnimeAv1LatestArtwork = enrichAnimeAv1LatestArtwork;
 
 async function handleAnimeAv1Search(url, response) {
   const title = url.searchParams.get("title") || "";
@@ -9467,8 +10221,29 @@ function parseAnimeAv1Info(html = "", slug = "") {
     ...String(html).matchAll(new RegExp(`/media/${escapedSlug}/(\\d+(?:\\.\\d+)?)`, "gi"))
   ].map((match) => Number(match[1])).filter((number) => Number.isFinite(number) && number >= 0))]
     .sort((a, b) => a - b);
-  if (!sourceEpisodeIds.length) {
-    const block = String(html).match(/episodes:\[((?:\{[^{}]*\},?\s*)+)\]/i)?.[1] || "";
+  const source = String(html);
+  const titleMarker = new RegExp(`slug:"${escapedSlug}"`, "i").exec(source);
+  let titleData = "";
+  if (titleMarker) {
+    const start = titleMarker.index + titleMarker[0].length;
+    let depth = 0;
+    let quoted = false;
+    let end = source.length;
+    for (let index = start; index < source.length; index += 1) {
+      const char = source[index];
+      if (quoted && char === "\\") { index += 1; continue; }
+      if (char === '"') { quoted = !quoted; continue; }
+      if (quoted) continue;
+      if (char === "{") depth += 1;
+      if (char === "}") {
+        if (depth === 0) { end = index; break; }
+        depth -= 1;
+      }
+    }
+    titleData = source.slice(start, end);
+  }
+  if (titleMarker || !sourceEpisodeIds.length) {
+    const block = (titleMarker ? titleData : source).match(/episodes:\[((?:\{[^{}]*\},?\s*)+)\]/i)?.[1] || "";
     for (const match of block.matchAll(/\bnumber\s*:\s*(\d+(?:\.\d+)?)/gi)) {
       const number = Number(match[1]);
       if (Number.isFinite(number) && number >= 0 && !sourceEpisodeIds.includes(number)) sourceEpisodeIds.push(number);
@@ -10111,6 +10886,10 @@ async function fetchWithRetry(url, options = {}, attempts = 3) {
 
 async function fetchWithTimeout(url, options = {}, timeout = 12000) {
   const controller = new AbortController();
+  const externalSignal = options.signal;
+  const abortFromExternal = () => controller.abort(externalSignal?.reason);
+  if (externalSignal?.aborted) abortFromExternal();
+  else externalSignal?.addEventListener?.("abort", abortFromExternal, { once: true });
   const timer = setTimeout(() => controller.abort(), timeout);
   const startedAt = API_PERF_DEBUG ? performance.now() : 0;
   const upstreamHost = API_PERF_DEBUG ? new URL(String(url), "http://local").hostname : "";
@@ -10127,6 +10906,7 @@ async function fetchWithTimeout(url, options = {}, timeout = 12000) {
     throw error;
   } finally {
     clearTimeout(timer);
+    externalSignal?.removeEventListener?.("abort", abortFromExternal);
   }
 }
 
@@ -10312,6 +11092,11 @@ function mergeCatalogShow(current, show) {
       || "",
     fallbackSiteUrl: fallbackOwner?.fallbackSiteUrl || show.fallbackSiteUrl || current.fallbackSiteUrl || "",
     sourceFallbackVerified: Boolean(fallbackOwner),
+    hasLatinoDub: Boolean(show.hasLatinoDub || current.hasLatinoDub),
+    latinoEpisodeCount: Math.max(
+      Number(show.latinoEpisodeCount || 0),
+      Number(current.latinoEpisodeCount || 0)
+    ),
     source: mergeSourceLabels(current.source, show.source)
   };
 }

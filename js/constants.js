@@ -5,7 +5,10 @@ const LOCAL_SOURCE_PROXY_ENDPOINT = "/api/source";
 const JIKAN_TOP_ENDPOINT = "https://api.jikan.moe/v4/top/anime?filter=airing&limit=25";
 const JIKAN_POPULAR_ENDPOINT = "https://api.jikan.moe/v4/top/anime?filter=bypopularity&limit=25";
 const JIKAN_SEASON_ENDPOINT = "https://api.jikan.moe/v4/seasons/now?limit=25";
-const HOME_INITIAL_CARD_LIMIT = 14;
+// Keep a useful first batch available immediately. Cards after the first visible
+// row remain lazy/low-priority, so recent releases that have fallen out of the
+// provider's tiny live feed are still discoverable without adding API work.
+const HOME_INITIAL_CARD_LIMIT = 24;
 const HOME_CARD_LIMIT = 54;
 const LIBRARY_CARD_LIMIT = 360;
 const SEARCH_CARD_LIMIT = 720;

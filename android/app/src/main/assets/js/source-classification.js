@@ -67,6 +67,11 @@ function isHentaiOceanSource(source = {}) {
     || sourceIdentityText(source).includes("hentai ocean");
 }
 
+function isAnimeNeonSource(source = {}) {
+  const text = sourceIdentityText(source);
+  return text.includes("animeneon") || Boolean(knownSourceServer("animeneon")?.match(source));
+}
+
 function isAnimeAv1Source(source = {}) {
   const text = sourceIdentityText(source);
   return text.includes("animeav1") || Boolean(knownSourceServer("animeav1")?.match(source));
@@ -75,6 +80,10 @@ function isAnimeAv1Source(source = {}) {
 function isJKAnimeSource(source = {}) {
   const text = sourceIdentityText(source);
   return text.includes("jkanime") || Boolean(knownSourceServer("jkanime")?.match(source));
+}
+
+function isUpnShareSource(source = {}) {
+  return /upnshare|animeav1\.uns\.bio/.test(sourceIdentityText(source));
 }
 
 function isTioAnimeSource(source = {}) {
@@ -142,19 +151,21 @@ function getPrimarySourceFilterOptions(show = null) {
 // Provider group for source ordering: AnimeAV1 and its regular backups first,
 // then anything else.
 function _sourceGroupPriority(source = {}) {
-  if (isAnimeAv1Source(source) || isJKAnimeSource(source)) return 0;
-  if (isTioAnimeSource(source)) return 1;
-  return 2;
+  if (isAnimeNeonSource(source)) return 0;
+  if (isAnimeAv1Source(source) || isJKAnimeSource(source)) return 1;
+  if (isTioAnimeSource(source)) return 2;
+  return 3;
 }
 
-// Fine-grained "best server" preference. Lower = shown / auto-selected first.
-// AnimeAV1 is the most reliable provider — its HLS stream is the #1 pick.
+// Lower = auto-selected first. Admission and live media verification still
+// decide whether the preferred host is safe to hand to the player.
 function sourcePreferenceScore(source = {}) {
   const label = (source.label || "").toLowerCase();
   const url   = (source.videoUrl || source.externalUrl || "").toLowerCase();
   const identity = sourceIdentityText(source);
   const isDirect = source.type === "direct";
   const isHls    = isHlsSource(source);
+  const isAnimeNeon = isAnimeNeonSource(source);
   const isAnimeAv1 = isAnimeAv1Source(source);
   const isJKAnime = isJKAnimeSource(source);
   const isMega = /\bmega\b/.test(label) || /mega\.nz/.test(url);
@@ -171,7 +182,14 @@ function sourcePreferenceScore(source = {}) {
   if (isPreferredAdultSource(source))    return 0 + compatibilityPenalty;
   if (identity.includes("hentaila"))     return 1 + compatibilityPenalty;
 
-  // ── AnimeAV1 first (most reliable) — HLS is the very top pick ────────────
+  if (isUpnShareSource(source))          return -5 + compatibilityPenalty;
+
+  // AnimeNeon is language-aware and is the requested primary. It still has to
+  // resolve to direct media and pass the live byte probe before selection.
+  if (isAnimeNeon && isHls)              return -4 + compatibilityPenalty;
+  if (isAnimeNeon && isDirect)           return -3 + compatibilityPenalty;
+  if (isAnimeNeon)                       return -2 + compatibilityPenalty;
+  // ── AnimeAV1 first fallback — HLS is its top pick ────────────────────────
   if (isAnimeAv1 && isHls)              return 0 + compatibilityPenalty; // AnimeAV1 — HLS  (best)
   if (isAnimeAv1 && isDirect)           return 1 + compatibilityPenalty; // AnimeAV1 — other direct
   if (isAnimeAv1 && (isMega || isMp4))  return 2 + compatibilityPenalty; // AnimeAV1 — Mega / MP4Upload
@@ -228,6 +246,7 @@ function getEpisodePlaybackSources(episode = {}) {
     !isBlockedPlaybackSource(source)
     && (
       isAnimeAv1Source(source)
+      || isAnimeNeonSource(source)
       || isJKAnimeSource(source)
       || isTioAnimeSource(source)
       || isAdultFallbackSource(source)
@@ -244,7 +263,9 @@ if (typeof module !== "undefined" && module.exports) {
     isPreferredAdultSource,
     isAdultFallbackSource,
     isHentaiOceanSource,
+    isAnimeNeonSource,
     isAnimeAv1Source,
+    isUpnShareSource,
     isJKAnimeSource,
     isTioAnimeSource,
     isHlsSource,

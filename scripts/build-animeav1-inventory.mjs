@@ -27,6 +27,24 @@ export function animeAv1Slug(item = {}) {
   return String(site || id || "").trim();
 }
 
+function titleDataAfterSlug(source, marker) {
+  const start = marker.index + marker[0].length;
+  let depth = 0;
+  let quoted = false;
+  for (let index = start; index < source.length; index += 1) {
+    const char = source[index];
+    if (quoted && char === "\\") { index += 1; continue; }
+    if (char === '"') { quoted = !quoted; continue; }
+    if (quoted) continue;
+    if (char === "{") depth += 1;
+    if (char === "}") {
+      if (depth === 0) return source.slice(start, index);
+      depth -= 1;
+    }
+  }
+  return source.slice(start);
+}
+
 export function parseAnimeAv1EpisodeInventory(html = "", slug = "") {
   const safeSlug = String(slug || "").trim().toLowerCase();
   if (!safeSlug) return null;
@@ -35,11 +53,13 @@ export function parseAnimeAv1EpisodeInventory(html = "", slug = "") {
   const routePattern = new RegExp(`/media/${escapeRegex(safeSlug)}/(\\d+(?:\\.\\d+)?)`, "gi");
   for (const match of String(html).matchAll(routePattern)) ids.add(Number(match[1]));
 
-  // SvelteKit also serializes the current title's inventory as
-  // episodes:[{id:123,number:0},...]. Use it only when exact route links were
-  // absent; exact slug routes cannot accidentally absorb a related title.
-  if (!ids.size) {
-    const block = String(html).match(/episodes:\[((?:\{[^{}]*\},?\s*)+)\]/i)?.[1] || "";
+  // A rendered page can show only its latest card while its title-owned data
+  // still carries the full inventory. Do not read a related title's block.
+  const source = String(html);
+  const titleMarker = new RegExp(`slug:"${escapeRegex(safeSlug)}"`, "i").exec(source);
+  const titleData = titleMarker ? titleDataAfterSlug(source, titleMarker) : "";
+  if (titleMarker || !ids.size) {
+    const block = (titleMarker ? titleData : source).match(/episodes:\[((?:\{[^{}]*\},?\s*)+)\]/i)?.[1] || "";
     for (const match of block.matchAll(/\bnumber\s*:\s*(\d+(?:\.\d+)?)/gi)) ids.add(Number(match[1]));
   }
 
@@ -112,6 +132,33 @@ export function preserveVerifiedEpisodeRange(inventory, previous = {}) {
       : undefined,
     sourceInventoryRangeVerified: true,
     sourceInventoryRangeProbeStatus: "restored"
+  };
+}
+
+export function retainAnimeAv1EpisodeInventory(inventory, previous = {}) {
+  if (!inventory || !previous?.sourceInventoryChecked || !Array.isArray(previous.sourceEpisodeIds)) return inventory;
+  const observed = new Set((inventory.sourceEpisodeIds || []).map(Number).filter(Number.isFinite));
+  const unavailable = new Set([
+    ...(previous.sourceUnavailableEpisodeIds || []),
+    ...(inventory.sourceUnavailableEpisodeIds || [])
+  ].map(Number).filter((id) => Number.isFinite(id) && !observed.has(id)));
+  const sourceEpisodeIds = [...new Set([
+    ...previous.sourceEpisodeIds, ...(inventory.sourceEpisodeIds || [])
+  ].map(Number).filter((id) => Number.isFinite(id) && id >= 0 && !unavailable.has(id)))].sort((a, b) => a - b);
+  const retained = sourceEpisodeIds.filter((id) => !observed.has(id)).length;
+  return {
+    ...inventory,
+    sourceEpisodeIds,
+    sourceEpisodeCount: Math.max(0, ...sourceEpisodeIds.map((id) => id === 0 ? 1 : id)),
+    sourcePlayableEpisodeCount: sourceEpisodeIds.length,
+    sourceInventoryChecked: inventory.sourceInventoryChecked === true || previous.sourceInventoryChecked === true,
+    sourceInventoryPartial: inventory.sourceInventoryChecked === true
+      ? inventory.sourceInventoryPartial === true : previous.sourceInventoryPartial === true,
+    sourceInventoryCheckedAt: inventory.sourceInventoryCheckedAt || previous.sourceInventoryCheckedAt,
+    sourceUnavailableEpisodeIds: [...unavailable].sort((a, b) => a - b),
+    sourceInventoryRangeVerified: inventory.sourceInventoryRangeVerified
+      || (retained > 0 && previous.sourceInventoryRangeVerified) || undefined,
+    sourceInventoryRetainedEpisodeCount: retained
   };
 }
 
@@ -188,7 +235,9 @@ const INVENTORY_FIELDS = [
   "sourceInventoryRangeVerified",
   "sourceInventoryRangeProbeStatus",
   "sourceInventoryChecked",
-  "sourceInventoryCheckedAt"
+  "sourceInventoryCheckedAt",
+  "sourceInventoryPartial",
+  "sourceInventoryRetainedEpisodeCount"
 ];
 
 function copyInventory(target, source) {
@@ -219,7 +268,11 @@ export function applyAnimeAv1EpisodeInventory(item, inventory, checkedAt) {
   if (inventory.sourceDeclaredEpisodeCount != null) item.sourceDeclaredEpisodeCount = inventory.sourceDeclaredEpisodeCount;
   else delete item.sourceDeclaredEpisodeCount;
   item.sourceInventoryChecked = true;
+  item.sourceInventoryPartial = false;
   item.sourceInventoryCheckedAt = checkedAt;
+  if (inventory.sourceInventoryRetainedEpisodeCount) {
+    item.sourceInventoryRetainedEpisodeCount = inventory.sourceInventoryRetainedEpisodeCount;
+  } else delete item.sourceInventoryRetainedEpisodeCount;
   if (inventory.sourceMalId && !item.malId) item.malId = inventory.sourceMalId;
   if (inventory.sourceRuntime && !item.duration) item.duration = inventory.sourceRuntime;
   if (inventory.sourceStartDate && !item.aired) item.aired = inventory.sourceStartDate;
@@ -234,11 +287,16 @@ export function applyAnimeAv1EpisodeInventory(item, inventory, checkedAt) {
     item.episode = Number(inventory.sourceEpisodeCount);
   }
   delete item.sourceInventoryUnavailableReason;
+  delete item.sourceInventoryRefreshError;
   return true;
 }
 
 export function markAnimeAv1InventoryUnavailable(item, error, checkedAt) {
   if (!item) return false;
+  if (item.sourceInventoryChecked && item.sourceEpisodeIds?.length) {
+    item.sourceInventoryRefreshError = String(error?.message || error || "Inventory refresh failed");
+    return true;
+  }
   item.sourceEpisodeIds = [];
   item.sourceEpisodeCount = 0;
   item.sourcePlayableEpisodeCount = 0;
@@ -260,7 +318,7 @@ async function readJson(filePath, fallback = null) {
   }
 }
 
-async function fetchInventory(base, slug, timeoutMs, attempts = 2) {
+export async function fetchInventory(base, slug, timeoutMs, attempts = 2) {
   let lastError = null;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     const controller = new AbortController();
@@ -275,7 +333,13 @@ async function fetchInventory(base, slug, timeoutMs, attempts = 2) {
           "User-Agent": "Mozilla/5.0 (compatible; ZenkaiTV catalog inventory/1.0)"
         }
       });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) {
+        await response.body?.cancel();
+        const error = new Error(`HTTP ${response.status}`);
+        error.status = response.status;
+        if (response.status === 429) error.retryAfter = response.headers.get("Retry-After");
+        throw error;
+      }
       const html = await response.text();
       let inventory = parseAnimeAv1EpisodeInventory(html, slug);
       if (!inventory) throw new Error("episode inventory missing from page");
@@ -307,6 +371,7 @@ async function fetchInventory(base, slug, timeoutMs, attempts = 2) {
       return inventory;
     } catch (error) {
       lastError = error;
+      if (error.status === 429) throw error;
       if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, 300 * attempt));
     } finally {
       clearTimeout(timer);
@@ -315,7 +380,7 @@ async function fetchInventory(base, slug, timeoutMs, attempts = 2) {
   throw lastError || new Error("inventory request failed");
 }
 
-async function probeAnimeAv1Episode(base, slug, episodeId, timeoutMs) {
+export async function probeAnimeAv1Episode(base, slug, episodeId, timeoutMs) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -329,10 +394,15 @@ async function probeAnimeAv1Episode(base, slug, episodeId, timeoutMs) {
         "User-Agent": "Mozilla/5.0 (compatible; ZenkaiTV catalog inventory/1.0)"
       }
     });
-    if (page.status === 404 || page.status === 410) return false;
-    if (!page.ok) return null;
-    const mediaUrls = parseAnimeAv1DirectMediaUrls(await page.text());
-    if (!mediaUrls.length) return false;
+    if (page.status === 404 || page.status === 410) { await page.body?.cancel(); return false; }
+    if (!page.ok) { await page.body?.cancel(); return null; }
+    const html = await page.text();
+    const mediaUrls = parseAnimeAv1DirectMediaUrls(html);
+    const hasEmbedFallback = [...html.matchAll(/server:"([^"]+)",url:"([^"]+)"/gi)]
+      .some((match) => parseAnimeAv1DirectMediaUrls(match[0]).length === 0);
+    // An embed-only source (including UPNShare) is not a deleted episode.
+    // Keep its listed route when this build-time direct-media probe cannot run.
+    if (!mediaUrls.length) return null;
 
     let retryableFailure = false;
     for (const mediaUrl of mediaUrls) {
@@ -343,21 +413,27 @@ async function probeAnimeAv1Episode(base, slug, episodeId, timeoutMs) {
           signal: controller.signal,
           headers: {
             Accept: "application/vnd.apple.mpegurl,video/*,*/*;q=0.8",
+            Range: "bytes=0-4095",
             Referer: new URL(mediaUrl).origin + "/",
             "User-Agent": "Mozilla/5.0 (compatible; ZenkaiTV catalog inventory/1.0)"
           }
         });
         if (media.ok) {
-          const body = await media.text();
-          if (body.trim()) return true;
+          const first = await media.body?.getReader();
+          if (first) {
+            const chunk = await first.read();
+            await first.cancel();
+            if (chunk.value?.byteLength) return true;
+          }
         } else if (media.status !== 404 && media.status !== 410) {
           retryableFailure = true;
         }
+        if (!media.ok) await media.body?.cancel();
       } catch {
         retryableFailure = true;
       }
     }
-    return retryableFailure ? null : false;
+    return retryableFailure || hasEmbedFallback ? null : false;
   } catch {
     return null;
   } finally {
@@ -391,20 +467,29 @@ async function main() {
   let refreshed = 0;
   let restored = 0;
   let restoredRanges = 0;
+  let retainedEpisodes = 0;
+  let rateLimited = null;
   const unresolved = [];
   async function worker() {
     while (cursor < targets.length) {
       const index = cursor++;
       const { item, slug } = targets[index];
       try {
+        if (rateLimited) throw rateLimited;
         const previousItem = previousBySlug.get(slug.toLowerCase());
         const fetchedInventory = await fetchInventory(base, slug, timeoutMs);
-        const inventory = preserveVerifiedEpisodeRange(fetchedInventory, previousItem);
+        const savedInventory = retainAnimeAv1EpisodeInventory(item, previousItem);
+        const inventory = retainAnimeAv1EpisodeInventory(
+          preserveVerifiedEpisodeRange(fetchedInventory, savedInventory), savedInventory
+        );
+        retainedEpisodes += inventory.sourceInventoryRetainedEpisodeCount || 0;
         if (inventory.sourceInventoryRangeProbeStatus === "restored") restoredRanges += 1;
         applyAnimeAv1EpisodeInventory(item, inventory, checkedAt);
         refreshed += 1;
       } catch (error) {
-        if (copyInventory(item, previousBySlug.get(slug.toLowerCase()))) restored += 1;
+        if (error.status === 429) rateLimited = error;
+        const savedInventory = retainAnimeAv1EpisodeInventory(item, previousBySlug.get(slug.toLowerCase()));
+        if (copyInventory(item, savedInventory)) restored += 1;
         else {
           markAnimeAv1InventoryUnavailable(item, error, checkedAt);
           unresolved.push({ slug, error: String(error?.message || error) });
@@ -428,6 +513,9 @@ async function main() {
     refreshed,
     restored,
     restoredRanges,
+    retainedEpisodes,
+    rateLimited: Boolean(rateLimited),
+    retryAfter: rateLimited?.retryAfter || undefined,
     unresolved: unresolved.length
   };
 

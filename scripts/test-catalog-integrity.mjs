@@ -110,6 +110,30 @@ test("healthy catalog, ordered seasons, and skip intervals pass", () => {
   assert.equal(result.metrics.seasonBackgroundSources, 2);
 });
 
+test("catalog growth cannot hide a lost saved title or episode inventory", () => {
+  const previous = { items: [row("alpha", {
+    sourceEpisodeIds: [1, 2], sourceEpisodeCount: 2, sourcePlayableEpisodeCount: 2
+  }), row("missing")] };
+  const result = auditCatalogIntegrity({
+    previous, catalog: { items: [row("alpha"), row("new-one"), row("new-two")] },
+    artwork: art(["alpha", "new-one", "new-two"])
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join("\n"), /saved catalog title animeav1-missing disappeared/);
+  assert.match(result.errors.join("\n"), /animeav1-alpha lost 1 saved episode route/);
+});
+
+test("a confirmed removed route does not fail the inventory retention gate", () => {
+  const previous = { items: [row("alpha", {
+    sourceEpisodeIds: [1, 2], sourceEpisodeCount: 2, sourcePlayableEpisodeCount: 2
+  })] };
+  const result = auditCatalogIntegrity({
+    previous, catalog: { items: [row("alpha", { sourceUnavailableEpisodeIds: [2] })] },
+    artwork: art(["alpha"])
+  });
+  assert.equal(result.ok, true, result.errors.join("\n"));
+});
+
 test("a relation season without identity-specific artwork is rejected", () => {
   const catalog = { items: [row("alpha")] };
   const result = auditCatalogIntegrity({

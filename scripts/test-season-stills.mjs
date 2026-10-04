@@ -6,10 +6,17 @@
 // Loads the REAL js/image-resolver.js in a VM so the assertions track the
 // shipped module rather than a restatement of it.
 import fs from "node:fs";
+import path from "node:path";
+import { createRequire } from "node:module";
 import vm from "node:vm";
 
 const ROOT = process.argv[2] || ".";
 const src = fs.readFileSync(ROOT + "/js/image-resolver.js", "utf8");
+const clientSrc = fs.readFileSync(ROOT + "/client.js", "utf8");
+const utilsSrc = fs.readFileSync(ROOT + "/js/utils.js", "utf8");
+const metadataFetchSrc = utilsSrc.slice(utilsSrc.indexOf("const metadataJsonCache ="), utilsSrc.indexOf("async function fetchWithRetry("));
+const require = createRequire(import.meta.url);
+const server = require(path.resolve(ROOT, "animetv-server.js"));
 
 const rows = [];
 const check = (name, got, want) => {
@@ -35,11 +42,14 @@ const ctx = {
     removeItem: (k) => store.delete(k)
   },
   fetch: () => Promise.reject(new Error("network disabled in test")),
+  fetchWithTimeout: (...args) => ctx.fetch(...args),
+  location: { origin: "https://app.test", href: "https://app.test/" },
   setTimeout, clearTimeout, Promise, Date, Math, JSON, URL
 };
 ctx.window = ctx;
 ctx.globalThis = ctx;
 vm.createContext(ctx);
+vm.runInContext(metadataFetchSrc, ctx);
 vm.runInContext(src, ctx, { filename: "js/image-resolver.js" });
 
 const ImageResolver = vm.runInContext("ImageResolver", ctx);
@@ -348,15 +358,128 @@ checkNoThrow("undefined show resolves", () => ensure(undefined, 1));
       removeItem: (key) => longStore.delete(key)
     },
     fetch: fetchLongSeason, fetchWithTimeout: fetchLongSeason,
+    location: { origin: "https://app.test", href: "https://app.test/" },
     setTimeout, clearTimeout, Promise, Date, Math, JSON, URL
   };
   longCtx.window = longCtx;
   longCtx.globalThis = longCtx;
   vm.createContext(longCtx);
+  vm.runInContext(metadataFetchSrc, longCtx);
   vm.runInContext(src, longCtx);
   await vm.runInContext("ImageResolver", longCtx).hydrateTmdbImages(anime);
   check("long series fetches each TMDB season only once", requests.filter((url) => url.includes("/api/tmdb/season?")).length, 3);
   check("long series keeps global episode titles", anime.tmdbEpisodesByNum?.[41]?.title, "S2 E1");
+}
+
+{
+  const artwork = JSON.parse(fs.readFileSync(ROOT + "/scraper/artwork-map.json", "utf8")).entries;
+  const tempal = artwork["animeav1-tempal-item-no-chikara"] || {};
+  check("Tempal keeps the exact AniList identity", tempal.anilistId, 212888);
+  check("Tempal keeps the exact TMDB identity", tempal.tmdbId, 324502);
+  check("Tempal ships a high-resolution TMDB backdrop", /745xqHbiUWwO51TM60MXRCR4Onm/.test(tempal.tmdbBackdrop || ""), true);
+
+  const kantei = artwork["animeav1-tensei-kizoku-kantei-skill-de-nariagaru-3rd-season"] || {};
+  check("Kantei Skill Season 3 keeps the exact AniList identity", kantei.anilistId, 185756);
+  check("Kantei Skill Season 3 keeps the franchise TMDB identity", kantei.tmdbId, 237150);
+  check("Kantei Skill Season 3 maps local episode 1 to absolute episode 25", kantei.providerEpisodeOffset, 24);
+
+  const narumi = artwork["animeav1-kaijuu-8-gou-narumi-no-heijitsu"] || {};
+  check("Narumi shorts ship the verified 4K franchise backdrop", /htGeuCcNhlBe8GTx3izKOsd8frw/.test(narumi.tmdbBackdrop || ""), true);
+  check("Narumi shorts do not inherit parent-series TMDB episodes", narumi.tmdbId ?? null, null);
+  check("Narumi shorts ship an exact landscape episode fallback", /1371\/154494l\.jpg/.test(narumi.episodeThumbnailFallback || ""), true);
+  check("standalone episode thumbnails consume the exact fallback", clientSrc.includes("show.episodeThumbnailFallback"), true);
+  check("verified episode fallbacks win before generic resolver artwork", /if \(exactEpisodeFallback\) \{\s*return capturedFrame \|\| ownImage \|\| exactEpisodeFallback;/.test(clientSrc), true);
+  check("standalone releases may display their high-resolution landscape fallback", /const isFallback = !isAdultShow && !isStandaloneShow && epImgSrc/.test(clientSrc), true);
+
+  const latestOnly = server.applyAnimeAv1LatestInventory([], [
+    { slug: "tempal-item-no-chikara", title: "Tempal: Item no Chikara", episode: 1, image: "https://cdn.animeav1.com/thumbnails/4439.jpg" },
+    { slug: "tensei-kizoku-kantei-skill-de-nariagaru-3rd-season", title: "Tensei Kizoku, Kantei Skill de Nariagaru 3rd Season", episode: 1, image: "https://cdn.animeav1.com/thumbnails/4440.jpg" },
+    { slug: "kaijuu-8-gou-narumi-no-heijitsu", title: "Kaijuu 8-gou: Narumi no Heijitsu", episode: 4, image: "https://cdn.animeav1.com/thumbnails/4437.jpg" }
+  ], "2026-09-28T00:00:00.000Z");
+  const latestTempal = latestOnly.find((item) => item.id === "animeav1-tempal-item-no-chikara") || {};
+  const latestKantei = latestOnly.find((item) => item.id === "animeav1-tensei-kizoku-kantei-skill-de-nariagaru-3rd-season") || {};
+  const latestNarumi = latestOnly.find((item) => item.id === "animeav1-kaijuu-8-gou-narumi-no-heijitsu") || {};
+  check("latest-only Tempal receives its bundled TMDB background", latestTempal.tmdbId, 324502);
+  check("latest-only Tempal receives its full metadata", latestTempal.englishTitle, "Overgeared");
+  check("latest-only Kantei receives its bundled TMDB background", latestKantei.tmdbId, 237150);
+  check("latest-only Kantei preserves the episode offset", latestKantei.providerEpisodeOffset, 24);
+  check("latest-only Narumi receives its bundled background", /htGeuCcNhlBe8GTx3izKOsd8frw/.test(latestNarumi.tmdbBackdrop || ""), true);
+  check("latest-only Narumi receives its episode thumbnail fallback", /1371\/154494l\.jpg/.test(latestNarumi.episodeThumbnailFallback || ""), true);
+}
+
+{
+  const before = Date.now();
+  const [latest] = server.parseAnimeAv1Latest(`
+    <article>
+      <img src="https://cdn.animeav1.com/thumbnails/4437.jpg" />
+      <span>hace 2 días</span>
+      <span>Episodio <span>4</span></span>
+      <a href="/media/kaijuu-8-gou-narumi-no-heijitsu/4">
+        <span class="sr-only">Ver Kaijuu 8-gou: Narumi no Heijitsu 4</span>
+      </a>
+    </article>
+  `);
+  const age = before - Date.parse(latest?.releasedAt || "");
+  check("latest parser keeps the Narumi release", latest?.slug, "kaijuu-8-gou-narumi-no-heijitsu");
+  check("latest parser keeps episode 4", latest?.episode, 4);
+  check("latest parser converts provider relative age", age >= 47 * 60 * 60 * 1000 && age <= 49 * 60 * 60 * 1000, true);
+}
+
+// The detail view can render before TMDB's season response returns. The season
+// warmer must repaint once that response adds episode stills; otherwise users
+// see generated placeholders until they hover, switch tabs, or reload.
+{
+  const start = clientSrc.indexOf("function seasonEpisodeArtworkSignature(");
+  const end = clientSrc.indexOf("function warmRelatedSeasonShow(", start);
+  const schedulerSrc = clientSrc.slice(start, end);
+  let renders = 0;
+  const show = {
+    id: "animeav1-sakurada-reset",
+    tmdbId: 71014,
+    seasons: [{ season: 1, episodes: Array.from({ length: 24 }, (_, index) => ({ episode: index + 1 })) }]
+  };
+  const schedulerCtx = {
+    console,
+    JSON,
+    Object,
+    Promise,
+    state: { activeShow: show, activeSeasonIndex: 0 },
+    overlay: { hidden: false },
+    episodeList: { querySelector: () => null },
+    getDetailSeasons: (anime) => anime.seasons,
+    warmSeasonArtwork: async (anime, _index, options) => {
+      anime.tmdbStillsBySeason = { 1: { 1: "https://image.tmdb.org/t/p/original/sakurada-1.jpg" } };
+      anime.tmdbEpisodesBySeasonNum = { 1: { 1: { title: "Memory in Children 1/3" } } };
+      options.onSeasonReady?.();
+      return anime;
+    },
+    renderEpisodeList: (_anime, options) => {
+      renders += 1;
+      check("season-art repaint disables duplicate metadata hydration", options.hydrateExtras, false);
+    },
+    window: { setTimeout }
+  };
+  vm.createContext(schedulerCtx);
+  vm.runInContext(schedulerSrc, schedulerCtx, { filename: "client-season-artwork-scheduler.js" });
+  await vm.runInContext("scheduleSeasonArtworkWarm(state.activeShow, 0, state.activeShow.seasons)", schedulerCtx);
+  check("active episode list repaints when season stills arrive", renders, 1);
+
+  renders = 0;
+  const unchanged = {
+    id: "already-loaded",
+    tmdbId: 71014,
+    seasons: show.seasons,
+    tmdbStillsBySeason: show.tmdbStillsBySeason,
+    tmdbEpisodesBySeasonNum: show.tmdbEpisodesBySeasonNum
+  };
+  schedulerCtx.state.activeShow = unchanged;
+  schedulerCtx.warmSeasonArtwork = async (anime, _index, options) => {
+    options.onSeasonReady?.();
+    return anime;
+  };
+  schedulerCtx.scheduleSeasonArtworkWarm = vm.runInContext("scheduleSeasonArtworkWarm", schedulerCtx);
+  await schedulerCtx.scheduleSeasonArtworkWarm(unchanged, 0, unchanged.seasons);
+  check("already-rendered season artwork does not repaint again", renders, 0);
 }
 
 console.log(rows.join("\n"));

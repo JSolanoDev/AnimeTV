@@ -1,0 +1,84 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import test from "node:test";
+import vm from "node:vm";
+
+const require = createRequire(import.meta.url);
+const server = require("../animetv-server.js");
+const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
+
+test("airing batches use a single Page query rather than costly Media aliases", async () => {
+  const code = read("scripts/build-airing-map.mjs");
+  const start = code.indexOf("const mediaFields =");
+  const end = code.indexOf("/*", code.indexOf("async function fetchBatch", start));
+  let request;
+  const context = vm.createContext({
+    BATCH: 25, ANILIST: "https://graphql.anilist.co", log() {},
+    fetch: async (url, options) => {
+      request = JSON.parse(options.body);
+      return new Response(JSON.stringify({ data: { Page: { media: [{ id: 7 }, { id: 8 }] } } }));
+    }
+  });
+  vm.runInContext(code.slice(start, end), context);
+  const media = await vm.runInContext("fetchBatch([7, 8])", context);
+  assert.deepEqual(JSON.parse(JSON.stringify(media)), [{ id: 7 }, { id: 8 }]);
+  assert.deepEqual(request.variables.ids, [7, 8]);
+  assert.match(request.query, /Page\(page: 1, perPage: 25\)/);
+  assert.match(request.query, /media\(id_in: \$ids, type: ANIME\)/);
+  assert.doesNotMatch(request.query, /m\d+: Media/);
+  assert.match(code, /const PAUSE_MS = 2500/);
+  assert.match(code, /\[400, 403, 429\]\.includes\(error.status\)/);
+});
+
+test("latest-feed artwork uses only an exact static identity and does not fetch", () => {
+  const map = JSON.parse(read("scraper/artwork-map.json")).entries;
+  const [id, art] = Object.entries(map).find(([key, value]) => key.startsWith("animeav1-") && value.tmdbBackdrop);
+  const item = { slug: id.slice("animeav1-".length), title: "Exact feed title", episode: 0, image: "feed-still.jpg" };
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = () => { throw new Error("No upstream lookup should run"); };
+  try {
+    const result = server.enrichAnimeAv1LatestArtwork(item);
+    assert.equal(result.tmdbBackdrop, art.tmdbBackdrop);
+    assert.equal(result.tmdbPoster, art.tmdbPoster || undefined);
+    assert.equal(result.title, item.title);
+    assert.equal(result.image, item.image);
+    assert.equal(result.episode, 0);
+    assert.equal(result.meta, undefined);
+    assert.equal(result.franchiseSeasons, undefined);
+    assert.deepEqual(server.enrichAnimeAv1LatestArtwork({ ...item, slug: "missing-exact-title-fixture" }), {
+      ...item, slug: "missing-exact-title-fixture"
+    });
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("a new-title client row reuses the latest feed's baked artwork and description", () => {
+  const code = read("client.js");
+  const start = code.indexOf("function makeAv1OnlyShow(");
+  const end = code.indexOf("function registerAv1Show", start);
+  const context = vm.createContext({
+    animeAv1LatestEpisodeIdentity: () => ({ providerEpisodeId: 2, displayEpisode: 2 }),
+    animeAv1ArtworkVariant: (_url, mode) => `source-${mode}`
+  });
+  vm.runInContext(code.slice(start, end), context);
+  const item = { slug: "new-season", title: "New Season", image: "still.jpg",
+    tmdbBackdrop: "wide.jpg", tmdbPoster: "poster.jpg", description: "Complete synopsis",
+    anilistId: 123, malId: 456, genres: ["Adventure"] };
+  context.item = item;
+  const row = vm.runInContext("makeAv1OnlyShow(item)", context);
+  assert.equal(row.image, item.tmdbPoster);
+  assert.equal(row.tmdbBackdrop, item.tmdbBackdrop);
+  assert.equal(row.description, item.description);
+  assert.equal(row.anilistId, 123);
+  assert.equal(row.sourceInventoryPartial, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(row.sourceEpisodeIds)), [2]);
+});
+
+test("offline-only metadata is topped up without discarding saved data", () => {
+  const code = read("scripts/add-artwork-metadata.mjs");
+  assert.match(code, /e\.meta\?\.description && e\.meta\?\.genres\?\.length && !FORCE/);
+  assert.match(code, /entries\[key\]\.meta = \{ \.\.\.saved/);
+  assert.match(code, /entries\[key\]\.meta \|\|= null/);
+  const art = read("scripts/build-artwork-map.mjs");
+  assert.match(art, /!map\[item\.id\]\?\.status \? 1 : 0/);
+});

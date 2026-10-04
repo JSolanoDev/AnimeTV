@@ -30,6 +30,7 @@
   let skipButton = null;
   const isEmbeddedPlayer = window.parent && window.parent !== window;
   let art = null;
+  const playerCleanups = [];
   let hls = null;
   let statusTimer = null;
   let startupTimer = null;
@@ -240,9 +241,12 @@
     // The bars move whenever the box changes shape - resize, rotate, fullscreen,
     // or the stream switching to a rendition with a different ratio.
     if (typeof ResizeObserver === "function") {
-      new ResizeObserver(syncPictureInsets).observe(player);
+      const observer = new ResizeObserver(syncPictureInsets);
+      observer.observe(player);
+      playerCleanups.push(() => observer.disconnect());
     } else {
       window.addEventListener("resize", syncPictureInsets);
+      playerCleanups.push(() => window.removeEventListener("resize", syncPictureInsets));
     }
     art.on("video:loadedmetadata", syncPictureInsets);
     art.on("video:resize", syncPictureInsets);
@@ -1756,8 +1760,10 @@
     if (screenOrientation?.addEventListener) {
       screenOrientation.addEventListener("change", onPlaybackOrientationChange);
     }
-    window.addEventListener("pagehide", () => {
+    const cleanupOrientation = () => {
       window.clearTimeout(orientationChromeTimer);
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", onFullscreenChange);
       hostWindow.removeEventListener("orientationchange", onPlaybackOrientationChange);
       if (hostOrientationQuery?.removeEventListener) {
         hostOrientationQuery.removeEventListener("change", onPlaybackOrientationChange);
@@ -1765,12 +1771,17 @@
         hostOrientationQuery.removeListener(onPlaybackOrientationChange);
       }
       screenOrientation?.removeEventListener?.("change", onPlaybackOrientationChange);
-    }, { once: true });
+      window.removeEventListener("pagehide", cleanupOrientation);
+    };
+    window.addEventListener("pagehide", cleanupOrientation, { once: true });
+    playerCleanups.push(cleanupOrientation);
 
     // Captured on pointerdown because Artplayer's own click handler runs first
     // and may have already re-shown the bar by the time the click listener fires.
     // Without this, a tap meant to REVEAL the controls would hide them again.
     let wasVisible = false;
+    let tapTimer = 0;
+    playerCleanups.push(() => window.clearTimeout(tapTimer));
     player.addEventListener("pointerdown", () => {
       wasVisible = Boolean(art && art.controls && art.controls.show);
     }, true);
@@ -1784,7 +1795,8 @@
       if (!wasVisible) return;
       // Deferred: Artplayer shows the controls from its own click handler, so
       // hiding synchronously here would just be undone.
-      window.setTimeout(() => {
+      window.clearTimeout(tapTimer);
+      tapTimer = window.setTimeout(() => {
         try { art.controls.show = false; } catch (error) { /* player torn down */ }
       }, 0);
     }, true);
@@ -1808,6 +1820,7 @@
     let timer = 0;
     let inside = 0;
     const cancelClose = () => { window.clearTimeout(timer); timer = 0; };
+    playerCleanups.push(cancelClose);
     const enter = () => { cancelClose(); if (openOnHover) open(); };
     const closeLater = () => {
       window.clearTimeout(timer);
@@ -2187,6 +2200,8 @@
     let index = -1;
     let timer = 0;
     let resolvedAny = false;
+    let disposed = false;
+    let fadeTimer = 0;
 
     // Preload a pose so the swap never flashes an empty box; null if absent.
     const resolvePose = (pose) => new Promise((done) => {
@@ -2203,12 +2218,13 @@
         const beat = MASCOT_SCRIPT[index];
         if (missing.has(beat.pose)) continue;
         const url = await resolvePose(beat.pose);
+        if (disposed) return;
         if (!url) { missing.add(beat.pose); continue; }
         resolvedAny = true;
 
         // Cross-fade in place - the sprite never moves from its spot.
         img.style.opacity = "0";
-        window.setTimeout(() => {
+        fadeTimer = window.setTimeout(() => {
           img.src = url;
           img.style.opacity = "1";
         }, 180);
@@ -2222,9 +2238,16 @@
 
     step();
 
-    document.addEventListener("visibilitychange", () => {
+    const onVisibilityChange = () => {
       window.clearTimeout(timer);
       if (!document.hidden && resolvedAny) timer = window.setTimeout(step, 800);
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    playerCleanups.push(() => {
+      disposed = true;
+      window.clearTimeout(timer);
+      window.clearTimeout(fadeTimer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     });
   }
 
@@ -2366,10 +2389,16 @@
   function armUnmuteOnGesture(video) {
     if (unmuteArmed) return;
     unmuteArmed = true;
-    const unmute = () => {
+    let resumeTimer = 0;
+    const cleanup = () => {
       document.removeEventListener("pointerdown", unmute);
       document.removeEventListener("keydown", unmute);
+      clearTimeout(resumeTimer);
       unmuteArmed = false;
+    };
+    const unmute = () => {
+      cleanup();
+      if (art?.video !== video) return;
       if (!video.muted) return;
       video.muted = false;
       if (art?.notice) art.notice.show = "";
@@ -2377,17 +2406,21 @@
       // would pause the very video the viewer just asked to hear. We have a user
       // gesture now, so resume on the next tick and let the click mean what it
       // plainly meant: start this properly, with sound.
-      setTimeout(() => { if (video.paused) video.play?.().catch(() => {}); }, 0);
+      resumeTimer = setTimeout(() => {
+        if (art?.video === video && video.paused) video.play?.().catch(() => {});
+      }, 0);
       send("volume", getStatus());
     };
     document.addEventListener("pointerdown", unmute, { once: true });
     document.addEventListener("keydown", unmute, { once: true });
+    playerCleanups.push(cleanup);
   }
 
   function startPlayback(video) {
     const attempt = video?.play?.();
     if (!attempt || typeof attempt.catch !== "function") return;
     attempt.catch((error) => {
+      if (art?.video !== video) return;
       // Only autoplay blocking is worth retrying. An AbortError means a seek or a
       // source swap interrupted us and something else has already taken over.
       if (error?.name !== "NotAllowedError" || video.muted) {
@@ -2399,10 +2432,12 @@
       const retry = video.play?.();
       if (!retry || typeof retry.then !== "function") return;
       retry.then(() => {
+        if (art?.video !== video) return;
         if (art?.notice) art.notice.show = "Muted to start - tap or press a key for sound";
         armUnmuteOnGesture(video);
         send("volume", getStatus());
       }).catch(() => {
+        if (art?.video !== video) return;
         video.muted = false;
         hideLoading();
         send("pause", getStatus());
@@ -2421,6 +2456,7 @@
       send("error", "hls-not-supported");
       return;
     }
+    const isAnimeAv1UpnStream = /animeav1\.uns\.bio/i.test(decodeURIComponent(String(url || "")));
     hls = new window.Hls({
       enableWorker: true,
       // These catalog streams are on-demand episodes. Normal buffering is more
@@ -2447,10 +2483,13 @@
       manifestLoadingMaxRetry: 0,
       manifestLoadingRetryDelay: 600,
       levelLoadingTimeOut: 10000,
-      levelLoadingMaxRetry: 4,
+      levelLoadingMaxRetry: 2,
       levelLoadingRetryDelay: 600,
-      fragLoadingTimeOut: 15000,
-      fragLoadingMaxRetry: 4,
+      fragLoadingTimeOut: isAnimeAv1UpnStream ? 8000 : 12000,
+      // A UPN fragment that stalls does not recover by issuing the same request
+      // repeatedly. Let the parent switch to its already-verified backup. Other
+      // providers retain one retry for an ordinary transient network failure.
+      fragLoadingMaxRetry: isAnimeAv1UpnStream ? 0 : 1,
       fragLoadingRetryDelay: 600
     });
     hls.attachMedia(video);
@@ -2504,7 +2543,7 @@
       }));
       if (data.type === window.Hls.ErrorTypes.NETWORK_ERROR) {
         networkRecoveryCount += 1;
-        if (networkRecoveryCount <= 3) {
+        if (!isAnimeAv1UpnStream && networkRecoveryCount <= 1) {
           scheduleHlsReload(video, "network", networkRecoveryCount);
           return;
         }
@@ -2641,7 +2680,15 @@
   function bufferedEnd(video) {
     try {
       if (!video?.buffered?.length) return 0;
-      return video.buffered.end(video.buffered.length - 1) || 0;
+      const position = Number(video.currentTime || 0);
+      // A seek can leave disjoint ranges. Bytes farther ahead do not mean the
+      // current position is buffered, and must not trigger speculative warmup.
+      for (let i = 0; i < video.buffered.length; i += 1) {
+        if (video.buffered.start(i) <= position && video.buffered.end(i) >= position) {
+          return video.buffered.end(i);
+        }
+      }
+      return position;
     } catch (error) {
       return 0;
     }
@@ -3307,6 +3354,9 @@
   }
 
   function destroyPlayer() {
+    for (const cleanup of playerCleanups.splice(0)) {
+      try { cleanup(); } catch (error) { /* Continue releasing the other resources. */ }
+    }
     stopStatusLoop();
     clearStartupWatchdog();
     clearStallWatchdog();
@@ -3324,6 +3374,14 @@
     unlockOrientation();
     destroyHls();
     if (!art) return;
+    // These controls belong to the page, not the disposable Artplayer tree.
+    const page = document.querySelector(".ztv-player-page");
+    if (page) {
+      ["#playerTopbar", "#backButton", "#chromeToggle", "#floatingLabel"].forEach((selector) => {
+        const node = document.querySelector(selector);
+        if (node && node.parentElement !== page) page.appendChild(node);
+      });
+    }
     try { art.destroy(false); } catch (error) {}
     art = null;
   }

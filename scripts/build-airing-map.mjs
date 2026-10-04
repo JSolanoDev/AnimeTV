@@ -57,19 +57,23 @@ const SKIP_ANILIST = Boolean(JIKAN_FIXTURE);
 // crawl has nothing left to add, or - as happened here - when Jikan is
 // throttling us and continuing to ask would be both useless and rude.
 const NO_FETCH = args.includes("--no-fetch");
+// Refresh the provider's current release observations without waiting for the
+// much heavier AniList/Jikan relation crawl. This also gives the normal nightly
+// run a safe path forward when both metadata providers are unavailable.
+const SCHEDULE_ONLY = args.includes("--schedule-only");
 if (ARTWORK_OVERRIDE) ARTWORK_MAP = path.resolve(ARTWORK_OVERRIDE);
 if (RELATIONS_OVERRIDE) RELATIONS_CACHE = path.resolve(RELATIONS_OVERRIDE);
 
-// AniList allows 90 requests/minute. 25 ids per request keeps a 1000-row
-// catalogue inside ~40 requests, and the pause keeps a comfortable margin.
+// Page batches avoid multiplying relation-query complexity through aliases.
+// Space requests below the provider's reduced 30 requests/minute rate limit.
 const BATCH = 25;
-const PAUSE_MS = 1200;
+const PAUSE_MS = 2500;
 const sleep = budget.sleep;
 
 const log = (...a) => console.log(" ", ...a);
 
 /* ── The query ─────────────────────────────────────────────────────────────
-   One request answers many ids through aliases. relations gives the season
+   One request answers many ids through Page. relations gives the season
    chain: SEQUEL/PREQUEL walk the spine, and the node carries enough to order
    and label the entries without a second lookup. */
 const mediaFields = `
@@ -89,22 +93,33 @@ const mediaFields = `
     }
   }`;
 
-const buildQuery = (ids) => `query {
-${ids.map((id, i) => `  m${i}: Media(id: ${id}, type: ANIME) {${mediaFields}\n  }`).join("\n")}
-}`;
+const buildQuery = (ids) => ({
+  query: `query ($ids: [Int]) {
+    Page(page: 1, perPage: ${BATCH}) {
+      media(id_in: $ids, type: ANIME) {${mediaFields}}
+    }
+  }`,
+  variables: { ids }
+});
 
 async function fetchBatch(ids) {
   const response = await fetch(ANILIST, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ query: buildQuery(ids) })
+    body: JSON.stringify(buildQuery(ids))
   });
-  if (!response.ok) throw new Error(`AniList HTTP ${response.status}`);
+  if (!response.ok) {
+    const error = new Error(`AniList HTTP ${response.status}`);
+    error.status = response.status;
+    error.retryAfter = response.headers.get("Retry-After");
+    await response.body?.cancel();
+    throw error;
+  }
   const payload = await response.json();
   // A partial GraphQL result still carries the media it did resolve, so errors
   // are noted rather than thrown - one bad id must not lose the other 24.
   if (payload.errors?.length) log(`note: ${payload.errors.length} GraphQL error(s) in this batch`);
-  return payload.data || {};
+  return payload.data?.Page?.media || [];
 }
 
 /* ── Shaping ───────────────────────────────────────────────────────────────
@@ -831,6 +846,10 @@ async function applyAnimeAv1Schedule(entries, targets) {
         franchiseSeasons: []
       };
     }
+    // /horario only contains shows AnimeAV1 is actively publishing. It is more
+    // current than a metadata entry for a completed batch/"stage", which can
+    // still say FINISHED after the provider has published the next episode.
+    entries[rowId].airingStatus = "RELEASING";
     entries[rowId].sourceEpisodeCount = hit.episodes;
     if (hit.lastEpisodeAt) entries[rowId].lastEpisodeAt = hit.lastEpisodeAt;
     covered.add(rowId);
@@ -1063,27 +1082,33 @@ async function main() {
     const fixture = JSON.parse(fs.readFileSync(FIXTURE, "utf8"));
     for (const media of (Array.isArray(fixture) ? fixture : [fixture])) if (media && media.id) fetched.push(media);
     log(`fixture: loaded ${fetched.length} media`);
-  } else {
+  } else if (!SCHEDULE_ONLY) {
     let failures = 0;
     for (let i = 0; !SKIP_ANILIST && !budget.expired() && i < wanted.length; i += BATCH) {
       const slice = wanted.slice(i, i + BATCH);
       try {
         const data = await fetchBatch(slice);
-        for (const media of Object.values(data)) {
+        for (const media of data) {
           if (media && media.id) fetched.push(media);
         }
+        failures = 0;
       } catch (error) {
         failures += 1;
         log(`batch ${i / BATCH + 1} failed: ${error.message}`);
         // AniList blocked outright (403) or down: stop rather than grind through
         // forty identical failures, and leave whatever is on disk in place.
-        if (failures >= 3) { log("three consecutive failures - abandoning this run"); break; }
+        if ([400, 403, 429].includes(error.status) || failures >= 3) {
+          log(error.status === 429
+            ? `rate limited; retaining saved data (Retry-After: ${error.retryAfter || "unspecified"})`
+            : "provider rejected the query or repeated failures - abandoning this run");
+          break;
+        }
       }
       if (i + BATCH < wanted.length) await sleep(PAUSE_MS);
     }
   }
 
-  if (!fetched.length && !FIXTURE) {
+  if (!fetched.length && !FIXTURE && !SCHEDULE_ONLY) {
     log("AniList resolved nothing - falling back to Jikan relations + the offline database");
     try {
       fetched.push(...await fetchViaJikan(targets, seasonHintsByMal));
@@ -1095,16 +1120,32 @@ async function main() {
   const chains = buildChains(fetched);
   for (const media of fetched) byAnilistId.set(String(media.id), entryFor(media, chains.get(media.id) || []));
 
+  let out;
   if (!byAnilistId.size) {
-    log("resolved nothing - the existing map is left exactly as it is (this is not a build failure)");
-    ensureMapExists();
-    return 0;
-  }
-
-  const out = { generatedAt: new Date().toISOString(), count: 0, entries: {} };
-  for (const { rowId, identityId } of targets) {
-    const shaped = byAnilistId.get(identityId);
-    if (shaped) { out.entries[rowId] = shaped; out.count += 1; }
+    // Episode observations do not depend on AniList/Jikan. Previously an
+    // outage here returned before the one-request AnimeAV1 schedule refresh,
+    // leaving newly published episodes hidden until a later successful crawl.
+    // Start from the last good metadata map and update its source-owned fields.
+    try {
+      const previous = JSON.parse(fs.readFileSync(OUT, "utf8"));
+      if (!previous?.entries || !Object.keys(previous.entries).length) throw new Error("map is empty");
+      out = {
+        generatedAt: new Date().toISOString(),
+        count: Object.keys(previous.entries).length,
+        entries: JSON.parse(JSON.stringify(previous.entries))
+      };
+      log("metadata providers resolved nothing - refreshing source schedule on the last good map");
+    } catch {
+      log("resolved nothing and no previous map exists - leaving the map alone");
+      ensureMapExists();
+      return 0;
+    }
+  } else {
+    out = { generatedAt: new Date().toISOString(), count: 0, entries: {} };
+    for (const { rowId, identityId } of targets) {
+      const shaped = byAnilistId.get(identityId);
+      if (shaped) { out.entries[rowId] = shaped; out.count += 1; }
+    }
   }
 
   if (!FIXTURE && !JIKAN_FIXTURE) {
@@ -1115,7 +1156,7 @@ async function main() {
       const covered = await applyAnimeAv1Schedule(out.entries, targets);
       // The per-show probe is the expensive fallback for anything the schedule
       // did not answer, so that one stays behind --no-fetch.
-      if (!NO_FETCH) {
+      if (!NO_FETCH && !SCHEDULE_ONLY) {
         const db = offlineIndexRef.value || await loadOfflineIndex();
         offlineIndexRef.value = db;
         await addSourceEpisodeCounts(out.entries, db, targets, covered);

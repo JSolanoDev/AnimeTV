@@ -159,6 +159,67 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
   }
 }
 
+const metadataJsonCache = new Map();
+const metadataJsonInflight = new Map();
+const METADATA_JSON_CACHE_MAX = 128;
+
+// Only anonymous metadata participates. Never retain source URLs or user data.
+async function fetchMetadataJson(url, timeoutMs = API_TIMEOUT_MS, { refresh = false } = {}) {
+  const parsed = new URL(url, location.href || location.origin);
+  if (parsed.origin !== location.origin || !/^\/api\/(?:anilist\/(?:media|search)|jikan\/(?:full|search|episodes)|tmdb\/(?:search|tv|season))$/.test(parsed.pathname)) {
+    throw new Error("Not a shared metadata endpoint");
+  }
+  parsed.searchParams.sort();
+  const key = `${parsed.pathname}${parsed.search}`;
+  const cached = metadataJsonCache.get(key);
+  if (cached && cached.expiresAt > Date.now() && (!refresh || cached.error)) {
+    metadataJsonCache.delete(key);
+    metadataJsonCache.set(key, cached);
+    if (cached.error) throw cached.error;
+    return JSON.parse(cached.json);
+  }
+  metadataJsonCache.delete(key);
+
+  const retain = (entry) => {
+    metadataJsonCache.set(key, entry);
+    while (metadataJsonCache.size > METADATA_JSON_CACHE_MAX) {
+      metadataJsonCache.delete(metadataJsonCache.keys().next().value);
+    }
+  };
+  let pending = metadataJsonInflight.get(key);
+  if (!pending) {
+    pending = (async () => {
+      const response = await fetchWithTimeout(key, {}, timeoutMs);
+      if (!response.ok) {
+        const error = new Error(`HTTP ${response.status}`);
+        error.status = response.status;
+        if (response.status === 429) {
+          const retryAfter = response.headers?.get?.("retry-after");
+          const seconds = Number(retryAfter);
+          const retryMs = retryAfter && Number.isFinite(seconds)
+            ? seconds * 1000
+            : Date.parse(retryAfter) - Date.now();
+          retain({ error, expiresAt: Date.now() + Math.max(1000, Number.isFinite(retryMs) ? retryMs : 30000) });
+        }
+        try { await response.body?.cancel?.(); } catch { /* already closed */ }
+        throw error;
+      }
+      const json = JSON.stringify(await response.json());
+      const control = response.headers?.get?.("cache-control") || "";
+      const maxAge = /(?:^|,)\s*max-age=(\d+)\b/i.exec(control);
+      if (maxAge && !/\b(?:no-store|no-cache|private)\b/i.test(control)) {
+        const age = Number(response.headers?.get?.("age") || 0);
+        const ttl = Math.max(0, Math.min((Number(maxAge[1]) - age) * 1000, 86400000));
+        if (ttl > 0) retain({ json, expiresAt: Date.now() + ttl });
+      }
+      return json;
+    })().finally(() => metadataJsonInflight.delete(key));
+    metadataJsonInflight.set(key, pending);
+  }
+  // Consumers enrich metadata in place; each receives its own copy.
+  return JSON.parse(await pending);
+}
+
 async function fetchWithRetry(url, options = {}, attempts = 1) {
   let lastError;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -166,10 +227,14 @@ async function fetchWithRetry(url, options = {}, attempts = 1) {
       const response = await fetchWithTimeout(url, options);
       if (response.ok || ![408, 429, 500, 502, 503, 504].includes(response.status)) return response;
       lastError = new Error(`HTTP ${response.status}`);
+      lastError.status = response.status;
+      try { await response.body?.cancel?.(); } catch { /* already closed */ }
+      if (response.status === 429) throw lastError;
     } catch (error) {
       lastError = error;
+      if (error.status === 429) throw error;
     }
-    await wait(650 * (attempt + 1));
+    if (attempt + 1 < attempts) await wait(650 * (attempt + 1));
   }
   throw lastError || new Error("Request failed");
 }

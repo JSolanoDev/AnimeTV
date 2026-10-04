@@ -119,7 +119,7 @@ function searchContext(shows, query) {
   return sandbox;
 }
 
-function playbackFallbackContext({ primaryFound, slowJk = false }) {
+function playbackFallbackContext({ primaryFound, slowJk = false, language = "spanish", hostname = "localhost" }) {
   const calls = [];
   let resolveCompleted;
   const completed = new Promise((resolve) => { resolveCompleted = resolve; });
@@ -129,6 +129,7 @@ function playbackFallbackContext({ primaryFound, slowJk = false }) {
     : Promise.resolve();
   const sourceOptionsBackgroundLookups = new Map();
   const sourceMatches = {
+    animeneon: (source) => source.provider === "AnimeNeon",
     animeav1: (source) => source.provider === "AnimeAV1",
     jkanime: (source) => source.provider === "JKAnime",
     tioanime: (source) => source.provider === "TioAnime",
@@ -142,6 +143,10 @@ function playbackFallbackContext({ primaryFound, slowJk = false }) {
     SOURCE_EAGER_FALLBACK_DELAY_MS: 450,
     AdultMode: { isAdultContent: () => false },
     episodeList: null,
+    location: { hostname, origin: `https://${hostname}` },
+    preferredWatchLanguageForEpisode: () => language,
+    browserSupportsDeclaredCodec: sourceClassification.browserSupportsDeclaredCodec,
+    hasRecentlyFailedPlaybackFamily: () => false,
     document: { querySelector: () => null },
     sourceOptionsBackgroundLookups,
     getCanonicalEpisodeNumber: () => 1,
@@ -151,6 +156,7 @@ function playbackFallbackContext({ primaryFound, slowJk = false }) {
       : null,
     normalizeEpisodeSourceOptions: (episode) => episode.sourceOptions || [],
     getEpisodePlaybackSources: (episode) => episode.sourceOptions || [],
+    isAnimeNeonSource: sourceMatches.animeneon,
     isAnimeAv1Source: sourceMatches.animeav1,
     isJKAnimeSource: sourceMatches.jkanime,
     isTioAnimeSource: sourceMatches.tioanime,
@@ -163,7 +169,23 @@ function playbackFallbackContext({ primaryFound, slowJk = false }) {
     renderSourcePickerInSidePanel() {},
     refreshFocusables() {},
     promoteResolvedEpisodeSource: () => resolveCompleted(),
-    wait: () => Promise.resolve(),
+    wait: (milliseconds = 0) => new Promise((resolve) => {
+      setTimeout(resolve, Math.min(Math.max(0, Number(milliseconds) || 0), 5));
+    }),
+    attachAnimeNeonSources: async (_show, episode) => {
+      calls.push("animeneon:primary:start");
+      await Promise.resolve();
+      if (primaryFound && !(episode.sourceOptions || []).some((source) => source.id === "neon-primary")) {
+        episode.sourceOptions = [...(episode.sourceOptions || []), {
+          id: "neon-primary",
+          provider: "AnimeNeon",
+          type: "iframe",
+          externalUrl: "https://voe.sx/e/primary"
+        }];
+      }
+      episode.animeNeonSourcesChecked = true;
+      calls.push("animeneon:primary:end");
+    },
     attachAnimeAv1Sources: async (_show, episode, options = {}) => {
       const phase = options.includeFallbacks ? "fallback" : "primary";
       calls.push(`animeav1:${phase}:start`);
@@ -208,6 +230,510 @@ function playbackFallbackContext({ primaryFound, slowJk = false }) {
   );
   return { sandbox, calls, completed, releaseSlowJk };
 }
+
+function sourceRaceContext(overrides = {}) {
+  const sandbox = vm.createContext({
+    Date, Set,
+    RELIABLE_PLAYBACK_TOTAL_BUDGET_MS: 14000,
+    RELIABLE_PLAYBACK_PRIMARY_PROBE_MS: 5000,
+    RELIABLE_PLAYBACK_BACKUP_DELAY_MS: 450,
+    AdultMode: { isAdultContent: () => false },
+    wait: () => new Promise(() => {}),
+    getSelectedEpisodeSource: () => null,
+    getEpisodePlaybackSources: (episode) => episode.sourceOptions,
+    isAdFreeFallbackCandidate: () => true,
+    hasFreshVerifiedPlaybackSource: () => false,
+    hasRecentlyFailedPlaybackFamily: () => false,
+    isLocalPlaybackRelay: () => true,
+    isFastPreferredPlaybackSource: () => false,
+    verifiedFallbackPreference: () => 0,
+    pickFallbackRaceCandidates: (sources) => sources.slice(0, 4),
+    firstSuccessfulFallback: (tasks) => Promise.any(tasks.map(async (task) => {
+      const result = await task;
+      if (!result) throw new Error("unavailable");
+      return result;
+    })).catch(() => null),
+    regularSourceProviderKey: () => "",
+    playbackRecoveryProviderKeys: () => [],
+    attachPlaybackFailureFallbacks: async (_show, episode) => episode,
+    selectEpisodePlaybackSource: (episode, id) => { episode.selectedSourceId = id; },
+    ...overrides
+  });
+  vm.runInContext(section(clientSource, "async function prepareReliablePlaybackSource(", "function renderDirectVideoPlayer("), sandbox);
+  return sandbox;
+}
+
+test("UPNShare: preferred host ranks first without replacing other providers", () => {
+  const upn = { id: "animeav1-upn", provider: "UPNShare", type: "iframe", externalUrl: "https://animeav1.uns.bio/#episode" };
+  const neon = { id: "animeneon-voe", type: "iframe", externalUrl: "https://voe.sx/e/episode" };
+  const hls = { id: "animeav1-hls", type: "direct", videoUrl: "https://media.test/master.m3u8" };
+  assert.deepEqual(sourceClassification.orderSourceOptions([neon, hls, upn]), [upn, neon, hls]);
+  assert.equal(sourceClassification.isUpnShareSource(upn), true);
+  assert.equal(sourceClassification.isUpnShareSource(neon), false);
+});
+
+test("UPNShare: local Sub discovery uses one primary lookup and leaves backups dormant", async () => {
+  const { sandbox, calls, completed } = playbackFallbackContext({ primaryFound: true, language: "sub" });
+  sandbox.location.hostname = "localhost";
+  sandbox.attachAnimeAv1Sources = async (_show, episode) => {
+    calls.push("animeav1:upn");
+    episode.sourceOptions.push({ id: "animeav1-upn", provider: "AnimeAV1", type: "iframe", externalUrl: "https://animeav1.uns.bio/#episode" });
+  };
+  const episode = { sourceOptions: [] };
+  await sandbox.attachPlaybackSourceOptions({ title: "Example" }, episode, 1);
+  await completed;
+  assert.deepEqual(calls, ["animeav1:upn"]);
+});
+
+test("UPNShare: a local inventory miss still discovers the next provider", async () => {
+  const { sandbox, calls, completed } = playbackFallbackContext({ primaryFound: true, language: "sub" });
+  sandbox.location.hostname = "localhost";
+  sandbox.attachAnimeAv1Sources = async () => { calls.push("animeav1:miss"); };
+  await sandbox.attachPlaybackSourceOptions({ title: "Example" }, { sourceOptions: [] }, 1);
+  await completed;
+  assert.deepEqual(calls, ["animeav1:miss", "animeneon:primary:start", "animeneon:primary:end"]);
+});
+
+test("UPNShare: Latino discovery stays language-aware and production keeps the IP-bound guard", () => {
+  const { sandbox } = playbackFallbackContext({ primaryFound: true, language: "sub", hostname: "zenkaitv.test" });
+  const upn = { id: "animeav1-upn", provider: "UPNShare", type: "iframe", externalUrl: "https://animeav1.uns.bio/#episode" };
+  assert.equal(sandbox.shouldPreferUpnShareLookup({}, {}), false);
+  assert.equal(sandbox.isProductionIpBoundPlaybackSource(upn), true);
+  sandbox.location.hostname = "localhost";
+  assert.equal(sandbox.shouldPreferUpnShareLookup({}, {}), true);
+  assert.equal(sandbox.isFastPreferredPlaybackSource(upn), true);
+  sandbox.browserSupportsDeclaredCodec = () => false;
+  assert.equal(sandbox.isFastPreferredPlaybackSource(upn), false);
+  sandbox.preferredWatchLanguageForEpisode = () => "spanish";
+  assert.equal(sandbox.shouldPreferUpnShareLookup({}, {}), false);
+  sandbox.preferredWatchLanguageForEpisode = () => "sub";
+  sandbox.hasRecentlyFailedPlaybackFamily = () => true;
+  assert.equal(sandbox.shouldPreferUpnShareLookup({}, {}), false);
+});
+
+test("UPNShare: a healthy primary is verified before a faster alternative", async () => {
+  const upn = { id: "animeav1-upn", provider: "UPNShare" };
+  const backup = { id: "backup" };
+  const checked = [];
+  const sandbox = sourceRaceContext({
+    isFastPreferredPlaybackSource: () => true,
+    verifyReliablePlaybackCandidate: async (_episode, source) => { checked.push(source.id); return source; }
+  });
+  const result = await sandbox.prepareReliablePlaybackSource({}, { sourceOptions: [backup, upn] });
+  assert.equal(result.id, upn.id);
+  assert.deepEqual(checked, [upn.id]);
+});
+
+test("UPNShare: failed media automatically selects a verified backup without retrying the bad candidate", async () => {
+  const upn = { id: "animeav1-upn", provider: "UPNShare" };
+  const backup = { id: "backup" };
+  const checked = [];
+  const sandbox = sourceRaceContext({
+    isFastPreferredPlaybackSource: () => true,
+    verifyReliablePlaybackCandidate: async (_episode, source) => { checked.push(source.id); return source === backup ? source : null; }
+  });
+  const episode = { sourceOptions: [backup, upn] };
+  const result = await sandbox.prepareReliablePlaybackSource({}, episode);
+  assert.equal(result.id, backup.id);
+  assert.deepEqual(checked, [upn.id, backup.id]);
+  assert.equal(episode._failedSourceIds.has(upn.id), true);
+});
+
+test("UPNShare: a requested Latino track is not displaced by the Sub primary", async () => {
+  const upn = { id: "animeav1-upn", provider: "UPNShare" };
+  const spanish = { id: "animeneon-spanish", languageVersion: "spanish" };
+  const checked = [];
+  const sandbox = sourceRaceContext({
+    preferredWatchLanguageForEpisode: () => "spanish",
+    isFastPreferredPlaybackSource: () => true,
+    verifyReliablePlaybackCandidate: async (_episode, source) => { checked.push(source.id); return source; }
+  });
+  const result = await sandbox.prepareReliablePlaybackSource({}, { sourceOptions: [upn, spanish] });
+  assert.equal(result.id, spanish.id);
+  assert.deepEqual(checked, [spanish.id]);
+});
+
+test("UPNShare: a progressive Latino mirror keeps priority over a faster Sub source", async () => {
+  const upn = { id: "animeav1-upn", provider: "UPNShare" };
+  const spanish = { id: "animeneon-spanish", languageVersion: "spanish" };
+  const checked = [];
+  const sandbox = sourceRaceContext({
+    getSelectedEpisodeSource: () => upn,
+    preferredWatchLanguageForEpisode: () => "spanish",
+    isFastPreferredPlaybackSource: (source) => source === upn,
+    verifyReliablePlaybackCandidate: async (_episode, source) => { checked.push(source.id); return source; }
+  });
+  const result = await sandbox.prepareReliablePlaybackSource({}, { sourceOptions: [upn, spanish] }, { eagerBackups: true });
+  assert.equal(result.id, spanish.id);
+  assert.deepEqual(checked, [spanish.id]);
+});
+
+test("reliability: a working mirror beyond two failed batches is still considered", async () => {
+  const sources = Array.from({ length: 13 }, (_, i) => ({ id: `mirror-${i}` }));
+  const episode = { sourceOptions: sources };
+  const checked = new Set();
+  let active = 0;
+  let peak = 0;
+  const sandbox = sourceRaceContext({
+    verifyReliablePlaybackCandidate: async (_episode, source) => {
+      assert.ok(!checked.has(source.id), "do not retry the same candidate");
+      checked.add(source.id);
+      peak = Math.max(peak, ++active);
+      await new Promise((resolve) => setTimeout(resolve, 2));
+      active--;
+      return source === sources[10] ? source : null;
+    }
+  });
+  const result = await sandbox.prepareReliablePlaybackSource({}, episode);
+  assert.equal(result?.id, "mirror-10");
+  assert.equal(episode.selectedSourceId, "mirror-10");
+  assert.ok(peak <= 4);
+});
+
+test("reliability: completed playback stops launching queued mirror probes", async () => {
+  const sources = Array.from({ length: 12 }, (_, i) => ({ id: `mirror-${i}` }));
+  const checked = [];
+  const sandbox = sourceRaceContext({
+    verifyReliablePlaybackCandidate: async (_episode, source) => {
+      checked.push(source.id);
+      if (source === sources[0]) return source;
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      return null;
+    }
+  });
+  assert.equal((await sandbox.prepareReliablePlaybackSource({}, { sourceOptions: sources })).id, "mirror-0");
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(checked.length, 4);
+});
+
+test("reliability: an expired total budget does not launch more mirrors", async () => {
+  let now = 1000;
+  const checked = [];
+  const sandbox = sourceRaceContext({
+    Date: { now: () => now },
+    verifyReliablePlaybackCandidate: async (_episode, source) => {
+      checked.push(source.id);
+      now += 1000;
+      return null;
+    }
+  });
+  const result = await sandbox.prepareReliablePlaybackSource({}, {
+    sourceOptions: Array.from({ length: 12 }, (_, i) => ({ id: `mirror-${i}` }))
+  }, { timeoutMs: 900 });
+  assert.equal(result, null);
+  assert.equal(checked.length, 1);
+});
+
+test("reliability: the fast primary head start does not abort a healthy cold check", async () => {
+  const source = { id: "cold-primary" };
+  const budgets = [];
+  const sandbox = sourceRaceContext({
+    isFastPreferredPlaybackSource: () => true,
+    verifyReliablePlaybackCandidate: async (_episode, candidate, options) => {
+      budgets.push(options.timeoutMs);
+      return options.timeoutMs >= 1200 ? candidate : null;
+    }
+  });
+  const result = await sandbox.prepareReliablePlaybackSource({}, { sourceOptions: [source] }, {
+    softFailures: true, timeoutMs: 3000, primaryProbeMs: 850
+  });
+  assert.equal(result?.id, "cold-primary");
+  assert.equal(budgets.length, 1);
+  assert.ok(budgets[0] >= 1200 && budgets[0] <= 3000);
+});
+
+test("reliability: an already available backup does not wait for unrelated discovery", async () => {
+  const primary = { id: "primary" };
+  const backup = { id: "backup" };
+  const episode = { sourceOptions: [primary] };
+  let discoveryWaits = 0;
+  const sandbox = sourceRaceContext({
+    isFastPreferredPlaybackSource: () => true,
+    verifyReliablePlaybackCandidate: async (_episode, source) => source === backup ? source : null,
+    attachPlaybackFailureFallbacks: async () => {
+      episode.sourceOptions.push(backup);
+      episode._playbackFailureFastPromise = new Promise(() => {});
+      return episode;
+    },
+    wait: (ms) => {
+      if (ms === 650) discoveryWaits++;
+      return new Promise(() => {});
+    }
+  });
+  const result = await Promise.race([
+    sandbox.prepareReliablePlaybackSource({}, episode),
+    new Promise((resolve) => setTimeout(() => resolve(null), 100))
+  ]);
+  assert.equal(result?.id, "backup");
+  assert.equal(discoveryWaits, 0);
+});
+
+test("reliability: real Play starts verification before the discovery grace wait", () => {
+  const playback = section(clientSource, "async function runActivePlaybackAttempt(", "function isExternalIframeEpisode(");
+  assert.ok(playback.indexOf("const reliablePreparation") < playback.indexOf('await playbackLookupWithTimeout("Playback source quick pass"'));
+  assert.match(playback, /&& !reliablePreparation/);
+  assert.match(playback, /let reliableSource = await reliablePreparation/);
+});
+
+test("reliability: a recently failing preferred host cannot block a healthy backup", async () => {
+  const bad = { id: "bad-hls" };
+  const good = { id: "good-mp4" };
+  let badFinished = false;
+  const sandbox = sourceRaceContext({
+    hasRecentlyFailedPlaybackFamily: source => source === bad,
+    isFastPreferredPlaybackSource: source => source === bad,
+    verifyReliablePlaybackCandidate: async (_episode, source) => {
+      if (source === bad) {
+        await new Promise(resolve => setTimeout(resolve, 30));
+        badFinished = true;
+        return null;
+      }
+      assert.equal(badFinished, false, "healthy backup should not wait for the failed family");
+      return source;
+    }
+  });
+  const result = await sandbox.prepareReliablePlaybackSource({}, { sourceOptions: [bad, good] });
+  assert.equal(result?.id, good.id);
+});
+
+test("reliability: proven progressive hosts gain priority but unknown hosts do not", () => {
+  let health = null;
+  const sandbox = vm.createContext({
+    location: { hostname: "zenkaitv.com" },
+    playbackFamilyHealth: () => health
+  });
+  vm.runInContext(section(clientSource, "function isDirectMediaResolverCandidate(", "function hasFastPreferredPlaybackSource("), sandbox);
+  const source = { type: "iframe", externalUrl: "https://www.mp4upload.com/embed-example.html" };
+  assert.equal(sandbox.isFastPreferredPlaybackSource(source), false);
+  health = true;
+  assert.equal(sandbox.isFastPreferredPlaybackSource(source), true);
+  assert.equal(sandbox.isFastPreferredPlaybackSource({ type: "iframe", externalUrl: "https://voe.sx/e/example" }), false);
+  health = false;
+  assert.equal(sandbox.isFastPreferredPlaybackSource(source), false);
+});
+
+test("audit: identical media IDs share one live verification without mixing referers or tokens", async () => {
+  let resolutions = 0;
+  let probes = 0;
+  const sandbox = vm.createContext({
+    Date, Map, JSON,
+    playbackSourceHealthCache: new Map(),
+    PLAYBACK_SOURCE_HEALTH_OK_TTL_MS: 90000,
+    PLAYBACK_SOURCE_HEALTH_FAIL_TTL_MS: 15000,
+    RELIABLE_PLAYBACK_PRIMARY_PROBE_MS: 5000,
+    sourceDirectUrl: (source) => source.videoUrl || "",
+    fallbackReferer: (source) => source.referer || "",
+    resolveFallbackCandidateToDirect: async (source) => {
+      resolutions++;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return { url: source.videoUrl };
+    },
+    probePlayableFallback: async () => { probes++; return true; },
+    recordPlaybackFamilyHealth() {}
+  });
+  vm.runInContext(section(clientSource, "function playbackSourceHealthKey(", "async function verifyReliablePlaybackCandidate("), sandbox);
+  const source = { videoUrl: "https://cdn.test/ep.mp4?token=one", referer: "https://provider.test/" };
+  await Promise.all(Array.from({ length: 100 }, (_, i) => sandbox.inspectPlaybackSourceHealth({ ...source, id: `mirror-${i}` })));
+  assert.equal(resolutions, 1);
+  assert.equal(probes, 1);
+  await sandbox.inspectPlaybackSourceHealth({ ...source, referer: "https://other.test/" });
+  await sandbox.inspectPlaybackSourceHealth({ ...source, videoUrl: "https://cdn.test/ep.mp4?token=two" });
+  assert.equal(resolutions, 3, "request context and signed URL changes must not share health");
+});
+
+test("audit: no-match artwork and failed carousel attempts survive rebuilt release cards", async () => {
+  const canonical = { id: "missing-tmdb-film", title: "Example" };
+  let searches = 0;
+  const sandbox = vm.createContext({
+    state: { shows: [canonical] },
+    ImageResolver: { hydrateTmdbImages: async (show) => {
+      if (!show._tmdbResolved) { searches++; show._tmdbResolved = true; }
+      return show;
+    } }
+  });
+  vm.runInContext(section(clientSource, "function enrichTmdbImages(", "function usesContinuousGlobalEpisodeMetadata("), sandbox);
+  for (let i = 0; i < 100; i++) {
+    await sandbox.enrichTmdbImages({ ...canonical }, { refresh: false });
+  }
+  assert.equal(searches, 1, "a missing TMDB identity is not a reason to query on every repaint");
+  assert.equal(canonical._tmdbResolved, true);
+  const failed = { id: "network-failure" };
+  sandbox.state.shows = [failed];
+  sandbox.ImageResolver.hydrateTmdbImages = async () => { throw new Error("offline"); };
+  await sandbox.enrichTmdbImages({ ...failed, _carouselResolveTried: true });
+  assert.equal(failed._carouselResolveTried, true);
+  assert.equal(failed._tmdbResolved, undefined, "a transient failure must not become a permanent no-match");
+});
+
+test("audit: buffered headroom excludes disconnected ranges left by seeking", () => {
+  const sandbox = vm.createContext({});
+  vm.runInContext(section(playerSource, "  function bufferedEnd(", "  function resetPlaybackHealth("), sandbox);
+  const video = { currentTime: 20, buffered: { length: 2, start: (i) => [0, 100][i], end: (i) => [25, 200][i] } };
+  assert.equal(sandbox.bufferedAhead(video), 5);
+  video.currentTime = 50;
+  assert.equal(sandbox.bufferedAhead(video), 0);
+  video.currentTime = 110;
+  assert.equal(sandbox.bufferedAhead(video), 90);
+});
+
+test("audit: an old autoplay rejection cannot mute or resume a replacement player", async () => {
+  let rejectPlay;
+  let calls = 0;
+  const oldVideo = { muted: false, play: () => { calls++; return new Promise((_resolve, reject) => { rejectPlay = reject; }); } };
+  const sandbox = vm.createContext({ art: { video: oldVideo } });
+  vm.runInContext(section(playerSource, "  function startPlayback(", "  function loadHls("), sandbox);
+  sandbox.startPlayback(oldVideo);
+  sandbox.art = { video: {} };
+  rejectPlay({ name: "NotAllowedError" });
+  await new Promise(setImmediate);
+  assert.equal(calls, 1);
+  assert.equal(oldVideo.muted, false);
+});
+
+test("audit: next-episode probes wait for buffer and stop after a navigation", async () => {
+  const events = {};
+  const timers = [];
+  let current = true;
+  let finishMetadata;
+  let probes = 0;
+  let fallbackProbes = 0;
+  let secondaryLookups = 0;
+  const episode = {};
+  const next = {};
+  const player = { currentTime: 4, duration: 30, bufferedEnd: 5, addEventListener: (name, fn) => { events[name] = fn; } };
+  const sandbox = vm.createContext({
+    navigator: { connection: {} },
+    window: { setTimeout: (fn) => timers.push(fn) },
+    isPlaybackAttemptCurrent: () => current,
+    getEpisodeNavigationTargets: () => ({ next: { seasonIndex: 0, episodeIndex: 1 } }),
+    getDetailSeasons: () => [{ episodes: [episode, next] }],
+    attachAnimeNeonSources: () => new Promise((resolve) => { finishMetadata = resolve; }),
+    getEpisodePlaybackSources: () => [],
+    isAnimeNeonSource: () => false,
+    isScraperEnabled: () => true,
+    attachAnimeAv1Sources: async () => { secondaryLookups++; },
+    playbackSelectionKey: () => "next",
+    selectedSeasonIdentity: () => ({ seasonNumber: 1 }),
+    warmEpisodePlaybackIntent: async () => { probes++; return {}; },
+    prepareReliablePlaybackSource: async () => { fallbackProbes++; }
+  });
+  vm.runInContext(section(clientSource, "function setupAdjacentEpisodeWarmup(", "function renderDirectVideoPlayer("), sandbox);
+  sandbox.setupAdjacentEpisodeWarmup(player, {}, episode, {});
+  events.timeupdate();
+  assert.equal(probes, 0, "three seconds played is not evidence of buffer headroom");
+  assert.equal(finishMetadata, undefined, "a starving current video should not trigger speculative media work");
+  player.bufferedEnd = 25;
+  events.timeupdate();
+  assert.equal(typeof finishMetadata, "function");
+  current = false;
+  finishMetadata();
+  await new Promise(setImmediate);
+  assert.equal(secondaryLookups, 0);
+  assert.equal(probes, 0);
+  assert.equal(fallbackProbes, 0);
+});
+
+test("audit: player retries release observers/listeners and preserve page controls", () => {
+  const cleanups = [];
+  let observers = 0;
+  let disconnected = 0;
+  const moved = [];
+  const page = { appendChild: (node) => { node.parentElement = page; moved.push(node); } };
+  const nodes = Array.from({ length: 4 }, () => ({}));
+  const selectors = ["#playerTopbar", "#backButton", "#chromeToggle", "#floatingLabel"];
+  const listeners = new Map();
+  const target = {
+    addEventListener(name, fn) { if (!listeners.has(name)) listeners.set(name, new Set()); listeners.get(name).add(fn); },
+    removeEventListener(name, fn) { listeners.get(name)?.delete(fn); }
+  };
+  const sandbox = vm.createContext({
+    playerCleanups: cleanups, art: null, hlsRecoveryTimer: null, sheet: null, hlsLevels: [],
+    ResizeObserver: class { constructor() { observers++; } observe() {} disconnect() { disconnected++; } },
+    syncPictureInsets() {},
+    window: { ...target, screen: { orientation: target }, clearTimeout() {} },
+    document: { ...target, querySelector: (selector) => selector === ".ztv-player-page" ? page : nodes[selectors.indexOf(selector)] },
+    getPlayerHostWindow: () => ({ ...target, matchMedia: () => target }),
+    stopStatusLoop() {}, clearStartupWatchdog() {}, clearStallWatchdog() {}, cancelScheduledRecovery() {},
+    closeOptionsSheet() {}, unlockOrientation() {}, destroyHls() {}
+  });
+  vm.runInContext([
+    section(playerSource, "  function watchPictureInsets()", "  function firstParam("),
+    section(playerSource, "  function wireTapToHideControls()", "  // Long enough to move"),
+    section(playerSource, "  function destroyPlayer()", "  function cssUrl(")
+  ].join("\n"), sandbox);
+  for (let i = 0; i < 5; i++) {
+    nodes.forEach((node) => { node.parentElement = {}; });
+    sandbox.art = { template: { $player: { addEventListener() {} } }, on() {}, destroy() { assert.ok(nodes.every((node) => node.parentElement === page)); } };
+    sandbox.watchPictureInsets();
+    sandbox.wireTapToHideControls();
+    sandbox.destroyPlayer();
+    assert.equal([...listeners.values()].reduce((n, set) => n + set.size, 0), 0);
+    assert.equal(cleanups.length, 0);
+  }
+  assert.equal(observers, 5);
+  assert.equal(disconnected, 5);
+  assert.equal(moved.length, 20);
+});
+
+test("audit: a source found by the late resolver proceeds on the first click", async () => {
+  const start = '  if (!url) {\n    if (activeEpisode && !waitedForLookup)';
+  const normalized = clientSource.replace(/\r\n/g, "\n");
+  const latePath = section(normalized, start, "  // Android TV: route every source");
+  let errors = 0;
+  const sandbox = vm.createContext({
+    renderPlayerPopupMessage: (_frame, _title, message) => { if (message.startsWith("No playable")) errors++; },
+    wait: async () => {},
+    isPlaybackAttemptCurrent: () => true,
+    getSelectedEpisodeSource: () => ({ type: "resolver", streamResolver: { endpoint: "/api/source" } }),
+    resolveEpisodeStream: async () => "https://cdn.test/late.mp4"
+  });
+  vm.runInContext(`async function resolveLate() {
+    let url = "", source;
+    const activeEpisode = {}, waitedForLookup = false, frame = {}, show = {}, playbackContext = {};
+    ${latePath}
+    return url;
+  }`, sandbox);
+  assert.equal(await sandbox.resolveLate(), "https://cdn.test/late.mp4");
+  assert.equal(errors, 0);
+});
+
+test("audit: healthy buffers still warm one next episode, then dispose its listeners", async () => {
+  const events = new Map();
+  let warmed = 0;
+  let cleared = 0;
+  const next = {};
+  const player = {
+    currentTime: 10, duration: 1400,
+    buffered: { length: 1, start: () => 0, end: () => 30 },
+    addEventListener: (key, fn) => events.set(key, fn),
+    removeEventListener: (key) => events.delete(key)
+  };
+  const connection = { saveData: true };
+  const sandbox = vm.createContext({
+    navigator: { connection }, window: { clearTimeout() { cleared++; } },
+    isPlaybackAttemptCurrent: () => true,
+    getEpisodeNavigationTargets: () => ({ next: { seasonIndex: 0, episodeIndex: 1 } }),
+    getDetailSeasons: () => [{ episodes: [{}, next] }],
+    attachAnimeNeonSources: async () => next,
+    getEpisodePlaybackSources: () => [{}], isAnimeNeonSource: () => true,
+    playbackSelectionKey: () => "next", selectedSeasonIdentity: () => ({ seasonNumber: 1 }),
+    warmEpisodePlaybackIntent: async () => { warmed++; return {}; }
+  });
+  vm.runInContext(section(clientSource, "function setupAdjacentEpisodeWarmup(", "function renderDirectVideoPlayer("), sandbox);
+  sandbox.setupAdjacentEpisodeWarmup(player, {}, {}, {});
+  events.get("timeupdate")();
+  await new Promise(setImmediate);
+  assert.equal(warmed, 0, "Data Saver disables speculative media downloads");
+  connection.saveData = false;
+  events.get("timeupdate")();
+  await new Promise(setImmediate);
+  events.get("timeupdate")();
+  await new Promise(setImmediate);
+  assert.equal(warmed, 1);
+  player._disposeAdjacentWarmup();
+  assert.equal(events.size, 0);
+  assert.equal(cleared, 1);
+});
 
 function regularSourceSlugContext() {
   const sandbox = vm.createContext({
@@ -392,6 +918,28 @@ test("3. switching Season 1 to Season 2 selects that season's object", () => {
   assert.equal(c.state.activeEpisode.episode.id, "s2e1");
 });
 
+test("3b. deep links wait for the requested episode instead of clamping to the latest bootstrap row", () => {
+  const bootstrapSeasons = [{
+    season: 1,
+    episodes: [{ id: "one-piece-e1180", episode: 1180 }]
+  }];
+  const c = applyTargetContext(bootstrapSeasons);
+  const target = { seasonNumber: 1, episodeNumber: 877, playIntent: true, watchRoute: true };
+
+  assert.equal(c.applyOpenTarget({ id: "one-piece", title: "One Piece" }, target), false);
+  assert.equal(c.state.activeEpisode, undefined);
+
+  const fullSeasons = [{
+    season: 1,
+    episodes: [
+      { id: "one-piece-e877", episode: 877 },
+      { id: "one-piece-e1180", episode: 1180 }
+    ]
+  }];
+  assert.equal(c.applyOpenTarget({ id: "one-piece", title: "One Piece" }, target, fullSeasons), true);
+  assert.equal(c.state.activeEpisode.episode.id, "one-piece-e877");
+});
+
 test("4. direct Season 2 URLs parse deterministically", () => {
   const route = routerContext("/watch/example/s2-e1").parsePath("/watch/example/s2-e1");
   assert.equal(route.target.seasonNumber, 2);
@@ -506,25 +1054,27 @@ test("7bc. a verified fallback survives the detail-view inventory clamp", () => 
   }), 1);
 });
 
-test("7c. regular backups stay dormant when AnimeAV1 resolves", async () => {
+test("7c. regular backups stay dormant when AnimeNeon resolves", async () => {
   const { sandbox, calls, completed } = playbackFallbackContext({ primaryFound: true });
   const episode = { sourceOptions: [] };
   await sandbox.attachPlaybackSourceOptions({ title: "Primary title" }, episode, 1);
   await completed;
-  assert.deepEqual(calls, ["animeav1:primary:start", "animeav1:primary:end"]);
+  assert.deepEqual(calls, ["animeneon:primary:start", "animeneon:primary:end"]);
   assert.equal(episode.playbackSourceLookupComplete, true);
-  assert.equal(episode.sourceOptions[0].provider, "AnimeAV1");
+  assert.equal(episode.sourceOptions[0].provider, "AnimeNeon");
 });
 
-test("7d. regular backups run only after a confirmed AnimeAV1 miss", async () => {
+test("7d. regular backups run only after confirmed AnimeNeon and AnimeAV1 misses", async () => {
   const { sandbox, calls, completed } = playbackFallbackContext({ primaryFound: false });
   const episode = { sourceOptions: [] };
   await sandbox.attachPlaybackSourceOptions({ title: "Missing primary title" }, episode, 1);
   await completed;
-  const primaryEnd = calls.indexOf("animeav1:primary:end");
-  assert.ok(primaryEnd >= 0);
-  assert.ok(calls.indexOf("jkanime") > primaryEnd);
-  assert.ok(calls.indexOf("tioanime") > primaryEnd);
+  const neonEnd = calls.indexOf("animeneon:primary:end");
+  const animeAv1End = calls.indexOf("animeav1:primary:end");
+  assert.ok(neonEnd >= 0);
+  assert.ok(animeAv1End > neonEnd);
+  assert.ok(calls.indexOf("jkanime") > animeAv1End);
+  assert.ok(calls.indexOf("tioanime") > animeAv1End);
   assert.deepEqual(new Set(episode.sourceOptions.map((source) => source.provider)), new Set(["JKAnime", "TioAnime"]));
   assert.equal(episode.playbackSourceLookupComplete, true);
 });
@@ -545,7 +1095,7 @@ test("7d1. progressive embeds stay deferred while proven fast sources enter veri
   }), false);
   assert.equal(sandbox.hasFastPreferredPlaybackSource({
     sourceOptions: [{ id: "animeav1-upn", type: "iframe", externalUrl: "https://animeav1.uns.bio/#episode" }]
-  }), false);
+  }), true);
   assert.equal(sandbox.hasFastPreferredPlaybackSource({
     sourceOptions: [{ id: "animeav1-voe", type: "iframe", externalUrl: "https://voe.sx/e/episode" }]
   }), true);
@@ -588,7 +1138,13 @@ test("7e. a verified OVA fallback cannot be replaced by a fuzzy parent-series ma
     verifiedFallbackKey: "tioanime"
   }, episode, 1);
   await completed;
-  assert.deepEqual(calls, ["animeav1:primary:start", "animeav1:primary:end", "tioanime"]);
+  assert.deepEqual(calls, [
+    "animeneon:primary:start",
+    "animeneon:primary:end",
+    "animeav1:primary:start",
+    "animeav1:primary:end",
+    "tioanime"
+  ]);
   assert.equal(episode.sourceOptions.length, 1);
   assert.equal(episode.sourceOptions[0].provider, "TioAnime");
   assert.equal(episode.playbackSourceLookupComplete, true);
@@ -606,6 +1162,7 @@ test("7f. a confirmed playback failure expands backups once and coalesces concur
   const second = sandbox.attachPlaybackFailureFallbacks(show, episode);
   await Promise.all([first, second]);
 
+  assert.equal(calls.filter((value) => value === "animeneon:primary:start").length, 1);
   assert.equal(calls.filter((value) => value === "animeav1:fallback:start").length, 1);
   assert.equal(calls.filter((value) => value === "tioanime").length, 1);
   assert.equal(calls.filter((value) => value === "jkanime").length, 1);
@@ -613,6 +1170,7 @@ test("7f. a confirmed playback failure expands backups once and coalesces concur
   assert.equal(episode.sourceOptionsPending, false);
   assert.equal(episode._playbackFailureFallbackPromise, null);
   assert.equal(episode._playbackFailureFastPromise, null);
+  assert.equal(episode.serverChecks.animeneon, "found");
   assert.equal(episode.serverChecks.animeav1, "found");
   assert.equal(episode.serverChecks.tioanime, "found");
   assert.equal(episode.serverChecks.jkanime, "found");
@@ -620,6 +1178,40 @@ test("7f. a confirmed playback failure expands backups once and coalesces concur
   const callCount = calls.length;
   await sandbox.attachPlaybackFailureFallbacks(show, episode);
   assert.equal(calls.length, callCount);
+});
+
+test("7f1. first-play recovery reuses cached lookups and refreshes only sources that failed", () => {
+  const sandbox = vm.createContext({
+    Set,
+    REGULAR_SOURCE_PROVIDER_KEYS: ["animeneon", "animeav1", "jkanime", "tioanime"],
+    isScraperEnabled: () => true,
+    getEpisodePlaybackSources: (episode) => episode.sourceOptions || [],
+    regularSourceProviderKey: (source = {}) => source.providerKey || "",
+    regularSourceProviderMatch: (providerKey, source = {}) => providerKey === source.providerKey,
+    hasRecentlyFailedPlaybackFamily: (source = {}) => source.familyFailed === true
+  });
+  vm.runInContext(
+    section(clientSource, "function playbackRecoveryProviderKeys(", "function claimEpisodeProviderRefresh("),
+    sandbox
+  );
+
+  assert.deepEqual(Array.from(sandbox.playbackRecoveryProviderKeys({ sourceOptions: [] })), []);
+
+  const failedEpisode = {
+    sourceOptions: [
+      { id: "bad-av1", providerKey: "animeav1" },
+      { id: "healthy-jk", providerKey: "jkanime" }
+    ],
+    _failedSourceIds: new Set(["bad-av1"])
+  };
+  assert.deepEqual(
+    Array.from(sandbox.playbackRecoveryProviderKeys(failedEpisode)),
+    ["animeav1"]
+  );
+  assert.deepEqual(
+    Array.from(sandbox.playbackRecoveryProviderKeys(failedEpisode, { providerKey: "tioanime" })),
+    ["animeav1", "tioanime"]
+  );
 });
 
 test("7f2. play-intent health checking promotes a verified backup automatically", async () => {
@@ -677,6 +1269,172 @@ test("7f2. play-intent health checking promotes a verified backup automatically"
   assert.equal(episode.selectedSourceId, "backup");
   assert.equal(episode._failedSourceIds.has("primary"), true);
   assert.equal(fallbackLookups, 1);
+});
+
+test("7f2a. first Play consumes a late recovery source instead of a stale warmup", async () => {
+  const primary = { id: "primary", type: "direct", videoUrl: "https://dead.test/episode.m3u8" };
+  const backup = { id: "late-backup", type: "direct", videoUrl: "https://media.test/episode.m3u8" };
+  const episode = { sourceOptions: [primary], selectedSourceId: primary.id };
+  const staleWarmup = Promise.resolve(episode);
+  episode._eagerFallbackLookupPromise = staleWarmup;
+  episode._playbackFailureFallbackPromise = new Promise((resolve) => {
+    setTimeout(() => {
+      episode.sourceOptions.push(backup);
+      resolve(episode);
+    }, 20);
+  });
+  let redundantLookups = 0;
+  const sandbox = vm.createContext({
+    Date,
+    Set,
+    RELIABLE_PLAYBACK_TOTAL_BUDGET_MS: 4200,
+    RELIABLE_PLAYBACK_PRIMARY_PROBE_MS: 1600,
+    RELIABLE_PLAYBACK_BACKUP_DELAY_MS: 450,
+    RELIABLE_PLAYBACK_HANDOFF_WAIT_MS: 500,
+    AdultMode: { isAdultContent: () => false },
+    wait: (ms) => new Promise((resolve) => setTimeout(resolve, Math.min(ms, 5))),
+    getSelectedEpisodeSource: (value) => value.sourceOptions.find((source) => (
+      source.id === value.selectedSourceId && !value._failedSourceIds?.has(source.id)
+    )) || null,
+    getEpisodePlaybackSources: (value) => value.sourceOptions,
+    isAdFreeFallbackCandidate: () => true,
+    hasFreshVerifiedPlaybackSource: () => false,
+    hasRecentlyFailedPlaybackFamily: () => false,
+    isLocalPlaybackRelay: () => true,
+    isFastPreferredPlaybackSource: (source) => source.id === backup.id,
+    fallbackSourceIdentity: (source) => source.id,
+    verifiedFallbackPreference: (source) => source.id === backup.id ? 0 : 1,
+    pickFallbackRaceCandidates: (sources) => sources,
+    firstSuccessfulFallback: async (tasks) => {
+      for (const task of tasks) {
+        const value = await task;
+        if (value) return value;
+      }
+      return null;
+    },
+    verifyReliablePlaybackCandidate: async (_value, source) => source.id === backup.id ? source : null,
+    playbackRecoveryProviderKeys: () => [],
+    refreshFailedPlaybackProviders: async (_show, value) => value,
+    regularSourceProviderKey: () => "",
+    attachPlaybackFailureFallbacks: async (_show, value) => {
+      redundantLookups += 1;
+      return value;
+    },
+    selectEpisodePlaybackSource: (value, id) => {
+      value.selectedSourceId = id;
+      return value.sourceOptions.find((source) => source.id === id) || null;
+    }
+  });
+  vm.runInContext(
+    section(clientSource, "async function prepareReliablePlaybackSource(", "function renderDirectVideoPlayer("),
+    sandbox
+  );
+
+  const selected = await sandbox.prepareReliablePlaybackSource({ title: "Bleach" }, episode);
+  assert.equal(selected.id, backup.id);
+  assert.equal(episode.selectedSourceId, backup.id);
+  assert.equal(redundantLookups, 0);
+});
+
+test("7f2a0. runtime recovery starts the verified backup without another click", () => {
+  const sourceLookup = section(
+    clientSource,
+    "async function attachPlaybackSourceOptions(",
+    "async function attachPlaybackFailureFallbacks("
+  );
+  const player = section(clientSource, "function renderDirectVideoPlayer(", "function renderPlaybackError(");
+  assert.match(sourceLookup, /_eagerFallbackLookupPromise = null/);
+  assert.match(player, /_playbackFallbackPromptActive = false/);
+  assert.match(player, /playActiveShow\(\{ allowSourceLookup: false, restart: true \}\)/);
+});
+
+test("7f2a1. eager playback does not promote a fragile progressive source before backups arrive", async () => {
+  const fragile = { id: "mp4upload", type: "direct", videoUrl: "https://mp4upload.test/video.mp4" };
+  const backup = { id: "voe-hls", type: "iframe", externalUrl: "https://voe.test/e/video" };
+  const episode = { sourceOptions: [fragile], selectedSourceId: fragile.id };
+  const checked = [];
+  const sandbox = vm.createContext({
+    Date,
+    Set,
+    RELIABLE_PLAYBACK_TOTAL_BUDGET_MS: 4200,
+    RELIABLE_PLAYBACK_PRIMARY_PROBE_MS: 1600,
+    RELIABLE_PLAYBACK_BACKUP_DELAY_MS: 450,
+    AdultMode: { isAdultContent: () => false },
+    wait: () => new Promise(() => {}),
+    getSelectedEpisodeSource: (value) => value.sourceOptions.find((source) => source.id === value.selectedSourceId) || null,
+    getEpisodePlaybackSources: (value) => value.sourceOptions,
+    isAdFreeFallbackCandidate: () => true,
+    hasFreshVerifiedPlaybackSource: () => false,
+    hasRecentlyFailedPlaybackFamily: () => false,
+    isLocalPlaybackRelay: () => false,
+    isFastPreferredPlaybackSource: (source) => source.id === backup.id,
+    verifiedFallbackPreference: (source) => source.id === backup.id ? 0 : 7,
+    pickFallbackRaceCandidates: (sources) => sources,
+    firstSuccessfulFallback: async (tasks) => {
+      for (const task of tasks) {
+        const value = await task;
+        if (value) return value;
+      }
+      return null;
+    },
+    verifyReliablePlaybackCandidate: async (_value, source) => {
+      checked.push(source.id);
+      return source.id === backup.id ? source : null;
+    },
+    playbackRecoveryProviderKeys: () => [],
+    refreshFailedPlaybackProviders: async (_show, value) => value,
+    regularSourceProviderKey: (source = {}) => source.providerKey || "",
+    attachPlaybackFailureFallbacks: async (_show, value) => {
+      if (!value.sourceOptions.includes(backup)) value.sourceOptions.push(backup);
+      return value;
+    },
+    selectEpisodePlaybackSource: (value, id) => {
+      value.selectedSourceId = id;
+      return value.sourceOptions.find((source) => source.id === id) || null;
+    }
+  });
+  vm.runInContext(
+    section(clientSource, "async function prepareReliablePlaybackSource(", "function renderDirectVideoPlayer("),
+    sandbox
+  );
+
+  const selected = await sandbox.prepareReliablePlaybackSource({ title: "Example" }, episode, {
+    eagerBackups: true
+  });
+  assert.equal(selected.id, backup.id);
+  assert.equal(checked[0], backup.id);
+  assert.equal(episode.selectedSourceId, backup.id);
+});
+
+test("7f2a2. a quick Streamtape resolve cannot outrank segmented playback", () => {
+  const sandbox = vm.createContext({
+    location: { hostname: "localhost" }
+  });
+  vm.runInContext(
+    section(clientSource, "function isDirectMediaResolverCandidate(", "function hasFastPreferredPlaybackSource("),
+    sandbox
+  );
+
+  assert.equal(sandbox.isFastPreferredPlaybackSource({
+    id: "voe",
+    type: "iframe",
+    externalUrl: "https://voe.sx/e/working"
+  }), true);
+  assert.equal(sandbox.isFastPreferredPlaybackSource({
+    id: "streamtape",
+    type: "iframe",
+    externalUrl: "https://streamtape.com/e/quick-but-fragile"
+  }), false);
+  assert.equal(sandbox.isFastPreferredPlaybackSource({
+    id: "mp4upload",
+    type: "direct",
+    videoUrl: "https://a4.mp4upload.com/video.mp4"
+  }), false);
+  assert.equal(sandbox.isFastPreferredPlaybackSource({
+    id: "portable-hls",
+    type: "direct",
+    videoUrl: "https://media.test/master.m3u8"
+  }), true);
 });
 
 test("7f2aa. a failed signed source refreshes and verifies again during the same Play", async () => {
@@ -891,6 +1649,28 @@ test("7f2c. a preferred source remains eligible after only the short probe times
   assert.equal(checks, 2);
 });
 
+test("7f2c2. the three-second target cannot poison a slow provider for recovery", async () => {
+  const source = { id: "slow-but-healthy", type: "direct", videoUrl: "https://media.test/episode.mp4" };
+  const episode = { sourceOptions: [source] };
+  const sandbox = vm.createContext({
+    isAdFreeFallbackCandidate: () => true,
+    hasFreshVerifiedPlaybackSource: () => false,
+    inspectPlaybackSourceHealth: async () => null,
+    getResumePosition: () => 0,
+    persistVerifiedFallbackSource: () => null
+  });
+  vm.runInContext(
+    section(clientSource, "async function verifyReliablePlaybackCandidate(", "async function prepareReliablePlaybackSource("),
+    sandbox
+  );
+
+  await sandbox.verifyReliablePlaybackCandidate(episode, source, { softFailure: true });
+  assert.equal(episode._failedSourceIds, undefined);
+
+  await sandbox.verifyReliablePlaybackCandidate(episode, source);
+  assert.equal(episode._failedSourceIds.has(source.id), true);
+});
+
 test("7f2d. intent warming verifies only the best primary and never fans out to backup providers", async () => {
   const voe = { id: "voe", type: "iframe", externalUrl: "https://voe.test/embed" };
   const mp4Upload = { id: "mp4upload", type: "iframe", externalUrl: "https://mp4upload.test/embed" };
@@ -956,15 +1736,21 @@ test("7f2e. episode intent and adjacent playback warm the shared source path bef
   const renderer = section(clientSource, "function renderEpisodeList(", "function episodeDisplaySubtitle(");
   const warmup = section(clientSource, "function warmEpisodePlaybackIntent(", "function renderDirectVideoPlayer(");
   const playback = section(clientSource, "async function runActivePlaybackAttempt(", "function isExternalIframeEpisode(");
-  assert.match(renderer, /button\.addEventListener\("pointerenter", warm/);
-  assert.match(renderer, /button\.addEventListener\("pointerdown", warm/);
-  assert.match(renderer, /warmEpisodePlaybackIntent\(show, episode, seasonNumber\)/);
+  assert.match(renderer, /button\.addEventListener\("pointerenter", warmPrimary/);
+  assert.match(renderer, /button\.addEventListener\("pointerdown", warmForPlay/);
+  assert.match(renderer, /warmEpisodePlaybackIntent\(show, episode, seasonNumber, options\)/);
+  assert.match(renderer, /eagerBackups:\s*true/);
+  assert.match(renderer, /timeoutMs:\s*RELIABLE_PLAYBACK_FAST_TARGET_MS/);
   assert.match(warmup, /primaryOnly:\s*true/);
+  assert.match(warmup, /const promiseKey = eagerBackups/);
+  assert.match(warmup, /attachPlaybackFailureFallbacks\(show, episode\)/);
+  assert.match(warmup, /softFailures:\s*true/);
   assert.match(warmup, /prefetchSegment:\s*Boolean\(options\.prefetchSegment\)/);
   assert.doesNotMatch(clientSource, /allowResolvedFallback/);
   assert.match(clientSource, /prefetchSegment:\s*true/);
-  assert.match(warmup, /bufferedAhead >= 12/);
-  assert.match(warmup, /position >= 3/);
+  assert.match(warmup, /bufferedEnd - position >= 12/);
+  assert.doesNotMatch(warmup, /position >= 3/);
+  assert.match(warmup, /connection\?\.saveData/);
   assert.match(warmup, /timeoutMs:\s*8000/);
   assert.match(warmup, /if \(!source\) verifyNearTransition\(\)/);
   assert.match(playback, /lookupPromise\s*&&\s*!alreadyPlayable\s*&&\s*!getSelectedEpisodeSource/);
@@ -980,6 +1766,100 @@ test("7f3. regular backup source routes share CDN cache and cold in-flight work"
   assert.match(serverSource, /SOURCE_REFRESH_CACHE_HEADERS/);
   const jkAttach = section(clientSource, "function fetchJKAnimeEpisodeSourcePayload(", "function mergeJKAnimeSourcesIntoEpisode(");
   assert.ok(jkAttach.indexOf("animeAv1CatalogSlugForShow(show)") < jkAttach.indexOf("hydrateJKAnimeSlug(show"));
+});
+
+test("7f3b. AnimeNeon multiserver pages expose preferred real player entries", () => {
+  const sandbox = vm.createContext({});
+  vm.runInContext(
+    section(serverSource, "function animeNeonMultiserverEntries(", "async function expandAnimeNeonMultiserver("),
+    sandbox
+  );
+  const entries = sandbox.animeNeonMultiserverEntries(`
+    <li onclick="go_to_player('encrypted-other')"><span>byseqekaho.com</span></li>
+    <li onclick="go_to_player('encrypted-tape')"><span>streamtape.com</span></li>
+    <li onclick="go_to_player('encrypted-voe')"><span>voe.sx</span></li>
+  `);
+  assert.deepEqual(Array.from(entries, (entry) => entry.provider), ["voe.sx", "streamtape.com", "byseqekaho.com"]);
+  assert.match(serverSource, /\/embed\/api\/decrypt-stream/);
+  assert.match(serverSource, /url\.pathname === "\/api\/animeneon\/sources"/);
+});
+
+test("7f3c. Latino selection is limited to episodes present in the dub inventory", () => {
+  const sandbox = vm.createContext({
+    state: {
+      activeShow: null,
+      activeEpisode: null,
+      watchLanguageChoice: "spanish"
+    },
+    showHasLatinoDub: (show = {}) => show.hasLatinoDub === true && Number(show.latinoEpisodeCount || 0) > 0,
+    getCanonicalEpisodeNumber: (episode = {}, fallback = null) => episode.episode ?? fallback
+  });
+  vm.runInContext(
+    section(clientSource, "function preferredWatchLanguage()", "function invalidateAnimeNeonLanguageSelection("),
+    sandbox
+  );
+  const show = { hasLatinoDub: true, latinoEpisodeCount: 877 };
+  assert.equal(sandbox.episodeHasLatinoDub(show, { episode: 877 }), true);
+  assert.equal(sandbox.episodeHasLatinoDub(show, { episode: 878 }), false);
+  assert.equal(sandbox.preferredWatchLanguageForEpisode(show, { episode: 877 }), "spanish");
+  assert.equal(sandbox.preferredWatchLanguageForEpisode(show, { episode: 878 }), "sub");
+});
+
+test("7f3d. player language follows the selected episode source instead of the global preference", () => {
+  const sandbox = vm.createContext({
+    state: {
+      activeShow: { title: "One Piece" },
+      activeEpisode: { season: { season: 1 }, seasonIndex: 0 },
+      uiPreferences: { playerQuality: 0, playerInterface: "zenkai", playerFit: "contain" }
+    },
+    getLanguagePreferences: () => ({ audio: "spanish", subtitles: "none" }),
+    getSelectedEpisodeSource: (episode) => episode.selectedSource,
+    isPreferredAdultSource: () => false,
+    AdultMode: { isAdultContent: () => false },
+    preferredWatchLanguageForEpisode: () => "sub",
+    preferredWatchLanguage: () => "spanish",
+    streamTypeFromUrl: () => "hls",
+    streamTypeQueryValue: () => "hls",
+    normalizeSubtitleTracks: () => [],
+    getResumePosition: () => 0,
+    currentEpisodeKicker: () => "S1E878",
+    getEpisodeNavigationTargets: () => ({}),
+    PLAYER_SKIP_SEGMENTS: [],
+    skipSegmentParam: () => "",
+    resolveEpisodeSkipSegment: () => null,
+    episodeSkipKey: () => "878",
+    getEpisodePlaybackSources: () => [],
+    episodeThumb: () => "",
+    currentEpisodeTitle: () => "Episode 878",
+    buildPlayerUrl: (_url, _title, options) => JSON.stringify(options)
+  });
+  vm.runInContext(
+    section(clientSource, "function buildApkPlayerUrl(", "function createApkPlayerController("),
+    sandbox
+  );
+
+  const subOptions = JSON.parse(sandbox.buildApkPlayerUrl("https://cdn.test/sub.m3u8", false, {
+    episode: 878,
+    selectedSource: { languageVersion: "sub", audioLanguage: "ja" }
+  }));
+  assert.equal(subOptions.audio, "japanese");
+  assert.equal(subOptions.subtitles, "spanish");
+
+  const latinoOptions = JSON.parse(sandbox.buildApkPlayerUrl("https://cdn.test/latino.m3u8", false, {
+    episode: 877,
+    selectedSource: { languageVersion: "spanish", audioLanguage: "es" }
+  }));
+  assert.equal(latinoOptions.audio, "spanish");
+  assert.equal(latinoOptions.subtitles, "none");
+});
+
+test("7f3e. normal AnimeNeon reads use CDN cache and optional mirrors stay on recovery", () => {
+  const clientSection = section(clientSource, "function animeNeonEpisodeSourceCacheKey(", "async function attachAnimeNeonSources(");
+  const serverSection = section(serverSource, "async function fetchAnimeNeonEpisode(", "async function handleAnimeNeonHealth(");
+  assert.match(clientSection, /cache:\s*options\.forceRefresh \? "no-store" : "default"/);
+  assert.match(clientSource, /_animeNeonEpisodeSourceCache\.delete\(animeNeonEpisodeSourceCacheKey/);
+  assert.match(serverSection, /forceRefresh \|\| directServers\.length < 3/);
+  assert.match(serverSection, /const sourceGroups = \[\.\.\.directGroups, \.\.\.expandedGroups\]/);
 });
 
 test("7f4. a failed host family is demoted for the next episode until it recovers", () => {
@@ -1005,11 +1885,17 @@ test("7f4. a failed host family is demoted for the next episode until it recover
   const voeEmbed = { id: "animeav1-voe-e2", provider: "Voe", externalUrl: "https://voe.sx/e/e2" };
   const resolvedVoe = { id: "animeav1-voe-e2", provider: "Voe", videoUrl: "https://media.test/master.m3u8" };
 
-  assert.ok(sandbox.verifiedFallbackPreference(voeEmbed) < sandbox.verifiedFallbackPreference(freshHls));
+  assert.ok(sandbox.verifiedFallbackPreference(freshHls) < sandbox.verifiedFallbackPreference(voeEmbed));
   assert.ok(sandbox.verifiedFallbackPreference(freshHls) < sandbox.verifiedFallbackPreference(alternative));
   assert.ok(sandbox.verifiedFallbackPreference(voeEmbed) < sandbox.verifiedFallbackPreference(alternative));
   assert.equal(sandbox.fallbackCandidateFamily(voeEmbed), "voe");
   assert.equal(sandbox.fallbackCandidateFamily(resolvedVoe), "voe");
+  assert.equal(sandbox.fallbackCandidateFamily(freshHls), "upnshare");
+  sandbox.recordPlaybackFamilyHealth(freshHls, false);
+  assert.ok(sandbox.verifiedFallbackPreference(freshHls) > sandbox.verifiedFallbackPreference(voeEmbed));
+  assert.equal(sandbox.hasRecentlyFailedPlaybackFamily({
+    id: "animeav1-upn-e3", provider: "UPNShare", externalUrl: "https://animeav1.uns.bio/#next"
+  }), true);
   sandbox.recordPlaybackFamilyHealth(failedEpisode, false);
   assert.equal(sandbox.hasRecentlyFailedPlaybackFamily(nextEpisodeSameHost), true);
   assert.ok(sandbox.verifiedFallbackPreference(nextEpisodeSameHost) > sandbox.verifiedFallbackPreference(alternative));
@@ -1089,25 +1975,29 @@ test("7f7. a failed primary gets one bounded backup-provider handoff before the 
     "function playActiveShow(",
     "function isExternalIframeEpisode("
   );
-  const firstVerification = playback.indexOf("prepareReliablePlaybackSource(show, activeEpisode)");
+  const firstVerification = playback.indexOf("prepareReliablePlaybackSource(show, activeEpisode,");
   const backupLookup = playback.indexOf("attachPlaybackFailureFallbacks(show, activeEpisode)");
   const boundedWait = playback.indexOf("wait(RELIABLE_PLAYBACK_HANDOFF_WAIT_MS)");
   const secondVerification = playback.indexOf("timeoutMs: RELIABLE_PLAYBACK_HANDOFF_VERIFY_MS");
   const finalError = playback.indexOf('title: "Playback source unavailable"');
 
   assert.ok(firstVerification >= 0);
+  assert.match(playback, /timeoutMs:\s*RELIABLE_PLAYBACK_FAST_TARGET_MS/);
+  assert.match(playback, /primaryProbeMs:\s*RELIABLE_PLAYBACK_FAST_PRIMARY_MS/);
+  assert.match(playback, /softFailures:\s*true/);
   assert.ok(backupLookup > firstVerification);
   assert.ok(boundedWait > backupLookup);
   assert.ok(secondVerification > boundedWait);
   assert.ok(finalError > secondVerification);
 });
 
-test("7g. AnimeAV1 embed backups stay hidden until playback failure expansion", () => {
+test("7g. UPNShare is available with the primary payload without eagerly adding other embeds", () => {
   const sandbox = vm.createContext({
     normalizeTitle: (value) => String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
     simpleHash: (value) => String(value || "").length,
     embedProviderRank: (provider) => String(provider || "").toLowerCase().includes("voe") ? 1 : 2,
-    isBlockedPlaybackSource: () => false
+    isBlockedPlaybackSource: () => false,
+    isUpnShareSource: sourceClassification.isUpnShareSource
   });
   vm.runInContext(
     section(clientSource, "function mergeAnimeAv1SourcesIntoEpisode(", "// ── JKAnime source integration"),
@@ -1119,16 +2009,17 @@ test("7g. AnimeAV1 embed backups stay hidden until playback failure expansion", 
     sources: [{ provider: "HLS", type: "direct", url: "/api/source?url=primary" }],
     castSources: [
       { provider: "HLS", type: "direct", url: "/api/source?url=primary" },
+      { provider: "UPNShare", type: "iframe", externalUrl: "https://animeav1.uns.bio/#primary" },
       { provider: "Voe", type: "iframe", url: "https://voe.example/embed" },
       { provider: "MP4Upload", type: "iframe", url: "https://mp4upload.example/embed" }
     ]
   };
 
   sandbox.mergeAnimeAv1SourcesIntoEpisode({}, episode, data, "example", 12);
-  assert.deepEqual(Array.from(episode.sourceOptions, (source) => source.provider), ["HLS"]);
+  assert.deepEqual(Array.from(episode.sourceOptions, (source) => source.provider), ["HLS", "UPNShare"]);
 
   sandbox.mergeAnimeAv1SourcesIntoEpisode({}, episode, data, "example", 12, { includeFallbacks: true });
-  assert.deepEqual(Array.from(episode.sourceOptions, (source) => source.provider), ["HLS", "Voe", "MP4Upload"]);
+  assert.deepEqual(Array.from(episode.sourceOptions, (source) => source.provider), ["HLS", "UPNShare", "Voe", "MP4Upload"]);
   assert.ok(episode.sourceOptions.every((source) => source.siteUrl === data.episodeUrl));
 });
 
@@ -1448,6 +2339,8 @@ test("11f. recovery offers exactly one verified source", () => {
 
 test("11g. fallback verification admits ad-walled hosts only through direct media resolution", () => {
   const sandbox = vm.createContext({
+    location: { hostname: "zenkaitv.com" },
+    originalStreamUrlFromProxy: (value) => value,
     sourceDirectUrl: (source) => source.videoUrl || "",
     embedProviderRank: (identity) => {
       const value = String(identity).toLowerCase();
@@ -1461,14 +2354,26 @@ test("11g. fallback verification admits ad-walled hosts only through direct medi
     sandbox
   );
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "YourUpload", externalUrl: "https://yourupload.test/embed" }), true);
-  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Voe", externalUrl: "https://voe.sx/e/working", adWalled: true }), true);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Voe", externalUrl: "https://voe.sx/e/working", adWalled: true }), false);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Streamtape", externalUrl: "https://streamtape.com/e/working/video.mp4" }), true);
-  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Streamwish", externalUrl: "https://sfastwish.com/e/working", adWalled: true }), true);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Streamwish", externalUrl: "https://sfastwish.com/e/working", adWalled: true }), false);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Vidhide", externalUrl: "https://vidhidevip.com/embed/working", adWalled: true }), true);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Voe", externalUrl: "https://unknown.test/embed", adWalled: true }), false);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Unknown", externalUrl: "https://unknown.test/embed" }), false);
   assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "direct", videoUrl: "https://video.test/episode.mp4" }), true);
-  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "direct", provider: "Voe", videoUrl: "https://video.test/master.m3u8", adWalled: false }), true);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "direct", provider: "Voe", videoUrl: "https://video.test/master.m3u8", adWalled: false }), false);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "direct", videoUrl: "https://ugc.cloudwindow-route.com/master.m3u8" }), false);
+  const animeAv1Upn = {
+    id: "animeav1-upnshare-1",
+    type: "iframe",
+    externalUrl: "https://animeav1.uns.bio/#episode",
+    streamResolver: { endpoint: "/api/resolve" }
+  };
+  assert.equal(sandbox.isAdFreeFallbackCandidate(animeAv1Upn), false);
+  sandbox.location.hostname = "localhost";
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Voe", externalUrl: "https://voe.sx/e/working", adWalled: true }), true);
+  assert.equal(sandbox.isAdFreeFallbackCandidate({ type: "iframe", provider: "Streamwish", externalUrl: "https://sfastwish.com/e/working", adWalled: true }), true);
+  assert.equal(sandbox.isAdFreeFallbackCandidate(animeAv1Upn), true);
 });
 
 test("11g2. verified fallback playback keeps the same referer-aware proxy used by its probe", () => {
@@ -1506,7 +2411,7 @@ test("11h. playback failure verifies and opens the backup without asking", () =>
   assert.match(renderer, /findVerifiedAdFreeFallbackSource\(episode\)/);
   assert.ok(renderer.indexOf("prepareReliablePlaybackSource(") < renderer.indexOf("await Promise.race([firstCandidateReady"));
   assert.match(renderer, /selectEpisodePlaybackSource\(episode, verifiedFallback\.id\)/);
-  assert.match(renderer, /playActiveShow\(\{ allowSourceLookup: false \}\)/);
+  assert.match(renderer, /playActiveShow\(\{ allowSourceLookup: false, restart: true \}\)/);
   assert.match(renderer, /selectedSource\.id !== activeSource\.id/);
   assert.doesNotMatch(renderer, /Use verified source/);
   assert.match(clientSource, /await probePlayableFallback\(resolved, options\)/);
@@ -1569,10 +2474,14 @@ test("12. HLS sources retain manifest MIME and container", () => {
   assert.equal(source.container, "hls");
 });
 
-test("12b. both regular backup providers remain identifiable after normalization", () => {
+test("12b. the primary and regular backup providers remain identifiable after normalization", () => {
+  const animeNeon = { id: "animeneon-sub-voe-1", provider: "VOE", siteUrl: "https://animeneon.net/ver/example-1.id" };
+  const animeAv1 = { id: "animeav1-hls-1", provider: "AnimeAV1", type: "direct", videoUrl: "https://video.test/master.m3u8" };
+  assert.equal(sourceClassification.isAnimeNeonSource(animeNeon), true);
   assert.equal(sourceClassification.isJKAnimeSource({ id: "jkanime-ribbon-1", provider: "Streamwish" }), true);
   assert.equal(sourceClassification.isTioAnimeSource({ id: "tioanime-ribbon-1", provider: "YourUpload" }), true);
   assert.equal(sourceClassification.isTioAnimeSource({ id: "underhentai-ribbon-1" }), false);
+  assert.ok(sourceClassification.sourcePreferenceScore(animeNeon) < sourceClassification.sourcePreferenceScore(animeAv1));
 });
 
 test("13. AV1 remains available but ranks behind supported H264 when unsupported", () => {
