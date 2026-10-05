@@ -109,7 +109,10 @@ test("clean Git build configuration rejects missing discovery and duplicate dest
   const f = fixture(t);
   mkdirSync(join(f.directory, "scraper"));
   mkdirSync(join(f.directory, "api"));
+  mkdirSync(join(f.directory, "lib"));
   writeFileSync(join(f.directory, "scraper", "adult_portrait_map.json"), "{}");
+  writeFileSync(join(f.directory, "scraper", "animeyt-index.json"), "{}");
+  writeFileSync(join(f.directory, "lib", "animeyt-provider.cjs"), "module.exports = {};");
   writeFileSync(join(f.directory, "api", "[...path].js"), 'require.resolve("../scraper/adult_portrait_map.json");');
   const config = JSON.parse(readFileSync("vercel.json", "utf8"));
   const pkg = JSON.parse(readFileSync("package.json", "utf8"));
@@ -124,4 +127,10 @@ test("clean Git build configuration rejects missing discovery and duplicate dest
   assert.equal(check({ ...pkg.scripts, "now-build": pkg.scripts.build }).status, 1);
   assert.equal(check(pkg.scripts, { ...config, buildCommand: "" }).status, 1);
   assert.equal(check(pkg.scripts, { ...config, buildCommand: "npm run vercel-build" }).status, 1);
+  writeFileSync(join(f.directory, ".vercelignore"), "lib\n");
+  const excludedProvider = check(pkg.scripts);
+  assert.equal(excludedProvider.status, 1);
+  assert.match(excludedProvider.stdout, /excludes the required API file lib\/animeyt-provider\.cjs/);
+  writeFileSync(join(f.directory, ".vercelignore"), "lib/supabase\n");
+  assert.equal(check(pkg.scripts).status, 0);
 });

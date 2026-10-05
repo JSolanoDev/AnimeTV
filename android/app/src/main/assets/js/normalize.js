@@ -47,6 +47,11 @@ function normalizeExternalShow(item, source, index) {
     catalogAnimeId: item.catalogAnimeId || item.id || null,
     providerAnimeId: item.providerAnimeId || item.provider_anime_id || item.animeId || item.id || null,
     animeAv1Slug,
+    animeytSlug: item.animeytSlug || "",
+    animeytSeason: Number(item.animeytSeason) || 0,
+    airingTimeSource: item.airingTimeSource || "",
+    animeytAiringAt: Number(item.animeytAiringAt) || 0,
+    animeytAiringEpisode: Number(item.animeytAiringEpisode) || 0,
     aniPubId: item.aniPubId || item.anipubId || item._id || (source.id === "anipub-catalog" ? item.id : ""),
     consumetId: item.consumetId || item.consumet_id || item.kickAssAnimeId || item.kickassanimeId || (source.id === "consumet-kickassanime" ? item.id : ""),
     finder: item.finder || item.slug || "",
@@ -576,7 +581,11 @@ function normalizeEpisodeSourceOptions(episode = {}) {
       providerEpisodeId: source.providerEpisodeId ?? source.provider_episode_id ?? getProviderEpisodeId(episode)
     };
   });
-  if (pickPlayableUrl(episode)) {
+  // A verified AnimeYT option already carries its identity, referer and health
+  // stamp. A synthetic duplicate would discard those fields during URL dedupe.
+  const hasAnimeYTDirectOption = options.some(option => (option.animeytPreferred === true || /^animeyt-sub-/.test(option.id))
+    && option.videoUrl === pickPlayableUrl(episode));
+  if (pickPlayableUrl(episode) && !hasAnimeYTDirectOption) {
     options.unshift({
       id: episode.sourceId || episode.originalSourceId || "direct",
       originalSourceId: episode.originalSourceId || episode.sourceId || null,
@@ -948,6 +957,11 @@ function mergeClientCatalogShow(current, show) {
     tmdbPoster: current.tmdbPoster || show.tmdbPoster || "",
     episodeThumbnailFallback: current.episodeThumbnailFallback || show.episodeThumbnailFallback || "",
     animeAv1Slug: show.animeAv1Slug || current.animeAv1Slug || "",
+    animeytSlug: show.animeytSlug || current.animeytSlug || "",
+    animeytSeason: Number(show.animeytSeason) || Number(current.animeytSeason) || 0,
+    airingTimeSource: show.airingTimeSource || current.airingTimeSource || "",
+    animeytAiringAt: Number(show.animeytAiringAt) || Number(current.animeytAiringAt) || 0,
+    animeytAiringEpisode: Number(show.animeytAiringEpisode) || Number(current.animeytAiringEpisode) || 0,
     providerAnimeId: show.providerAnimeId || current.providerAnimeId || null,
     canonicalSeasonNumber: show.canonicalSeasonNumber ?? current.canonicalSeasonNumber ?? null,
     canonicalSeasonPart: show.canonicalSeasonPart ?? current.canonicalSeasonPart ?? null,

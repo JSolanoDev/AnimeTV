@@ -129,6 +129,7 @@ function playbackFallbackContext({ primaryFound, slowJk = false, language = "spa
     : Promise.resolve();
   const sourceOptionsBackgroundLookups = new Map();
   const sourceMatches = {
+    animeyt: sourceClassification.isAnimeYTSource,
     animeneon: (source) => source.provider === "AnimeNeon",
     animeav1: (source) => source.provider === "AnimeAV1",
     jkanime: (source) => source.provider === "JKAnime",
@@ -157,6 +158,7 @@ function playbackFallbackContext({ primaryFound, slowJk = false, language = "spa
     normalizeEpisodeSourceOptions: (episode) => episode.sourceOptions || [],
     getEpisodePlaybackSources: (episode) => episode.sourceOptions || [],
     isAnimeNeonSource: sourceMatches.animeneon,
+    isAnimeYTSource: sourceClassification.isAnimeYTSource,
     isAnimeAv1Source: sourceMatches.animeav1,
     isJKAnimeSource: sourceMatches.jkanime,
     isTioAnimeSource: sourceMatches.tioanime,
@@ -262,6 +264,60 @@ function sourceRaceContext(overrides = {}) {
   vm.runInContext(section(clientSource, "async function prepareReliablePlaybackSource(", "function renderDirectVideoPlayer("), sandbox);
   return sandbox;
 }
+
+test("AnimeYT: available native metadata leaves other provider lookups dormant", async () => {
+  const { sandbox, calls, completed } = playbackFallbackContext({ primaryFound: true, language: "sub" });
+  sandbox.animeYTTarget = () => ({ slug: "sample-series" });
+  sandbox.attachAnimeYTSources = async (_show, episode) => {
+    calls.push("animeyt");
+    episode.sourceOptions.push({ id: "animeyt-omega", provider: "AnimeYT", type: "direct", videoUrl: "https://archive.org/download/sample/episode.mp4" });
+  };
+  await sandbox.attachPlaybackSourceOptions({}, { sourceOptions: [] }, 1);
+  await completed;
+  assert.deepEqual(calls, ["animeyt"]);
+});
+
+test("AnimeYT: a native-source miss retains the existing primary lookup", async () => {
+  const { sandbox, calls, completed } = playbackFallbackContext({ primaryFound: true, language: "sub" });
+  sandbox.animeYTTarget = () => ({ slug: "sample-series" });
+  sandbox.attachAnimeYTSources = async () => { calls.push("animeyt:miss"); };
+  await sandbox.attachPlaybackSourceOptions({}, { sourceOptions: [] }, 1);
+  await completed;
+  assert.deepEqual(calls, ["animeyt:miss", "animeav1:primary:start", "animeav1:primary:end"]);
+});
+
+test("AnimeYT: eager fallback discovery cannot finish before the preferred lookup settles", async () => {
+  const { sandbox, completed } = playbackFallbackContext({ primaryFound: true, language: "sub" });
+  sandbox.animeYTTarget = () => ({ slug: "sample-series" });
+  let release;
+  sandbox.attachAnimeYTSources = () => new Promise(resolve => { release = resolve; });
+  const episode = { sourceOptions: [] };
+  await sandbox.attachPlaybackSourceOptions({}, episode, 1, { eagerFallbacks: true });
+  await new Promise(resolve => setTimeout(resolve, 20));
+  assert.notEqual(episode.playbackSourceLookupComplete, true);
+  release();
+  await completed;
+  assert.equal(episode.playbackSourceLookupComplete, true);
+});
+
+test("AnimeYT: successful verification takes priority; failed media selects the existing backup once", async () => {
+  const primary = { id: "animeyt-omega", provider: "AnimeYT" };
+  const backup = { id: "animeav1-upn", provider: "UPNShare" };
+  for (const healthy of [true, false]) {
+    const checked = [];
+    const sandbox = sourceRaceContext({
+      isAnimeYTSource: sourceClassification.isAnimeYTSource,
+      isFastPreferredPlaybackSource: () => true,
+      verifyReliablePlaybackCandidate: async (_episode, source) => {
+        checked.push(source.id);
+        return source === primary && !healthy ? null : source;
+      }
+    });
+    const result = await sandbox.prepareReliablePlaybackSource({}, { sourceOptions: [backup, primary] });
+    assert.equal(result.id, healthy ? primary.id : backup.id);
+    assert.deepEqual(checked, healthy ? [primary.id] : [primary.id, backup.id]);
+  }
+});
 
 test("UPNShare: preferred host ranks first without replacing other providers", () => {
   const upn = { id: "animeav1-upn", provider: "UPNShare", type: "iframe", externalUrl: "https://animeav1.uns.bio/#episode" };
@@ -1936,7 +1992,7 @@ test("7f3d. player language follows the selected episode source instead of the g
     buildPlayerUrl: (_url, _title, options) => JSON.stringify(options)
   });
   vm.runInContext(
-    section(clientSource, "function buildApkPlayerUrl(", "function createApkPlayerController("),
+    section(clientSource, "function animeYTDirectPlaybackUrl(", "function createApkPlayerController("),
     sandbox
   );
 
@@ -2386,6 +2442,7 @@ test("11c4. one episode has one active playback run and stale runs are rejected"
   const pending = [];
   const sandbox = vm.createContext({
     state,
+    mountedEpisodePlayback: () => null,
     getShowKey: (value = {}) => value.id || "show",
     getCanonicalEpisodeNumber: (episode = {}, fallback = 1) => (
       Number(episode.canonicalEpisode ?? episode.episode ?? fallback)
@@ -2420,6 +2477,192 @@ test("11c4. one episode has one active playback run and stale runs are rejected"
   await Promise.all([first, second]);
 });
 
+function mountedPlaybackContext() {
+  const source = { id: "working", type: "direct", videoUrl: "https://media.test/first.mp4" };
+  const episode = { id: "show-s1-e1", canonicalSeason: 1, canonicalEpisode: 1, sourceOptions: [source] };
+  const show = { id: "show" };
+  const state = { activeShow: show, activeEpisode: { episode, seasonIndex: 0, episodeIndex: 0 } };
+  let language = "sub";
+  let element = null;
+  let runs = 0;
+  let resumes = 0;
+  const player = { paused: false, _mountedPlaybackSource: source,
+    play() { resumes++; this.paused = false; return Promise.resolve(); } };
+  const frame = { dataset: {}, querySelector: () => element };
+  const mount = () => {
+    frame.dataset = { playbackKey: sandbox.playbackSelectionKey(), playbackSourceId: source.id, playbackLanguage: language };
+    episode.selectedSourceId = source.id;
+    element = { _zenkaiPlayerController: player };
+  };
+  const sandbox = vm.createContext({
+    state,
+    document: { querySelector: () => frame },
+    getShowKey: (value = {}) => value.id,
+    getCanonicalEpisodeNumber: (value, fallback) => value.canonicalEpisode ?? fallback,
+    preferredWatchLanguageForEpisode: () => language,
+    getEpisodePlaybackSources: (value) => value.sourceOptions,
+    runActivePlaybackAttempt: async () => { runs++; mount(); }
+  });
+  vm.runInContext(section(clientSource, "let activePlaybackAttemptSequence", "function stopActivePlayback()"), sandbox);
+  vm.runInContext(section(clientSource, "function mountedEpisodePlayback(", "function warmEpisodePlaybackIntent("), sandbox);
+  vm.runInContext(section(clientSource, "function playActiveShow(", "async function runActivePlaybackAttempt("), sandbox);
+  return { sandbox, state, episode, show, source, frame, player, mount,
+    setLanguage: (value) => { language = value; },
+    runs: () => runs, resumes: () => resumes };
+}
+
+test("11c5. Play after startup reuses the mounted player without another source lookup", async () => {
+  const ctx = mountedPlaybackContext();
+  await ctx.sandbox.playActiveShow();
+  await ctx.sandbox.playActiveShow();
+  await ctx.sandbox.playActiveShow();
+  assert.equal(ctx.runs(), 1);
+  assert.equal(ctx.resumes(), 0);
+  assert.equal(ctx.frame.dataset.playbackSourceId, "working");
+});
+
+test("11c6. Play resumes paused media in place and explicit Reload still restarts", async () => {
+  const ctx = mountedPlaybackContext();
+  await ctx.sandbox.playActiveShow();
+  ctx.player.paused = true;
+  await ctx.sandbox.playActiveShow();
+  assert.equal(ctx.runs(), 1);
+  assert.equal(ctx.resumes(), 1);
+  await ctx.sandbox.playActiveShow({ restart: true });
+  assert.equal(ctx.runs(), 2);
+  assert.match(clientSource, /data-reload-player[^\n]*playActiveShow\(\{ allowSourceLookup: false, restart: true \}\)/);
+});
+
+test("11c6b. selecting the playing episode row preserves its player and skips discovery", async () => {
+  const ctx = mountedPlaybackContext();
+  await ctx.sandbox.playActiveShow();
+  Object.assign(ctx.sandbox, {
+    getDetailSeasons: () => [{ season: 1, episodes: [ctx.episode] }],
+    stopActivePlayback: () => { throw new Error("unnecessary teardown"); },
+    schedulePlaybackSourceOptions: () => { throw new Error("duplicate discovery"); },
+    setPlayerCinema: () => {}, renderEpisodeList: () => {}, refreshFocusables: () => {}
+  });
+  vm.runInContext(section(clientSource, "function selectEpisodeByPosition(", "function revealEpisodeBrowserPanel("), ctx.sandbox);
+  ctx.sandbox.selectEpisodeByPosition(0, 0, true);
+  ctx.sandbox.selectEpisodeByPosition(0, 0, true);
+  assert.equal(ctx.runs(), 1);
+  assert.equal(ctx.state.playIntent, true);
+});
+
+test("11c7. mounted-source reuse does not suppress media errors or failed-source recovery", async () => {
+  const ctx = mountedPlaybackContext();
+  ctx.mount();
+  ctx.player.playbackFailed = true;
+  assert.equal(ctx.sandbox.mountedEpisodePlayback(ctx.show, ctx.episode), null);
+  await ctx.sandbox.playActiveShow();
+  assert.equal(ctx.runs(), 1);
+  ctx.player.playbackFailed = false;
+  ctx.player.error = { code: 3 };
+  assert.equal(ctx.sandbox.mountedEpisodePlayback(ctx.show, ctx.episode), null);
+  ctx.player.error = null;
+  ctx.episode._failedSourceIds = new Set([ctx.source.id]);
+  assert.equal(ctx.sandbox.mountedEpisodePlayback(ctx.show, ctx.episode), null);
+});
+
+test("11c8. explicit source, language, episode and show changes never reuse the old stream", () => {
+  const ctx = mountedPlaybackContext();
+  ctx.mount();
+  ctx.episode.selectedSourceId = "manual-backup";
+  assert.equal(ctx.sandbox.mountedEpisodePlayback(ctx.show, ctx.episode), null);
+  ctx.episode.selectedSourceId = ctx.source.id;
+  ctx.setLanguage("spanish");
+  assert.equal(ctx.sandbox.mountedEpisodePlayback(ctx.show, ctx.episode), null);
+  ctx.setLanguage("sub");
+  ctx.state.activeEpisode.episode = { ...ctx.episode, id: "show-s1-e2", canonicalEpisode: 2 };
+  assert.equal(ctx.sandbox.mountedEpisodePlayback(ctx.show, ctx.episode), null);
+  ctx.state.activeEpisode.episode = ctx.episode;
+  ctx.state.activeShow = { id: "another-show" };
+  assert.equal(ctx.sandbox.mountedEpisodePlayback(ctx.show, ctx.episode), null);
+});
+
+test("11c9. already-mounted playback skips repeated health probes even after metadata TTL", async () => {
+  const ctx = mountedPlaybackContext();
+  ctx.mount();
+  const sandbox = sourceRaceContext({
+    document: ctx.sandbox.document, state: ctx.state,
+    playbackSelectionKey: ctx.sandbox.playbackSelectionKey,
+    preferredWatchLanguageForEpisode: () => "sub",
+    verifyReliablePlaybackCandidate: () => { throw new Error("duplicate health probe"); },
+    attachPlaybackFailureFallbacks: () => { throw new Error("duplicate provider lookup"); }
+  });
+  assert.equal(await sandbox.prepareReliablePlaybackSource(ctx.show, ctx.episode), ctx.source);
+});
+
+test("11c9b. rebuilding source metadata cannot discard the mounted stream snapshot", async () => {
+  const ctx = mountedPlaybackContext();
+  await ctx.sandbox.playActiveShow();
+  ctx.episode.sourceOptions = [];
+  await ctx.sandbox.playActiveShow();
+  assert.equal(ctx.runs(), 1);
+  assert.equal(ctx.sandbox.mountedEpisodePlayback(ctx.show, ctx.episode).source, ctx.source);
+});
+
+test("11c9c. hover and click intent reuse mounted media without warming provider APIs", async () => {
+  const ctx = mountedPlaybackContext();
+  ctx.mount();
+  ctx.sandbox.prefetchPlayerShell = () => {};
+  ctx.sandbox.attachAnimeYTSources = () => { throw new Error("duplicate provider lookup"); };
+  vm.runInContext(section(clientSource, "function warmEpisodePlaybackIntent(", "function setupAdjacentEpisodeWarmup("), ctx.sandbox);
+  assert.equal(await ctx.sandbox.warmEpisodePlaybackIntent(ctx.show, ctx.episode), ctx.source);
+  assert.equal(await ctx.sandbox.warmEpisodePlaybackIntent(ctx.show, ctx.episode, 1, { eagerBackups: true }), ctx.source);
+});
+
+test("11c10. late primary verification preserves the first mounted working source", async () => {
+  const ctx = mountedPlaybackContext();
+  const lateSource = { id: "late-primary", type: "direct", videoUrl: "https://media.test/late.mp4" };
+  ctx.episode.sourceOptions.push(lateSource);
+  let release;
+  let selections = 0;
+  const verification = new Promise((resolve) => { release = resolve; });
+  const sandbox = sourceRaceContext({
+    document: ctx.sandbox.document, state: ctx.state,
+    playbackSelectionKey: ctx.sandbox.playbackSelectionKey,
+    preferredWatchLanguageForEpisode: () => "sub",
+    getSelectedEpisodeSource: () => lateSource,
+    verifyReliablePlaybackCandidate: () => verification,
+    selectEpisodePlaybackSource: () => { selections++; }
+  });
+  const pending = sandbox.prepareReliablePlaybackSource(ctx.show, ctx.episode, { primaryOnly: true });
+  ctx.mount();
+  release(lateSource);
+  assert.equal(await pending, ctx.source);
+  assert.equal(ctx.episode.selectedSourceId, ctx.source.id);
+  assert.equal(selections, 0);
+});
+
+test("11c11. iframe media-error state is exposed before recovery and cleared on playback", () => {
+  const listeners = new Map();
+  const contentWindow = {};
+  const sandbox = vm.createContext({
+    Event,
+    document: { createDocumentFragment: () => new EventTarget() },
+    state: { uiPreferences: {} },
+    window: {
+      addEventListener: (name, fn) => listeners.set(name, fn),
+      removeEventListener: (name, fn) => { if (listeners.get(name) === fn) listeners.delete(name); }
+    },
+    postApkPlayerCommand: () => {}
+  });
+  vm.runInContext(section(clientSource, "function createApkPlayerController(", "function postApkPlayerCommand("), sandbox);
+  const controller = sandbox.createApkPlayerController({ contentWindow, addEventListener: () => {} });
+  let failedOnEvent;
+  controller.addEventListener("error", () => { failedOnEvent = controller.playbackFailed; });
+  const message = listeners.get("message");
+  message({ source: {}, data: { vcmd: "error" } });
+  assert.equal(controller.playbackFailed, false);
+  message({ source: contentWindow, data: { vcmd: "error" } });
+  assert.equal(failedOnEvent, true);
+  message({ source: contentWindow, data: { vcmd: "playing" } });
+  assert.equal(controller.playbackFailed, false);
+  controller.destroy();
+  assert.equal(listeners.size, 0);
+});
+
 test("11d. mounting HLS preconnects without issuing a duplicate manifest probe", () => {
   const renderer = section(
     clientSource,
@@ -2428,6 +2671,8 @@ test("11d. mounting HLS preconnects without issuing a duplicate manifest probe",
   );
   assert.match(renderer, /preconnectOnly:\s*streamType\s*===\s*"hls"/);
   assert.match(renderer, /hasFreshVerifiedPlaybackSource\(selectedSource\)/);
+  assert.match(renderer, /frame\.dataset\.playbackKey = playbackContext\?\.key/);
+  assert.match(renderer, /markPlaybackSourceVerified\(\s*episode,\s*selectedSource \|\| getSelectedEpisodeSource\(episode\)/);
   assert.match(clientSource, /options\.preconnectOnly \|\| streamTypeFromUrl\(resolved\) === "hls"/);
   const warmupWiring = section(
     clientSource,
@@ -3026,6 +3271,8 @@ test("21. an episode-row click reaches source scheduling with canonical season i
     Math
   });
   vm.runInContext(section(clientSource, "function episodeChunkContextKey(", "function renderEpisodeList("), sandbox);
+  sandbox.mountedEpisodePlayback = () => null;
+  vm.runInContext(section(clientSource, "let activePlaybackAttemptSequence", "function stopActivePlayback()"), sandbox);
   vm.runInContext(section(clientSource, "function selectEpisodeByPosition(", "function showEpisodeListTab("), sandbox);
   sandbox.selectEpisodeByPosition(0, 0, true);
   assert.equal(scheduled.value, episode);

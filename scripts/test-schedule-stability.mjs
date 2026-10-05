@@ -30,6 +30,106 @@ function scheduleFieldHarness(overrides = {}) {
   return { context, instant };
 }
 
+function scheduleNavigationHarness(today = 0) {
+  let localDay = (today + 1) % 7;
+  class LocalDate extends Date {
+    getDay() { return localDay; }
+  }
+  const listeners = new Map();
+  const list = { dataset: {}, innerHTML: "" };
+  const context = vm.createContext({
+    Date: LocalDate,
+    Intl,
+    _scheduleSelectedDay: null,
+    _scheduleControlsWired: false,
+    _scheduleDataRevision: 0,
+    _scheduleMemo: { key: "", at: 0, value: null },
+    state: {
+      route: "home", appLanguage: "en", uiPreferences: { titleLanguage: "en" },
+      shows: [
+        { id: "fixture-mon", title: "Monday release", day: "Mon", status: "RELEASING" },
+        { id: "fixture-tue", title: "Tuesday release", day: "Tue", status: "RELEASING" }
+      ]
+    },
+    scheduleList: list,
+    scheduleDays: { addEventListener: (name, callback) => listeners.set(name, callback), setAttribute() {} },
+    scheduleKicker: null,
+    scheduleCount: {},
+    scheduleTimeZone: null,
+    requestAnimationFrame() {},
+    revealSelectedScheduleDay() {},
+    catalogShows: () => context.state.shows,
+    applyScheduleAiringFields() {},
+    normalizeTitle: title => title,
+    weekdayIndexFromName: name => ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(name),
+    scheduleDayName: index => ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][index],
+    showAiringTimeText: () => "8:00 PM",
+    cardEpisodeLabel: () => "EP 1",
+    getShowTitle: show => show.title,
+    getCardPosterCandidates: () => [],
+    scheduleCardTemplate: show => `<a>${show.title}</a>`,
+    escapeHtml: value => value,
+    t: key => key,
+    syncCompletedArtwork() {},
+    APP_ROUTES: ["home", "schedule", "library", "not-found"],
+    document: { body: { dataset: {} }, querySelectorAll: () => [] },
+    cancelLibraryAutoLoad() {},
+    syncRouteVisibility() {},
+    scheduleAnimeAv1LatestLoad() {},
+    scrollToRoute() {},
+    refreshFocusables() {},
+    renderNow: () => { if (context.state.route === "schedule") context.renderSchedule(); },
+    fetch: () => { throw new Error("day selection must not fetch"); }
+  });
+  vm.runInContext(section(client, "function renderSchedule()", "function renderAniPubCatalog()"), context);
+  vm.runInContext(section(client, "let _routeHistoryInit = false;", "function syncRouteVisibility()"), context);
+  return {
+    context, list,
+    setToday: index => { localDay = (index + 1) % 7; },
+    select: index => listeners.get("click")({ target: { closest: () => ({ dataset: { scheduleDay: String(index) } }) } })
+  };
+}
+
+test("every schedule visit selects the viewer's current local day, including Sunday", () => {
+  const { context, list, select, setToday } = scheduleNavigationHarness(0);
+  context.setRoute("schedule", { skipHistory: true });
+  assert.equal(context._scheduleSelectedDay, 0);
+  assert.match(list.innerHTML, /Monday release/);
+  assert.doesNotMatch(list.innerHTML, /Tuesday release/);
+
+  select(-1);
+  assert.equal(context._scheduleSelectedDay, -1, "All Days remains available explicitly");
+  assert.match(list.innerHTML, /Tuesday release/);
+  context.renderSchedule();
+  assert.equal(context._scheduleSelectedDay, -1, "metadata rerenders must preserve the chosen filter");
+
+  context.setRoute("home", { skipHistory: true });
+  setToday(6);
+  context.setRoute("schedule", { skipHistory: true });
+  assert.equal(context._scheduleSelectedDay, 6, "a new visit recalculates today after a date change");
+  assert.match(list.innerHTML, /scheduleNoEpisodes/);
+  select(-1);
+  context.setRoute("schedule", { skipHistory: true });
+  assert.equal(context._scheduleSelectedDay, 6, "clicking Schedule again also returns to today");
+});
+
+test("an empty today stays selected while catalog metadata arrives", () => {
+  const { context, list, select } = scheduleNavigationHarness(2);
+  context.setRoute("schedule", { skipHistory: true });
+  assert.equal(context._scheduleSelectedDay, 2);
+  assert.match(list.innerHTML, /scheduleNoEpisodes/);
+
+  context.state.shows.push({ id: "fixture-wed", title: "Wednesday release", day: "Wed", status: "RELEASING" });
+  context._scheduleDataRevision++;
+  context.renderSchedule();
+  assert.equal(context._scheduleSelectedDay, 2);
+  assert.match(list.innerHTML, /Wednesday release/);
+  assert.doesNotMatch(list.innerHTML, /Monday release/);
+  select(0);
+  context.renderSchedule();
+  assert.equal(context._scheduleSelectedDay, 0, "manual weekday choices remain selected until navigation");
+});
+
 test("schedule derives a visible local day before remote enrichment finishes", () => {
   const { context, instant } = scheduleFieldHarness();
   const show = {

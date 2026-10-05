@@ -22,6 +22,7 @@ catalog_files=(
   "scraper/relations-cache.json"
   "scraper/regular-source-fallbacks.json"
   "scraper/animeneon-catalog.json"
+  "scraper/animeyt-index.json"
   "scraper/adult_portrait_map.json"
   "scraper/underhentai_catalog.json"
   "scraper/underhentai_details.json"

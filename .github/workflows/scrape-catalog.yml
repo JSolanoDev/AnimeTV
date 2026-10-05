@@ -180,6 +180,11 @@ jobs:
         timeout-minutes: 10
         continue-on-error: true
 
+      - name: Refresh AnimeYT exact title identities and schedule
+        run: node scripts/build-animeyt-index.mjs
+        timeout-minutes: 3
+        continue-on-error: true
+
       # New catalogue rows do not carry MAL/AniList ids. Resolve them against a
       # versioned offline database first, then let the resumable artwork builder
       # add season-specific TMDB imagery. Every step preserves yesterday's map

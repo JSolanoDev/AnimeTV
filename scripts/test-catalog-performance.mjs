@@ -221,7 +221,8 @@ test("anime details paint before franchise and episode-list work", async () => {
   };
   const episode = { episode: 1, providerAnimeSlug: "fixture" };
   const seasons = [{ season: 1, episodes: [episode] }];
-  const overlay = { hidden: true };
+  const overlayClasses = new Set(["is-closing"]);
+  const overlay = { hidden: true, classList: { remove: (name) => overlayClasses.delete(name) } };
   const episodeList = {
     hidden: false,
     dataset: {},
@@ -295,6 +296,7 @@ test("anime details paint before franchise and episode-list work", async () => {
   });
 
   assert.equal(overlay.hidden, false);
+  assert.equal(overlayClasses.has("is-closing"), false, "reopening must cancel the old close animation");
   assert.deepEqual(calls.slice(0, 4), ["warm-source", "opening-frame", "opening-heading", "clear-episodes"]);
   assert.equal(calls.includes("franchise"), false);
   assert.equal(animationFrames.length, 1);

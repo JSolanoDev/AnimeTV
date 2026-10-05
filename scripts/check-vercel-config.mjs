@@ -122,6 +122,24 @@ if (vercelIgnore.split(/\r?\n/).some((line) => line.trim() === adultPortraitMap)
 }
 console.log("  PASS  the adult portrait map is included in the serverless bundle");
 
+const animeYTProvider = "lib/animeyt-provider.cjs";
+const animeYTIndex = "scraper/animeyt-index.json";
+const ignoredPaths = new Set(vercelIgnore.split(/\r?\n/).map(line => line.trim()));
+const includeFiles = String(config.functions?.["api/**/*.js"]?.includeFiles || "");
+if (!existsSync(animeYTProvider) || !existsSync(animeYTIndex)
+  || !packageJson.dependencies?.cheerio || !includeFiles.includes("lib/**")) {
+  console.log("  FAIL  the AnimeYT provider, index and Cheerio dependency must be included in the API bundle");
+  process.exit(1);
+}
+for (const path of [animeYTProvider, animeYTIndex]) {
+  const parent = path.split("/")[0];
+  if ([parent, `${parent}/`, `${parent}/*`, `${parent}/**`, path].some(pattern => ignoredPaths.has(pattern))) {
+    console.log(`  FAIL  .vercelignore excludes the required API file ${path}`);
+    process.exit(1);
+  }
+}
+console.log("  PASS  the AnimeYT provider and index are included in the API deployment");
+
 const catalogHeaderEntry = (config.headers || []).find((entry) => entry.source === "/api/catalog");
 const catalogHeaders = new Map((catalogHeaderEntry?.headers || []).map((entry) => [entry.key.toLowerCase(), entry.value]));
 const catalogCacheControl = catalogHeaders.get("cache-control") || "";

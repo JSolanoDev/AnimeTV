@@ -1,5 +1,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+
+const { createProvider: createAnimeYTProvider } = createRequire(import.meta.url)("../lib/animeyt-provider.cjs");
 
 const root = new URL("../", import.meta.url);
 const source = (path) => JSON.parse(readFileSync(new URL(path, root), "utf8"));
@@ -105,12 +108,14 @@ export function buildHomepageBootstrap(catalog, artwork, airing, limit = 96) {
 }
 
 export function writeHomepageBootstrap() {
+  const animeYT = createAnimeYTProvider({ indexPath: fileURLToPath(new URL("scraper/animeyt-index.json", root)) });
   const payload = buildHomepageBootstrap(
     source("scraper/anime_metadata.json"),
     source("scraper/artwork-map.json"),
     source("scraper/airing-map.json")
   );
   if (!payload.items.length) throw new Error("Cannot build a homepage without playable catalog rows");
+  payload.items = payload.items.map(item => animeYT.enrich(item));
   const path = new URL("homepage-bootstrap.json", root);
   const content = `${JSON.stringify(payload)}\n`;
   if (readFileSync(path, "utf8") !== content) writeFileSync(path, content);

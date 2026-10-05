@@ -51,7 +51,8 @@ test("catalog commit rebases over a concurrent main update without losing either
     configureIdentity(seed);
 
     const paths = catalogPaths();
-    assert.equal(paths.length, 23);
+    assert.equal(paths.length, 24);
+    assert.ok(paths.includes("scraper/animeyt-index.json"));
     assert.ok(paths.includes("homepage-bootstrap.json"));
     assert.ok(paths.includes("scraper/animeneon-catalog.json"));
     assert.ok(paths.includes("android/app/src/main/assets/scraper/animeneon-catalog.json"));
@@ -179,7 +180,7 @@ for (const scope of ["adult", "regular"]) {
     const adultPath = path => /\/(?:underhentai_[^/]+|adult_portrait_map)\.json$/.test(path);
     const selected = paths.filter(path => adultPath(path) === (scope === "adult"));
     const other = paths.filter(path => !selected.includes(path));
-    assert.equal(selected.length, scope === "adult" ? 8 : 15);
+    assert.equal(selected.length, scope === "adult" ? 8 : 16);
     try {
       git(root, "init", "--bare", remote);
       git(root, "init", "--initial-branch=main", seed);

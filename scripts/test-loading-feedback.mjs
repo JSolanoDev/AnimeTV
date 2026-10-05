@@ -13,6 +13,187 @@ function section(start, end) {
   return client.slice(from, to);
 }
 
+function historyRouteHarness(active = true) {
+  const calls = [];
+  const show = { id: "show-1" };
+  const c = vm.createContext({
+    state: { activeShow: active ? show : null, pendingDeepLinkShowId: "pending-show", pendingDeepLinkTarget: { playIntent: true } },
+    overlay: { hidden: !active },
+    appRouter: () => ({ replace: () => assert.fail("history navigation must not replace the destination") }),
+    updateRouteMeta: () => {},
+    closeShow: (options) => calls.push({ action: "close", ...options }),
+    setRoute: (route, options) => calls.push({ action: "route", route, ...options }),
+    applyDiscoveryRoute: () => {},
+    ensureNotFoundSection: () => {},
+    showAuthModal: () => {},
+    findShowBySlugOrId: () => show,
+    openShow: (id, target) => calls.push({ action: "open", id, ...target })
+  });
+  vm.runInContext(section("function handleCleanRoute(", "function getStableShowHue("), c);
+  return { c, calls };
+}
+
+test("browser/phone Back closes details immediately on every non-detail destination", () => {
+  for (const name of ["home", "schedule", "library", "not-found", "login"]) {
+    const { c, calls } = historyRouteHarness();
+    c.handleCleanRoute({ name, appRoute: name, path: "/" });
+    assert.deepEqual(calls[0], { action: "close", skipHistory: true, immediate: true }, name);
+    assert.equal(c.state.pendingDeepLinkShowId, null);
+    assert.equal(c.state.pendingDeepLinkTarget, null);
+    assert.equal(calls.find((call) => call.action === "route").skipHistory, true);
+  }
+});
+
+test("initial Home routing cancels pending deep links without unnecessary close work", () => {
+  const { c, calls } = historyRouteHarness(false);
+  c.handleCleanRoute({ name: "home", appRoute: "home" });
+  assert.equal(calls.some((call) => call.action === "close"), false);
+  assert.equal(c.state.pendingDeepLinkShowId, null);
+});
+
+test("Forward and direct detail/watch routes still open their target without changing history", () => {
+  for (const name of ["anime", "anime-seasons", "anime-season", "anime-episode", "watch"]) {
+    const { c, calls } = historyRouteHarness();
+    c.handleCleanRoute({ name, params: { animeId: "show-1" }, target: { playIntent: name === "watch", episodeNumber: 2 } });
+    assert.equal(calls.some((call) => call.action === "close"), false);
+    assert.deepEqual(calls.find((call) => call.action === "open"), {
+      action: "open", id: "show-1", playIntent: name === "watch", episodeNumber: 2, skipHistory: true
+    });
+  }
+});
+
+function closeShowHarness() {
+  const classes = (initial = []) => {
+    const values = new Set(initial);
+    return { add: (name) => values.add(name), remove: (name) => values.delete(name), contains: (name) => values.has(name) };
+  };
+  const calls = [];
+  const timers = [];
+  const c = vm.createContext({
+    state: { activeShow: { id: "show-1" }, activeOpenToken: "opening-show", activeEpisode: {}, activeEpisodeUrl: "video.mp4", playIntent: true, route: "home" },
+    overlay: { hidden: false, classList: classes() },
+    episodeList: { hidden: false, innerHTML: "episode rows" },
+    document: { body: { classList: classes(["has-embedded-player", "watch-detail-open"]) }, querySelector: () => null },
+    location: { pathname: "/watch/show-1/s1-e2" },
+    appRouter: () => ({ replace: (path) => calls.push(["replace", path]) }),
+    routePathFor: () => "/",
+    updateRouteMeta: () => {},
+    stopActivePlayback: () => calls.push(["stop"]),
+    _latestEpisodeRowsObserver: { disconnect: () => calls.push(["disconnect"]) },
+    setPlayerCinemaOpen: () => {},
+    setWatchDetailLoading: () => {},
+    hideAdultGalleryPanel: () => {},
+    refreshFocusables: () => {},
+    renderCarousel: () => {},
+    resumeVisibleMetadataWarm: () => {},
+    setTimeout: (callback) => timers.push(callback)
+  });
+  vm.runInContext(section("function closeShow(", "function handleWatchBack("), c);
+  return { c, calls, timers };
+}
+
+test("history close stops playback, unlocks the page, and invalidates pending detail work", () => {
+  const { c, calls, timers } = closeShowHarness();
+  c.closeShow({ skipHistory: true, immediate: true });
+  assert.equal(c.overlay.hidden, true);
+  assert.equal(c.state.activeShow, null);
+  assert.equal(c.state.activeEpisode, null);
+  assert.equal(c.state.activeEpisodeUrl, "");
+  assert.equal(c.state.playIntent, false);
+  assert.notEqual(c.state.activeOpenToken, "opening-show");
+  assert.equal(c.document.body.classList.contains("watch-detail-open"), false);
+  assert.equal(c.document.body.classList.contains("has-embedded-player"), false);
+  assert.equal(c.overlay.classList.contains("is-closing"), false);
+  assert.equal(timers.length, 0);
+  assert.equal(calls.filter(([action]) => action === "stop").length, 1);
+  assert.equal(calls.some(([action]) => action === "replace"), false);
+});
+
+test("an old animated close cannot erase a show reopened by Forward", () => {
+  const { c, timers } = closeShowHarness();
+  c.closeShow();
+  assert.equal(c.overlay.hidden, false, "normal button close keeps its existing animation");
+  assert.notEqual(c.state.activeOpenToken, "opening-show");
+  c.state.activeOpenToken = "reopened-show";
+  c.state.activeShow = { id: "show-2" };
+  c.overlay.classList.remove("is-closing");
+  timers[0]();
+  assert.equal(c.overlay.hidden, false);
+  assert.equal(c.state.activeShow.id, "show-2");
+  assert.match(section("async function openShow(", "function selectedEpisodeMatchesTarget("), /overlay\.hidden = false;\s*overlay\.classList\.remove\("is-closing"\)/);
+});
+
+test("Back can immediately finish a close already animating without rewriting history", () => {
+  const { c, calls, timers } = closeShowHarness();
+  c.closeShow();
+  c.closeShow({ skipHistory: true, immediate: true });
+  assert.equal(c.overlay.hidden, true);
+  assert.equal(c.state.activeShow, null);
+  assert.equal(calls.filter(([action]) => action === "replace").length, 1);
+  c.state.activeOpenToken = "reopened-show";
+  c.state.activeShow = { id: "show-2" };
+  c.overlay.hidden = false;
+  timers[0]();
+  assert.equal(c.overlay.hidden, false);
+  assert.equal(c.state.activeShow.id, "show-2");
+});
+
+test("title card highlights follow hover or explicit keyboard/TV focus, not restored browser focus", () => {
+  const from = styles.indexOf(".show-card:is(:hover, .is-tv-focused) {");
+  const to = styles.indexOf(".show-card:active {", from);
+  assert.ok(from >= 0 && to > from);
+  const highlightRules = styles.slice(from, to);
+  assert.doesNotMatch(highlightRules, /:focus-visible|:focus-within/);
+  assert.match(highlightRules, /\.show-card\.is-tv-focused \.thumb-art/);
+  assert.match(highlightRules, /\.show-card:hover \.thumb-art/);
+});
+
+test("moving the pointer clears title focus without losing keyboard or remote navigation", () => {
+  const classes = new Set(["focusable"]);
+  const card = {
+    classList: {
+      add: (name) => classes.add(name),
+      remove: (name) => classes.delete(name),
+      contains: (name) => classes.has(name)
+    }
+  };
+  const listeners = new Map();
+  const c = vm.createContext({
+    lastInputWasPointer: false,
+    document: {
+      querySelectorAll: () => classes.has("is-tv-focused") ? [card] : [],
+      addEventListener: (name, handler) => listeners.set(name, handler)
+    }
+  });
+  vm.runInContext(section("function refreshFocusables()", "// Focus an element for D-pad/remote use"), c);
+  vm.runInContext(section('document.addEventListener("focusin", (event) => {', 'document.querySelectorAll("[data-route]")'), c);
+  listeners.get("focusin")({ target: card });
+  assert.equal(classes.has("is-tv-focused"), true);
+  listeners.get("pointermove")();
+  assert.equal(classes.has("is-tv-focused"), false);
+  listeners.get("focusin")({ target: card });
+  assert.equal(classes.has("is-tv-focused"), false, "restoring focus after a mouse click must not select the title");
+  vm.runInContext("lastInputWasPointer = false", c);
+  listeners.get("focusin")({ target: card });
+  assert.equal(classes.has("is-tv-focused"), true, "keyboard/TV focus remains visible");
+  listeners.get("pointerdown")();
+  assert.equal(classes.has("is-tv-focused"), false);
+});
+
+test("title highlights stop transitioning immediately after the pointer leaves", () => {
+  const from = styles.indexOf("/* Hover can ease in;");
+  const to = styles.indexOf(".watch-overlay {", from);
+  assert.ok(from >= 0 && to > from);
+  const exitRules = styles.slice(from, to);
+  assert.match(exitRules, /\.show-card:not\(:hover\):not\(\.is-tv-focused\)::after/);
+  assert.match(exitRules, /\.thumb-art, \.thumb-poster, \.show-title, \.show-meta, \.episode-pill, \.continue-play/);
+  assert.match(exitRules, /\.release-card:not\(:hover\):not\(\.is-tv-focused\)/);
+  assert.match(exitRules, /transition-duration: 0s/);
+  assert.match(exitRules, /transition-delay: 0s/);
+  assert.match(styles, /\.continue-card:is\(:hover, \.is-tv-focused\) \.continue-play/);
+  assert.match(styles, /\.release-card:is\(:hover, \.is-tv-focused\) \.release-open/);
+});
+
 test("install recommendation uses the native PWA event without API work", () => {
   const feature = section(
     "let deferredInstallPrompt",

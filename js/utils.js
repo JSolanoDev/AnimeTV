@@ -518,7 +518,7 @@ function sortCarouselCurrency(items, nowMs = Date.now(), lastAiredFor = () => nu
 // numeric instant is authoritative, so prefer it; a legacy HH:MM string is
 // re-rendered through the same formatter instead of being printed as-is.
 function showAiringTimeText(show) {
-  const ms = Number(show && show.nextAiringAt || 0);
+  const ms = animeYTConfirmedAiringInstant(show) || Number(show && show.nextAiringAt || 0);
   if (ms > 0) return formatAiringClock(new Date(ms));
   const stored = String(show && show.time || "").trim();
   if (!stored || stored === "TBA" || stored === "Local") return "";
@@ -740,7 +740,16 @@ function verifiedCarouselArtwork(art, currentUrl) {
   } catch { return ""; }
 }
 
+function animeYTConfirmedAiringInstant(show = {}, now = Date.now()) {
+  const at = Number(show?.animeytAiringAt || 0);
+  const episode = Number(show?.nextAiringEpisodeNumber || show?.animeytAiringEpisode || 0);
+  return show?.airingTimeSource === "AnimeYT" && at > now && at < now + 7 * 86400000
+    && episode === Number(show.animeytAiringEpisode) ? at : 0;
+}
+
 function confirmedCarouselAiringInstant(show = {}, now = Date.now()) {
+  const providerAt = animeYTConfirmedAiringInstant(show, now);
+  if (providerAt) return providerAt;
   const instant = Number(show.confirmedNextAiringAt || 0);
   // Never roll an old instant forward or infer the slot from provider uploads.
   if (Number.isFinite(instant) && instant > now - 7 * DAY_MS && instant < now + 21 * DAY_MS) return instant;
@@ -755,6 +764,7 @@ if (typeof module !== "undefined" && module.exports) {
     formatAiringWeekday,
     verifiedCarouselArtwork,
     confirmedCarouselAiringInstant,
+    animeYTConfirmedAiringInstant,
   broadcastInstant,
   nextWeeklyAiringFrom,
     currentAnimeSeason,

@@ -33,6 +33,12 @@ jobs:
       - name: Prepare recent artwork, descriptions and airing schedules
         run: node scripts/refresh-latest-artwork.mjs
         timeout-minutes: 16
+      - name: Refresh AnimeYT recent identities and UTC schedule
+        run: node scripts/build-animeyt-index.mjs --incremental
+        timeout-minutes: 2
+        continue-on-error: true
+      - name: Refresh homepage starter catalog
+        run: node scripts/build-homepage-bootstrap.mjs
       - name: Verify artwork and episode identities
         run: node --test scripts/test-new-release-artwork.mjs
       - name: Publish only validated asset changes

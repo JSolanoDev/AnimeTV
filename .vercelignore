@@ -16,7 +16,7 @@ screen.png
 middleware.ts
 app
 components
-lib
+lib/supabase
 node_modules
 
 # Retired adult-source experiments. Production Adult Mode uses the supported

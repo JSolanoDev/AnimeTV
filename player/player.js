@@ -3,6 +3,7 @@
 
   const params = new URLSearchParams(window.location.search);
   const sourceUrl = firstParam("src", "url", "videoUrl", "file");
+  const castSourceUrl = firstParam("castSrc") || sourceUrl;
   const title = firstParam("title", "name") || "ZenkaiTV Video";
   const episode = firstParam("episode", "ep") || "";
   const poster = firstParam("poster", "thumb") || "";
@@ -790,7 +791,7 @@
 
   // The upstream the proxy is fronting, when there is one.
   function castUpstreamUrl() {
-    try { return new URL(sourceUrl, window.location.origin).searchParams.get("url") || ""; }
+    try { return new URL(castSourceUrl, window.location.origin).searchParams.get("url") || ""; }
     catch (error) { return ""; }
   }
 
@@ -2303,6 +2304,7 @@
     });
     art.on("video:playing", () => {
       playbackHasStarted = true;
+      hideError();
       finishRebufferObservation(video);
       clearStartupWatchdog();
       cancelScheduledRecovery();
@@ -3167,7 +3169,7 @@
   // has no base to resolve that against, so the load could never even be tried.
   function castMediaUrl() {
     try {
-      return new URL(sourceUrl, window.location.origin).href;
+      return new URL(castSourceUrl, window.location.origin).href;
     } catch (error) {
       return "";
     }

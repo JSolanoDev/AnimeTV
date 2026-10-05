@@ -72,6 +72,10 @@ function isAnimeNeonSource(source = {}) {
   return text.includes("animeneon") || Boolean(knownSourceServer("animeneon")?.match(source));
 }
 
+function isAnimeYTSource(source = {}) {
+  return source.animeytPreferred === true || sourceIdentityText(source).includes("animeyt");
+}
+
 function isAnimeAv1Source(source = {}) {
   const text = sourceIdentityText(source);
   return text.includes("animeav1") || Boolean(knownSourceServer("animeav1")?.match(source));
@@ -151,6 +155,7 @@ function getPrimarySourceFilterOptions(show = null) {
 // Provider group for source ordering: AnimeAV1 and its regular backups first,
 // then anything else.
 function _sourceGroupPriority(source = {}) {
+  if (isAnimeYTSource(source)) return -1;
   if (isAnimeNeonSource(source)) return 0;
   if (isAnimeAv1Source(source) || isJKAnimeSource(source)) return 1;
   if (isTioAnimeSource(source)) return 2;
@@ -181,6 +186,8 @@ function sourcePreferenceScore(source = {}) {
   if (isHentaiOceanSource(source))       return 40 + compatibilityPenalty;
   if (isPreferredAdultSource(source))    return 0 + compatibilityPenalty;
   if (identity.includes("hentaila"))     return 1 + compatibilityPenalty;
+
+  if (isAnimeYTSource(source) && isDirect) return -6 + compatibilityPenalty;
 
   if (isUpnShareSource(source))          return -5 + compatibilityPenalty;
 
@@ -246,6 +253,7 @@ function getEpisodePlaybackSources(episode = {}) {
     !isBlockedPlaybackSource(source)
     && (
       isAnimeAv1Source(source)
+      || isAnimeYTSource(source)
       || isAnimeNeonSource(source)
       || isJKAnimeSource(source)
       || isTioAnimeSource(source)
@@ -264,6 +272,7 @@ if (typeof module !== "undefined" && module.exports) {
     isAdultFallbackSource,
     isHentaiOceanSource,
     isAnimeNeonSource,
+    isAnimeYTSource,
     isAnimeAv1Source,
     isUpnShareSource,
     isJKAnimeSource,

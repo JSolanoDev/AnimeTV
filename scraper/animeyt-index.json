@@ -1,0 +1,5623 @@
+{
+  "schema": 1,
+  "generatedAt": "2026-10-05T18:37:05.292Z",
+  "items": [
+    {
+      "slug": "100-man-no-inochi-no-ue-ni-ore-wa-tatteiru-temporada-2",
+      "title": "100-man no Inochi no Ue ni Ore wa Tatteiru",
+      "season": 2
+    },
+    {
+      "slug": "16bit-sensation-another-layer",
+      "title": "16bit Sensation: Another Layer",
+      "season": 1
+    },
+    {
+      "slug": "180-byou-de-kimi-no-mimi-wo-shiawase-ni-dekiru-ka",
+      "title": "180 Byou de Kimi no Mimi wo Shiawase ni Dekiru ka?",
+      "season": 1
+    },
+    {
+      "slug": "3-byougo-yajuu-goukon-de-sumi-ni-ita-kare-wa-midara-nikushoku-deshita",
+      "title": "3-byougo, Yajuu.: Goukon de Sumi ni Ita Kare wa Midara Nikushoku deshita",
+      "season": 1
+    },
+    {
+      "slug": "30-sai-made-doutei-dato-mahoutsukai-ni-nareru-rashii",
+      "title": "30-sai made Doutei dato Mahoutsukai ni Nareru Rashii",
+      "season": 1
+    },
+    {
+      "slug": "4-nin-wa-sorezore-uso-wo-tsuku",
+      "title": "4-nin wa Sorezore Uso wo Tsuku",
+      "season": 1
+    },
+    {
+      "slug": "86-eighty-six",
+      "title": "86: Eighty Six",
+      "season": 1
+    },
+    {
+      "slug": "86-eighty-six-especial",
+      "title": "86: Eighty Six",
+      "season": 1
+    },
+    {
+      "slug": "86-eighty-six-temporada-2",
+      "title": "86: Eighty Six",
+      "season": 2
+    },
+    {
+      "slug": "a-rank-party-wo-ridatsu-shita-ore-wa-moto-oshiego-tachi-to-meikyuu-shinbu-wo-mezasu",
+      "title": "A-Rank Party wo Ridatsu shita Ore wa, Moto Oshiego-tachi to Meikyuu Shinbu wo Mezasu.",
+      "season": 1
+    },
+    {
+      "slug": "acro-trip",
+      "title": "Acro Trip",
+      "season": 1
+    },
+    {
+      "slug": "aharen-san-wa-hakarenai",
+      "title": "Aharen-san wa Hakarenai",
+      "season": 1
+    },
+    {
+      "slug": "aharen-san-wa-hakarenai-temporada-2",
+      "title": "Aharen-san wa Hakarenai",
+      "season": 2
+    },
+    {
+      "slug": "ai-no-idenshi",
+      "title": "AI no Idenshi",
+      "season": 1
+    },
+    {
+      "slug": "aishiteru-game-wo-owarasetai",
+      "title": "Aishiteru Game wo Owarasetai",
+      "season": 1
+    },
+    {
+      "slug": "aiyou-de-mishi",
+      "title": "Aiyou de Mishi",
+      "season": 1
+    },
+    {
+      "slug": "akebi-chan-no-sailor-fuku",
+      "title": "Akebi-chan no Sailor-fuku",
+      "season": 1
+    },
+    {
+      "slug": "akujiki-reijou-to-kyouketsu-koushaku",
+      "title": "Akujiki Reijou to Kyouketsu Koushaku",
+      "season": 1
+    },
+    {
+      "slug": "akuma-kun",
+      "title": "Akuma-kun",
+      "season": 1
+    },
+    {
+      "slug": "akuyaku-reijou-level-99-watashi-wa-ura-boss-desu-ga-maou-dewa-arimasen",
+      "title": "Akuyaku Reijou Level 99: Watashi wa Ura-Boss desu ga Maou dewa Arimasen",
+      "season": 1
+    },
+    {
+      "slug": "akuyaku-reijou-nanode-last-boss-wo-kattemimashita",
+      "title": "Akuyaku Reijou nanode Last Boss wo Kattemimashita",
+      "season": 1
+    },
+    {
+      "slug": "akuyaku-reijou-tensei-ojisan",
+      "title": "Akuyaku Reijou Tensei Ojisan",
+      "season": 1
+    },
+    {
+      "slug": "akuyaku-reijou-wa-ringoku-no-outaishi-ni-dekiai-sareru",
+      "title": "Akuyaku Reijou wa Ringoku no Outaishi ni Dekiai sareru",
+      "season": 1
+    },
+    {
+      "slug": "alma-chan-wa-kazoku-ni-naritai",
+      "title": "Alma-chan wa Kazoku ni Naritai",
+      "season": 1
+    },
+    {
+      "slug": "amagami-san-chi-no-enmusubi",
+      "title": "Amagami-san Chi no Enmusubi",
+      "season": 1
+    },
+    {
+      "slug": "ame-to-kimi-to",
+      "title": "Ame to Kimi to",
+      "season": 1
+    },
+    {
+      "slug": "ameku-takao-no-suiri-karte",
+      "title": "Ameku Takao no Suiri Karte",
+      "season": 1
+    },
+    {
+      "slug": "another-journey-to-the-west",
+      "title": "Another Journey to the West",
+      "season": 1
+    },
+    {
+      "slug": "ansatsusha-de-aru-ore-no-status-ga-yuusha-yori-mo-akiraka-ni-tsuyoi-no-da-ga",
+      "title": "Ansatsusha de Aru Ore no Status ga Yuusha yori mo Akiraka ni Tsuyoi no da ga",
+      "season": 1
+    },
+    {
+      "slug": "ao-ashi",
+      "title": "Ao Ashi",
+      "season": 1
+    },
+    {
+      "slug": "ao-ashi-temporada-2",
+      "title": "Ao Ashi",
+      "season": 2
+    },
+    {
+      "slug": "ao-no-exorcist-shimane-illuminati-hen",
+      "title": "Ao no Exorcist: Shimane Illuminati-hen",
+      "season": 1
+    },
+    {
+      "slug": "ao-no-exorcist-yosuga-hen",
+      "title": "Ao no Exorcist: Yosuga-hen",
+      "season": 1
+    },
+    {
+      "slug": "ao-no-exorcist-yuki-no-hate-hen",
+      "title": "Ao no Exorcist: Yuki no Hate-hen",
+      "season": 1
+    },
+    {
+      "slug": "ao-no-hako",
+      "title": "Ao no Hako",
+      "season": 1
+    },
+    {
+      "slug": "ao-no-hako-temporada-2",
+      "title": "Ao no Hako",
+      "season": 2
+    },
+    {
+      "slug": "ao-no-orchestra",
+      "title": "Ao no Orchestra",
+      "season": 1
+    },
+    {
+      "slug": "apocalypse-hotel",
+      "title": "Apocalypse Hotel",
+      "season": 1
+    },
+    {
+      "slug": "arcane-temporada-2",
+      "title": "Arcane",
+      "season": 2
+    },
+    {
+      "slug": "arifureta-shokugyou-de-sekai-saikyou",
+      "title": "Arifureta Shokugyou de Sekai Saikyou",
+      "season": 1
+    },
+    {
+      "slug": "arifureta-shokugyou-de-sekai-saikyou-ova-maboroshi-no-bouken-to-kiseki-no-kaigou",
+      "title": "Arifureta Shokugyou de Sekai Saikyou (OVA): Maboroshi no Bouken to Kiseki no Kaigou",
+      "season": 1
+    },
+    {
+      "slug": "arifureta-shokugyou-de-sekai-saikyou-temporada-2",
+      "title": "Arifureta Shokugyou de Sekai Saikyou",
+      "season": 2
+    },
+    {
+      "slug": "arifureta-shokugyou-de-sekai-saikyou-temporada-3",
+      "title": "Arifureta Shokugyou de Sekai Saikyou",
+      "season": 3
+    },
+    {
+      "slug": "arknights-reimei-zensou",
+      "title": "Arknights: Reimei Zensou",
+      "season": 1
+    },
+    {
+      "slug": "arknights-rise-from-ember",
+      "title": "Arknights: Rise from Ember",
+      "season": 1
+    },
+    {
+      "slug": "arne-no-jikenbo",
+      "title": "Arne no Jikenbo",
+      "season": 1
+    },
+    {
+      "slug": "around-40-otoko-no-isekai-tsuuhan",
+      "title": "Around 40 Otoko no Isekai Tsuuhan",
+      "season": 1
+    },
+    {
+      "slug": "ars-no-kyojuu",
+      "title": "Ars no Kyojuu",
+      "season": 1
+    },
+    {
+      "slug": "aru-asa-dummy-head-mic-ni-natteita-ore-kun-no-jinsei",
+      "title": "Aru Asa Dummy Head Mic ni Natteita Ore-kun no Jinsei",
+      "season": 1
+    },
+    {
+      "slug": "astro-note",
+      "title": "Astro Note",
+      "season": 1
+    },
+    {
+      "slug": "atri-my-dear-moments",
+      "title": "Atri: My Dear Moments",
+      "season": 1
+    },
+    {
+      "slug": "awajima-hyakkei",
+      "title": "Awajima Hyakkei",
+      "season": 1
+    },
+    {
+      "slug": "ayaka",
+      "title": "Ayaka",
+      "season": 1
+    },
+    {
+      "slug": "ayakashi-triangle",
+      "title": "Ayakashi Triangle",
+      "season": 1
+    },
+    {
+      "slug": "azur-lane-bisoku-zenshin-ni",
+      "title": "Azur Lane: Bisoku Zenshin! Ni!!",
+      "season": 1
+    },
+    {
+      "slug": "babanbabanban-vampire",
+      "title": "Babanbabanban Vampire",
+      "season": 1
+    },
+    {
+      "slug": "baki-dou",
+      "title": "Baki-dou",
+      "season": 1
+    },
+    {
+      "slug": "bakuten",
+      "title": "Bakuten!!",
+      "season": 1
+    },
+    {
+      "slug": "ballpark-de-tsukamaete",
+      "title": "Ballpark de Tsukamaete!",
+      "season": 1
+    },
+    {
+      "slug": "baraou-no-souretsu",
+      "title": "Baraou no Souretsu",
+      "season": 1
+    },
+    {
+      "slug": "bartender-kami-no-glass",
+      "title": "Bartender: Kami no Glass",
+      "season": 1
+    },
+    {
+      "slug": "bastard-heavy-metal-dark-fantasy",
+      "title": "Bastard!! Heavy Metal, Dark Fantasy (ONA)",
+      "season": 1
+    },
+    {
+      "slug": "bastard-heavy-metal-dark-fantasy-temporada-2",
+      "title": "Bastard!! Heavy Metal, Dark Fantasy",
+      "season": 2
+    },
+    {
+      "slug": "beastars-final-season",
+      "title": "Beastars Final Season",
+      "season": 1
+    },
+    {
+      "slug": "beastars-temporada-2",
+      "title": "Beastars",
+      "season": 2
+    },
+    {
+      "slug": "benriya-saitou-san-isekai-ni-iku",
+      "title": "Benriya Saitou-san, Isekai ni Iku",
+      "season": 1
+    },
+    {
+      "slug": "berserk-arco-de-la-edad-de-oro-edicion-conmemorativa",
+      "title": "Berserk: Arco de la Edad de Oro – Edición Conmemorativa",
+      "season": 1
+    },
+    {
+      "slug": "berserk-ougon-jidai-hen-memorial-edition",
+      "title": "Berserk: Ougon Jidai-hen – Memorial Edition",
+      "season": 1
+    },
+    {
+      "slug": "beyblade-x",
+      "title": "Beyblade X",
+      "season": 1
+    },
+    {
+      "slug": "black-clover",
+      "title": "Black Clover",
+      "season": 1
+    },
+    {
+      "slug": "black-clover-temporada-2",
+      "title": "Black Clover",
+      "season": 2
+    },
+    {
+      "slug": "black-torch-tv",
+      "title": "Black Torch",
+      "season": 1
+    },
+    {
+      "slug": "bleach-sennen-kessen-hen-kashin-tan-2026",
+      "title": "Bleach: Sennen Kessen-hen – Kashin-tan",
+      "season": 1
+    },
+    {
+      "slug": "blue-archive-the-animation",
+      "title": "Blue Archive the Animation",
+      "season": 1
+    },
+    {
+      "slug": "blue-lock-vs-u-20-japan",
+      "title": "Blue Lock vs. U-20 Japan",
+      "season": 1
+    },
+    {
+      "slug": "blue-period",
+      "title": "Blue Period",
+      "season": 1
+    },
+    {
+      "slug": "bocchi-the-rock",
+      "title": "Bocchi the Rock!",
+      "season": 1
+    },
+    {
+      "slug": "boku-no-hero-academia-i-am-a-hero-too",
+      "title": "Boku no Hero Academia: I Am a Hero Too",
+      "season": 1
+    },
+    {
+      "slug": "boku-no-hero-academia-memories",
+      "title": "Boku no Hero Academia: Memories",
+      "season": 1
+    },
+    {
+      "slug": "boku-no-hero-academia-more",
+      "title": "Boku no Hero Academia: More",
+      "season": 1
+    },
+    {
+      "slug": "boku-no-hero-academia-temporada-2",
+      "title": "Boku no Hero Academia",
+      "season": 2
+    },
+    {
+      "slug": "boku-no-hero-academia-temporada-3",
+      "title": "Boku no Hero Academia",
+      "season": 3
+    },
+    {
+      "slug": "boku-no-hero-academia-temporada-4",
+      "title": "Boku no Hero Academia",
+      "season": 4
+    },
+    {
+      "slug": "boku-no-hero-academia-temporada-5",
+      "title": "Boku no Hero Academia",
+      "season": 5
+    },
+    {
+      "slug": "boku-no-hero-academia-temporada-6",
+      "title": "Boku no Hero Academia",
+      "season": 6
+    },
+    {
+      "slug": "boku-no-hero-academia-temporada-7",
+      "title": "Boku no Hero Academia",
+      "season": 7
+    },
+    {
+      "slug": "boku-no-hero-academia-temporada-final",
+      "title": "Boku no Hero Academia: Temporada Final",
+      "season": 1
+    },
+    {
+      "slug": "boku-no-hero-academia-ua-heroes-battle",
+      "title": "Boku no Hero Academia: UA Heroes Battle",
+      "season": 1
+    },
+    {
+      "slug": "boku-no-kokoro-no-yabai-yatsu",
+      "title": "Boku no Kokoro no Yabai Yatsu",
+      "season": 1
+    },
+    {
+      "slug": "boku-no-kokoro-no-yabai-yatsu-temporada-2",
+      "title": "Boku no Kokoro no Yabai Yatsu",
+      "season": 2
+    },
+    {
+      "slug": "boku-no-kokoro-no-yabai-yatsu-twi-yaba",
+      "title": "Boku no Kokoro no Yabai Yatsu: Twi-Yaba",
+      "season": 1
+    },
+    {
+      "slug": "boku-no-tsuma-wa-kanjou-ga-nai",
+      "title": "Boku no Tsuma wa Kanjou ga Nai",
+      "season": 1
+    },
+    {
+      "slug": "bokura-no-ameiro-protocol",
+      "title": "Bokura no Ameiro Protocol",
+      "season": 1
+    },
+    {
+      "slug": "bokutachi-no-remake",
+      "title": "Bokutachi no Remake",
+      "season": 1
+    },
+    {
+      "slug": "botsuraku-yotei-no-kizoku-dakedo-hima-datta-kara-mahou-wo-kiwametemita",
+      "title": "Botsuraku Yotei no Kizoku dakedo, Hima Datta kara Mahou wo Kiwametemita",
+      "season": 1
+    },
+    {
+      "slug": "boukensha-ni-naritai-to-miyako-ni-deteitta-musume-ga-s-rank-ni-natteta",
+      "title": "Boukensha ni Naritai to Miyako ni Deteitta Musume ga S-Rank ni Natteta",
+      "season": 1
+    },
+    {
+      "slug": "boukyaku-battery-tv",
+      "title": "Boukyaku Battery (TV)",
+      "season": 1
+    },
+    {
+      "slug": "boushoku-no-berserk",
+      "title": "Boushoku no Berserk",
+      "season": 1
+    },
+    {
+      "slug": "bucchigire",
+      "title": "Bucchigire!",
+      "season": 1
+    },
+    {
+      "slug": "bucchigiri",
+      "title": "Bucchigiri?!",
+      "season": 1
+    },
+    {
+      "slug": "buchigire-reijou-wa-houfuku-wo-chikaimashita-madousho-no-chikara-de-sokoku-wo-tatakitsubushimasu",
+      "title": "Buchigire Reijou wa Houfuku wo Chikaimashita. Madousho no Chikara de Sokoku wo Tatakitsubushimasu",
+      "season": 1
+    },
+    {
+      "slug": "buddy-daddies",
+      "title": "Buddy Daddies",
+      "season": 1
+    },
+    {
+      "slug": "bukiyou-na-senpai",
+      "title": "Bukiyou na Senpai.",
+      "season": 1
+    },
+    {
+      "slug": "bullbuster",
+      "title": "Bullbuster",
+      "season": 1
+    },
+    {
+      "slug": "bullet-bullet",
+      "title": "Bullet/Bullet",
+      "season": 1
+    },
+    {
+      "slug": "bungou-stray-dogs-temporada-4",
+      "title": "Bungou Stray Dogs",
+      "season": 4
+    },
+    {
+      "slug": "bungou-stray-dogs-temporada-5",
+      "title": "Bungou Stray Dogs",
+      "season": 5
+    },
+    {
+      "slug": "burn-the-witch-0-8",
+      "title": "Burn the Witch #0.8",
+      "season": 1
+    },
+    {
+      "slug": "buta-no-liver-wa-kanetsu-shiro",
+      "title": "Buta no Liver wa Kanetsu Shiro",
+      "season": 1
+    },
+    {
+      "slug": "c-danchi",
+      "title": "C Danchi",
+      "season": 1
+    },
+    {
+      "slug": "cats-eye",
+      "title": "Cat’s♥Eye",
+      "season": 1
+    },
+    {
+      "slug": "chainsaw-man-recap",
+      "title": "Chainsaw Man Recap",
+      "season": 1
+    },
+    {
+      "slug": "cheat-kusushi-no-slow-life-isekai-ni-tsukurou-drugstore",
+      "title": "Cheat Kusushi no Slow Life: Isekai ni Tsukurou Drugstore",
+      "season": 1
+    },
+    {
+      "slug": "chi-chikyuu-no-undou-ni-tsuite",
+      "title": "Chi.: Chikyuu no Undou ni Tsuite",
+      "season": 1
+    },
+    {
+      "slug": "chichi-wa-eiyuu-haha-wa-seirei-musume-no-watashi-wa-tenseisha",
+      "title": "Chichi wa Eiyuu, Haha wa Seirei, Musume no Watashi wa Tenseisha.",
+      "season": 1
+    },
+    {
+      "slug": "chitose-kun-wa-ramune-bin-no-naka",
+      "title": "Chitose-kun wa Ramune Bin no Naka",
+      "season": 1
+    },
+    {
+      "slug": "chiyu-mahou-no-machigatta-tsukaikata",
+      "title": "Chiyu Mahou no Machigatta Tsukaikata",
+      "season": 1
+    },
+    {
+      "slug": "chotto-dake-ai-ga-omoi-dark-elf-ga-isekai-kara-oikaketekita",
+      "title": "Chotto dake Ai ga Omoi Dark Elf ga Isekai kara Oikaketekita",
+      "season": 1
+    },
+    {
+      "slug": "chou-futsuu-mahou-shoujo-asumi-toruverse",
+      "title": "Chou Futsuu Mahou Shoujo Asumi Toruverse",
+      "season": 1
+    },
+    {
+      "slug": "choujun-choujou-senpai",
+      "title": "Choujun! Choujou-senpai",
+      "season": 1
+    },
+    {
+      "slug": "cinderella-chef-audio-japones",
+      "title": "Cinderella Chef (Audio Japonés)",
+      "season": 1
+    },
+    {
+      "slug": "cinderella-chef-temporada-3",
+      "title": "Cinderella Chef",
+      "season": 3
+    },
+    {
+      "slug": "city-the-animation",
+      "title": "City The Animation",
+      "season": 1
+    },
+    {
+      "slug": "class-de-2-banme-ni-kawaii-onnanoko-to-tomodachi-ni-natta",
+      "title": "Class de 2-banme ni Kawaii Onnanoko to Tomodachi ni Natta",
+      "season": 1
+    },
+    {
+      "slug": "class-no-daikirai-na-joshi-to-kekkon-suru-koto-ni-natta",
+      "title": "Class no Daikirai na Joshi to Kekkon suru Koto ni Natta.",
+      "season": 1
+    },
+    {
+      "slug": "clevatess-ii-majuu-no-ou-to-itsuwari-no-yuusha-denshou",
+      "title": "Clevatess : Majuu no Ou to Itsuwari no Yuusha Denshou",
+      "season": 1
+    },
+    {
+      "slug": "compass-2-0-sentou-setsuri-kaiseki-system",
+      "title": "#Compass 2.0: Sentou Setsuri Kaiseki System",
+      "season": 1
+    },
+    {
+      "slug": "crowned-in-a-hundred-days-bai-ri-cheng-wang",
+      "title": "Crowned in a Hundred Days (Bai Ri Cheng Wang)",
+      "season": 1
+    },
+    {
+      "slug": "cyberpunk-edgerunners",
+      "title": "Cyberpunk: Edgerunners",
+      "season": 1
+    },
+    {
+      "slug": "cyberpunk-edgerunners-temporada-2",
+      "title": "Cyberpunk: Edgerunners",
+      "season": 2
+    },
+    {
+      "slug": "d4dj-double-mix",
+      "title": "D4DJ Double Mix",
+      "season": 1
+    },
+    {
+      "slug": "dance-dance-danseur",
+      "title": "Dance Dance Danseur",
+      "season": 1
+    },
+    {
+      "slug": "dark-gathering",
+      "title": "Dark Gathering",
+      "season": 1
+    },
+    {
+      "slug": "dark-machine-the-animation",
+      "title": "Dark Machine: The Animation",
+      "season": 1
+    },
+    {
+      "slug": "dark-moon-tsuki-no-saidan",
+      "title": "Dark Moon: Tsuki no Saidan",
+      "season": 1
+    },
+    {
+      "slug": "dark-summoner-to-dekiteiru",
+      "title": "Dark Summoner to Dekiteiru",
+      "season": 1
+    },
+    {
+      "slug": "darwin-jihen",
+      "title": "Darwin Jihen",
+      "season": 1
+    },
+    {
+      "slug": "date-a-live-iv",
+      "title": "Date A Live IV",
+      "season": 4
+    },
+    {
+      "slug": "date-a-live-v",
+      "title": "Date A Live V",
+      "season": 5
+    },
+    {
+      "slug": "dead-account",
+      "title": "Dead Account",
+      "season": 1
+    },
+    {
+      "slug": "dead-mount-death-play",
+      "title": "Dead Mount Death Play",
+      "season": 1
+    },
+    {
+      "slug": "deaimon",
+      "title": "Deaimon",
+      "season": 1
+    },
+    {
+      "slug": "deatte-5-byou-de-battle",
+      "title": "Deatte 5-byou de Battle",
+      "season": 1
+    },
+    {
+      "slug": "debu-to-love-to-ayamachi-to",
+      "title": "Debu to Love to Ayamachi to!",
+      "season": 1
+    },
+    {
+      "slug": "deep-insanity-the-lost-child",
+      "title": "Deep Insanity: The Lost Child",
+      "season": 1
+    },
+    {
+      "slug": "deji-meets-girl",
+      "title": "Deji Meets Girl",
+      "season": 1
+    },
+    {
+      "slug": "dekin-no-mogura",
+      "title": "Dekin no Mogura",
+      "season": 1
+    },
+    {
+      "slug": "dekiru-neko-wa-kyou-mo-yuuutsu",
+      "title": "Dekiru Neko wa Kyou mo Yuuutsu",
+      "season": 1
+    },
+    {
+      "slug": "dekisokonai-to-yobareta-motoeiyuu-wa-jikka-kara-tsuihou-sareta-node-sukikatte-ni-ikiru-koto-ni-shita",
+      "title": "Dekisokonai to Yobareta Motoeiyuu wa Jikka kara Tsuihou sareta node Sukikatte ni Ikiru Koto ni Shita",
+      "season": 1
+    },
+    {
+      "slug": "dekoboko-majo-no-oyako-jijou",
+      "title": "Dekoboko Majo no Oyako Jijou",
+      "season": 1
+    },
+    {
+      "slug": "delicos-nursery",
+      "title": "Delico’s Nursery",
+      "season": 1
+    },
+    {
+      "slug": "demons-crest",
+      "title": "Demons’ Crest",
+      "season": 1
+    },
+    {
+      "slug": "devil-may-cry-2007",
+      "title": "Devil May Cry (2007)",
+      "season": 1
+    },
+    {
+      "slug": "devil-may-cry-2025",
+      "title": "Devil May Cry (2025)",
+      "season": 1
+    },
+    {
+      "slug": "diamond-no-ace-act-ii-temporada-2",
+      "title": "Diamond no Ace: Act II",
+      "season": 2
+    },
+    {
+      "slug": "digimon-beatbreak",
+      "title": "Digimon Beatbreak",
+      "season": 1
+    },
+    {
+      "slug": "digimon-ghost-game",
+      "title": "Digimon Ghost Game",
+      "season": 1
+    },
+    {
+      "slug": "do-it-yourself",
+      "title": "Do It Yourself!!",
+      "season": 1
+    },
+    {
+      "slug": "dolls-frontline",
+      "title": "Dolls’ Frontline",
+      "season": 1
+    },
+    {
+      "slug": "dorohedoro-temporada-2",
+      "title": "Dorohedoro",
+      "season": 2
+    },
+    {
+      "slug": "dosanko-gal-wa-namara-menkoi",
+      "title": "Dosanko Gal wa Namara Menkoi",
+      "season": 1
+    },
+    {
+      "slug": "dota-dragons-blood",
+      "title": "DOTA: Dragon’s Blood",
+      "season": 1
+    },
+    {
+      "slug": "dota-dragons-blood-temporada-2",
+      "title": "DOTA: Dragon’s Blood",
+      "season": 2
+    },
+    {
+      "slug": "doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu",
+      "title": "Doumo, Suki na Hito ni Horegusuri wo Irai sareta Majo desu",
+      "season": 1
+    },
+    {
+      "slug": "douse-koishite-shimaunda-temporada-2",
+      "title": "Douse, Koishite Shimaunda",
+      "season": 2
+    },
+    {
+      "slug": "dr-stone-new-world",
+      "title": "Dr. Stone: New World",
+      "season": 1
+    },
+    {
+      "slug": "dr-stone-ryuusui",
+      "title": "Dr. Stone: Ryuusui",
+      "season": 1
+    },
+    {
+      "slug": "dr-stone-science-future",
+      "title": "Dr. Stone: Science Future",
+      "season": 1
+    },
+    {
+      "slug": "dr-stone-temporada-2",
+      "title": "Dr. Stone",
+      "season": 2
+    },
+    {
+      "slug": "dragon-ball-super-beerus",
+      "title": "Dragon Ball Super: Beerus",
+      "season": 1
+    },
+    {
+      "slug": "dragon-ie-wo-kau",
+      "title": "Dragon, Ie wo Kau.",
+      "season": 1
+    },
+    {
+      "slug": "dragon-raja-audio-japones",
+      "title": "Dragon Raja (Audio Japonés)",
+      "season": 1
+    },
+    {
+      "slug": "dragon-raja-temporada-2",
+      "title": "Dragon Raja",
+      "season": 2
+    },
+    {
+      "slug": "dragon-raja-temporada-2-audio-japones",
+      "title": "Dragon Raja (Audio Japonés)",
+      "season": 2
+    },
+    {
+      "slug": "dungeon-meshi",
+      "title": "Dungeon Meshi",
+      "season": 1
+    },
+    {
+      "slug": "dungeon-ni-deai-wo-motomeru-no-wa-machigatteiru-darou-ka-iv-fuka-shou-yakusai-hen",
+      "title": "Dungeon ni Deai wo Motomeru no wa Machigatteiru Darou ka IV",
+      "season": 1
+    },
+    {
+      "slug": "dungeon-ni-deai-wo-motomeru-no-wa-machigatteiru-darou-ka-v-houjou-no-megami-hen",
+      "title": "Dungeon ni Deai wo Motomeru no wa Machigatteiru Darou ka V: Houjou no Megami-hen",
+      "season": 1
+    },
+    {
+      "slug": "dungeon-no-naka-no-hito",
+      "title": "Dungeon no Naka no Hito",
+      "season": 1
+    },
+    {
+      "slug": "edens-zero",
+      "title": "Edens Zero",
+      "season": 1
+    },
+    {
+      "slug": "edens-zero-temporada-2",
+      "title": "Edens Zero",
+      "season": 2
+    },
+    {
+      "slug": "eiyuu-kyoushitsu",
+      "title": "Eiyuu Kyoushitsu",
+      "season": 1
+    },
+    {
+      "slug": "elf-san-wa-yaserarenai",
+      "title": "Elf-san wa Yaserarenai.",
+      "season": 1
+    },
+    {
+      "slug": "engage-kiss",
+      "title": "Engage Kiss",
+      "season": 1
+    },
+    {
+      "slug": "eris-no-seihai",
+      "title": "Eris no Seihai",
+      "season": 1
+    },
+    {
+      "slug": "fairies-album-temporada-3",
+      "title": "Fairies Album",
+      "season": 3
+    },
+    {
+      "slug": "fairies-albums-bai-yao-pu-temporada-4",
+      "title": "Fairies Albums (Bai Yao Pu)",
+      "season": 4
+    },
+    {
+      "slug": "fairy-tail-100-nen-quest",
+      "title": "Fairy Tail: 100-nen Quest",
+      "season": 1
+    },
+    {
+      "slug": "false-memory-jiyi-guanli-ju-2026",
+      "title": "False Memory (Jiyi Guanli Ju) (2026)",
+      "season": 1
+    },
+    {
+      "slug": "fantasy-bishoujo-juniku-ojisan-to",
+      "title": "Fantasy Bishoujo Juniku Ojisan to",
+      "season": 1
+    },
+    {
+      "slug": "farmagia",
+      "title": "Farmagia",
+      "season": 1
+    },
+    {
+      "slug": "fate-grand-carnival-ova",
+      "title": "Fate/Grand Carnival (OVA)",
+      "season": 1
+    },
+    {
+      "slug": "fate-strange-fake",
+      "title": "Fate/strange Fake",
+      "season": 1
+    },
+    {
+      "slug": "fate-strange-fake-whispers-of-dawn-2023",
+      "title": "Fate/strange Fake: Whispers of Dawn",
+      "season": 1
+    },
+    {
+      "slug": "flcl-grunge",
+      "title": "FLCL: Grunge",
+      "season": 1
+    },
+    {
+      "slug": "flcl-shoegaze",
+      "title": "FLCL: Shoegaze",
+      "season": 1
+    },
+    {
+      "slug": "food-court-de-mata-ashita",
+      "title": "Food Court de, Mata Ashita.",
+      "season": 1
+    },
+    {
+      "slug": "fool-night",
+      "title": "Fool Night",
+      "season": 1
+    },
+    {
+      "slug": "fruits-basket-the-final",
+      "title": "Fruits Basket: The Final",
+      "season": 1
+    },
+    {
+      "slug": "fuguushoku-kanteishi-ga-jitsu-wa-saikyou-datta",
+      "title": "Fuguushoku «Kanteishi» ga Jitsu wa Saikyou Datta",
+      "season": 1
+    },
+    {
+      "slug": "fumetsu-no-anata-e",
+      "title": "Fumetsu no Anata e",
+      "season": 1
+    },
+    {
+      "slug": "fumetsu-no-anata-e-temporada-2",
+      "title": "Fumetsu no Anata e",
+      "season": 2
+    },
+    {
+      "slug": "fumetsu-no-anata-e-temporada-3",
+      "title": "Fumetsu no Anata e",
+      "season": 3
+    },
+    {
+      "slug": "futari-solo-camp",
+      "title": "Futari Solo Camp",
+      "season": 1
+    },
+    {
+      "slug": "futoku-no-guild",
+      "title": "Futoku no Guild",
+      "season": 1
+    },
+    {
+      "slug": "futsutsuka-na-akujo-dewa-gozaimasu-ga-suuguu-chouso-torikae-den",
+      "title": "Futsutsuka na Akujo dewa Gozaimasu ga: Suuguu Chouso Torikae Den",
+      "season": 1
+    },
+    {
+      "slug": "fuufu-ijou-koibito-miman",
+      "title": "Fuufu Ijou, Koibito Miman",
+      "season": 1
+    },
+    {
+      "slug": "fuuto-tantei",
+      "title": "Fuuto Tantei",
+      "season": 1
+    },
+    {
+      "slug": "fx-senshi-kurumi-chan",
+      "title": "FX Senshi Kurumi-chan",
+      "season": 1
+    },
+    {
+      "slug": "gaikotsu-kishi-sama-tadaima-isekai-e-odekakechuu",
+      "title": "Gaikotsu Kishi-sama, Tadaima Isekai e Odekakechuu",
+      "season": 1
+    },
+    {
+      "slug": "gaikotsu-kishi-sama-tadaima-isekai-e-odekakechuu-ii",
+      "title": "Gaikotsu Kishi-sama, Tadaima Isekai e Odekakechuu II",
+      "season": 2
+    },
+    {
+      "slug": "game-center-shoujo-to-ibunka-kouryuu",
+      "title": "Game Center Shoujo to Ibunka Kouryuu",
+      "season": 1
+    },
+    {
+      "slug": "ganbare-douki-chan",
+      "title": "Ganbare Douki-chan",
+      "season": 1
+    },
+    {
+      "slug": "ganbare-nakamura-kun",
+      "title": "Ganbare! Nakamura-kun!!",
+      "season": 1
+    },
+    {
+      "slug": "ganglion",
+      "title": "Ganglion",
+      "season": 1
+    },
+    {
+      "slug": "garouden-the-way-of-the-lone-wolf",
+      "title": "Garouden: The Way of the Lone Wolf",
+      "season": 1
+    },
+    {
+      "slug": "gekai-elise",
+      "title": "Gekai Elise",
+      "season": 1
+    },
+    {
+      "slug": "genjitsu-no-yohane-sunshine-in-the-mirror",
+      "title": "Genjitsu no Yohane: Sunshine in the Mirror",
+      "season": 1
+    },
+    {
+      "slug": "genjitsu-shugi-yuusha-no-oukoku-saikenki",
+      "title": "Genjitsu Shugi Yuusha no Oukoku Saikenki",
+      "season": 1
+    },
+    {
+      "slug": "genjitsu-shugi-yuusha-no-oukoku-saikenki-temporada-2",
+      "title": "Genjitsu Shugi Yuusha no Oukoku Saikenki",
+      "season": 2
+    },
+    {
+      "slug": "gensou-sangokushi-tengen-reishinki",
+      "title": "Gensou Sangokushi: Tengen Reishinki",
+      "season": 1
+    },
+    {
+      "slug": "gensou-suikoden",
+      "title": "Gensou Suikoden",
+      "season": 1
+    },
+    {
+      "slug": "getsuyoubi-no-tawawa-temporada-2",
+      "title": "Getsuyoubi no Tawawa",
+      "season": 2
+    },
+    {
+      "slug": "ghost-concert-missing-songs",
+      "title": "Ghost Concert: Missing Songs",
+      "season": 1
+    },
+    {
+      "slug": "ghost-meets-gal",
+      "title": "Ghost Meets Gal!",
+      "season": 1
+    },
+    {
+      "slug": "giji-harem",
+      "title": "Giji Harem",
+      "season": 1
+    },
+    {
+      "slug": "ginga-tokkyuu-milky-subway",
+      "title": "Ginga Tokkyuu Milky☆Subway",
+      "season": 1
+    },
+    {
+      "slug": "girls-band-cry",
+      "title": "Girls Band Cry",
+      "season": 1
+    },
+    {
+      "slug": "given",
+      "title": "Given",
+      "season": 1
+    },
+    {
+      "slug": "given-10th-mix",
+      "title": "Given: 10th Mix",
+      "season": 1
+    },
+    {
+      "slug": "given-uragawa-no-sonzai",
+      "title": "Given: Uragawa no Sonzai",
+      "season": 1
+    },
+    {
+      "slug": "gnosia",
+      "title": "Gnosia",
+      "season": 1
+    },
+    {
+      "slug": "goblin-slayer-ii",
+      "title": "Goblin Slayer II",
+      "season": 2
+    },
+    {
+      "slug": "godzilla-s-p",
+      "title": "Godzilla: S.P",
+      "season": 1
+    },
+    {
+      "slug": "gokushufudou",
+      "title": "Gokushufudou",
+      "season": 1
+    },
+    {
+      "slug": "gokushufudou-temporada-2-2023",
+      "title": "Gokushufudou",
+      "season": 2
+    },
+    {
+      "slug": "golden-kamuy-saishuushou",
+      "title": "Golden Kamuy: Saishuushou",
+      "season": 1
+    },
+    {
+      "slug": "golden-kamuy-temporada-4",
+      "title": "Golden Kamuy",
+      "season": 4
+    },
+    {
+      "slug": "good-night-world",
+      "title": "Good Night World",
+      "season": 1
+    },
+    {
+      "slug": "gorilla-no-kami-kara-kago-sareta-reijou-wa-ouritsu-kishidan-de-kawaigarareru",
+      "title": "Gorilla no Kami kara Kago sareta Reijou wa Ouritsu Kishidan de Kawaigarareru",
+      "season": 1
+    },
+    {
+      "slug": "gotoubun-no-hanayome",
+      "title": "Gotoubun no Hanayome",
+      "season": 1
+    },
+    {
+      "slug": "gotoubun-no-hanayome-especial-de-luna-de-miel",
+      "title": "Gotoubun no Hanayome* (Especial de Luna de Miel)",
+      "season": 1
+    },
+    {
+      "slug": "gotoubun-no-hanayome-temporada-2",
+      "title": "Gotoubun no Hanayome ∬",
+      "season": 2
+    },
+    {
+      "slug": "goumon-baito-kun-no-nichijou",
+      "title": "Goumon Baito-kun no Nichijou",
+      "season": 1
+    },
+    {
+      "slug": "grand-blue",
+      "title": "Grand Blue",
+      "season": 1
+    },
+    {
+      "slug": "grand-blue-temporada-2",
+      "title": "Grand Blue",
+      "season": 2
+    },
+    {
+      "slug": "grand-blue-temporada-3",
+      "title": "Grand Blue",
+      "season": 3
+    },
+    {
+      "slug": "grimm-kumikyoku",
+      "title": "Grimm Kumikyoku",
+      "season": 1
+    },
+    {
+      "slug": "grisaia-phantom-trigger-2025",
+      "title": "Grisaia: Phantom Trigger (2025)",
+      "season": 1
+    },
+    {
+      "slug": "grow-up-show-himawari-no-circus-dan",
+      "title": "Grow Up Show: Himawari no Circus-dan",
+      "season": 1
+    },
+    {
+      "slug": "guild-no-uketsukejou-desu-ga-zangyou-wa-iya-nanode-boss-wo-solo-toubatsu-shiyou-to-omoimasu",
+      "title": "Guild no Uketsukejou desu ga, Zangyou wa Iya nanode Boss wo Solo Toubatsu Shiyou to Omoimasu",
+      "season": 1
+    },
+    {
+      "slug": "guilty-gear-strive-dual-rulers",
+      "title": "Guilty Gear Strive: Dual Rulers",
+      "season": 1
+    },
+    {
+      "slug": "gunjou-no-fanfare",
+      "title": "Gunjou no Fanfare",
+      "season": 1
+    },
+    {
+      "slug": "gyakuten-sekai-no-denchi-shoujo",
+      "title": "Gyakuten Sekai no Denchi Shoujo",
+      "season": 1
+    },
+    {
+      "slug": "haibara-kun-no-tsuyokute-seishun-new-game",
+      "title": "Haibara-kun no Tsuyokute Seishun New Game",
+      "season": 1
+    },
+    {
+      "slug": "haigakura",
+      "title": "Haigakura",
+      "season": 1
+    },
+    {
+      "slug": "haite-kudasai-takamine-san",
+      "title": "Haite Kudasai, Takamine-san",
+      "season": 1
+    },
+    {
+      "slug": "hametsu-no-oukoku",
+      "title": "Hametsu no Oukoku",
+      "season": 1
+    },
+    {
+      "slug": "hana-wa-saku-shura-no-gotoku",
+      "title": "Hana wa Saku, Shura no Gotoku",
+      "season": 1
+    },
+    {
+      "slug": "hanabi-chan-wa-okuregachi",
+      "title": "Hanabi-chan wa Okuregachi",
+      "season": 1
+    },
+    {
+      "slug": "hananoi-kun-to-koi-no-yamai",
+      "title": "Hananoi-kun to Koi no Yamai",
+      "season": 1
+    },
+    {
+      "slug": "hanaori-san-wa-tensei-shitemo-kenka-ga-shitai",
+      "title": "Hanaori-san wa Tensei shitemo Kenka ga Shitai",
+      "season": 1
+    },
+    {
+      "slug": "hanazakari-no-kimitachi-e-temporada-2",
+      "title": "Hanazakari no Kimitachi e",
+      "season": 2
+    },
+    {
+      "slug": "hanma-baki-son-of-ogre",
+      "title": "Hanma Baki: Son of Ogre",
+      "season": 1
+    },
+    {
+      "slug": "hanma-baki-son-of-ogre-temporada-2",
+      "title": "Hanma Baki: Son of Ogre",
+      "season": 2
+    },
+    {
+      "slug": "harem-camp",
+      "title": "Harem Camp!",
+      "season": 1
+    },
+    {
+      "slug": "hataraku-maou-sama-temporada-2",
+      "title": "Hataraku Maou-sama!",
+      "season": 2
+    },
+    {
+      "slug": "hazure-skill-kinomi-master-skill-no-mi-tabetara-shinu-wo-mugen-ni-taberareru-you-ni-natta-ken-ni-tsuite",
+      "title": "Hazure Skill «Kinomi Master»: Skill no Mi (Tabetara Shinu) wo Mugen ni Taberareru You ni Natta Ken ni Tsuite",
+      "season": 1
+    },
+    {
+      "slug": "hazurewaku-no-joutai-ijou-skill-de-saikyou-ni-natta-ore-ga-subete-wo-juurin-suru-made",
+      "title": "Hazurewaku no «Joutai Ijou Skill» de Saikyou ni Natta Ore ga Subete wo Juurin suru made",
+      "season": 1
+    },
+    {
+      "slug": "healer-girl",
+      "title": "Healer Girl",
+      "season": 1
+    },
+    {
+      "slug": "heaven-officials-blessing-temporada-2-audio-japones",
+      "title": "Heaven Official’s Blessing (Audio Japonés)",
+      "season": 2
+    },
+    {
+      "slug": "heaven-officials-blessing-tian-guan-cifu",
+      "title": "Heaven Official’s Blessing (Tian Guan Cifu)",
+      "season": 1
+    },
+    {
+      "slug": "heaven-officials-blessing-tian-guan-cifu-er-temporada-2",
+      "title": "Heaven Official’s Blessing (Tian Guan Cifu er)",
+      "season": 2
+    },
+    {
+      "slug": "heika-watashi-wo-wasurete-kudasai",
+      "title": "Heika Watashi wo Wasurete Kudasai",
+      "season": 1
+    },
+    {
+      "slug": "heike-monogatari",
+      "title": "Heike Monogatari",
+      "season": 1
+    },
+    {
+      "slug": "heion-sedai-no-idaten-tachi",
+      "title": "Heion Sedai no Idaten-tachi",
+      "season": 1
+    },
+    {
+      "slug": "helck",
+      "title": "Helck",
+      "season": 1
+    },
+    {
+      "slug": "hell-mode-yarikomizuki-no-gamer-wa-hai-settei-no-isekai-de-musou-suru-temporada-2-2026",
+      "title": "Hell Mode: Yarikomizuki no Gamer wa Hai Settei no Isekai de Musou suru",
+      "season": 2
+    },
+    {
+      "slug": "henjin-no-salad-bowl",
+      "title": "Henjin no Salad Bowl",
+      "season": 1
+    },
+    {
+      "slug": "heroine-seijo-iie-all-works-maid-desu-hokori",
+      "title": "Heroine? Seijo? Iie, All Works Maid desu (Hokori)!",
+      "season": 1
+    },
+    {
+      "slug": "heroine-tarumono-kiraware-heroine-to-naisho-no-oshigoto",
+      "title": "Heroine Tarumono! Kiraware Heroine to Naisho no Oshigoto",
+      "season": 1
+    },
+    {
+      "slug": "hi-no-tori-eden-no-sora",
+      "title": "Hi no Tori: Eden no Sora",
+      "season": 1
+    },
+    {
+      "slug": "hibike-euphonium-temporada-3",
+      "title": "Hibike! Euphonium",
+      "season": 3
+    },
+    {
+      "slug": "hidarikiki-no-eren",
+      "title": "Hidarikiki no Eren",
+      "season": 1
+    },
+    {
+      "slug": "hige-wo-soru-soshite-joshikousei-wo-hirou",
+      "title": "Hige wo Soru. Soshite Joshikousei wo Hirou.",
+      "season": 1
+    },
+    {
+      "slug": "higeki-no-genkyou-to-naru-saikyou-gedou-last-boss-joou-wa-tami-no-tame-ni-tsukushimasu",
+      "title": "Higeki no Genkyou to Naru Saikyou Gedou Last Boss Joou wa Tami no Tame ni Tsukushimasu.",
+      "season": 1
+    },
+    {
+      "slug": "higeki-no-genkyou-to-naru-saikyou-gedou-last-boss-joou-wa-tami-no-tame-ni-tsukushimasu-temporada-2",
+      "title": "Higeki no Genkyou to Naru Saikyou Gedou Last Boss Joou wa Tami no Tame ni Tsukushimasu.",
+      "season": 2
+    },
+    {
+      "slug": "high-card",
+      "title": "High Card",
+      "season": 1
+    },
+    {
+      "slug": "high-card-temporada-2",
+      "title": "High Card",
+      "season": 2
+    },
+    {
+      "slug": "high-card-the-flowers-bloom",
+      "title": "High Card: The Flowers Bloom",
+      "season": 1
+    },
+    {
+      "slug": "highspeed-etoile",
+      "title": "Highspeed Etoile",
+      "season": 1
+    },
+    {
+      "slug": "hikari-no-ou",
+      "title": "Hikari no Ou",
+      "season": 1
+    },
+    {
+      "slug": "hikaru-ga-shinda-natsu",
+      "title": "Hikaru ga Shinda Natsu",
+      "season": 1
+    },
+    {
+      "slug": "hikikomari-kyuuketsuki-no-monmon",
+      "title": "Hikikomari Kyuuketsuki no Monmon",
+      "season": 1
+    },
+    {
+      "slug": "hikuidori-ushuu-boro-tobi-gumi",
+      "title": "Hikuidori: Ushuu Boro Tobi-gumi",
+      "season": 1
+    },
+    {
+      "slug": "himekishi-wa-barbaroi-no-yome",
+      "title": "Himekishi wa Barbaroi no Yome",
+      "season": 1
+    },
+    {
+      "slug": "himesama-goumon-no-jikan-desu-temporada-2",
+      "title": "Himesama «Goumon» no Jikan desu",
+      "season": 2
+    },
+    {
+      "slug": "hitori-no-shita-the-outcast-temporada-6",
+      "title": "Hitori No Shita: The Outcast",
+      "season": 6
+    },
+    {
+      "slug": "hitoribocchi-no-isekai-kouryaku",
+      "title": "Hitoribocchi no Isekai Kouryaku",
+      "season": 1
+    },
+    {
+      "slug": "hitozukiai-ga-nigate-na-miboujin-no-yukionna-san-to-noroi-no-yubiwa",
+      "title": "Hitozukiai ga Nigate na Miboujin no Yukionna-san to Noroi no Yubiwa",
+      "season": 1
+    },
+    {
+      "slug": "hitozuma-no-kuchibiru-wa-kan-chuuhai-no-aji-ga-shite-sin-censura",
+      "title": "Hitozuma no Kuchibiru wa Kan Chuuhai no Aji ga Shite (Sin Censura)",
+      "season": 1
+    },
+    {
+      "slug": "hokuto-no-ken-fist-of-the-north-star",
+      "title": "Hokuto no Ken: Fist of the North Star",
+      "season": 1
+    },
+    {
+      "slug": "honey-lemon-soda",
+      "title": "Honey Lemon Soda",
+      "season": 1
+    },
+    {
+      "slug": "honzuki-no-gekokujou-shisho-ni-naru-tame-ni-wa-shudan-wo-erandeiraremasen-ryoushu-no-youjo",
+      "title": "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen – Ryoushu no Youjo",
+      "season": 1
+    },
+    {
+      "slug": "honzuki-no-gekokujou-shisho-ni-naru-tame-ni-wa-shudan-wo-erandeiraremasen-temporada-3",
+      "title": "Honzuki no Gekokujou: Shisho ni Naru Tame ni wa Shudan wo Erandeiraremasen",
+      "season": 3
+    },
+    {
+      "slug": "horimiya",
+      "title": "Horimiya",
+      "season": 1
+    },
+    {
+      "slug": "horimiya-piece",
+      "title": "Horimiya: Piece",
+      "season": 1
+    },
+    {
+      "slug": "hoshi-no-samidare",
+      "title": "Hoshi no Samidare",
+      "season": 1
+    },
+    {
+      "slug": "hoshifuru-oukoku-no-nina",
+      "title": "Hoshifuru Oukoku no Nina",
+      "season": 1
+    },
+    {
+      "slug": "hoshikuzu-telepath",
+      "title": "Hoshikuzu Telepath",
+      "season": 1
+    },
+    {
+      "slug": "hotaru-no-yomeiri",
+      "title": "Hotaru no Yomeiri",
+      "season": 1
+    },
+    {
+      "slug": "hotel-inhumans-temporada-2",
+      "title": "Hotel Inhumans",
+      "season": 2
+    },
+    {
+      "slug": "house-of-the-dragon-la-casa-del-dragon-temporada-2",
+      "title": "House of the Dragon (La Casa del Dragón)",
+      "season": 2
+    },
+    {
+      "slug": "human-bug-daigaku",
+      "title": "Human Bug Daigaku",
+      "season": 1
+    },
+    {
+      "slug": "hyouken-no-majutsushi-ga-sekai-wo-suberu",
+      "title": "Hyouken no Majutsushi ga Sekai wo Suberu",
+      "season": 1
+    },
+    {
+      "slug": "hyouken-no-majutsushi-ga-sekai-wo-suberu-temporada-2",
+      "title": "Hyouken no Majutsushi ga Sekai wo Suberu",
+      "season": 2
+    },
+    {
+      "slug": "hypnosis-mic-division-rap-battle-rhyme-anima",
+      "title": "Hypnosis Mic: Division Rap Battle – Rhyme Anima +",
+      "season": 1
+    },
+    {
+      "slug": "ibitte-konai-gibo-to-gishi",
+      "title": "Ibitte Konai Gibo to Gishi",
+      "season": 1
+    },
+    {
+      "slug": "ichijouma-mankitsugurashi",
+      "title": "Ichijouma Mankitsugurashi!",
+      "season": 1
+    },
+    {
+      "slug": "ijiranaide-nagatoro-san",
+      "title": "Ijiranaide, Nagatoro-san",
+      "season": 1
+    },
+    {
+      "slug": "ijiranaide-nagatoro-san-temporada-2",
+      "title": "Ijiranaide, Nagatoro-san",
+      "season": 2
+    },
+    {
+      "slug": "ikoku-nikki",
+      "title": "Ikoku Nikki",
+      "season": 1
+    },
+    {
+      "slug": "ingoku-danchi",
+      "title": "Ingoku Danchi",
+      "season": 1
+    },
+    {
+      "slug": "inu-ni-nattara-suki-na-hito-ni-hirowareta",
+      "title": "Inu ni Nattara Suki na Hito ni Hirowareta.",
+      "season": 1
+    },
+    {
+      "slug": "isekai-cheat-magician",
+      "title": "Isekai Cheat Magician",
+      "season": 1
+    },
+    {
+      "slug": "isekai-de-cheat-skill-wo-te-ni-shita-ore-wa-genjitsu-sekai-wo-mo-musou-suru-level-up-wa-jinsei-wo-kaeta",
+      "title": "Isekai de Cheat Skill wo Te ni Shita Ore wa, Genjitsu Sekai wo mo Musou Suru: Level Up wa Jinsei wo Kaeta",
+      "season": 1
+    },
+    {
+      "slug": "isekai-de-mofumofu-nadenade-suru-tame-ni-ganbattemasu",
+      "title": "Isekai de Mofumofu Nadenade suru Tame ni Ganbattemasu.",
+      "season": 1
+    },
+    {
+      "slug": "isekai-maou-to-shoukan-shoujo-no-dorei-majutsu-temporada-2",
+      "title": "Isekai Maou to Shoukan Shoujo no Dorei Majutsu Ω",
+      "season": 2
+    },
+    {
+      "slug": "isekai-meikyuu-de-harem-wo",
+      "title": "Isekai Meikyuu de Harem wo",
+      "season": 1
+    },
+    {
+      "slug": "isekai-mokushiroku-mynoghra-hametsu-no-bunmei-de-hajimeru-sekai-seifuku",
+      "title": "Isekai Mokushiroku Mynoghra: Hametsu no Bunmei de Hajimeru Sekai Seifuku",
+      "season": 1
+    },
+    {
+      "slug": "isekai-no-sata-wa-shachiku-shidai",
+      "title": "Isekai no Sata wa Shachiku Shidai",
+      "season": 1
+    },
+    {
+      "slug": "isekai-nonbiri-nouka",
+      "title": "Isekai Nonbiri Nouka",
+      "season": 1
+    },
+    {
+      "slug": "isekai-nonbiri-nouka-temporada-2",
+      "title": "Isekai Nonbiri Nouka",
+      "season": 2
+    },
+    {
+      "slug": "isekai-ojisan",
+      "title": "Isekai Ojisan",
+      "season": 1
+    },
+    {
+      "slug": "isekai-one-turn-kill-neesan-ane-douhan-no-isekai-seikatsu-hajimemashita",
+      "title": "Isekai One Turn Kill Neesan: Ane Douhan no Isekai Seikatsu Hajimemashita",
+      "season": 1
+    },
+    {
+      "slug": "isekai-quartet-3",
+      "title": "Isekai Quartet 3",
+      "season": 1
+    },
+    {
+      "slug": "isekai-shokudou-temporada-2",
+      "title": "Isekai Shokudou",
+      "season": 2
+    },
+    {
+      "slug": "isekai-shoukan-wa-nidome-desu",
+      "title": "Isekai Shoukan wa Nidome desu",
+      "season": 1
+    },
+    {
+      "slug": "isekai-suicide-squad",
+      "title": "Isekai Suicide Squad",
+      "season": 1
+    },
+    {
+      "slug": "isekai-wa-smartphone-to-tomo-ni-temporada-2",
+      "title": "Isekai wa Smartphone to Tomo ni",
+      "season": 2
+    },
+    {
+      "slug": "isekai-yakkyoku",
+      "title": "Isekai Yakkyoku",
+      "season": 1
+    },
+    {
+      "slug": "isekai-yururi-kikou-kosodateshinagara-boukensha-shimasu",
+      "title": "Isekai Yururi Kikou: Kosodateshinagara Boukensha Shimasu",
+      "season": 1
+    },
+    {
+      "slug": "ishura",
+      "title": "Ishura",
+      "season": 1
+    },
+    {
+      "slug": "ishura-temporada-2",
+      "title": "Ishura",
+      "season": 2
+    },
+    {
+      "slug": "isshun-de-chiryou-shiteita-noni-yakutatazu-to-tsuihou-sareta-tensai-chiyushi-yami-healer-toshite-tanoshiku-ikiru",
+      "title": "Yami Healer: Isshun de Chiryou shiteita noni Yakutatazu to Tsuihou sareta Tensai Chiyushi, Yami Healer toshite Tanoshiku Ikiru",
+      "season": 1
+    },
+    {
+      "slug": "itai-no-wa-iya-nano-de-bougyoryoku-ni-kyokufuri-shitai-to-omoimasu-temporada-2",
+      "title": "Itai no wa Iya nano de Bougyoryoku ni Kyokufuri Shitai to Omoimasu",
+      "season": 2
+    },
+    {
+      "slug": "iwamoto-senpai-no-suisen",
+      "title": "Iwamoto-senpai no Suisen",
+      "season": 1
+    },
+    {
+      "slug": "jahy-sama-wa-kujikenai",
+      "title": "Jahy-sama wa Kujikenai!",
+      "season": 1
+    },
+    {
+      "slug": "jaku-chara-tomozaki-kun-temporada-2",
+      "title": "Jaku-Chara Tomozaki-kun",
+      "season": 2
+    },
+    {
+      "slug": "jibaku-shounen-hanako-kun-2",
+      "title": "Jibaku Shounen Hanako-kun 2",
+      "season": 1
+    },
+    {
+      "slug": "jidou-hanbaiki-ni-umarekawatta-ore-wa-meikyuu-wo-samayou",
+      "title": "Jidou Hanbaiki ni Umarekawatta Ore wa Meikyuu wo Samayou",
+      "season": 1
+    },
+    {
+      "slug": "jidou-hanbaiki-ni-umarekawatta-ore-wa-meikyuu-wo-samayou-temporada-2",
+      "title": "Jidou Hanbaiki ni Umarekawatta Ore wa Meikyuu wo Samayou",
+      "season": 2
+    },
+    {
+      "slug": "jidou-hanbaiki-ni-umarekawatta-ore-wa-meikyuu-wo-samayou-temporada-3",
+      "title": "Jidou Hanbaiki ni Umarekawatta Ore wa Meikyuu wo Samayou",
+      "season": 3
+    },
+    {
+      "slug": "jigoku-sensei-nube-2025",
+      "title": "Jigoku Sensei Nube (2025)",
+      "season": 1
+    },
+    {
+      "slug": "jigokuraku",
+      "title": "Jigokuraku",
+      "season": 1
+    },
+    {
+      "slug": "jigokuraku-temporada-2",
+      "title": "Jigokuraku",
+      "season": 2
+    },
+    {
+      "slug": "jijou-wo-shiranai-tenkousei-ga-guigui-kuru",
+      "title": "Jijou wo Shiranai Tenkousei ga Guigui Kuru.",
+      "season": 1
+    },
+    {
+      "slug": "jingai-kyoushitsu-no-ningengirai-kyoushi",
+      "title": "Jingai Kyoushitsu no Ningengirai Kyoushi",
+      "season": 1
+    },
+    {
+      "slug": "jishou-akuyaku-reijou-na-konyakusha-no-kansatsu-kiroku",
+      "title": "Jishou Akuyaku Reijou na Konyakusha no Kansatsu Kiroku.",
+      "season": 1
+    },
+    {
+      "slug": "jitsu-wa-ore-saikyou-deshita",
+      "title": "Jitsu wa Ore, Saikyou deshita?",
+      "season": 1
+    },
+    {
+      "slug": "jouran-the-princess-of-snow-and-blood",
+      "title": "Jouran: The Princess of Snow and Blood",
+      "season": 1
+    },
+    {
+      "slug": "jujutsu-kaisen",
+      "title": "Jujutsu Kaisen",
+      "season": 1
+    },
+    {
+      "slug": "jujutsu-kaisen-temporada-2",
+      "title": "Jujutsu Kaisen",
+      "season": 2
+    },
+    {
+      "slug": "jujutsu-kaisen-temporada-3",
+      "title": "Jujutsu Kaisen",
+      "season": 3
+    },
+    {
+      "slug": "kabushikigaisha-magi-lumiere",
+      "title": "Kabushikigaisha Magi-Lumière",
+      "season": 1
+    },
+    {
+      "slug": "kabushikigaisha-magi-lumiere-temporada-2",
+      "title": "Kabushikigaisha Magi-Lumière",
+      "season": 2
+    },
+    {
+      "slug": "kage-no-jitsuryokusha-ni-naritakute",
+      "title": "Kage no Jitsuryokusha ni Naritakute!",
+      "season": 1
+    },
+    {
+      "slug": "kage-no-jitsuryokusha-ni-naritakute-temporada-2",
+      "title": "Kage no Jitsuryokusha ni Naritakute!",
+      "season": 2
+    },
+    {
+      "slug": "kagejitsu-temporada-2",
+      "title": "Kagejitsu!",
+      "season": 2
+    },
+    {
+      "slug": "kageki-shoujo",
+      "title": "Kageki Shoujo!!",
+      "season": 1
+    },
+    {
+      "slug": "kaguya-sama-wa-kokurasetai-darkness-ova",
+      "title": "Kaguya-sama wa Kokurasetai: Darkness (OVA)",
+      "season": 1
+    },
+    {
+      "slug": "kaguya-sama-wa-kokurasetai-first-kiss-wa-owaranai",
+      "title": "Kaguya-sama wa Kokurasetai: First Kiss wa Owaranai",
+      "season": 1
+    },
+    {
+      "slug": "kaguya-sama-wa-kokurasetai-otona-e-no-kaidan",
+      "title": "Kaguya-sama wa Kokurasetai: Otona e no Kaidan",
+      "season": 1
+    },
+    {
+      "slug": "kaguya-sama-wa-kokurasetai-tensai-tachi-no-renai-zunousen-ova",
+      "title": "Kaguya-sama wa Kokurasetai: Tensai-tachi no Renai Zunousen (OVA)",
+      "season": 1
+    },
+    {
+      "slug": "kaii-to-otome-to-kamikakushi",
+      "title": "Kaii to Otome to Kamikakushi",
+      "season": 1
+    },
+    {
+      "slug": "kaijuu-8-gou",
+      "title": "Kaijuu 8-gou",
+      "season": 1
+    },
+    {
+      "slug": "kaiko-sareta-ankoku-heishi-30-dai-no-slow-na-second-life",
+      "title": "Kaiko sareta Ankoku Heishi (30-dai) no Slow na Second Life",
+      "season": 1
+    },
+    {
+      "slug": "kaizoku-oujo",
+      "title": "Kaizoku Oujo",
+      "season": 1
+    },
+    {
+      "slug": "kakkou-no-iinazuke",
+      "title": "Kakkou no Iinazuke",
+      "season": 1
+    },
+    {
+      "slug": "kakkou-no-iinazuke-temporada-2",
+      "title": "Kakkou no Iinazuke",
+      "season": 2
+    },
+    {
+      "slug": "kakuriyo-no-yadomeshi-ni",
+      "title": "Kakuriyo no Yadomeshi Ni",
+      "season": 1
+    },
+    {
+      "slug": "kakushite-makina-san",
+      "title": "Kakushite! Makina-san!!",
+      "season": 1
+    },
+    {
+      "slug": "kami-no-niwatsuki-kusunoki-tei-2026",
+      "title": "Kami no Niwatsuki Kusunoki-tei",
+      "season": 1
+    },
+    {
+      "slug": "kami-no-shizuku",
+      "title": "Kami no Shizuku",
+      "season": 1
+    },
+    {
+      "slug": "kami-no-tou-tower-of-god-temporada-2",
+      "title": "Kami no Tou: Ouji no Kikan",
+      "season": 2
+    },
+    {
+      "slug": "kami-tachi-ni-hirowareta-otoko-temporada-2",
+      "title": "Kami-tachi ni Hirowareta Otoko",
+      "season": 2
+    },
+    {
+      "slug": "kami-wa-game-ni-ueteiru",
+      "title": "Kami wa Game ni Ueteiru.",
+      "season": 1
+    },
+    {
+      "slug": "kamierabi",
+      "title": "Kamierabi (God.app)",
+      "season": 1
+    },
+    {
+      "slug": "kamierabi-temporada-2",
+      "title": "Kamierabi (God.app)",
+      "season": 2
+    },
+    {
+      "slug": "kamiina-botan-yoeru-sugata-wa-yuri-no-hana",
+      "title": "Kamiina Botan, Yoeru Sugata wa Yuri no Hana",
+      "season": 1
+    },
+    {
+      "slug": "kaminaki-sekai-no-kamisama-katsudou",
+      "title": "Kaminaki Sekai no Kamisama Katsudou",
+      "season": 1
+    },
+    {
+      "slug": "kamitsubaki-shi-kensetsuchuu",
+      "title": "Kamitsubaki-shi Kensetsuchuu.",
+      "season": 1
+    },
+    {
+      "slug": "kamonohashi-ron-no-kindan-suiri-temporada-2",
+      "title": "Kamonohashi Ron no Kindan Suiri",
+      "season": 2
+    },
+    {
+      "slug": "kanan-sama-wa-akumade-choroi",
+      "title": "Kanan-sama wa Akumade Choroi",
+      "season": 1
+    },
+    {
+      "slug": "kanata-kara",
+      "title": "Kanata kara",
+      "season": 1
+    },
+    {
+      "slug": "kanchigai-no-atelier-meister-eiyuu-party-no-moto-zatsuyougakari-ga-jitsu-wa-sentou-igai-ga-sss-rank-datta-to-iu-yoku-aru-hanashi",
+      "title": "Kanchigai no Atelier Meister: Eiyuu Party no Moto Zatsuyougakari ga, Jitsu wa Sentou Igai ga SSS Rank Datta to Iu Yoku Aru Hanashi",
+      "season": 1
+    },
+    {
+      "slug": "kancolle-itsuka-ano-umi-de",
+      "title": "KanColle: Itsuka Ano Umi de",
+      "season": 1
+    },
+    {
+      "slug": "kanojo-ga-koushaku-tei-ni-itta-riyuu",
+      "title": "Kanojo ga Koushaku-tei ni Itta Riyuu",
+      "season": 1
+    },
+    {
+      "slug": "kanojo-mo-kanojo",
+      "title": "Kanojo mo Kanojo",
+      "season": 1
+    },
+    {
+      "slug": "kanojo-mo-kanojo-temporada-2",
+      "title": "Kanojo mo Kanojo",
+      "season": 2
+    },
+    {
+      "slug": "kanojo-no-tomodachi",
+      "title": "Kanojo no Tomodachi",
+      "season": 1
+    },
+    {
+      "slug": "kanojo-okarishimasu-temporada-2",
+      "title": "Kanojo, Okarishimasu",
+      "season": 2
+    },
+    {
+      "slug": "kanojo-okarishimasu-temporada-3",
+      "title": "Kanojo, Okarishimasu",
+      "season": 3
+    },
+    {
+      "slug": "kanojo-okarishimasu-temporada-4",
+      "title": "Kanojo, Okarishimasu",
+      "season": 4
+    },
+    {
+      "slug": "kanojo-okarishimasu-temporada-5",
+      "title": "Kanojo, Okarishimasu",
+      "season": 5
+    },
+    {
+      "slug": "kanpekisugite-kawaige-ga-nai-to-konyaku-haki-sareta-seijo-wa-ringoku-ni-urareru",
+      "title": "Kanpekisugite Kawaige ga Nai to Konyaku Haki sareta Seijo wa Ringoku ni Urareru",
+      "season": 1
+    },
+    {
+      "slug": "kao-ni-denai-kashiwada-san-to-kao-ni-deru-oota-kun",
+      "title": "Kao ni Denai Kashiwada-san to Kao ni Deru Oota-kun",
+      "season": 1
+    },
+    {
+      "slug": "kaoru-hana-wa-rin-to-saku",
+      "title": "Kaoru Hana wa Rin to Saku",
+      "season": 1
+    },
+    {
+      "slug": "karakai-jouzu-no-takagi-san-temporada-3",
+      "title": "Karakai Jouzu no Takagi-san",
+      "season": 3
+    },
+    {
+      "slug": "karasu-wa-aruji-wo-erabanai",
+      "title": "Karasu wa Aruji wo Erabanai",
+      "season": 1
+    },
+    {
+      "slug": "kashita-maryoku-wa-revo-barai-de-kyousei-choushuu",
+      "title": "Kashita Maryoku wa «Revo Barai» de Kyousei Choushuu",
+      "season": 1
+    },
+    {
+      "slug": "katainaka-no-ossan-kensei-ni-naru",
+      "title": "Katainaka no Ossan, Kensei ni Naru",
+      "season": 1
+    },
+    {
+      "slug": "katainaka-no-ossan-kensei-ni-naru-temporada-2",
+      "title": "Katainaka no Ossan, Kensei ni Naru",
+      "season": 2
+    },
+    {
+      "slug": "katsute-mahou-shoujo-to-aku-wa-tekitai-shiteita",
+      "title": "Katsute Mahou Shoujo to Aku wa Tekitai shiteita.",
+      "season": 1
+    },
+    {
+      "slug": "kawaii-dake-ja-nai-shikimori-san",
+      "title": "Kawaii dake ja Nai Shikimori-san",
+      "season": 1
+    },
+    {
+      "slug": "kaya-chan-wa-kowakunai",
+      "title": "Kaya-chan wa Kowakunai",
+      "season": 1
+    },
+    {
+      "slug": "keikenzumi-na-kimi-to-keiken-zero-na-ore-ga-otsukiai-suru-hanashi",
+      "title": "Keikenzumi na Kimi to, Keiken Zero na Ore ga, Otsukiai suru Hanashi.",
+      "season": 1
+    },
+    {
+      "slug": "kekkon-suru-tte-hontou-desu-ka",
+      "title": "Kekkon suru tte, Hontou desu ka",
+      "season": 1
+    },
+    {
+      "slug": "kekkon-yubiwa-monogatari-ii",
+      "title": "Kekkon Yubiwa Monogatari II",
+      "season": 2
+    },
+    {
+      "slug": "kengan-ashura-temporada-2",
+      "title": "Kengan Ashura",
+      "season": 2
+    },
+    {
+      "slug": "kenja-no-deshi-wo-nanoru-kenja",
+      "title": "Kenja no Deshi wo Nanoru Kenja",
+      "season": 1
+    },
+    {
+      "slug": "kibou-no-chikara-otona-precure-23",
+      "title": "Kibou no Chikara: Otona Precure ’23",
+      "season": 1
+    },
+    {
+      "slug": "kidou-senshi-gundam-gquuuuuux",
+      "title": "Kidou Senshi Gundam: GQuuuuuuX",
+      "season": 1
+    },
+    {
+      "slug": "kijin-gentoushou",
+      "title": "Kijin Gentoushou",
+      "season": 1
+    },
+    {
+      "slug": "kikansha-no-mahou-wa-tokubetsu-desu",
+      "title": "Kikansha no Mahou wa Tokubetsu desu",
+      "season": 1
+    },
+    {
+      "slug": "kikansha-no-mahou-wa-tokubetsu-desu-temporada-2",
+      "title": "Kikansha no Mahou wa Tokubetsu desu",
+      "season": 2
+    },
+    {
+      "slug": "kill-ao",
+      "title": "Kill Ao",
+      "season": 1
+    },
+    {
+      "slug": "kimetsu-no-yaiba-hashira-geiko-hen",
+      "title": "Kimetsu no Yaiba: Hashira Geiko-hen",
+      "season": 1
+    },
+    {
+      "slug": "kimetsu-no-yaiba-katanakaji-no-sato-hen",
+      "title": "Kimetsu no Yaiba: Katanakaji no Sato-hen",
+      "season": 1
+    },
+    {
+      "slug": "kimetsu-no-yaiba-mugen-ressha-hen-tv",
+      "title": "Kimetsu no Yaiba: Mugen Ressha-hen (TV)",
+      "season": 1
+    },
+    {
+      "slug": "kimetsu-no-yaiba-yuukaku-hen",
+      "title": "Kimetsu no Yaiba: Yuukaku-hen",
+      "season": 1
+    },
+    {
+      "slug": "kimi-ga-shinu-made-koi-wo-shitai",
+      "title": "Kimi ga Shinu made Koi wo Shitai",
+      "season": 1
+    },
+    {
+      "slug": "kimi-ni-todoke-temporada-3",
+      "title": "Kimi ni Todoke",
+      "season": 3
+    },
+    {
+      "slug": "kimi-no-koto-ga-daidaidaidaidaisuki-na-100-nin-no-kanojo",
+      "title": "Kimi no Koto ga Daidaidaidaidaisuki na 100-nin no Kanojo",
+      "season": 1
+    },
+    {
+      "slug": "kimi-no-koto-ga-daidaidaidaidaisuki-na-100-nin-no-kanojo-temporada-2",
+      "title": "Kimi no Koto ga Daidaidaidaidaisuki na 100-nin no Kanojo",
+      "season": 2
+    },
+    {
+      "slug": "kimi-no-koto-ga-daidaidaidaidaisuki-na-100-nin-no-kanojo-temporada-3",
+      "title": "Kimi no Koto ga Daidaidaidaidaisuki na 100-nin no Kanojo",
+      "season": 3
+    },
+    {
+      "slug": "kimi-to-boku-no-saigo-no-senjou-aruiwa-sekai-ga-hajimaru-seisen",
+      "title": "Kimi to Boku no Saigo no Senjou, Aruiwa Sekai ga Hajimaru Seisen",
+      "season": 1
+    },
+    {
+      "slug": "kimi-to-boku-no-saigo-no-senjou-aruiwa-sekai-ga-hajimaru-seisen-temporada-2",
+      "title": "Kimi to Boku no Saigo no Senjou, Aruiwa Sekai ga Hajimaru Seisen",
+      "season": 2
+    },
+    {
+      "slug": "kimi-to-koete-koi-ni-naru",
+      "title": "Kimi to Koete Koi ni Naru",
+      "season": 1
+    },
+    {
+      "slug": "kimi-wa-houkago-insomnia",
+      "title": "Kimi wa Houkago Insomnia",
+      "season": 1
+    },
+    {
+      "slug": "kimi-wa-meido-sama",
+      "title": "Kimi wa Meido-sama.",
+      "season": 1
+    },
+    {
+      "slug": "kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu",
+      "title": "«Kimi wo Aisuru Ki wa Nai» to Itta Jiki Koushaku-sama ga Nazeka Dekiai shitekimasu",
+      "season": 1
+    },
+    {
+      "slug": "kingdom-temporada-4",
+      "title": "Kingdom",
+      "season": 4
+    },
+    {
+      "slug": "kingdom-temporada-5",
+      "title": "Kingdom",
+      "season": 5
+    },
+    {
+      "slug": "kingdom-temporada-6",
+      "title": "Kingdom",
+      "season": 6
+    },
+    {
+      "slug": "kinsou-no-vermeil",
+      "title": "Kinsou no Vermeil: Gakeppuchi Majutsushi wa Saikyou no Yakusai to Mahou Sekai wo Tsukisusumu",
+      "season": 1
+    },
+    {
+      "slug": "kisaki-kyouiku-kara-nigetai-watashi",
+      "title": "Kisaki Kyouiku kara Nigetai Watashi",
+      "season": 1
+    },
+    {
+      "slug": "kizoku-tensei-megumareta-umare-kara-saikyou-no-chikara-wo-eru",
+      "title": "Kizoku Tensei: Megumareta Umare kara Saikyou no Chikara wo Eru",
+      "season": 1
+    },
+    {
+      "slug": "kizu-darake-seijo-yori-houfuku-wo-komete",
+      "title": "Kizu darake Seijo yori Houfuku wo Komete",
+      "season": 1
+    },
+    {
+      "slug": "kizu-darake-seijo-yori-houfuku-wo-komete-temporada-2",
+      "title": "Kizu darake Seijo yori Houfuku wo Komete",
+      "season": 2
+    },
+    {
+      "slug": "kj-file",
+      "title": "KJ File",
+      "season": 1
+    },
+    {
+      "slug": "knights-of-the-zodiac-saint-seiya-battle-for-sanctuary",
+      "title": "Knights of the Zodiac: Saint Seiya – Battle for Sanctuary",
+      "season": 1
+    },
+    {
+      "slug": "kobayashi-san-chi-no-maid-dragon-s",
+      "title": "Kobayashi-san Chi no Maid Dragon S",
+      "season": 1
+    },
+    {
+      "slug": "kobayashi-san-chi-no-maid-dragon-s-ova",
+      "title": "Kobayashi-san Chi no Maid Dragon S (OVA)",
+      "season": 1
+    },
+    {
+      "slug": "koi-to-yobu-ni-wa-kimochi-warui",
+      "title": "Koi to Yobu ni wa Kimochi Warui",
+      "season": 1
+    },
+    {
+      "slug": "koi-wa-futago-de-warikirenai",
+      "title": "Koi wa Futago de Warikirenai",
+      "season": 1
+    },
+    {
+      "slug": "koi-wa-sekai-seifuku-no-ato-de",
+      "title": "Koi wa Sekai Seifuku no Ato de",
+      "season": 1
+    },
+    {
+      "slug": "koisuru-one-piece",
+      "title": "Koisuru One Piece",
+      "season": 1
+    },
+    {
+      "slug": "koko-wa-ore-ni-makasete-saki-ni-ike-to-itte-kara-10-nen-ga-tattara-densetsu-ni-natteita",
+      "title": "Koko wa Ore ni Makasete Saki ni Ike to Itte kara 10-nen ga Tattara Densetsu ni Natteita.",
+      "season": 1
+    },
+    {
+      "slug": "komi-san-wa-comyushou-desu",
+      "title": "Komi-san wa, Comyushou desu.",
+      "season": 1
+    },
+    {
+      "slug": "komi-san-wa-comyushou-desu-temporada-2",
+      "title": "Komi-san wa, Comyushou desu.",
+      "season": 2
+    },
+    {
+      "slug": "kono-healer-mendokusai",
+      "title": "Kono Healer, Mendokusai",
+      "season": 1
+    },
+    {
+      "slug": "kono-kaisha-ni-suki-na-hito-ga-imasu",
+      "title": "Kono Kaisha ni Suki na Hito ga Imasu",
+      "season": 1
+    },
+    {
+      "slug": "kono-sekai-wa-fukanzen-sugiru",
+      "title": "Kono Sekai wa Fukanzen Sugiru",
+      "season": 1
+    },
+    {
+      "slug": "kono-subarashii-sekai-ni-bakuen-wo",
+      "title": "Kono Subarashii Sekai ni Bakuen wo!",
+      "season": 1
+    },
+    {
+      "slug": "kono-subarashii-sekai-ni-shukufuku-wo-temporada-3",
+      "title": "Kono Subarashii Sekai ni Shukufuku wo!",
+      "season": 3
+    },
+    {
+      "slug": "konyaku-haki-sareta-reijou-wo-hirotta-ore-ga-ikenai-koto-wo-oshiekomu",
+      "title": "Konyaku Haki sareta Reijou wo Hirotta Ore ga, Ikenai Koto wo Oshiekomu",
+      "season": 1
+    },
+    {
+      "slug": "koori-no-jouheki",
+      "title": "Koori no Jouheki",
+      "season": 1
+    },
+    {
+      "slug": "koori-no-jouheki-temporada-2",
+      "title": "Koori no Jouheki",
+      "season": 2
+    },
+    {
+      "slug": "koori-zokusei-danshi-to-cool-na-douryou-joshi",
+      "title": "Koori Zokusei Danshi to Cool na Douryou Joshi",
+      "season": 1
+    },
+    {
+      "slug": "kore-kaite-shine",
+      "title": "Kore Kaite Shine",
+      "season": 1
+    },
+    {
+      "slug": "koroshi-ai",
+      "title": "Koroshi Ai",
+      "season": 1
+    },
+    {
+      "slug": "koukaku-kidoutai-the-ghost-in-the-shell",
+      "title": "Koukaku Kidoutai (The Ghost in the Shell)",
+      "season": 1
+    },
+    {
+      "slug": "koukyuu-no-karasu",
+      "title": "Koukyuu no Karasu",
+      "season": 1
+    },
+    {
+      "slug": "kouryaku-wanted-isekai-sukuimasu",
+      "title": "Kouryaku Wanted!: Isekai Sukuimasu!? (Zanting! Rang Wo Cha Gonglue)",
+      "season": 1
+    },
+    {
+      "slug": "kowloon-generic-romance",
+      "title": "Kowloon Generic Romance",
+      "season": 1
+    },
+    {
+      "slug": "kubo-san-wa-mob-wo-yurusanai",
+      "title": "Kubo-san wa Mob wo Yurusanai",
+      "season": 1
+    },
+    {
+      "slug": "kujima-utaeba-ie-hororo",
+      "title": "Kujima Utaeba Ie Hororo",
+      "season": 1
+    },
+    {
+      "slug": "kuma-kuma-kuma-bear-punch",
+      "title": "Kuma Kuma Kuma Bear Punch!",
+      "season": 1
+    },
+    {
+      "slug": "kumichou-musume-to-sewagakari",
+      "title": "Kumichou Musume to Sewagakari",
+      "season": 1
+    },
+    {
+      "slug": "kumo-desu-ga-nani-ka",
+      "title": "Kumo Desu ga, Nani ka?",
+      "season": 1
+    },
+    {
+      "slug": "kunoichi-tsubaki-no-mune-no-uchi",
+      "title": "Kunoichi Tsubaki no Mune no Uchi",
+      "season": 1
+    },
+    {
+      "slug": "kuro-no-shoukanshi",
+      "title": "Kuro no Shoukanshi",
+      "season": 1
+    },
+    {
+      "slug": "kuroiwa-medaka-ni-watashi-no-kawaii-ga-tsuujinai",
+      "title": "Kuroiwa Medaka ni Watashi no Kawaii ga Tsuujinai",
+      "season": 1
+    },
+    {
+      "slug": "kuroneko-to-majo-no-kyoushitsu",
+      "title": "Kuroneko to Majo no Kyoushitsu",
+      "season": 1
+    },
+    {
+      "slug": "kuroshitsuji-kishuku-gakkou-hen",
+      "title": "Kuroshitsuji: Kishuku Gakkou-hen",
+      "season": 1
+    },
+    {
+      "slug": "kuroshitsuji-midori-no-majo-hen",
+      "title": "Kuroshitsuji: Midori no Majo-hen",
+      "season": 1
+    },
+    {
+      "slug": "kusuriya-no-hitorigoto",
+      "title": "Kusuriya no Hitorigoto",
+      "season": 1
+    },
+    {
+      "slug": "kusuriya-no-hitorigoto-temporada-2",
+      "title": "Kusuriya no Hitorigoto",
+      "season": 2
+    },
+    {
+      "slug": "kusuriya-no-hitorigoto-temporada-3",
+      "title": "Kusuriya no Hitorigoto",
+      "season": 3
+    },
+    {
+      "slug": "kyokou-suiri-temporada-2",
+      "title": "Kyokou Suiri",
+      "season": 2
+    },
+    {
+      "slug": "kyoukai-senki",
+      "title": "Kyoukai Senki",
+      "season": 1
+    },
+    {
+      "slug": "kyouran-reijou-nia-liston-byoujaku-reijou-ni-tensei-shita-kamigoroshi-no-bujin-no-karei-naru-musouroku",
+      "title": "Kyouran Reijou Nia Liston: Byoujaku Reijou ni Tensei shita Kamigoroshi no Bujin no Karei Naru Musouroku",
+      "season": 1
+    },
+    {
+      "slug": "kyuuketsuki-sugu-shinu",
+      "title": "Kyuuketsuki Sugu Shinu",
+      "season": 1
+    },
+    {
+      "slug": "kyuuketsuki-sugu-shinu-temporada-2",
+      "title": "Kyuuketsuki Sugu Shinu",
+      "season": 2
+    },
+    {
+      "slug": "kyuukyoku-shinka-shita-full-dive-rpg-ga-genjitsu-yori-mo-kusoge-dattara",
+      "title": "Kyuukyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kusoge Dattara",
+      "season": 1
+    },
+    {
+      "slug": "lazarus",
+      "title": "Lazarus",
+      "season": 1
+    },
+    {
+      "slug": "leadale-no-daichi-nite",
+      "title": "Leadale no Daichi nite",
+      "season": 1
+    },
+    {
+      "slug": "lee-tantei-jimusho",
+      "title": "Lee Tantei Jimusho",
+      "season": 1
+    },
+    {
+      "slug": "legend-of-mana-the-teardrop-crystal",
+      "title": "Legend of Mana: The Teardrop Crystal",
+      "season": 1
+    },
+    {
+      "slug": "lets-go-kaiki-gumi",
+      "title": "Let’s Go Kaiki-gumi",
+      "season": 1
+    },
+    {
+      "slug": "lets-play-quest-darake-no-my-life",
+      "title": "Let’s Play: Quest-darake no My Life",
+      "season": 1
+    },
+    {
+      "slug": "level-1-dakedo-unique-skill-de-saikyou-desu",
+      "title": "Level 1 dakedo Unique Skill de Saikyou desu",
+      "season": 1
+    },
+    {
+      "slug": "leviathan",
+      "title": "Leviathan",
+      "season": 1
+    },
+    {
+      "slug": "li-xiongmao-raised-by-demons-panda-li-li-xiongmao",
+      "title": "Raised by Demons: Panda Li (Li Xiongmao)",
+      "season": 1
+    },
+    {
+      "slug": "liar-game",
+      "title": "Liar Game",
+      "season": 1
+    },
+    {
+      "slug": "liar-liar",
+      "title": "Liar Liar",
+      "season": 1
+    },
+    {
+      "slug": "link-click-bridon-arc",
+      "title": "Link Click: Bridon Arc",
+      "season": 1
+    },
+    {
+      "slug": "link-click-temporada-2",
+      "title": "Link Click",
+      "season": 2
+    },
+    {
+      "slug": "link-click-temporada-2-audio-japones",
+      "title": "Link Click (Audio Japonés)",
+      "season": 2
+    },
+    {
+      "slug": "link-click-temporada-3",
+      "title": "Link Click",
+      "season": 3
+    },
+    {
+      "slug": "lookism",
+      "title": "Lookism",
+      "season": 1
+    },
+    {
+      "slug": "loop-7-kaime-no-akuyaku-reijou-wa-moto-tekikoku-de-jiyuu-kimama-na-hanayome-seikatsu-wo-mankitsu-suru",
+      "title": "Loop 7-kaime no Akuyaku Reijou wa, Moto Tekikoku de Jiyuu Kimama na Hanayome Seikatsu wo Mankitsu suru",
+      "season": 1
+    },
+    {
+      "slug": "lord-of-mysteries-guimi-zhi-zhu-xiaochou-pian",
+      "title": "Lord of Mysteries (Guimi Zhi Zhu: Xiaochou Pian)",
+      "season": 1
+    },
+    {
+      "slug": "love-live-superstar-temporada-2",
+      "title": "Love Live! Superstar!!",
+      "season": 2
+    },
+    {
+      "slug": "lupin-iii-vs-cats-eye",
+      "title": "Lupin III vs. Cat’s Eye",
+      "season": 1
+    },
+    {
+      "slug": "lv1-maou-to-one-room-yuusha",
+      "title": "Lv1 Maou to One Room Yuusha",
+      "season": 1
+    },
+    {
+      "slug": "lv2-kara-cheat-datta-motoyuusha-kouho-no-mattari-isekai-life",
+      "title": "Lv2 kara Cheat datta Motoyuusha Kouho no Mattari Isekai Life",
+      "season": 1
+    },
+    {
+      "slug": "lv999-no-murabito",
+      "title": "Lv999 no Murabito",
+      "season": 1
+    },
+    {
+      "slug": "lycoris-recoil-2022",
+      "title": "Lycoris Recoil",
+      "season": 1
+    },
+    {
+      "slug": "lycoris-recoil-friends-are-thieves-of-time",
+      "title": "Lycoris Recoil: Friends Are Thieves of Time.",
+      "season": 1
+    },
+    {
+      "slug": "madougushi-dahliya-wa-utsumukanai",
+      "title": "Madougushi Dahliya wa Utsumukanai",
+      "season": 1
+    },
+    {
+      "slug": "maebashi-witches",
+      "title": "Maebashi Witches",
+      "season": 1
+    },
+    {
+      "slug": "magia-record-mahou-shoujo-madoka-magica-gaiden",
+      "title": "Magia Record: Mahou Shoujo Madoka☆Magica Gaiden",
+      "season": 1
+    },
+    {
+      "slug": "magic-knight-rayearth-2026",
+      "title": "Magic Knight Rayearth (2026)",
+      "season": 1
+    },
+    {
+      "slug": "magic-maker-isekai-mahou-no-tsukurikata",
+      "title": "Magic Maker: Isekai Mahou no Tsukurikata",
+      "season": 1
+    },
+    {
+      "slug": "magical-explorer",
+      "title": "Magical★Explorer",
+      "season": 1
+    },
+    {
+      "slug": "mahou-shoujo-ikusei-keikaku-restart",
+      "title": "Mahou Shoujo Ikusei Keikaku: Restart",
+      "season": 1
+    },
+    {
+      "slug": "mahou-shoujo-lyrical-nanoha-exceeds-gun-blaze-vengeance",
+      "title": "Mahou Shoujo Lyrical Nanoha EXCEEDS: Gun Blaze Vengeance",
+      "season": 1
+    },
+    {
+      "slug": "mahou-shoujo-magical-destroyers",
+      "title": "Mahou Shoujo Magical Destroyers",
+      "season": 1
+    },
+    {
+      "slug": "mahou-shoujo-ni-akogarete",
+      "title": "Mahou Shoujo ni Akogarete",
+      "season": 1
+    },
+    {
+      "slug": "mahouka-koukou-no-rettousei-temporada-3",
+      "title": "Mahouka Koukou no Rettousei",
+      "season": 3
+    },
+    {
+      "slug": "mahoutsukai-ni-narenakatta-onnanoko-no-hanashi",
+      "title": "Mahoutsukai ni Narenakatta Onnanoko no Hanashi",
+      "season": 1
+    },
+    {
+      "slug": "mahoutsukai-no-yakusoku",
+      "title": "Mahoutsukai no Yakusoku",
+      "season": 1
+    },
+    {
+      "slug": "mahoutsukai-no-yome-nishi-no-shounen-to-seiran-no-kishi",
+      "title": "Mahoutsukai no Yome: Nishi no Shounen to Seiran no Kishi",
+      "season": 1
+    },
+    {
+      "slug": "mahoutsukai-no-yome-temporada-2",
+      "title": "Mahoutsukai no Yome",
+      "season": 2
+    },
+    {
+      "slug": "mahoutsukai-reimeiki",
+      "title": "Mahoutsukai Reimeiki",
+      "season": 1
+    },
+    {
+      "slug": "maid-san-wa-taberu-dake",
+      "title": "Maid-san wa Taberu dake",
+      "season": 1
+    },
+    {
+      "slug": "mairimashita-iruma-kun-temporada-2",
+      "title": "Mairimashita! Iruma-kun",
+      "season": 2
+    },
+    {
+      "slug": "mairimashita-iruma-kun-temporada-3",
+      "title": "Mairimashita! Iruma-kun",
+      "season": 3
+    },
+    {
+      "slug": "mairimashita-iruma-kun-temporada-4",
+      "title": "Mairimashita! Iruma-kun",
+      "season": 4
+    },
+    {
+      "slug": "majo-to-yajuu",
+      "title": "Majo to Yajuu",
+      "season": 1
+    },
+    {
+      "slug": "make-heroine-ga-oosugiru",
+      "title": "Make Heroine ga Oosugiru!",
+      "season": 1
+    },
+    {
+      "slug": "malevolent-spirits-mononogatari",
+      "title": "Malevolent Spirits: Mononogatari",
+      "season": 1
+    },
+    {
+      "slug": "malevolent-spirits-mononogatari-temporada-2",
+      "title": "Malevolent Spirits: Mononogatari",
+      "season": 2
+    },
+    {
+      "slug": "mamahaha-no-tsurego-ga-motokano-datta",
+      "title": "Mamahaha no Tsurego ga Motokano datta",
+      "season": 1
+    },
+    {
+      "slug": "mao",
+      "title": "Mao",
+      "season": 1
+    },
+    {
+      "slug": "maou-2099",
+      "title": "Maou 2099",
+      "season": 1
+    },
+    {
+      "slug": "maou-evelogia-ni-mi-wo-sasage-yo",
+      "title": "Maou Evelogia ni Mi wo Sasage yo",
+      "season": 1
+    },
+    {
+      "slug": "maou-gakuin-no-futekigousha-temporada-2",
+      "title": "Maou Gakuin no Futekigousha: Shijou Saikyou no Maou no Shiso, Tensei shite Shison-tachi no Gakkou e Kayou II",
+      "season": 2
+    },
+    {
+      "slug": "maou-no-musume-wa-yasashisugiru",
+      "title": "Maou no Musume wa Yasashisugiru!!",
+      "season": 1
+    },
+    {
+      "slug": "maou-no-ore-ga-dorei-elf-wo-yome-ni-shitanda-ga-dou-medereba-ii",
+      "title": "Maou no Ore ga Dorei Elf wo Yome ni Shitanda ga, Dou Medereba Ii?",
+      "season": 2
+    },
+    {
+      "slug": "maou-sama-retry-r",
+      "title": "Maou-sama, Retry! R",
+      "season": 1
+    },
+    {
+      "slug": "maougun-saikyou-no-majutsushi-wa-ningen-datta",
+      "title": "Maougun Saikyou no Majutsushi wa Ningen datta",
+      "season": 1
+    },
+    {
+      "slug": "marika-chan-no-koukando-wa-bukkowareteiru",
+      "title": "Marika-chan no Koukando wa Bukkowareteiru",
+      "season": 1
+    },
+    {
+      "slug": "marriagetoxin",
+      "title": "Marriagetoxin",
+      "season": 1
+    },
+    {
+      "slug": "marronnier-oukoku-no-shichinin-no-kishi",
+      "title": "Marronnier Oukoku no Shichinin no Kishi",
+      "season": 1
+    },
+    {
+      "slug": "mars-red",
+      "title": "Mars Red",
+      "season": 1
+    },
+    {
+      "slug": "masamune-kun-no-revenge-r",
+      "title": "Masamune-kun no Revenge R",
+      "season": 1
+    },
+    {
+      "slug": "mashiro-no-oto",
+      "title": "Mashiro no Oto",
+      "season": 1
+    },
+    {
+      "slug": "mashle",
+      "title": "Mashle",
+      "season": 1
+    },
+    {
+      "slug": "mashle-temporada-2",
+      "title": "Mashle",
+      "season": 2
+    },
+    {
+      "slug": "mata-korosarete-shimatta-no-desu-ne-tantei-sama",
+      "title": "Mata Korosarete Shimatta no desu ne, Tantei-sama",
+      "season": 1
+    },
+    {
+      "slug": "mato-seihei-no-slave",
+      "title": "Mato Seihei no Slave",
+      "season": 1
+    },
+    {
+      "slug": "mato-seihei-no-slave-temporada-2",
+      "title": "Mato Seihei no Slave",
+      "season": 2
+    },
+    {
+      "slug": "mattaku-saikin-no-tantei-to-kitara",
+      "title": "Mattaku Saikin no Tantei to Kitara",
+      "season": 1
+    },
+    {
+      "slug": "mayonaka-heart-tune",
+      "title": "Mayonaka Heart Tune",
+      "season": 1
+    },
+    {
+      "slug": "mebius-dust",
+      "title": "Mebius Dust",
+      "season": 1
+    },
+    {
+      "slug": "medalist",
+      "title": "Medalist",
+      "season": 1
+    },
+    {
+      "slug": "megami-isekai-tensei-nani-ni-naritai-desu-ka-ore-yuusha-no-rokkotsu-de",
+      "title": "Megami «Isekai Tensei Nani ni Naritai desu ka» Ore «Yuusha no Rokkotsu de»",
+      "season": 1
+    },
+    {
+      "slug": "megami-no-cafe-terrace",
+      "title": "Megami no Café Terrace",
+      "season": 1
+    },
+    {
+      "slug": "megami-no-cafe-terrace-temporada-2",
+      "title": "Megami no Café Terrace",
+      "season": 2
+    },
+    {
+      "slug": "megami-ryou-no-ryoubo-kun",
+      "title": "Megami-ryou no Ryoubo-kun. (Sin Censura)",
+      "season": 1
+    },
+    {
+      "slug": "megaton-kyuu-musashi",
+      "title": "Megaton-kyuu Musashi",
+      "season": 1
+    },
+    {
+      "slug": "megumi-no-daigo-kyuukoku-no-orange",
+      "title": "Megumi no Daigo: Kyuukoku no Orange",
+      "season": 1
+    },
+    {
+      "slug": "meikyuu-black-company",
+      "title": "Meikyuu Black Company",
+      "season": 1
+    },
+    {
+      "slug": "meitou-isekai-no-yu-kaitakuki-around-40-onsen-mania-no-tensei-saki-wa-nonbiri-onsen-tengoku-deshita",
+      "title": "Meitou «Isekai no Yu» Kaitakuki: Around 40 Onsen Mania no Tensei Saki wa, Nonbiri Onsen Tengoku deshita",
+      "season": 1
+    },
+    {
+      "slug": "metallic-rouge",
+      "title": "Metallic Rouge",
+      "season": 1
+    },
+    {
+      "slug": "mezametara-saikyou-soubi-to-uchuusenmochi-datta-node-ikkodate-mezashite-youhei-toshite-jiyuu-ni-ikitai",
+      "title": "Mezametara Saikyou Soubi to Uchuusenmochi Datta node, Ikkodate Mezashite Youhei toshite Jiyuu ni Ikitai",
+      "season": 1
+    },
+    {
+      "slug": "mf-ghost-temporada-2",
+      "title": "MF Ghost",
+      "season": 2
+    },
+    {
+      "slug": "mf-ghost-temporada-3",
+      "title": "MF Ghost",
+      "season": 3
+    },
+    {
+      "slug": "mieruko-chan",
+      "title": "Mieruko-chan",
+      "season": 1
+    },
+    {
+      "slug": "migawari-reijou-wo-sukutta-no-wa-reikoku-mujihi-na-koori-no-ouji-no-ai-deshita",
+      "title": "Migawari Reijou wo Sukutta no wa Reikoku Mujihi na Koori no Ouji no Ai deshita",
+      "season": 1
+    },
+    {
+      "slug": "migi-to-dali",
+      "title": "Migi to Dali",
+      "season": 1
+    },
+    {
+      "slug": "mikadono-sanshimai-wa-angai-choroi",
+      "title": "Mikadono Sanshimai wa Angai, Choroi.",
+      "season": 1
+    },
+    {
+      "slug": "mikata-ga-yowasugite-hojo-mahou-ni-tesshiteita-kyuutei-mahoushi-tsuihou-sarete-saikyou-wo-mezashimasu",
+      "title": "Mikata ga Yowasugite Hojo Mahou ni Tesshiteita Kyuutei Mahoushi, Tsuihou sarete Saikyou wo Mezashimasu",
+      "season": 1
+    },
+    {
+      "slug": "mini-dragon",
+      "title": "Mini Dragon",
+      "season": 1
+    },
+    {
+      "slug": "mizu-zokusei-no-mahoutsukai",
+      "title": "Mizu Zokusei no Mahoutsukai",
+      "season": 1
+    },
+    {
+      "slug": "mob-kara-hajimaru-tansaku-eiyuutan",
+      "title": "Mob kara Hajimaru Tansaku Eiyuutan",
+      "season": 1
+    },
+    {
+      "slug": "mob-psycho-100-iii",
+      "title": "Mob Psycho 100 III",
+      "season": 3
+    },
+    {
+      "slug": "mobile-suit-gundam-the-witch-from-mercury",
+      "title": "Mobile Suit Gundam: The Witch from Mercury",
+      "season": 1
+    },
+    {
+      "slug": "mobile-suit-gundam-the-witch-from-mercury-temporada-2",
+      "title": "Mobile Suit Gundam: The Witch from Mercury",
+      "season": 2
+    },
+    {
+      "slug": "momochi-san-chi-no-ayakashi-ouji",
+      "title": "Momochi-san Chi no Ayakashi Ouji",
+      "season": 1
+    },
+    {
+      "slug": "mono",
+      "title": "mono",
+      "season": 1
+    },
+    {
+      "slug": "monogatari-series-off-monster-season",
+      "title": "Monogatari Series: Off & Monster Season",
+      "season": 1
+    },
+    {
+      "slug": "monster-strike-deadverse-reloaded",
+      "title": "Monster Strike: Deadverse Reloaded",
+      "season": 1
+    },
+    {
+      "slug": "monsters-ippyaku-sanjou-hiryuu-jigoku",
+      "title": "Monsters: Ippyaku Sanjou Hiryuu Jigoku",
+      "season": 1
+    },
+    {
+      "slug": "moonrise",
+      "title": "Moonrise",
+      "season": 1
+    },
+    {
+      "slug": "mori-no-kuma-san-toumin-chuu",
+      "title": "Mori no Kuma-san, Toumin-chuu.",
+      "season": 1
+    },
+    {
+      "slug": "mouse-cursor-de-genjitsu-wo-sousa-dekiru-you-ni-natta-node-onna-no-ko-wo-ippai-click-shimaasu",
+      "title": "Mouse Cursor de Genjitsu wo Sousa Dekiru You ni Natta node, Onna no Ko wo Ippai Click Shimaasu",
+      "season": 1
+    },
+    {
+      "slug": "muchuu-sa-kimi-ni",
+      "title": "Muchuu sa, Kimi ni.",
+      "season": 1
+    },
+    {
+      "slug": "mujikaku-seijo-wa-kyou-mo-muishiki-ni-chikara-wo-tare-nagasu",
+      "title": "Mujikaku Seijo wa Kyou mo Muishiki ni Chikara wo Tare Nagasu",
+      "season": 1
+    },
+    {
+      "slug": "murai-no-koi",
+      "title": "Murai no Koi",
+      "season": 1
+    },
+    {
+      "slug": "musashino",
+      "title": "Musashino!",
+      "season": 1
+    },
+    {
+      "slug": "mushikaburi-hime",
+      "title": "Mushikaburi-hime",
+      "season": 1
+    },
+    {
+      "slug": "mushoku-no-eiyuu-betsu-ni-skill-nanka-iranakatta-n-da-ga",
+      "title": "Mushoku no Eiyuu: Betsu ni Skill Nanka Iranakatta n da ga",
+      "season": 1
+    },
+    {
+      "slug": "mushoku-tensei",
+      "title": "Mushoku Tensei: Isekai Ittara Honki Dasu",
+      "season": 1
+    },
+    {
+      "slug": "mushoku-tensei-ii-isekai-ittara-honki-dasu",
+      "title": "Mushoku Tensei II: Isekai Ittara Honki Dasu",
+      "season": 1
+    },
+    {
+      "slug": "mushoku-tensei-iii-isekai-ittara-honki-dasu",
+      "title": "Mushoku Tensei III: Isekai Ittara Honki Dasu",
+      "season": 1
+    },
+    {
+      "slug": "mushoku-tensei-isekai-ittara-honki-dasu-eris-the-goblin-slayer-especial",
+      "title": "Mushoku Tensei: Eris the Goblin Slayer",
+      "season": 1
+    },
+    {
+      "slug": "my-home-hero",
+      "title": "My Home Hero",
+      "season": 1
+    },
+    {
+      "slug": "na-nare-hana-nare",
+      "title": "Na Nare Hana Nare",
+      "season": 1
+    },
+    {
+      "slug": "nageki-no-bourei-wa-intai-shitai",
+      "title": "Nageki no Bourei wa Intai shitai",
+      "season": 1
+    },
+    {
+      "slug": "nanatsu-no-maken-ga-shihai-suru",
+      "title": "Nanatsu no Maken ga Shihai suru",
+      "season": 1
+    },
+    {
+      "slug": "nanatsu-no-taizai-ensa-no-edinburgh",
+      "title": "Nanatsu no Taizai: Ensa no Edinburgh",
+      "season": 1
+    },
+    {
+      "slug": "nanatsu-no-taizai-fundo-no-shinpan",
+      "title": "Nanatsu no Taizai: Fundo no Shinpan",
+      "season": 1
+    },
+    {
+      "slug": "nanatsu-no-taizai-mokushiroku-no-yonkishi",
+      "title": "Nanatsu no Taizai: Mokushiroku no Yonkishi",
+      "season": 1
+    },
+    {
+      "slug": "nanatsu-no-taizai-mokushiroku-no-yonkishi-temporada-2",
+      "title": "Nanatsu no Taizai: Mokushiroku no Yonkishi",
+      "season": 2
+    },
+    {
+      "slug": "natsume-yuujinchou-shichi",
+      "title": "Natsume Yuujinchou Shichi",
+      "season": 1
+    },
+    {
+      "slug": "nazotoki-wa-dinner-no-ato-de",
+      "title": "Nazotoki wa Dinner no Ato de",
+      "season": 1
+    },
+    {
+      "slug": "needy-girl-overdose",
+      "title": "Needy Girl Overdose",
+      "season": 1
+    },
+    {
+      "slug": "neet-kunoichi-to-nazeka-dousei-hajimemashita",
+      "title": "NEET Kunoichi to Nazeka Dousei Hajimemashita",
+      "season": 1
+    },
+    {
+      "slug": "negaposi-angler",
+      "title": "NegaPosi Angler",
+      "season": 1
+    },
+    {
+      "slug": "neko-to-ryuu",
+      "title": "Neko to Ryuu",
+      "season": 1
+    },
+    {
+      "slug": "new-panty-stocking-with-garterbelt",
+      "title": "New Panty & Stocking with Garterbelt",
+      "season": 1
+    },
+    {
+      "slug": "niehime-to-kemono-no-ou",
+      "title": "Niehime to Kemono no Ou",
+      "season": 1
+    },
+    {
+      "slug": "nierautomata-ver1-1a",
+      "title": "NieR:Automata Ver1.1a",
+      "season": 1
+    },
+    {
+      "slug": "nigashita-sakana-wa-ookikatta-ga-tsuriageta-sakana-ga-ookisugita-ken",
+      "title": "Nigashita Sakana wa Ookikatta ga Tsuriageta Sakana ga Ookisugita Ken",
+      "season": 1
+    },
+    {
+      "slug": "nige-jouzu-no-wakagimi",
+      "title": "Nige Jouzu no Wakagimi",
+      "season": 1
+    },
+    {
+      "slug": "nige-jouzu-no-wakagimi-temporada-2",
+      "title": "Nige Jouzu no Wakagimi",
+      "season": 2
+    },
+    {
+      "slug": "night-head-2041",
+      "title": "Night Head 2041",
+      "season": 1
+    },
+    {
+      "slug": "nihon-e-youkoso-elf-san",
+      "title": "Nihon e Youkoso Elf-san.",
+      "season": 1
+    },
+    {
+      "slug": "nijiyon-animation",
+      "title": "Nijiyon Animation",
+      "season": 1
+    },
+    {
+      "slug": "nijiyon-animation-temporada-2",
+      "title": "Nijiyon Animation",
+      "season": 2
+    },
+    {
+      "slug": "nijusseiki-denki-mokuroku-eureka-evrika",
+      "title": "Nijusseiki Denki Mokuroku: Eureka Evrika",
+      "season": 1
+    },
+    {
+      "slug": "ningen-fushin-no-boukensha-tachi-ga-sekai-wo-sukuu-you-desu",
+      "title": "Ningen Fushin no Boukensha-tachi ga Sekai wo Sukuu you desu",
+      "season": 1
+    },
+    {
+      "slug": "ninja-kamui",
+      "title": "Ninja Kamui",
+      "season": 1
+    },
+    {
+      "slug": "ninja-to-gokudou",
+      "title": "Ninja to Gokudou",
+      "season": 1
+    },
+    {
+      "slug": "nippon-sangoku",
+      "title": "Nippon Sangoku",
+      "season": 1
+    },
+    {
+      "slug": "niwatori-fighter",
+      "title": "Niwatori Fighter",
+      "season": 1
+    },
+    {
+      "slug": "nokemono-tachi-no-yoru",
+      "title": "Nokemono-tachi no Yoru",
+      "season": 1
+    },
+    {
+      "slug": "noumin-kanren-no-skill-bakka-agetetara-nazeka-tsuyoku-natta",
+      "title": "Noumin Kanren no Skill bakka Agetetara Nazeka Tsuyoku Natta",
+      "season": 1
+    },
+    {
+      "slug": "nozomanu-fushi-no-boukensha",
+      "title": "Nozomanu Fushi no Boukensha",
+      "season": 1
+    },
+    {
+      "slug": "nukitashi-the-animation",
+      "title": "Nukitashi the Animation",
+      "season": 1
+    },
+    {
+      "slug": "odayaka-kizoku-no-kyuuka-no-susume",
+      "title": "Odayaka Kizoku no Kyuuka no Susume.",
+      "season": 1
+    },
+    {
+      "slug": "odd-taxi",
+      "title": "Odd Taxi",
+      "season": 1
+    },
+    {
+      "slug": "ojisan-wa-kawaii-mono-ga-osuki",
+      "title": "Ojisan wa Kawaii Mono ga Osuki",
+      "season": 1
+    },
+    {
+      "slug": "ojou-to-banken-kun",
+      "title": "Ojou to Banken-kun",
+      "season": 1
+    },
+    {
+      "slug": "okashi-na-tensei",
+      "title": "Okashi na Tensei",
+      "season": 1
+    },
+    {
+      "slug": "okinawa-de-suki-ni-natta-ko-ga-hougen-sugite-tsurasugiru",
+      "title": "Okinawa de Suki ni Natta Ko ga Hougen Sugite Tsurasugiru",
+      "season": 1
+    },
+    {
+      "slug": "okiraku-ryoushu-no-tanoshii-ryouchi-bouei-seisankei-majutsu-de-na-mo-naki-mura-wo-saikyou-no-jousai-toshi-ni",
+      "title": "Okiraku Ryoushu no Tanoshii Ryouchi Bouei: Seisankei Majutsu de Na mo Naki Mura wo Saikyou no Jousai Toshi ni",
+      "season": 1
+    },
+    {
+      "slug": "omae-gotoki-ga-maou-ni-kateru-to-omouna-to-yuusha-party-wo-tsuihou-sareta-node-outo-de-kimama-ni-kurashitai",
+      "title": "«Omae Gotoki ga Maou ni Kateru to Omouna» to Yuusha Party wo Tsuihou sareta node, Outo de Kimama ni Kurashitai",
+      "season": 1
+    },
+    {
+      "slug": "one-piece-arco-de-elbaph",
+      "title": "One Piece: Arco de Elbaph",
+      "season": 1
+    },
+    {
+      "slug": "one-piece-egghead-especiales",
+      "title": "One Piece: Egghead (Especiales)",
+      "season": 1
+    },
+    {
+      "slug": "one-piece-fan-letter",
+      "title": "One Piece Fan Letter",
+      "season": 1
+    },
+    {
+      "slug": "one-piece-gyojin-tou-hen-2024",
+      "title": "One Piece: Gyojin Tou-hen (2024)",
+      "season": 1
+    },
+    {
+      "slug": "one-piece-heroines",
+      "title": "One Piece: Heroines",
+      "season": 1
+    },
+    {
+      "slug": "one-piece-live-action-2023",
+      "title": "One Piece: Live Action (2023)",
+      "season": 1
+    },
+    {
+      "slug": "one-piece-live-action-2023-temporada-2",
+      "title": "One Piece: Live Action (2023)",
+      "season": 2023
+    },
+    {
+      "slug": "one-piece-wano-kuni-especial",
+      "title": "One Piece: Especiales",
+      "season": 1
+    },
+    {
+      "slug": "one-room-hiatari-futsuu-tenshi-tsuki",
+      "title": "One Room, Hiatari Futsuu, Tenshi-tsuki.",
+      "season": 1
+    },
+    {
+      "slug": "oni-no-hanayome",
+      "title": "Oni no Hanayome",
+      "season": 1
+    },
+    {
+      "slug": "oniichan-wa-oshimai",
+      "title": "Oniichan wa Oshimai!",
+      "season": 1
+    },
+    {
+      "slug": "onimusha",
+      "title": "Onimusha",
+      "season": 1
+    },
+    {
+      "slug": "onmyou-kaiten-rebirth",
+      "title": "Onmyou Kaiten Re:Birth",
+      "season": 1
+    },
+    {
+      "slug": "ookami-to-koushinryou-merchant-meets-the-wise-wolf",
+      "title": "Ookami to Koushinryou: Merchant Meets the Wise Wolf",
+      "season": 1
+    },
+    {
+      "slug": "ookii-onnanoko-wa-suki-desu-ka",
+      "title": "Ookii Onnanoko wa Suki desu ka?",
+      "season": 1
+    },
+    {
+      "slug": "ooyukiumi-no-kaina",
+      "title": "Ooyukiumi no Kaina",
+      "season": 1
+    },
+    {
+      "slug": "opus-colors",
+      "title": "Opus.COLORs",
+      "season": 1
+    },
+    {
+      "slug": "ore-dake-level-up-na-ken-solo-leveling",
+      "title": "Solo Leveling (Ore dake Level Up na Ken)",
+      "season": 1
+    },
+    {
+      "slug": "ore-wa-seikan-kokka-no-akutoku-ryoushu",
+      "title": "Ore wa Seikan Kokka no Akutoku Ryoushu!",
+      "season": 1
+    },
+    {
+      "slug": "orient",
+      "title": "Orient",
+      "season": 1
+    },
+    {
+      "slug": "oroka-na-tenshi-wa-akuma-to-odoru",
+      "title": "Oroka na Tenshi wa Akuma to Odoru",
+      "season": 1
+    },
+    {
+      "slug": "osananajimi-ga-zettai-ni-makenai-love-comedy",
+      "title": "Osananajimi ga Zettai ni Makenai Love Comedy",
+      "season": 1
+    },
+    {
+      "slug": "osananajimi-to-wa-love-comedy-ni-naranai",
+      "title": "Osananajimi to wa Love Comedy ni Naranai",
+      "season": 1
+    },
+    {
+      "slug": "osomatsu-san-temporada-4",
+      "title": "Osomatsu-san",
+      "season": 4
+    },
+    {
+      "slug": "otaku-ni-yasashii-gal-wa-inai",
+      "title": "Otaku ni Yasashii Gal wa Inai!?",
+      "season": 1
+    },
+    {
+      "slug": "otome-game-no-hametsu-flag-shika-nai-akuyaku-reijou-ni-tensei-shiteshimatta-ova",
+      "title": "Otome Game no Hametsu Flag shika Nai Akuyaku Reijou ni Tensei shiteshimatta… (OVA)",
+      "season": 1
+    },
+    {
+      "slug": "otome-game-no-hametsu-flag-shika-nai-akuyaku-reijou-ni-tensei-shiteshimatta-x",
+      "title": "Otome Game no Hametsu Flag shika Nai Akuyaku Reijou ni Tensei shiteshimatta… X",
+      "season": 1
+    },
+    {
+      "slug": "otome-game-sekai-wa-mob-ni-kibishii-sekai-desu",
+      "title": "Otome Game Sekai wa Mob ni Kibishii Sekai desu",
+      "season": 1
+    },
+    {
+      "slug": "otome-game-sekai-wa-mob-ni-kibishii-sekai-desu-temporada-2",
+      "title": "Otome Game Sekai wa Mob ni Kibishii Sekai desu",
+      "season": 2
+    },
+    {
+      "slug": "otome-kaijuu-carameliser",
+      "title": "Otome Kaijuu Caraméliser",
+      "season": 1
+    },
+    {
+      "slug": "otonari-ni-ginga",
+      "title": "Otonari ni Ginga",
+      "season": 1
+    },
+    {
+      "slug": "otonari-no-tenshi-sama-ni-itsunomanika-dame-ningen-ni-sareteita-ken",
+      "title": "Otonari no Tenshi-sama ni Itsunomanika Dame Ningen ni Sareteita Ken",
+      "season": 1
+    },
+    {
+      "slug": "otonari-no-tenshi-sama-ni-itsunomanika-dame-ningen-ni-sareteita-ken-temporada-2",
+      "title": "Otonari no Tenshi-sama ni Itsunomanika Dame Ningen ni Sareteita Ken",
+      "season": 2
+    },
+    {
+      "slug": "ouji-no-honmei-wa-akuyaku-reijou",
+      "title": "Ouji no Honmei wa Akuyaku Reijou",
+      "season": 1
+    },
+    {
+      "slug": "ousama-ranking",
+      "title": "Ousama Ranking",
+      "season": 1
+    },
+    {
+      "slug": "ousama-ranking-yuuki-no-takarabako",
+      "title": "Ousama Ranking: Yuuki no Takarabako",
+      "season": 1
+    },
+    {
+      "slug": "overlord-iv",
+      "title": "Overlord IV",
+      "season": 4
+    },
+    {
+      "slug": "overtake",
+      "title": "Overtake!",
+      "season": 1
+    },
+    {
+      "slug": "paradox-live-the-animation",
+      "title": "Paradox Live the Animation",
+      "season": 1
+    },
+    {
+      "slug": "paraiso-infernal-jigokuraku",
+      "title": "Paraíso Infernal: Jigokuraku",
+      "season": 1
+    },
+    {
+      "slug": "paripi-koumei",
+      "title": "Paripi Koumei",
+      "season": 1
+    },
+    {
+      "slug": "party-kara-tsuihou-sareta-sono-chiyushi-jitsu-wa-saikyou-ni-tsuki",
+      "title": "Party kara Tsuihou sareta Sono Chiyushi, Jitsu wa Saikyou ni Tsuki",
+      "season": 1
+    },
+    {
+      "slug": "peach-boy-riverside",
+      "title": "Peach Boy Riverside",
+      "season": 1
+    },
+    {
+      "slug": "peach-boy-riverside-orden-cronologico",
+      "title": "Peach Boy Riverside (Orden Cronológico)",
+      "season": 1
+    },
+    {
+      "slug": "perfect-addiction",
+      "title": "Perfect Addiction",
+      "season": 1
+    },
+    {
+      "slug": "peter-grill-to-kenja-no-jikan-super-extra",
+      "title": "Peter Grill to Kenja no Jikan: Super Extra",
+      "season": 1
+    },
+    {
+      "slug": "platinum-end",
+      "title": "Platinum End",
+      "season": 1
+    },
+    {
+      "slug": "pluto",
+      "title": "Pluto",
+      "season": 1
+    },
+    {
+      "slug": "poketoon",
+      "title": "Poketoon",
+      "season": 1
+    },
+    {
+      "slug": "ponkotsu-fuuki-iin-to-skirt-take-ga-futekisetsu-na-jk-no-hanashi-2026",
+      "title": "Ponkotsu Fuuki Iin to Skirt-take ga Futekisetsu na JK no Hanashi.",
+      "season": 1
+    },
+    {
+      "slug": "poputepipikku-temporada-2",
+      "title": "Poputepipikku",
+      "season": 2
+    },
+    {
+      "slug": "potion-danomi-de-ikinobimasu",
+      "title": "Potion-danomi de Ikinobimasu!",
+      "season": 1
+    },
+    {
+      "slug": "potion-wagami-wo-tasukeru",
+      "title": "Potion, Wagami wo Tasukeru",
+      "season": 1
+    },
+    {
+      "slug": "princess-connect-redive-temporada-2",
+      "title": "Princess Connect! Re:Dive",
+      "season": 2
+    },
+    {
+      "slug": "psyren",
+      "title": "Psyren",
+      "season": 1
+    },
+    {
+      "slug": "ragna-crimson",
+      "title": "Ragna Crimson",
+      "season": 1
+    },
+    {
+      "slug": "raise-wa-tanin-ga-ii",
+      "title": "Raise wa Tanin ga Ii",
+      "season": 2
+    },
+    {
+      "slug": "rakudai-kenja-no-gakuin-musou-nidome-no-tensei-s-rank-cheat-majutsushi-boukenroku",
+      "title": "Rakudai Kenja no Gakuin Musou: Nidome no Tensei, S-Rank Cheat Majutsushi Boukenroku",
+      "season": 1
+    },
+    {
+      "slug": "re-main",
+      "title": "Re-Main",
+      "season": 1
+    },
+    {
+      "slug": "record-of-ragnarok-shuumatsu-no-valkyrie-iii",
+      "title": "Record of Ragnarok: Shuumatsu no Valkyrie III",
+      "season": 3
+    },
+    {
+      "slug": "reincarnation-no-kaben",
+      "title": "Reincarnation no Kaben",
+      "season": 1
+    },
+    {
+      "slug": "reiwa-no-dara-san",
+      "title": "Reiwa no Dara-san",
+      "season": 1
+    },
+    {
+      "slug": "rekishi-ni-nokoru-akujo-ni-naru-zo",
+      "title": "Rekishi ni Nokoru Akujo ni Naru zo",
+      "season": 1
+    },
+    {
+      "slug": "renai-flops",
+      "title": "Renai Flops",
+      "season": 1
+    },
+    {
+      "slug": "replica-datte-koi-wo-suru-2026",
+      "title": "Replica datte, Koi wo Suru",
+      "season": 1
+    },
+    {
+      "slug": "revenger",
+      "title": "Revenger",
+      "season": 1
+    },
+    {
+      "slug": "rezero-kara-hajimeru-break-time-temporada-3",
+      "title": "Re:Zero kara Hajimeru Break Time",
+      "season": 3
+    },
+    {
+      "slug": "rezero-kara-hajimeru-isekai-seikatsu-temporada-2",
+      "title": "Re:Zero kara Hajimeru Isekai Seikatsu",
+      "season": 2
+    },
+    {
+      "slug": "rezero-kara-hajimeru-isekai-seikatsu-temporada-3",
+      "title": "Re:Zero kara Hajimeru Isekai Seikatsu",
+      "season": 3
+    },
+    {
+      "slug": "rezero-kara-hajimeru-isekai-seikatsu-temporada-4",
+      "title": "Re:Zero kara Hajimeru Isekai Seikatsu",
+      "season": 4
+    },
+    {
+      "slug": "rick-and-morty-the-anime",
+      "title": "Rick and Morty: The Anime",
+      "season": 1
+    },
+    {
+      "slug": "rikei-ga-koi-ni-ochita-no-de-shoumei-shitemita-heart",
+      "title": "Rikei ga Koi ni Ochita no de Shoumei shitemita. Heart",
+      "season": 1
+    },
+    {
+      "slug": "rock-wa-lady-no-tashinami-deshite",
+      "title": "Rock wa Lady no Tashinami deshite",
+      "season": 1
+    },
+    {
+      "slug": "rokudou-no-onna-tachi",
+      "title": "Rokudou no Onna-tachi",
+      "season": 1
+    },
+    {
+      "slug": "romantic-killer",
+      "title": "Romantic Killer",
+      "season": 1
+    },
+    {
+      "slug": "romelia-senki",
+      "title": "Romelia Senki",
+      "season": 1
+    },
+    {
+      "slug": "rougo-ni-sonaete-isekai-de-8-manmai-no-kinka-wo-tamemasu",
+      "title": "Rougo ni Sonaete Isekai de 8-manmai no Kinka wo Tamemasu",
+      "season": 1
+    },
+    {
+      "slug": "rpg-fudousan",
+      "title": "RPG Fudousan",
+      "season": 1
+    },
+    {
+      "slug": "ruri-no-houseki",
+      "title": "Ruri no Houseki",
+      "season": 1
+    },
+    {
+      "slug": "rurouni-kenshin-meiji-kenkaku-romantan-2023",
+      "title": "Rurouni Kenshin: Meiji Kenkaku Romantan (2023)",
+      "season": 1
+    },
+    {
+      "slug": "rurouni-kenshin-meiji-kenkaku-romantan-kyoto-douran",
+      "title": "Rurouni Kenshin: Meiji Kenkaku Romantan – Kyoto Douran",
+      "season": 1
+    },
+    {
+      "slug": "rwby-hyousetsu-teikoku",
+      "title": "RWBY: Hyousetsu Teikoku",
+      "season": 1
+    },
+    {
+      "slug": "ryoumin-0-nin-start-no-henkyou-ryoushu-sama",
+      "title": "Ryoumin 0-nin Start no Henkyou Ryoushu-sama",
+      "season": 1
+    },
+    {
+      "slug": "ryza-no-atelier-tokoyami-no-joou-to-himitsu-no-kakurega",
+      "title": "Ryza no Atelier: Tokoyami no Joou to Himitsu no Kakurega",
+      "season": 1
+    },
+    {
+      "slug": "s-rank-monster-no-behemoth-dakedo-neko-to-machigawarete-elf-musume-no-pet-toshite-kurashitemasu",
+      "title": "S-Rank Monster no «Behemoth» dakedo, Neko to Machigawarete Elf Musume no Pet toshite Kurashitemasu",
+      "season": 1
+    },
+    {
+      "slug": "sabikui-bisco",
+      "title": "Sabikui Bisco",
+      "season": 1
+    },
+    {
+      "slug": "saigo-ni-hitotsu-dake-onegai-shitemo-yoroshii-deshou-ka",
+      "title": "Saigo ni Hitotsu dake Onegai shitemo Yoroshii deshou ka",
+      "season": 1
+    },
+    {
+      "slug": "saihate-no-paladin",
+      "title": "Saihate no Paladin",
+      "season": 1
+    },
+    {
+      "slug": "saihate-no-paladin-tetsusabi-no-yama-no-ou",
+      "title": "Saihate no Paladin: Tetsusabi no Yama no Ou",
+      "season": 1
+    },
+    {
+      "slug": "saijaku-tamer-wa-gomi-hiroi-no-tabi",
+      "title": "Saijaku Tamer wa Gomi Hiroi no Tabi",
+      "season": 1
+    },
+    {
+      "slug": "saijo-no-osewa-takane-no-hanadarake-na-meimonkou-de-gakuin-ichi-no-ojousama-seikatsu-nouryoku-kaimu-wo-kagenagara-osewa-suru-koto-ni-narimashita",
+      "title": "Saijo no Osewa: Takane no Hanadarake na Meimonkou de, Gakuin Ichi no Ojousama (Seikatsu Nouryoku Kaimu) wo Kagenagara Osewa suru Koto ni Narimashita",
+      "season": 1
+    },
+    {
+      "slug": "saikin-yatotta-maid-ga-ayashii",
+      "title": "Saikin Yatotta Maid ga Ayashii",
+      "season": 1
+    },
+    {
+      "slug": "saikyou-degarashi-ouji-no-anyaku-teii-arasoi",
+      "title": "Saikyou Degarashi Ouji no Anyaku Teii Arasoi",
+      "season": 1
+    },
+    {
+      "slug": "saikyou-no-ousama-nidome-no-jinsei-wa-nani-wo-suru",
+      "title": "The Beginning After the End (Saikyou no Ousama, Nidome no Jinsei wa Nani wo Suru?)",
+      "season": 1
+    },
+    {
+      "slug": "saikyou-no-shienshoku-wajutsushi-de-aru-ore-wa-sekai-saikyou-clan-wo-shitagaeru",
+      "title": "Saikyou no Shienshoku «Wajutsushi» de Aru Ore wa Sekai Saikyou Clan wo Shitagaeru",
+      "season": 1
+    },
+    {
+      "slug": "saikyou-no-shokugyou-wa-yuusha-demo-kenja-demo-naku-kanteishi-kari-rashii-desu-yo",
+      "title": "Saikyou no Shokugyou wa Yuusha demo Kenja demo Naku Kanteishi (Kari) Rashii desu yo?",
+      "season": 1
+    },
+    {
+      "slug": "saikyou-tank-no-meikyuu-kouryaku-tairyoku-9999-no-rare-skill-mochi-tank-yuusha-party-wo-tsuihou-sareru",
+      "title": "Saikyou Tank no Meikyuu Kouryaku: Tairyoku 9999 no Rare Skill-mochi Tank, Yuusha Party wo Tsuihou sareru",
+      "season": 1
+    },
+    {
+      "slug": "sakamoto-days",
+      "title": "Sakamoto Days",
+      "season": 1
+    },
+    {
+      "slug": "sakugan",
+      "title": "Sakugan",
+      "season": 1
+    },
+    {
+      "slug": "salaryman-ga-isekai-ni-ittara-shitennou-ni-natta-hanashi",
+      "title": "Salaryman ga Isekai ni Ittara Shitennou ni Natta Hanashi",
+      "season": 1
+    },
+    {
+      "slug": "sand-land-the-series",
+      "title": "Sand Land: The Series",
+      "season": 1
+    },
+    {
+      "slug": "sanda",
+      "title": "Sanda",
+      "season": 1
+    },
+    {
+      "slug": "sankaku-mado-no-sotogawa-wa-yoru",
+      "title": "Sankaku Mado no Sotogawa wa Yoru",
+      "season": 1
+    },
+    {
+      "slug": "sasaki-to-miyano",
+      "title": "Sasaki to Miyano",
+      "season": 1
+    },
+    {
+      "slug": "sasaki-to-miyano-koi-ni-kizuku-mae-no-chotto-shita-hanashi",
+      "title": "Sasaki to Miyano (OVA): Koi ni Kizuku Mae no Chotto Shita Hanashi",
+      "season": 1
+    },
+    {
+      "slug": "sasaki-to-pii-chan",
+      "title": "Sasaki to Pii-chan",
+      "season": 1
+    },
+    {
+      "slug": "sasayaku-you-ni-koi-wo-utau",
+      "title": "Sasayaku You ni Koi wo Utau",
+      "season": 1
+    },
+    {
+      "slug": "sawaranaide-kotesashi-kun",
+      "title": "Sawaranaide Kotesashi-kun",
+      "season": 1
+    },
+    {
+      "slug": "sayonara-lara",
+      "title": "Sayonara Lara",
+      "season": 1
+    },
+    {
+      "slug": "sayounara-ryuusei-konnichiwa-jinsei",
+      "title": "Sayounara Ryuusei, Konnichiwa Jinsei",
+      "season": 1
+    },
+    {
+      "slug": "sazanami-soushi-ni-junketsu-wo-sasagu",
+      "title": "Sazanami Soushi ni Junketsu wo Sasagu",
+      "season": 1
+    },
+    {
+      "slug": "scarlet-nexus",
+      "title": "Scarlet Nexus",
+      "season": 1
+    },
+    {
+      "slug": "secret-mission-sennyuu-sousakan-wa-zettai-ni-makenai",
+      "title": "Secret Mission: Sennyuu Sousakan wa Zettai ni Makenai!",
+      "season": 1
+    },
+    {
+      "slug": "seihantai-na-kimi-to-boku-temporada-2",
+      "title": "Seihantai na Kimi to Boku",
+      "season": 2
+    },
+    {
+      "slug": "seija-musou-salaryman-isekai-de-ikinokoru-tame-ni-ayumu-michi",
+      "title": "Seija Musou: Salaryman, Isekai de Ikinokoru Tame ni Ayumu Michi",
+      "season": 1
+    },
+    {
+      "slug": "seijo-no-maryoku-wa-bannou-desu",
+      "title": "Seijo no Maryoku wa Bannou Desu",
+      "season": 1
+    },
+    {
+      "slug": "seijo-no-maryoku-wa-bannou-desu-temporada-2",
+      "title": "Seijo no Maryoku wa Bannou desu",
+      "season": 2
+    },
+    {
+      "slug": "seiken-gakuin-no-maken-tsukai",
+      "title": "Seiken Gakuin no Makentsukai",
+      "season": 1
+    },
+    {
+      "slug": "seirei-gensouki-temporada-2",
+      "title": "Seirei Gensouki",
+      "season": 2
+    },
+    {
+      "slug": "seishun-buta-yarou-wa-odekake-sister-no-yume-wo-minai-2023",
+      "title": "Seishun Buta Yarou wa Odekake Sister no Yume wo Minai",
+      "season": 1
+    },
+    {
+      "slug": "seishun-buta-yarou-wa-santa-claus-no-yume-wo-minai",
+      "title": "Seishun Buta Yarou wa Santa Claus no Yume wo Minai",
+      "season": 1
+    },
+    {
+      "slug": "seitokai-ni-mo-ana-wa-aru",
+      "title": "Seitokai ni mo Ana wa Aru!",
+      "season": 1
+    },
+    {
+      "slug": "seiyuu-radio-no-uraomote",
+      "title": "Seiyuu Radio no Uraomote",
+      "season": 1
+    },
+    {
+      "slug": "sekai-saikou-no-ansatsusha-isekai-kizoku-ni-tensei-suru",
+      "title": "Sekai Saikou no Ansatsusha, Isekai Kizoku ni Tensei suru",
+      "season": 1
+    },
+    {
+      "slug": "sekai-saikyou-no-kouei-meikyuukoku-no-shinjin-tansakusha",
+      "title": "Sekai Saikyou no Kouei: Meikyuukoku no Shinjin Tansakusha",
+      "season": 1
+    },
+    {
+      "slug": "sekai-saikyou-no-majo-hajimemashita",
+      "title": "Sekai Saikyou no Majo, Hajimemashita",
+      "season": 1
+    },
+    {
+      "slug": "sengoku-youko",
+      "title": "Sengoku Youko",
+      "season": 1
+    },
+    {
+      "slug": "senpai-ga-uzai-kouhai-no-hanashi",
+      "title": "Senpai ga Uzai Kouhai no Hanashi",
+      "season": 1
+    },
+    {
+      "slug": "sentai-daishikkaku",
+      "title": "Sentai Daishikkaku",
+      "season": 1
+    },
+    {
+      "slug": "sentai-daishikkaku-temporada-2",
+      "title": "Sentai Daishikkaku",
+      "season": 2
+    },
+    {
+      "slug": "sentai-red-isekai-de-boukensha-ni-naru",
+      "title": "Sentai Red Isekai de Boukensha ni Naru",
+      "season": 1
+    },
+    {
+      "slug": "sentouin-hakenshimasu",
+      "title": "Sentouin, Hakenshimasu!",
+      "season": 1
+    },
+    {
+      "slug": "shachiku-san-wa-youjo-yuurei-ni-iyasaretai",
+      "title": "Shachiku-san wa Youjo Yuurei ni Iyasaretai.",
+      "season": 1
+    },
+    {
+      "slug": "shadows-house",
+      "title": "Shadows House",
+      "season": 1
+    },
+    {
+      "slug": "shadows-house-temporada-2",
+      "title": "Shadows House",
+      "season": 2
+    },
+    {
+      "slug": "shakunetsu-kabaddi",
+      "title": "Shakunetsu Kabaddi",
+      "season": 1
+    },
+    {
+      "slug": "shaman-king-2021",
+      "title": "Shaman King (2021)",
+      "season": 1
+    },
+    {
+      "slug": "shaman-king-flowers",
+      "title": "Shaman King: Flowers",
+      "season": 1
+    },
+    {
+      "slug": "shangri-la-frontier-kusoge-hunter-kamige-ni-idoman-to-su",
+      "title": "Shangri-La Frontier: Kusoge Hunter, Kamige ni Idoman to su",
+      "season": 1
+    },
+    {
+      "slug": "shangri-la-frontier-kusoge-hunter-kamige-ni-idoman-to-su-temporada-2",
+      "title": "Shangri-La Frontier: Kusoge Hunter, Kamige ni Idoman to su",
+      "season": 2
+    },
+    {
+      "slug": "shibou-yuugi-de-meshi-wo-kuu",
+      "title": "Shibou Yuugi de Meshi wo Kuu.",
+      "season": 1
+    },
+    {
+      "slug": "shijou-saikyou-no-daimaou-murabito-a-ni-tensei-suru",
+      "title": "Shijou Saikyou no Daimaou, Murabito A ni Tensei suru",
+      "season": 1
+    },
+    {
+      "slug": "shikkakumon-no-saikyou-kenja",
+      "title": "Shikkakumon no Saikyou Kenja",
+      "season": 1
+    },
+    {
+      "slug": "shin-ikkitousen",
+      "title": "Shin Ikkitousen",
+      "season": 1
+    },
+    {
+      "slug": "shin-no-nakama-ja-nai-to-yuusha-no-party-wo-oidasareta-node-henkyou-de-slow-life-suru-koto-ni-shimashita",
+      "title": "Shin no Nakama ja Nai to Yuusha no Party wo Oidasareta node, Henkyou de Slow Life suru Koto ni Shimashita",
+      "season": 1
+    },
+    {
+      "slug": "shin-no-nakama-ja-nai-to-yuusha-no-party-wo-oidasareta-node-henkyou-de-slow-life-suru-koto-ni-shimashita-temporada-2",
+      "title": "Shin no Nakama ja Nai to Yuusha no Party wo Oidasareta node, Henkyou de Slow Life suru Koto ni Shimashita",
+      "season": 2
+    },
+    {
+      "slug": "shin-shinka-no-mi-shiranai-uchi-ni-kachigumi-jinsei",
+      "title": "Shin Shinka no Mi: Shiranai Uchi ni Kachigumi Jinsei",
+      "season": 1
+    },
+    {
+      "slug": "shin-tennis-no-ouji-sama-hyoutei-vs-rikkai-game-of-future-ona",
+      "title": "Shin Tennis no Ouji-sama: Hyoutei vs. Rikkai – Game of Future (ONA)",
+      "season": 1
+    },
+    {
+      "slug": "shin-tennis-no-ouji-sama-u-17-world-cup",
+      "title": "Shin Tennis no Ouji-sama: U-17 World Cup",
+      "season": 1
+    },
+    {
+      "slug": "shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen",
+      "title": "Shin Tennis no Oujisama: U-17 World Cup Kesshou Member Ketteisen",
+      "season": 1
+    },
+    {
+      "slug": "shin-tennis-no-oujisama-u-17-world-cup-semifinal",
+      "title": "Shin Tennis no Oujisama: U-17 World Cup Semifinal",
+      "season": 1
+    },
+    {
+      "slug": "shine-post-2022",
+      "title": "Shine Post",
+      "season": 1
+    },
+    {
+      "slug": "shingeki-no-kyojin",
+      "title": "Shingeki no Kyojin",
+      "season": 1
+    },
+    {
+      "slug": "shingeki-no-kyojin-requiem",
+      "title": "Shingeki no Kyojin: Requiem",
+      "season": 1
+    },
+    {
+      "slug": "shingeki-no-kyojin-temporada-2",
+      "title": "Shingeki no Kyojin",
+      "season": 2
+    },
+    {
+      "slug": "shingeki-no-kyojin-temporada-3",
+      "title": "Shingeki no Kyojin",
+      "season": 3
+    },
+    {
+      "slug": "shingeki-no-kyojin-temporada-4",
+      "title": "Shingeki no Kyojin",
+      "season": 4
+    },
+    {
+      "slug": "shingeki-no-kyojin-the-final-season-kanketsu-hen",
+      "title": "Shingeki no Kyojin: The Final Season – Kanketsu-hen",
+      "season": 1
+    },
+    {
+      "slug": "shinigami-bocchan-to-kuro-maid",
+      "title": "Shinigami Bocchan to Kuro Maid",
+      "season": 1
+    },
+    {
+      "slug": "shinigami-bocchan-to-kuro-maid-temporada-2",
+      "title": "Shinigami Bocchan to Kuro Maid",
+      "season": 2
+    },
+    {
+      "slug": "shinigami-bocchan-to-kuro-maid-temporada-3",
+      "title": "Shinigami Bocchan to Kuro Maid",
+      "season": 3
+    },
+    {
+      "slug": "shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku",
+      "title": "Shinja Zero no Megami-sama to Hajimeru Isekai Kouryaku",
+      "season": 1
+    },
+    {
+      "slug": "shinjiteita-nakama-tachi-ni-dungeon-okuchi-de-korosarekaketa-ga-gift-mugen-gacha-de-level-9999-no-nakama-tachi-wo-te-ni-irete-moto-party-member-to-sekai-ni-fukushuu-zamaa-shimasu",
+      "title": "Shinjiteita Nakama-tachi ni Dungeon Okuchi de Korosarekaketa ga Gift «Mugen Gacha» de Level 9999 no Nakama-tachi wo Te ni Irete Moto Party Member to Sekai ni Fukushuu & «Zamaa!» Shimasu!",
+      "season": 1
+    },
+    {
+      "slug": "shinka-no-mi-shiranai-uchi-ni-kachigumi-jinsei",
+      "title": "Shinka no Mi: Shiranai Uchi ni Kachigumi Jinsei",
+      "season": 1
+    },
+    {
+      "slug": "shinmai-ossan-boukensha-saikyou-party-ni-shinu-hodo-kitaerarete-muteki-ni-naru",
+      "title": "Shinmai Ossan Boukensha, Saikyou Party ni Shinu hodo Kitaerarete Muteki ni Naru.",
+      "season": 1
+    },
+    {
+      "slug": "shinmai-renkinjutsushi-no-tenpo-keiei",
+      "title": "Shinmai Renkinjutsushi no Tenpo Keiei",
+      "season": 1
+    },
+    {
+      "slug": "shinobi-no-ittoki",
+      "title": "Shinobi no Ittoki",
+      "season": 1
+    },
+    {
+      "slug": "shiotaiou-no-satou-san-ga-ore-ni-dake-amai",
+      "title": "Shiotaiou no Satou-san ga Ore ni dake Amai",
+      "season": 1
+    },
+    {
+      "slug": "shiro-seijo-to-kuro-bokushi",
+      "title": "Shiro Seijo to Kuro Bokushi",
+      "season": 1
+    },
+    {
+      "slug": "shiroi-suna-no-aquatope",
+      "title": "Shiroi Suna no Aquatope",
+      "season": 1
+    },
+    {
+      "slug": "shiunji-ke-no-kodomotachi",
+      "title": "Shiunji-ke no Kodomotachi",
+      "season": 1
+    },
+    {
+      "slug": "shokei-shoujo-no-virgin-road",
+      "title": "Shokei Shoujo no Virgin Road",
+      "season": 1
+    },
+    {
+      "slug": "shokugeki-no-souma-san-no-sara-kyokuseiryou-no-erina-ova",
+      "title": "Shokugeki no Souma: San no Sara – Kyokuseiryou no Erina (OVA)",
+      "season": 1
+    },
+    {
+      "slug": "shoushimin-series",
+      "title": "Shoushimin Series",
+      "season": 1
+    },
+    {
+      "slug": "shoushimin-series-temporada-2",
+      "title": "Shoushimin Series",
+      "season": 2
+    },
+    {
+      "slug": "showtime-uta-no-oneesan-datte-shitai",
+      "title": "Showtime!: Uta no Oneesan datte Shitai",
+      "season": 1
+    },
+    {
+      "slug": "showtime-uta-no-oneesan-datte-shitai-temporada-2",
+      "title": "Showtime!: Uta no Oneesan datte Shitai",
+      "season": 2
+    },
+    {
+      "slug": "shuiro-no-kamen",
+      "title": "Shuiro no Kamen",
+      "season": 1
+    },
+    {
+      "slug": "shunkashuutou-daikousha-haru-no-mai2026",
+      "title": "Shunkashuutou Daikousha: Haru no Mai",
+      "season": 1
+    },
+    {
+      "slug": "shuumatsu-no-harem",
+      "title": "Shuumatsu no Harem (Sin Censura)",
+      "season": 1
+    },
+    {
+      "slug": "shuumatsu-no-valkyrie-ona",
+      "title": "Shuumatsu no Valkyrie (ONA)",
+      "season": 1
+    },
+    {
+      "slug": "shuumatsu-no-valkyrie-temporada-2",
+      "title": "Shuumatsu no Valkyrie",
+      "season": 2
+    },
+    {
+      "slug": "shuumatsu-touring",
+      "title": "Shuumatsu Touring",
+      "season": 1
+    },
+    {
+      "slug": "shuumatsu-train-doko-e-iku",
+      "title": "Shuumatsu Train Doko e Iku?",
+      "season": 1
+    },
+    {
+      "slug": "shy",
+      "title": "Shy",
+      "season": 1
+    },
+    {
+      "slug": "shy-temporada-2",
+      "title": "Shy",
+      "season": 2
+    },
+    {
+      "slug": "skip-to-loafer",
+      "title": "Skip to Loafer",
+      "season": 1
+    },
+    {
+      "slug": "slime-taoshite-300-nen-shiranai-uchi-ni-level-max-ni-nattemashita",
+      "title": "Slime Taoshite 300-nen, Shiranai Uchi ni Level Max ni Nattemashita",
+      "season": 1
+    },
+    {
+      "slug": "slime-taoshite-300-nen-shiranai-uchi-ni-level-max-ni-nattemashita-sono-ni",
+      "title": "Slime Taoshite 300-nen, Shiranai Uchi ni Level Max ni Nattemashita: Sono Ni",
+      "season": 1
+    },
+    {
+      "slug": "slow-loop",
+      "title": "Slow Loop",
+      "season": 1
+    },
+    {
+      "slug": "snowball-earth",
+      "title": "Snowball Earth",
+      "season": 1
+    },
+    {
+      "slug": "sokushi-cheat-ga-saikyou-sugite-isekai-no-yatsura-ga-marude-aite-ni-naranai-n-desu-ga",
+      "title": "Sokushi Cheat ga Saikyou sugite, Isekai no Yatsura ga Marude Aite ni Naranai n desu ga.",
+      "season": 1
+    },
+    {
+      "slug": "solo-leveling-temporada-2-arise-from-the-shadow",
+      "title": "Solo Leveling : Arise from the Shadow",
+      "season": 2
+    },
+    {
+      "slug": "sonny-boy",
+      "title": "Sonny Boy",
+      "season": 1
+    },
+    {
+      "slug": "sono-bisque-doll-wa-koi-wo-suru",
+      "title": "Sono Bisque Doll wa Koi wo Suru",
+      "season": 1
+    },
+    {
+      "slug": "sono-bisque-doll-wa-koi-wo-suru-temporada-2",
+      "title": "Sono Bisque Doll wa Koi wo Suru",
+      "season": 2
+    },
+    {
+      "slug": "sora-wa-akai-kawa-no-hotori",
+      "title": "Sora wa Akai Kawa no Hotori",
+      "season": 1
+    },
+    {
+      "slug": "sorairo-utility",
+      "title": "Sorairo Utility",
+      "season": 1
+    },
+    {
+      "slug": "soredemo-ayumu-wa-yosetekuru-2022",
+      "title": "Soredemo Ayumu wa Yosetekuru",
+      "season": 1
+    },
+    {
+      "slug": "sousei-no-aquarion-myth-of-emotions",
+      "title": "Sousei no Aquarion: Myth of Emotions",
+      "season": 1
+    },
+    {
+      "slug": "sousou-no-frieren",
+      "title": "Sousou no Frieren",
+      "season": 1
+    },
+    {
+      "slug": "sousou-no-frieren-temporada-2",
+      "title": "Sousou no Frieren",
+      "season": 2
+    },
+    {
+      "slug": "sozai-saishuka-no-isekai-ryokouki",
+      "title": "Sozai Saishuka no Isekai Ryokouki",
+      "season": 1
+    },
+    {
+      "slug": "spriggan",
+      "title": "Spriggan (ONA)",
+      "season": 1
+    },
+    {
+      "slug": "spy-kyoushitsu",
+      "title": "Spy Kyoushitsu",
+      "season": 1
+    },
+    {
+      "slug": "spy-x-family",
+      "title": "Spy x Family",
+      "season": 1
+    },
+    {
+      "slug": "spy-x-family-temporada-2",
+      "title": "Spy x Family",
+      "season": 2
+    },
+    {
+      "slug": "spy-x-family-temporada-3",
+      "title": "Spy x Family",
+      "season": 3
+    },
+    {
+      "slug": "ssss-dynazenon",
+      "title": "SSSS.Dynazenon",
+      "season": 1
+    },
+    {
+      "slug": "steel-ball-run-jojo-no-kimyou-na-bouken",
+      "title": "Steel Ball Run: JoJo no Kimyou na Bouken",
+      "season": 1
+    },
+    {
+      "slug": "subarashiki-kono-sekai-the-animation",
+      "title": "Subarashiki Kono Sekai The Animation",
+      "season": 1
+    },
+    {
+      "slug": "sugar-apple-fairy-tale",
+      "title": "Sugar Apple Fairy Tale",
+      "season": 1
+    },
+    {
+      "slug": "suki-na-ko-ga-megane-wo-wasureta",
+      "title": "Suki na Ko ga Megane wo Wasureta",
+      "season": 1
+    },
+    {
+      "slug": "summertime-render",
+      "title": "Summertime Render",
+      "season": 1
+    },
+    {
+      "slug": "super-dragon-ball-heroes-ultra-god-mission",
+      "title": "Super Dragon Ball Heroes: Ultra God Mission",
+      "season": 1
+    },
+    {
+      "slug": "super-no-ura-de-yani-suu-futari",
+      "title": "Super no Ura de Yani Suu Futari",
+      "season": 1
+    },
+    {
+      "slug": "suterare-seijo-no-isekai-gohan-tabi-kakure-skill-de-camping-car-wo-shoukan-shimashita",
+      "title": "Suterare Seijo no Isekai Gohan Tabi: Kakure Skill de Camping Car wo Shoukan shimashita",
+      "season": 1
+    },
+    {
+      "slug": "sword-art-online-alternative-gun-gale-online-ii",
+      "title": "Sword Art Online Alternative: Gun Gale Online II",
+      "season": 2
+    },
+    {
+      "slug": "synduality-noir",
+      "title": "Synduality: Noir",
+      "season": 1
+    },
+    {
+      "slug": "t-p-bon-temporada-2",
+      "title": "T.P BON",
+      "season": 2
+    },
+    {
+      "slug": "tadaima-ojamasaremasu-2026",
+      "title": "Tadaima, Ojamasaremasu!",
+      "season": 1
+    },
+    {
+      "slug": "tadaima-okaeri",
+      "title": "Tadaima, Okaeri",
+      "season": 1
+    },
+    {
+      "slug": "tai-ari-deshita-ojousama-wa-kakutou-game-nante-shinai",
+      "title": "Tai-Ari deshita. Ojousama wa Kakutou Game nante Shinai",
+      "season": 1
+    },
+    {
+      "slug": "taishou-otome-otogibanashi",
+      "title": "Taishou Otome Otogibanashi",
+      "season": 1
+    },
+    {
+      "slug": "taiyou-yori-mo-mabushii-hoshi",
+      "title": "Taiyou yori mo Mabushii Hoshi",
+      "season": 1
+    },
+    {
+      "slug": "takopii-no-genzai",
+      "title": "Takopii no Genzai",
+      "season": 1
+    },
+    {
+      "slug": "takt-op-destiny",
+      "title": "Takt Op. Destiny",
+      "season": 1
+    },
+    {
+      "slug": "tank-chair",
+      "title": "Tank Chair",
+      "season": 1
+    },
+    {
+      "slug": "tantei-wa-mou-shindeiru",
+      "title": "Tantei wa Mou, Shindeiru.",
+      "season": 1
+    },
+    {
+      "slug": "tantei-wa-mou-shindeiru-temporada-2",
+      "title": "Tantei wa Mou, Shindeiru",
+      "season": 2
+    },
+    {
+      "slug": "tasokare-hotel",
+      "title": "Tasokare Hotel",
+      "season": 1
+    },
+    {
+      "slug": "tate-no-yuusha-no-nariagari-temporada-2",
+      "title": "Tate no Yuusha no Nariagari",
+      "season": 2
+    },
+    {
+      "slug": "tate-no-yuusha-no-nariagari-temporada-3",
+      "title": "Tate no Yuusha no Nariagari",
+      "season": 3
+    },
+    {
+      "slug": "tate-no-yuusha-no-nariagari-temporada-4",
+      "title": "Tate no Yuusha no Nariagari",
+      "season": 4
+    },
+    {
+      "slug": "tatoeba-last-dungeon",
+      "title": "Tatoeba Last Dungeon Mae no Mura no Shounen ga Joban no Machi de Kurasu Youna Monogatari",
+      "season": 1
+    },
+    {
+      "slug": "tearmoon-teikoku-monogatari-dantoudai-kara-hajimaru-hime-no-tensei-gyakuten-story",
+      "title": "Tearmoon Teikoku Monogatari: Dantoudai kara Hajimaru, Hime no Tensei Gyakuten Story",
+      "season": 1
+    },
+    {
+      "slug": "technoroid-overmind",
+      "title": "Technoroid: Overmind",
+      "season": 1
+    },
+    {
+      "slug": "tefuda-ga-oome-no-victoria",
+      "title": "Tefuda ga Oome no Victoria",
+      "season": 1
+    },
+    {
+      "slug": "tekken-bloodline",
+      "title": "Tekken: Bloodline",
+      "season": 1
+    },
+    {
+      "slug": "tempal-item-no-chikara",
+      "title": "Tempal: Item no Chikara",
+      "season": 1
+    },
+    {
+      "slug": "temple-tenpuru",
+      "title": "Temple (TenPuru)",
+      "season": 1
+    },
+    {
+      "slug": "tengoku-daimakyou",
+      "title": "Tengoku Daimakyou",
+      "season": 1
+    },
+    {
+      "slug": "tenkou-saki-no-seiso-karen-na-bishoujo-ga-mukashi-danshi-to-omotte-issho-ni-asonda-osananajimi-datta-ken",
+      "title": "Tenkou-saki no Seiso Karen na Bishoujo ga, Mukashi Danshi to Omotte Issho ni Asonda Osananajimi Datta Ken",
+      "season": 1
+    },
+    {
+      "slug": "tenmaku-no-jaadugar",
+      "title": "Tenmaku no Jaadugar",
+      "season": 1
+    },
+    {
+      "slug": "tensai-ouji-no-akaji-kokka-saisei-jutsu",
+      "title": "Tensai Ouji no Akaji Kokka Saisei Jutsu",
+      "season": 1
+    },
+    {
+      "slug": "tensei-akujo-no-kuro-rekishi",
+      "title": "Tensei Akujo no Kuro Rekishi",
+      "season": 1
+    },
+    {
+      "slug": "tensei-goblin-dakedo-shitsumon-aru",
+      "title": "Tensei Goblin dakedo Shitsumon Aru?",
+      "season": 1
+    },
+    {
+      "slug": "tensei-kenja-no-isekai-life-dai-2-no-shokugyou-wo-ete-sekai-saikyou-ni-narimashita-2022",
+      "title": "Tensei Kenja no Isekai Life: Dai-2 no Shokugyou wo Ete, Sekai Saikyou ni Narimashita",
+      "season": 1
+    },
+    {
+      "slug": "tensei-kizoku-kantei-skill-de-nariagaru-temporada-2",
+      "title": "Tensei Kizoku, Kantei Skill de Nariagaru",
+      "season": 2
+    },
+    {
+      "slug": "tensei-kizoku-kantei-skill-de-nariagaru-temporada-3",
+      "title": "Tensei Kizoku, Kantei Skill de Nariagaru",
+      "season": 3
+    },
+    {
+      "slug": "tensei-kizoku-no-isekai-boukenroku-jichou-wo-shiranai-kamigami-no-shito",
+      "title": "Tensei Kizoku no Isekai Boukenroku: Jichou wo Shiranai Kamigami no Shito",
+      "season": 1
+    },
+    {
+      "slug": "tensei-oujo-to-tensai-reijou-no-mahou-kakumei",
+      "title": "Tensei Oujo to Tensai Reijou no Mahou Kakumei",
+      "season": 1
+    },
+    {
+      "slug": "tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu",
+      "title": "Tensei shita Daiseijo wa, Seijo de Aru Koto wo Hitakakusu",
+      "season": 1
+    },
+    {
+      "slug": "tensei-shitara-dainana-ouji-datta-node-kimama-ni-majutsu-wo-kiwamemasu",
+      "title": "Tensei shitara Dainana Ouji Datta node, Kimama ni Majutsu wo Kiwamemasu",
+      "season": 1
+    },
+    {
+      "slug": "tensei-shitara-dainana-ouji-datta-node-kimama-ni-majutsu-wo-kiwamemasu-temporada-2",
+      "title": "Tensei shitara Dainana Ouji Datta node, Kimama ni Majutsu wo Kiwamemasu",
+      "season": 2
+    },
+    {
+      "slug": "tensei-shitara-dragon-no-tamago-datta",
+      "title": "Tensei shitara Dragon no Tamago datta",
+      "season": 1
+    },
+    {
+      "slug": "tensei-shitara-ken-deshita",
+      "title": "Tensei shitara Ken Deshita",
+      "season": 1
+    },
+    {
+      "slug": "tensei-shitara-ken-deshita-temporada-2",
+      "title": "Tensei shitara Ken deshita",
+      "season": 2
+    },
+    {
+      "slug": "tensei-shitara-slime-datta-ken-coleus-no-yume",
+      "title": "Tensei shitara Slime Datta Ken: Coleus no Yume",
+      "season": 1
+    },
+    {
+      "slug": "tensei-shitara-slime-datta-ken-temporada-2",
+      "title": "Tensei shitara Slime Datta Ken",
+      "season": 2
+    },
+    {
+      "slug": "tensei-shitara-slime-datta-ken-temporada-3",
+      "title": "Tensei shitara Slime Datta Ken",
+      "season": 3
+    },
+    {
+      "slug": "tensei-shitara-slime-datta-ken-temporada-4",
+      "title": "Tensei shitara Slime Datta Ken",
+      "season": 4
+    },
+    {
+      "slug": "tensura-nikki-tensei-shitara-slime-datta-ken",
+      "title": "Tensura Nikki: Tensei shitara Slime Datta Ken",
+      "season": 1
+    },
+    {
+      "slug": "teogonia",
+      "title": "Teogonia",
+      "season": 1
+    },
+    {
+      "slug": "teppen",
+      "title": "Teppen!!!!!!!!!!!!!!!",
+      "season": 1
+    },
+    {
+      "slug": "terminator-0",
+      "title": "Terminator 0",
+      "season": 1
+    },
+    {
+      "slug": "terror-man",
+      "title": "Terror Man",
+      "season": 1
+    },
+    {
+      "slug": "tesla-note",
+      "title": "Tesla Note",
+      "season": 1
+    },
+    {
+      "slug": "tetsunabe-no-jan",
+      "title": "Tetsunabe no Jan!",
+      "season": 1
+    },
+    {
+      "slug": "tetsuryou-meet-with-tetsudou-musume",
+      "title": "Tetsuryou! Meet with Tetsudou Musume",
+      "season": 1
+    },
+    {
+      "slug": "the-all-devouring-whale-homecoming-audio-japones",
+      "title": "The All-devouring Whale: Homecoming (Audio Japonés)",
+      "season": 1
+    },
+    {
+      "slug": "the-all-devouring-whale-homecoming-kun-tun-tianxia-zhi-zhang-men-guilai",
+      "title": "The All-devouring Whale: Homecoming (Kun Tun Tianxia Zhi Zhang Men Guilai)",
+      "season": 1
+    },
+    {
+      "slug": "the-beginning-after-the-end-saikyou-no-ousama-nidome-no-jinsei-wa-nani-wo-suru-temporada-2",
+      "title": "The Beginning After the End (Saikyou no Ousama, Nidome no Jinsei wa Nani wo Suru?)",
+      "season": 2
+    },
+    {
+      "slug": "the-chosen-one-gu-wei-nan-ting",
+      "title": "The Chosen One (Gu Wei Nan Ting)",
+      "season": 1
+    },
+    {
+      "slug": "the-daily-life-of-the-immortal-king-audio-japones",
+      "title": "The Daily Life of the Immortal King (Audio Japonés)",
+      "season": 1
+    },
+    {
+      "slug": "the-daily-life-of-the-immortal-king-temporada-3",
+      "title": "The Daily Life of the Immortal King",
+      "season": 3
+    },
+    {
+      "slug": "the-daily-life-of-the-immortal-king-temporada-4",
+      "title": "The Daily Life of the Immortal King",
+      "season": 4
+    },
+    {
+      "slug": "the-daily-life-of-the-immortal-king-temporada-5",
+      "title": "The Daily Life of the Immortal King",
+      "season": 5
+    },
+    {
+      "slug": "the-fable",
+      "title": "The Fable",
+      "season": 1
+    },
+    {
+      "slug": "the-fated-magical-princess-who-made-me-a-princess",
+      "title": "The Fated Magical Princess: Who Made Me a Princess",
+      "season": 1
+    },
+    {
+      "slug": "the-idolmster-shiny-colors",
+      "title": "The iDOLM@STER Shiny Colors",
+      "season": 1
+    },
+    {
+      "slug": "the-idolmster-shiny-colors-temporada-2",
+      "title": "The iDOLM@STER Shiny Colors",
+      "season": 2
+    },
+    {
+      "slug": "the-last-summoner",
+      "title": "The Last Summoner (Audio Japonés)",
+      "season": 1
+    },
+    {
+      "slug": "the-last-summoner-zuihou-de-zhaohuan-shi",
+      "title": "The Last Summoner (Zuihou de Zhaohuan Shi)",
+      "season": 1
+    },
+    {
+      "slug": "the-new-gate",
+      "title": "The New Gate",
+      "season": 1
+    },
+    {
+      "slug": "the-ribbon-hero",
+      "title": "The Ribbon Hero",
+      "season": 1
+    },
+    {
+      "slug": "the-super-cube-chao-neng-lifang-chaofan-pian",
+      "title": "The Super Cube (Chao Neng Lifang: Chaofan Pian)",
+      "season": 1
+    },
+    {
+      "slug": "tiger-bunny-temporada-2-ona",
+      "title": "Tiger & Bunny (ONA)",
+      "season": 2
+    },
+    {
+      "slug": "to-be-hero-x",
+      "title": "To Be Hero X",
+      "season": 1
+    },
+    {
+      "slug": "to-be-winner-cheng-ye-xiao-he",
+      "title": "To Be Winner (Cheng Ye Xiao He)",
+      "season": 1
+    },
+    {
+      "slug": "toaru-anbu-no-item",
+      "title": "Toaru Anbu no Item",
+      "season": 1
+    },
+    {
+      "slug": "toaru-majutsu-no-index",
+      "title": "Toaru Majutsu no Index",
+      "season": 1
+    },
+    {
+      "slug": "toaru-majutsu-no-index-ii",
+      "title": "Toaru Majutsu no Index II",
+      "season": 2
+    },
+    {
+      "slug": "toaru-majutsu-no-index-iii",
+      "title": "Toaru Majutsu no Index III",
+      "season": 3
+    },
+    {
+      "slug": "toaru-ossan-no-vrmmo-katsudouki",
+      "title": "Toaru Ossan no VRMMO Katsudouki",
+      "season": 1
+    },
+    {
+      "slug": "tokyo-mew-mew-new-2022",
+      "title": "Tokyo Mew Mew New ♡",
+      "season": 1
+    },
+    {
+      "slug": "tokyo-mew-mew-new-temporada-2",
+      "title": "Tokyo Mew Mew New ♡",
+      "season": 2
+    },
+    {
+      "slug": "tokyo-revengers",
+      "title": "Tokyo Revengers",
+      "season": 1
+    },
+    {
+      "slug": "tokyo-revengers-santen-sensou-hen",
+      "title": "Tokyo Revengers: Santen Sensou-hen",
+      "season": 1
+    },
+    {
+      "slug": "tokyo-revengers-temporada-2",
+      "title": "Tokyo Revengers: Seiya Kessen-hen",
+      "season": 2
+    },
+    {
+      "slug": "tokyo-revengers-tenjiku-hen",
+      "title": "Tokyo Revengers: Tenjiku-hen",
+      "season": 1
+    },
+    {
+      "slug": "tomb-raider-king-dogulwang",
+      "title": "Tomb Raider King (Dogulwang)",
+      "season": 1
+    },
+    {
+      "slug": "tomo-chan-wa-onnanoko",
+      "title": "Tomo-chan wa Onnanoko!",
+      "season": 1
+    },
+    {
+      "slug": "tomodachi-no-imouto-ga-ore-ni-dake-uzai",
+      "title": "Tomodachi no Imouto ga Ore ni dake Uzai",
+      "season": 1
+    },
+    {
+      "slug": "tonari-no-youkai-san",
+      "title": "Tonari no Youkai-san",
+      "season": 1
+    },
+    {
+      "slug": "tondemo-skill-de-isekai-hourou-meshi",
+      "title": "Tondemo Skill de Isekai Hourou Meshi",
+      "season": 1
+    },
+    {
+      "slug": "tondemo-skill-de-isekai-hourou-meshi-2",
+      "title": "Tondemo Skill de Isekai Hourou Meshi 2",
+      "season": 1
+    },
+    {
+      "slug": "tongari-boushi-no-atelier",
+      "title": "Tongari Boushi no Atelier",
+      "season": 1
+    },
+    {
+      "slug": "tonikaku-kawaii-sns-ova",
+      "title": "Tonikaku Kawaii: SNS (OVA)",
+      "season": 1
+    },
+    {
+      "slug": "tonikaku-kawaii-temporada-2",
+      "title": "Tonikaku Kawaii",
+      "season": 2
+    },
+    {
+      "slug": "tougen-anki",
+      "title": "Tougen Anki",
+      "season": 1
+    },
+    {
+      "slug": "tougen-anki-nikko-kegon-no-taki-hen",
+      "title": "Tougen Anki: Nikko Kegon no Taki-hen",
+      "season": 1
+    },
+    {
+      "slug": "touken-ranbu-kai-kyoden-moyuru-honnouji",
+      "title": "Touken Ranbu Kai: Kyoden Moyuru Honnouji",
+      "season": 1
+    },
+    {
+      "slug": "toumei-na-yoru-ni-kakeru-kimi-to-me-ni-mienai-koi-wo-shita",
+      "title": "Toumei na Yoru ni Kakeru Kimi to, Me ni Mienai Koi wo Shita.",
+      "season": 1
+    },
+    {
+      "slug": "toutotsu-ni-egypt-shin-temporada-2",
+      "title": "Toutotsu ni Egypt Shin",
+      "season": 2
+    },
+    {
+      "slug": "towa-no-yuugure",
+      "title": "Towa no Yuugure",
+      "season": 1
+    },
+    {
+      "slug": "tribe-nine",
+      "title": "Tribe Nine",
+      "season": 1
+    },
+    {
+      "slug": "trigun-stampede",
+      "title": "Trigun Stampede",
+      "season": 1
+    },
+    {
+      "slug": "trigun-stargaze",
+      "title": "Trigun Stargaze",
+      "season": 1
+    },
+    {
+      "slug": "trillion-game",
+      "title": "Trillion Game",
+      "season": 1
+    },
+    {
+      "slug": "tsue-to-tsurugi-no-wistoria",
+      "title": "Tsue to Tsurugi no Wistoria",
+      "season": 1
+    },
+    {
+      "slug": "tsue-to-tsurugi-no-wistoria-temporada-2",
+      "title": "Tsue to Tsurugi no Wistoria",
+      "season": 2
+    },
+    {
+      "slug": "tsuihou-sareta-cheat-fuyo-majutsushi-wa-kimama-na-second-life-wo-ouka-suru-ore-wa-buki-dake-ja-naku-arayuru-mono-ni-kyouka-point-wo-fuyo-dekiru-shi-ore-no-ishi-de-itsudemo-kouka-wo-kaijo-dekiru",
+      "title": "Tsuihou sareta Cheat Fuyo Majutsushi wa Kimama na Second Life wo Ouka suru. Ore wa Buki dake ja Naku, Arayuru Mono ni «Kyouka Point» wo Fuyo Dekiru shi, Ore no Ishi de Itsudemo Kouka wo Kaijo Dekiru kedo, Nokotta Hitotachi Daijoubu?",
+      "season": 1
+    },
+    {
+      "slug": "tsuihou-sareta-tensei-juukishi-wa-game-chishiki-de-musou-suru",
+      "title": "Tsuihou sareta Tensei Juukishi wa Game Chishiki de Musou suru",
+      "season": 1
+    },
+    {
+      "slug": "tsuihousha-shokudou-e-youkoso",
+      "title": "Tsuihousha Shokudou e Youkoso!",
+      "season": 1
+    },
+    {
+      "slug": "tsuki-ga-michibiku-isekai-douchuu",
+      "title": "Tsuki ga Michibiku Isekai Douchuu",
+      "season": 1
+    },
+    {
+      "slug": "tsuki-ga-michibiku-isekai-douchuu-temporada-2",
+      "title": "Tsuki ga Michibiku Isekai Douchuu",
+      "season": 2
+    },
+    {
+      "slug": "tsuki-to-laika-to-nosferatu",
+      "title": "Tsuki to Laika to Nosferatu",
+      "season": 1
+    },
+    {
+      "slug": "tsuma-shougakusei-ni-naru",
+      "title": "Tsuma, Shougakusei ni Naru.",
+      "season": 1
+    },
+    {
+      "slug": "tsundere-akuyaku-reijou-liselotte-to-jikkyou-no-endou-kun-to-kaisetsu-no-kobayashi-san",
+      "title": "Tsundere Akuyaku Reijou Liselotte to Jikkyou no Endou-kun to Kaisetsu no Kobayashi-san",
+      "season": 1
+    },
+    {
+      "slug": "tsuyokute-new-saga",
+      "title": "Tsuyokute New Saga",
+      "season": 1
+    },
+    {
+      "slug": "ubel-blatt",
+      "title": "Übel Blatt",
+      "season": 1
+    },
+    {
+      "slug": "uchi-no-kaisha-no-chiisai-senpai-no-hanashi",
+      "title": "Uchi no Kaisha no Chiisai Senpai no Hanashi",
+      "season": 1
+    },
+    {
+      "slug": "uchi-no-otouto-domo-ga-sumimasen",
+      "title": "Uchi no Otouto-domo ga Sumimasen",
+      "season": 1
+    },
+    {
+      "slug": "uma-musume-cinderella-gray",
+      "title": "Uma Musume: Cinderella Gray",
+      "season": 1
+    },
+    {
+      "slug": "uma-musume-pretty-derby-temporada-3",
+      "title": "Uma Musume: Pretty Derby",
+      "season": 3
+    },
+    {
+      "slug": "undead-girl-murder-farce",
+      "title": "Undead Girl Murder Farce",
+      "season": 1
+    },
+    {
+      "slug": "undead-unluck",
+      "title": "Undead Unluck",
+      "season": 1
+    },
+    {
+      "slug": "under-ninja",
+      "title": "Under Ninja",
+      "season": 1
+    },
+    {
+      "slug": "under-the-gate",
+      "title": "Under the Gate",
+      "season": 1
+    },
+    {
+      "slug": "uniteup",
+      "title": "UniteUp!",
+      "season": 1
+    },
+    {
+      "slug": "unnamed-memory-act-2",
+      "title": "Unnamed Memory Act.2",
+      "season": 1
+    },
+    {
+      "slug": "uramichi-oniisan",
+      "title": "Uramichi Oniisan",
+      "season": 1
+    },
+    {
+      "slug": "urusei-yatsura-2022",
+      "title": "Urusei Yatsura (2022)",
+      "season": 1
+    },
+    {
+      "slug": "urusei-yatsura-2022-temporada-2",
+      "title": "Urusei Yatsura (2022)",
+      "season": 2022
+    },
+    {
+      "slug": "uruwashi-no-yoi-no-tsuki",
+      "title": "Uruwashi no Yoi no Tsuki",
+      "season": 1
+    },
+    {
+      "slug": "ushiro-no-shoumen-kamui-san",
+      "title": "Ushiro no Shoumen Kamui-san",
+      "season": 1
+    },
+    {
+      "slug": "uzaki-chan-wa-asobitai-temporada-2",
+      "title": "Uzaki-chan wa Asobitai!",
+      "season": 2
+    },
+    {
+      "slug": "uzumaki-2024",
+      "title": "Uzumaki",
+      "season": 1
+    },
+    {
+      "slug": "vampire-dormitory",
+      "title": "Vampire Dormitory",
+      "season": 1
+    },
+    {
+      "slug": "vampire-in-the-garden",
+      "title": "Vampire in the Garden",
+      "season": 1
+    },
+    {
+      "slug": "vanitas-no-carte",
+      "title": "Vanitas no Carte",
+      "season": 1
+    },
+    {
+      "slug": "vanitas-no-carte-temporada-2",
+      "title": "Vanitas no Carte",
+      "season": 2
+    },
+    {
+      "slug": "vazzrock-the-animation",
+      "title": "Vazzrock The Animation",
+      "season": 1
+    },
+    {
+      "slug": "vertex-force",
+      "title": "Vertex Force",
+      "season": 1
+    },
+    {
+      "slug": "vigilante-boku-no-hero-academia-illegals",
+      "title": "Vigilante: Boku no Hero Academia Illegals",
+      "season": 1
+    },
+    {
+      "slug": "vigilante-boku-no-hero-academia-illegals-temporada-2",
+      "title": "Vigilante: Boku no Hero Academia Illegals",
+      "season": 2
+    },
+    {
+      "slug": "vinland-saga-temporada-2",
+      "title": "Vinland Saga",
+      "season": 2
+    },
+    {
+      "slug": "viral-hit-kenka-dokugaku",
+      "title": "Viral Hit: Kenka Dokugaku",
+      "season": 1
+    },
+    {
+      "slug": "visual-prison",
+      "title": "Visual Prison",
+      "season": 1
+    },
+    {
+      "slug": "vtuber-nandaga-haishin-kiri-wasuretara-densetsu-ni-natteta",
+      "title": "VTuber Nandaga Haishin Kiri Wasuretara Densetsu ni Natteta",
+      "season": 1
+    },
+    {
+      "slug": "wandance",
+      "title": "Wandance",
+      "season": 1
+    },
+    {
+      "slug": "warau-arsnotoria-sun",
+      "title": "Warau Arsnotoria Sun!",
+      "season": 1
+    },
+    {
+      "slug": "watari-kun-no-xx-ga-houkai-sunzen",
+      "title": "Watari-kun no xx ga Houkai Sunzen",
+      "season": 1
+    },
+    {
+      "slug": "watashi-ga-koibito-ni-nareru-wake-nai-jan-muri-muri-muri-ja-nakatta",
+      "title": "Watashi ga Koibito ni Nareru Wake Nai jan, Muri Muri! (※Muri ja Nakatta!?)",
+      "season": 1
+    },
+    {
+      "slug": "watashi-no-oshi-wa-akuyaku-reijou",
+      "title": "Watashi no Oshi wa Akuyaku Reijou.",
+      "season": 1
+    },
+    {
+      "slug": "watashi-no-shiawase-na-kekkon",
+      "title": "Watashi no Shiawase na Kekkon",
+      "season": 1
+    },
+    {
+      "slug": "watashi-no-shiawase-na-kekkon-temporada-2",
+      "title": "Watashi no Shiawase na Kekkon",
+      "season": 2
+    },
+    {
+      "slug": "watashi-no-yuri-wa-oshigoto-desu",
+      "title": "Watashi no Yuri wa Oshigoto desu!",
+      "season": 1
+    },
+    {
+      "slug": "watashi-wo-tabetai-hitodenashi",
+      "title": "Watashi wo Tabetai, Hitodenashi",
+      "season": 1
+    },
+    {
+      "slug": "wind-breaker-temporada-2",
+      "title": "Wind Breaker",
+      "season": 2
+    },
+    {
+      "slug": "wonder-egg-priority",
+      "title": "Wonder Egg Priority",
+      "season": 1
+    },
+    {
+      "slug": "world-trigger-temporada-3",
+      "title": "World Trigger",
+      "season": 3
+    },
+    {
+      "slug": "yahari-ore-no-seishun-love-comedy-wa-machigatteiru-kan-dakara-shishunki-wa-owarazu-ni-seishun-wa-tsuzuiteiku",
+      "title": "Yahari Ore no Seishun Love Comedy wa Machigatteiru. Kan: Dakara, Shishunki wa Owarazu ni, Seishun wa Tsuzuiteiku.",
+      "season": 1
+    },
+    {
+      "slug": "yama-no-susume-next-summit",
+      "title": "Yama no Susume: Next Summit",
+      "season": 1
+    },
+    {
+      "slug": "yamada-kun-to-lv999-no-koi-wo-suru",
+      "title": "Yamada-kun to Lv999 no Koi wo Suru",
+      "season": 1
+    },
+    {
+      "slug": "yani-neko",
+      "title": "Yani Neko",
+      "season": 1
+    },
+    {
+      "slug": "yarinaoshi-reijou-wa-ryuutei-heika-wo-kouryakuchuu",
+      "title": "Yarinaoshi Reijou wa Ryuutei Heika wo Kouryakuchuu",
+      "season": 1
+    },
+    {
+      "slug": "yasei-no-last-boss-ga-arawareta",
+      "title": "Yasei no Last Boss ga Arawareta!",
+      "season": 1
+    },
+    {
+      "slug": "yasei-no-last-boss-ga-arawareta-temporada-2",
+      "title": "Yasei no Last Boss ga Arawareta!",
+      "season": 2
+    },
+    {
+      "slug": "yasuke",
+      "title": "Yasuke",
+      "season": 1
+    },
+    {
+      "slug": "yofukashi-no-uta-2022",
+      "title": "Yofukashi no Uta",
+      "season": 1
+    },
+    {
+      "slug": "yofukashi-no-uta-temporada-2",
+      "title": "Yofukashi no Uta",
+      "season": 2
+    },
+    {
+      "slug": "yomi-no-tsugai",
+      "title": "Yomi no Tsugai",
+      "season": 1
+    },
+    {
+      "slug": "yoru-no-kurage-wa-oyogenai",
+      "title": "Yoru no Kurage wa Oyogenai",
+      "season": 1
+    },
+    {
+      "slug": "youjo-senki-sabaku-no-pasta-dai-sakusen-ova",
+      "title": "Youjo Senki – Sabaku no Pasta Dai Sakusen (OVA)",
+      "season": 1
+    },
+    {
+      "slug": "youjo-senki-temporada-2",
+      "title": "Youjo Senki",
+      "season": 2
+    },
+    {
+      "slug": "youkai-gakkou-no-sensei-hajimemashita",
+      "title": "Youkai Gakkou no Sensei Hajimemashita!",
+      "season": 1
+    },
+    {
+      "slug": "youkoso-jitsuryoku-shijou-shugi-no-kyoushitsu-e-iii",
+      "title": "Youkoso Jitsuryoku Shijou Shugi no Kyoushitsu e III",
+      "season": 3
+    },
+    {
+      "slug": "youkoso-jitsuryoku-shijou-shugi-no-kyoushitsu-e-temporada-2",
+      "title": "Youkoso Jitsuryoku Shijou Shugi no Kyoushitsu e II",
+      "season": 2
+    },
+    {
+      "slug": "youkoso-jitsuryoku-shijou-shugi-no-kyoushitsu-e-temporada-4-2-nensei-hen-1-gakki",
+      "title": "Youkoso Jitsuryoku Shijou Shugi no Kyoushitsu e : 2-nensei-hen 1 Gakki",
+      "season": 4
+    },
+    {
+      "slug": "your-forma",
+      "title": "Your Forma",
+      "season": 1
+    },
+    {
+      "slug": "yowai-5000-nen-no-soushoku-dragon-iwarenaki-jaryuu-nintei",
+      "title": "Yowai 5000-nen no Soushoku Dragon, Iwarenaki Jaryuu Nintei (Audio Japonés)",
+      "season": 1
+    },
+    {
+      "slug": "yowai-5000-nen-no-soushoku-dragon-iwarenaki-jaryuu-nintei-temporada-2",
+      "title": "Yowai 5000-nen no Soushoku Dragon, Iwarenaki Jaryuu Nintei",
+      "season": 2
+    },
+    {
+      "slug": "yowaki-max-reijou-nanoni-ratsuwan-konyakusha-sama-no-kake-ni-notte-shimatta",
+      "title": "Yowaki Max Reijou nanoni, Ratsuwan Konyakusha-sama no Kake ni Notte Shimatta",
+      "season": 1
+    },
+    {
+      "slug": "yozakura-san-chi-no-daisakusen",
+      "title": "Yozakura-san Chi no Daisakusen",
+      "season": 1
+    },
+    {
+      "slug": "yozakura-san-chi-no-daisakusen-temporada-2",
+      "title": "Yozakura-san Chi no Daisakusen",
+      "season": 2
+    },
+    {
+      "slug": "yu-gi-oh-gx-remaster-2025",
+      "title": "Yu-Gi-Oh! GX Remaster (2025)",
+      "season": 1
+    },
+    {
+      "slug": "yubisaki-to-renren",
+      "title": "Yubisaki to Renren",
+      "season": 1
+    },
+    {
+      "slug": "yumemiru-danshi-wa-genjitsushugisha",
+      "title": "Yumemiru Danshi wa Genjitsushugisha",
+      "season": 1
+    },
+    {
+      "slug": "yurei-deco",
+      "title": "Yurei Deco",
+      "season": 1
+    },
+    {
+      "slug": "yuru-camp-temporada-3",
+      "title": "Yuru Camp△",
+      "season": 3
+    },
+    {
+      "slug": "yuukoku-no-moriarty-temporada-2",
+      "title": "Yuukoku no Moriarty",
+      "season": 2
+    },
+    {
+      "slug": "yuusha-ga-shinda",
+      "title": "Yuusha ga Shinda!",
+      "season": 1
+    },
+    {
+      "slug": "yuusha-kei-ni-shosu-choubatsu-yuusha-9004-tai-keimu-kiroku",
+      "title": "Yuusha-kei ni Shosu: Choubatsu Yuusha 9004-tai Keimu Kiroku",
+      "season": 1
+    },
+    {
+      "slug": "yuusha-no-kuzu",
+      "title": "Yuusha no Kuzu",
+      "season": 1
+    },
+    {
+      "slug": "yuusha-party-ni-kawaii-ko-ga-ita-node-kokuhaku-shitemita",
+      "title": "Yuusha Party ni Kawaii Ko ga Ita node, Kokuhaku shitemita.",
+      "season": 1
+    },
+    {
+      "slug": "yuusha-party-wo-oidasareta-kiyoubinbou",
+      "title": "Yuusha Party wo Oidasareta Kiyoubinbou",
+      "season": 1
+    },
+    {
+      "slug": "yuusha-party-wo-tsuihou-sareta-beast-tamer-saikyoushu-no-nekomimi-shoujo-to-deau",
+      "title": "Yuusha Party wo Tsuihou sareta Beast Tamer, Saikyoushu no Nekomimi Shoujo to Deau",
+      "season": 1
+    },
+    {
+      "slug": "yuusha-party-wo-tsuihou-sareta-shiromadoushi-s-rank-boukensha-ni-hirowareru-kono-shiromadoushi-ga-kikakugai-sugiru",
+      "title": "Yuusha Party wo Tsuihou sareta Shiromadoushi, S-Rank Boukensha ni Hirowareru: Kono Shiromadoushi ga Kikakugai Sugiru",
+      "season": 1
+    },
+    {
+      "slug": "yuusha-yamemasu",
+      "title": "Yuusha, Yamemasu",
+      "season": 1
+    },
+    {
+      "slug": "yuusha-yamemasu-kenshuu-ryokou-wa-mokuteki-wo-miushinau-na",
+      "title": "Yuusha, Yamemasu (OVA): Kenshuu Ryokou wa Mokuteki wo Miushinau na",
+      "season": 1
+    },
+    {
+      "slug": "yuzuki-san-chi-no-yonkyoudai",
+      "title": "Yuzuki-san Chi no Yonkyoudai.",
+      "season": 1
+    },
+    {
+      "slug": "zatsu-tabi-thats-journey",
+      "title": "Zatsu Tabi: That’s Journey",
+      "season": 1
+    },
+    {
+      "slug": "zenshuu",
+      "title": "Zenshuu.",
+      "season": 1
+    },
+    {
+      "slug": "zom-100-zombie-ni-naru-made-ni-shitai-100-no-koto",
+      "title": "Zom 100: Zombie ni Naru made ni Shitai 100 no Koto",
+      "season": 1
+    },
+    {
+      "slug": "zombie-sagashitemasu",
+      "title": "#Zombie Sagashitemasu",
+      "season": 1
+    },
+    {
+      "slug": "zombieland-saga-revenge",
+      "title": "Zombieland Saga: Revenge",
+      "season": 1
+    },
+    {
+      "slug": "zutaboro-reijou-wa-ane-no-moto-konyakusha-ni-dekiai-sareru",
+      "title": "Zutaboro Reijou wa Ane no Moto Konyakusha ni Dekiai sareru",
+      "season": 1
+    }
+  ],
+  "schedule": [
+    {
+      "slug": "doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu",
+      "at": 1791205200000,
+      "episode": 2
+    },
+    {
+      "slug": "tensei-goblin-dakedo-shitsumon-aru",
+      "at": 1791207000000,
+      "episode": 3
+    },
+    {
+      "slug": "psyren",
+      "at": 1791210000000,
+      "episode": 2
+    },
+    {
+      "slug": "mahou-shoujo-ikusei-keikaku-restart",
+      "at": 1791221400000,
+      "episode": 1
+    },
+    {
+      "slug": "shiotaiou-no-satou-san-ga-ore-ni-dake-amai",
+      "at": 1791288000000,
+      "episode": 1
+    },
+    {
+      "slug": "kyouran-reijou-nia-liston-byoujaku-reijou-ni-tensei-shita-kamigoroshi-no-bujin-no-karei-naru-musouroku",
+      "at": 1791291000000,
+      "episode": 1
+    },
+    {
+      "slug": "choujun-choujou-senpai",
+      "at": 1791297600000,
+      "episode": 1
+    },
+    {
+      "slug": "tsuihou-sareta-cheat-fuyo-majutsushi-wa-kimama-na-second-life-wo-ouka-suru-ore-wa-buki-dake-ja-naku-arayuru-mono-ni-kyouka-point-wo-fuyo-dekiru-shi-ore-no-ishi-de-itsudemo-kouka-wo-kaijo-dekiru",
+      "at": 1791300600000,
+      "episode": 1
+    },
+    {
+      "slug": "sora-wa-akai-kawa-no-hotori",
+      "at": 1791309600000,
+      "episode": 14
+    },
+    {
+      "slug": "li-xiongmao-raised-by-demons-panda-li-li-xiongmao",
+      "at": 1791338400000,
+      "episode": 9
+    },
+    {
+      "slug": "rezero-kara-hajimeru-isekai-seikatsu-temporada-4",
+      "at": 1791382800000,
+      "episode": 20
+    },
+    {
+      "slug": "tensei-shitara-ken-deshita-temporada-2",
+      "at": 1791388800000,
+      "episode": 2
+    },
+    {
+      "slug": "shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen",
+      "at": 1791390600000,
+      "episode": 2
+    },
+    {
+      "slug": "fx-senshi-kurumi-chan",
+      "at": 1791464400000,
+      "episode": 2
+    },
+    {
+      "slug": "koori-no-jouheki-temporada-2",
+      "at": 1791474600000,
+      "episode": 2
+    },
+    {
+      "slug": "tsuihou-sareta-tensei-juukishi-wa-game-chishiki-de-musou-suru",
+      "at": 1791475200000,
+      "episode": 15
+    },
+    {
+      "slug": "kizu-darake-seijo-yori-houfuku-wo-komete-temporada-2",
+      "at": 1791480600000,
+      "episode": 2
+    },
+    {
+      "slug": "link-click-temporada-3",
+      "at": 1791516600000,
+      "episode": 10
+    },
+    {
+      "slug": "tokyo-revengers-santen-sensou-hen",
+      "at": 1791543600000,
+      "episode": 2
+    },
+    {
+      "slug": "kusuriya-no-hitorigoto-temporada-3",
+      "at": 1791559200000,
+      "episode": 2
+    },
+    {
+      "slug": "tougen-anki-nikko-kegon-no-taki-hen",
+      "at": 1791561600000,
+      "episode": 2
+    },
+    {
+      "slug": "uchi-no-otouto-domo-ga-sumimasen",
+      "at": 1791564600000,
+      "episode": 14
+    },
+    {
+      "slug": "ghost-meets-gal",
+      "at": 1791590400000,
+      "episode": 6
+    },
+    {
+      "slug": "honzuki-no-gekokujou-shisho-ni-naru-tame-ni-wa-shudan-wo-erandeiraremasen-ryoushu-no-youjo",
+      "at": 1791626400000,
+      "episode": 25
+    },
+    {
+      "slug": "black-clover-temporada-2",
+      "at": 1791633600000,
+      "episode": 2
+    },
+    {
+      "slug": "gensou-suikoden",
+      "at": 1791633600000,
+      "episode": 2
+    },
+    {
+      "slug": "romelia-senki",
+      "at": 1791634800000,
+      "episode": 2
+    },
+    {
+      "slug": "tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu",
+      "at": 1791639000000,
+      "episode": 3
+    },
+    {
+      "slug": "yasei-no-last-boss-ga-arawareta-temporada-2",
+      "at": 1791640200000,
+      "episode": 3
+    },
+    {
+      "slug": "zombie-sagashitemasu",
+      "at": 1791644400000,
+      "episode": 2
+    },
+    {
+      "slug": "bleach-sennen-kessen-hen-kashin-tan-2026",
+      "at": 1791644400000,
+      "episode": 9
+    },
+    {
+      "slug": "magical-explorer",
+      "at": 1791645600000,
+      "episode": 3
+    },
+    {
+      "slug": "seitokai-ni-mo-ana-wa-aru",
+      "at": 1791647400000,
+      "episode": 2
+    },
+    {
+      "slug": "vertex-force",
+      "at": 1791649800000,
+      "episode": 2
+    },
+    {
+      "slug": "kashita-maryoku-wa-revo-barai-de-kyousei-choushuu",
+      "at": 1791651000000,
+      "episode": 2
+    },
+    {
+      "slug": "ao-ashi-temporada-2",
+      "at": 1791709200000,
+      "episode": 2
+    },
+    {
+      "slug": "ao-no-hako-temporada-2",
+      "at": 1791709200000,
+      "episode": 2
+    },
+    {
+      "slug": "seihantai-na-kimi-to-boku-temporada-2",
+      "at": 1791709200000,
+      "episode": 14
+    },
+    {
+      "slug": "mezametara-saikyou-soubi-to-uchuusenmochi-datta-node-ikkodate-mezashite-youhei-toshite-jiyuu-ni-ikitai",
+      "at": 1791723600000,
+      "episode": 2
+    },
+    {
+      "slug": "ojisan-wa-kawaii-mono-ga-osuki",
+      "at": 1791725400000,
+      "episode": 2
+    },
+    {
+      "slug": "tempal-item-no-chikara",
+      "at": 1791730200000,
+      "episode": 3
+    },
+    {
+      "slug": "tank-chair",
+      "at": 1791730800000,
+      "episode": 2
+    },
+    {
+      "slug": "yowaki-max-reijou-nanoni-ratsuwan-konyakusha-sama-no-kake-ni-notte-shimatta",
+      "at": 1791730800000,
+      "episode": 2
+    },
+    {
+      "slug": "tensei-kizoku-kantei-skill-de-nariagaru-temporada-3",
+      "at": 1791732000000,
+      "episode": 3
+    },
+    {
+      "slug": "hotel-inhumans-temporada-2",
+      "at": 1791733800000,
+      "episode": 2
+    },
+    {
+      "slug": "kanata-kara",
+      "at": 1791736200000,
+      "episode": 2
+    },
+    {
+      "slug": "kanojo-no-tomodachi",
+      "at": 1791736200000,
+      "episode": 2
+    },
+    {
+      "slug": "dark-summoner-to-dekiteiru",
+      "at": 1791737400000,
+      "episode": 2
+    },
+    {
+      "slug": "hitozukiai-ga-nigate-na-miboujin-no-yukionna-san-to-noroi-no-yubiwa",
+      "at": 1791763200000,
+      "episode": 2
+    },
+    {
+      "slug": "mouse-cursor-de-genjitsu-wo-sousa-dekiru-you-ni-natta-node-onna-no-ko-wo-ippai-click-shimaasu",
+      "at": 1791763200000,
+      "episode": 2
+    },
+    {
+      "slug": "to-be-winner-cheng-ye-xiao-he",
+      "at": 1791770400000,
+      "episode": 5
+    },
+    {
+      "slug": "under-the-gate",
+      "at": 1791770400000,
+      "episode": 9
+    },
+    {
+      "slug": "false-memory-jiyi-guanli-ju-2026",
+      "at": 1791774000000,
+      "episode": 4
+    }
+  ]
+}

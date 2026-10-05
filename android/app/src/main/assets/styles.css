@@ -3124,17 +3124,17 @@ select.focusable:focus-visible:not(.is-tv-focused) {
   box-shadow: none;
 }
 
-.show-card:is(:hover, :focus-visible, .is-tv-focused) {
+/* Restored browser focus can outlive mouse interaction; keyboard/TV focus is explicit. */
+.show-card:is(:hover, .is-tv-focused) {
   transform: translateY(-0.16rem);
 }
 
-.show-card:is(:hover, :focus-visible, .is-tv-focused)::after {
+.show-card:is(:hover, .is-tv-focused)::after {
   opacity: 0.9;
   transform: scaleX(1);
 }
 
 .show-card.is-tv-focused .thumb-art,
-.show-card:focus-visible .thumb-art,
 .show-card:hover .thumb-art {
   transform: translateY(-0.08rem);
   border-color: rgba(0, 210, 255, 0.82);
@@ -3144,12 +3144,12 @@ select.focusable:focus-visible:not(.is-tv-focused) {
     0 0 1.1rem rgba(0, 210, 255, 0.16);
 }
 
-.show-card:is(:hover, :focus-visible, .is-tv-focused) .thumb-poster {
+.show-card:is(:hover, .is-tv-focused) .thumb-poster {
   transform: scale(1.03);
   filter: saturate(1.12) brightness(1.06);
 }
 
-.show-card:is(:hover, :focus-visible, .is-tv-focused) .show-title {
+.show-card:is(:hover, .is-tv-focused) .show-title {
   color: #f8fbff;
   transform: none;
   text-shadow:
@@ -3157,11 +3157,11 @@ select.focusable:focus-visible:not(.is-tv-focused) {
     0 0 0.7rem rgba(0, 210, 255, 0.26);
 }
 
-.show-card:is(:hover, :focus-visible, .is-tv-focused) .show-meta {
+.show-card:is(:hover, .is-tv-focused) .show-meta {
   color: #dcd6ef;
 }
 
-.show-card:is(:hover, :focus-visible, .is-tv-focused) .episode-pill {
+.show-card:is(:hover, .is-tv-focused) .episode-pill {
   background: rgba(0, 210, 255, 0.92);
   color: #08101b;
 }
@@ -3190,6 +3190,20 @@ select.focusable:focus-visible:not(.is-tv-focused) {
 .show-title,
 .show-meta {
   transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease, filter 220ms ease, color 220ms ease, text-shadow 220ms ease;
+}
+
+/* Hover can ease in; leaving a title clears its selection immediately. */
+.show-card:not(:hover):not(.is-tv-focused),
+.show-card:not(:hover):not(.is-tv-focused)::after,
+.show-card:not(:hover):not(.is-tv-focused) :is(.thumb-art, .thumb-poster, .show-title, .show-meta, .episode-pill, .continue-play),
+.release-card:not(:hover):not(.is-tv-focused) :is(.release-open, .release-poster img) {
+  transition-duration: 0s;
+  transition-delay: 0s;
+}
+
+.release-card:focus-visible:not(.is-tv-focused) {
+  outline: none;
+  box-shadow: none;
 }
 
 .watch-overlay {
@@ -10387,7 +10401,7 @@ body.is-tv .ep-season-menu { background: rgba(18, 19, 32, 1); }
   opacity: 0;
   transition: opacity 160ms ease;
 }
-.continue-card:is(:hover, :focus-visible, .is-tv-focused) .continue-play { opacity: 1; }
+.continue-card:is(:hover, .is-tv-focused) .continue-play { opacity: 1; }
 .continue-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 0.32rem; background: rgba(0,0,0,0.55); }
 .continue-bar > span { display: block; height: 100%; background: var(--accent, #8a5cff); }
 .continue-bar-outside { position: absolute; left: 0; right: 0; bottom: 0; height: 0.22rem; background: rgba(255, 255, 255, 0.18); overflow: hidden; z-index: 5; }
@@ -10521,8 +10535,8 @@ body:not(.adult-mode) #releases { display: none !important; }
 .release-poster img[hidden] { display: none; }
 .release-episode { position: absolute; left: 0.55rem; bottom: 0.55rem; padding: 0.28rem 0.45rem; border-radius: 4px; background: rgba(8,8,12,0.91); color: #fff; font-size: 0.66rem; font-weight: 700; line-height: 1.4; }
 .release-open { position: absolute; top: 0.55rem; right: 0.55rem; display: grid; place-items: center; width: 1.8rem; height: 1.8rem; border-radius: 50%; color: #fff; background: rgba(8,8,12,0.82); opacity: 0; transition: opacity 180ms ease; }
-.release-card:is(:hover, :focus-visible, .is-tv-focused) .release-open { opacity: 1; }
-a.release-card:is(:hover, :focus-visible, .is-tv-focused) .release-poster img { transform: scale(1.035); }
+.release-card:is(:hover, .is-tv-focused) .release-open { opacity: 1; }
+a.release-card:is(:hover, .is-tv-focused) .release-poster img { transform: scale(1.035); }
 .release-card-copy { padding-top: 0.65rem; }
 .release-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.5rem; font-size: 0.68rem; line-height: 1.5; }
 .release-card-meta time { color: var(--muted); }

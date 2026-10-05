@@ -8,6 +8,7 @@ const vm = require("vm");
 const { spawn } = require("child_process");
 const { Readable } = require("stream");
 const { gzip } = require("zlib");
+const { createProvider: createAnimeYTProvider } = require("./lib/animeyt-provider.cjs");
 let sharp = null;
 try {
   sharp = require("sharp");
@@ -133,6 +134,10 @@ const HENTAILA_CATALOG_FILE = resolveScraperFile("hentaila_catalog.json");
 const HENTAILA_DETAILS_FILE = resolveScraperFile("hentaila_details.json");
 const ADULT_PORTRAIT_MAP_FILE = resolveScraperFile("adult_portrait_map.json");
 const REGULAR_SOURCE_FALLBACKS_FILE = resolveScraperFile("regular-source-fallbacks.json");
+const animeYTProvider = createAnimeYTProvider({
+  indexPath: resolveScraperFile("animeyt-index.json"),
+  debug: process.env.API_DEBUG === "1"
+});
 const UNDERHENTAI_CACHE_TTL_MS = 1000 * 60 * 30;
 const UNDERHENTAI_LIVE_CATALOG_ENABLED = String(process.env.UNDERHENTAI_LIVE_CATALOG || "").trim() === "1";
 const HENTAIOCEAN_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
@@ -1282,6 +1287,19 @@ function handleRequest(request, response) {
 
   if (url.pathname === "/api/animeneon/sources") {
     handleAnimeNeonSources(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/animeyt/sources") {
+    handleAnimeYTSources(url, response);
+    return;
+  }
+
+  if (url.pathname === "/api/animeyt/health") {
+    sendJson(response, { ok: animeYTProvider.snapshot.items.length > 0, source: "AnimeYT",
+      indexedTitles: animeYTProvider.snapshot.items.length }, 200, {
+      "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
+    });
     return;
   }
 
@@ -3503,7 +3521,7 @@ function hasVerifiedRegularSourceFallback(item = {}) {
 
 function readScrapedRegularCatalogItems() {
   const applyAvailability = typeof applyAnimeNeonAvailability === "function"
-    ? applyAnimeNeonAvailability
+    ? (item) => animeYTProvider.enrich(applyAnimeNeonAvailability(item))
     : (item) => item;
   const paths = [
     path.join(root, "scraper", "anime_metadata.json"),
@@ -8774,6 +8792,30 @@ async function handleAnimeNeonHealth(response) {
     sendJson(response, { ok: upstream.ok, status: upstream.status, source: "AnimeNeon" });
   } catch (error) {
     sendJson(response, { ok: false, error: error.message, source: "AnimeNeon" }, 503);
+  }
+}
+
+async function handleAnimeYTSources(url, response) {
+  const start = Date.now();
+  const titles = url.searchParams.getAll("title").slice(0, 8).map(value => value.trim().slice(0, 240)).filter(Boolean);
+  const episode = Number(url.searchParams.get("episode"));
+  const season = Number(url.searchParams.get("season")) || 0;
+  const language = url.searchParams.get("language") || "sub";
+  if (!titles.length || episode <= 0 || !Number.isFinite(episode) || !Number.isInteger(season) || season < 0 || season > 100) {
+    sendJson(response, { ok: false, error: "Valid titles, season and episode required" }, 400, SOURCE_REFRESH_CACHE_HEADERS);
+    return;
+  }
+  try {
+    const data = await animeYTProvider.sources({ titles, episode, season, language });
+    sendJson(response, data || { ok: false, notFound: true, source: "AnimeYT", episode }, data ? 200 : 404, {
+      "Cache-Control": "public, max-age=30, s-maxage=60, stale-while-revalidate=30"
+    });
+  } catch (error) {
+    sendJson(response, { ok: false, source: "AnimeYT", error: "Provider temporarily unavailable" }, 502, {
+      ...SOURCE_REFRESH_CACHE_HEADERS, "Retry-After": String(error.retryAfter || 30)
+    });
+  } finally {
+    if (process.env.API_DEBUG === "1") console.info(`[api] /api/animeyt/sources ${Date.now() - start}ms`);
   }
 }
 
