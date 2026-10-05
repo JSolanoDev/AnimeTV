@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-05T13:39:50.093Z",
-  "count": 6598,
+  "generatedAt": "2026-10-05T19:53:22.422Z",
+  "count": 6601,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -236980,6 +236980,27 @@
           "order": 3
         }
       ]
+    },
+    "animeav1-psyren": {
+      "anilistId": 204011,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791813600000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu": {
+      "anilistId": 207191,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791808200000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-tensei-goblin-dakedo-shitsumon-aru": {
+      "anilistId": 209219,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791810000000,
+      "nextAiringEpisodeNumber": 3
     }
   },
   "seasonArtwork": {
