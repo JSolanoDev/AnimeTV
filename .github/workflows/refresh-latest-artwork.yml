@@ -27,7 +27,7 @@ jobs:
           node-version: '24'
       - name: Test targeted refresh and publication safeguards
         run: node --test scripts/test-latest-artwork-refresh.mjs scripts/test-regular-artwork.mjs
-      - name: Prepare missing recent artwork and descriptions
+      - name: Prepare recent artwork, descriptions and airing schedules
         run: node scripts/refresh-latest-artwork.mjs
         timeout-minutes: 16
       - name: Verify artwork and episode identities

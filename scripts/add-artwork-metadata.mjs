@@ -26,6 +26,7 @@ import { createEnrichmentBudget } from "./lib/enrichment-budget.mjs";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 const MAP = path.join(root, "scraper", "artwork-map.json");
+const AIRING_MAP = path.join(root, "scraper", "airing-map.json");
 
 const args = process.argv.slice(2);
 const budget = createEnrichmentBudget(args, 9);
@@ -35,9 +36,11 @@ const argOf = (name, fallback) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
 };
 const FORCE = args.includes("--force");
+const REFRESH_AIRING = args.includes("--refresh-airing");
 const LIMIT = Number(argOf("--limit", "0")) || 0;
 const ONLY_IDS = new Set(String(argOf("--ids", ""))
   .split(",").map((value) => value.trim()).filter(Boolean));
+if (REFRESH_AIRING && !ONLY_IDS.size) throw new Error("--refresh-airing requires scoped --ids");
 // AniList answered 30/min on 2026-09-02 (x-ratelimit-limit), well below the
 // documented 90. 2500ms keeps a margin even if several runs overlap.
 const INTERVAL = Number(argOf("--interval", "2500"));
@@ -55,6 +58,7 @@ const QUERY = `query ($ids: [Int]) {
       description(asHtml: false)
       startDate { year }
       studios(isMain: true) { nodes { name } }
+      nextAiringEpisode { airingAt episode }
     }
   }
 }`;
@@ -126,6 +130,20 @@ function toMeta(m) {
   };
 }
 
+// Add only confirmed instants for the exact season. A missing schedule must
+// not erase known data or replace source-owned episode counts and season chains.
+function recordAiringMetadata(entries, key, media) {
+  const previous = entries[key] || {};
+  if (previous.anilistId && Number(previous.anilistId) !== Number(media.id)) return;
+  const nextAiringAt = Number(media.nextAiringEpisode?.airingAt || 0) * 1000;
+  const nextAiringEpisodeNumber = Number(media.nextAiringEpisode?.episode || 0);
+  if (!(nextAiringAt > 0) || !Number.isFinite(new Date(nextAiringAt).getTime())
+    || !Number.isInteger(nextAiringEpisodeNumber) || nextAiringEpisodeNumber < 1) return;
+  entries[key] = { ...previous, anilistId: media.id,
+    airingStatus: previous.airingStatus || media.status || "",
+    franchiseSeasons: previous.franchiseSeasons || [], nextAiringAt, nextAiringEpisodeNumber };
+}
+
 // ── Jikan fallback ─────────────────────────────────────────────────────────
 // On 2026-09-02 AniList answered 403 "The AniList API has been temporarily
 // disabled due to severe stability issues" for hours, and the backfill had no
@@ -188,6 +206,10 @@ async function jikanMeta(malId) {
 const raw = JSON.parse(fs.readFileSync(MAP, "utf8"));
 const entries = raw.entries || {};
 const previousEntries = JSON.stringify(entries);
+const airing = fs.existsSync(AIRING_MAP)
+  ? JSON.parse(fs.readFileSync(AIRING_MAP, "utf8")) : { entries: {} };
+const airingEntries = airing.entries || (airing.entries = {});
+const previousAiringEntries = JSON.stringify(airingEntries);
 const keys = Object.keys(entries);
 
 // One id can back several slugs (seasons of the same series share a match), so
@@ -202,7 +224,7 @@ for (const key of keys) {
   // good anilistId and only failed to find a backdrop. Gating on status skipped 73
   // such rows, leaving them with no year/score/genres for no reason.
   if (!e || !e.anilistId) continue;
-  if (e.meta?.description && e.meta?.genres?.length && !FORCE) continue;
+  if (e.meta?.description && e.meta?.genres?.length && !FORCE && !REFRESH_AIRING) continue;
   const id = Number(e.anilistId);
   if (!Number.isFinite(id)) continue;
   if (!idToKeys.has(id)) idToKeys.set(id, []);
@@ -238,6 +260,8 @@ for (let i = 0; i < batches.length && !budget.expired(); i++) {
       entries[key].meta = { ...saved, ...Object.fromEntries(Object.entries(meta).filter(([field, value]) =>
         (value !== null && value !== "" && (!Array.isArray(value) || value.length)) || saved[field] == null
       )) };
+      entries[key].airingCheckedAt = new Date().toISOString();
+      recordAiringMetadata(airingEntries, key, m);
       resolved++;
     }
   }
@@ -301,6 +325,11 @@ if (budget.expired()) console.log("Time budget reached; saving metadata progress
 if (JSON.stringify(entries) !== previousEntries) {
   raw.metadataGeneratedAt = new Date().toISOString();
   fs.writeFileSync(MAP, JSON.stringify(raw));
+}
+if (JSON.stringify(airingEntries) !== previousAiringEntries) {
+  airing.generatedAt = new Date().toISOString();
+  airing.count = Object.keys(airingEntries).length;
+  fs.writeFileSync(AIRING_MAP, JSON.stringify(airing, null, 2));
 }
 
 const withMeta = keys.filter((k) => entries[k]?.meta).length;

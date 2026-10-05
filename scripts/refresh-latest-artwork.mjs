@@ -33,6 +33,15 @@ export function selectLatestArtwork(rows, entries, now = Date.now(), limit = 12)
   }).sort((a, b) => Number(!entries[b.id]) - Number(!entries[a.id])).slice(0, limit);
 }
 
+export function selectLatestAiring(rows, entries, now = Date.now(), limit = 50) {
+  return rows.filter(({ id }) => {
+    const saved = entries[id];
+    if (!saved?.anilistId || ["FINISHED", "CANCELLED"].includes(saved.meta?.airingStatus)) return false;
+    const checkedAt = Date.parse(saved.airingCheckedAt || "");
+    return !Number.isFinite(checkedAt) || now - checkedAt >= RETRY_MS;
+  }).slice(0, limit);
+}
+
 export async function refreshLatestArtwork({ base = "https://zenkaitv.com", fetchImpl = fetch, rootDir = root,
   run = (script, args) => {
     const result = spawnSync(process.execPath, [path.join(root, "scripts", script), ...args],
@@ -49,8 +58,11 @@ export async function refreshLatestArtwork({ base = "https://zenkaitv.com", fetc
   const rows = latestArtworkRows({ items: parseAnimeAv1Latest(await response.text()) });
   if (!rows.length) throw new Error("Latest release feed contained no valid titles; keeping saved artwork.");
   const selected = selectLatestArtwork(rows, saved.entries || {});
-  if (!selected.length) { console.log("Latest release artwork is current; no lookups or writes."); return []; }
-  const snapshots = new Map(["scraper/artwork-map.json", "scraper/anime_metadata.json",
+  const scheduleRows = selectLatestAiring(rows, saved.entries || {});
+  if (!selected.length && !scheduleRows.length) {
+    console.log("Latest release artwork and schedules are current; no lookups or writes."); return [];
+  }
+  const snapshots = new Map(["scraper/artwork-map.json", "scraper/airing-map.json", "scraper/anime_metadata.json",
     "android/app/src/main/assets/scraper/artwork-map.json", "homepage-bootstrap.json"]
     .map(file => path.join(rootDir, file)).filter(file => fs.existsSync(file))
     .map(file => [file, fs.readFileSync(file)]));
@@ -58,11 +70,12 @@ export async function refreshLatestArtwork({ base = "https://zenkaitv.com", fetc
   fs.mkdirSync(scratch, { recursive: true });
   const input = path.join(scratch, "latest-artwork-input.json");
   fs.writeFileSync(input, JSON.stringify({ items: selected }));
-  const ids = selected.map(({ id }) => id).join(",");
+  const ids = [...new Set([...selected, ...scheduleRows].map(({ id }) => id))].join(",");
   try {
-    run("build-artwork-map.mjs", ["--catalog", input, "--ids", ids, "--base", base,
+    if (selected.length) run("build-artwork-map.mjs", ["--catalog", input,
+      "--ids", selected.map(({ id }) => id).join(","), "--base", base,
       "--concurrency", "1", "--max-minutes", "6", "--mark-checked"]);
-    run("add-artwork-metadata.mjs", ["--ids", ids, "--max-minutes", "3"]);
+    run("add-artwork-metadata.mjs", ["--ids", ids, "--refresh-airing", "--max-minutes", "3"]);
     // Metadata-only misses also respect the daily retry limit.
     const updated = JSON.parse(fs.readFileSync(mapPath, "utf8"));
     for (const { id } of selected) {
@@ -77,8 +90,8 @@ export async function refreshLatestArtwork({ base = "https://zenkaitv.com", fetc
   } finally {
     fs.rmSync(input, { force: true });
   }
-  console.log(`Prepared artwork/metadata for ${selected.length} recent titles; episode inventories unchanged.`);
-  return selected.map(({ id }) => id);
+  console.log(`Prepared artwork for ${selected.length} titles and checked ${ids.split(",").length} recent schedules; episode inventories unchanged.`);
+  return ids.split(",");
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

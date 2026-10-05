@@ -2106,6 +2106,9 @@ function enrichLatestCatalogItemFromArtwork(item = {}) {
   const art = readArtworkMap()?.[item.id];
   if (!art) return item;
   const meta = art.meta || null;
+  const savedAiring = readAiringMap()?.[item.id];
+  const airing = savedAiring && (!savedAiring.anilistId || !art.anilistId
+    || Number(savedAiring.anilistId) === Number(art.anilistId)) ? savedAiring : null;
   return {
     ...item,
     anilistId: item.anilistId || art.anilistId || null,
@@ -2133,6 +2136,14 @@ function enrichLatestCatalogItemFromArtwork(item = {}) {
       englishTitle: item.englishTitle || meta.englishTitle || "",
       romajiTitle: item.romajiTitle || meta.romajiTitle || "",
       genres: meta.genres?.length ? meta.genres : (item.genres || [])
+    } : {}),
+    ...(Number(airing?.nextAiringAt) > 0 ? {
+      nextAiringAt: item.nextAiringAt || airing.nextAiringAt,
+      nextAiringEpisodeNumber: item.nextAiringEpisodeNumber || airing.nextAiringEpisodeNumber
+    } : {}),
+    ...(airing?.broadcastDay ? {
+      broadcastDay: airing.broadcastDay, broadcastTime: airing.broadcastTime,
+      broadcastTimezone: airing.broadcastTimezone
     } : {})
   };
 }
@@ -9784,7 +9795,8 @@ function enrichAnimeAv1LatestArtwork(item) {
   const enriched = enrichLatestCatalogItemFromArtwork({ id: `animeav1-${item.slug}` });
   const fields = ["anilistId", "malId", "tmdbId", "tmdbBackdrop", "tmdbPoster", "coverImageLarge", "banner",
     "description", "genres", "year", "score", "duration", "studios", "countryOfOrigin",
-    "canonicalSeasonNumber", "providerEpisodeOffset", "episodeThumbnailFallback"];
+    "canonicalSeasonNumber", "providerEpisodeOffset", "episodeThumbnailFallback", "nextAiringAt",
+    "nextAiringEpisodeNumber", "broadcastDay", "broadcastTime", "broadcastTimezone"];
   return { ...item, ...Object.fromEntries(fields.filter((key) =>
     enriched[key] != null && enriched[key] !== "" && (!Array.isArray(enriched[key]) || enriched[key].length)
   ).map((key) => [key, enriched[key]])) };

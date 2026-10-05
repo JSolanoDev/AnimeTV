@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-04T12:08:26.211Z",
-  "count": 6301,
+  "generatedAt": "2026-10-05T11:54:51.512Z",
+  "count": 6307,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -148987,8 +148987,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791124200000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1791729000000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 164702,
@@ -197702,13 +197702,13 @@
       "lastEpisodeAt": "2026-10-04T10:26:15.101Z"
     },
     "animeav1-tempal-item-no-chikara": {
-      "anilistId": null,
+      "anilistId": 212888,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791124200000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1791729000000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-09-27T14:54:25.222Z"
@@ -197944,7 +197944,7 @@
       "lastEpisodeAt": "2026-09-30T16:23:21.216Z"
     },
     "animeav1-gensou-suikoden": {
-      "anilistId": null,
+      "anilistId": 187316,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
@@ -197956,7 +197956,7 @@
       "lastEpisodeAt": "2026-10-03T20:21:19.213Z"
     },
     "animeav1-kashita-maryoku-wa-revo-barai-de-kyousei-choushuu": {
-      "anilistId": null,
+      "anilistId": 202250,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
@@ -197968,7 +197968,7 @@
       "lastEpisodeAt": "2026-10-03T18:37:05.995Z"
     },
     "animeav1-magicalexplorer": {
-      "anilistId": null,
+      "anilistId": 169581,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
@@ -197980,7 +197980,7 @@
       "lastEpisodeAt": "2026-10-03T17:03:37.496Z"
     },
     "animeav1-vertex-force": {
-      "anilistId": null,
+      "anilistId": 209562,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
@@ -198040,7 +198040,7 @@
       "lastEpisodeAt": "2026-10-03T14:28:00.626Z"
     },
     "animeav1-seitokai-ni-mo-ana-wa-aru": {
-      "anilistId": null,
+      "anilistId": 191656,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
@@ -198052,13 +198052,13 @@
       "lastEpisodeAt": "2026-10-04T02:16:28.285Z"
     },
     "animeav1-ao-ashi-season-2": {
-      "anilistId": null,
+      "anilistId": 191788,
       "airingStatus": "RELEASING",
       "season": "",
       "seasonYear": null,
       "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
+      "nextAiringAt": 1791705600000,
+      "nextAiringEpisodeNumber": 2,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-04T10:26:37.161Z"
@@ -218788,6 +218788,48 @@
           "order": 3
         }
       ]
+    },
+    "animeav1-mezametara-saikyou-soubi-to-uchuusenmochi-datta-node-ikkodate-mezashite-youhei-toshite-jiyuu-ni-ikitai": {
+      "anilistId": 186541,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791721800000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-hotel-inhumans-2nd-season": {
+      "anilistId": 199426,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791729900000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-yowaki-max-reijou-nanoni-ratsuwan-konyakusha-sama-no-kake-ni-notte-shimatta": {
+      "anilistId": 200455,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791729000000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-dark-summoner-to-dekiteiru": {
+      "anilistId": 208025,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791735600000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-kanata-kara": {
+      "anilistId": 209463,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791730800000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-tank-chair": {
+      "anilistId": 209499,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791727200000,
+      "nextAiringEpisodeNumber": 2
     }
   },
   "seasonArtwork": {

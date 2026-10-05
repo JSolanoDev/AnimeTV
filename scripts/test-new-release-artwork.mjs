@@ -102,6 +102,52 @@ test("latest-feed artwork uses only an exact static identity and does not fetch"
   } finally { globalThis.fetch = originalFetch; }
 });
 
+test("latest-feed airing metadata is a static lookup scoped to the exact season", () => {
+  const art = JSON.parse(read("scraper/artwork-map.json")).entries;
+  const airing = JSON.parse(read("scraper/airing-map.json")).entries;
+  const [id, schedule] = Object.entries(airing).find(([key, value]) => art[key]?.anilistId
+    && Number(art[key].anilistId) === Number(value.anilistId) && Number(value.nextAiringAt) > 0);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = () => { throw new Error("No new schedule API request should run"); };
+  try {
+    const result = server.enrichAnimeAv1LatestArtwork({ slug: id.slice("animeav1-".length), episode: 2 });
+    assert.equal(result.nextAiringAt, schedule.nextAiringAt);
+    assert.equal(result.nextAiringEpisodeNumber, schedule.nextAiringEpisodeNumber);
+    assert.equal(result.episode, 2);
+    assert.equal(result.franchiseSeasons, undefined);
+    assert.equal(server.enrichAnimeAv1LatestArtwork({ slug: "missing-exact-season" }).nextAiringAt, undefined);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("batched metadata records confirmed schedules without changing episodes or season chains", () => {
+  const code = read("scripts/add-artwork-metadata.mjs");
+  const start = code.indexOf("function recordAiringMetadata(");
+  const end = code.indexOf("// \u2500", start);
+  const context = vm.createContext({});
+  vm.runInContext(code.slice(start, end), context);
+  const previous = { anilistId: 123, sourceEpisodeCount: 2, airingStatus: "RELEASING",
+    nextAiringAt: 1791124200000, nextAiringEpisodeNumber: 2, franchiseSeasons: [{ anilistId: 123 }],
+    lastEpisodeAt: "2026-10-04T14:30:00Z" };
+  const entries = { exact: previous };
+  context.recordAiringMetadata(entries, "exact", { id: 123, nextAiringEpisode: { airingAt: 1791729000, episode: 3 } });
+  assert.equal(entries.exact.nextAiringAt, 1791729000000);
+  assert.equal(entries.exact.nextAiringEpisodeNumber, 3);
+  assert.equal(entries.exact.sourceEpisodeCount, 2);
+  assert.equal(entries.exact.franchiseSeasons, previous.franchiseSeasons);
+  assert.equal(entries.exact.lastEpisodeAt, previous.lastEpisodeAt);
+  const confirmed = entries.exact;
+  for (const nextAiringEpisode of [null, { airingAt: "bad", episode: 3 }, { airingAt: Infinity, episode: 3 }]) {
+    context.recordAiringMetadata(entries, "exact", { id: 123, nextAiringEpisode });
+    assert.equal(entries.exact, confirmed);
+  }
+  context.recordAiringMetadata(entries, "exact", { id: 456, nextAiringEpisode: { airingAt: 1791730800, episode: 1 } });
+  assert.equal(entries.exact, confirmed);
+  context.recordAiringMetadata(entries, "unknown", { id: 789, nextAiringEpisode: null });
+  assert.equal(entries.unknown, undefined);
+  assert.match(code, /nextAiringEpisode \{ airingAt episode \}/);
+  assert.match(code, /REFRESH_AIRING && !ONLY_IDS\.size/);
+});
+
 test("a new-title client row reuses the latest feed's baked artwork and description", () => {
   const code = read("client.js");
   const start = code.indexOf("function makeAv1OnlyShow(");
@@ -122,6 +168,59 @@ test("a new-title client row reuses the latest feed's baked artwork and descript
   assert.equal(row.anilistId, 123);
   assert.equal(row.sourceInventoryPartial, true);
   assert.deepEqual(JSON.parse(JSON.stringify(row.sourceEpisodeIds)), [2]);
+});
+
+test("new-title cards display confirmed local weekday and AM/PM, never the upload clock", () => {
+  const code = read("client.js");
+  const utils = read("js/utils.js");
+  const context = vm.createContext({
+    Date,
+    animeAv1LatestEpisodeIdentity: () => ({ providerEpisodeId: 2, displayEpisode: 2 }),
+    animeAv1ArtworkVariant: () => "",
+    nextWeeklyAiringFrom: () => { throw new Error("Must not guess from provider upload time"); }
+  });
+  vm.runInContext(utils.slice(utils.indexOf("function formatAiringClock"),
+    utils.indexOf("// Node export so the logic")), context);
+  vm.runInContext(code.slice(code.indexOf("const WEEKLY_SCHEDULE_DAY_OVERRIDES"),
+    code.indexOf("function scheduleLocale(")), context);
+  vm.runInContext(code.slice(code.indexOf("function makeAv1OnlyShow("),
+    code.indexOf("function registerAv1Show")), context);
+  const date = new Date(2026, 9, 11, 8, 30);
+  const item = { slug: "new-season", title: "New Season", nextAiringAt: date.getTime(),
+    nextAiringEpisodeNumber: 3, releasedAt: "2026-10-04T23:30:00Z" };
+  const show = context.makeAv1OnlyShow(item);
+  assert.equal(show.nextAiringAt, date.getTime());
+  assert.equal(show.day, context.formatAiringWeekday(date));
+  assert.equal(show.time, context.formatAiringClock(date));
+  assert.equal(show.nextAiringEpisodeNumber, 3);
+  assert.equal(show.lastEpisodeAt, item.releasedAt);
+  assert.equal(context.makeAv1OnlyShow({ ...item, nextAiringAt: null }).nextAiringAt, undefined);
+});
+
+test("new-title schedule day and time move together across viewer timezones", () => {
+  const code = read("client.js");
+  const utils = read("js/utils.js");
+  for (const [timeZone, day, time] of [
+    ["America/Denver", "Sat", "6:30 PM"], ["Asia/Tokyo", "Sun", "9:30 AM"]
+  ]) {
+    const context = vm.createContext({
+      Date, Intl: { DateTimeFormat: function (_locale, options) {
+        return new Intl.DateTimeFormat("en-US", { ...options, timeZone });
+      } },
+      animeAv1LatestEpisodeIdentity: () => ({ providerEpisodeId: 1, displayEpisode: 1 }),
+      animeAv1ArtworkVariant: () => ""
+    });
+    vm.runInContext(utils.slice(utils.indexOf("function formatAiringClock"),
+      utils.indexOf("// Node export so the logic")), context);
+    vm.runInContext(code.slice(code.indexOf("const WEEKLY_SCHEDULE_DAY_OVERRIDES"),
+      code.indexOf("function scheduleLocale(")), context);
+    vm.runInContext(code.slice(code.indexOf("function makeAv1OnlyShow("),
+      code.indexOf("function registerAv1Show")), context);
+    const row = context.makeAv1OnlyShow({ slug: "new-season", title: "New Season",
+      nextAiringAt: Date.UTC(2026, 9, 11, 0, 30) });
+    assert.equal(row.day, day);
+    assert.equal(row.time.replace(/\s/g, " "), time);
+  }
 });
 
 test("offline-only metadata is topped up without discarding saved data", () => {
