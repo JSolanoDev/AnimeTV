@@ -86,14 +86,28 @@ if (failed) {
 console.log(`  PASS  ${FILE} keys are all supported by Vercel`);
 
 const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+const standardBuild = String(packageJson.scripts?.build || "").trim();
 const reservedBuild = String(packageJson.scripts?.["vercel-build"] || "").trim();
 const configuredBuild = String(config.buildCommand || "").trim();
+if (!standardBuild || config.buildCommand === "") {
+  console.log("  FAIL  a standard build script is required for clean Git deployments");
+  console.log("        Without it Vercel selects raw root files before dist exists.");
+  process.exit(1);
+}
+if (reservedBuild && reservedBuild !== `${standardBuild} --if-needed`) {
+  console.log("  FAIL  the reserved vercel-build hook must reuse verified static output");
+  process.exit(1);
+}
+if (packageJson.scripts?.["now-build"]) {
+  console.log("  FAIL  now-build can cause the API builder to rebuild static output");
+  process.exit(1);
+}
 if (reservedBuild && /(?:^|\s)npm\s+run\s+vercel-build(?:\s|$)/i.test(configuredBuild)) {
   console.log("  FAIL  buildCommand repeats the reserved vercel-build lifecycle script");
   console.log("        Vercel runs both, and the second build can delete dist while the first is uploading it.");
   process.exit(1);
 }
-console.log("  PASS  production build has one owner (no duplicate vercel-build invocation)");
+console.log("  PASS  clean Git deployments select a build; repeated hooks only reuse verified output");
 
 const adultPortraitMap = "scraper/adult_portrait_map.json";
 const serverlessEntry = readFileSync("api/[...path].js", "utf8");

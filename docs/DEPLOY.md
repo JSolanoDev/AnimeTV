@@ -13,12 +13,19 @@ ZenkaiTV is a static application plus one catch-all Node Function. The repositor
 
 1. Import `JSolanoDev/AnimeTV` into Vercel.
 2. Keep the framework preset as **Other**.
-3. Use `npm run vercel-build` as the build command.
+3. Use the auto-detected `build` script, or `npm run build` as the build command override.
 4. Use `dist` as the output directory.
 5. Add only the optional environment variables the deployment needs.
 6. Deploy. Future pushes to `main` can deploy automatically through the Git integration.
 
 The live production site is <https://zenkaitv.com>.
+
+The standard `build` script is required even though `vercel-build` remains available for
+existing deploy helpers. Without `build`, a clean Git checkout can select the root
+files for static publishing before `dist` exists. The reserved hook uses `--if-needed`
+so the API builder reuses hash-verified output instead of rebuilding it a second time.
+Minification errors fail the build. Each output directory includes `build-manifest.json`
+with the input digest and asset hashes; no runtime Function or API call is added.
 
 ### Environment variables
 
@@ -51,7 +58,8 @@ Before pushing:
 ```bash
 npm run check
 npm test
-npm run vercel-build
+npm run build
+npm run build:verify
 ```
 
 After deployment:
@@ -60,6 +68,7 @@ After deployment:
 curl -I https://zenkaitv.com/
 curl -I https://zenkaitv.com/api/catalog
 curl https://zenkaitv.com/api/health
+npm run build:verify -- --url=https://zenkaitv.com/
 ```
 
 Verify the homepage, search, title details, seasons, episode selection, playback, Cast controls, schedule, favorites, adult-mode isolation, and a mobile viewport. A warm `/api/catalog` request should report an edge cache hit in Vercel response headers.

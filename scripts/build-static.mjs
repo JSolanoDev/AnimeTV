@@ -1,8 +1,13 @@
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
-import { join, extname } from "node:path";
+import { join, extname, resolve } from "node:path";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 import { minify as terserMinify } from "terser";
 import CleanCSS from "clean-css";
 import { writeHomepageBootstrap } from "./build-homepage-bootstrap.mjs";
+import { buildInputHash, canReuseStaticBuild, listStaticFiles, writeBuildManifest } from "./static-build-artifacts.mjs";
+
+const require = createRequire(import.meta.url);
 
 const files = [
   "index.html",
@@ -46,43 +51,34 @@ function copyDir(source, target) {
   }
 }
 
-async function minifyJsFile(filePath) {
-  try {
-    const code = readFileSync(filePath, "utf8");
-    const result = await terserMinify(code, {
-      compress: {
-        passes: 3,
-        pure_funcs: ["console.log", "console.debug", "console.info"],
-        drop_debugger: true
-      },
-      mangle: true,
-      format: { comments: false }
-    });
-    if (result.code) {
-      const saved = code.length - result.code.length;
-      writeFileSync(filePath, result.code);
-      return saved;
-    }
-  } catch (err) {
-    console.warn(`  ⚠ terser skipped ${filePath}: ${err.message}`);
+export async function minifyJsFile(filePath) {
+  const code = readFileSync(filePath, "utf8");
+  const result = await terserMinify(code, {
+    compress: {
+      passes: 3,
+      pure_funcs: ["console.log", "console.debug", "console.info"],
+      drop_debugger: true
+    },
+    mangle: true,
+    format: { comments: false }
+  });
+  if (typeof result.code === "string") {
+    const saved = code.length - result.code.length;
+    writeFileSync(filePath, result.code);
+    return saved;
   }
-  return 0;
+  throw new Error(`Terser returned no output for ${filePath}`);
 }
 
-function minifyCssFile(filePath) {
-  try {
-    const code = readFileSync(filePath, "utf8");
-    const result = new CleanCSS({ level: 2 }).minify(code);
-    if (result.styles && result.errors.length === 0) {
-      const saved = code.length - result.styles.length;
-      writeFileSync(filePath, result.styles);
-      return saved;
-    }
-    if (result.errors.length) console.warn(`  ⚠ clean-css errors in ${filePath}:`, result.errors);
-  } catch (err) {
-    console.warn(`  ⚠ clean-css skipped ${filePath}: ${err.message}`);
+export function minifyCssFile(filePath) {
+  const code = readFileSync(filePath, "utf8");
+  const result = new CleanCSS({ level: 2 }).minify(code);
+  if (result.errors.length === 0 && typeof result.styles === "string") {
+    const saved = code.length - result.styles.length;
+    writeFileSync(filePath, result.styles);
+    return saved;
   }
-  return 0;
+  throw new Error(`CSS minification failed for ${filePath}: ${result.errors.join(", ")}`);
 }
 
 async function minifyDir(dir) {
@@ -103,8 +99,22 @@ async function minifyDir(dir) {
   return { jsSaved, cssSaved };
 }
 
-(async () => {
+async function buildStatic() {
   writeHomepageBootstrap();
+  const assetFiles = [...files, "client.js", ...["js", "player", "mascot"].flatMap((directory) =>
+    existsSync(directory) ? listStaticFiles(directory).map((file) => directory + "/" + file) : [])];
+  const inputsSha256 = buildInputHash([...assetFiles, "package.json", "scripts/build-static.mjs",
+    "scripts/build-homepage-bootstrap.mjs", "scripts/static-build-artifacts.mjs"], {
+    terser: require("terser/package.json").version,
+    cleanCss: require("clean-css/package.json").version
+  });
+  // Vercel's static and API builders both invoke the reserved lifecycle hook.
+  // Reuse only complete, unchanged output so the API hook cannot rebuild dist.
+  if (process.argv.includes("--if-needed") && outDirs.every((directory) =>
+    canReuseStaticBuild(directory, inputsSha256, assetFiles))) {
+    console.log("ZenkaiTV static build already verified; reusing dist and public");
+    return;
+  }
   for (const outDir of outDirs) {
     rmSync(outDir, { recursive: true, force: true });
     mkdirSync(outDir, { recursive: true });
@@ -124,7 +134,15 @@ async function minifyDir(dir) {
     console.log(`Minifying ${outDir}...`);
     const { jsSaved, cssSaved } = await minifyDir(outDir);
     console.log(`  JS: -${(jsSaved / 1024).toFixed(1)} KiB  |  CSS: -${(cssSaved / 1024).toFixed(1)} KiB`);
+    writeBuildManifest(outDir, inputsSha256);
   }
 
   console.log(`\nZenkaiTV static build ready in ${outDirs.join(" and ")}`);
-})();
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+  buildStatic().catch((error) => {
+    console.error(`Static build failed: ${error.message}`);
+    process.exitCode = 1;
+  });
+}
