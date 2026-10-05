@@ -87,6 +87,7 @@ const TMDB_ID_OVERRIDES = new Map([
   // TMDB localizes Sakurada as "Sagrada Reset". Pin the exact 2017 series so
   // its complete 24-episode still set remains available after every rebuild.
   ["animeav1-sakurada-reset", 71014],
+  ["animeav1-dotto-koni-chan", 44440],
   // Narumi's promotional shorts do not have a separate TMDB record. Borrow
   // only the parent show's 4K key art; episode metadata must remain scoped to
   // the shorts instead of inheriting Season 1 titles and stills.
@@ -123,9 +124,15 @@ const TMDB_POSTER_SUPPRESSIONS = new Set([
   "animeav1-kaijuu-8-gou-narumi-no-heijitsu"
 ]);
 
+// Exact series key art with cleaner linework than the default, compressed scan.
+const TMDB_POSTER_OVERRIDES = new Map([
+  ["animeav1-dotto-koni-chan", "/3INoBmgKVIhs3VJ0zCPd7WOrk1Q.jpg"]
+]);
+
 // Some shorts have no public per-episode stills. A verified, exact landscape
 // image is still much better than generated gradients or a stretched portrait.
 const EPISODE_THUMBNAIL_OVERRIDES = new Map([
+  ["animeav1-dotto-koni-chan", `${TMDB_IMG}/1nvQIKGeY4nY672DvIrKbk1RYRg.jpg`],
   ["animeav1-kaijuu-8-gou-narumi-no-heijitsu", "https://cdn.myanimelist.net/images/anime/1371/154494l.jpg"]
 ]);
 // TMDB stores Bridon as Season 3, which shifts the animated third season to
@@ -494,7 +501,7 @@ async function resolveOne(item, existing = null) {
     const show = details?.show;
     const pinnedSeason = Number(TMDB_SEASON_OVERRIDES.get(item.id) || wantSeason);
     const seasonEntry = (show?.seasons || []).find((entry) => Number(entry.season_number) === pinnedSeason);
-    const posterPath = seasonEntry?.poster_path || show?.poster_path || "";
+    const posterPath = TMDB_POSTER_OVERRIDES.get(item.id) || seasonEntry?.poster_path || show?.poster_path || "";
     if (show?.backdrop_path || posterPath) {
       return {
         status: show.backdrop_path ? "ok" : "poster-only",

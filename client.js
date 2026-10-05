@@ -458,6 +458,8 @@ function readHeroMemo() {
   // image. Older memos only stored the full proxy URL and exposed its progressive
   // decode as a blocky sharp image, so schema 4 deliberately drops them once.
   if (typeof memo.art !== "string" || !/^https?:\/\//i.test(memo.art)) { clearHeroMemo(); return null; }
+  if (memo.adult && (!adultCarouselDimensionsAreHD(memo.adultCarouselArtwork)
+    || memo.adultCarouselArtwork.url !== cinematicArtworkSourceUrl(memo.art))) { clearHeroMemo(); return null; }
   if (!memo.adult && (!verifiedCarouselArtwork(memo.carouselArtwork, memo.art)
     || !confirmedCarouselAiringInstant(memo))) { clearHeroMemo(); return null; }
   try {
@@ -506,6 +508,14 @@ let _carouselMemoId = "";
     if (carouselBackdropImage.getAttribute("src") !== memo.src) return;
     const reveal = () => {
       if (carouselBackdropImage.getAttribute("src") !== memo.src || !carouselBackdropImage.naturalWidth) return;
+      if (memo.adult && !adultCarouselDimensionsAreHD(artworkIntrinsicPixels(carouselBackdropImage))) {
+        heroMemoActive = false;
+        clearHeroMemo();
+        carouselBackdropImage.classList.remove("has-banner");
+        carouselStage.classList.remove("is-backdrop-loading");
+        resetCarouselBlurPlaceholder();
+        return;
+      }
       applyCarouselArtworkLayout(carouselBackdropImage);
       carouselBackdropImage.dataset.decodedSrc = memo.src;
       carouselStage.classList.remove("is-backdrop-loading");
@@ -4123,8 +4133,12 @@ function cinematicBackdropUrl(url) {
   if (url === HELL_MODE_WATCH_BACKDROP) {
     return url.replace("/original/", CINEMATIC_BACKDROP_WIDTH <= 1280 ? "/w1280/" : "/original/");
   }
+  // This verified original is only 1280x720 (154 KB). A larger transcode cannot
+  // improve it; reuse the native CDN file for decode, preview and final paint.
+  const original = cinematicArtworkSourceUrl(url);
+  if (original === "https://image.tmdb.org/t/p/original/1nvQIKGeY4nY672DvIrKbk1RYRg.jpg") return original;
   // Resizing a w780 input cannot restore the detail discarded by that CDN size.
-  return imageDeliveryUrl(cinematicArtworkSourceUrl(url), CINEMATIC_BACKDROP_WIDTH, CINEMATIC_BACKDROP_QUALITY);
+  return imageDeliveryUrl(original, CINEMATIC_BACKDROP_WIDTH, CINEMATIC_BACKDROP_QUALITY);
 }
 
 // Builds a responsive srcset string so each device downloads an image sized for
@@ -4157,7 +4171,17 @@ function imageDeliverySrcSet(url, widths, quality = 80, options = {}) {
 }
 
 const artworkImagePreloads = new Map();
+const preloadedArtworkDimensions = new Map();
 const relatedSeasonWarmFlights = new Map();
+
+function rememberArtworkDimensions(delivered, image) {
+  const dimensions = artworkIntrinsicPixels(image);
+  if (!dimensions.width || !dimensions.height) return;
+  preloadedArtworkDimensions.set(delivered, dimensions);
+  if (preloadedArtworkDimensions.size > 2000) {
+    preloadedArtworkDimensions.delete(preloadedArtworkDimensions.keys().next().value);
+  }
+}
 
 function preloadArtworkImage(url, width, quality, priority = false, deliveredUrl = "") {
   const raw = String(url || "").trim();
@@ -4172,6 +4196,7 @@ function preloadArtworkImage(url, width, quality, priority = false, deliveredUrl
     image.fetchPriority = priority ? "high" : "low";
     const finish = (loaded) => {
       if (!loaded) artworkImagePreloads.delete(delivered);
+      else rememberArtworkDimensions(delivered, image);
       resolve(loaded);
     };
     image.onload = () => {
@@ -4400,6 +4425,7 @@ function getWatchPosterArtwork(show = {}, season = null) {
   season = season || {};
   const rawCandidates = [
     show.adultPortraitCover,
+    curatedDottoKoniArtwork(show)?.poster,
     // TMDB key art first, season-specific before show-wide. It is 2000x3000 where
     // the scraped cover is 225x350 and the AniList one 460x690, so leading with
     // images.poster - which for a scraped row is whatever the source supplied -
@@ -4453,8 +4479,10 @@ function stableArtworkCandidates(show, candidates, role) {
 }
 
 function getCardPosterCandidates(show = {}) {
+  const curated = curatedDottoKoniArtwork(show);
   const candidates = [
     show.adultPortraitCover,
+    curated?.poster,
     show.tmdbSeasonPoster,
     show.tmdbPoster,
     show.coverImageLarge,
@@ -4501,6 +4529,10 @@ function getCardPosterCandidates(show = {}) {
     try { return typeof ImageResolver === "undefined" || !ImageResolver.isImageFailed(url); }
     catch { return true; }
   });
+  // A title-specific repair must also replace artwork restored by an older build.
+  if (curated && usable.includes(curated.poster)) {
+    stableArtworkChoices.set(`poster:${artworkShowIdentity(show)}`, curated.poster);
+  }
   return stableArtworkCandidates(show, usable, "poster");
 }
 
@@ -4607,7 +4639,22 @@ function underHentaiBackdropCandidates(show = {}, season = null) {
 
 const HELL_MODE_WATCH_BACKDROP = "https://image.tmdb.org/t/p/original/gf62V8UBVBMFPpD9yI0UFvkFvq2.jpg";
 
+const DOTTO_KONI_ARTWORK = Object.freeze({
+  poster: "https://image.tmdb.org/t/p/original/3INoBmgKVIhs3VJ0zCPd7WOrk1Q.jpg",
+  backdrop: "https://image.tmdb.org/t/p/original/1nvQIKGeY4nY672DvIrKbk1RYRg.jpg"
+});
+
+function curatedDottoKoniArtwork(show = {}) {
+  if (isAdultCatalogShow(show)) return null;
+  const ids = [show.catalogAnimeId, show.id].filter(Boolean).map(String);
+  const exact = ids.some((id) => /(?:^|-)animeav1-dotto-koni-chan$/.test(id))
+    || Number(show.anilistId || show.malId) === 1684;
+  return exact ? DOTTO_KONI_ARTWORK : null;
+}
+
 function curatedWatchBackdrop(show = {}) {
+  const koniArt = curatedDottoKoniArtwork(show);
+  if (koniArt) return pickImage([koniArt.backdrop]) || "";
   const identity = `${show.catalogAnimeId || show.id || ""} ${show.title || ""}`.toLowerCase();
   if (!/hell.mode.*yarikomi/.test(identity) && Number(show.tmdbId) !== 280049) return "";
   try {
@@ -4705,6 +4752,8 @@ let _carouselPaintedShow = null;
 
 function buildStableCarouselItems(pool) {
   const MAX = 8;
+  const adult = typeof AdultMode !== "undefined" && AdultMode.isEnabled();
+  const selectedId = adult ? _carouselStableIds[state.carouselIndex] : "";
   const ordered = [];
   const seen = new Set();
   for (const show of pool) {
@@ -4716,6 +4765,10 @@ function buildStableCarouselItems(pool) {
     if (ordered.length >= MAX) break;
   }
   _carouselStableIds = ordered.map((s) => String(s.id));
+  if (selectedId) {
+    const selectedIndex = _carouselStableIds.indexOf(selectedId);
+    if (selectedIndex >= 0) state.carouselIndex = selectedIndex;
+  }
   return ordered;
 }
 
@@ -4737,7 +4790,13 @@ function resetReleaseCarouselLineup() {
 
 function recentReleaseCarouselShows(limit = 8) {
   if (typeof AdultMode !== "undefined" && AdultMode.isEnabled()) {
-    return adultSourceOrderedShows(limit).filter((show) => carouselArtworkOrPoster(show));
+    const ready = [];
+    for (const show of adultSourceOrderedShows(HOME_CARD_LIMIT)) {
+      if (!carouselResolvedBackdropArtwork(show)) continue;
+      ready.push(show);
+      if (ready.length >= limit) break;
+    }
+    return ready;
   }
   const providerReleases = buildAnimeAv1ReleaseCards(HOME_CARD_LIMIT, { applyUiFilters: false })
     .filter((show) => carouselShowIsReady(show));
@@ -4759,17 +4818,39 @@ function carouselArtworkOrPoster(show = {}) {
   return getCarouselArtwork(show) || String(show.image || show.poster || show.cover || "").trim();
 }
 
+function adultCarouselDimensionsAreHD(dimensions = {}) {
+  const width = Number(dimensions?.width || 0);
+  const height = Number(dimensions?.height || 0);
+  const ratio = width / height;
+  return width >= 1280 && height >= 720 && ratio >= 1.35 && ratio <= 2.6;
+}
+
+function adultCarouselArtworkCandidates(show = {}) {
+  // Never stretch a cover or a shallow banner into a cinematic hero. Reuse the
+  // dimensions of images already requested; do not probe the catalog again.
+  const candidates = [...new Set([
+    show.adultCinematicBackdrop, show.hentaiOceanBackdrop, show.tmdbBackdrop,
+    show.highQualityBackground, show.underHentaiBackdrop, show.adultBackground,
+    show.images?.backdrop, show.images?.banner, show.backdrop, show.banner,
+    show.heroImage, show.wideImage, show.landscapeImage
+  ].map((value) => cinematicArtworkSourceUrl(hqImage(String(value || "").trim())))
+    .filter((value) => value && !isArtworkLowQuality(value, "adult-carousel")
+      && !isArtworkLowQuality(value, "backdrop")
+      && (typeof ImageResolver === "undefined" || !ImageResolver.isImageFailed(value))))];
+  const ready = [];
+  const pending = [];
+  for (const url of candidates) {
+    const dimensions = preloadedArtworkDimensions.get(cinematicBackdropUrl(url));
+    if (!dimensions) pending.push(url);
+    else if (adultCarouselDimensionsAreHD(dimensions)) ready.push(url);
+  }
+  return [...ready, ...pending];
+}
+
 function carouselResolvedBackdropArtwork(show = {}) {
   const adult = isAdultCatalogShow(show);
   if (!adult) return carouselShowIsReady(show) ? show.carouselArtwork.url : "";
-  // Adult titles keep their source-curated cinematic backdrop as canonical.
-  const canonical = pickImage([show.adultCinematicBackdrop, show.tmdbBackdrop, show.highQualityBackground]
-    .map((value) => cinematicArtworkSourceUrl(hqImage(String(value || "").trim())))
-    .filter((value) => value && !isArtworkLowQuality(value, "backdrop")));
-  if (canonical) return canonical;
-  return pickImage(stableArtworkCandidates(show, [carouselArtworkOrPoster(show)]
-    .map((value) => cinematicArtworkSourceUrl(hqImage(String(value || "").trim())))
-    .filter((value) => value && !isArtworkLowQuality(value, "backdrop")), "backdrop"));
+  return adultCarouselArtworkCandidates(show)[0] || "";
 }
 
 // Give the live latest feed a brief head start. The bootstrap is rebuilt from
@@ -4923,7 +5004,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=974";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=977";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -4959,7 +5040,8 @@ function renderCarousel() {
   const hasFreshReleaseLineup = Boolean(state.av1Latest?.length)
     || (typeof AdultMode !== "undefined" && AdultMode.isEnabled() && adultSourceOrderedShows().length);
   if (heroMemoActive && state.catalogTier === "bootstrap" && !hasFreshReleaseLineup) return;
-  if (String(show.id || "") === _carouselPaintedId) return;
+  if (String(show.id || "") === _carouselPaintedId
+    && (!isAdultCatalogShow(show) || show._adultCarouselSelectedArtwork === carouselResolvedBackdropArtwork(show))) return;
   _carouselPaintedId = String(show.id || "");
   // Metadata refreshes reset the paint cache, but still belong to the same image.
   // Only a different anime should discard a preview whose full image is pending.
@@ -5026,7 +5108,8 @@ function renderCarousel() {
   const hasLandscapeBanner = Boolean(hiResArt || show.banner || show.backdrop || show.heroImage || show.wideImage || show.landscapeImage);
   const art = hiResArt;
   const deliveredArt = art ? cinematicBackdropUrl(art) : "";
-  show._paintedCarouselArtwork = art || "";
+  if (isAdultCatalogShow(show)) show._adultCarouselSelectedArtwork = art || "";
+  else show._paintedCarouselArtwork = art || "";
   carouselBackdrop.classList.toggle("has-banner", Boolean(art));
   carouselBackdrop.classList.toggle("is-portrait-blur", Boolean(art && !hasLandscapeBanner));
   // The sharp <img> below is the only artwork layer. Painting the same 4K file
@@ -5063,7 +5146,20 @@ function renderCarousel() {
         if (carouselBackdropImage.getAttribute("src") !== deliveredArt) return;
         const reveal = () => {
           if (carouselBackdropImage.getAttribute("src") !== deliveredArt || !carouselBackdropImage.naturalWidth) return;
+          if (isAdultCatalogShow(show)) {
+            if (typeof AdultMode === "undefined" || !AdultMode.isEnabled()
+              || state.route !== "home" || _carouselPaintedId !== String(show.id || "")) return;
+            rememberArtworkDimensions(deliveredArt, carouselBackdropImage);
+            if (!adultCarouselDimensionsAreHD(artworkIntrinsicPixels(carouselBackdropImage))) {
+              markArtworkLowQuality(art, "adult-carousel");
+              show._paintedCarouselArtwork = "";
+              _carouselPaintedId = null;
+              renderCarousel();
+              return;
+            }
+          }
           applyCarouselArtworkLayout(carouselBackdropImage);
+          if (isAdultCatalogShow(show)) show._paintedCarouselArtwork = art;
           carouselBackdropImage.dataset.decodedSrc = deliveredArt;
           carouselStage.classList.remove("is-backdrop-loading");
           clearCarouselBlurPlaceholder();
@@ -5076,6 +5172,8 @@ function renderCarousel() {
             srcset: "",
             portrait: !hasLandscapeBanner,
             adult: isAdultCatalogShow(show),
+            adultCarouselArtwork: isAdultCatalogShow(show)
+              ? { url: cinematicArtworkSourceUrl(art), ...artworkIntrinsicPixels(carouselBackdropImage) } : undefined,
             carouselArtwork: show.carouselArtwork,
             confirmedNextAiringAt: show.confirmedNextAiringAt,
             broadcastDay: show.broadcastDay,
@@ -5092,10 +5190,15 @@ function renderCarousel() {
       carouselBackdropImage.onload = revealBackdrop;
       carouselBackdropImage.onerror = () => {
         if (carouselBackdropImage.getAttribute("src") !== deliveredArt) return;
+        if (isAdultCatalogShow(show) && (typeof AdultMode === "undefined" || !AdultMode.isEnabled()
+          || state.route !== "home" || _carouselPaintedId !== String(show.id || ""))) return;
         delete carouselBackdropImage.dataset.decodedSrc;
         clearCarouselBlurPlaceholder();
-        markArtworkLowQuality(art, "backdrop");
-        try { ImageResolver.markImageFailed(art); } catch { /* resolver optional */ }
+        if (isAdultCatalogShow(show)) markArtworkLowQuality(art, "adult-carousel");
+        else {
+          markArtworkLowQuality(art, "backdrop");
+          try { ImageResolver.markImageFailed(art); } catch { /* resolver optional */ }
+        }
         show._paintedCarouselArtwork = "";
         _carouselPaintedId = null;
         renderCarousel();
@@ -5184,7 +5287,15 @@ let _carouselDotsHtml = null;
 let _carouselIntentWarmTimer = null;
 
 function carouselIndicatorArtwork(show = {}) {
+  if (isAdultCatalogShow(show)) return carouselResolvedBackdropArtwork(show);
   return getCardPosterCandidates(show)[0] || carouselArtworkOrPoster(show);
+}
+
+function carouselIndicatorImageUrl(show = {}) {
+  const art = carouselIndicatorArtwork(show);
+  if (!art) return "";
+  return isAdultCatalogShow(show) ? imageDeliveryUrl(art, 360, 86)
+    : imageDeliveryUrl(carouselIndicatorArtwork(show), 180, 72);
 }
 
 function warmCarouselIndicatorTarget(show, immediate = false) {
@@ -5228,7 +5339,7 @@ function renderCarouselIndicators(items) {
   carouselIndicators.setAttribute("aria-busy", "false");
   const dotsHtml = items.slice(0, 8).map((show, index) => `
     <button class="carousel-dot focusable" data-carousel-index="${index}" aria-label="Show ${escapeHtml(getShowTitle(show))}">
-      ${carouselIndicatorArtwork(show) ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(carouselIndicatorArtwork(show), 180, 72))}" alt="" width="180" height="101" loading="eager" decoding="async" fetchpriority="low">` : "<span></span>"}
+      ${carouselIndicatorArtwork(show) ? `<img referrerpolicy="no-referrer" src="${escapeHtml(carouselIndicatorImageUrl(show))}" alt="" width="180" height="101" loading="eager" decoding="async" fetchpriority="low">` : "<span></span>"}
     </button>
   `).join("");
 
@@ -5272,10 +5383,11 @@ function scheduleCarouselIndicatorHydration(items = []) {
     if (state.route === "home") renderCarousel();
   };
   const artwork = [...new Set(items.slice(0, 8).map((show) => carouselIndicatorArtwork(show)).filter(Boolean))];
+  const adult = items.some((show) => isAdultCatalogShow(show));
   // Start the same eight small URLs immediately. One slow image must not hide
   // every decoded thumbnail; the shared preload cache prevents duplicate loads.
   void Promise.allSettled(artwork.map((url) =>
-    preloadArtworkImage(url, 180, 72, false).then((loaded) => {
+    (adult ? preloadArtworkImage(url, 360, 86, false) : preloadArtworkImage(url, 180, 72, false)).then((loaded) => {
       if (loaded) reveal();
     })
   )).then(reveal);
@@ -5293,7 +5405,8 @@ function simpleCarouselText(show) {
 const rejectedArtworkByRole = {
   poster: new Set(),
   episode: new Set(),
-  backdrop: new Set()
+  backdrop: new Set(),
+  "adult-carousel": new Set()
 };
 const backdropQualityCache = new Map();
 
@@ -12223,12 +12336,11 @@ function episodeThumb(episode = {}, season = {}, show = {}, repeatedImages = new
   const isStandaloneRelease = /^(movie|film|ova|ona|special)$/i.test(String(show.format || show.type || season.format || ""));
   const fallbackArtwork = getWatchPosterArtwork(show, season);
   const exactEpisodeFallback = !isAdultShow
-    ? hqImage(String(show.episodeThumbnailFallback || "").trim())
+    ? hqImage(String(show.episodeThumbnailFallback || curatedDottoKoniArtwork(show)?.backdrop || "").trim())
     : "";
-  // A curated landscape fallback is title-specific and already quality checked.
-  // Prefer it before generic resolver art so a repeated poster/backdrop cannot
-  // win first and then be suppressed as a placeholder by the row renderer.
-  if (exactEpisodeFallback) {
+  // Standalone shorts must not inherit their parent series' episode stills.
+  // TV fallbacks are used below, after genuine per-episode images.
+  if (exactEpisodeFallback && isStandaloneRelease) {
     return capturedFrame || ownImage || exactEpisodeFallback;
   }
   if (isStandaloneRelease && !isAdultShow) {
@@ -12267,9 +12379,9 @@ function episodeThumb(episode = {}, season = {}, show = {}, repeatedImages = new
       { episodeStill: tmdbStill }
     );
     if (!isAdultShow && isAdultImageUrl(resolved)) return "";
-    return resolved || capturedFrame || fallbackArtwork;
+    return resolved || capturedFrame || exactEpisodeFallback || fallbackArtwork;
   }
-  return ownImage || capturedFrame || fallbackArtwork;
+  return ownImage || capturedFrame || exactEpisodeFallback || fallbackArtwork;
 }
 
 // Linear list of seasons for the dropdown + Prev/Next, spanning the franchise
@@ -23824,7 +23936,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=974");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=977");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

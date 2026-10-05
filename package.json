@@ -29,7 +29,7 @@
     "catalog:animeneon": "node scripts/build-animeneon-catalog.mjs --write",
     "catalog:animeyt": "node scripts/build-animeyt-index.mjs",
     "test:animeyt": "node --test scripts/test-animeyt-provider.mjs",
-    "test:loading": "node --test scripts/test-loading-feedback.mjs scripts/test-homepage-bootstrap.mjs scripts/test-catalog-performance.mjs scripts/test-search-ranking.mjs scripts/test-schedule-stability.mjs scripts/test-favorites-persistence.mjs",
+    "test:loading": "node --test scripts/test-loading-feedback.mjs scripts/test-adult-carousel.mjs scripts/test-homepage-bootstrap.mjs scripts/test-catalog-performance.mjs scripts/test-search-ranking.mjs scripts/test-schedule-stability.mjs scripts/test-favorites-persistence.mjs",
     "test:seasons": "node --test scripts/test-season-recovery.mjs",
     "test:metadata": "node --test scripts/test-metadata-deadlines.mjs scripts/test-api-cache-efficiency.mjs scripts/test-animeneon-catalog.mjs scripts/test-animeyt-provider.mjs scripts/test-new-release-artwork.mjs scripts/test-regular-artwork.mjs scripts/test-latest-artwork-refresh.mjs scripts/test-carousel-admission.mjs",
     "test:pipeline": "node --test scripts/test-episode-pipeline.mjs",

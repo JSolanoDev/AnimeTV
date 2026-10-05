@@ -388,7 +388,7 @@ checkNoThrow("undefined show resolves", () => ensure(undefined, 1));
   check("Narumi shorts do not inherit parent-series TMDB episodes", narumi.tmdbId ?? null, null);
   check("Narumi shorts ship an exact landscape episode fallback", /1371\/154494l\.jpg/.test(narumi.episodeThumbnailFallback || ""), true);
   check("standalone episode thumbnails consume the exact fallback", clientSrc.includes("show.episodeThumbnailFallback"), true);
-  check("verified episode fallbacks win before generic resolver artwork", /if \(exactEpisodeFallback\) \{\s*return capturedFrame \|\| ownImage \|\| exactEpisodeFallback;/.test(clientSrc), true);
+  check("standalone episode fallbacks win before unrelated resolver artwork", /if \(exactEpisodeFallback && isStandaloneRelease\) \{\s*return capturedFrame \|\| ownImage \|\| exactEpisodeFallback;/.test(clientSrc), true);
   check("standalone releases may display their high-resolution landscape fallback", /const isFallback = !isAdultShow && !isStandaloneShow && epImgSrc/.test(clientSrc), true);
 
   const latestOnly = server.applyAnimeAv1LatestInventory([], [
@@ -423,6 +423,82 @@ checkNoThrow("undefined show resolves", () => ensure(undefined, 1));
   check("latest parser keeps the Narumi release", latest?.slug, "kaijuu-8-gou-narumi-no-heijitsu");
   check("latest parser keeps episode 4", latest?.episode, 4);
   check("latest parser converts provider relative age", age >= 47 * 60 * 60 * 1000 && age <= 49 * 60 * 60 * 1000, true);
+}
+
+{
+  const art = JSON.parse(fs.readFileSync(ROOT + "/scraper/artwork-map.json", "utf8"))
+    .entries["animeav1-dotto-koni-chan"];
+  const catalog = JSON.parse(fs.readFileSync(ROOT + "/scraper/anime_metadata.json", "utf8"))
+    .items.find((item) => item.id === "animeav1-dotto-koni-chan");
+  check("Koni artwork retains its exact series identity", art.tmdbId, 44440);
+  check("Koni uses the cleaner original poster", art.tmdbPoster.endsWith("/3INoBmgKVIhs3VJ0zCPd7WOrk1Q.jpg"), true);
+  check("Koni episode fallback is the native landscape, not a cropped poster", art.episodeThumbnailFallback, art.tmdbBackdrop);
+  check("Koni retains all 26 provider episode IDs", catalog.sourceEpisodeIds, Array.from({ length: 26 }, (_, i) => i + 1));
+
+  let genuineStill = "";
+  const thumbCtx = {
+    getCapturedEpisodeFrame: () => "",
+    hqImage: (url) => url,
+    comparableImageUrl: (url) => url || "",
+    getWatchPosterArtwork: () => art.tmdbPoster,
+    getWatchBackdropArtwork: () => art.tmdbBackdrop,
+    isAdultImageUrl: () => false,
+    curatedDottoKoniArtwork: () => null,
+    ImageResolver: {
+      getEpisodeStill: () => genuineStill,
+      getNearestEpisodeStill: () => "",
+      lazyFetchEpisodeStill() {},
+      resolveEpisodeThumbnail: (episode, _show, data) => data.episodeStill || episode.image || ""
+    }
+  };
+  vm.createContext(thumbCtx);
+  vm.runInContext(clientSrc.slice(clientSrc.indexOf("function episodeThumb("), clientSrc.indexOf("function buildSeasonNav(")), thumbCtx);
+  const show = { ...art, format: "TV", image: art.tmdbPoster };
+  const season = { season: 1 };
+  check("missing TV still uses the curated landscape fallback", thumbCtx.episodeThumb({ episode: 1 }, season, show), art.tmdbBackdrop);
+  check("a repeated poster cannot win over the landscape fallback", thumbCtx.episodeThumb({ episode: 2, image: art.tmdbPoster }, season, show), art.tmdbBackdrop);
+  genuineStill = "https://example.test/episode-1.jpg";
+  check("new genuine episode stills win over the TV fallback", thumbCtx.episodeThumb({ episode: 1 }, season, show), genuineStill);
+  genuineStill = "";
+  check("a captured episode frame wins over generic artwork", thumbCtx.episodeThumb({ episode: 1, _capturedFrame: "frame:test" }, season, show), "frame:test");
+  check("standalone shorts keep their isolated artwork behavior", thumbCtx.episodeThumb({ episode: 1 }, season, { ...show, format: "SPECIAL" }), art.episodeThumbnailFallback);
+  check("adult thumbnails never inherit this regular fallback", thumbCtx.episodeThumb({ episode: 1 }, season, { ...show, adultSource: "NeutralFixture" }), art.tmdbPoster);
+
+  const curatedCtx = { isAdultCatalogShow: (row) => Boolean(row.adultSource || row.isAdult) };
+  vm.createContext(curatedCtx);
+  vm.runInContext(clientSrc.slice(clientSrc.indexOf("const DOTTO_KONI_ARTWORK ="), clientSrc.indexOf("function curatedWatchBackdrop(")), curatedCtx);
+  const stale = { id: "source-animetv-api-animeav1-dotto-koni-chan", tmdbPoster: "old:poster" };
+  check("old cached source rows receive the poster repair without a refetch", curatedCtx.curatedDottoKoniArtwork(stale)?.poster, art.tmdbPoster);
+  check("identity-only rows receive the same artwork", curatedCtx.curatedDottoKoniArtwork({ anilistId: 1684 })?.backdrop, art.tmdbBackdrop);
+  check("a similarly named unrelated title is never remapped", curatedCtx.curatedDottoKoniArtwork({ id: "animeav1-other-koni-chan" }), null);
+  check("adult identities cannot use the curated regular artwork", curatedCtx.curatedDottoKoniArtwork({ ...stale, adultSource: "NeutralFixture" }), null);
+  thumbCtx.curatedDottoKoniArtwork = curatedCtx.curatedDottoKoniArtwork;
+  check("cached episode rows receive the landscape repair without catalog refresh", thumbCtx.episodeThumb({ episode: 1 }, season, stale), art.tmdbBackdrop);
+
+  const titleCtx = { state: { uiPreferences: { titleLanguage: "romaji" } } };
+  vm.createContext(titleCtx);
+  vm.runInContext(utilsSrc.slice(utilsSrc.indexOf("function getShowTitle("), utilsSrc.indexOf("function saveAniPubFallbackCache(")), titleCtx);
+  const titleRow = { title: "Dotto Koni-chan", romajiTitle: "Dotto KONI-chan" };
+  check("Koni spelling is stable after AniList title hydration", titleCtx.getShowTitle(titleRow), "Dotto! Koni-chan");
+  titleCtx.state.uiPreferences.titleLanguage = "english";
+  check("Koni spelling is stable in English title mode", titleCtx.getShowTitle(titleRow), "Dotto! Koni-chan");
+  check("display-name formatting does not rename provider identities", titleRow.title, "Dotto Koni-chan");
+  check("other anime display names are unchanged", titleCtx.getShowTitle({ title: "Other Series" }), "Other Series");
+
+  let transcodes = 0;
+  const deliveryCtx = {
+    HELL_MODE_WATCH_BACKDROP: "https://example.test/hell-mode.jpg",
+    CINEMATIC_BACKDROP_WIDTH: 2560,
+    CINEMATIC_BACKDROP_QUALITY: 92,
+    cinematicArtworkSourceUrl: (url) => url.replace("/w780/", "/original/"),
+    imageDeliveryUrl: (url) => { transcodes++; return `proxy:${url}`; }
+  };
+  vm.createContext(deliveryCtx);
+  vm.runInContext(clientSrc.slice(clientSrc.indexOf("function cinematicBackdropUrl("), clientSrc.indexOf("function imageDeliverySrcSet(")), deliveryCtx);
+  check("Koni backdrop is delivered directly at native resolution", deliveryCtx.cinematicBackdropUrl(art.tmdbBackdrop), art.tmdbBackdrop);
+  check("a resized Koni URL resolves to the same native cache key", deliveryCtx.cinematicBackdropUrl(art.tmdbBackdrop.replace("/original/", "/w780/")), art.tmdbBackdrop);
+  check("Koni backdrop does not invoke the image function", transcodes, 0);
+  check("other backdrops retain the existing delivery path", deliveryCtx.cinematicBackdropUrl("https://example.test/other.jpg"), "proxy:https://example.test/other.jpg");
 }
 
 // The detail view can render before TMDB's season response returns. The season

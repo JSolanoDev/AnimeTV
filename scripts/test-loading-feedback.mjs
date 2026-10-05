@@ -767,6 +767,7 @@ function indicatorHydrationHarness() {
     _carouselIndicatorHydrationGeneration: 0,
     state: { route: "home" },
     carouselIndicatorArtwork: (show) => show.art,
+    isAdultCatalogShow: (show) => Boolean(show.adult),
     preloadArtworkImage: (url, width, quality, priority) => {
       calls.push({ url, width, quality, priority });
       return new Promise((resolve) => pending.set(url, resolve));
@@ -1065,12 +1066,15 @@ test("regular carousel never admits unverified fallback artwork; adult behavior 
     isAdultCatalogShow: show => Boolean(show.adult),
     carouselShowIsReady: show => Boolean(show.carouselArtwork && show.confirmedNextAiringAt),
     hqImage: value => value,
+    preloadedArtworkDimensions: new Map(),
+    cinematicBackdropUrl: value => value,
     isArtworkLowQuality: () => false,
     pickImage: values => values.find(Boolean) || "",
     stableArtworkCandidates: (_show, values) => values,
     carouselArtworkOrPoster: show => show.highQualityBackground || show.banner || show.image || ""
   });
   vm.runInContext(section("function cinematicArtworkSourceUrl(", "function cinematicBackdropUrl(")
+    + section("function adultCarouselDimensionsAreHD(", "function carouselResolvedBackdropArtwork(")
     + section("function carouselResolvedBackdropArtwork(", "const CAROUSEL_PROVISIONAL_HOLD_MS"), c);
 
   const sourceBanner = "https://source.example/soft-banner.jpg";

@@ -79,8 +79,11 @@ function getShowTitle(show) {
   // 3" - which is unreadable for most viewers and is not what the preference is
   // asking for. Those use the English title whenever there is one; Japanese
   // titles are untouched.
-  if (pref === "romaji" && !transliterated) return romaji || english || "Untitled Anime";
-  return english || romaji || "Untitled Anime";
+  const display = pref === "romaji" && !transliterated
+    ? romaji || english || "Untitled Anime"
+    : english || romaji || "Untitled Anime";
+  // Keep the verified series spelling stable when AniList hydration changes casing.
+  return /^Dotto[!\s]*Koni-chan$/i.test(display.trim()) ? "Dotto! Koni-chan" : display;
 }
 
 function saveAniPubFallbackCache() {

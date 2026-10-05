@@ -8783,6 +8783,12 @@ body.adult-mode .watch-backdrop-title-rule {
 body.reduce-motion .watch-backdrop,
 body.reduce-motion .watch-backdrop.has-art { animation: none !important; transform: scale(1.02); }
 
+/* This legacy series has only a 720p original: extra zoom just magnifies softness. */
+.watch-backdrop[data-backdrop-show-key$="animeav1-dotto-koni-chan"] {
+  animation: none;
+  transform: none;
+}
+
 /* Layered scrims: dark left→right behind metadata, bottom→top behind actions,
    plus a soft fade where the backdrop meets the right source panel. */
 .watch-backdrop::after {
