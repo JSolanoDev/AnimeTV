@@ -51,6 +51,27 @@ Playback URLs, media relays, resolver calls, mutations, and user-specific data a
 
 Do not increase Function memory or duration to hide slow upstream work. Check caching, duplicate callers, response size, and provider health first. The current route audit is in [vercel-function-audit.md](vercel-function-audit.md).
 
+### Automatic carousel admission
+
+The regular homepage hero admits a release only after the updater verifies the
+original TMDB backdrop is a landscape image of at least 1920 by 1080 pixels and
+the title has a confirmed airing timestamp or a timezone-aware broadcast slot.
+An image URL's size label alone is not proof of native resolution. Both the day
+and 12-hour time are formatted from the same confirmed instant in the viewer's
+local timezone; provider upload dates do not establish a broadcast schedule.
+
+The existing hourly `refresh-latest-artwork.yml` workflow prepares new releases
+and the daily catalog workflow uses the same preparation gate. Each run checks
+at most 12 pending titles, shares duplicate image URLs, and retries unchanged
+low-resolution artwork no more than daily. An upstream throttle or outage stops
+publication without immediate retries. Valid proofs are reused until the image
+URL changes. This adds no per-viewer metadata lookups or new Vercel routes.
+
+Titles waiting for artwork or confirmed schedules remain in Latest Episodes and
+the catalog, with their episode inventories unchanged. They enter the carousel
+automatically after a successful updater publication. Adult carousel behavior is
+unchanged because it does not use regular anime broadcast schedules.
+
 ## Verification
 
 Before pushing:

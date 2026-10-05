@@ -37,6 +37,7 @@ export function buildHomepageBootstrap(catalog, artwork, airing, limit = 96) {
     const art = artById[row.id] || {};
     const meta = art.meta || {};
     const air = airingById[row.id] || {};
+    const exactAir = !air.anilistId || !art.anilistId || Number(air.anilistId) === Number(art.anilistId);
     const episode = Math.max(1, Number(row.episode || row.sourcePlayableEpisodeCount || row.fallbackPlayableEpisodeCount) || 1);
     return {
       id: row.id,
@@ -72,14 +73,16 @@ export function buildHomepageBootstrap(catalog, artwork, airing, limit = 96) {
       banner: art.anilistBanner || row.banner || "",
       tmdbId: art.tmdbId || null,
       tmdbBackdrop: art.tmdbBackdrop || "",
+      carouselArtwork: art.carouselArtwork || undefined,
+      confirmedNextAiringAt: exactAir ? air.nextAiringAt || null : null,
       tmdbPoster: art.tmdbPoster || "",
       episodeThumbnailFallback: art.episodeThumbnailFallback || row.episodeThumbnailFallback || "",
       lastEpisodeAt: air.lastEpisodeAt || "",
       nextAiringAt: air.nextAiringAt || null,
       nextAiringEpisodeNumber: air.nextAiringEpisodeNumber || null,
-      broadcastDay: air.broadcastDay || "",
-      broadcastTime: air.broadcastTime || "",
-      broadcastTimezone: air.broadcastTimezone || "",
+      broadcastDay: exactAir ? air.broadcastDay || "" : "",
+      broadcastTime: exactAir ? air.broadcastTime || "" : "",
+      broadcastTimezone: exactAir ? air.broadcastTimezone || "" : "",
       franchiseSeasons: air.franchiseSeasons?.length ? air.franchiseSeasons : undefined,
       fallbackProvider: row.fallbackProvider || "",
       fallbackProviderKey: row.fallbackProviderKey || "",

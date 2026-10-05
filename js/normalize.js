@@ -68,6 +68,7 @@ function normalizeExternalShow(item, source, index) {
     // airing show fell out of the recently-aired pool and the carousel quietly
     // became an all-time popularity list. /api/catalog has always sent them.
     nextAiringAt: item.nextAiringAt ?? null,
+    confirmedNextAiringAt: item.confirmedNextAiringAt ?? null,
     nextAiringEpisodeNumber: item.nextAiringEpisodeNumber ?? null,
     // Baked by scripts/build-airing-map.mjs and merged by /api/catalog.
     // season/seasonYear let the carousel rank by how CURRENT a title is;
@@ -117,6 +118,7 @@ function normalizeExternalShow(item, source, index) {
     // present value means the show opens on a real 1080p+ backdrop with no AniList
     // or TMDB round-trip at all.
     tmdbBackdrop: item.tmdbBackdrop || "",
+    carouselArtwork: item.carouselArtwork || null,
     // Exact landscape art for standalone releases that have no public episode
     // stills. It is only used by the episode-row fallback, never as the hero.
     episodeThumbnailFallback: item.episodeThumbnailFallback || "",
@@ -920,6 +922,9 @@ function mergeClientCatalogShow(current, show) {
       ? Number(show.nextAiringAt)
       : (Number(current.nextAiringAt) > 0 ? Number(current.nextAiringAt) : null),
     nextAiringEpisodeNumber: show.nextAiringEpisodeNumber ?? current.nextAiringEpisodeNumber ?? null,
+    confirmedNextAiringAt: Number(show.confirmedNextAiringAt) > 0
+      ? Number(show.confirmedNextAiringAt) : current.confirmedNextAiringAt || null,
+    carouselArtwork: show.carouselArtwork || current.carouselArtwork || null,
     latestAiredEp: show.latestAiredEp ?? current.latestAiredEp ?? null,
     lastEpisodeAt: show.lastEpisodeAt || current.lastEpisodeAt || "",
     broadcastDay: show.broadcastDay || current.broadcastDay || "",

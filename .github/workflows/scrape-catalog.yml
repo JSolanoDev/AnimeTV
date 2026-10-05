@@ -75,8 +75,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: npm
 
       # ── 3. Install dependencies ────────────────────────────────────────────
+      - name: Install artwork verification dependencies
+        run: npm ci --omit=dev --no-audit --no-fund
+
       - name: Install Python dependencies
         run: pip install -r scraper/requirements.txt
 

@@ -419,7 +419,7 @@ let _carouselPreviewShowId = "";
 const HERO_MEMO_KEY = "ztv:hero-art";
 // Bump when the stored shape changes - every older entry is then dropped on read
 // instead of being fed to code that expects new fields.
-const HERO_MEMO_SCHEMA = 4;
+const HERO_MEMO_SCHEMA = 5;
 // Artwork gets replaced upstream; a memo older than this is more likely to be a
 // dead URL than a useful head start, so it expires rather than living forever.
 const HERO_MEMO_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -450,6 +450,8 @@ function readHeroMemo() {
   // image. Older memos only stored the full proxy URL and exposed its progressive
   // decode as a blocky sharp image, so schema 4 deliberately drops them once.
   if (typeof memo.art !== "string" || !/^https?:\/\//i.test(memo.art)) { clearHeroMemo(); return null; }
+  if (!memo.adult && (!verifiedCarouselArtwork(memo.carouselArtwork, memo.art)
+    || !confirmedCarouselAiringInstant(memo))) { clearHeroMemo(); return null; }
   try {
     const proxiedArt = new URL(memo.src, location.origin).searchParams.get("src");
     if (!proxiedArt || new URL(proxiedArt).href !== new URL(cinematicArtworkSourceUrl(memo.art)).href) {
@@ -3581,6 +3583,11 @@ function makeAv1OnlyShow(item) {
     banner: item.banner || animeAv1ArtworkVariant(sourceImage, "backdrop") || "",
     coverImageLarge: item.coverImageLarge || "",
     tmdbBackdrop: item.tmdbBackdrop || "",
+    carouselArtwork: item.carouselArtwork || null,
+    confirmedNextAiringAt: item.confirmedNextAiringAt || null,
+    broadcastDay: item.broadcastDay || "",
+    broadcastTime: item.broadcastTime || "",
+    broadcastTimezone: item.broadcastTimezone || "",
     tmdbPoster: item.tmdbPoster || "",
     tmdbId: item.tmdbId || null,
     anilistId: item.anilistId || null,
@@ -3666,6 +3673,14 @@ function buildAnimeAv1ReleaseCards(limit = HOME_CARD_LIMIT, { applyUiFilters = t
       card = registerAv1Show(makeAv1OnlyShow(item));
     }
     if (Number(item.nextAiringAt) > 0 || item.broadcastDay) applyScheduleAiringFields(card, item);
+    if (item.carouselArtwork) card.carouselArtwork = item.carouselArtwork;
+    if (item.tmdbBackdrop) card.tmdbBackdrop = item.tmdbBackdrop;
+    if (item.confirmedNextAiringAt) card.confirmedNextAiringAt = item.confirmedNextAiringAt;
+    if (item.broadcastDay) {
+      card.broadcastDay = item.broadcastDay;
+      card.broadcastTime = item.broadcastTime;
+      card.broadcastTimezone = item.broadcastTimezone;
+    }
     const titleKey = titleKeyOf(card);
     if (usedIds.has(card.id) || (titleKey && usedTitles.has(titleKey))) continue;
     if (typeof AdultMode !== "undefined" && !AdultMode.matchesActiveCatalog(card)) continue;
@@ -4716,10 +4731,18 @@ function recentReleaseCarouselShows(limit = 8) {
   if (typeof AdultMode !== "undefined" && AdultMode.isEnabled()) {
     return adultSourceOrderedShows(limit).filter((show) => carouselArtworkOrPoster(show));
   }
-  const providerReleases = buildAnimeAv1ReleaseCards(limit, { applyUiFilters: false })
-    .filter((show) => carouselArtworkOrPoster(show));
+  const providerReleases = buildAnimeAv1ReleaseCards(HOME_CARD_LIMIT, { applyUiFilters: false })
+    .filter((show) => carouselShowIsReady(show));
   if (providerReleases.length) return providerReleases.slice(0, limit);
-  return recentlyAiredShows(limit).filter((show) => carouselArtworkOrPoster(show));
+  if (state.av1Latest?.length) return [];
+  return recentlyAiredShows(HOME_CARD_LIMIT).filter((show) => carouselShowIsReady(show)).slice(0, limit);
+}
+
+function carouselShowIsReady(show = {}) {
+  const art = verifiedCarouselArtwork(show.carouselArtwork, show.tmdbBackdrop);
+  return Boolean(art && confirmedCarouselAiringInstant(show)
+    && !isArtworkLowQuality(art, "backdrop")
+    && (typeof ImageResolver === "undefined" || !ImageResolver.isImageFailed(art)));
 }
 
 // Hero backdrop: prefer a dedicated landscape banner, fall back to the poster so
@@ -4730,26 +4753,12 @@ function carouselArtworkOrPoster(show = {}) {
 
 function carouselResolvedBackdropArtwork(show = {}) {
   const adult = isAdultCatalogShow(show);
-  // Regular releases use TMDB as the canonical hero. AniList and provider
-  // banners are useful fallbacks, but accepting one before TMDB resolution is
-  // settled creates two "final" images: a soft source banner followed by TMDB.
+  if (!adult) return carouselShowIsReady(show) ? show.carouselArtwork.url : "";
   // Adult titles keep their source-curated cinematic backdrop as canonical.
-  const canonical = pickImage((adult
-    ? [show.adultCinematicBackdrop, show.tmdbBackdrop, show.highQualityBackground]
-    : [show.tmdbBackdrop]
-  ).map((value) => cinematicArtworkSourceUrl(hqImage(String(value || "").trim())))
+  const canonical = pickImage([show.adultCinematicBackdrop, show.tmdbBackdrop, show.highQualityBackground]
+    .map((value) => cinematicArtworkSourceUrl(hqImage(String(value || "").trim())))
     .filter((value) => value && !isArtworkLowQuality(value, "backdrop")));
   if (canonical) return canonical;
-
-  // While a regular lookup is pending, return no artwork. renderCarousel keeps
-  // the sharp layer hidden instead of painting a temporary source image. Once
-  // the lookup has genuinely settled, a show with no TMDB match may use its one
-  // stable fallback; that fallback still follows blur -> decode -> sharp.
-  const catalogArtworkPending = !adult && ["none", "bootstrap", "cache"].includes(state.catalogTier);
-  const lookupSettled = adult || (!catalogArtworkPending && (
-    show._tmdbResolved || (show._carouselResolveTried && !show._carouselResolvePending)
-  ));
-  if (!lookupSettled) return "";
   return pickImage(stableArtworkCandidates(show, [carouselArtworkOrPoster(show)]
     .map((value) => cinematicArtworkSourceUrl(hqImage(String(value || "").trim())))
     .filter((value) => value && !isArtworkLowQuality(value, "backdrop")), "backdrop"));
@@ -4885,6 +4894,11 @@ function renderCarousel() {
   // data resolve in the background.
   const items = buildStableCarouselItems(pool);
   if (!items.length) {
+    const waitingForCatalog = ["none", "bootstrap", "cache"].includes(state.catalogTier) && !state.av1Latest?.length;
+    if (!waitingForCatalog && heroMemoActive) {
+      heroMemoActive = false;
+      clearHeroMemo();
+    }
     _carouselPaintedId = null;
     _carouselPaintedShow = null;
     carouselStage.classList.add("is-loading");
@@ -4901,14 +4915,15 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=958";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=960";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
-      carouselTitle.textContent = "Loading ZenkaiTV...";
-      carouselText.textContent = "Getting the catalog ready.";
-      carouselMeta.textContent = "Please wait";
+      carouselTitle.textContent = waitingForCatalog ? "Loading ZenkaiTV..." : "ZenkaiTV";
+      carouselText.textContent = waitingForCatalog ? "Getting the catalog ready." : "";
+      carouselMeta.textContent = waitingForCatalog ? "Please wait" : "";
     }
+    if (!waitingForCatalog) signalAppLoader("hero");
     carouselOpen.removeAttribute("data-open-show");
     carouselOpen.disabled = true;
     if (carouselIndicators) {
@@ -4996,7 +5011,7 @@ function renderCarousel() {
   if (typeof enrichTmdbImages === "function" && items.length > 1) {
     const next = items[(state.carouselIndex + 1) % items.length];
     if (next && String(next.id) !== String(show.id)) {
-      if (next._tmdbResolved) preloadHeroImage(next);
+      if (!isAdultCatalogShow(next) || next._tmdbResolved) preloadHeroImage(next);
       else enrichTmdbImages(next, { refresh: false }).then(() => preloadHeroImage(next)).catch(() => {});
     }
   }
@@ -5051,7 +5066,13 @@ function renderCarousel() {
             art,
             src: deliveredArt,
             srcset: "",
-            portrait: !hasLandscapeBanner
+            portrait: !hasLandscapeBanner,
+            adult: isAdultCatalogShow(show),
+            carouselArtwork: show.carouselArtwork,
+            confirmedNextAiringAt: show.confirmedNextAiringAt,
+            broadcastDay: show.broadcastDay,
+            broadcastTime: show.broadcastTime,
+            broadcastTimezone: show.broadcastTimezone
           });
         };
         if (typeof carouselBackdropImage.decode === "function") {
@@ -5121,13 +5142,15 @@ function renderCarousel() {
   // no broadcast day is known - they are not weekdays, and printing them put
   // "Local | ACTION" on the hero, which says nothing to a viewer. Drop them and
   // show only what is actually known; no day is better than a fake one.
-  const heroDay = ["Local", "TBA", ""].includes(String(show.day || "").trim()) ? "" : show.day;
+  const confirmedDate = isAdultCatalogShow(show) ? null : new Date(confirmedCarouselAiringInstant(show));
+  const heroDay = confirmedDate ? formatAiringWeekday(confirmedDate)
+    : (["Local", "TBA", ""].includes(String(show.day || "").trim()) ? "" : show.day);
   const releaseEpisode = Number(show._av1Episode || show.latestAiredEp || show.episode || 0);
   carouselMeta.textContent = [
     releaseEpisode > 0 ? `EP ${releaseEpisode}` : "",
     showHasLatinoDub(show) ? "LATINO" : "",
     heroDay,
-    showAiringTimeText(show),
+    confirmedDate ? formatAiringClock(confirmedDate) : showAiringTimeText(show),
     (show.genre || "").toUpperCase()
   ].filter(Boolean).join(" | ");
   const target = getCardTarget(show);
@@ -23599,7 +23622,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=958");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=960");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

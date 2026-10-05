@@ -319,6 +319,7 @@ test("a decoded old hero cannot reveal or save over a new slide", async () => {
     art: "https://cdn.example/slide-one.jpg", deliveredArt: "slide-one", show: { id: "one" }, hasLandscapeBanner: true,
     carouselBackdropImage: { dataset: {}, classList: { toggle: () => {} }, naturalWidth: 1920, getAttribute: () => current, decode: () => new Promise(resolve => { finish = resolve; }) },
     artworkDimensionsAreUseful: () => true,
+    isAdultCatalogShow: () => false,
     applyCarouselArtworkLayout: () => {},
     carouselStage: { classList: { remove: () => events.push("reveal") } },
     clearCarouselBlurPlaceholder: () => events.push("clear"),
@@ -876,11 +877,12 @@ test("artwork lookup never substitutes a different provider image before the fin
   assert.match(lookupWait, /carouselBackdropImage\.src = emptyBackdrop/);
 });
 
-test("regular carousel artwork waits for canonical TMDB resolution before using a fallback", () => {
+test("regular carousel never admits unverified fallback artwork; adult behavior is preserved", () => {
   const c = vm.createContext({
     state: { catalogTier: "full" },
     URL,
     isAdultCatalogShow: show => Boolean(show.adult),
+    carouselShowIsReady: show => Boolean(show.carouselArtwork && show.confirmedNextAiringAt),
     hqImage: value => value,
     isArtworkLowQuality: () => false,
     pickImage: values => values.find(Boolean) || "",
@@ -902,7 +904,7 @@ test("regular carousel artwork waits for canonical TMDB resolution before using 
     highQualityBackground: sourceBanner,
     _carouselResolveTried: true,
     _carouselResolvePending: false
-  }), sourceBanner, "a settled no-match may use one stable fallback");
+  }), "", "a settled no-match must wait for high-quality artwork");
   c.state.catalogTier = "cache";
   assert.equal(c.carouselResolvedBackdropArtwork({
     highQualityBackground: sourceBanner,
@@ -913,7 +915,9 @@ test("regular carousel artwork waits for canonical TMDB resolution before using 
   c.state.catalogTier = "full";
   assert.equal(c.carouselResolvedBackdropArtwork({
     highQualityBackground: sourceBanner,
-    tmdbBackdrop
+    tmdbBackdrop,
+    carouselArtwork: { url: tmdbBackdrop },
+    confirmedNextAiringAt: Date.now() + 3600000
   }), tmdbBackdrop);
   assert.equal(c.carouselResolvedBackdropArtwork({
     adult: true,
@@ -1079,7 +1083,7 @@ test("a restored hero stays blurred until its exact full image has decoded", () 
   const restore = section("(function restoreHeroBackdrop() {", "// The splash used to");
   const memoRead = section("function readHeroMemo()", "function writeHeroMemo(");
   const render = section("function renderCarousel()", "let _carouselDotsHtml");
-  assert.match(client, /const HERO_MEMO_SCHEMA = 4;/);
+  assert.match(client, /const HERO_MEMO_SCHEMA = 5;/);
   assert.match(memoRead, /typeof memo\.art !== "string"/);
   assert.match(memoRead, /proxiedArt[\s\S]*?new URL\(proxiedArt\)\.href !== new URL\(cinematicArtworkSourceUrl\(memo\.art\)\)\.href/);
   assert.match(restore, /carouselStage\.classList\.add\("is-backdrop-loading"\);[\s\S]*?carouselBackdropImage\.src = memo\.src;[\s\S]*?showCarouselBlurPlaceholder\(memo\.art, memo\.src\);/);
@@ -1106,13 +1110,16 @@ test("new and restored heroes contain missing-HD fallbacks without permanent blu
 test("hero memo rejects old thumbnail inputs without disturbing valid originals", () => {
   let value;
   let clears = 0;
-  const c = vm.createContext({ URL, Date, HERO_MEMO_KEY: "hero", HERO_MEMO_SCHEMA: 4,
+  const c = vm.createContext({ URL, Date, HERO_MEMO_KEY: "hero", HERO_MEMO_SCHEMA: 5,
+    verifiedCarouselArtwork: (proof, url) => proof?.url === url ? url : "",
+    confirmedCarouselAiringInstant: show => show.confirmedNextAiringAt || 0,
     HERO_MEMO_TTL_MS: 10000, location: { origin: "https://zenkaitv.com" },
     localStorage: { getItem: () => value, removeItem: () => { clears++; } } });
   vm.runInContext(section("function clearHeroMemo()", "function writeHeroMemo(")
     + section("function cinematicArtworkSourceUrl(", "function cinematicBackdropUrl("), c);
   const art = "https://image.tmdb.org/t/p/original/final.jpg";
-  const memo = { schema: 4, ts: Date.now(), art, src: `/api/image?src=${encodeURIComponent(art)}&w=1920&q=92` };
+  const memo = { schema: 5, ts: Date.now(), art, carouselArtwork: { url: art }, confirmedNextAiringAt: Date.now() + 3600000,
+    src: `/api/image?src=${encodeURIComponent(art)}&w=1920&q=92` };
   value = JSON.stringify(memo);
   assert.equal(c.readHeroMemo().art, art);
   memo.art = art.replace("/original/", "/w780/");

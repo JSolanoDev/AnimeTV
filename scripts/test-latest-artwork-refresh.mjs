@@ -100,7 +100,12 @@ test("a new title automatically receives artwork, metadata and its schedule befo
         [id]: { anilistId: 123, nextAiringAt: 1791729000000, nextAiringEpisodeNumber: 3, franchiseSeasons: [] }
       } });
     }
-    if (["build-artwork-map.mjs", "add-artwork-metadata.mjs"].includes(script)) write("scraper/artwork-map.json", map);
+    if (script === "prepare-regular-artwork.mjs") {
+      assert.equal(args[args.indexOf("--carousel-ids") + 1], id);
+      map.entries[id].carouselArtworkCheckedAt = new Date().toISOString();
+      map.entries[id].carouselArtworkCheckedUrl = map.entries[id].tmdbBackdrop;
+    }
+    if (["build-artwork-map.mjs", "add-artwork-metadata.mjs", "prepare-regular-artwork.mjs"].includes(script)) write("scraper/artwork-map.json", map);
   };
   assert.deepEqual(await refreshLatestArtwork({ rootDir, fetchImpl, run }), [id]);
   assert.deepEqual(calls, ["build-artwork-map.mjs", "add-artwork-metadata.mjs",
@@ -135,6 +140,25 @@ test("an upstream failure leaves saved files alone and never starts lookups", as
     assert.equal(fs.readFileSync(mapPath, "utf8"), original);
     assert.equal(fs.existsSync(path.join(rootDir, "scratch")), false);
   } finally { fs.rmSync(rootDir, { recursive: true, force: true }); }
+});
+
+test("pending HD checks use the publication gate without repeating metadata/API searches", async t => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "art-refresh-hd-"));
+  t.after(() => fs.rmSync(rootDir, { recursive: true, force: true }));
+  const id = "animeav1-neutral";
+  fs.mkdirSync(path.join(rootDir, "scraper"));
+  const mapPath = path.join(rootDir, "scraper/artwork-map.json");
+  fs.writeFileSync(mapPath, JSON.stringify({ entries: { [id]: { anilistId: 123, status: "ok",
+    tmdbBackdrop: "https://image.tmdb.org/t/p/original/neutral.jpg", anilistCover: "cover.jpg",
+    airingCheckedAt: new Date().toISOString(), meta: { description: "Neutral synopsis.", genres: ["Adventure"] } } } }));
+  const calls = [];
+  await refreshLatestArtwork({ rootDir,
+    fetchImpl: async () => ({ ok: true, text: async () => '<article><a href="/media/neutral/1"><span class="sr-only">Ver Neutral 1</span></a></article>' }),
+    run: (script, args) => {
+      calls.push(script);
+      if (script === "prepare-regular-artwork.mjs") assert.equal(args[args.indexOf("--carousel-ids") + 1], id);
+    } });
+  assert.deepEqual(calls, ["prepare-regular-artwork.mjs", "build-homepage-bootstrap.mjs"]);
 });
 
 test("a failed publication gate restores root, Android and bootstrap bytes", async () => {

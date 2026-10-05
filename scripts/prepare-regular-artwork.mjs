@@ -6,6 +6,8 @@ import { createRequire } from "node:module";
 import { isDeepStrictEqual } from "node:util";
 import { createArtworkChecker } from "./lib/artwork-availability.mjs";
 import { createEnrichmentBudget } from "./lib/enrichment-budget.mjs";
+import { prepareCarouselArtwork } from "./lib/carousel-artwork.mjs";
+import { buildHomepageBootstrap } from "./build-homepage-bootstrap.mjs";
 
 const { animeAv1ArtworkVariant } = createRequire(import.meta.url)("../js/utils.js");
 const HOSTS = new Set(["cdn.animeav1.com", "image.tmdb.org", "s4.anilist.co", "cdn.myanimelist.net",
@@ -90,7 +92,7 @@ export async function prepareRegularArtwork({ catalog, artwork, previousCatalog 
 }
 
 export async function prepareRegularArtworkFiles({ root = process.cwd(), fetchImpl = globalThis.fetch,
-  maxMinutes = 10, maxChecks = 500 } = {}) {
+  maxMinutes = 10, maxChecks = 500, carouselIds } = {}) {
   const catalogPath = "scraper/anime_metadata.json";
   const artworkPath = "scraper/artwork-map.json";
   const read = async file => JSON.parse(await readFile(resolve(root, file), "utf8"));
@@ -100,6 +102,9 @@ export async function prepareRegularArtworkFiles({ root = process.cwd(), fetchIm
   const budget = createEnrichmentBudget(["--max-minutes", String(maxMinutes)], maxMinutes, { request: fetchImpl });
   const result = await prepareRegularArtwork({ catalog, artwork, previousCatalog: baseline(catalogPath),
     previousArtwork: baseline(artworkPath), fetchImpl: budget.fetch, maxChecks });
+  const airing = await read("scraper/airing-map.json").catch(() => ({}));
+  const ids = carouselIds || buildHomepageBootstrap(result.catalog, result.artwork, airing).items.map(row => row.id);
+  result.stats.carousel = await prepareCarouselArtwork(result.artwork.entries, ids, { fetchImpl: budget.fetch });
   // No file is touched until every candidate passes. A failed gate cannot publish.
   for (const [file, payload, original] of [[catalogPath, result.catalog, catalog], [artworkPath, result.artwork, artwork]]) {
     if (isDeepStrictEqual(payload, original)) continue;
@@ -115,7 +120,9 @@ export async function prepareRegularArtworkFiles({ root = process.cwd(), fetchIm
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const index = process.argv.indexOf("--max-minutes");
   const maxMinutes = index >= 0 ? Number(process.argv[index + 1]) || 10 : 10;
-  prepareRegularArtworkFiles({ maxMinutes }).then(stats => console.log(JSON.stringify(stats))).catch(error => {
+  const idsIndex = process.argv.indexOf("--carousel-ids");
+  const carouselIds = idsIndex >= 0 ? String(process.argv[idsIndex + 1] || "").split(",").filter(Boolean) : undefined;
+  prepareRegularArtworkFiles({ maxMinutes, carouselIds }).then(stats => console.log(JSON.stringify(stats))).catch(error => {
     console.error(error.message);
     if (error.retryAfter) console.error(`Retry-After: ${error.retryAfter}; no immediate retry.`);
     process.exitCode = 1;

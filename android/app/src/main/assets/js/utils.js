@@ -724,11 +724,37 @@ function formatAiringWeekday(date, weekday = "short") {
   return new Intl.DateTimeFormat(undefined, { weekday }).format(date);
 }
 
+// Admission proof is baked by the updater from the original image, not inferred
+// from a CDN size label (which may just upscale a smaller file).
+function verifiedCarouselArtwork(art, currentUrl) {
+  if (!art || art.version !== 1 || art.url !== currentUrl) return "";
+  const width = Number(art.width), height = Number(art.height);
+  const ratio = width / height;
+  if (!Number.isInteger(width) || !Number.isInteger(height)
+    || width < 1920 || height < 1080 || ratio < 1.35 || ratio > 2.6) return "";
+  try {
+    const url = new URL(art.url);
+    return url.protocol === "https:" && url.hostname === "image.tmdb.org"
+      && !url.username && !url.password && (!url.port || url.port === "443")
+      && /^\/t\/p\/original\/[^/]+$/.test(url.pathname) ? art.url : "";
+  } catch { return ""; }
+}
+
+function confirmedCarouselAiringInstant(show = {}, now = Date.now()) {
+  const instant = Number(show.confirmedNextAiringAt || 0);
+  // Never roll an old instant forward or infer the slot from provider uploads.
+  if (Number.isFinite(instant) && instant > now - 7 * DAY_MS && instant < now + 21 * DAY_MS) return instant;
+  if (!/^(?:Asia\/Tokyo|JST)$/i.test(String(show.broadcastTimezone || ""))) return 0;
+  return broadcastInstant(show.broadcastDay, show.broadcastTime, show.broadcastTimezone, now);
+}
+
 // Node export so the logic can be unit-tested without a browser/DOM.
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     formatAiringClock,
     formatAiringWeekday,
+    verifiedCarouselArtwork,
+    confirmedCarouselAiringInstant,
   broadcastInstant,
   nextWeeklyAiringFrom,
     currentAnimeSeason,

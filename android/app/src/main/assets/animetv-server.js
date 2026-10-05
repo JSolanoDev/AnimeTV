@@ -2115,6 +2115,8 @@ function enrichLatestCatalogItemFromArtwork(item = {}) {
     malId: item.malId || art.malId || meta?.malId || null,
     tmdbId: item.tmdbId || art.tmdbId || null,
     tmdbBackdrop: item.tmdbBackdrop || art.tmdbBackdrop || "",
+    carouselArtwork: art.carouselArtwork || undefined,
+    confirmedNextAiringAt: airing?.nextAiringAt || null,
     tmdbPoster: item.tmdbPoster || art.tmdbPoster || "",
     episodeThumbnailFallback: item.episodeThumbnailFallback || art.episodeThumbnailFallback || "",
     coverImageLarge: item.coverImageLarge || art.anilistCover || art.metadataCover || "",
@@ -3559,6 +3561,9 @@ function readScrapedRegularCatalogItems() {
           malId: item.malId || artHit.malId || meta?.malId || null,
           tmdbId: item.tmdbId || artHit.tmdbId || null,
           tmdbBackdrop: item.tmdbBackdrop || artHit.tmdbBackdrop || "",
+          carouselArtwork: artHit.carouselArtwork || undefined,
+          confirmedNextAiringAt: (!airingHit?.anilistId || !artHit.anilistId
+            || Number(airingHit.anilistId) === Number(artHit.anilistId)) ? airingHit?.nextAiringAt || null : null,
           // 2000x3000 key art. Shipped for the same reason as the backdrop: the
           // alternative is an AnimeAV1 cover at 225x350 or an AniList one at 460x690,
           // both of which are visibly soft on a card grid at 2x density.
@@ -3646,7 +3651,8 @@ function readScrapedRegularCatalogItems() {
             status: item.status || airingHit.airingStatus || (meta ? meta.airingStatus : "") || "",
             ...(airingHit.sourceEpisodeCount ? { sourceEpisodeCount: airingHit.sourceEpisodeCount } : {}),
             ...(airingHit.lastEpisodeAt ? { lastEpisodeAt: airingHit.lastEpisodeAt } : {}),
-            ...(airingHit.broadcastDay ? {
+            ...(airingHit.broadcastDay && (!airingHit.anilistId || !artHit.anilistId
+              || Number(airingHit.anilistId) === Number(artHit.anilistId)) ? {
               broadcastDay: airingHit.broadcastDay,
               broadcastTime: airingHit.broadcastTime,
               broadcastTimezone: airingHit.broadcastTimezone
@@ -9796,7 +9802,7 @@ function enrichAnimeAv1LatestArtwork(item) {
   const fields = ["anilistId", "malId", "tmdbId", "tmdbBackdrop", "tmdbPoster", "coverImageLarge", "banner",
     "description", "genres", "year", "score", "duration", "studios", "countryOfOrigin",
     "canonicalSeasonNumber", "providerEpisodeOffset", "episodeThumbnailFallback", "nextAiringAt",
-    "nextAiringEpisodeNumber", "broadcastDay", "broadcastTime", "broadcastTimezone"];
+    "nextAiringEpisodeNumber", "broadcastDay", "broadcastTime", "broadcastTimezone", "carouselArtwork", "confirmedNextAiringAt"];
   return { ...item, ...Object.fromEntries(fields.filter((key) =>
     enriched[key] != null && enriched[key] !== "" && (!Array.isArray(enriched[key]) || enriched[key].length)
   ).map((key) => [key, enriched[key]])) };

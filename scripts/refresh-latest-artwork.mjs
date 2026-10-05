@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
+import { selectCarouselArtworkIds } from "./lib/carousel-artwork.mjs";
 
 const { parseAnimeAv1Latest } = createRequire(import.meta.url)("../animetv-server.js");
 
@@ -59,7 +60,8 @@ export async function refreshLatestArtwork({ base = "https://zenkaitv.com", fetc
   if (!rows.length) throw new Error("Latest release feed contained no valid titles; keeping saved artwork.");
   const selected = selectLatestArtwork(rows, saved.entries || {});
   const scheduleRows = selectLatestAiring(rows, saved.entries || {});
-  if (!selected.length && !scheduleRows.length) {
+  const carouselIds = selectCarouselArtworkIds(rows.map(row => row.id), saved.entries || {});
+  if (!selected.length && !scheduleRows.length && !carouselIds.length) {
     console.log("Latest release artwork and schedules are current; no lookups or writes."); return [];
   }
   const snapshots = new Map(["scraper/artwork-map.json", "scraper/airing-map.json", "scraper/anime_metadata.json",
@@ -75,14 +77,14 @@ export async function refreshLatestArtwork({ base = "https://zenkaitv.com", fetc
     if (selected.length) run("build-artwork-map.mjs", ["--catalog", input,
       "--ids", selected.map(({ id }) => id).join(","), "--base", base,
       "--concurrency", "1", "--max-minutes", "6", "--mark-checked"]);
-    run("add-artwork-metadata.mjs", ["--ids", ids, "--refresh-airing", "--max-minutes", "3"]);
+    if (ids) run("add-artwork-metadata.mjs", ["--ids", ids, "--refresh-airing", "--max-minutes", "3"]);
     // Metadata-only misses also respect the daily retry limit.
     const updated = JSON.parse(fs.readFileSync(mapPath, "utf8"));
     for (const { id } of selected) {
       if (updated.entries[id]) updated.entries[id].artworkCheckedAt = new Date().toISOString();
     }
     fs.writeFileSync(mapPath, JSON.stringify(updated));
-    run("prepare-regular-artwork.mjs", ["--max-minutes", "5"]);
+    run("prepare-regular-artwork.mjs", ["--max-minutes", "5", "--carousel-ids", rows.map(row => row.id).join(",")]);
     run("build-homepage-bootstrap.mjs", []);
   } catch (error) {
     for (const [file, bytes] of snapshots) fs.writeFileSync(file, bytes);
@@ -90,8 +92,9 @@ export async function refreshLatestArtwork({ base = "https://zenkaitv.com", fetc
   } finally {
     fs.rmSync(input, { force: true });
   }
-  console.log(`Prepared artwork for ${selected.length} titles and checked ${ids.split(",").length} recent schedules; episode inventories unchanged.`);
-  return ids.split(",");
+  const checkedIds = [...new Set([...(ids ? ids.split(",") : []), ...carouselIds])];
+  console.log(`Prepared artwork for ${selected.length} titles; ${checkedIds.length} recent titles checked; episode inventories unchanged.`);
+  return checkedIds;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
