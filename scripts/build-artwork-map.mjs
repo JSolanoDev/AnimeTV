@@ -54,6 +54,7 @@ const FORCE = args.includes("--force");
 const CONCURRENCY = Number(argOf("--concurrency", "4")) || 4;
 const ONLY_IDS = new Set(String(argOf("--ids", ""))
   .split(",").map((value) => value.trim()).filter(Boolean));
+const CATALOG_INPUT = path.resolve(argOf("--catalog", SRC));
 
 // TMDB's own w1280 is 1280x720; "original" is whatever the uploader gave (often
 // 1920x1080 or 3840x2160). Store original and let /api/image resize down to the
@@ -609,7 +610,7 @@ async function resolveOne(item, existing = null) {
 }
 
 async function main() {
-  const payload = JSON.parse(fs.readFileSync(SRC, "utf8"));
+  const payload = JSON.parse(fs.readFileSync(CATALOG_INPUT, "utf8"));
   let items = (payload.items || []).filter((i) =>
     String(i.source || "").toLowerCase().includes("animeav1")
     || String(i.siteUrl || "").includes("animeav1.com/media/"));
@@ -630,11 +631,19 @@ async function main() {
   }
 
   let map = {};
+  let savedPayload = {};
   // --force means re-resolve the selected rows, not discard every other row in
   // the resumable map. This makes a targeted identity repair safe to run.
   if (fs.existsSync(OUT)) {
-    try { map = JSON.parse(fs.readFileSync(OUT, "utf8")).entries || {}; } catch { map = {}; }
+    try { savedPayload = JSON.parse(fs.readFileSync(OUT, "utf8")); map = savedPayload.entries || {}; } catch { map = {}; }
   }
+  let savedEntries = JSON.stringify(map);
+  const saveProgress = () => {
+    const entries = JSON.stringify(map);
+    if (entries === savedEntries) return;
+    fs.writeFileSync(OUT, JSON.stringify({ ...savedPayload, generatedAt: new Date().toISOString(), count: Object.keys(map).length, entries: map }));
+    savedEntries = entries;
+  };
 
   // Relation-only seasons use stable `anilist-<id>` / `mal-<id>` rows. Include
   // them in the same resolver as source-backed catalog rows so a newly learned
@@ -676,7 +685,12 @@ async function main() {
         const result = await resolveOne(item, existing);
         // A retry updates artwork status without throwing away identity or
         // metadata established by the offline/Jikan passes.
-        map[item.id] = existing ? { ...existing, ...result } : result;
+        map[item.id] = {
+          ...existing,
+          ...result,
+          metadataCover: result.metadataCover || existing?.metadataCover || item.image || "",
+          ...(args.includes("--mark-checked") ? { artworkCheckedAt: new Date().toISOString() } : {})
+        };
         if (result.status === "ok") ok++;
         else if (result.status === "rejected") rejected++;
         else none++;
@@ -687,7 +701,7 @@ async function main() {
       done++;
       if (done % 25 === 0 || done === todo.length) {
         console.log(`  ${done}/${todo.length}  ok=${ok} rejected=${rejected} no-candidates=${none}`);
-        fs.writeFileSync(OUT, JSON.stringify({ generatedAt: new Date().toISOString(), count: Object.keys(map).length, entries: map }, null, 0));
+        saveProgress();
       }
       await sleep(120); // be gentle with the deployed API
     }
@@ -695,7 +709,7 @@ async function main() {
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
   if (budget.expired()) console.log("Time budget reached; saving progress for the next run.");
 
-  fs.writeFileSync(OUT, JSON.stringify({ generatedAt: new Date().toISOString(), count: Object.keys(map).length, entries: map }, null, 0));
+  saveProgress();
   const okTotal = Object.values(map).filter((v) => v.status === "ok").length;
   console.log(`\nwrote ${OUT}`);
   console.log(`resolved ${okTotal}/${Object.keys(map).length} with a TMDB backdrop`);

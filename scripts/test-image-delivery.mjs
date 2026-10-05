@@ -14,13 +14,16 @@ const slice = (startMarker, endMarker) => {
 const code = [
   slice("function isRetiredAdultArtwork(", "\nfunction imageDeliveryUrl"),
   slice("function imageDeliveryUrl(", "\n// One canonical backdrop"),
+  slice("function cinematicArtworkSourceUrl(", "\n// Builds a responsive srcset"),
   slice("function imageDeliverySrcSet(", "\nconst artworkImagePreloads"),
   slice("function artworkIntrinsicPixels(", "\nfunction artworkDimensionsAreUseful"),
   slice("function artworkDimensionsAreUseful(", "\nfunction "),
   slice("function artworkCanUseContainedPoster(", "\nfunction backdropPixelsLookUseful")
 ].join("\n");
 
-const ctx = vm.createContext({ URL, console, location: { protocol: "https:", origin: "https://zenkaitv.com", href: "https://zenkaitv.com/" } });
+const ctx = vm.createContext({ URL, console, CINEMATIC_BACKDROP_WIDTH: 2560, CINEMATIC_BACKDROP_QUALITY: 92,
+  HELL_MODE_WATCH_BACKDROP: "https://image.tmdb.org/t/p/original/curated.jpg",
+  location: { protocol: "https:", origin: "https://zenkaitv.com", href: "https://zenkaitv.com/" } });
 vm.runInContext(code, ctx, { filename: "client.js extract" });
 const imageDeliveryUrl = vm.runInContext("imageDeliveryUrl", ctx);
 const imageDeliverySrcSet = vm.runInContext("imageDeliverySrcSet", ctx);
@@ -28,6 +31,8 @@ const artworkIntrinsicPixels = vm.runInContext("artworkIntrinsicPixels", ctx);
 const artworkDimensionsAreUseful = vm.runInContext("artworkDimensionsAreUseful", ctx);
 const artworkCanUseContainedPoster = vm.runInContext("artworkCanUseContainedPoster", ctx);
 const isRetiredAdultArtwork = vm.runInContext("isRetiredAdultArtwork", ctx);
+const cinematicBackdropUrl = vm.runInContext("cinematicBackdropUrl", ctx);
+const cinematicArtworkSourceUrl = vm.runInContext("cinematicArtworkSourceUrl", ctx);
 
 const rows = [];
 const check = (name, got, want) => rows.push(
@@ -50,6 +55,17 @@ check("<=780 -> w780", imageDeliveryUrl(TMDB, 640, 90), "https://image.tmdb.org/
 check("already-sized input normalises", imageDeliveryUrl(TMDB780, 200, 90), "https://image.tmdb.org/t/p/w342/abc.jpg");
 check(">780 stays PROXIED (hero)", imageDeliveryUrl(TMDB, 2560, 92).startsWith("/api/image"), true);
 check("781 stays proxied", imageDeliveryUrl(TMDB, 781, 90).startsWith("/api/image"), true);
+check("Cinematic TMDB uses original pixels, not a resized w780 input",
+  new URL(cinematicBackdropUrl(TMDB780), ctx.location.origin).searchParams.get("src"), TMDB);
+check("All TMDB variants coalesce onto one cinematic request", cinematicBackdropUrl(TMDB780), cinematicBackdropUrl(TMDB));
+check("Alternative TMDB CDN also uses its original file",
+  cinematicArtworkSourceUrl("https://media.themoviedb.org/t/p/w500/abc.jpg"),
+  "https://media.themoviedb.org/t/p/original/abc.jpg");
+check("Unknown hosts retain their URL", cinematicArtworkSourceUrl("https://cdn.example/t/p/w780/abc.jpg"),
+  "https://cdn.example/t/p/w780/abc.jpg");
+check("Malformed TMDB paths are not rewritten", cinematicArtworkSourceUrl("https://image.tmdb.org/not/t/p/w500/abc.jpg"),
+  "https://image.tmdb.org/not/t/p/w500/abc.jpg");
+check("Local artwork remains local", cinematicArtworkSourceUrl("/hero.webp"), "/hero.webp");
 
 /* ---- regular image CDNs go direct only for normal card/thumbnail sizes ---- */
 const ANILIST = "https://s4.anilist.co/file/x.jpg";
@@ -114,6 +130,19 @@ check("malformed TMDB tiny poster still rejected",
   artworkDimensionsAreUseful(img(90, 135, "https://image.tmdb.org/t/p/wabc/a.jpg"), "poster"), false);
 check("responsive landscape source art remains a usable contained fallback",
   artworkCanUseContainedPoster(img(179, 119, "/api/image?src=x&w=280&q=90")), true);
+
+// Heroes have no srcset: judge real decoded pixels, never the requested ?w=.
+check("260px portrait never becomes a sharp hero",
+  artworkDimensionsAreUseful(img(260, 366, "/api/image?src=x&w=2560&q=92", false), "carousel"), false);
+check("Wide 1900x400 strip requires a contained fallback rather than hero cropping",
+  artworkDimensionsAreUseful(img(1900, 400, "/api/image?src=x&w=2560&q=92", false), "carousel"), false);
+check("Resized w780 is not HD", artworkDimensionsAreUseful(img(780, 439, "", false), "carousel"), false);
+check("Full HD landscape is sharp", artworkDimensionsAreUseful(img(1920, 1080, "", false), "carousel"), true);
+check("Native HD artwork is not blurred just because no 2K upload exists",
+  artworkDimensionsAreUseful(img(1596, 898, "", false), "carousel"), true);
+check("High-resolution portrait still requires containment", artworkDimensionsAreUseful(img(2000, 3000, "", false), "carousel"), false);
+ctx.CINEMATIC_BACKDROP_WIDTH = 1280;
+check("Mobile 1280x720 hero stays sharp", artworkDimensionsAreUseful(img(1280, 720, "", false), "carousel"), true);
 
 console.log(rows.join("\n"));
 const failed = rows.filter((r) => r.startsWith("FAIL")).length;

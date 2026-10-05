@@ -317,7 +317,9 @@ test("a decoded old hero cannot reveal or save over a new slide", async () => {
   const events = [];
   const c = vm.createContext({
     art: "https://cdn.example/slide-one.jpg", deliveredArt: "slide-one", show: { id: "one" }, hasLandscapeBanner: true,
-    carouselBackdropImage: { dataset: {}, naturalWidth: 1920, getAttribute: () => current, decode: () => new Promise(resolve => { finish = resolve; }) },
+    carouselBackdropImage: { dataset: {}, classList: { toggle: () => {} }, naturalWidth: 1920, getAttribute: () => current, decode: () => new Promise(resolve => { finish = resolve; }) },
+    artworkDimensionsAreUseful: () => true,
+    applyCarouselArtworkLayout: () => {},
     carouselStage: { classList: { remove: () => events.push("reveal") } },
     clearCarouselBlurPlaceholder: () => events.push("clear"),
     signalAppLoader: () => events.push("signal"), writeHeroMemo: () => events.push("save"), getShowTitle: () => "One"
@@ -560,16 +562,134 @@ test("release posters share the cached-image ready and fallback lifecycle", () =
   assert.match(css, /\.release-poster img\.img-ready\s*\{[^}]*opacity: 1/);
 });
 
-test("carousel loading conceals incomplete artwork and its selector", () => {
+test("carousel loading conceals incomplete artwork without hiding ready selectors", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
   assert.match(html, /class="carousel-wait" aria-hidden="true"/);
   assert.match(css, /\.carousel-wait\s*\{[^}]*box-sizing: border-box;/);
   assert.match(css, /\.carousel-stage:is\(\.is-loading, \.is-backdrop-loading\) \.carousel-wait\s*\{[^}]*visibility: visible;[^}]*opacity: 1;/);
-  assert.match(css, /\.carousel-stage\.is-backdrop-loading \.carousel-indicators\s*\{[^}]*visibility: hidden;[^}]*opacity: 0;/);
+  assert.doesNotMatch(css, /\.carousel-stage\.is-backdrop-loading \.carousel-indicators\s*\{[^}]*visibility: hidden;/);
+  assert.doesNotMatch(css, /animation:\s*carousel-dot-fade/);
   assert.match(css, /body\.reduce-motion \.carousel-wait-track\s*\{[^}]*animation: none !important;/);
   assert.match(css, /\.carousel-wait-mark\s*\{[^}]*display: none;/);
   assert.match(css, /\.carousel-wait-track\s*\{[^}]*position: absolute;[^}]*bottom: 0;[^}]*width: 100%;/);
+});
+
+function indicatorHydrationHarness() {
+  const pending = new Map();
+  const calls = [];
+  let renders = 0;
+  const c = vm.createContext({
+    _carouselIndicatorHydrationQueued: false,
+    _carouselIndicatorImagesReady: false,
+    _carouselIndicatorHydrationGeneration: 0,
+    state: { route: "home" },
+    carouselIndicatorArtwork: (show) => show.art,
+    preloadArtworkImage: (url, width, quality, priority) => {
+      calls.push({ url, width, quality, priority });
+      return new Promise((resolve) => pending.set(url, resolve));
+    },
+    renderCarousel: () => { renders += 1; }
+  });
+  vm.runInContext(section("function scheduleCarouselIndicatorHydration(", "function simpleCarouselText("), c);
+  return { c, pending, calls, renders: () => renders };
+}
+
+test("one slow thumbnail cannot delay ready carousel thumbnails", async () => {
+  const h = indicatorHydrationHarness();
+  h.c.scheduleCarouselIndicatorHydration([{ art: "ready.jpg" }, { art: "slow.jpg" }, { art: "ready.jpg" }]);
+  assert.equal(h.calls.length, 2, "identical artwork is deduplicated and starts synchronously");
+  h.c.scheduleCarouselIndicatorHydration([{ art: "ready.jpg" }]);
+  assert.equal(h.calls.length, 2, "rerender does not start another preload batch");
+  h.pending.get("ready.jpg")(true);
+  await Promise.resolve();
+  assert.equal(h.c._carouselIndicatorImagesReady, true);
+  assert.equal(h.renders(), 1);
+  h.pending.get("slow.jpg")(false);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(h.renders(), 1, "the remaining images do not trigger a render burst");
+  assert.ok(h.calls.every((call) => call.width === 180 && call.quality === 72 && !call.priority));
+});
+
+test("stale thumbnail batches cannot reveal a different catalog mode", async () => {
+  const h = indicatorHydrationHarness();
+  h.c.scheduleCarouselIndicatorHydration([{ art: "old.jpg" }]);
+  h.c._carouselIndicatorHydrationGeneration += 1;
+  h.c._carouselIndicatorHydrationQueued = false;
+  h.c.scheduleCarouselIndicatorHydration([{ art: "current.jpg" }]);
+  h.pending.get("old.jpg")(true);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(h.c._carouselIndicatorImagesReady, false);
+  assert.equal(h.c._carouselIndicatorHydrationQueued, true);
+  assert.equal(h.renders(), 0);
+  h.pending.get("current.jpg")(true);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(h.renders(), 1);
+});
+
+test("failed artwork still leaves carousel navigation available", async () => {
+  const h = indicatorHydrationHarness();
+  h.c.scheduleCarouselIndicatorHydration([{ art: "missing.jpg" }]);
+  h.pending.get("missing.jpg")(false);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(h.c._carouselIndicatorImagesReady, true);
+  assert.equal(h.renders(), 1);
+});
+
+test("the first validated detail background paints without an extra fade or image request", () => {
+  const art = "https://image.tmdb.org/t/p/original/neutral.jpg";
+  const classes = new Set(["is-blur-hold"]);
+  const painted = [];
+  const committed = [];
+  const c = vm.createContext({
+    isPosterFallback: () => false,
+    highResSources: new Set([art]),
+    wideSources: new Set([art]),
+    cinematicBackdropUrl: (url) => url,
+    backdrop: { dataset: { backdropKey: "current" }, classList: { contains: (name) => classes.has(name) } },
+    document: { body: { classList: { contains: () => false } } },
+    overlay: { hidden: false }, key: "current", adultShow: false, show: { _tmdbResolved: true },
+    Image: class { constructor() { throw new Error("first paint must not request a second image"); } },
+    setBackdropArt: (...args) => painted.push(args),
+    commitBackdropMeta: (url) => committed.push(url)
+  });
+  vm.runInContext(section("  const paint = (url) => {", "  let art = getWatchBackdropArtwork(show, season);") + "this.paint = paint;", c);
+  c.paint(art);
+  assert.equal(painted.length, 1);
+  assert.equal(committed[0], art);
+  assert.match(client, /const wantFade[^;]*&& canTransitionVisibleDetail/s, "existing visible season art still transitions safely");
+});
+
+test("TMDB artwork warming is prompt without preloading a temporary metadata fallback", async () => {
+  for (const matched of [true, false]) {
+    const show = { id: "neutral", title: "Neutral title", anilistId: 1 };
+    const warmed = [];
+    let anilistCalls = 0;
+    let tmdbCalls = 0;
+    let finishAniList;
+    const c = vm.createContext({
+      state: { shows: [show], addonSections: [] },
+      warmPrimaryPlaybackIntent: () => {},
+      getCarouselArtwork: (entry) => entry.tmdbBackdrop || entry.banner || "",
+      getWatchBackdropArtwork: () => "",
+      preloadCinematicBackdrop: (url) => warmed.push(url),
+      isAdultCatalogShow: () => false,
+      hydrateCanonicalAnimeMetadata: () => Promise.resolve(),
+      fetchAniListShowExtras: () => { anilistCalls += 1; show.banner = "https://example.invalid/neutral.jpg"; return new Promise((resolve) => { finishAniList = resolve; }); },
+      enrichTmdbImages: () => { tmdbCalls += 1; if (matched) show.tmdbBackdrop = "https://image.tmdb.org/t/p/original/neutral.jpg"; return Promise.resolve(); },
+      applyTmdbEpisodeMetadata: () => {}
+    });
+    vm.runInContext(section("function preloadOpenShow(", "// Open-show handling is DELEGATED"), c);
+    c.preloadOpenShow("neutral");
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(warmed.length, matched ? 1 : 0, "only a final TMDB match is warmed while metadata remains pending");
+    c.preloadOpenShow("neutral");
+    assert.equal(anilistCalls, 1);
+    assert.equal(tmdbCalls, 1);
+    finishAniList();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.ok(warmed.length > 0, "a settled no-match still warms the existing fallback");
+  }
 });
 
 test("the anime detail view has visible, reduced-motion-safe hydration feedback", () => {
@@ -705,13 +825,15 @@ function blurHarness() {
     carouselStage: { classList: { add: (n) => classes.add(n), remove: (n) => classes.delete(n), contains: (n) => classes.has(n) } },
     carouselBackdropBlur: { style: { backgroundImage: "" } },
     carouselBackdropImage: img,
+    URL,
     imageDeliveryUrl: (url, width, quality) => `/api/image?src=${encodeURIComponent(url)}&w=${width}&q=${quality}`,
     signalAppLoader: (name) => signals.push(name),
     Image: class { constructor() { previews.push(this); } }
   });
   const decl = client.match(/const CAROUSEL_BLUR_WIDTH = \d+;\s*const CAROUSEL_BLUR_QUALITY = \d+;\s*let _carouselBlurToken = 0;/);
   assert.ok(decl, "blur preview constants are declared together");
-  vm.runInContext(decl[0] + section("function carouselBlurSourceUrl(", "function renderCarousel()"), c);
+  vm.runInContext(decl[0] + section("function cinematicArtworkSourceUrl(", "function cinematicBackdropUrl(")
+    + section("function carouselBlurSourceUrl(", "function renderCarousel()"), c);
   return { c, clock, classes, previews, signals, img, blur: c.carouselBackdropBlur };
 }
 
@@ -757,6 +879,7 @@ test("artwork lookup never substitutes a different provider image before the fin
 test("regular carousel artwork waits for canonical TMDB resolution before using a fallback", () => {
   const c = vm.createContext({
     state: { catalogTier: "full" },
+    URL,
     isAdultCatalogShow: show => Boolean(show.adult),
     hqImage: value => value,
     isArtworkLowQuality: () => false,
@@ -764,7 +887,8 @@ test("regular carousel artwork waits for canonical TMDB resolution before using 
     stableArtworkCandidates: (_show, values) => values,
     carouselArtworkOrPoster: show => show.highQualityBackground || show.banner || show.image || ""
   });
-  vm.runInContext(section("function carouselResolvedBackdropArtwork(", "const CAROUSEL_PROVISIONAL_HOLD_MS"), c);
+  vm.runInContext(section("function cinematicArtworkSourceUrl(", "function cinematicBackdropUrl(")
+    + section("function carouselResolvedBackdropArtwork(", "const CAROUSEL_PROVISIONAL_HOLD_MS"), c);
 
   const sourceBanner = "https://source.example/soft-banner.jpg";
   const tmdbBackdrop = "https://image.tmdb.org/t/p/original/final.jpg";
@@ -957,10 +1081,43 @@ test("a restored hero stays blurred until its exact full image has decoded", () 
   const render = section("function renderCarousel()", "let _carouselDotsHtml");
   assert.match(client, /const HERO_MEMO_SCHEMA = 4;/);
   assert.match(memoRead, /typeof memo\.art !== "string"/);
-  assert.match(memoRead, /proxiedArt[\s\S]*?new URL\(proxiedArt\)\.href !== new URL\(memo\.art\)\.href/);
+  assert.match(memoRead, /proxiedArt[\s\S]*?new URL\(proxiedArt\)\.href !== new URL\(cinematicArtworkSourceUrl\(memo\.art\)\)\.href/);
   assert.match(restore, /carouselStage\.classList\.add\("is-backdrop-loading"\);[\s\S]*?carouselBackdropImage\.src = memo\.src;[\s\S]*?showCarouselBlurPlaceholder\(memo\.art, memo\.src\);/);
   assert.match(restore, /carouselBackdropImage\.decode\(\)\.then\(reveal\)\.catch\(reveal\)/);
   assert.match(restore, /classList\.remove\("is-backdrop-loading"\);[\s\S]*?clearCarouselBlurPlaceholder\(\);[\s\S]*?signalAppLoader\("hero"\);/);
   assert.match(render, /writeHeroMemo\(\{[\s\S]*?\bart,[\s\S]*?src: deliveredArt/);
   assert.doesNotMatch(restore, /if \(heroMemoActive\) signalAppLoader/);
+});
+
+test("new and restored heroes contain missing-HD fallbacks without permanent blur", () => {
+  const restore = section("(function restoreHeroBackdrop() {", "// The splash used to");
+  const render = section("function renderCarousel()", "let _carouselDotsHtml");
+  for (const path of [restore, render]) {
+    assert.match(path, /applyCarouselArtworkLayout\(carouselBackdropImage\);[\s\S]*?dataset\.decodedSrc[\s\S]*?classList\.remove\("is-backdrop-loading"\)/);
+  }
+  assert.match(styles, /\.carousel-backdrop-image\.is-contained-art\s*\{[^}]*object-fit: contain;/);
+  assert.doesNotMatch(styles, /\.carousel-backdrop-image\.is-soft-art\s*\{/);
+  const layout = section("function applyCarouselArtworkLayout(", "function renderCarousel()");
+  assert.match(layout, /classList\.toggle\("is-contained-art", !artworkDimensionsAreUseful\(img, "carousel"\)\)/);
+  assert.doesNotMatch(layout, /\bfetch\s*\(/);
+  assert.doesNotMatch(section("function cinematicArtworkSourceUrl(", "function cinematicBackdropUrl("), /\bfetch\s*\(/);
+});
+
+test("hero memo rejects old thumbnail inputs without disturbing valid originals", () => {
+  let value;
+  let clears = 0;
+  const c = vm.createContext({ URL, Date, HERO_MEMO_KEY: "hero", HERO_MEMO_SCHEMA: 4,
+    HERO_MEMO_TTL_MS: 10000, location: { origin: "https://zenkaitv.com" },
+    localStorage: { getItem: () => value, removeItem: () => { clears++; } } });
+  vm.runInContext(section("function clearHeroMemo()", "function writeHeroMemo(")
+    + section("function cinematicArtworkSourceUrl(", "function cinematicBackdropUrl("), c);
+  const art = "https://image.tmdb.org/t/p/original/final.jpg";
+  const memo = { schema: 4, ts: Date.now(), art, src: `/api/image?src=${encodeURIComponent(art)}&w=1920&q=92` };
+  value = JSON.stringify(memo);
+  assert.equal(c.readHeroMemo().art, art);
+  memo.art = art.replace("/original/", "/w780/");
+  memo.src = `/api/image?src=${encodeURIComponent(memo.art)}&w=1920&q=92`;
+  value = JSON.stringify(memo);
+  assert.equal(c.readHeroMemo(), null);
+  assert.equal(clears, 1);
 });

@@ -187,6 +187,7 @@ async function jikanMeta(malId) {
 
 const raw = JSON.parse(fs.readFileSync(MAP, "utf8"));
 const entries = raw.entries || {};
+const previousEntries = JSON.stringify(entries);
 const keys = Object.keys(entries);
 
 // One id can back several slugs (seasons of the same series share a match), so
@@ -297,8 +298,10 @@ if (leftover.length) {
 
 raw.entries = entries;
 if (budget.expired()) console.log("Time budget reached; saving metadata progress for the next run.");
-raw.metadataGeneratedAt = new Date().toISOString();
-fs.writeFileSync(MAP, JSON.stringify(raw, null, 2));
+if (JSON.stringify(entries) !== previousEntries) {
+  raw.metadataGeneratedAt = new Date().toISOString();
+  fs.writeFileSync(MAP, JSON.stringify(raw));
+}
 
 const withMeta = keys.filter((k) => entries[k]?.meta).length;
 console.log(`\nwrote ${MAP}`);

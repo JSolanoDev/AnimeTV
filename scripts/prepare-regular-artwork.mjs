@@ -94,7 +94,8 @@ export async function prepareRegularArtworkFiles({ root = process.cwd(), fetchIm
   const catalogPath = "scraper/anime_metadata.json";
   const artworkPath = "scraper/artwork-map.json";
   const read = async file => JSON.parse(await readFile(resolve(root, file), "utf8"));
-  const baseline = file => JSON.parse(execFileSync("git", ["show", `HEAD:${file}`], { cwd: root, encoding: "utf8" }));
+  const baseline = file => JSON.parse(execFileSync("git", ["show", `HEAD:${file}`],
+    { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }));
   const [catalog, artwork] = await Promise.all([read(catalogPath), read(artworkPath)]);
   const budget = createEnrichmentBudget(["--max-minutes", String(maxMinutes)], maxMinutes, { request: fetchImpl });
   const result = await prepareRegularArtwork({ catalog, artwork, previousCatalog: baseline(catalogPath),
@@ -112,7 +113,9 @@ export async function prepareRegularArtworkFiles({ root = process.cwd(), fetchIm
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  prepareRegularArtworkFiles().then(stats => console.log(JSON.stringify(stats))).catch(error => {
+  const index = process.argv.indexOf("--max-minutes");
+  const maxMinutes = index >= 0 ? Number(process.argv[index + 1]) || 10 : 10;
+  prepareRegularArtworkFiles({ maxMinutes }).then(stats => console.log(JSON.stringify(stats))).catch(error => {
     console.error(error.message);
     if (error.retryAfter) console.error(`Retry-After: ${error.retryAfter}; no immediate retry.`);
     process.exitCode = 1;

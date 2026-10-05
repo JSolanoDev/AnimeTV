@@ -452,7 +452,7 @@ function readHeroMemo() {
   if (typeof memo.art !== "string" || !/^https?:\/\//i.test(memo.art)) { clearHeroMemo(); return null; }
   try {
     const proxiedArt = new URL(memo.src, location.origin).searchParams.get("src");
-    if (!proxiedArt || new URL(proxiedArt).href !== new URL(memo.art).href) {
+    if (!proxiedArt || new URL(proxiedArt).href !== new URL(cinematicArtworkSourceUrl(memo.art)).href) {
       clearHeroMemo();
       return null;
     }
@@ -496,6 +496,7 @@ let _carouselMemoId = "";
     if (carouselBackdropImage.getAttribute("src") !== memo.src) return;
     const reveal = () => {
       if (carouselBackdropImage.getAttribute("src") !== memo.src || !carouselBackdropImage.naturalWidth) return;
+      applyCarouselArtworkLayout(carouselBackdropImage);
       carouselBackdropImage.dataset.decodedSrc = memo.src;
       carouselStage.classList.remove("is-backdrop-loading");
       clearCarouselBlurPlaceholder();
@@ -4079,11 +4080,25 @@ const CINEMATIC_BACKDROP_WIDTH = (() => {
 })();
 const CINEMATIC_BACKDROP_QUALITY = 92;
 
+function cinematicArtworkSourceUrl(url) {
+  const raw = String(url || "").trim();
+  try {
+    const parsed = new URL(raw);
+    if (["image.tmdb.org", "media.themoviedb.org"].includes(parsed.hostname.toLowerCase())
+      && /^\/t\/p\/(?:w\d{2,4}|original)\/.+/.test(parsed.pathname)) {
+      parsed.pathname = parsed.pathname.replace(/^(\/t\/p\/)(?:w\d{2,4}|original)\//, "$1original/");
+      return parsed.toString();
+    }
+  } catch { /* Local assets and unknown image hosts retain their existing URL. */ }
+  return raw;
+}
+
 function cinematicBackdropUrl(url) {
   if (url === HELL_MODE_WATCH_BACKDROP) {
     return url.replace("/original/", CINEMATIC_BACKDROP_WIDTH <= 1280 ? "/w1280/" : "/original/");
   }
-  return imageDeliveryUrl(url, CINEMATIC_BACKDROP_WIDTH, CINEMATIC_BACKDROP_QUALITY);
+  // Resizing a w780 input cannot restore the detail discarded by that CDN size.
+  return imageDeliveryUrl(cinematicArtworkSourceUrl(url), CINEMATIC_BACKDROP_WIDTH, CINEMATIC_BACKDROP_QUALITY);
 }
 
 // Builds a responsive srcset string so each device downloads an image sized for
@@ -4719,7 +4734,7 @@ function carouselResolvedBackdropArtwork(show = {}) {
   const canonical = pickImage((adult
     ? [show.adultCinematicBackdrop, show.tmdbBackdrop, show.highQualityBackground]
     : [show.tmdbBackdrop]
-  ).map((value) => hqImage(String(value || "").trim()))
+  ).map((value) => cinematicArtworkSourceUrl(hqImage(String(value || "").trim())))
     .filter((value) => value && !isArtworkLowQuality(value, "backdrop")));
   if (canonical) return canonical;
 
@@ -4733,7 +4748,7 @@ function carouselResolvedBackdropArtwork(show = {}) {
   ));
   if (!lookupSettled) return "";
   return pickImage(stableArtworkCandidates(show, [carouselArtworkOrPoster(show)]
-    .map((value) => hqImage(String(value || "").trim()))
+    .map((value) => cinematicArtworkSourceUrl(hqImage(String(value || "").trim())))
     .filter((value) => value && !isArtworkLowQuality(value, "backdrop")), "backdrop"));
 }
 
@@ -4768,7 +4783,7 @@ function carouselLineupIsProvisional() {
 // w342, so not even a function invocation.
 function carouselBlurSourceUrl(art) {
   const raw = String(art || "").trim();
-  return raw ? imageDeliveryUrl(raw, CAROUSEL_BLUR_WIDTH, CAROUSEL_BLUR_QUALITY) : "";
+  return raw ? imageDeliveryUrl(cinematicArtworkSourceUrl(raw), CAROUSEL_BLUR_WIDTH, CAROUSEL_BLUR_QUALITY) : "";
 }
 
 function clearCarouselBlurPlaceholder() {
@@ -4845,6 +4860,14 @@ function showCarouselBlurPlaceholder(art, deliveredArt) {
   preview.src = source;
 }
 
+function applyCarouselArtworkLayout(img) {
+  // Missing wide artwork must not turn a decoded poster into a permanent blur.
+  // Keep small/portrait/strip fallbacks within their native width instead.
+  img.classList.remove("is-soft-art");
+  img.classList.toggle("is-contained-art", !artworkDimensionsAreUseful(img, "carousel"));
+  img.style.setProperty("--carousel-native-width", `${img.naturalWidth}px`);
+}
+
 function renderCarousel() {
   // The hero mirrors the provider's newest release feed. It never pads with old
   // high-scoring catalog entries, so every slide represents a recent episode.
@@ -4875,7 +4898,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=952";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=956";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -5014,6 +5037,7 @@ function renderCarousel() {
         if (carouselBackdropImage.getAttribute("src") !== deliveredArt) return;
         const reveal = () => {
           if (carouselBackdropImage.getAttribute("src") !== deliveredArt || !carouselBackdropImage.naturalWidth) return;
+          applyCarouselArtworkLayout(carouselBackdropImage);
           carouselBackdropImage.dataset.decodedSrc = deliveredArt;
           carouselStage.classList.remove("is-backdrop-loading");
           clearCarouselBlurPlaceholder();
@@ -5157,9 +5181,7 @@ function warmCarouselIndicatorTarget(show, immediate = false) {
 function renderCarouselIndicators(items) {
   if (!carouselIndicators) return;
   if (!_carouselIndicatorImagesReady) {
-    // Do not expose eight large empty cards while their tiny images are pending.
-    // They were the dark, broken-looking strip in the loading screenshot and also
-    // added animated paint work across the full width of the hero.
+    // Hide the empty strip only until the first thumbnail has decoded.
     carouselIndicators.hidden = true;
     carouselIndicators.setAttribute("aria-busy", "true");
     if (carouselIndicators.childElementCount) carouselIndicators.innerHTML = "";
@@ -5172,7 +5194,7 @@ function renderCarouselIndicators(items) {
   carouselIndicators.setAttribute("aria-busy", "false");
   const dotsHtml = items.slice(0, 8).map((show, index) => `
     <button class="carousel-dot focusable" data-carousel-index="${index}" aria-label="Show ${escapeHtml(getShowTitle(show))}">
-      ${carouselIndicatorArtwork(show) ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(carouselIndicatorArtwork(show), 180, 72))}" alt="" width="180" height="101" loading="lazy" decoding="async" fetchpriority="low">` : "<span></span>"}
+      ${carouselIndicatorArtwork(show) ? `<img referrerpolicy="no-referrer" src="${escapeHtml(imageDeliveryUrl(carouselIndicatorArtwork(show), 180, 72))}" alt="" width="180" height="101" loading="eager" decoding="async" fetchpriority="low">` : "<span></span>"}
     </button>
   `).join("");
 
@@ -5209,40 +5231,20 @@ function scheduleCarouselIndicatorHydration(items = []) {
   if (_carouselIndicatorHydrationQueued || _carouselIndicatorImagesReady) return;
   _carouselIndicatorHydrationQueued = true;
   const generation = _carouselIndicatorHydrationGeneration;
-  let hydrationStarted = false;
-  const hydrate = async () => {
-    if (hydrationStarted || _carouselIndicatorImagesReady || generation !== _carouselIndicatorHydrationGeneration) return;
-    hydrationStarted = true;
-    const artwork = [...new Set(items.slice(0, 8).map((show) => carouselIndicatorArtwork(show)).filter(Boolean))];
-    // Start the same small URLs renderCarouselIndicators will use, but keep them
-    // off-screen until decoded. The reveal becomes one clean paint and no extra
-    // request is made because preloadArtworkImage shares the browser cache.
-    await Promise.allSettled(artwork.map((url) => preloadArtworkImage(url, 180, 72, false)));
-    if (generation !== _carouselIndicatorHydrationGeneration) return;
+  const reveal = () => {
+    if (generation !== _carouselIndicatorHydrationGeneration || _carouselIndicatorImagesReady) return;
     _carouselIndicatorImagesReady = true;
     _carouselIndicatorHydrationQueued = false;
     if (state.route === "home") renderCarousel();
   };
-  const afterFirstPaint = () => {
-    if ("requestIdleCallback" in window) {
-      window.requestIdleCallback(() => { void hydrate(); }, { timeout: 900 });
-    } else {
-      window.setTimeout(() => { void hydrate(); }, 300);
-    }
-  };
-  // Hydrate as soon as the page has finished loading (the hero/LCP image is
-  // already done by then, so this costs nothing on Lighthouse) instead of
-  // waiting for a user interaction or the old 45s fallback -- that made the
-  // carousel's mini thumbnails sit empty for up to 45 seconds on an idle page.
-  const revealOnInteraction = () => afterFirstPaint();
-  const events = ["pointerdown", "keydown", "wheel", "touchstart"];
-  events.forEach((event) => window.addEventListener(event, revealOnInteraction, { capture: true, once: true, passive: true }));
-  if (document.readyState === "complete") {
-    afterFirstPaint();
-  } else {
-    window.addEventListener("load", afterFirstPaint, { once: true });
-    window.setTimeout(afterFirstPaint, 6000); // safety net if `load` never fires
-  }
+  const artwork = [...new Set(items.slice(0, 8).map((show) => carouselIndicatorArtwork(show)).filter(Boolean))];
+  // Start the same eight small URLs immediately. One slow image must not hide
+  // every decoded thumbnail; the shared preload cache prevents duplicate loads.
+  void Promise.allSettled(artwork.map((url) =>
+    preloadArtworkImage(url, 180, 72, false).then((loaded) => {
+      if (loaded) reveal();
+    })
+  )).then(reveal);
 }
 
 function simpleCarouselText(show) {
@@ -5330,6 +5332,10 @@ function artworkDimensionsAreUseful(img, role) {
   if (role === "episode") return width >= 240 && height >= 120 && ratio >= 1.22 && ratio <= 2.5;
   if (role === "banner") return width >= 1200 && height >= 320 && ratio >= 2.4 && ratio <= 5.2;
   if (role === "backdrop") return width >= 960 && height >= 480 && ratio >= 1.35 && ratio <= 2.6;
+  if (role === "carousel") {
+    const minimumWidth = Math.min(1280, CINEMATIC_BACKDROP_WIDTH);
+    return width >= minimumWidth && height >= minimumWidth * 9 / 16 && ratio >= 1.35 && ratio <= 2.6;
+  }
   if (role === "adult-backdrop") return width >= 560 && height >= 300 && ratio >= 1.25 && ratio <= 3.2;
   return true;
 }
@@ -11764,13 +11770,12 @@ function applyWatchBackdrop(show, season) {
 
     const prevUrl = backdrop.dataset.backdropUrl || "";
     const prevHadArt = backdrop.classList.contains("has-art");
-    const fromBlurHold = backdrop.classList.contains("is-blur-hold");
     // While the detail view is already open, keep the old season art visible until
     // the incoming image has decoded. This removes the blank/blurred gap on season
     // changes while preserving an immediate first paint when opening from home.
     const canTransitionVisibleDetail = detailVisible && prevHadArt && prevUrl && prevUrl !== url;
     const wantFade = Boolean(url) && !posterFit && typeof Image !== "undefined" && !reduceMotion
-      && (fromBlurHold || (canTransitionVisibleDetail && (sameTarget || backdrop.dataset.backdropKey !== key)));
+      && canTransitionVisibleDetail && (sameTarget || backdrop.dataset.backdropKey !== key);
 
     if (!wantFade) {
       setBackdropArt(url, optimized, posterFit);
@@ -21906,7 +21911,12 @@ function preloadOpenShow(id, target = {}) {
     Promise.resolve(hydrateCanonicalAnimeMetadata(show))
       .then(() => Promise.allSettled([
         fetchAniListShowExtras(show),
-        enrichTmdbImages(show)
+        Promise.resolve(enrichTmdbImages(show)).then(() => {
+          applyTmdbEpisodeMetadata(show);
+          // Warm a final TMDB match now, not temporary fallback art while the
+          // other metadata request is still pending.
+          if (show.tmdbBackdrop) preloadArtwork();
+        })
       ]))
       .then(() => {
         applyTmdbEpisodeMetadata(show);
@@ -23586,7 +23596,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=952");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=956");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

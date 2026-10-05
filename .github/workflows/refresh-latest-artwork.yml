@@ -1,0 +1,49 @@
+name: Refresh Latest Release Artwork
+
+on:
+  schedule:
+    - cron: '37 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Serialize with the daily catalog job so static artwork is never published
+# over a simultaneous catalog update.
+concurrency:
+  group: scrape-catalog
+  cancel-in-progress: false
+
+jobs:
+  artwork:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Test targeted refresh and publication safeguards
+        run: node --test scripts/test-latest-artwork-refresh.mjs scripts/test-regular-artwork.mjs
+      - name: Prepare missing recent artwork and descriptions
+        run: node scripts/refresh-latest-artwork.mjs
+        timeout-minutes: 16
+      - name: Verify artwork and episode identities
+        run: node --test scripts/test-new-release-artwork.mjs
+      - name: Publish only validated asset changes
+        id: commit-catalog
+        env:
+          CATALOG_UPDATE_SCOPE: regular
+        run: bash scripts/commit-catalog-update.sh
+      - name: Trigger configured Vercel deploy hook
+        if: steps.commit-catalog.outputs.changes_detected == 'true'
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -n "$VERCEL_DEPLOY_HOOK_URL" ]; then
+            curl --max-time 30 -fsS -X POST "$VERCEL_DEPLOY_HOOK_URL"
+          else
+            echo "Using the existing Vercel Git integration."
+          fi

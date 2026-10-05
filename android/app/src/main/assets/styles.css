@@ -7084,6 +7084,15 @@ body.reduce-motion .install-recommendation {
 }
 .carousel-stage.is-backdrop-loading .carousel-backdrop-image { opacity: 0; }
 
+/* The loading preview is blurred, never the finished image. Missing-HD art
+   stays sharp and contained rather than magnifying a small poster/strip. */
+.carousel-backdrop-image.is-contained-art {
+  left: auto;
+  width: min(100%, var(--carousel-native-width, 100%));
+  object-fit: contain;
+  object-position: right center;
+}
+
 /* Conceal the brief decode handoff behind the same neutral hero surface. A
    single edge-to-edge rail communicates progress without changing the carousel
    layout or introducing a second card/skeleton design. */
@@ -7124,12 +7133,6 @@ body.reduce-motion .install-recommendation {
     linear-gradient(90deg, transparent, #8a5cff 44%, #30cde8 56%, transparent) 0 0 / 28% 100% no-repeat,
     rgba(255, 255, 255, 0.055);
   animation: calm-loader-track 1.15s cubic-bezier(0.65, 0, 0.35, 1) infinite;
-}
-
-.carousel-stage.is-backdrop-loading .carousel-indicators {
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
 }
 
 /* A blurred PREVIEW of the slide while its full-resolution backdrop loads - the
@@ -7490,25 +7493,8 @@ body.reduce-motion .install-recommendation {
   animation: skeleton-sheen 1.35s ease-in-out infinite;
 }
 
-/* Fade the real artwork in so it never pops in hard. */
-.carousel-dot img {
-  animation: carousel-dot-fade 320ms ease both;
-}
-
-@keyframes carousel-dot-fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .carousel-dot span::after {
-    animation: none;
-  }
-  .carousel-dot img {
     animation: none;
   }
 }

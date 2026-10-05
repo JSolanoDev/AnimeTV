@@ -101,7 +101,8 @@ check("single item survives", sortCarouselCurrency([A], NOW, () => null).map((s)
   check("empty indicator cards stay hidden until thumbnails are ready", /carouselIndicators\.hidden = true/.test(indicators), true);
   check("indicator cards preload stable poster artwork without changing their layout", /carouselIndicatorArtwork\(show\)/.test(indicators), true);
   const hydration = between("function scheduleCarouselIndicatorHydration(", "function simpleCarouselText(");
-  check("indicator artwork is preloaded before the selector is revealed", /Promise\.allSettled\([\s\S]*preloadArtworkImage/.test(hydration), true);
+  check("indicator artwork starts immediately and reveals on the first decoded image", /Promise\.allSettled\([\s\S]*preloadArtworkImage[\s\S]*if \(loaded\) reveal\(\)/.test(hydration), true);
+  check("indicator loading never waits for page load, idle time or interaction", /requestIdleCallback|setTimeout|addEventListener/.test(hydration), false);
   check("the hero never paints its 4K artwork onto the loading layer", /carouselBackdrop\.style\.backgroundImage = `url/.test(render), false);
   check("the high-resolution lookup keeps the clean wait surface visible", /if \(shouldStartResolution\) \{[\s\S]*carouselStage\.classList\.add\("is-backdrop-loading"\)/.test(render), true);
   check("a failed high-resolution lookup repaints the source-art fallback", /\.then\(repaintResolvedArtwork, repaintResolvedArtwork\)/.test(render), true);
