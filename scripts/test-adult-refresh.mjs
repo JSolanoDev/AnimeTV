@@ -6,8 +6,12 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { runInNewContext } from "node:vm";
 import test from "node:test";
-import { ADULT_SNAPSHOT_FILES, refreshAdultCatalog } from "./refresh-adult-catalog.mjs";
+import { ADULT_SNAPSHOT_FILES, refreshAdultCatalog as refreshCatalogTransaction } from "./refresh-adult-catalog.mjs";
 import { AdultUpstreamUnavailableError, createAdultFetcher } from "./lib/adult-upstream.mjs";
+import { prepareAdultArtwork } from "./prepare-adult-artwork.mjs";
+
+// Transaction-only fixtures deliberately omit artwork; availability has separate fixtures below.
+const refreshAdultCatalog = options => refreshCatalogTransaction({ prepareArtwork: async () => null, ...options });
 
 const blocked = () => new AdultUpstreamUnavailableError("Adult provider HTTP 403", { status: 403 });
 async function fixture(t, version = "saved") {
@@ -275,4 +279,187 @@ test("the actual catalog builder returns the outage exit code after a single 403
   assert.match(child.stderr, /HTTP 403/);
   assert.equal((await readFile(join(root, "requests.log"), "utf8")).trim(), "request");
   assert.deepEqual(await snapshot(root), before);
+});
+
+const ART_POSTER = "https://static.underhentai.net/assets/neutral-poster.jpg";
+const ART_BACKGROUND = "https://static.underhentai.net/assets/neutral-background.jpg";
+function artworkRow(slug = "neutral-series", poster = ART_POSTER, background = ART_BACKGROUND) {
+  return { slug, title: "Neutral series", episodeCount: 1, screenshots: [background],
+    mainWallpaper: poster, image: poster, poster, cover: poster, thumbnail: poster, coverImage: poster,
+    highQualityBackground: background, underHentaiBackdrop: background, adultBackground: background,
+    backdrop: background, banner: background,
+    images: { poster, cover: poster, thumbnail: poster, banner: background, backdrop: background } };
+}
+async function writeArtworkFixture(root, rows = [artworkRow()], portraitItems = {}) {
+  for (const file of ADULT_SNAPSHOT_FILES) {
+    const payload = file.endsWith("adult_portrait_map.json") ? { version: 2, total: Object.keys(portraitItems).length, items: portraitItems }
+      : file.endsWith("underhentai_releases.json") ? { years: {} } : { items: rows };
+    await writeFile(join(root, file), JSON.stringify(payload));
+  }
+}
+async function baselineArtwork(root) {
+  return new Map(await Promise.all(ADULT_SNAPSHOT_FILES.map(async file => [file, await readFile(join(root, file))])));
+}
+const imageResponse = () => new Response(null, { headers: { "Content-Type": "image/jpeg", "Content-Length": "4096" } });
+
+test("new titles have ready thumbnail/background fields and deduplicated opaque HEAD checks", async t => {
+  const root = await fixture(t);
+  await writeArtworkFixture(root, [artworkRow(), artworkRow("neutral-second")]);
+  const calls = [];
+  const result = await prepareAdultArtwork({ root, intervalMs: 0, fetchImpl: async (url, options) => {
+    calls.push({ url, method: options.method });
+    return imageResponse();
+  } });
+  assert.equal(result.checkedUrls, 2);
+  assert.deepEqual(calls, [{ url: ART_POSTER, method: "HEAD" }, { url: ART_BACKGROUND, method: "HEAD" }]);
+  const catalog = JSON.parse(await readFile(join(root, ADULT_SNAPSHOT_FILES[0])));
+  assert.equal(catalog.items[0].thumbnail, ART_POSTER);
+  assert.equal(catalog.items[0].highQualityBackground, ART_BACKGROUND);
+});
+
+test("unchanged published artwork creates no additional upstream or Vercel requests", async t => {
+  const root = await fixture(t);
+  await writeArtworkFixture(root);
+  const before = await snapshot(root);
+  const baseline = await baselineArtwork(root);
+  const result = await prepareAdultArtwork({ root, baseline, fetchImpl: async () => { throw new Error("Unexpected request"); } });
+  assert.equal(result.checkedUrls, 0);
+  assert.equal(result.repairedTitles, 0);
+  assert.deepEqual(await snapshot(root), before);
+});
+
+test("dead or HTML poster URLs use the same title's available artwork before publication", async t => {
+  for (const status of [404, 200]) {
+    const root = await fixture(t);
+    const row = artworkRow();
+    const fallback = "https://static.underhentai.net/assets/neutral-fallback.jpg";
+    row.screenshots = [fallback];
+    await writeArtworkFixture(root, [row]);
+    const result = await prepareAdultArtwork({ root, intervalMs: 0, fetchImpl: async url => url === ART_POSTER
+      ? new Response(null, { status, headers: { "Content-Type": "text/html" } }) : imageResponse() });
+    assert.equal(result.rejectedUrls, 1);
+    assert.equal(result.repairedTitles, 1);
+    for (const file of ADULT_SNAPSHOT_FILES.filter(path => /underhentai_(?:catalog|details)\.json$/.test(path))) {
+      const body = JSON.parse(await readFile(join(root, file)));
+      assert.equal(body.items[0].thumbnail, fallback);
+      assert.equal(body.items[0].images.poster, fallback);
+      assert.equal(body.items[0].highQualityBackground, ART_BACKGROUND);
+    }
+  }
+});
+
+test("an unsupported HEAD uses one header-only range GET, without downloading the image", async t => {
+  const root = await fixture(t);
+  await writeArtworkFixture(root, [artworkRow("neutral-series", ART_POSTER, ART_POSTER)]);
+  const methods = [];
+  const result = await prepareAdultArtwork({ root, intervalMs: 0, fetchImpl: async (_url, options) => {
+    methods.push(options.method);
+    if (options.method === "HEAD") return new Response(null, { status: 405 });
+    assert.equal(options.headers.Range, "bytes=0-0");
+    return imageResponse();
+  } });
+  assert.equal(result.checkedUrls, 1);
+  assert.deepEqual(methods, ["HEAD", "GET"]);
+});
+
+test("unavailable replacement artwork keeps the same title's previously published artwork", async t => {
+  const root = await fixture(t);
+  await writeArtworkFixture(root);
+  const baseline = await baselineArtwork(root);
+  await writeArtworkFixture(root, [artworkRow("neutral-series",
+    "https://static.underhentai.net/assets/replacement-poster.jpg",
+    "https://static.underhentai.net/assets/replacement-background.jpg")]);
+  const calls = [];
+  const result = await prepareAdultArtwork({ root, baseline, intervalMs: 0, fetchImpl: async url => {
+    calls.push(url);
+    return new Response(null, { status: 404 });
+  } });
+  assert.equal(result.checkedUrls, 2);
+  assert.equal(result.rejectedUrls, 2);
+  assert.ok(!calls.includes(ART_POSTER));
+  assert.ok(!calls.includes(ART_BACKGROUND));
+  const catalog = JSON.parse(await readFile(join(root, ADULT_SNAPSHOT_FILES[0])));
+  assert.equal(catalog.items[0].thumbnail, ART_POSTER);
+  assert.equal(catalog.items[0].highQualityBackground, ART_BACKGROUND);
+});
+
+test("a new title without available artwork cannot publish partial catalog changes", async t => {
+  const root = await fixture(t);
+  await writeArtworkFixture(root);
+  const before = await snapshot(root);
+  await assert.rejects(prepareAdultArtwork({ root, intervalMs: 0,
+    fetchImpl: async () => new Response(null, { status: 404 }) }), /refusing to publish/);
+  assert.deepEqual(await snapshot(root), before);
+});
+
+test("broken new portrait mappings fall back to the prepared title artwork", async t => {
+  const root = await fixture(t);
+  const portrait = "https://lain.bgm.tv/pic/cover/l/neutral.jpg";
+  await writeArtworkFixture(root, [artworkRow()], { "neutral-series": { url: portrait, source: "neutral" } });
+  await prepareAdultArtwork({ root, intervalMs: 0, fetchImpl: async url => url === portrait
+    ? new Response(null, { status: 404 }) : imageResponse() });
+  for (const file of ADULT_SNAPSHOT_FILES.filter(path => path.endsWith("adult_portrait_map.json"))) {
+    const body = JSON.parse(await readFile(join(root, file)));
+    assert.equal(body.items["neutral-series"], undefined);
+    assert.equal(body.total, 0);
+  }
+});
+
+test("artwork 403/429/5xx and timeouts stop without retrying or writing partial assets", async t => {
+  for (const status of [403, 429, 503, "timeout"]) {
+    const root = await fixture(t);
+    await writeArtworkFixture(root);
+    const before = await snapshot(root);
+    let requests = 0;
+    await assert.rejects(prepareAdultArtwork({ root, intervalMs: 0, timeoutMs: 5,
+      fetchImpl: async (_url, options) => {
+        requests++;
+        if (status === "timeout") return new Promise((_, reject) => options.signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError"))));
+        return new Response(null, { status, headers: { "Retry-After": "120" } });
+      } }), error => error.code === "ADULT_UPSTREAM_UNAVAILABLE" && (status === "timeout" || error.retryAfter === "120"));
+    assert.equal(requests, 1);
+    assert.deepEqual(await snapshot(root), before);
+  }
+});
+
+test("unsafe artwork redirects never reach a private or unapproved host", async t => {
+  const root = await fixture(t);
+  await writeArtworkFixture(root);
+  let requests = 0;
+  await assert.rejects(prepareAdultArtwork({ root, intervalMs: 0, fetchImpl: async () => {
+    requests++;
+    return new Response(null, { status: 302, headers: { Location: "https://127.0.0.1/private.jpg" } });
+  } }), /refusing to publish/);
+  assert.equal(requests, 2, "only the two original public asset URLs may be requested");
+});
+
+test("the real refresh transaction rolls back an artwork outage before the release builder", async t => {
+  const root = await fixture(t);
+  await writeArtworkFixture(root);
+  const before = await snapshot(root);
+  const calls = [];
+  const result = await refreshCatalogTransaction({ root,
+    run: async script => {
+      calls.push(script);
+      if (script === "build-underhentai-details.mjs") {
+        await writeArtworkFixture(root, [artworkRow("neutral-new", "https://static.underhentai.net/assets/new.jpg")]);
+      }
+    },
+    prepareArtwork: options => prepareAdultArtwork({ ...options, intervalMs: 0,
+      fetchImpl: async () => new Response(null, { status: 403 }) }) });
+  assert.equal(result.status, "stale");
+  assert.equal(result.changesDetected, false);
+  assert.deepEqual(await snapshot(root), before);
+  assert.ok(!calls.includes("build-underhentai-releases.mjs"));
+});
+
+test("server and client preserve the prepared high-quality background over gallery fallbacks", async () => {
+  const server = await readFile(new URL("../animetv-server.js", import.meta.url), "utf8");
+  const client = await readFile(new URL("../client.js", import.meta.url), "utf8");
+  const serverContext = { URL, UNDERHENTAI_BASE: "https://www.underhentai.net", decodeUnderHentaiImage: value => value };
+  runInNewContext(server.slice(server.indexOf("function isUnderHentaiPlaceholderArtwork("), server.indexOf("function isBlockedPlaybackUrl(")), serverContext);
+  assert.equal(serverContext.getUnderHentaiArtwork({ highQualityBackground: ART_BACKGROUND, screenshots: [ART_POSTER] }).backgroundArtwork, ART_BACKGROUND);
+  const clientContext = { isAdultCatalogShow: () => true, hqImage: value => value };
+  runInNewContext(client.slice(client.indexOf("function underHentaiBackdropCandidates("), client.indexOf("const HELL_MODE_WATCH_BACKDROP")), clientContext);
+  assert.equal(clientContext.underHentaiBackdropCandidates({ highQualityBackground: ART_BACKGROUND, screenshots: [ART_POSTER] }).find(Boolean), ART_BACKGROUND);
 });

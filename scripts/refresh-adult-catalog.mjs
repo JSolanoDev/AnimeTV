@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
+import { prepareAdultArtwork } from "./prepare-adult-artwork.mjs";
 
 const NAMES = ["underhentai_catalog.json", "adult_portrait_map.json", "underhentai_details.json", "underhentai_releases.json"];
 export const ADULT_SNAPSHOT_FILES = NAMES.flatMap((name) => [
@@ -61,8 +62,10 @@ function comparableSnapshot(body) {
   return payload;
 }
 
-export async function refreshAdultCatalog({ root = process.cwd(), run = execute, report = "artifacts/adult-refresh-report.json" } = {}) {
+export async function refreshAdultCatalog({ root = process.cwd(), run = execute,
+  prepareArtwork = prepareAdultArtwork, report = "artifacts/adult-refresh-report.json" } = {}) {
   const baseline = await readSnapshot(root);
+  let artwork = null;
   const hasBaseline = [...baseline.values()].some((body) => body !== null);
   const validate = async () => {
     checkSnapshot(await readSnapshot(root));
@@ -78,7 +81,7 @@ export async function refreshAdultCatalog({ root = process.cwd(), run = execute,
       catalogGeneratedAt: generatedAt,
       catalogAgeHours: Number.isFinite(generatedMs) ? Math.max(0, Math.round((Date.now() - generatedMs) / 3600000)) : null,
       titleCount: Array.isArray(catalog.items) ? catalog.items.length : 0,
-      retainedSnapshot: status !== "fresh", changesDetected: status === "fresh", webAndAndroidMatch: true };
+      retainedSnapshot: status !== "fresh", changesDetected: status === "fresh", webAndAndroidMatch: true, artwork };
     await mkdir(dirname(path), { recursive: true });
     await writeFile(path, `${JSON.stringify(result, null, 2)}\n`);
     return result;
@@ -86,7 +89,10 @@ export async function refreshAdultCatalog({ root = process.cwd(), run = execute,
   // Only a complete, already-validated snapshot may be served during an outage.
   if (hasBaseline) await validate();
   try {
-    for (const script of BUILDERS) await run(script, root);
+    for (const script of BUILDERS) {
+      await run(script, root);
+      if (script === "build-underhentai-details.mjs") artwork = await prepareArtwork({ root, baseline });
+    }
     await validate();
     const candidate = await readSnapshot(root);
     const unchanged = hasBaseline && ADULT_SNAPSHOT_FILES.every((file) =>

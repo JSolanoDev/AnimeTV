@@ -182,7 +182,15 @@ check("Catalog merges are uncapped by default", /function mergeShows\(items, lim
 console.log("\n# Adult cinematic artwork resolution");
 check("Adult AniList lookup is explicitly isolated", /api\/anilist\/search\?q=.*&adult=1/.test(clientSource));
 check("Adult TMDB lookup requests original backdrops", /image\.tmdb\.org\/t\/p\/original/.test(clientSource));
-check("Adult cinematic art outranks UnderHentai screenshots", /return \[\s*show\.adultCinematicBackdrop,\s*\.\.\.screenshots/.test(clientSource));
+const adultBackdropContext = { isAdultCatalogShow: () => true, hqImage: value => value };
+runInNewContext(clientSource.slice(clientSource.indexOf("function underHentaiBackdropCandidates("),
+  clientSource.indexOf("const HELL_MODE_WATCH_BACKDROP")), adultBackdropContext);
+check("Adult cinematic art outranks UnderHentai screenshots",
+  adultBackdropContext.underHentaiBackdropCandidates({ adultCinematicBackdrop: "cinematic.jpg",
+    highQualityBackground: "prepared.jpg", screenshots: ["gallery.jpg"] }).find(Boolean) === "cinematic.jpg");
+check("Prepared title artwork outranks gallery fallbacks",
+  adultBackdropContext.underHentaiBackdropCandidates({ highQualityBackground: "prepared.jpg",
+    screenshots: ["gallery.jpg"] }).find(Boolean) === "prepared.jpg");
 check("Adult hover preload avoids regular anime enrichment", /if \(isAdultCatalogShow\(show\)\)[\s\S]{0,320}hydrateAdultCinematicArtwork\(show\)[\s\S]{0,120}return;/.test(clientSource));
 check("AniList proxy accepts an adult-only query variable", /media\(search:\$search,type:ANIME,sort:SEARCH_MATCH,isAdult:\$isAdult\)/.test(serverSource));
 check("TMDB adult and safe searches use separate cache entries", /\$\{includeAdult \? "adult" : "safe"\}/.test(serverSource));

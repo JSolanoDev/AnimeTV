@@ -21,6 +21,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createEnrichmentBudget } from "./lib/enrichment-budget.mjs";
+import { readPublishedArtworkIds, regularArtworkPriority } from "./lib/regular-artwork-priority.mjs";
 
 const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 const SRC = path.join(root, "scraper", "anime_metadata.json");
@@ -659,8 +660,8 @@ async function main() {
   // Identity corrections must be rebuilt before ordinary rejected artwork
   // retries. This also makes a bounded nightly/manual run repair stale seasons
   // immediately instead of spending its whole budget on older misses first.
-  const priority = (item) => map[item.id]?.status === "identity-repaired" ? 2
-    : (!map[item.id]?.status ? 1 : 0);
+  const publishedIds = readPublishedArtworkIds(root);
+  const priority = (item) => regularArtworkPriority(item, map, publishedIds);
   todo.sort((a, b) => priority(b) - priority(a));
   if (LIMIT) todo = todo.slice(0, LIMIT);
   console.log(`${items.length} scraped titles, ${items.length - todo.length} already resolved, ${todo.length} to do`);

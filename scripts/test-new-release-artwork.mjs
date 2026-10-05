@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { regularArtworkPriority } from "./lib/regular-artwork-priority.mjs";
 
 const require = createRequire(import.meta.url);
 const server = require("../animetv-server.js");
@@ -129,5 +130,9 @@ test("offline-only metadata is topped up without discarding saved data", () => {
   assert.match(code, /entries\[key\]\.meta = \{ \.\.\.saved/);
   assert.match(code, /entries\[key\]\.meta \|\|= null/);
   const art = read("scripts/build-artwork-map.mjs");
-  assert.match(art, /!map\[item\.id\]\?\.status \? 1 : 0/);
+  assert.match(art, /regularArtworkPriority\(item, map, publishedIds\)/);
+  const entries = { fresh: { status: "offline-db" }, older: { status: "rejected" } };
+  const published = new Set(["older"]);
+  assert.ok(regularArtworkPriority({ id: "fresh" }, entries, published)
+    > regularArtworkPriority({ id: "older" }, entries, published));
 });

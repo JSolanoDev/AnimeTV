@@ -11,8 +11,10 @@ on:
       - '.github/workflows/refresh-adult-catalog.yml'
       - 'scripts/refresh-adult-catalog.mjs'
       - 'scripts/check-adult-refresh-status.mjs'
+      - 'scripts/prepare-adult-artwork.mjs'
       - 'scripts/commit-catalog-update.sh'
       - 'scripts/lib/adult-upstream.mjs'
+      - 'scripts/lib/artwork-availability.mjs'
       - 'scripts/build-underhentai-*.mjs'
       - 'scripts/build-adult-portrait-map.mjs'
 

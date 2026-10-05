@@ -81,3 +81,65 @@ an image-regression-tested patch upgrade should be handled separately.
 The already-deployed Sharp patch is synchronized with its matching lockfile only
 under the user's explicit one-time approval; no other dependency upgrade is needed
 for this workflow.
+
+## Artwork Publication Gate
+
+The adult updater prepares title thumbnails and backgrounds after building the
+detail snapshot, before building releases or publishing. New or changed artwork
+URLs receive deduplicated, paced, deadline-bounded header checks against the
+existing permitted image hosts. Unsupported HEAD requests get one header-only
+range GET; redirects cannot leave the host allowlist. Image media is not inspected.
+
+Unavailable artwork uses another candidate or the same title's previously
+published artwork. An incomplete new title cannot publish. A provider block,
+rate limit, server error, or timeout restores the complete saved snapshot and
+does not retry immediately. Invalid new portrait mappings fall back to prepared
+title artwork. Explicit prepared backgrounds take priority over gallery images
+in both the server and client, retaining all existing fallback candidates.
+
+Previously published, unchanged artwork URLs are reused without additional
+checks; they are not certified live by this gate. Header checks verify image
+availability and media type, not resolution or visual identity. Checks run in
+the updater, not in per-visitor Vercel Functions. The refresh report records
+checked URLs, rejected URLs, and repaired title counts. Publishing remains daily;
+it is not an instant provider feed, and the existing cloud HTTP 403 restriction
+still needs provider-approved access before new imports can succeed.
+
+Neutral fixture tests cover deduplication, unchanged snapshots, dead/HTML images,
+prior same-title fallbacks, unavailable new titles, unsupported HEAD, portrait
+fallbacks, blocked/rate-limited/timed-out providers, safe redirects, transaction
+rollback, and prepared-background selection.
+
+## Regular Artwork Readiness
+
+The regular daily workflow now requires `prepare-regular-artwork.mjs` after
+related-season artwork enrichment and before Android synchronization, integrity
+validation, homepage bootstrap generation, and publication. It checks new or
+changed poster/background and static episode-thumbnail fallback URLs directly
+against the existing image CDNs, with deduplication, pacing, six-second request
+deadlines, a 500-URL ceiling, and a ten-minute total budget. No application API
+or per-visitor Vercel Function is used by these availability checks.
+
+Unchanged published URLs are reused, not re-certified live. Failed replacements
+can retain prior artwork for the same identity; identity corrections cannot
+borrow the old identity's imagery. Exact source covers remain the fallback when
+metadata providers lack artwork. A poster fallback is never labeled as a genuine
+TMDB widescreen backdrop. Optional static episode-thumbnail fallbacks are checked
+without inventing missing episode stills. Header checks cannot prove resolution
+or visual correctness, and a provider can still remove an image after publication.
+
+All candidates are prepared before files are written. A blocked, rate-limited,
+timed-out, empty, unsafe, or incomplete candidate stops publication. No immediate
+retry, security bypass, episode-list change, source change, or metadata lookup is
+added. Unchanged catalog and map payloads remain byte-identical. Successful map
+changes are mirrored to Android, with counts saved in
+`artifacts/regular-artwork-report.json`.
+
+Artwork enrichment also recognizes identities absent from the last published
+snapshot as new, even when the offline identity resolver has already seeded their
+records. These get priority over old rejected-artwork retries within the same
+existing request budget; explicit identity repairs retain highest priority.
+
+This prepares imagery as part of the daily catalog publication, not an instant
+provider notification feed. Live releases arriving between daily publications
+retain their existing exact-source artwork and cached metadata fallbacks.

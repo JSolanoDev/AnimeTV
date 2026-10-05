@@ -87,7 +87,7 @@ jobs:
         run: node --test scripts/test-animeav1-inventory.mjs
 
       - name: Test new-release artwork and metadata batching
-        run: node --test scripts/test-new-release-artwork.mjs
+        run: node --test scripts/test-new-release-artwork.mjs scripts/test-regular-artwork.mjs
 
       - name: Test transactional adult refresh and provider outages
         run: npm run test:adult-refresh
@@ -245,6 +245,10 @@ jobs:
         run: node scripts/build-artwork-map.mjs --base https://zenkaitv.com --concurrency 2 --max-minutes 15
         timeout-minutes: 18
 
+      - name: Prepare and verify new regular title artwork before publication
+        run: node scripts/prepare-regular-artwork.mjs
+        timeout-minutes: 12
+
       - name: Sync regular catalog assets to Android
         run: |
           cp scraper/artwork-map.json android/app/src/main/assets/scraper/artwork-map.json
@@ -312,5 +316,6 @@ jobs:
             scraper/regular-source-fallbacks.json
             scraper/animeneon-catalog.json
             artifacts/catalog-integrity-report.json
+            artifacts/regular-artwork-report.json
           retention-days: 7
           if-no-files-found: warn

@@ -11624,8 +11624,8 @@ function getUnderHentaiArtwork(item = {}, titleArtwork = "") {
     item.backdrop,
     item.banner
   ].map((value) => decodeUnderHentaiImage(value)).find((value) => value && !isUnderHentaiPlaceholderArtwork(value));
-  const backgroundArtwork = screenshots[0]
-    || preferredBackground
+  const backgroundArtwork = preferredBackground
+    || screenshots[0]
     || titleArtwork;
   return { screenshots, backgroundArtwork };
 }
