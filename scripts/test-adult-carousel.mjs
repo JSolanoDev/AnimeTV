@@ -72,6 +72,24 @@ function harness() {
 const artwork = name => `https://neutral.example/${name}.jpg`;
 const show = (id, fields = {}) => ({ id, title: "Neutral series", adult: true, highQualityBackground: artwork(id), ...fields });
 
+test("regular carousel refreshes a changed episode and clock without replacing its decoded image", () => {
+  const h = harness(); h.ctx.enabled = false;
+  const current = show("regular", { adult: false, _av1Episode: 1, tmdbBackdrop: artwork("regular"),
+    carouselArtwork: { url: artwork("regular") }, confirmedNextAiringAt: Date.now() + 3600000 });
+  h.catalog.push(current);
+  h.ctx.renderCarousel();
+  const originalSrc = h.ctx.carouselBackdropImage.src;
+  const originalLoad = h.ctx.carouselBackdropImage.onload;
+  assert.match(h.ctx.carouselMeta.textContent, /EP 1/);
+  current._av1Episode = 2;
+  h.ctx.formatAiringWeekday = () => "Tue";
+  h.ctx.formatAiringClock = () => "9:00 PM";
+  h.ctx.renderCarousel();
+  assert.match(h.ctx.carouselMeta.textContent, /EP 2 \| Tue \| 9:00 PM/);
+  assert.equal(h.ctx.carouselBackdropImage.src, originalSrc);
+  assert.equal(h.ctx.carouselBackdropImage.onload, originalLoad);
+});
+
 test("adult hero requires HD landscape pixels, not posters, strips or guessed URL sizes", () => {
   const { ctx } = harness();
   for (const [width, height] of [[320, 180], [960, 540], [2000, 3000], [1920, 400], [1280, 0]]) {

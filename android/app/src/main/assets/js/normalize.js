@@ -52,6 +52,7 @@ function normalizeExternalShow(item, source, index) {
     airingTimeSource: item.airingTimeSource || "",
     animeytAiringAt: Number(item.animeytAiringAt) || 0,
     animeytAiringEpisode: Number(item.animeytAiringEpisode) || 0,
+    animeytScheduleAt: Number(item.animeytScheduleAt) || 0,
     aniPubId: item.aniPubId || item.anipubId || item._id || (source.id === "anipub-catalog" ? item.id : ""),
     consumetId: item.consumetId || item.consumet_id || item.kickAssAnimeId || item.kickassanimeId || (source.id === "consumet-kickassanime" ? item.id : ""),
     finder: item.finder || item.slug || "",
@@ -790,6 +791,9 @@ function normalizeJikanShow(entry, source) {
   const genres = (entry.genres || []).map((item) => item.name);
   const genre = pickGenre(genres);
   const broadcast = entry.broadcast || {};
+  const airingAt = entry.airing
+    ? broadcastInstant(broadcast.day, broadcast.time, broadcast.timezone) : 0;
+  const airingDate = airingAt > 0 ? new Date(airingAt) : null;
 
   return {
     id: `jikan-${entry.mal_id}`,
@@ -802,8 +806,12 @@ function normalizeJikanShow(entry, source) {
     totalEpisodes: entry.episodes || null,
     genre,
     genres,
-    day: broadcast.day?.replace("s", "").slice(0, 3) || "TBA",
-    time: broadcast.time || "TBA",
+    day: airingDate ? formatAiringWeekday(airingDate) : "TBA",
+    time: airingDate ? formatAiringClock(airingDate) : "",
+    nextAiringAt: airingAt || null,
+    broadcastDay: broadcast.day || "",
+    broadcastTime: broadcast.time || "",
+    broadcastTimezone: broadcast.timezone || "",
     colors: ["#58a8ff", "#2b1d47"],
     score: entry.score ? Math.round(entry.score * 10) : null,
     status: entry.status || "",
@@ -962,6 +970,7 @@ function mergeClientCatalogShow(current, show) {
     airingTimeSource: show.airingTimeSource || current.airingTimeSource || "",
     animeytAiringAt: Number(show.animeytAiringAt) || Number(current.animeytAiringAt) || 0,
     animeytAiringEpisode: Number(show.animeytAiringEpisode) || Number(current.animeytAiringEpisode) || 0,
+    animeytScheduleAt: Number(show.animeytScheduleAt) || Number(current.animeytScheduleAt) || 0,
     providerAnimeId: show.providerAnimeId || current.providerAnimeId || null,
     canonicalSeasonNumber: show.canonicalSeasonNumber ?? current.canonicalSeasonNumber ?? null,
     canonicalSeasonPart: show.canonicalSeasonPart ?? current.canonicalSeasonPart ?? null,

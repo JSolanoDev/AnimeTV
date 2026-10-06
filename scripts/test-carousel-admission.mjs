@@ -36,6 +36,41 @@ test("only confirmed instants/zone-aware broadcasts supply carousel day and time
     broadcastTimezone: "Asia/Tokyo" }, NOW) > NOW);
 });
 
+test("carousel uses the same recent or upcoming provider slot as the weekly calendar", () => {
+  const DAY = 86400000;
+  for (const at of [NOW - 3600000, NOW + DAY, NOW + 6 * DAY]) {
+    const show = { animeytScheduleAt: at, confirmedNextAiringAt: NOW + 2 * DAY,
+      airingTimeSource: "AnimeYT", animeytAiringAt: NOW + 2 * DAY, animeytAiringEpisode: 3,
+      nextAiringEpisodeNumber: 3 };
+    assert.equal(confirmedCarouselAiringInstant(show, NOW), at);
+    assert.equal(show.nextAiringEpisodeNumber, 3, "a recent slot never invents another episode");
+  }
+  for (const at of [0, "bad", Infinity, NOW - 8 * DAY, NOW + 8 * DAY, NOW + 0.5]) {
+    assert.equal(confirmedCarouselAiringInstant({ animeytScheduleAt: at }, NOW), 0);
+  }
+});
+
+test("a feed-only title updates its episode target without losing registered inventory", () => {
+  const code = fs.readFileSync(new globalThis.URL("../client.js", import.meta.url), "utf8");
+  const registered = { id: "animeav1-neutral", title: "Neutral", episode: 1,
+    sourceEpisodeIds: [1, 2], sourceInventoryChecked: true };
+  const context = vm.createContext({
+    state: { av1Latest: [{ slug: "neutral", title: "Neutral", episode: 2, releasedAt: "2026-10-05T12:00:00Z" }], filter: "all" },
+    HOME_CARD_LIMIT: 54, buildCatalogKeyIndex: () => new Map(), av1Key: value => value,
+    animeAv1LatestEpisodeIdentity: item => ({ providerEpisodeId: item.episode, displayEpisode: item.episode }),
+    makeAv1OnlyShow: () => ({}), registerAv1Show: () => registered,
+    getShowTitle: show => show.title, normalizeTitle: value => value, matchesShowSearch: () => true
+  });
+  vm.runInContext(code.slice(code.indexOf("function buildAnimeAv1ReleaseCards("),
+    code.indexOf("function buildLatestEpisodesList(")), context);
+  const [card] = context.buildAnimeAv1ReleaseCards();
+  assert.equal(card, registered);
+  assert.equal(card._av1Episode, 2);
+  assert.equal(card._av1ProviderEpisode, 2);
+  assert.equal(card.lastEpisodeAt, "2026-10-05T12:00:00Z");
+  assert.deepEqual(card.sourceEpisodeIds, [1, 2]);
+});
+
 test("offline preparation measures original pixels once per URL and reuses valid proof", async () => {
   const entries = { a: { tmdbBackdrop: URL }, b: { tmdbBackdrop: URL } };
   const bytes = await image(1920, 1080);

@@ -9845,9 +9845,9 @@ function enrichAnimeAv1LatestArtwork(item) {
     "description", "genres", "year", "score", "duration", "studios", "countryOfOrigin",
     "canonicalSeasonNumber", "providerEpisodeOffset", "episodeThumbnailFallback", "nextAiringAt",
     "nextAiringEpisodeNumber", "broadcastDay", "broadcastTime", "broadcastTimezone", "carouselArtwork", "confirmedNextAiringAt"];
-  return { ...item, ...Object.fromEntries(fields.filter((key) =>
+  return animeYTProvider.enrich({ ...item, ...Object.fromEntries(fields.filter((key) =>
     enriched[key] != null && enriched[key] !== "" && (!Array.isArray(enriched[key]) || enriched[key].length)
-  ).map((key) => [key, enriched[key]])) };
+  ).map((key) => [key, enriched[key]])) });
 }
 
 module.exports.enrichAnimeAv1LatestArtwork = enrichAnimeAv1LatestArtwork;
@@ -10718,7 +10718,9 @@ async function handleAniListAiring(url, response) {
         for (const entry of media) {
           const airingAt = Number(entry?.nextAiringEpisode?.airingAt || 0);
           if (!airingAt) continue;   // no instant means nothing to schedule
-          collected.push({
+          // Reuse the same baked release clock as /api/catalog. Otherwise this
+          // later refresh replaces a provider event with broadcast metadata.
+          collected.push(animeYTProvider.enrich({
             anilistId: entry.id,
             malId: entry.idMal || null,
             title: entry.title?.userPreferred || entry.title?.romaji || entry.title?.english || "",
@@ -10726,7 +10728,7 @@ async function handleAniListAiring(url, response) {
             // Milliseconds, matching normalize.js - AniList sends seconds.
             nextAiringAt: airingAt * 1000,
             nextAiringEpisodeNumber: entry.nextAiringEpisode?.episode || null
-          });
+          }));
         }
         if (!payload?.data?.Page?.pageInfo?.hasNextPage) break;
       }

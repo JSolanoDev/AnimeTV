@@ -744,6 +744,90 @@ test("release posters share the cached-image ready and fallback lifecycle", () =
   assert.match(css, /\.release-poster img\.img-ready\s*\{[^}]*opacity: 1/);
 });
 
+function scheduleImageLifecycleHarness() {
+  const failed = new Set();
+  const listeners = new Map();
+  let placeholders = 0;
+  let assignments = 0;
+  class FixtureImage {
+    constructor(classes, urls) {
+      const names = new Set(classes);
+      this.classList = { contains: name => names.has(name), add: name => names.add(name) };
+      this.dataset = { imageFallbacks: encodeURIComponent(JSON.stringify(urls)), imageFallbackIndex: "0" };
+      this._src = urls[0];
+      this.style = {};
+      this.isConnected = true;
+      this.complete = true;
+      this.naturalWidth = 0;
+    }
+    get src() { return this._src; }
+    set src(url) { this._src = url; this.complete = false; assignments++; }
+    removeAttribute() {}
+    closest() { return null; }
+  }
+  const c = vm.createContext({
+    HTMLImageElement: FixtureImage,
+    document: { addEventListener: (name, listener) => listeners.set(name, listener) },
+    ImageResolver: { markImageFailed: url => failed.add(url), isImageFailed: url => failed.has(url) },
+    artworkRoleForImage: () => "",
+    isArtworkLowQuality: () => false,
+    applyArtworkPlaceholder: () => { placeholders++; },
+    fetch: () => assert.fail("poster recovery must not request metadata")
+  });
+  vm.runInContext(section("function advanceArtworkCandidate(", "function markCurrentArtworkCandidateLowQuality("), c);
+  vm.runInContext(section("function handleArtworkImageError(", "function moveCarousel("), c);
+  return { c, failed, listeners, FixtureImage, placeholders: () => placeholders, assignments: () => assignments };
+}
+
+test("cached failed schedule posters recover once and ignore stale queued errors", () => {
+  const h = scheduleImageLifecycleHarness();
+  const img = new h.FixtureImage(["schedule-thumb-img", "release-poster-img"], ["https://cdn.example/failed.jpg", "https://cdn.example/working.jpg"]);
+  h.c.syncCompletedArtwork({ querySelectorAll: () => [img] });
+  assert.equal(img.src, "https://cdn.example/working.jpg");
+  assert.equal(h.assignments(), 1);
+  assert.ok(h.failed.has("https://cdn.example/failed.jpg"));
+  h.listeners.get("error")({ target: img });
+  h.c.syncCompletedArtwork({ querySelectorAll: () => [img] });
+  assert.equal(h.assignments(), 1, "a queued error for the old URL must not exhaust the backup");
+  assert.equal(h.placeholders(), 0);
+  img.complete = true;
+  img.naturalWidth = 500;
+  h.listeners.get("load")({ target: img });
+  h.listeners.get("error")({ target: img });
+  assert.ok(img.classList.contains("img-ready"));
+  assert.equal(h.failed.has(img.src), false);
+  assert.equal(h.placeholders(), 0);
+});
+
+test("exhausted schedule posters settle without repeated recovery or detached-image work", () => {
+  const h = scheduleImageLifecycleHarness();
+  const img = new h.FixtureImage(["schedule-thumb-img", "release-poster-img"], ["https://cdn.example/failed.jpg"]);
+  h.c.syncCompletedArtwork({ querySelectorAll: () => [img] });
+  assert.equal(h.placeholders(), 1);
+  h.c.syncCompletedArtwork({ querySelectorAll: () => [img] });
+  h.listeners.get("error")({ target: img });
+  assert.equal(h.placeholders(), 1);
+  assert.equal(h.assignments(), 0);
+  const detached = new h.FixtureImage(["schedule-thumb-img", "release-poster-img"], ["https://cdn.example/detached.jpg"]);
+  detached.isConnected = false;
+  h.c.syncCompletedArtwork({ querySelectorAll: () => [detached] });
+  assert.equal(h.failed.has(detached.src), false);
+  assert.equal(h.placeholders(), 1);
+});
+
+test("cached healthy posters and other image surfaces retain their existing lifecycle", () => {
+  const h = scheduleImageLifecycleHarness();
+  const schedule = new h.FixtureImage(["schedule-thumb-img", "release-poster-img"], ["https://cdn.example/ready.jpg"]);
+  schedule.naturalWidth = 500;
+  const other = new h.FixtureImage(["release-poster-img"], ["https://cdn.example/other.jpg"]);
+  h.c.syncCompletedArtwork({ querySelectorAll: () => [schedule, other] });
+  assert.ok(schedule.classList.contains("img-ready"));
+  assert.equal(h.failed.size, 0, "cached-error recovery is confined to schedule posters");
+  h.listeners.get("error")({ target: other });
+  assert.ok(h.failed.has(other.src), "existing delegated errors still handle other surfaces");
+  assert.equal(h.placeholders(), 1);
+});
+
 test("carousel loading conceals incomplete artwork without hiding ready selectors", () => {
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");

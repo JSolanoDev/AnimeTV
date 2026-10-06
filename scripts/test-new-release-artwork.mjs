@@ -119,6 +119,27 @@ test("latest-feed airing metadata is a static lookup scoped to the exact season"
   } finally { globalThis.fetch = originalFetch; }
 });
 
+test("a brand-new latest-feed title receives its completed provider slot with no HTTP lookup", () => {
+  const code = read("animetv-server.js");
+  const at = Date.parse("2026-10-05T13:00:00Z");
+  let requests = 0;
+  const animeYTProvider = require("../lib/animeyt-provider.cjs").createProvider({
+    snapshot: { items: [{ slug: "neutral-release", title: "Neutral Release", season: 1 }],
+      schedule: [{ slug: "neutral-release", episode: 2, at }] },
+    now: () => at + 3600000,
+    fetchImpl: () => { requests++; throw new Error("No schedule lookup required"); }
+  });
+  const context = vm.createContext({ animeYTProvider, enrichLatestCatalogItemFromArtwork: () => ({}) });
+  vm.runInContext(code.slice(code.indexOf("function enrichAnimeAv1LatestArtwork("),
+    code.indexOf("module.exports.enrichAnimeAv1LatestArtwork")), context);
+  const result = context.enrichAnimeAv1LatestArtwork({ slug: "neutral-release", title: "Neutral Release", episode: 2 });
+  assert.equal(result.animeytScheduleAt, at);
+  assert.equal(result.animeytSlug, "neutral-release");
+  assert.equal(result.episode, 2);
+  assert.equal(result.nextAiringAt, undefined);
+  assert.equal(requests, 0);
+});
+
 test("batched metadata records confirmed schedules without changing episodes or season chains", () => {
   const code = read("scripts/add-artwork-metadata.mjs");
   const start = code.indexOf("function recordAiringMetadata(");
@@ -174,18 +195,18 @@ test("new-title cards display confirmed local weekday and AM/PM, never the uploa
   const code = read("client.js");
   const utils = read("js/utils.js");
   const context = vm.createContext({
-    Date,
+    Date: class extends Date { static now() { return Date.UTC(2026, 9, 5, 12); } },
     animeAv1LatestEpisodeIdentity: () => ({ providerEpisodeId: 2, displayEpisode: 2 }),
     animeAv1ArtworkVariant: () => "",
     nextWeeklyAiringFrom: () => { throw new Error("Must not guess from provider upload time"); }
   });
   vm.runInContext(utils.slice(utils.indexOf("function formatAiringClock"),
     utils.indexOf("// Node export so the logic")), context);
-  vm.runInContext(code.slice(code.indexOf("const WEEKLY_SCHEDULE_DAY_OVERRIDES"),
+  vm.runInContext(code.slice(code.indexOf("function applyScheduleAiringFields("),
     code.indexOf("function scheduleLocale(")), context);
   vm.runInContext(code.slice(code.indexOf("function makeAv1OnlyShow("),
     code.indexOf("function registerAv1Show")), context);
-  const date = new Date(2026, 9, 11, 8, 30);
+  const date = new context.Date(2026, 9, 11, 8, 30);
   const item = { slug: "new-season", title: "New Season", nextAiringAt: date.getTime(),
     nextAiringEpisodeNumber: 3, releasedAt: "2026-10-04T23:30:00Z" };
   const show = context.makeAv1OnlyShow(item);
@@ -197,6 +218,32 @@ test("new-title cards display confirmed local weekday and AM/PM, never the uploa
   assert.equal(context.makeAv1OnlyShow({ ...item, nextAiringAt: null }).nextAiringAt, undefined);
 });
 
+test("a latest-only client card retains today's completed provider slot", () => {
+  const code = read("client.js");
+  const utils = read("js/utils.js");
+  const context = vm.createContext({
+    Date: class extends Date { static now() { return Date.UTC(2026, 9, 5, 20); } },
+    Intl: { DateTimeFormat: function (_locale, options) {
+      return new Intl.DateTimeFormat("en-US", { ...options, timeZone: "America/Denver" });
+    } },
+    animeAv1LatestEpisodeIdentity: () => ({ providerEpisodeId: 2, displayEpisode: 2 }),
+    animeAv1ArtworkVariant: () => ""
+  });
+  vm.runInContext(utils.slice(utils.indexOf("function formatAiringClock"),
+    utils.indexOf("// Node export so the logic")), context);
+  vm.runInContext(code.slice(code.indexOf("function applyScheduleAiringFields("),
+    code.indexOf("function scheduleLocale(")), context);
+  vm.runInContext(code.slice(code.indexOf("function makeAv1OnlyShow("),
+    code.indexOf("function registerAv1Show")), context);
+  const at = Date.UTC(2026, 9, 5, 13);
+  const show = context.makeAv1OnlyShow({ slug: "neutral-release", title: "Neutral Release", animeytScheduleAt: at });
+  assert.equal(show.day, "Mon");
+  assert.equal(show.time, "7:00 AM");
+  assert.equal(show.animeytScheduleAt, at);
+  assert.equal(show.nextAiringAt, undefined);
+  assert.equal(show.nextAiringEpisodeNumber, 3);
+});
+
 test("new-title schedule day and time move together across viewer timezones", () => {
   const code = read("client.js");
   const utils = read("js/utils.js");
@@ -204,7 +251,8 @@ test("new-title schedule day and time move together across viewer timezones", ()
     ["America/Denver", "Sat", "6:30 PM"], ["Asia/Tokyo", "Sun", "9:30 AM"]
   ]) {
     const context = vm.createContext({
-      Date, Intl: { DateTimeFormat: function (_locale, options) {
+      Date: class extends Date { static now() { return Date.UTC(2026, 9, 5, 12); } },
+      Intl: { DateTimeFormat: function (_locale, options) {
         return new Intl.DateTimeFormat("en-US", { ...options, timeZone });
       } },
       animeAv1LatestEpisodeIdentity: () => ({ providerEpisodeId: 1, displayEpisode: 1 }),
@@ -212,7 +260,7 @@ test("new-title schedule day and time move together across viewer timezones", ()
     });
     vm.runInContext(utils.slice(utils.indexOf("function formatAiringClock"),
       utils.indexOf("// Node export so the logic")), context);
-    vm.runInContext(code.slice(code.indexOf("const WEEKLY_SCHEDULE_DAY_OVERRIDES"),
+    vm.runInContext(code.slice(code.indexOf("function applyScheduleAiringFields("),
       code.indexOf("function scheduleLocale(")), context);
     vm.runInContext(code.slice(code.indexOf("function makeAv1OnlyShow("),
       code.indexOf("function registerAv1Show")), context);

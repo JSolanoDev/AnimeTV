@@ -282,6 +282,7 @@ jobs:
           npm run test:pipeline
           npm run test:seasons
           node scripts/test-airing-map.mjs .
+          node --test scripts/test-schedule-stability.mjs scripts/test-carousel-admission.mjs
           node scripts/test-season-stills.mjs .
           node scripts/test-image-delivery.mjs
 

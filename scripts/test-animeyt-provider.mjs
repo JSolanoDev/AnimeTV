@@ -120,6 +120,8 @@ test("schedules use absolute UTC seconds, not server weekday or upload dates", (
   assert.equal(new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "America/Denver" }).format(at), "7:30 PM");
   assert.equal(h.p.enrich({ title: "Sample Series", nextAiringAt: at + 1000 }).nextAiringAt, at + 1000);
   assert.equal(h.p.enrich({ title: "Sample Series", nextAiringAt: at + 1800000, nextAiringEpisodeNumber: 2 }).nextAiringAt, at);
+  assert.equal(h.p.enrich({ title: "Sample Series", nextAiringAt: at + 9 * 86400000, nextAiringEpisodeNumber: 2 }).nextAiringAt, at,
+    "fresh release clocks win for the same episode even when broadcast metadata differs by days");
   assert.equal(h.p.enrich({ title: "Sample Series", nextAiringAt: at + 1800000, nextAiringEpisodeNumber: 3 }).nextAiringAt, at + 1800000);
   h.advance(8 * 86400000);
   assert.equal(h.p.enrich({ title: "Sample Series" }).nextAiringAt, undefined);
@@ -142,6 +144,39 @@ test("provider schedule carrier expires and cannot override a different episode"
   assert.equal(utils.animeYTConfirmedAiringInstant({ ...show, nextAiringEpisodeNumber: 3 }, now), 0);
   assert.equal(utils.animeYTConfirmedAiringInstant(show, at + 1), 0);
   assert.equal(new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "America/Denver" }).format(at), "2:30 AM");
+});
+
+test("completed releases retain their weekly calendar slot without inventing next episodes", () => {
+  const at = Date.parse("2026-10-05T13:00:00Z");
+  const h = harness({ snapshot: { ...snapshot, schedule: [{ slug: "sample-series", at, episode: 2 }] } });
+  h.advance(8 * 3600000);
+  const next = Date.parse("2026-10-11T13:00:00Z");
+  const show = h.p.enrich({ title: "Sample Series", episode: 2, nextAiringAt: next, nextAiringEpisodeNumber: 3 });
+  assert.equal(show.animeytScheduleAt, at);
+  assert.equal(show.nextAiringAt, next);
+  assert.equal(show.nextAiringEpisodeNumber, 3);
+  assert.equal(show.episode, 2);
+  assert.equal(show.animeytAiringAt, undefined, "past slots must not become upcoming episode proof");
+  assert.equal(h.p.enrich({ title: "Sample Series" }).nextAiringAt, undefined);
+  assert.equal(h.p.enrich({ title: "Sample Series Season 2" }).animeytScheduleAt, undefined);
+  h.advance(7 * 86400000);
+  assert.equal(h.p.enrich({ title: "Sample Series" }).animeytScheduleAt, undefined);
+  assert.equal(h.calls.length, 0);
+});
+
+test("metadata enrichment reuses the baked schedule without upstream calls and rejects invalid events", () => {
+  const at = Date.parse("2026-10-06T01:30:00Z");
+  const h = harness({ snapshot: { ...snapshot, schedule: [
+    { slug: "sample-series", episode: 2, at: Infinity },
+    { slug: "sample-series", episode: -1, at },
+    { slug: "sample-series", episode: 2, at: at + 8 * 86400000 },
+    { slug: "sample-series-temporada-2", episode: 1, at }
+  ] } });
+  for (let i = 0; i < 100; i++) {
+    assert.equal(h.p.enrich({ title: "Sample Series" }).nextAiringAt, undefined);
+    assert.equal(h.p.enrich({ title: "Sample Series Season 2", canonicalSeasonNumber: 2 }).nextAiringAt, at);
+  }
+  assert.equal(h.calls.length, 0);
 });
 
 test("normalization preserves AnimeYT identity during sparse metadata merges", () => {

@@ -1006,6 +1006,53 @@ async function fetchHomepageBootstrapCatalog() {
 }
 
 let _latestLoadTimer = 0;
+const DISCOVERY_RELEASE_REFRESH_MS = 15 * 60 * 1000;
+let _discoveryReleaseTimer = 0;
+let _discoveryReleaseAttemptAt = 0;
+
+function discoveryReleaseRefreshAllowed() {
+  return document.visibilityState !== "hidden"
+    && (state.route === "home" || state.route === "schedule")
+    && overlay.hidden
+    && !(typeof AdultMode !== "undefined" && AdultMode.isEnabled());
+}
+
+function scheduleDiscoveryReleaseRefresh() {
+  window.clearTimeout(_discoveryReleaseTimer);
+  _discoveryReleaseTimer = 0;
+  if (!discoveryReleaseRefreshAllowed()) return;
+  const lastCheck = Math.max(Number(state.av1LatestAt || 0), _discoveryReleaseAttemptAt);
+  const delay = Math.max(1000, DISCOVERY_RELEASE_REFRESH_MS - (Date.now() - lastCheck));
+  _discoveryReleaseTimer = window.setTimeout(refreshDiscoveryReleases, delay);
+}
+
+async function refreshDiscoveryReleases() {
+  _discoveryReleaseTimer = 0;
+  if (!discoveryReleaseRefreshAllowed()) {
+    // An overlay may close without changing routes. Keep a quiet timer so
+    // discovery resumes, but never refresh metadata while video is playing.
+    if (document.visibilityState !== "hidden" && (state.route === "home" || state.route === "schedule")) {
+      _discoveryReleaseTimer = window.setTimeout(refreshDiscoveryReleases, DISCOVERY_RELEASE_REFRESH_MS);
+    }
+    return;
+  }
+  _discoveryReleaseAttemptAt = Date.now();
+  try {
+    await loadAnimeAv1Latest();
+    if (discoveryReleaseRefreshAllowed()) await enrichCatalogAiringData();
+    // Re-evaluate date-sensitive eligibility even when the feed is unchanged.
+    if (discoveryReleaseRefreshAllowed()) {
+      invalidateScheduleData();
+      if (state.route === "schedule") renderSchedule();
+      else renderCarousel();
+    }
+  } catch (error) {
+    console.warn("Discovery refresh kept the previous release data:", error);
+  } finally {
+    scheduleDiscoveryReleaseRefresh();
+  }
+}
+
 function scheduleAnimeAv1LatestLoad(delayMs = 0) {
   if (_latestLoadTimer || state.av1LatestLoading) return;
   // The tiny latest feed determines the hero. Waiting for the full page `load`
@@ -1241,6 +1288,28 @@ async function loadDirectCatalogFallback() {
 // seven seconds after startup, even though loadAnimeSources had just installed
 // that same catalog. Reusing state.shows keeps the identity data and removes one
 // function invocation plus a large transfer from every page load.
+const CATALOG_AIRING_REFRESH_MS = 60 * 60 * 1000;
+let _catalogAiringRows = [];
+let _catalogAiringAttemptAt = 0;
+let _catalogAiringPending = null;
+
+async function loadCatalogAiringRows() {
+  if (_catalogAiringPending) return _catalogAiringPending;
+  if (_catalogAiringAttemptAt && Date.now() - _catalogAiringAttemptAt < CATALOG_AIRING_REFRESH_MS) return _catalogAiringRows;
+  _catalogAiringAttemptAt = Date.now();
+  _catalogAiringPending = (async () => {
+    try {
+      const response = await fetchWithTimeout("/api/anilist/airing", {}, 12000);
+      if (!response.ok) return _catalogAiringRows;
+      const payload = await response.json();
+      if (Array.isArray(payload?.items) && payload.items.length) _catalogAiringRows = payload.items;
+    } catch { /* Keep the last good schedule; retry on the hourly cadence. */ }
+    return _catalogAiringRows;
+  })();
+  try { return await _catalogAiringPending; }
+  finally { _catalogAiringPending = null; }
+}
+
 async function enrichCatalogAiringData(attempt = 0) {
   try {
     const items = Array.isArray(state.shows) ? state.shows : [];
@@ -1252,10 +1321,7 @@ async function enrichCatalogAiringData(attempt = 0) {
     // the browser cannot reach graphql.anilist.co itself. An empty answer (the
     // route degrades to [] when AniList is rate-limited) leaves the behaviour
     // exactly as it was rather than clearing anything.
-    const airingRows = await fetchWithTimeout("/api/anilist/airing", {}, 12000)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((p) => (Array.isArray(p && p.items) ? p.items : []))
-      .catch(() => []);
+    const airingRows = await loadCatalogAiringRows();
     const byAni = new Map();
     const byMal = new Map();
     items.forEach((it) => {
@@ -3638,7 +3704,7 @@ function makeAv1OnlyShow(item) {
     _av1Episode: displayEpisode,
     _av1ProviderEpisode: providerEpisodeId
   };
-  if (Number(item.nextAiringAt) > 0 || item.broadcastDay) applyScheduleAiringFields(show, item);
+  if (Number(item.nextAiringAt) > 0 || Number(item.animeytScheduleAt) > 0 || item.broadcastDay) applyScheduleAiringFields(show, item);
   return show;
 }
 
@@ -3689,8 +3755,15 @@ function buildAnimeAv1ReleaseCards(limit = HOME_CARD_LIMIT, { applyUiFilters = t
       };
     } else {
       card = registerAv1Show(makeAv1OnlyShow(item));
+      // Feed-only titles are registered once; a later release must update its
+      // target rather than leaving the original episode on the carousel.
+      card.episode = displayEpisode;
+      card.latestAiredEp = displayEpisode;
+      card._av1Episode = displayEpisode;
+      card._av1ProviderEpisode = providerEpisodeId;
+      card.lastEpisodeAt = item.releasedAt || card.lastEpisodeAt || "";
     }
-    if (Number(item.nextAiringAt) > 0 || item.broadcastDay) applyScheduleAiringFields(card, item);
+    if (Number(item.nextAiringAt) > 0 || Number(item.animeytScheduleAt) > 0 || item.broadcastDay) applyScheduleAiringFields(card, item);
     if (item.carouselArtwork) card.carouselArtwork = item.carouselArtwork;
     if (item.tmdbBackdrop) card.tmdbBackdrop = item.tmdbBackdrop;
     if (item.confirmedNextAiringAt) card.confirmedNextAiringAt = item.confirmedNextAiringAt;
@@ -5004,7 +5077,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=977";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=984";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -5041,7 +5114,12 @@ function renderCarousel() {
     || (typeof AdultMode !== "undefined" && AdultMode.isEnabled() && adultSourceOrderedShows().length);
   if (heroMemoActive && state.catalogTier === "bootstrap" && !hasFreshReleaseLineup) return;
   if (String(show.id || "") === _carouselPaintedId
-    && (!isAdultCatalogShow(show) || show._adultCarouselSelectedArtwork === carouselResolvedBackdropArtwork(show))) return;
+    && (!isAdultCatalogShow(show) || show._adultCarouselSelectedArtwork === carouselResolvedBackdropArtwork(show))) {
+    // A newly confirmed slot or episode can arrive without changing the title.
+    // Refresh its text/target without restarting the decoded backdrop or trailer.
+    if (!isAdultCatalogShow(show)) updateReleaseCarouselMeta(show);
+    return;
+  }
   _carouselPaintedId = String(show.id || "");
   // Metadata refreshes reset the paint cache, but still belong to the same image.
   // Only a different anime should discard a preview whose full image is pending.
@@ -5253,17 +5331,28 @@ function renderCarousel() {
   // no broadcast day is known - they are not weekdays, and printing them put
   // "Local | ACTION" on the hero, which says nothing to a viewer. Drop them and
   // show only what is actually known; no day is better than a fake one.
-  const confirmedDate = isAdultCatalogShow(show) ? null : new Date(confirmedCarouselAiringInstant(show));
+  updateReleaseCarouselMeta(show);
+  carouselStage.dataset.openShow = String(show.id || "");
+  // Commit the clickable title only after its text, artwork and episode target
+  // have all been painted. This exact object remains the click target even if an
+  // auto-advance render starts between pointerdown and click.
+  _carouselPaintedShow = show;
+}
+
+function updateReleaseCarouselMeta(show) {
+  const instant = isAdultCatalogShow(show) ? 0 : confirmedCarouselAiringInstant(show);
+  const confirmedDate = instant ? new Date(instant) : null;
   const heroDay = confirmedDate ? formatAiringWeekday(confirmedDate)
     : (["Local", "TBA", ""].includes(String(show.day || "").trim()) ? "" : show.day);
   const releaseEpisode = Number(show._av1Episode || show.latestAiredEp || show.episode || 0);
-  carouselMeta.textContent = [
+  const meta = [
     releaseEpisode > 0 ? `EP ${releaseEpisode}` : "",
     showHasLatinoDub(show) ? "LATINO" : "",
     heroDay,
     confirmedDate ? formatAiringClock(confirmedDate) : showAiringTimeText(show),
     (show.genre || "").toUpperCase()
   ].filter(Boolean).join(" | ");
+  if (carouselMeta.textContent !== meta) carouselMeta.textContent = meta;
   const target = getCardTarget(show);
   carouselOpen.dataset.openShow = String(show.id || "");
   carouselOpen.dataset.openSeason = String(target.seasonNumber || "");
@@ -5276,10 +5365,6 @@ function renderCarousel() {
   } else {
     delete carouselOpen.dataset.openProviderEpisode;
   }
-  carouselStage.dataset.openShow = String(show.id || "");
-  // Commit the clickable title only after its text, artwork and episode target
-  // have all been painted. This exact object remains the click target even if an
-  // auto-advance render starts between pointerdown and click.
   _carouselPaintedShow = show;
 }
 
@@ -5630,10 +5715,12 @@ function applyArtworkPlaceholder(img) {
 // load (404, hotlink-blocked, stale URL), hide it so the card's colour gradient
 // shows through, and drop a clean placeholder into the watch overlay. Uses the
 // capture phase because `error` events don't bubble.
-document.addEventListener("error", (event) => {
-  const img = event.target;
+function handleArtworkImageError(img) {
   if (!(img instanceof HTMLImageElement)) return;
   if (!img.isConnected) return; // Ignore unmounted/aborted image loads.
+  // A cached failure may have already advanced this schedule image. Ignore a
+  // queued error for its old URL while the backup loads or after it succeeds.
+  if (img.classList.contains("schedule-thumb-img") && (!img.complete || img.naturalWidth)) return;
   
   const hasCandidates = img.classList.contains("thumb-poster") || 
                         img.classList.contains("thumb-backdrop") ||
@@ -5652,7 +5739,9 @@ document.addEventListener("error", (event) => {
   img.dataset.imgFallback = "1";
   
   applyArtworkPlaceholder(img);
-}, true);
+}
+
+document.addEventListener("error", (event) => handleArtworkImageError(event.target), true);
 
 function markArtworkReady(img) {
   if (!(img instanceof HTMLImageElement) || img.dataset.imgFallback) return;
@@ -5686,7 +5775,10 @@ function markArtworkReady(img) {
 // event. Checking `complete` immediately keeps their loading rail from replaying.
 function syncCompletedArtwork(root = document) {
   root.querySelectorAll?.(".thumb-poster, .ep-thumb-img, .release-poster-img").forEach((img) => {
-    if (img.complete) markArtworkReady(img);
+    if (!img.complete) return;
+    if (img.classList.contains("schedule-thumb-img") && !img.naturalWidth && !img.dataset.imgFallback) {
+      handleArtworkImageError(img);
+    } else markArtworkReady(img);
   });
 }
 
@@ -7127,28 +7219,19 @@ function renderSkeletonCards(container, count = 7) {
 let _scheduleSelectedDay = null;
 let _scheduleControlsWired = false;
 
-// The weekly grid describes ZenkaiTV's recurring release day. A temporary
-// AniList delay can move one nextAiringAt without changing that weekly slot.
-// Keep corrections identity-scoped so similarly named seasons are untouched.
-const WEEKLY_SCHEDULE_DAY_OVERRIDES = Object.freeze({
-  "show:animeav1-bleach-sennen-kessen-hen-kashin-tan": "Fri",
-  "anilist:185974": "Fri",
-  "mal:60636": "Fri"
-});
-
-function weeklyScheduleDayOverride(show = {}, source = show) {
-  const identities = [show, source].flatMap((entry) => [
-    entry?.id ? `show:${entry.id}` : "",
-    entry?.anilistId ? `anilist:${entry.anilistId}` : "",
-    entry?.malId ? `mal:${entry.malId}` : ""
-  ]).filter(Boolean);
-  return identities.map((identity) => WEEKLY_SCHEDULE_DAY_OVERRIDES[identity]).find(Boolean) || "";
-}
-
 function applyScheduleAiringFields(show, source = show) {
   if (!show || !source) return false;
   let changed = false;
-  let nextAiringAt = Number(source.nextAiringAt || 0);
+  const now = Date.now();
+  const oldestSlot = now - 7 * 86400000;
+  const scheduleAt = [source.animeytScheduleAt, show.animeytScheduleAt].map(Number)
+    .find((at) => Number.isSafeInteger(at) && at > oldestSlot && at < now + 7 * 86400000) || 0;
+  if (scheduleAt && Number(show.animeytScheduleAt) !== scheduleAt) {
+    show.animeytScheduleAt = scheduleAt;
+    changed = true;
+  }
+  let nextAiringAt = [source.nextAiringAt, show.nextAiringAt].map(Number)
+    .find((at) => Number.isFinite(at) && at > oldestSlot && at <= 8640000000000000) || 0;
   if (source.airingTimeSource === "AnimeYT" && Number(source.animeytAiringAt) > 0) {
     show.airingTimeSource = source.airingTimeSource;
     show.animeytAiringAt = source.animeytAiringAt;
@@ -7157,16 +7240,14 @@ function applyScheduleAiringFields(show, source = show) {
   if (typeof animeYTConfirmedAiringInstant === "function") {
     nextAiringAt = animeYTConfirmedAiringInstant(show) || nextAiringAt;
   }
-  if (!(nextAiringAt > 0)) nextAiringAt = Number(show.nextAiringAt || 0);
-
   // A provider upload can arrive hours or days after broadcast. Prefer the
   // show's declared weekly slot, and use upload time only when no schedule
   // metadata exists. Exact next-airing timestamps stay authoritative because
   // they include one-off delays and reschedules.
-  if (!(nextAiringAt > 0) && source.broadcastDay) {
+  if (!(nextAiringAt > 0) && !scheduleAt && source.broadcastDay) {
     nextAiringAt = broadcastInstant(source.broadcastDay, source.broadcastTime, source.broadcastTimezone);
   }
-  if (!(nextAiringAt > 0) && source.lastEpisodeAt) {
+  if (!(nextAiringAt > 0) && !scheduleAt && source.lastEpisodeAt) {
     const numericLast = Number(source.lastEpisodeAt);
     const lastMs = Number.isFinite(numericLast) && numericLast > 0
       ? numericLast
@@ -7177,14 +7258,28 @@ function applyScheduleAiringFields(show, source = show) {
       changed = true;
     }
   }
-  if (!(nextAiringAt > 0)) return changed;
+  if (!(nextAiringAt > 0) && !scheduleAt) {
+    // An expired snapshot without a known slot must not invent a weekly release.
+    if (source.nextAiringAt || show.nextAiringAt || source.animeytScheduleAt || show.animeytScheduleAt) {
+      if (show.nextAiringAt || show.day !== "TBA" || show.time) changed = true;
+      show.nextAiringAt = null;
+      show.animeytScheduleAt = 0;
+      show.day = "TBA";
+      show.time = "";
+    }
+    return changed;
+  }
 
-  if (Number(show.nextAiringAt || 0) !== nextAiringAt) {
+  if (!scheduleAt && show.animeytScheduleAt != null && show.animeytScheduleAt !== 0) {
+    show.animeytScheduleAt = 0;
+    changed = true;
+  }
+  if (nextAiringAt > 0 && Number(show.nextAiringAt || 0) !== nextAiringAt) {
     show.nextAiringAt = nextAiringAt;
     changed = true;
   }
-  const airingDate = new Date(nextAiringAt);
-  const day = weeklyScheduleDayOverride(show, source) || formatAiringWeekday(airingDate);
+  const airingDate = new Date(scheduleAt || nextAiringAt);
+  const day = formatAiringWeekday(airingDate);
   const time = formatAiringClock(airingDate);
   if (day && show.day !== day) {
     show.day = day;
@@ -7216,18 +7311,31 @@ function revealSelectedScheduleDay() {
     - ((scheduleDays.clientWidth - selected.offsetWidth) / 2);
 }
 
+function scheduleAiringTimeText(show) {
+  // The calendar slot may differ from the next-episode metadata clock.
+  const at = Number(show.animeytScheduleAt || 0);
+  return Number.isSafeInteger(at) && at > 0 && at <= 8640000000000000
+    ? formatAiringClock(new Date(at)) : showAiringTimeText(show);
+}
+
+function getSchedulePosterCandidates(show) {
+  // Different source sizes can resolve to one CDN file. Keep each delivered
+  // URL once, and skip failures remembered by the existing image resolver.
+  return [...new Set(getCardPosterCandidates(show).map((url) => imageDeliveryUrl(url, 480, 85)))]
+    .filter((url) => url && (typeof ImageResolver === "undefined" || !ImageResolver.isImageFailed(url)));
+}
+
 function scheduleCardTemplate(show, index) {
   const target = getCardTarget(show);
   const title = getShowTitle(show);
-  const deliveredCandidates = getCardPosterCandidates(show)
-    .map((url) => imageDeliveryUrl(url, 480, 85));
+  const deliveredCandidates = getSchedulePosterCandidates(show);
   const fallbackData = deliveredCandidates.length > 1
     ? ` data-image-fallbacks="${escapeHtml(encodeURIComponent(JSON.stringify(deliveredCandidates)))}" data-image-fallback-index="0"`
     : "";
   const poster = deliveredCandidates[0]
     ? `<img referrerpolicy="no-referrer" class="schedule-thumb-img release-poster-img" src="${escapeHtml(deliveredCandidates[0])}" alt="" width="259" height="370" loading="${index < 12 ? "eager" : "lazy"}" fetchpriority="${index < 6 ? "high" : "auto"}" decoding="async"${fallbackData}>`
     : "";
-  const time = showAiringTimeText(show);
+  const time = scheduleAiringTimeText(show);
   return `
     <a class="release-card schedule-card focusable" href="${escapeHtml(animePathForShow(show))}" data-open-show="${escapeHtml(show.id)}" data-open-season="${target.seasonNumber}" data-open-episode="${target.episodeNumber}" aria-label="Open ${escapeHtml(title)}">
       <div class="release-poster schedule-poster" data-artwork-title="${escapeHtml(title)}">
@@ -7257,12 +7365,14 @@ function renderSchedule() {
   // and used to re-run on EVERY render() - and render() fires many times a
   // second during catalog enrichment, which is what made the Schedule route
   // feel laggy. Reuse the last result for a short window instead.
-  const _schedKey = state.shows.length + ":" + ((typeof AdultMode !== "undefined" && AdultMode.isEnabled()) ? 1 : 0) + ":" + _scheduleDataRevision;
+  const _schedKey = state.shows.length + ":" + ((typeof AdultMode !== "undefined" && AdultMode.isEnabled()) ? 1 : 0) + ":" + _scheduleDataRevision + ":" + (state.av1LatestAt || 0);
   const _schedNow = Date.now();
   const _schedFresh = Boolean(_scheduleMemo.value) && _scheduleMemo.key === _schedKey && (_schedNow - _scheduleMemo.at) < 500;
   const airingShows = _schedFresh ? _scheduleMemo.value : (() => {
     const seen = new Map();
-    [...catalogShows()]
+    // Newly posted, source-backed titles already in the latest feed need not
+    // wait for tomorrow's complete catalog snapshot to enter this calendar.
+    [...catalogShows(), ...buildAnimeAv1ReleaseCards(HOME_CARD_LIMIT, { applyUiFilters: false })]
       .filter((show) => {
         // The catalog already carries either a provider publish instant or a
         // Jikan broadcast slot for current shows. Derive the viewer-local day
@@ -7281,7 +7391,8 @@ function renderSchedule() {
         return hasEp(b) - hasEp(a);
       })
       .forEach((show) => {
-        const key = normalizeTitle(show.title);
+        const slug = animeAv1CatalogSlugForShow(show);
+        const key = slug ? `animeav1:${slug}` : normalizeTitle(show.title);
         if (!seen.has(key)) {
           seen.set(key, show);
         } else {
@@ -7291,7 +7402,13 @@ function renderSchedule() {
           const existingImg = existing.image || existing.images?.poster || existing.images?.cover || existing.cover || existing.poster || "";
           const showImg = show.image || show.images?.poster || show.images?.cover || show.cover || show.poster || "";
           const betterTime = show.time && show.time !== "TBA" && (!existing.time || existing.time === "TBA");
+          const betterSchedule = Number(show.animeytScheduleAt) > Number(existing.animeytScheduleAt || 0);
           const betterImg = showImg && !existingImg;
+          if (betterSchedule) {
+            existing.animeytScheduleAt = show.animeytScheduleAt;
+            existing.day = show.day;
+            existing.time = show.time;
+          }
           if (betterTime || betterImg) {
             seen.set(key, {
               ...existing,
@@ -7299,6 +7416,7 @@ function renderSchedule() {
               id: existing.id,
               // Always keep whichever image is non-empty
               image: existingImg || showImg,
+              day: betterTime ? show.day : existing.day,
               time: betterTime ? show.time : (existing.time || show.time)
             });
           } else if (existingImg && !existing.image) {
@@ -7314,6 +7432,10 @@ function renderSchedule() {
   // Highlight the current weekday. getDay() is 0=Sun..6=Sat; our columns run
   // Mon..Sun, so shift by 6 to line up.
   const todayIdx = (new Date().getDay() + 6) % 7;
+  const previousToday = Number(scheduleList.dataset.todayIndex);
+  if (scheduleList.dataset.todayIndex !== undefined && previousToday !== todayIdx
+    && _scheduleSelectedDay === previousToday) _scheduleSelectedDay = todayIdx;
+  scheduleList.dataset.todayIndex = String(todayIdx);
   if (!Number.isInteger(_scheduleSelectedDay) || _scheduleSelectedDay < -1 || _scheduleSelectedDay > 6) {
     _scheduleSelectedDay = todayIdx;
   }
@@ -7351,10 +7473,10 @@ function renderSchedule() {
     airingShows.map((show) => [
       show.id,
       show.day,
-      showAiringTimeText(show),
+      scheduleAiringTimeText(show),
       cardEpisodeLabel(show),
       getShowTitle(show),
-      getCardPosterCandidates(show)[0] || ""
+      getSchedulePosterCandidates(show)
     ])
   ]);
   if (scheduleList.dataset.schedSig === scheduleSig) return;
@@ -10145,9 +10267,10 @@ function setRoute(route, options = {}) {
   });
 
   syncRouteVisibility();
-  if (route === "home") {
+  if (route === "home" || route === "schedule") {
     scheduleAnimeAv1LatestLoad();
   }
+  scheduleDiscoveryReleaseRefresh();
   if ((route === "sources" || route === "library") && !state.externalSourcesLoaded) {
     scheduleExternalSourcesLoad({ force: true });
   }
@@ -22960,6 +23083,12 @@ syncFullscreenToggleState();
 
 // Flush the current playback position when the tab is hidden or the app closes,
 // so an abrupt exit (TV home button, tab close) still records where you were.
+document.addEventListener("visibilitychange", scheduleDiscoveryReleaseRefresh);
+window.addEventListener("pageshow", scheduleDiscoveryReleaseRefresh);
+window.addEventListener("pagehide", () => {
+  window.clearTimeout(_discoveryReleaseTimer);
+  _discoveryReleaseTimer = 0;
+});
 ["pagehide", "visibilitychange"].forEach((evt) =>
   window.addEventListener(evt, () => {
     if (evt === "visibilitychange" && document.visibilityState !== "hidden") return;
@@ -23936,7 +24065,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=977");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=984");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

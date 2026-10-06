@@ -751,6 +751,11 @@ function animeYTConfirmedAiringInstant(show = {}, now = Date.now()) {
 }
 
 function confirmedCarouselAiringInstant(show = {}, now = Date.now()) {
+  const scheduleAt = Number(show.animeytScheduleAt || 0);
+  // Recent releases and the weekly calendar share this provider-confirmed slot.
+  // It remains valid after airing without inventing next week's episode.
+  if (Number.isSafeInteger(scheduleAt) && scheduleAt > now - 7 * DAY_MS
+    && scheduleAt < now + 7 * DAY_MS) return scheduleAt;
   const providerAt = animeYTConfirmedAiringInstant(show, now);
   if (providerAt) return providerAt;
   const instant = Number(show.confirmedNextAiringAt || 0);
