@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-06T01:24:32.014Z",
-  "count": 6602,
+  "generatedAt": "2026-10-06T13:04:50.045Z",
+  "count": 6630,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -7172,6 +7172,17 @@
           "seasonYear": null,
           "startedAt": 1752796800000,
           "order": 3
+        },
+        {
+          "anilistId": 206244,
+          "title": "Luo Xiaohei Zhan Ji: Xue Qian Pian",
+          "format": "ONA",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 6,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1793318400000,
+          "order": 4
         }
       ]
     },
@@ -14133,6 +14144,17 @@
           "order": 3
         },
         {
+          "anilistId": 5967,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SPRING",
+          "seasonYear": 2004,
+          "startedAt": 1081296000000,
+          "order": 4
+        },
+        {
           "anilistId": 162796,
           "title": "Kinnikuman: Kanpeki Choujin Shiso-hen",
           "format": "TV",
@@ -14141,7 +14163,7 @@
           "season": "SUMMER",
           "seasonYear": 2024,
           "startedAt": 1720310400000,
-          "order": 4
+          "order": 5
         },
         {
           "anilistId": 181886,
@@ -14152,7 +14174,7 @@
           "season": "WINTER",
           "seasonYear": 2025,
           "startedAt": 1736640000000,
-          "order": 5
+          "order": 6
         },
         {
           "anilistId": 196893,
@@ -14163,7 +14185,7 @@
           "season": "",
           "seasonYear": null,
           "startedAt": 0,
-          "order": 6
+          "order": 7
         }
       ]
     },
@@ -14863,6 +14885,17 @@
           "seasonYear": 2025,
           "startedAt": 1751673600000,
           "order": 9
+        },
+        {
+          "anilistId": 203296,
+          "title": "Cardfight!! Vanguard: Divinez - Genma Seisen-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1768003200000,
+          "order": 10
         }
       ]
     },
@@ -15782,6 +15815,17 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [
         {
+          "anilistId": 112325,
+          "title": "Shadowverse",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 48,
+          "season": "SPRING",
+          "seasonYear": 2020,
+          "startedAt": 1586217600000,
+          "order": 1
+        },
+        {
           "anilistId": 140085,
           "title": "Shadowverse Flame",
           "format": "TV",
@@ -15790,7 +15834,7 @@
           "season": "SPRING",
           "seasonYear": 2022,
           "startedAt": 1648857600000,
-          "order": 1
+          "order": 2
         },
         {
           "anilistId": 163136,
@@ -15801,7 +15845,7 @@
           "season": "SUMMER",
           "seasonYear": 2023,
           "startedAt": 1688774400000,
-          "order": 2
+          "order": 3
         },
         {
           "anilistId": 172187,
@@ -15812,7 +15856,7 @@
           "season": "SPRING",
           "seasonYear": 2024,
           "startedAt": 1712966400000,
-          "order": 3
+          "order": 4
         }
       ]
     },
@@ -17632,6 +17676,17 @@
           "seasonYear": 2025,
           "startedAt": 1751673600000,
           "order": 9
+        },
+        {
+          "anilistId": 203296,
+          "title": "Cardfight!! Vanguard: Divinez - Genma Seisen-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1768003200000,
+          "order": 10
         }
       ]
     },
@@ -24016,6 +24071,17 @@
           "seasonYear": 2025,
           "startedAt": 1751673600000,
           "order": 9
+        },
+        {
+          "anilistId": 203296,
+          "title": "Cardfight!! Vanguard: Divinez - Genma Seisen-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1768003200000,
+          "order": 10
         }
       ]
     },
@@ -31538,6 +31604,39 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [
         {
+          "anilistId": 21780,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time)",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 11,
+          "season": "SPRING",
+          "seasonYear": 2016,
+          "startedAt": 1460073600000,
+          "order": 1
+        },
+        {
+          "anilistId": 21891,
+          "title": "Re:Petit kara Hajimeru Isekai Seikatsu",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 14,
+          "season": "SUMMER",
+          "seasonYear": 2016,
+          "startedAt": 1466726400000,
+          "order": 2
+        },
+        {
+          "anilistId": 120700,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 2nd Season",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2020,
+          "startedAt": 1594339200000,
+          "order": 3
+        },
+        {
           "anilistId": 128306,
           "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 2nd Season Part 2",
           "format": "ONA",
@@ -31546,7 +31645,7 @@
           "season": "WINTER",
           "seasonYear": 2021,
           "startedAt": 1610064000000,
-          "order": 1
+          "order": 4
         },
         {
           "anilistId": 182417,
@@ -31557,7 +31656,7 @@
           "season": "FALL",
           "seasonYear": 2024,
           "startedAt": 1727913600000,
-          "order": 2
+          "order": 5
         },
         {
           "anilistId": 210687,
@@ -31568,7 +31667,7 @@
           "season": "SPRING",
           "seasonYear": 2026,
           "startedAt": 1775606400000,
-          "order": 3
+          "order": 6
         }
       ]
     },
@@ -42866,8 +42965,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
+      "nextAiringAt": 1791705600000,
+      "nextAiringEpisodeNumber": 1,
       "franchiseSeasons": [
         {
           "anilistId": 158898,
@@ -48126,6 +48225,17 @@
           "seasonYear": 2025,
           "startedAt": 1751673600000,
           "order": 9
+        },
+        {
+          "anilistId": 203296,
+          "title": "Cardfight!! Vanguard: Divinez - Genma Seisen-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1768003200000,
+          "order": 10
         }
       ]
     },
@@ -48236,6 +48346,17 @@
           "seasonYear": 2025,
           "startedAt": 1751673600000,
           "order": 9
+        },
+        {
+          "anilistId": 203296,
+          "title": "Cardfight!! Vanguard: Divinez - Genma Seisen-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1768003200000,
+          "order": 10
         }
       ]
     },
@@ -50964,6 +51085,17 @@
           "seasonYear": 2025,
           "startedAt": 1751673600000,
           "order": 9
+        },
+        {
+          "anilistId": 203296,
+          "title": "Cardfight!! Vanguard: Divinez - Genma Seisen-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1768003200000,
+          "order": 10
         }
       ]
     },
@@ -51074,6 +51206,17 @@
           "seasonYear": 2025,
           "startedAt": 1751673600000,
           "order": 9
+        },
+        {
+          "anilistId": 203296,
+          "title": "Cardfight!! Vanguard: Divinez - Genma Seisen-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1768003200000,
+          "order": 10
         }
       ]
     },
@@ -51184,6 +51327,17 @@
           "seasonYear": 2025,
           "startedAt": 1751673600000,
           "order": 9
+        },
+        {
+          "anilistId": 203296,
+          "title": "Cardfight!! Vanguard: Divinez - Genma Seisen-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1768003200000,
+          "order": 10
         }
       ]
     },
@@ -53081,6 +53235,17 @@
           "order": 3
         },
         {
+          "anilistId": 5967,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SPRING",
+          "seasonYear": 2004,
+          "startedAt": 1081296000000,
+          "order": 4
+        },
+        {
           "anilistId": 162796,
           "title": "Kinnikuman: Kanpeki Choujin Shiso-hen",
           "format": "TV",
@@ -53089,7 +53254,7 @@
           "season": "SUMMER",
           "seasonYear": 2024,
           "startedAt": 1720310400000,
-          "order": 4
+          "order": 5
         },
         {
           "anilistId": 181886,
@@ -53100,7 +53265,7 @@
           "season": "WINTER",
           "seasonYear": 2025,
           "startedAt": 1736640000000,
-          "order": 5
+          "order": 6
         },
         {
           "anilistId": 196893,
@@ -53111,7 +53276,7 @@
           "season": "",
           "seasonYear": null,
           "startedAt": 0,
-          "order": 6
+          "order": 7
         }
       ]
     },
@@ -53158,6 +53323,17 @@
           "order": 3
         },
         {
+          "anilistId": 5967,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SPRING",
+          "seasonYear": 2004,
+          "startedAt": 1081296000000,
+          "order": 4
+        },
+        {
           "anilistId": 162796,
           "title": "Kinnikuman: Kanpeki Choujin Shiso-hen",
           "format": "TV",
@@ -53166,7 +53342,7 @@
           "season": "SUMMER",
           "seasonYear": 2024,
           "startedAt": 1720310400000,
-          "order": 4
+          "order": 5
         },
         {
           "anilistId": 181886,
@@ -53177,7 +53353,7 @@
           "season": "WINTER",
           "seasonYear": 2025,
           "startedAt": 1736640000000,
-          "order": 5
+          "order": 6
         },
         {
           "anilistId": 196893,
@@ -53188,7 +53364,7 @@
           "season": "",
           "seasonYear": null,
           "startedAt": 0,
-          "order": 6
+          "order": 7
         }
       ]
     },
@@ -53235,6 +53411,17 @@
           "order": 3
         },
         {
+          "anilistId": 5967,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SPRING",
+          "seasonYear": 2004,
+          "startedAt": 1081296000000,
+          "order": 4
+        },
+        {
           "anilistId": 162796,
           "title": "Kinnikuman: Kanpeki Choujin Shiso-hen",
           "format": "TV",
@@ -53243,7 +53430,7 @@
           "season": "SUMMER",
           "seasonYear": 2024,
           "startedAt": 1720310400000,
-          "order": 4
+          "order": 5
         },
         {
           "anilistId": 181886,
@@ -53254,7 +53441,7 @@
           "season": "WINTER",
           "seasonYear": 2025,
           "startedAt": 1736640000000,
-          "order": 5
+          "order": 6
         },
         {
           "anilistId": 196893,
@@ -53265,7 +53452,7 @@
           "season": "",
           "seasonYear": null,
           "startedAt": 0,
-          "order": 6
+          "order": 7
         }
       ]
     },
@@ -61146,6 +61333,17 @@
           "seasonYear": 2018,
           "startedAt": 1522627200000,
           "order": 3
+        },
+        {
+          "anilistId": 108853,
+          "title": "Beyblade Burst Gachi",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554422400000,
+          "order": 4
         }
       ]
     },
@@ -65406,6 +65604,17 @@
           "seasonYear": 2018,
           "startedAt": 1523145600000,
           "order": 4
+        },
+        {
+          "anilistId": 175120,
+          "title": "Koneko no Chii: Ponponra Natsuyasumi",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1721347200000,
+          "order": 5
         }
       ]
     },
@@ -81447,6 +81656,17 @@
           "seasonYear": null,
           "startedAt": 1659225600000,
           "order": 3
+        },
+        {
+          "anilistId": 156109,
+          "title": "Hanhua Riji 4",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1710028800000,
+          "order": 4
         }
       ]
     },
@@ -103253,7 +103473,7 @@
           "anilistId": 160803,
           "title": "Mahou Shoujo Ikusei Keikaku: restart",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -105204,6 +105424,17 @@
           "seasonYear": 2011,
           "startedAt": 1301788800000,
           "order": 3
+        },
+        {
+          "anilistId": 13231,
+          "title": "Metal Fight Beyblade ZERO G",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 38,
+          "season": "SPRING",
+          "seasonYear": 2012,
+          "startedAt": 1333843200000,
+          "order": 4
         }
       ]
     },
@@ -112775,6 +113006,17 @@
           "seasonYear": 2018,
           "startedAt": 1531180800000,
           "order": 3
+        },
+        {
+          "anilistId": 151898,
+          "title": "Overlord: Ple Ple Pleiades 4",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2022,
+          "startedAt": 1656979200000,
+          "order": 4
         }
       ]
     },
@@ -115707,6 +115949,39 @@
           "seasonYear": 2020,
           "startedAt": 1594339200000,
           "order": 3
+        },
+        {
+          "anilistId": 128306,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 2nd Season Part 2",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1610064000000,
+          "order": 4
+        },
+        {
+          "anilistId": 182417,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 3rd Season",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 16,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727913600000,
+          "order": 5
+        },
+        {
+          "anilistId": 210687,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 4th Season",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 19,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775606400000,
+          "order": 6
         }
       ]
     },
@@ -141560,6 +141835,17 @@
           "seasonYear": 2018,
           "startedAt": 1523145600000,
           "order": 4
+        },
+        {
+          "anilistId": 175120,
+          "title": "Koneko no Chii: Ponponra Natsuyasumi",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1721347200000,
+          "order": 5
         }
       ]
     },
@@ -151919,6 +152205,17 @@
           "seasonYear": 2018,
           "startedAt": 1523145600000,
           "order": 4
+        },
+        {
+          "anilistId": 175120,
+          "title": "Koneko no Chii: Ponponra Natsuyasumi",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1721347200000,
+          "order": 5
         }
       ]
     },
@@ -151974,6 +152271,17 @@
           "seasonYear": 2018,
           "startedAt": 1523145600000,
           "order": 4
+        },
+        {
+          "anilistId": 175120,
+          "title": "Koneko no Chii: Ponponra Natsuyasumi",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1721347200000,
+          "order": 5
         }
       ]
     },
@@ -180782,6 +181090,17 @@
           "seasonYear": null,
           "startedAt": 1752796800000,
           "order": 3
+        },
+        {
+          "anilistId": 206244,
+          "title": "Luo Xiaohei Zhan Ji: Xue Qian Pian",
+          "format": "ONA",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 6,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1793318400000,
+          "order": 4
         }
       ]
     },
@@ -180826,6 +181145,17 @@
           "seasonYear": null,
           "startedAt": 1752796800000,
           "order": 3
+        },
+        {
+          "anilistId": 206244,
+          "title": "Luo Xiaohei Zhan Ji: Xue Qian Pian",
+          "format": "ONA",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 6,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1793318400000,
+          "order": 4
         }
       ]
     },
@@ -187263,6 +187593,17 @@
           "order": 3
         },
         {
+          "anilistId": 5967,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SPRING",
+          "seasonYear": 2004,
+          "startedAt": 1081296000000,
+          "order": 4
+        },
+        {
           "anilistId": 162796,
           "title": "Kinnikuman: Kanpeki Choujin Shiso-hen",
           "format": "TV",
@@ -187271,7 +187612,7 @@
           "season": "SUMMER",
           "seasonYear": 2024,
           "startedAt": 1720310400000,
-          "order": 4
+          "order": 5
         },
         {
           "anilistId": 181886,
@@ -187282,7 +187623,7 @@
           "season": "WINTER",
           "seasonYear": 2025,
           "startedAt": 1736640000000,
-          "order": 5
+          "order": 6
         },
         {
           "anilistId": 196893,
@@ -187293,7 +187634,7 @@
           "season": "",
           "seasonYear": null,
           "startedAt": 0,
-          "order": 6
+          "order": 7
         }
       ]
     },
@@ -188262,6 +188603,17 @@
           "seasonYear": 2025,
           "startedAt": 1751673600000,
           "order": 9
+        },
+        {
+          "anilistId": 203296,
+          "title": "Cardfight!! Vanguard: Divinez - Genma Seisen-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1768003200000,
+          "order": 10
         }
       ]
     },
@@ -188372,6 +188724,17 @@
           "seasonYear": 2025,
           "startedAt": 1751673600000,
           "order": 9
+        },
+        {
+          "anilistId": 203296,
+          "title": "Cardfight!! Vanguard: Divinez - Genma Seisen-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1768003200000,
+          "order": 10
         }
       ]
     },
@@ -188583,6 +188946,17 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [
         {
+          "anilistId": 112325,
+          "title": "Shadowverse",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 48,
+          "season": "SPRING",
+          "seasonYear": 2020,
+          "startedAt": 1586217600000,
+          "order": 1
+        },
+        {
           "anilistId": 140085,
           "title": "Shadowverse Flame",
           "format": "TV",
@@ -188591,7 +188965,7 @@
           "season": "SPRING",
           "seasonYear": 2022,
           "startedAt": 1648857600000,
-          "order": 1
+          "order": 2
         },
         {
           "anilistId": 163136,
@@ -188602,7 +188976,7 @@
           "season": "SUMMER",
           "seasonYear": 2023,
           "startedAt": 1688774400000,
-          "order": 2
+          "order": 3
         },
         {
           "anilistId": 172187,
@@ -188613,7 +188987,7 @@
           "season": "SPRING",
           "seasonYear": 2024,
           "startedAt": 1712966400000,
-          "order": 3
+          "order": 4
         }
       ]
     },
@@ -188627,6 +189001,17 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [
         {
+          "anilistId": 112325,
+          "title": "Shadowverse",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 48,
+          "season": "SPRING",
+          "seasonYear": 2020,
+          "startedAt": 1586217600000,
+          "order": 1
+        },
+        {
           "anilistId": 140085,
           "title": "Shadowverse Flame",
           "format": "TV",
@@ -188635,7 +189020,7 @@
           "season": "SPRING",
           "seasonYear": 2022,
           "startedAt": 1648857600000,
-          "order": 1
+          "order": 2
         },
         {
           "anilistId": 163136,
@@ -188646,7 +189031,7 @@
           "season": "SUMMER",
           "seasonYear": 2023,
           "startedAt": 1688774400000,
-          "order": 2
+          "order": 3
         },
         {
           "anilistId": 172187,
@@ -188657,7 +189042,7 @@
           "season": "SPRING",
           "seasonYear": 2024,
           "startedAt": 1712966400000,
-          "order": 3
+          "order": 4
         }
       ]
     },
@@ -195273,6 +195658,39 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [
         {
+          "anilistId": 21780,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time)",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 11,
+          "season": "SPRING",
+          "seasonYear": 2016,
+          "startedAt": 1460073600000,
+          "order": 1
+        },
+        {
+          "anilistId": 21891,
+          "title": "Re:Petit kara Hajimeru Isekai Seikatsu",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 14,
+          "season": "SUMMER",
+          "seasonYear": 2016,
+          "startedAt": 1466726400000,
+          "order": 2
+        },
+        {
+          "anilistId": 120700,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 2nd Season",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2020,
+          "startedAt": 1594339200000,
+          "order": 3
+        },
+        {
           "anilistId": 128306,
           "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 2nd Season Part 2",
           "format": "ONA",
@@ -195281,7 +195699,7 @@
           "season": "WINTER",
           "seasonYear": 2021,
           "startedAt": 1610064000000,
-          "order": 1
+          "order": 4
         },
         {
           "anilistId": 182417,
@@ -195292,7 +195710,7 @@
           "season": "FALL",
           "seasonYear": 2024,
           "startedAt": 1727913600000,
-          "order": 2
+          "order": 5
         },
         {
           "anilistId": 210687,
@@ -195303,7 +195721,7 @@
           "season": "SPRING",
           "seasonYear": 2026,
           "startedAt": 1775606400000,
-          "order": 3
+          "order": 6
         }
       ]
     },
@@ -198736,6 +199154,17 @@
           "seasonYear": 2018,
           "startedAt": 1522627200000,
           "order": 3
+        },
+        {
+          "anilistId": 108853,
+          "title": "Beyblade Burst Gachi",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554422400000,
+          "order": 4
         }
       ]
     },
@@ -198780,6 +199209,17 @@
           "seasonYear": 2018,
           "startedAt": 1522627200000,
           "order": 3
+        },
+        {
+          "anilistId": 108853,
+          "title": "Beyblade Burst Gachi",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554422400000,
+          "order": 4
         }
       ]
     },
@@ -201002,6 +201442,17 @@
           "seasonYear": 2018,
           "startedAt": 1523145600000,
           "order": 4
+        },
+        {
+          "anilistId": 175120,
+          "title": "Koneko no Chii: Ponponra Natsuyasumi",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1721347200000,
+          "order": 5
         }
       ]
     },
@@ -209802,6 +210253,17 @@
           "seasonYear": null,
           "startedAt": 1659225600000,
           "order": 3
+        },
+        {
+          "anilistId": 156109,
+          "title": "Hanhua Riji 4",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1710028800000,
+          "order": 4
         }
       ]
     },
@@ -209846,6 +210308,17 @@
           "seasonYear": null,
           "startedAt": 1659225600000,
           "order": 3
+        },
+        {
+          "anilistId": 156109,
+          "title": "Hanhua Riji 4",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1710028800000,
+          "order": 4
         }
       ]
     },
@@ -220532,7 +221005,7 @@
           "anilistId": 160803,
           "title": "Mahou Shoujo Ikusei Keikaku: restart",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -220543,12 +221016,12 @@
     },
     "anilist-160803": {
       "anilistId": 160803,
-      "airingStatus": "NOT_YET_RELEASED",
+      "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791219600000,
-      "nextAiringEpisodeNumber": 1,
+      "nextAiringAt": 1791824400000,
+      "nextAiringEpisodeNumber": 2,
       "franchiseSeasons": [
         {
           "anilistId": 21340,
@@ -220565,14 +221038,16 @@
           "anilistId": 160803,
           "title": "Mahou Shoujo Ikusei Keikaku: restart",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
           "startedAt": 1791244800000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-05T23:19:38.378Z"
     },
     "anilist-457": {
       "anilistId": 457,
@@ -221935,6 +222410,17 @@
           "seasonYear": 2011,
           "startedAt": 1301788800000,
           "order": 3
+        },
+        {
+          "anilistId": 13231,
+          "title": "Metal Fight Beyblade ZERO G",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 38,
+          "season": "SPRING",
+          "seasonYear": 2012,
+          "startedAt": 1333843200000,
+          "order": 4
         }
       ]
     },
@@ -221979,6 +222465,17 @@
           "seasonYear": 2011,
           "startedAt": 1301788800000,
           "order": 3
+        },
+        {
+          "anilistId": 13231,
+          "title": "Metal Fight Beyblade ZERO G",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 38,
+          "season": "SPRING",
+          "seasonYear": 2012,
+          "startedAt": 1333843200000,
+          "order": 4
         }
       ]
     },
@@ -224927,6 +225424,17 @@
           "seasonYear": 2018,
           "startedAt": 1531180800000,
           "order": 3
+        },
+        {
+          "anilistId": 151898,
+          "title": "Overlord: Ple Ple Pleiades 4",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2022,
+          "startedAt": 1656979200000,
+          "order": 4
         }
       ]
     },
@@ -224971,6 +225479,17 @@
           "seasonYear": 2018,
           "startedAt": 1531180800000,
           "order": 3
+        },
+        {
+          "anilistId": 151898,
+          "title": "Overlord: Ple Ple Pleiades 4",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2022,
+          "startedAt": 1656979200000,
+          "order": 4
         }
       ]
     },
@@ -226225,6 +226744,39 @@
           "seasonYear": 2020,
           "startedAt": 1594339200000,
           "order": 3
+        },
+        {
+          "anilistId": 128306,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 2nd Season Part 2",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1610064000000,
+          "order": 4
+        },
+        {
+          "anilistId": 182417,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 3rd Season",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 16,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727913600000,
+          "order": 5
+        },
+        {
+          "anilistId": 210687,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 4th Season",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 19,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775606400000,
+          "order": 6
         }
       ]
     },
@@ -226269,6 +226821,39 @@
           "seasonYear": 2020,
           "startedAt": 1594339200000,
           "order": 3
+        },
+        {
+          "anilistId": 128306,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 2nd Season Part 2",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1610064000000,
+          "order": 4
+        },
+        {
+          "anilistId": 182417,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 3rd Season",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 16,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727913600000,
+          "order": 5
+        },
+        {
+          "anilistId": 210687,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 4th Season",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 19,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775606400000,
+          "order": 6
         }
       ]
     },
@@ -236449,6 +237034,2024 @@
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-04T18:18:46.963Z"
     },
+    "anilist-131239": {
+      "anilistId": 131239,
+      "airingStatus": "FINISHED",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 102663,
+          "title": "Luo Xiaohei Zhan Ji",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 28,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1300320000000,
+          "order": 1
+        },
+        {
+          "anilistId": 131239,
+          "title": "Luo Xiaohei Zhan Ji: Zhongsheng Zhi Men",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1619222400000,
+          "order": 2
+        },
+        {
+          "anilistId": 166475,
+          "title": "Luo Xiaohei Zhan Ji 2",
+          "format": "MOVIE",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1752796800000,
+          "order": 3
+        },
+        {
+          "anilistId": 206244,
+          "title": "Luo Xiaohei Zhan Ji: Xue Qian Pian",
+          "format": "ONA",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 6,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1793318400000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-3272": {
+      "anilistId": 3272,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 1983,
+      "anilistEpisodeCount": 137,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 3272,
+          "title": "Kinnikuman",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 137,
+          "season": "SPRING",
+          "seasonYear": 1983,
+          "startedAt": 418176000000,
+          "order": 1
+        },
+        {
+          "anilistId": 3281,
+          "title": "Kinnikuman: Kinnikusei Oui Soudatsu-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 46,
+          "season": "FALL",
+          "seasonYear": 1991,
+          "startedAt": 686707200000,
+          "order": 2
+        },
+        {
+          "anilistId": 1707,
+          "title": "Kinnikuman Nisei",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "WINTER",
+          "seasonYear": 2002,
+          "startedAt": 1010534400000,
+          "order": 3
+        },
+        {
+          "anilistId": 5967,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SPRING",
+          "seasonYear": 2004,
+          "startedAt": 1081296000000,
+          "order": 4
+        },
+        {
+          "anilistId": 162796,
+          "title": "Kinnikuman: Kanpeki Choujin Shiso-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1720310400000,
+          "order": 5
+        },
+        {
+          "anilistId": 181886,
+          "title": "Kinnikuman: Kanpeki Choujin Shiso-hen Season 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 11,
+          "season": "WINTER",
+          "seasonYear": 2025,
+          "startedAt": 1736640000000,
+          "order": 6
+        },
+        {
+          "anilistId": 196893,
+          "title": "Kinnikuman: Kanpeki Choujin Shiso-hen Season 3",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 7
+        }
+      ]
+    },
+    "anilist-1707": {
+      "anilistId": 1707,
+      "airingStatus": "FINISHED",
+      "season": "WINTER",
+      "seasonYear": 2002,
+      "anilistEpisodeCount": 51,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 3272,
+          "title": "Kinnikuman",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 137,
+          "season": "SPRING",
+          "seasonYear": 1983,
+          "startedAt": 418176000000,
+          "order": 1
+        },
+        {
+          "anilistId": 3281,
+          "title": "Kinnikuman: Kinnikusei Oui Soudatsu-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 46,
+          "season": "FALL",
+          "seasonYear": 1991,
+          "startedAt": 686707200000,
+          "order": 2
+        },
+        {
+          "anilistId": 1707,
+          "title": "Kinnikuman Nisei",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "WINTER",
+          "seasonYear": 2002,
+          "startedAt": 1010534400000,
+          "order": 3
+        },
+        {
+          "anilistId": 5967,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SPRING",
+          "seasonYear": 2004,
+          "startedAt": 1081296000000,
+          "order": 4
+        },
+        {
+          "anilistId": 162796,
+          "title": "Kinnikuman: Kanpeki Choujin Shiso-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1720310400000,
+          "order": 5
+        },
+        {
+          "anilistId": 181886,
+          "title": "Kinnikuman: Kanpeki Choujin Shiso-hen Season 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 11,
+          "season": "WINTER",
+          "seasonYear": 2025,
+          "startedAt": 1736640000000,
+          "order": 6
+        },
+        {
+          "anilistId": 196893,
+          "title": "Kinnikuman: Kanpeki Choujin Shiso-hen Season 3",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 7
+        }
+      ]
+    },
+    "anilist-121962": {
+      "anilistId": 121962,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 121962,
+          "title": "Cardfight!! Vanguard: overDress",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617408000000,
+          "order": 1
+        },
+        {
+          "anilistId": 128827,
+          "title": "Cardfight!! Vanguard: overDress Season 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2021,
+          "startedAt": 1633392000000,
+          "order": 2
+        },
+        {
+          "anilistId": 139212,
+          "title": "Cardfight!! Vanguard: will+Dress",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2022,
+          "startedAt": 1656979200000,
+          "order": 3
+        },
+        {
+          "anilistId": 139213,
+          "title": "Cardfight!! Vanguard: will+Dress Season 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1673654400000,
+          "order": 4
+        },
+        {
+          "anilistId": 150970,
+          "title": "Cardfight!! Vanguard: will+Dress Season 3",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688774400000,
+          "order": 5
+        },
+        {
+          "anilistId": 164204,
+          "title": "Cardfight!! Vanguard: Divinez",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1705104000000,
+          "order": 6
+        },
+        {
+          "anilistId": 165681,
+          "title": "Cardfight!! Vanguard: Divinez Season 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1720224000000,
+          "order": 7
+        },
+        {
+          "anilistId": 182920,
+          "title": "Cardfight!! Vanguard: Divinez - Deluxe-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2025,
+          "startedAt": 1736553600000,
+          "order": 8
+        },
+        {
+          "anilistId": 191994,
+          "title": "Cardfight!! Vanguard: Divinez - Deluxe Kesshou-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2025,
+          "startedAt": 1751673600000,
+          "order": 9
+        },
+        {
+          "anilistId": 203296,
+          "title": "Cardfight!! Vanguard: Divinez - Genma Seisen-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1768003200000,
+          "order": 10
+        }
+      ]
+    },
+    "anilist-191994": {
+      "anilistId": 191994,
+      "airingStatus": "FINISHED",
+      "season": "SUMMER",
+      "seasonYear": 2025,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 121962,
+          "title": "Cardfight!! Vanguard: overDress",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617408000000,
+          "order": 1
+        },
+        {
+          "anilistId": 128827,
+          "title": "Cardfight!! Vanguard: overDress Season 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2021,
+          "startedAt": 1633392000000,
+          "order": 2
+        },
+        {
+          "anilistId": 139212,
+          "title": "Cardfight!! Vanguard: will+Dress",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2022,
+          "startedAt": 1656979200000,
+          "order": 3
+        },
+        {
+          "anilistId": 139213,
+          "title": "Cardfight!! Vanguard: will+Dress Season 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1673654400000,
+          "order": 4
+        },
+        {
+          "anilistId": 150970,
+          "title": "Cardfight!! Vanguard: will+Dress Season 3",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688774400000,
+          "order": 5
+        },
+        {
+          "anilistId": 164204,
+          "title": "Cardfight!! Vanguard: Divinez",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1705104000000,
+          "order": 6
+        },
+        {
+          "anilistId": 165681,
+          "title": "Cardfight!! Vanguard: Divinez Season 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1720224000000,
+          "order": 7
+        },
+        {
+          "anilistId": 182920,
+          "title": "Cardfight!! Vanguard: Divinez - Deluxe-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2025,
+          "startedAt": 1736553600000,
+          "order": 8
+        },
+        {
+          "anilistId": 191994,
+          "title": "Cardfight!! Vanguard: Divinez - Deluxe Kesshou-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2025,
+          "startedAt": 1751673600000,
+          "order": 9
+        },
+        {
+          "anilistId": 203296,
+          "title": "Cardfight!! Vanguard: Divinez - Genma Seisen-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1768003200000,
+          "order": 10
+        }
+      ]
+    },
+    "anilist-140085": {
+      "anilistId": 140085,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 50,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 112325,
+          "title": "Shadowverse",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 48,
+          "season": "SPRING",
+          "seasonYear": 2020,
+          "startedAt": 1586217600000,
+          "order": 1
+        },
+        {
+          "anilistId": 140085,
+          "title": "Shadowverse Flame",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 50,
+          "season": "SPRING",
+          "seasonYear": 2022,
+          "startedAt": 1648857600000,
+          "order": 2
+        },
+        {
+          "anilistId": 163136,
+          "title": "Shadowverse Flame: Seven Shadows-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 25,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688774400000,
+          "order": 3
+        },
+        {
+          "anilistId": 172187,
+          "title": "Shadowverse Flame: Arc-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 23,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1712966400000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-194456": {
+      "anilistId": 194456,
+      "airingStatus": "NOT_YET_RELEASED",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 151639,
+          "title": "Ninja Kamui",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1707609600000,
+          "order": 1
+        },
+        {
+          "anilistId": 194453,
+          "title": "Ninja Kamui: Red Vendetta",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 2
+        },
+        {
+          "anilistId": 194456,
+          "title": "Ninja Kamui Season 3",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 3
+        }
+      ]
+    },
+    "anilist-102427": {
+      "anilistId": 102427,
+      "airingStatus": "FINISHED",
+      "season": "SUMMER",
+      "seasonYear": 2019,
+      "anilistEpisodeCount": 6,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 102427,
+          "title": "Saint Seiya: Knights of the Zodiac",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 6,
+          "season": "SUMMER",
+          "seasonYear": 2019,
+          "startedAt": 1563494400000,
+          "order": 1
+        },
+        {
+          "anilistId": 114448,
+          "title": "Saint Seiya: Knights of the Zodiac Part 2",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 6,
+          "season": "WINTER",
+          "seasonYear": 2020,
+          "startedAt": 1579737600000,
+          "order": 2
+        },
+        {
+          "anilistId": 151659,
+          "title": "Saint Seiya: Knights of the Zodiac Battle Sanctuary",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2022,
+          "startedAt": 1659225600000,
+          "order": 3
+        },
+        {
+          "anilistId": 158988,
+          "title": "Saint Seiya: Knights of the Zodiac Battle Sanctuary Part 2",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1711929600000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-128306": {
+      "anilistId": 128306,
+      "airingStatus": "FINISHED",
+      "season": "WINTER",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 21780,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time)",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 11,
+          "season": "SPRING",
+          "seasonYear": 2016,
+          "startedAt": 1460073600000,
+          "order": 1
+        },
+        {
+          "anilistId": 21891,
+          "title": "Re:Petit kara Hajimeru Isekai Seikatsu",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 14,
+          "season": "SUMMER",
+          "seasonYear": 2016,
+          "startedAt": 1466726400000,
+          "order": 2
+        },
+        {
+          "anilistId": 120700,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 2nd Season",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2020,
+          "startedAt": 1594339200000,
+          "order": 3
+        },
+        {
+          "anilistId": 128306,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 2nd Season Part 2",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1610064000000,
+          "order": 4
+        },
+        {
+          "anilistId": 182417,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 3rd Season",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 16,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727913600000,
+          "order": 5
+        },
+        {
+          "anilistId": 210687,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 4th Season",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 19,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775606400000,
+          "order": 6
+        }
+      ]
+    },
+    "anilist-101115": {
+      "anilistId": 101115,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2018,
+      "anilistEpisodeCount": 51,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 21236,
+          "title": "Beyblade Burst",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2016,
+          "startedAt": 1459728000000,
+          "order": 1
+        },
+        {
+          "anilistId": 98289,
+          "title": "Beyblade Burst God",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2017,
+          "startedAt": 1491177600000,
+          "order": 2
+        },
+        {
+          "anilistId": 101115,
+          "title": "Beyblade Burst Chouzetsu",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2018,
+          "startedAt": 1522627200000,
+          "order": 3
+        },
+        {
+          "anilistId": 108853,
+          "title": "Beyblade Burst Gachi",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554422400000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-99478": {
+      "anilistId": 99478,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2018,
+      "anilistEpisodeCount": 25,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 3841,
+          "title": "Chi's Sweet Home",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 104,
+          "season": "SPRING",
+          "seasonYear": 2008,
+          "startedAt": 1206921600000,
+          "order": 1
+        },
+        {
+          "anilistId": 6024,
+          "title": "Chi's Sweet Home: Atarashii Ouchi",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 104,
+          "season": "SPRING",
+          "seasonYear": 2009,
+          "startedAt": 1238371200000,
+          "order": 2
+        },
+        {
+          "anilistId": 21796,
+          "title": "Koneko no Chii: Ponponra Daibouken",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "FALL",
+          "seasonYear": 2016,
+          "startedAt": 1475366400000,
+          "order": 3
+        },
+        {
+          "anilistId": 99478,
+          "title": "Koneko no Chii: Ponponra Dairyokou",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 25,
+          "season": "SPRING",
+          "seasonYear": 2018,
+          "startedAt": 1523145600000,
+          "order": 4
+        },
+        {
+          "anilistId": 175120,
+          "title": "Koneko no Chii: Ponponra Natsuyasumi",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1721347200000,
+          "order": 5
+        }
+      ]
+    },
+    "anilist-5688": {
+      "anilistId": 5688,
+      "airingStatus": "FINISHED",
+      "season": "WINTER",
+      "seasonYear": 1968,
+      "anilistEpisodeCount": 65,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 5688,
+          "title": "Gegege no Kitarou (1968)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 65,
+          "season": "WINTER",
+          "seasonYear": 1968,
+          "startedAt": -62985600000,
+          "order": 1
+        },
+        {
+          "anilistId": 6971,
+          "title": "Gegege no Kitarou (1971)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 45,
+          "season": "FALL",
+          "seasonYear": 1971,
+          "startedAt": 55641600000,
+          "order": 2
+        },
+        {
+          "anilistId": 7307,
+          "title": "Gegege no Kitarou (1985)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 108,
+          "season": "FALL",
+          "seasonYear": 1985,
+          "startedAt": 497923200000,
+          "order": 3
+        },
+        {
+          "anilistId": 8158,
+          "title": "Gegege no Kitarou: Jigoku-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 7,
+          "season": "WINTER",
+          "seasonYear": 1988,
+          "startedAt": 571276800000,
+          "order": 4
+        },
+        {
+          "anilistId": 7619,
+          "title": "Gegege no Kitarou (1996)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 114,
+          "season": "WINTER",
+          "seasonYear": 1996,
+          "startedAt": 820972800000,
+          "order": 5
+        },
+        {
+          "anilistId": 2165,
+          "title": "Gegege no Kitarou (2007)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 100,
+          "season": "SPRING",
+          "seasonYear": 2007,
+          "startedAt": 1175385600000,
+          "order": 6
+        },
+        {
+          "anilistId": 100978,
+          "title": "Gegege no Kitarou (2018)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 97,
+          "season": "SPRING",
+          "seasonYear": 2018,
+          "startedAt": 1522540800000,
+          "order": 7
+        }
+      ]
+    },
+    "anilist-6971": {
+      "anilistId": 6971,
+      "airingStatus": "FINISHED",
+      "season": "FALL",
+      "seasonYear": 1971,
+      "anilistEpisodeCount": 45,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 5688,
+          "title": "Gegege no Kitarou (1968)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 65,
+          "season": "WINTER",
+          "seasonYear": 1968,
+          "startedAt": -62985600000,
+          "order": 1
+        },
+        {
+          "anilistId": 6971,
+          "title": "Gegege no Kitarou (1971)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 45,
+          "season": "FALL",
+          "seasonYear": 1971,
+          "startedAt": 55641600000,
+          "order": 2
+        },
+        {
+          "anilistId": 7307,
+          "title": "Gegege no Kitarou (1985)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 108,
+          "season": "FALL",
+          "seasonYear": 1985,
+          "startedAt": 497923200000,
+          "order": 3
+        },
+        {
+          "anilistId": 8158,
+          "title": "Gegege no Kitarou: Jigoku-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 7,
+          "season": "WINTER",
+          "seasonYear": 1988,
+          "startedAt": 571276800000,
+          "order": 4
+        },
+        {
+          "anilistId": 7619,
+          "title": "Gegege no Kitarou (1996)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 114,
+          "season": "WINTER",
+          "seasonYear": 1996,
+          "startedAt": 820972800000,
+          "order": 5
+        },
+        {
+          "anilistId": 2165,
+          "title": "Gegege no Kitarou (2007)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 100,
+          "season": "SPRING",
+          "seasonYear": 2007,
+          "startedAt": 1175385600000,
+          "order": 6
+        },
+        {
+          "anilistId": 100978,
+          "title": "Gegege no Kitarou (2018)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 97,
+          "season": "SPRING",
+          "seasonYear": 2018,
+          "startedAt": 1522540800000,
+          "order": 7
+        }
+      ]
+    },
+    "anilist-7307": {
+      "anilistId": 7307,
+      "airingStatus": "FINISHED",
+      "season": "FALL",
+      "seasonYear": 1985,
+      "anilistEpisodeCount": 108,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 5688,
+          "title": "Gegege no Kitarou (1968)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 65,
+          "season": "WINTER",
+          "seasonYear": 1968,
+          "startedAt": -62985600000,
+          "order": 1
+        },
+        {
+          "anilistId": 6971,
+          "title": "Gegege no Kitarou (1971)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 45,
+          "season": "FALL",
+          "seasonYear": 1971,
+          "startedAt": 55641600000,
+          "order": 2
+        },
+        {
+          "anilistId": 7307,
+          "title": "Gegege no Kitarou (1985)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 108,
+          "season": "FALL",
+          "seasonYear": 1985,
+          "startedAt": 497923200000,
+          "order": 3
+        },
+        {
+          "anilistId": 8158,
+          "title": "Gegege no Kitarou: Jigoku-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 7,
+          "season": "WINTER",
+          "seasonYear": 1988,
+          "startedAt": 571276800000,
+          "order": 4
+        },
+        {
+          "anilistId": 7619,
+          "title": "Gegege no Kitarou (1996)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 114,
+          "season": "WINTER",
+          "seasonYear": 1996,
+          "startedAt": 820972800000,
+          "order": 5
+        },
+        {
+          "anilistId": 2165,
+          "title": "Gegege no Kitarou (2007)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 100,
+          "season": "SPRING",
+          "seasonYear": 2007,
+          "startedAt": 1175385600000,
+          "order": 6
+        },
+        {
+          "anilistId": 100978,
+          "title": "Gegege no Kitarou (2018)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 97,
+          "season": "SPRING",
+          "seasonYear": 2018,
+          "startedAt": 1522540800000,
+          "order": 7
+        }
+      ]
+    },
+    "anilist-7619": {
+      "anilistId": 7619,
+      "airingStatus": "FINISHED",
+      "season": "WINTER",
+      "seasonYear": 1996,
+      "anilistEpisodeCount": 114,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 5688,
+          "title": "Gegege no Kitarou (1968)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 65,
+          "season": "WINTER",
+          "seasonYear": 1968,
+          "startedAt": -62985600000,
+          "order": 1
+        },
+        {
+          "anilistId": 6971,
+          "title": "Gegege no Kitarou (1971)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 45,
+          "season": "FALL",
+          "seasonYear": 1971,
+          "startedAt": 55641600000,
+          "order": 2
+        },
+        {
+          "anilistId": 7307,
+          "title": "Gegege no Kitarou (1985)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 108,
+          "season": "FALL",
+          "seasonYear": 1985,
+          "startedAt": 497923200000,
+          "order": 3
+        },
+        {
+          "anilistId": 8158,
+          "title": "Gegege no Kitarou: Jigoku-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 7,
+          "season": "WINTER",
+          "seasonYear": 1988,
+          "startedAt": 571276800000,
+          "order": 4
+        },
+        {
+          "anilistId": 7619,
+          "title": "Gegege no Kitarou (1996)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 114,
+          "season": "WINTER",
+          "seasonYear": 1996,
+          "startedAt": 820972800000,
+          "order": 5
+        },
+        {
+          "anilistId": 2165,
+          "title": "Gegege no Kitarou (2007)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 100,
+          "season": "SPRING",
+          "seasonYear": 2007,
+          "startedAt": 1175385600000,
+          "order": 6
+        },
+        {
+          "anilistId": 100978,
+          "title": "Gegege no Kitarou (2018)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 97,
+          "season": "SPRING",
+          "seasonYear": 2018,
+          "startedAt": 1522540800000,
+          "order": 7
+        }
+      ]
+    },
+    "anilist-2165": {
+      "anilistId": 2165,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2007,
+      "anilistEpisodeCount": 100,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 5688,
+          "title": "Gegege no Kitarou (1968)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 65,
+          "season": "WINTER",
+          "seasonYear": 1968,
+          "startedAt": -62985600000,
+          "order": 1
+        },
+        {
+          "anilistId": 6971,
+          "title": "Gegege no Kitarou (1971)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 45,
+          "season": "FALL",
+          "seasonYear": 1971,
+          "startedAt": 55641600000,
+          "order": 2
+        },
+        {
+          "anilistId": 7307,
+          "title": "Gegege no Kitarou (1985)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 108,
+          "season": "FALL",
+          "seasonYear": 1985,
+          "startedAt": 497923200000,
+          "order": 3
+        },
+        {
+          "anilistId": 8158,
+          "title": "Gegege no Kitarou: Jigoku-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 7,
+          "season": "WINTER",
+          "seasonYear": 1988,
+          "startedAt": 571276800000,
+          "order": 4
+        },
+        {
+          "anilistId": 7619,
+          "title": "Gegege no Kitarou (1996)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 114,
+          "season": "WINTER",
+          "seasonYear": 1996,
+          "startedAt": 820972800000,
+          "order": 5
+        },
+        {
+          "anilistId": 2165,
+          "title": "Gegege no Kitarou (2007)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 100,
+          "season": "SPRING",
+          "seasonYear": 2007,
+          "startedAt": 1175385600000,
+          "order": 6
+        },
+        {
+          "anilistId": 100978,
+          "title": "Gegege no Kitarou (2018)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 97,
+          "season": "SPRING",
+          "seasonYear": 2018,
+          "startedAt": 1522540800000,
+          "order": 7
+        }
+      ]
+    },
+    "anilist-132530": {
+      "anilistId": 132530,
+      "airingStatus": "FINISHED",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 110646,
+          "title": "Hanhua Riji",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1563667200000,
+          "order": 1
+        },
+        {
+          "anilistId": 121679,
+          "title": "Hanhua Riji 2",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1605398400000,
+          "order": 2
+        },
+        {
+          "anilistId": 132530,
+          "title": "Hanhua Riji 3",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1659225600000,
+          "order": 3
+        },
+        {
+          "anilistId": 156109,
+          "title": "Hanhua Riji 4",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1710028800000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-18097": {
+      "anilistId": 18097,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2013,
+      "anilistEpisodeCount": 43,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 5231,
+          "title": "Inazuma Eleven",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 127,
+          "season": "FALL",
+          "seasonYear": 2008,
+          "startedAt": 1223164800000,
+          "order": 1
+        },
+        {
+          "anilistId": 10507,
+          "title": "Inazuma Eleven GO",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 47,
+          "season": "SPRING",
+          "seasonYear": 2011,
+          "startedAt": 1304467200000,
+          "order": 2
+        },
+        {
+          "anilistId": 13261,
+          "title": "Inazuma Eleven GO: Chrono Stone",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2012,
+          "startedAt": 1334707200000,
+          "order": 3
+        },
+        {
+          "anilistId": 18097,
+          "title": "Inazuma Eleven Go: Galaxy",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 43,
+          "season": "SPRING",
+          "seasonYear": 2013,
+          "startedAt": 1367971200000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-10370": {
+      "anilistId": 10370,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2011,
+      "anilistEpisodeCount": 52,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 5962,
+          "title": "Metal Fight Beyblade",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2009,
+          "startedAt": 1238889600000,
+          "order": 1
+        },
+        {
+          "anilistId": 8410,
+          "title": "Metal Fight Beyblade: Baku",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2010,
+          "startedAt": 1270339200000,
+          "order": 2
+        },
+        {
+          "anilistId": 10370,
+          "title": "Metal Fight Beyblade 4D",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2011,
+          "startedAt": 1301788800000,
+          "order": 3
+        },
+        {
+          "anilistId": 13231,
+          "title": "Metal Fight Beyblade ZERO G",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 38,
+          "season": "SPRING",
+          "seasonYear": 2012,
+          "startedAt": 1333843200000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-103209": {
+      "anilistId": 103209,
+      "airingStatus": "FINISHED",
+      "season": "SUMMER",
+      "seasonYear": 2018,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 21305,
+          "title": "Overlord: Ple Ple Pleiades",
+          "format": "SPECIAL",
+          "status": "FINISHED",
+          "episodes": 8,
+          "season": "SUMMER",
+          "seasonYear": 2015,
+          "startedAt": 1438646400000,
+          "order": 1
+        },
+        {
+          "anilistId": 101083,
+          "title": "Overlord: Ple Ple Pleiades 2",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2018,
+          "startedAt": 1515456000000,
+          "order": 2
+        },
+        {
+          "anilistId": 103209,
+          "title": "Overlord: Ple Ple Pleiades 3",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2018,
+          "startedAt": 1531180800000,
+          "order": 3
+        },
+        {
+          "anilistId": 151898,
+          "title": "Overlord: Ple Ple Pleiades 4",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2022,
+          "startedAt": 1656979200000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-15651": {
+      "anilistId": 15651,
+      "airingStatus": "FINISHED",
+      "season": "FALL",
+      "seasonYear": 2013,
+      "anilistEpisodeCount": 25,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 9981,
+          "title": "Phi Brain: Kami no Puzzle",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 25,
+          "season": "FALL",
+          "seasonYear": 2011,
+          "startedAt": 1317513600000,
+          "order": 1
+        },
+        {
+          "anilistId": 12753,
+          "title": "Phi Brain: Kami no Puzzle 2nd Season",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 25,
+          "season": "SPRING",
+          "seasonYear": 2012,
+          "startedAt": 1333843200000,
+          "order": 2
+        },
+        {
+          "anilistId": 15651,
+          "title": "Phi Brain: Kami no Puzzle 3rd Season",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 25,
+          "season": "FALL",
+          "seasonYear": 2013,
+          "startedAt": 1381017600000,
+          "order": 3
+        }
+      ]
+    },
+    "anilist-120700": {
+      "anilistId": 120700,
+      "airingStatus": "FINISHED",
+      "season": "SUMMER",
+      "seasonYear": 2020,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 21780,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time)",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 11,
+          "season": "SPRING",
+          "seasonYear": 2016,
+          "startedAt": 1460073600000,
+          "order": 1
+        },
+        {
+          "anilistId": 21891,
+          "title": "Re:Petit kara Hajimeru Isekai Seikatsu",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 14,
+          "season": "SUMMER",
+          "seasonYear": 2016,
+          "startedAt": 1466726400000,
+          "order": 2
+        },
+        {
+          "anilistId": 120700,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 2nd Season",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2020,
+          "startedAt": 1594339200000,
+          "order": 3
+        },
+        {
+          "anilistId": 128306,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 2nd Season Part 2",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1610064000000,
+          "order": 4
+        },
+        {
+          "anilistId": 182417,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 3rd Season",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 16,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1727913600000,
+          "order": 5
+        },
+        {
+          "anilistId": 210687,
+          "title": "Re:Zero kara Hajimeru Kyuukei Jikan (Break Time) 4th Season",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 19,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775606400000,
+          "order": 6
+        }
+      ]
+    },
+    "anilist-113476": {
+      "anilistId": 113476,
+      "airingStatus": "FINISHED",
+      "season": "WINTER",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 20843,
+          "title": "SHOW BY ROCK!!",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2015,
+          "startedAt": 1428192000000,
+          "order": 1
+        },
+        {
+          "anilistId": 21476,
+          "title": "SHOW BY ROCK!!#",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2016,
+          "startedAt": 1475366400000,
+          "order": 2
+        },
+        {
+          "anilistId": 113470,
+          "title": "SHOW BY ROCK!! Mashumairesh!!",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2020,
+          "startedAt": 1578528000000,
+          "order": 3
+        },
+        {
+          "anilistId": 113476,
+          "title": "SHOW BY ROCK!! STARS!!",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2021,
+          "startedAt": 1609977600000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-3000": {
+      "anilistId": 3000,
+      "airingStatus": "FINISHED",
+      "season": "FALL",
+      "seasonYear": 2007,
+      "anilistEpisodeCount": 23,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 1372,
+          "title": "Taiho Shichauzo (TV)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 47,
+          "season": "FALL",
+          "seasonYear": 1996,
+          "startedAt": 844473600000,
+          "order": 1
+        },
+        {
+          "anilistId": 2011,
+          "title": "Taiho Shichauzo: Special",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 20,
+          "season": "SPRING",
+          "seasonYear": 1999,
+          "startedAt": 922752000000,
+          "order": 2
+        },
+        {
+          "anilistId": 2013,
+          "title": "Taiho Shichauzo: the MOVIE",
+          "format": "MOVIE",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "SPRING",
+          "seasonYear": 1999,
+          "startedAt": 925344000000,
+          "order": 3
+        },
+        {
+          "anilistId": 2014,
+          "title": "Taiho Shichauzo: SECOND SEASON",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 26,
+          "season": "SPRING",
+          "seasonYear": 2001,
+          "startedAt": 986601600000,
+          "order": 4
+        },
+        {
+          "anilistId": 3000,
+          "title": "Taiho Shichauzo: Full Throttle",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 23,
+          "season": "FALL",
+          "seasonYear": 2007,
+          "startedAt": 1191542400000,
+          "order": 5
+        }
+      ]
+    },
+    "anilist-1373": {
+      "anilistId": 1373,
+      "airingStatus": "FINISHED",
+      "season": "FALL",
+      "seasonYear": 2003,
+      "anilistEpisodeCount": 4,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 1520,
+          "title": "Black Jack",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 10,
+          "season": "FALL",
+          "seasonYear": 1993,
+          "startedAt": 756432000000,
+          "order": 1
+        },
+        {
+          "anilistId": 1373,
+          "title": "Black Jack Specials: Inochi wo Meguru Yottsu no Kiseki",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 4,
+          "season": "FALL",
+          "seasonYear": 2003,
+          "startedAt": 1072051200000,
+          "order": 2
+        },
+        {
+          "anilistId": 2213,
+          "title": "Black Jack (TV)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 61,
+          "season": "FALL",
+          "seasonYear": 2004,
+          "startedAt": 1097452800000,
+          "order": 3
+        },
+        {
+          "anilistId": 2214,
+          "title": "Black Jack 21",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 17,
+          "season": "SPRING",
+          "seasonYear": 2006,
+          "startedAt": 1144627200000,
+          "order": 4
+        },
+        {
+          "anilistId": 21187,
+          "title": "Young Black Jack",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2015,
+          "startedAt": 1443744000000,
+          "order": 5
+        }
+      ]
+    },
+    "anilist-2214": {
+      "anilistId": 2214,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2006,
+      "anilistEpisodeCount": 17,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 1520,
+          "title": "Black Jack",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 10,
+          "season": "FALL",
+          "seasonYear": 1993,
+          "startedAt": 756432000000,
+          "order": 1
+        },
+        {
+          "anilistId": 1373,
+          "title": "Black Jack Specials: Inochi wo Meguru Yottsu no Kiseki",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 4,
+          "season": "FALL",
+          "seasonYear": 2003,
+          "startedAt": 1072051200000,
+          "order": 2
+        },
+        {
+          "anilistId": 2213,
+          "title": "Black Jack (TV)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 61,
+          "season": "FALL",
+          "seasonYear": 2004,
+          "startedAt": 1097452800000,
+          "order": 3
+        },
+        {
+          "anilistId": 2214,
+          "title": "Black Jack 21",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 17,
+          "season": "SPRING",
+          "seasonYear": 2006,
+          "startedAt": 1144627200000,
+          "order": 4
+        },
+        {
+          "anilistId": 21187,
+          "title": "Young Black Jack",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2015,
+          "startedAt": 1443744000000,
+          "order": 5
+        }
+      ]
+    },
+    "anilist-210": {
+      "anilistId": 210,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 1989,
+      "anilistEpisodeCount": 18,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 210,
+          "title": "Ranma 1/2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 18,
+          "season": "SPRING",
+          "seasonYear": 1989,
+          "startedAt": 608601600000,
+          "order": 1
+        },
+        {
+          "anilistId": 149939,
+          "title": "Ranma 1/2: Nettou-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 143,
+          "season": "FALL",
+          "seasonYear": 1989,
+          "startedAt": 624844800000,
+          "order": 2
+        },
+        {
+          "anilistId": 1007,
+          "title": "Ranma 1/2 (OVA)",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 6,
+          "season": "SUMMER",
+          "seasonYear": 1993,
+          "startedAt": 751161600000,
+          "order": 3
+        }
+      ]
+    },
+    "anilist-1652": {
+      "anilistId": 1652,
+      "airingStatus": "FINISHED",
+      "season": "FALL",
+      "seasonYear": 1980,
+      "anilistEpisodeCount": 25,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 1650,
+          "title": "Uchuu Senkan Yamato",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 26,
+          "season": "FALL",
+          "seasonYear": 1974,
+          "startedAt": 150249600000,
+          "order": 1
+        },
+        {
+          "anilistId": 1651,
+          "title": "Uchuu Senkan Yamato 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 26,
+          "season": "FALL",
+          "seasonYear": 1978,
+          "startedAt": 277171200000,
+          "order": 2
+        },
+        {
+          "anilistId": 1652,
+          "title": "Uchuu Senkan Yamato III",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 25,
+          "season": "FALL",
+          "seasonYear": 1980,
+          "startedAt": 340070400000,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-psyren": {
+      "anilistId": 204011,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": 1791813600000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-05T14:48:10.645Z"
+    },
+    "animeav1-doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu": {
+      "anilistId": 207191,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": 1791808200000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-05T14:08:21.290Z"
+    },
+    "animeav1-tensei-goblin-dakedo-shitsumon-aru": {
+      "anilistId": 209219,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": 1791810000000,
+      "nextAiringEpisodeNumber": 3,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-05T14:07:13.466Z"
+    },
+    "animeav1-mahou-shoujo-ikusei-keikaku-restart": {
+      "anilistId": 160803,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": 1791824400000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [
+        {
+          "anilistId": 21340,
+          "title": "Mahou Shoujo Ikusei Keikaku",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2016,
+          "startedAt": 1475366400000,
+          "order": 1
+        },
+        {
+          "anilistId": 160803,
+          "title": "Mahou Shoujo Ikusei Keikaku: restart",
+          "format": "TV",
+          "status": "RELEASING",
+          "episodes": null,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1791244800000,
+          "order": 2
+        }
+      ],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-05T23:19:38.378Z"
+    },
     "animeav1-kimi-no-koto-ga-daidaidaidaidaisuki-na-100-nin-no-kanojo-3rd-season": {
       "anilistId": "mal-62811",
       "airingStatus": "RELEASING",
@@ -236980,34 +239583,6 @@
           "order": 3
         }
       ]
-    },
-    "animeav1-psyren": {
-      "anilistId": 204011,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1791813600000,
-      "nextAiringEpisodeNumber": 2
-    },
-    "animeav1-doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu": {
-      "anilistId": 207191,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1791808200000,
-      "nextAiringEpisodeNumber": 2
-    },
-    "animeav1-tensei-goblin-dakedo-shitsumon-aru": {
-      "anilistId": 209219,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1791810000000,
-      "nextAiringEpisodeNumber": 3
-    },
-    "animeav1-mahou-shoujo-ikusei-keikaku-restart": {
-      "anilistId": 160803,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1791824400000,
-      "nextAiringEpisodeNumber": 2
     }
   },
   "seasonArtwork": {
@@ -241082,10 +243657,6 @@
     "anilist-125252": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx125252-zIZRHwiRRRvc.jpg",
       "anilistBanner": ""
-    },
-    "anilist-210": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx210-qgahLDYT0t9b.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/210-apebEUbenwLc.jpg"
     },
     "anilist-183390": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx183390-Ds74xbI3pafK.png",
@@ -245415,6 +247986,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b146503-7YahVCQ9T039.png",
       "anilistBanner": ""
     },
+    "anilist-217330": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx217330-sk1dvlFIsM2O.png",
+      "anilistBanner": ""
+    },
     "anilist-108353": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx108353-f43dOeHJ84r4.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/108353-xmcJGLygTB0I.jpg"
@@ -245434,10 +248009,6 @@
     "anilist-112218": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx112218-OmiP0ZRC3T92.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/112218-CBK7nKxLdDpu.jpg"
-    },
-    "anilist-128306": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b128306-94Zyoqy2fA4X.png",
-      "anilistBanner": ""
     },
     "anilist-133898": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx133898-KdQ7fWTG06n4.png",
@@ -245973,10 +248544,6 @@
     },
     "anilist-120257": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx120257-eerywzUJdLzy.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-120700": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b120700-buuy9COgsBTa.jpg",
       "anilistBanner": ""
     },
     "anilist-147463": {
@@ -250271,10 +252838,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx13231-l2tS23CDbinP.jpg",
       "anilistBanner": ""
     },
-    "anilist-101115": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx101115-D0LrlWZtbOeX.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/101115-4FLEBjhD8FSJ.jpg"
-    },
     "anilist-108853": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx108853-ebznx715AJ9x.jpg",
       "anilistBanner": ""
@@ -251665,6 +254228,10 @@
     },
     "anilist-104522": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b104522-SEt4olOZ5fWG.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-217860": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx217860-ZbLcfV7Seb0m.png",
       "anilistBanner": ""
     },
     "anilist-83537": {
@@ -253886,26 +256453,6 @@
     "anilist-40499": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx40499-5wwifw9Od7Fy.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/40499-jW4Io6P71VM7.jpg"
-    },
-    "anilist-2165": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/2165.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-5688": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/5688.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/5688-fLWmh2odslhU.jpg"
-    },
-    "anilist-6971": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/6971.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-7307": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/7307.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-7619": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/7619.jpg",
-      "anilistBanner": ""
     },
     "anilist-130622": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx130622-teeWBNWE9RPk.jpg",
@@ -262147,10 +264694,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx104473-mRWNsmKK3p5h.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/104473-2gRMxZu0RzOo.jpg"
     },
-    "anilist-103209": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b103209-3YzdSL4JkSi9.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/103209-yPw1or1qvpCe.jpg"
-    },
     "anilist-105121": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105121-MGZPkFojdEwA.jpg",
       "anilistBanner": ""
@@ -269571,10 +272114,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx145594-wURR2hX2HMkg.jpg",
       "anilistBanner": ""
     },
-    "anilist-102427": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx102427-r2oTRWE3rVuv.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/102427-3YF0nznHEDr0.jpg"
-    },
     "anilist-2451": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx2451-nNs4TE6zKxjW.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/2451-P5zq4gU8i8rk.jpg"
@@ -270031,10 +272570,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx102664-0AGHiTWCBPwd.jpg",
       "anilistBanner": ""
     },
-    "anilist-131239": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx131239-cQieLtQfBr1e.png",
-      "anilistBanner": ""
-    },
     "anilist-133700": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b133700-J7mk0tFrP5xl.png",
       "anilistBanner": ""
@@ -270059,14 +272594,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx127249-q0pQlj3RmcMn.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/127249-Id8wdPXFQk1d.jpg"
     },
-    "anilist-3272": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/3272.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/3272-z7ZhilwbvrKi.jpg"
-    },
-    "anilist-1707": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1707.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1707-7GnpRwi1Wylf.jpg"
-    },
     "anilist-9884": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/9884-CGiD1zldkPwY.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/9884-R5kZqe0lcBeF.jpg"
@@ -270083,24 +272610,8 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx138871-GLWM151vBaiM.jpg",
       "anilistBanner": ""
     },
-    "anilist-121962": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx121962-GxlgMizmc1FQ.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/121962-3xdOv4tBvUny.jpg"
-    },
-    "anilist-140085": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx140085-3VhIbUc8HKYi.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/140085-hLyuk7rMu1PG.jpg"
-    },
-    "anilist-191994": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx191994-hRBORUotkRjI.jpg",
-      "anilistBanner": ""
-    },
     "anilist-1749": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1749.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-99478": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx99478-51yPecTKIGaN.jpg",
       "anilistBanner": ""
     },
     "anilist-103286": {
@@ -270127,17 +272638,9 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx128949-DDR0iO5cbehB.jpg",
       "anilistBanner": ""
     },
-    "anilist-194456": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/default.jpg",
-      "anilistBanner": ""
-    },
     "anilist-9563": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx9563-v7KaiqWpmPU0.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/9563-qDiXPJhiIU0G.png"
-    },
-    "anilist-18097": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx18097-dAqYhaGafOqS.jpg",
-      "anilistBanner": ""
     },
     "anilist-15785": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx15785-C3kFaPPwnP8i.png",
@@ -270171,10 +272674,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b157074-6TZOtYtdz7q0.jpg",
       "anilistBanner": ""
     },
-    "anilist-132530": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx132530-sN2TnsOMclNe.png",
-      "anilistBanner": ""
-    },
     "anilist-12591": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/n12591-U9DkXeviwUhB.png",
       "anilistBanner": ""
@@ -270199,25 +272698,13 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b50723-YY6fHGKtSv3w.jpg",
       "anilistBanner": ""
     },
-    "anilist-10370": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b10370-n5ExIZxIvp1P.png",
-      "anilistBanner": ""
-    },
     "anilist-8245": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/8245.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-15651": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/15651.jpg",
       "anilistBanner": ""
     },
     "anilist-44238": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx44238-0UYWSPfYzTIm.jpg",
       "anilistBanner": ""
-    },
-    "anilist-113476": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx113476-X0y7eSl4TAHd.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/113476-L368YN6wqSR1.jpg"
     },
     "anilist-146222": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx146222-DNezAPdxUO2B.jpg",
@@ -270235,25 +272722,25 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/n7066-X1tpJDa2j0rH.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n7066-BF8i4Tp240dz.jpg"
     },
-    "anilist-1652": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b1652-XyonpdSstJsc.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n1652-EY9g1D2yl1ZA.jpg"
-    },
     "anilist-3071": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx3071-hoAZ5A2dKdHS.jpg",
       "anilistBanner": ""
     },
-    "anilist-3000": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/3000.jpg",
+    "anilist-5967": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b5967-EfufMGDaJG5R.jpg",
       "anilistBanner": ""
     },
-    "anilist-1373": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1373.jpg",
+    "anilist-35451": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx35451-EoBa6UMlO9JI.png",
       "anilistBanner": ""
     },
-    "anilist-2214": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx2214-b3Y4OOWHHW0i.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n2214-53WV8H9wkQB9.jpg"
+    "anilist-6310": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/6310.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-12279": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b12279-lowcA3dmSJQh.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/12279-nvqb1XLi8BeT.jpg"
     },
     "anilist-1983": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1983.jpg",
@@ -270283,6 +272770,46 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1371.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1371-ZhVmE5Lkcy52.jpg"
     },
+    "anilist-3280": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/3280.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-4427": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b4427-Kzqxt58GwIxJ.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-147810": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b147810-kAkAsJoJ0yhc.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-3276": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b3276-2YcqI1NToLYY.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-3279": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b3279-1YCpS2cItU9L.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-3278": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx3278-48DrqhVqfnDA.png",
+      "anilistBanner": ""
+    },
+    "anilist-3274": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b3274-hBwHXHQPRgbF.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-3277": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b3277-eCAAAieAH1ro.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-3275": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b3275-VM2fQUFkR0mQ.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-3273": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/3273.jpg",
+      "anilistBanner": ""
+    },
     "anilist-21590": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21590-uBTVEwa90RIB.jpg",
       "anilistBanner": ""
@@ -270290,6 +272817,30 @@
     "anilist-45372": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx45372-QRfOXY2Of8SY.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/45372-dc7d7g3UeWot.jpg"
+    },
+    "anilist-9539": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx9539-g9UtWqT6iotq.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/9539-cbmKfF6VCMgm.jpg"
+    },
+    "anilist-214537": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx214537-990UgdCwzNND.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-206244": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx206244-ke6bcfsL40qY.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-126304": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx126304-LVxhLCF5gqIi.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-141814": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b141814-iaiogpb8Yzoz.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-112325": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx112325-NXi6RerKkbi6.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/112325-WQdu0tAq52oQ.jpg"
     },
     "anilist-10825": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b10825-MyGZa3MxbMoS.jpg",
@@ -270317,6 +272868,10 @@
     },
     "anilist-116551": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx116551-Sb6CQDbhdPtO.png",
+      "anilistBanner": ""
+    },
+    "anilist-203296": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx203296-LYXWSdP4N4YF.jpg",
       "anilistBanner": ""
     },
     "anilist-200455": {
@@ -270369,6 +272924,106 @@
     },
     "anilist-157808": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx157808-AozfgfGmJdkG.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-3069": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx3069-itU5r69psuDy.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-63373": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx63373-QWx1zFKE9RcP.png",
+      "anilistBanner": ""
+    },
+    "anilist-8145": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/8145.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-114814": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx114814-BS7wFuuMDnSY.png",
+      "anilistBanner": ""
+    },
+    "anilist-3710": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx3710-TGAjCIMRcQKT.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/3710-kK6Ue4uPTRKL.jpg"
+    },
+    "anilist-6312": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/6312.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/6312-tAfliZxJTc4Z.jpg"
+    },
+    "anilist-8149": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/8149.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-8150": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/8150.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-8152": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/8152.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-8153": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/8153.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-8154": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/8154.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-8155": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/8155.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-8146": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/8146.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-8156": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b8156-Td5N9PgTj4X6.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-8157": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/8157.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-8493": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b8493-j3JtXHlXIGij.png",
+      "anilistBanner": ""
+    },
+    "anilist-175120": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx175120-zzdJBduaJJHS.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/175120-B9YF8xwqRqyS.jpg"
+    },
+    "anilist-156109": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx156109-L3gsaRaacZit.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-204011": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx204011-j45RZoqYbdZK.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/204011-hBOwte9MzykA.jpg"
+    },
+    "anilist-33438": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx33438-pBfMEC42XhCA.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/33438-soFEXrIocedj.jpg"
+    },
+    "anilist-207191": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b207191-MV0uJNxN7LNY.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/207191-xYgpkCDnXc5m.jpg"
+    },
+    "anilist-122068": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx122068-ZL69Cmvu41Fs.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-123545": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx123545-ectxmSwkWrLN.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-209219": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx209219-3yhKlRx0LX3p.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-120236": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx120236-8RSopHXGTHWH.jpg",
       "anilistBanner": ""
     }
   }

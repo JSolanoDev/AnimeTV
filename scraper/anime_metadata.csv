@@ -1,14 +1,18 @@
 id,title,type,status,year,season,genre,rating,totalEpisodes,source,siteUrl
 animeav1-one-piece,One Piece,TV,,1999,,action,87,1180,AnimeAV1,https://animeav1.com/media/one-piece
 animeav1-sousou-no-frieren-2nd-season,Sousou no Frieren 2nd Season,TV,,2026,,anime,89,10,AnimeAV1,https://animeav1.com/media/sousou-no-frieren-2nd-season
-animeav1-mouse-cursor-de-genjitsu-wo-sousa-dekiru-you-ni-natta-node-onna-no-ko-wo-ippai-click-shimaasu,"Mouse Cursor de Genjitsu wo Sousa Dekiru You ni Natta node, Onna no Ko wo Ippai Click Shimaasu",ONA,,,,anime,,,AnimeAV1,https://animeav1.com/media/mouse-cursor-de-genjitsu-wo-sousa-dekiru-you-ni-natta-node-onna-no-ko-wo-ippai-click-shimaasu
-animeav1-dark-summoner-to-dekiteiru,Dark Summoner to Dekiteiru,ONA,,,,anime,,,AnimeAV1,https://animeav1.com/media/dark-summoner-to-dekiteiru
-animeav1-kanata-kara,Kanata kara,TV,,,,anime,,,AnimeAV1,https://animeav1.com/media/kanata-kara
-animeav1-hotel-inhumans-2nd-season,Hotel Inhumans 2nd Season,TV,,,,anime,,,AnimeAV1,https://animeav1.com/media/hotel-inhumans-2nd-season
-animeav1-yowaki-max-reijou-nanoni-ratsuwan-konyakusha-sama-no-kake-ni-notte-shimatta,"Yowaki Max Reijou nanoni, Ratsuwan Konyakusha-sama no Kake ni Notte Shimatta",TV,,,,anime,,,AnimeAV1,https://animeav1.com/media/yowaki-max-reijou-nanoni-ratsuwan-konyakusha-sama-no-kake-ni-notte-shimatta
-animeav1-mezametara-saikyou-soubi-to-uchuusenmochi-datta-node-ikkodate-mezashite-youhei-toshite-jiyuu-ni-ikitai,"Mezametara Saikyou Soubi to Uchuusenmochi Datta node, Ikkodate Mezashite Youhei toshite Jiyuu ni Ikitai",TV,,,,anime,,,AnimeAV1,https://animeav1.com/media/mezametara-saikyou-soubi-to-uchuusenmochi-datta-node-ikkodate-mezashite-youhei-toshite-jiyuu-ni-ikitai
-animeav1-ojisan-wa-kawaii-mono-ga-osuki,Ojisan wa Kawaii Mono ga Osuki.,TV,,,,anime,,,AnimeAV1,https://animeav1.com/media/ojisan-wa-kawaii-mono-ga-osuki
-animeav1-tank-chair,Tank Chair,TV,,,,anime,,,AnimeAV1,https://animeav1.com/media/tank-chair
+animeav1-mahou-shoujo-ikusei-keikaku-restart,Mahou Shoujo Ikusei Keikaku: Restart,TV,,,,romance,,,AnimeAV1,https://animeav1.com/media/mahou-shoujo-ikusei-keikaku-restart
+animeav1-psyren,Psyren,TV,,,,anime,,,AnimeAV1,https://animeav1.com/media/psyren
+animeav1-doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu,"Doumo, Suki na Hito ni Horegusuri wo Irai sareta Majo desu.",TV,,,,anime,,,AnimeAV1,https://animeav1.com/media/doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu
+animeav1-tensei-goblin-dakedo-shitsumon-aru,Tensei Goblin dakedo Shitsumon Aru?,TV,,,,anime,,,AnimeAV1,https://animeav1.com/media/tensei-goblin-dakedo-shitsumon-aru
+animeav1-mouse-cursor-de-genjitsu-wo-sousa-dekiru-you-ni-natta-node-onna-no-ko-wo-ippai-click-shimaasu,"Mouse Cursor de Genjitsu wo Sousa Dekiru You ni Natta node, Onna no Ko wo Ippai Click Shimaasu",ONA,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/mouse-cursor-de-genjitsu-wo-sousa-dekiru-you-ni-natta-node-onna-no-ko-wo-ippai-click-shimaasu
+animeav1-dark-summoner-to-dekiteiru,Dark Summoner to Dekiteiru,ONA,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/dark-summoner-to-dekiteiru
+animeav1-kanata-kara,Kanata kara,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/kanata-kara
+animeav1-hotel-inhumans-2nd-season,Hotel Inhumans 2nd Season,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/hotel-inhumans-2nd-season
+animeav1-yowaki-max-reijou-nanoni-ratsuwan-konyakusha-sama-no-kake-ni-notte-shimatta,"Yowaki Max Reijou nanoni, Ratsuwan Konyakusha-sama no Kake ni Notte Shimatta",TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/yowaki-max-reijou-nanoni-ratsuwan-konyakusha-sama-no-kake-ni-notte-shimatta
+animeav1-mezametara-saikyou-soubi-to-uchuusenmochi-datta-node-ikkodate-mezashite-youhei-toshite-jiyuu-ni-ikitai,"Mezametara Saikyou Soubi to Uchuusenmochi Datta node, Ikkodate Mezashite Youhei toshite Jiyuu ni Ikitai",TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/mezametara-saikyou-soubi-to-uchuusenmochi-datta-node-ikkodate-mezashite-youhei-toshite-jiyuu-ni-ikitai
+animeav1-ojisan-wa-kawaii-mono-ga-osuki,Ojisan wa Kawaii Mono ga Osuki.,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/ojisan-wa-kawaii-mono-ga-osuki
+animeav1-tank-chair,Tank Chair,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/tank-chair
 animeav1-ao-ashi-season-2,Ao Ashi Season 2,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/ao-ashi-season-2
 animeav1-ao-no-hako-season-2,Ao no Hako Season 2,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/ao-no-hako-season-2
 animeav1-seitokai-ni-mo-ana-wa-aru,Seitokai ni mo Ana wa Aru!,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/seitokai-ni-mo-ana-wa-aru
@@ -17,10 +21,6 @@ animeav1-kashita-maryoku-wa-revo-barai-de-kyousei-choushuu,"Kashita Maryoku wa "
 animeav1-marronnier-oukoku-no-shichinin-no-kishi,Marronnier Oukoku no Shichinin no Kishi,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/marronnier-oukoku-no-shichinin-no-kishi
 animeav1-ranma-2024-3rd-season,Ranma ½ (2024) 3rd Season,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/ranma-2024-3rd-season
 animeav1-zombie-sagashitemasu,#Zombie Sagashitemasu,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/zombie-sagashitemasu
-animeav1-black-clover-2nd-season,Black Clover 2nd Season,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/black-clover-2nd-season
-animeav1-magicalexplorer,Magical★Explorer,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/magicalexplorer
-animeav1-vertex-force,Vertex Force,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/vertex-force
-animeav1-tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu,"Tensei shita Daiseijo wa, Seijo de Aru Koto wo Hitakakusu",TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu
 animeav1-kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu,"""Kimi wo Aisuru Ki wa Nai"" to Itta Jiki Koushaku-sama ga Nazeka Dekiai shitekimasu",TV,,2026,,anime,68,12,AnimeAV1,https://animeav1.com/media/kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu
 animeav1-oshi-no-ko-3rd-season,[Oshi no Ko] 3rd Season,TV,,2026,,anime,87,11,AnimeAV1,https://animeav1.com/media/oshi-no-ko-3rd-season
 animeav1-omae-gotoki-ga-maou-ni-kateru-to-omouna-to-yuusha-party-wo-tsuihou-sareta-node-outo-de-kimama-ni-kurashitai,"""Omae Gotoki ga Maou ni Kateru to Omouna"" to Yuusha Party wo Tsuihou sareta node, Outo de Kimama ni Kurashitai",TV,,2026,,anime,62,12,AnimeAV1,https://animeav1.com/media/omae-gotoki-ga-maou-ni-kateru-to-omouna-to-yuusha-party-wo-tsuihou-sareta-node-outo-de-kimama-ni-kurashitai
@@ -599,6 +599,7 @@ animeav1-bastard-ankoku-no-hakaishin,Bastard!! Ankoku no Hakaishin,OVA,,1992,,an
 animeav1-bubblegum-crash,Bubblegum Crash,OVA,,1991,,anime,66,3,AnimeAV1,https://animeav1.com/media/bubblegum-crash
 animeav1-burn-up,Burn Up!,OVA,,1991,,anime,61,1,AnimeAV1,https://animeav1.com/media/burn-up
 animeav1-bubblegum-crisis,Bubblegum Crisis,OVA,,1987,,anime,73,8,AnimeAV1,https://animeav1.com/media/bubblegum-crisis
+animeav1-black-clover-2nd-season,Black Clover 2nd Season,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/black-clover-2nd-season
 animeav1-clevatess-ii-majuu-no-ou-to-itsuwari-no-yuusha-denshou,Clevatess II: Majuu no Ou to Itsuwari no Yuusha Denshou,TV,,2026,,anime,77,13,AnimeAV1,https://animeav1.com/media/clevatess-ii-majuu-no-ou-to-itsuwari-no-yuusha-denshou
 animeav1-class-de-2-banme-ni-kawaii-onnanoko-to-tomodachi-ni-natta,Class de 2-banme ni Kawaii Onnanoko to Tomodachi ni Natta,TV,,2026,,anime,78,12,AnimeAV1,https://animeav1.com/media/class-de-2-banme-ni-kawaii-onnanoko-to-tomodachi-ni-natta
 animeav1-chou-kaguya-hime,Chou Kaguya-hime!,ONA,,2026,,anime,85,1,AnimeAV1,https://animeav1.com/media/chou-kaguya-hime
@@ -2785,6 +2786,7 @@ animeav1-macross-do-you-remember-love,Macross: Do You Remember Love?,Movie,,1984
 animeav1-macross,Macross,TV,,1982,,anime,79,36,AnimeAV1,https://animeav1.com/media/macross
 animeav1-mazinger-z,Mazinger Z,TV,,1972,,anime,73,92,AnimeAV1,https://animeav1.com/media/mazinger-z
 animeav1-mononoke-movie-3-hebigami,Mononoke Movie 3: Hebigami,MOVIE,,2026,,anime,72,1,AnimeAV1,https://animeav1.com/media/mononoke-movie-3-hebigami
+animeav1-magicalexplorer,Magical★Explorer,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/magicalexplorer
 animeav1-nige-jouzu-no-wakagimi-2nd-season,Nige Jouzu no Wakagimi 2nd Season,TV,,2026,,anime,76,12,AnimeAV1,https://animeav1.com/media/nige-jouzu-no-wakagimi-2nd-season
 animeav1-nijusseiki-denki-mokuroku-eureka-evrika,Nijusseiki Denki Mokuroku: Eureka Evrika,TV,,2026,,anime,76,13,AnimeAV1,https://animeav1.com/media/nijusseiki-denki-mokuroku-eureka-evrika
 animeav1-neko-to-ryuu,Neko to Ryuu,TV,,2026,,anime,77,12,AnimeAV1,https://animeav1.com/media/neko-to-ryuu
@@ -4114,11 +4116,12 @@ animeav1-touch-sebangou-no-nai-ace,Touch: Sebangou no Nai Ace,Movie,,1986,,anime
 animeav1-tenshi-no-tamago,Tenshi no Tamago,OVA,,1985,,anime,77,1,AnimeAV1,https://animeav1.com/media/tenshi-no-tamago
 animeav1-touch,Touch,TV,,1985,,anime,80,101,AnimeAV1,https://animeav1.com/media/touch
 animeav1-terra-e,Terra e...,Movie,,1980,,anime,65,1,AnimeAV1,https://animeav1.com/media/terra-e
-animeav1-tempal-item-no-chikara,Tempal: Item no Chikara,TV,RELEASING,2026,,anime,72,1,AnimeAV1,https://animeav1.com/media/tempal-item-no-chikara
-animeav1-tensei-kizoku-kantei-skill-de-nariagaru-3rd-season,"Tensei Kizoku, Kantei Skill de Nariagaru 3rd Season",TV,RELEASING,2026,,anime,69,1,AnimeAV1,https://animeav1.com/media/tensei-kizoku-kantei-skill-de-nariagaru-3rd-season
+animeav1-tempal-item-no-chikara,Tempal: Item no Chikara,TV,RELEASING,2026,,anime,72,2,AnimeAV1,https://animeav1.com/media/tempal-item-no-chikara
+animeav1-tensei-kizoku-kantei-skill-de-nariagaru-3rd-season,"Tensei Kizoku, Kantei Skill de Nariagaru 3rd Season",TV,RELEASING,2026,,anime,69,2,AnimeAV1,https://animeav1.com/media/tensei-kizoku-kantei-skill-de-nariagaru-3rd-season
 animeav1-tensei-shitara-ken-deshita-ii,Tensei shitara Ken deshita II,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/tensei-shitara-ken-deshita-ii
 animeav1-tokyo-revengers-santen-sensou-hen,Tokyo Revengers: Santen Sensou-hen,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/tokyo-revengers-santen-sensou-hen
 animeav1-tougen-anki-nikko-kegon-no-taki-hen,Tougen Anki: Nikko Kegon no Taki-hen,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/tougen-anki-nikko-kegon-no-taki-hen
+animeav1-tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu,"Tensei shita Daiseijo wa, Seijo de Aru Koto wo Hitakakusu",TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu
 animeav1-uchi-no-otouto-domo-ga-sumimasen,Uchi no Otouto-domo ga Sumimasen,TV,,2026,,anime,70,13,AnimeAV1,https://animeav1.com/media/uchi-no-otouto-domo-ga-sumimasen
 animeav1-uruwashi-no-yoi-no-tsuki,Uruwashi no Yoi no Tsuki,TV,,2026,,anime,75,12,AnimeAV1,https://animeav1.com/media/uruwashi-no-yoi-no-tsuki
 animeav1-undead-unluck-winter-hen,Undead Unluck: Winter-hen,ESPECIAL,,2025,,anime,76,1,AnimeAV1,https://animeav1.com/media/undead-unluck-winter-hen
@@ -4218,6 +4221,7 @@ animeav1-violence-jack-hells-wind-hen,Violence Jack: Hell's Wind-hen,OVA,,1990,,
 animeav1-violence-jack-jigoku-gai-hen,Violence Jack: Jigoku Gai-hen,OVA,,1988,,anime,56,1,AnimeAV1,https://animeav1.com/media/violence-jack-jigoku-gai-hen
 animeav1-violence-jack-harem-bomber-hen,Violence Jack: Harem Bomber-hen,OVA,,1986,,anime,53,1,AnimeAV1,https://animeav1.com/media/violence-jack-harem-bomber-hen
 animeav1-versailles-no-bara,Versailles no Bara,TV,,1979,,anime,84,40,AnimeAV1,https://animeav1.com/media/versailles-no-bara
+animeav1-vertex-force,Vertex Force,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/vertex-force
 animeav1-world-is-dancing,World Is Dancing,TV,,2026,,anime,73,13,AnimeAV1,https://animeav1.com/media/world-is-dancing
 animeav1-wandance,Wandance,TV,,2025,,anime,70,12,AnimeAV1,https://animeav1.com/media/wandance
 animeav1-watashi-wo-tabetai-hitodenashi,"Watashi wo Tabetai, Hitodenashi",TV,,2025,,anime,75,13,AnimeAV1,https://animeav1.com/media/watashi-wo-tabetai-hitodenashi
