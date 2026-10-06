@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-06T15:25:03.519Z",
-  "count": 6633,
+  "generatedAt": "2026-10-06T20:31:34.286Z",
+  "count": 6635,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -804,8 +804,8 @@
       "season": "SUMMER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 24,
-      "nextAiringAt": 1791304500000,
-      "nextAiringEpisodeNumber": 14,
+      "nextAiringAt": 1791909300000,
+      "nextAiringEpisodeNumber": 15,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 13,
       "lastEpisodeAt": "2026-09-29T17:48:13.398Z"
@@ -239603,6 +239603,20 @@
       "airingStatus": "RELEASING",
       "franchiseSeasons": [],
       "nextAiringAt": 1791896400000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-kyouran-reijou-nia-liston-byoujaku-reijou-ni-tensei-shita-kamigoroshi-no-bujin-no-karei-naru-musouroku": {
+      "anilistId": 206949,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791894360000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-tsuihou-sareta-cheat-fuyo-majutsushi-wa-kimama-na-second-life-wo-ouka-suru-ore-wa-buki-dake-ja-naku-arayuru-mono-ni-kyouka-point-wo-fuyo-dekiru-shi-ore-no-ishi-de-itsudemo-kouka-wo-kaijo-dekiru-kedo-nokotta-hitotachi-daijoubu": {
+      "anilistId": 207329,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791903600000,
       "nextAiringEpisodeNumber": 2
     }
   },
