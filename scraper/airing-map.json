@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-06T13:04:50.045Z",
-  "count": 6630,
+  "generatedAt": "2026-10-06T15:25:03.519Z",
+  "count": 6633,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -239583,6 +239583,27 @@
           "order": 3
         }
       ]
+    },
+    "animeav1-battle-spirits-re-zekkai-no-kuu": {
+      "anilistId": 187990,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791900000000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-choujun-choujou-senpai": {
+      "anilistId": 200294,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791900000000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-shiotaiou-no-satou-san-ga-ore-ni-dake-amai": {
+      "anilistId": 209502,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791896400000,
+      "nextAiringEpisodeNumber": 2
     }
   },
   "seasonArtwork": {
