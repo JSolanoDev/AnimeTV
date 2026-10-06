@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-05T19:53:22.422Z",
-  "count": 6601,
+  "generatedAt": "2026-10-06T01:24:32.014Z",
+  "count": 6602,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -237001,6 +237001,13 @@
       "franchiseSeasons": [],
       "nextAiringAt": 1791810000000,
       "nextAiringEpisodeNumber": 3
+    },
+    "animeav1-mahou-shoujo-ikusei-keikaku-restart": {
+      "anilistId": 160803,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791824400000,
+      "nextAiringEpisodeNumber": 2
     }
   },
   "seasonArtwork": {
