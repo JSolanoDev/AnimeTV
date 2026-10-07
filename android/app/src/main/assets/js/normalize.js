@@ -582,11 +582,12 @@ function normalizeEpisodeSourceOptions(episode = {}) {
       providerEpisodeId: source.providerEpisodeId ?? source.provider_episode_id ?? getProviderEpisodeId(episode)
     };
   });
-  // A verified AnimeYT option already carries its identity, referer and health
+  // A verified direct option already carries its identity, referer and health
   // stamp. A synthetic duplicate would discard those fields during URL dedupe.
-  const hasAnimeYTDirectOption = options.some(option => (option.animeytPreferred === true || /^animeyt-sub-/.test(option.id))
+  const hasMatchingDirectOption = options.some(option => option.type === "direct"
+    && (option.verifiedPlayable === true || option.animeytPreferred === true || /^animeyt-sub-/.test(option.id))
     && option.videoUrl === pickPlayableUrl(episode));
-  if (pickPlayableUrl(episode) && !hasAnimeYTDirectOption) {
+  if (pickPlayableUrl(episode) && !hasMatchingDirectOption) {
     options.unshift({
       id: episode.sourceId || episode.originalSourceId || "direct",
       originalSourceId: episode.originalSourceId || episode.sourceId || null,

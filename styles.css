@@ -9798,7 +9798,7 @@ body.has-embedded-player .watch-side {
    remaining width, which is what keeps the button centred as the panel grows. */
 .ep-panel-head > .ep-nav-btn:first-child { justify-self: start; }
 .ep-panel-head > .ep-nav-btn:last-child { justify-self: end; }
-.ep-panel-head > .ep-season-select { justify-self: center; max-width: 100%; }
+.ep-panel-head > .ep-season-select { position: static; justify-self: center; max-width: 100%; }
 .ep-nav-btn {
   display: inline-flex;
   align-items: center;
@@ -9860,7 +9860,10 @@ body.has-embedded-player .watch-side {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  min-width: 12rem;
+  width: max-content;
+  min-width: min(12rem, 100%);
+  max-width: 100%;
+  box-sizing: border-box;
   max-height: 18rem;
   overflow-y: auto;
   padding: 0.4rem;
@@ -9891,6 +9894,8 @@ body.has-embedded-player .watch-side {
   white-space: nowrap;
 }
 .ep-season-option small { color: rgba(255,255,255,0.45); font-weight: 600; }
+.ep-season-option > span { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.ep-season-option > small { flex-shrink: 0; }
 .ep-season-option:is(:hover, :focus-visible) { background: rgba(255,255,255,0.1); color: #fff; outline: 0; }
 .ep-season-option.is-selected { background: var(--accent, #8a5cff); color: #fff; }
 .ep-season-option.is-selected small { color: rgba(255,255,255,0.8); }
@@ -10624,6 +10629,12 @@ a.release-card:is(:hover, .is-tv-focused) .release-poster img { transform: scale
   background-size: 3rem, cover;
 }
 #schedule .schedule-poster .poster-placeholder { border-radius: 8px; }
+/* Native image loading handles visibility; an opacity reveal can leave a
+   decoded poster unpainted until a hover transform invalidates its layer. */
+#schedule .schedule-thumb-img {
+  opacity: 1;
+  transition: transform 220ms ease;
+}
 #schedule .schedule-card:focus-visible,
 #schedule .schedule-days button:focus-visible {
   outline: 2px solid var(--route-schedule);
@@ -10645,7 +10656,7 @@ a.release-card:is(:hover, .is-tv-focused) .release-poster img { transform: scale
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .release-poster img, .release-open { transition: none; }
+  #schedule .schedule-thumb-img, .release-poster img, .release-open { transition: none; }
   .release-skeleton > div { animation: none; }
 }
 

@@ -88,6 +88,8 @@ const TMDB_ID_OVERRIDES = new Map([
   // its complete 24-episode still set remains available after every rebuild.
   ["animeav1-sakurada-reset", 71014],
   ["animeav1-dotto-koni-chan", 44440],
+  ["animeav1-steel-ball-run-jojo-no-kimyou-na-bouken", 45790],
+  ["animeav1-jojo-no-kimyou-na-bouken-part-6-stone-ocean", 45790],
   // Narumi's promotional shorts do not have a separate TMDB record. Borrow
   // only the parent show's 4K key art; episode metadata must remain scoped to
   // the shorts instead of inheriting Season 1 titles and stills.
@@ -129,6 +131,13 @@ const TMDB_POSTER_OVERRIDES = new Map([
   ["animeav1-dotto-koni-chan", "/3INoBmgKVIhs3VJ0zCPd7WOrk1Q.jpg"]
 ]);
 
+// The franchise default depicts an older JoJo part. Keep exact-arc landscape
+// artwork through automated refreshes instead of borrowing the parent backdrop.
+const TMDB_BACKDROP_OVERRIDES = new Map([
+  ["animeav1-steel-ball-run-jojo-no-kimyou-na-bouken", "/4ATJwDwspxLCYEZaRbCpIyxd7Wo.jpg"],
+  ["animeav1-jojo-no-kimyou-na-bouken-part-6-stone-ocean", "/7asQhlv0PpWc0fmjq4LTGK7ecl4.jpg"]
+]);
+
 // Some shorts have no public per-episode stills. A verified, exact landscape
 // image is still much better than generated gradients or a stretched portrait.
 const EPISODE_THUMBNAIL_OVERRIDES = new Map([
@@ -136,9 +145,11 @@ const EPISODE_THUMBNAIL_OVERRIDES = new Map([
   ["animeav1-kaijuu-8-gou-narumi-no-heijitsu", "https://cdn.myanimelist.net/images/anime/1371/154494l.jpg"]
 ]);
 // TMDB stores Bridon as Season 3, which shifts the animated third season to
-// physical Season 4. These values select artwork only; canonical app numbering
-// remains Link Click Seasons 1, 2, and 3.
+// physical Season 4. JoJo's manga parts also differ from its TMDB seasons.
+// These values select artwork only; canonical app numbering stays unchanged.
 const TMDB_SEASON_OVERRIDES = new Map([
+  ["animeav1-steel-ball-run-jojo-no-kimyou-na-bouken", 6],
+  ["animeav1-jojo-no-kimyou-na-bouken-part-6-stone-ocean", 5],
   ["animeav1-shiguang-dailiren-ii", 2],
   ["animeav1-shiguang-dailiren-yingdu-pian", 3],
   ["animeav1-shiguang-dailiren-iii", 4],
@@ -502,17 +513,18 @@ async function resolveOne(item, existing = null) {
     const pinnedSeason = Number(TMDB_SEASON_OVERRIDES.get(item.id) || wantSeason);
     const seasonEntry = (show?.seasons || []).find((entry) => Number(entry.season_number) === pinnedSeason);
     const posterPath = TMDB_POSTER_OVERRIDES.get(item.id) || seasonEntry?.poster_path || show?.poster_path || "";
-    if (show?.backdrop_path || posterPath) {
+    const backdropPath = TMDB_BACKDROP_OVERRIDES.get(item.id) || show?.backdrop_path || "";
+    if (backdropPath || posterPath) {
       return {
-        status: show.backdrop_path ? "ok" : "poster-only",
+        status: backdropPath ? "ok" : "poster-only",
         ...identityArtwork,
         tmdbId: TMDB_ARTWORK_ONLY_OVERRIDES.has(item.id) ? null : pinnedTmdbId,
-        tmdbBackdrop: show.backdrop_path ? `${TMDB_IMG}${show.backdrop_path}` : "",
+        tmdbBackdrop: backdropPath ? `${TMDB_IMG}${backdropPath}` : "",
         tmdbPoster: TMDB_POSTER_SUPPRESSIONS.has(item.id)
           ? ""
           : (posterPath ? `${TMDB_IMG}${posterPath}` : ""),
         confidence: 100,
-        matchedName: show.name || show.original_name || "pinned TMDB series",
+        matchedName: show?.name || show?.original_name || "pinned TMDB series",
         season: pinnedSeason
       };
     }

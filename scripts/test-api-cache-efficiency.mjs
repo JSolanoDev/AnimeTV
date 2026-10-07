@@ -3,6 +3,9 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import vm from "node:vm";
 import { gzip, gunzipSync } from "node:zlib";
+import { EventEmitter } from "node:events";
+import { Readable, Writable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 
 const server = readFileSync(new URL("../animetv-server.js", import.meta.url), "utf8");
 const client = readFileSync(new URL("../client.js", import.meta.url), "utf8");
@@ -18,12 +21,13 @@ function playlistHarness(fetchWithTimeout) {
   let now = 1000;
   const context = vm.createContext({
     Date: class extends Date { static now() { return now; } },
-    Map, Object, Promise, Response, String,
+    Map, Object, Promise, Response, String, AbortController, setTimeout, clearTimeout,
     sourcePlaylistCache: new Map(),
     sourcePlaylistInflight: new Map(),
     SOURCE_PLAYLIST_MEMORY_TTL_MS: 15000,
     SOURCE_PLAYLIST_CACHE_MAX: 100,
-    fetchWithTimeout
+    fetchWithTimeout,
+    fetch: fetchWithTimeout
   });
   vm.runInContext(section(server, "function sourcePlaylistIsVod(", "async function handleSourceProxy("), context);
   return { context, advance: (ms) => { now += ms; } };
@@ -419,6 +423,242 @@ test("failed metadata is not pinned and the cache has a bounded entry count", as
   assert.equal(h.calls.length, 2);
   for (let id = 1; id <= 150; id++) await h.context.fetchMetadataJson(`/api/anilist/media?id=${id}`);
   assert.equal(vm.runInContext("metadataJsonCache.size", h.context), 128);
+});
+
+test("a Jikan outage skips other titles without discarding healthy cached metadata", async () => {
+  let down = false;
+  const h = metadataHarness(() => metadataResponse(down
+    ? { ok: false, unavailable: true, retryAfterMs: 60000, data: null }
+    : { ok: true, data: { title: "Cached" } }, "public, max-age=300"));
+  await h.context.fetchMetadataJson("/api/jikan/full?id=1");
+  down = true;
+  await h.context.fetchMetadataJson("/api/jikan/full?id=2");
+  const cooldown = await h.context.fetchMetadataJson("/api/jikan/episodes?id=3", 8000, { refresh: true });
+  assert.equal(cooldown.unavailable, true);
+  assert.equal(cooldown.notFound, undefined);
+  assert.equal(cooldown.data.length, 0);
+  assert.equal((await h.context.fetchMetadataJson("/api/jikan/full?id=1")).data.title, "Cached");
+  await h.context.fetchMetadataJson("/api/anilist/media?id=21");
+  assert.equal(h.calls.length, 3);
+  h.advance(60000);
+  down = false;
+  assert.equal((await h.context.fetchMetadataJson("/api/jikan/full?id=3")).data.title, "Cached");
+  assert.equal(h.calls.length, 4);
+});
+
+test("a Jikan client timeout stops cross-title requests but recovers after backoff", async () => {
+  let down = true;
+  const h = metadataHarness(() => {
+    if (down) throw new Error("network timeout");
+    return metadataResponse({ data: { title: "Recovered" } });
+  });
+  await assert.rejects(h.context.fetchMetadataJson("/api/jikan/full?id=1"));
+  assert.equal((await h.context.fetchMetadataJson("/api/jikan/full?id=2")).unavailable, true);
+  assert.equal(h.calls.length, 1);
+  h.advance(60000);
+  down = false;
+  assert.equal((await h.context.fetchMetadataJson("/api/jikan/full?id=2")).data.title, "Recovered");
+  assert.equal(h.calls.length, 2);
+});
+
+function relayHarness(fetchImpl) {
+  let now = 100000;
+  const calls = [];
+  const c = vm.createContext({
+    URL, URLSearchParams, AbortController, Buffer, Readable, pipeline,
+    Response, setTimeout, clearTimeout,
+    Date: class extends Date { static now() { return now; } },
+    sourceFailureCache: new Map(), SOURCE_FAILURE_CACHE_MAX: 200, SOURCE_FAILURE_TTL_MS: 15000,
+    sourcePlaylistCache: new Map(), sourcePlaylistInflight: new Map(),
+    SOURCE_PLAYLIST_MEMORY_TTL_MS: 15000, SOURCE_PLAYLIST_CACHE_MAX: 100,
+    SECURITY_HEADERS: {}, SOURCE_REFRESH_CACHE_HEADERS: { "Cache-Control": "private, no-store" },
+    UNDERHENTAI_HEADERS: { "User-Agent": "test" },
+    sanitizeCastCodecs: () => "", mediaCorsHeaders: () => ({ "Access-Control-Allow-Origin": "*" }),
+    rewriteM3u8Playlist: text => text, log: () => {},
+    sendJson: (response, body, status, headers) => {
+      response.writeHead(status, headers);
+      response.end(JSON.stringify(body));
+    },
+    fetchWithTimeout: async (...args) => { calls.push(args); return fetchImpl(...args); },
+    fetch: async (...args) => { calls.push(args); return fetchImpl(...args); }
+  });
+  vm.runInContext(section(server, "function coalesceInflight(", "function anilistCoalesce("), c);
+  vm.runInContext(section(server, "function sourcePlaylistIsVod(", "function compactCatalogPayload("), c);
+  const request = () => Object.assign(new EventEmitter(), { method: "GET", headers: { "user-agent": "test" } });
+  const response = () => {
+    const chunks = [];
+    const writable = new Writable({ write(chunk, _encoding, next) { chunks.push(Buffer.from(chunk)); next(); } });
+    writable.writeHead = (status, headers) => Object.assign(writable, { status, headers, headersSent: true });
+    writable.text = () => Buffer.concat(chunks).toString();
+    return writable;
+  };
+  return { c, calls, request, response, advance: ms => { now += ms; } };
+}
+
+test("failed media URLs keep genuine errors but stop repeat upstream transfers and permit fallback/recovery", async () => {
+  let down = true;
+  const h = relayHarness(url => {
+    if (down && url.includes("failed")) throw new Error("upstream timeout");
+    return new Response("small fixture", { headers: { "content-type": "video/mp4" } });
+  });
+  const failed = new URL("https://app.test/api/source?url=https://media.test/failed.mp4");
+  for (let i = 0; i < 3; i++) {
+    const req = h.request();
+    const res = h.response();
+    await h.c.handleSourceProxy(req, failed, res);
+    assert.equal(res.status, 502);
+    assert.equal(JSON.parse(res.text()).unavailable, true);
+    assert.equal(res.headers["Retry-After"], "15");
+    assert.equal(req.listenerCount("aborted"), 0);
+    assert.equal(res.listenerCount("close"), 0);
+  }
+  assert.equal(h.calls.length, 1);
+  const fallback = h.response();
+  await h.c.handleSourceProxy(h.request(), new URL("https://app.test/api/source?url=https://media.test/fallback.mp4"), fallback);
+  assert.equal(fallback.status, 200);
+  assert.equal(fallback.text(), "small fixture");
+  h.advance(15000);
+  down = false;
+  const recovered = h.response();
+  await h.c.handleSourceProxy(h.request(), failed, recovered);
+  assert.equal(recovered.status, 200);
+  assert.equal(h.calls.length, 3);
+  assert.equal(h.c.sourceFailureCache.size, 0);
+});
+
+test("media cooldowns isolate referers, honor Retry-After, and remain bounded", () => {
+  const h = relayHarness(() => { throw new Error("unused"); });
+  h.c.recordSourceFailure("url:first-ref", { status: 429, retryAfterMs: 90000 });
+  h.advance(10000);
+  assert.equal(h.c.sourceFailureFor("url:first-ref").retryAfterMs, 80000);
+  assert.equal(h.c.sourceFailureFor("url:other-ref"), null);
+  h.c.recordSourceFailure("url:first-ref", { status: 429, retryAfterMs: 90000 });
+  assert.equal(h.c.sourceFailureFor("url:first-ref").retryAfterMs, 80000);
+  h.c.recordSourceFailure("not-found", { status: 404 });
+  assert.equal(h.c.sourceFailureFor("not-found"), null);
+  for (let i = 0; i < 250; i++) h.c.recordSourceFailure(`fixture-${i}`, { status: 503 });
+  assert.equal(h.c.sourceFailureCache.size, 200);
+});
+
+test("media HEAD probes preserve Cast content length and never consume the movie", async () => {
+  let cancelled = false;
+  const h = relayHarness((_url, options) => {
+    assert.equal(options.headers.Range, "bytes=0-0");
+    return {
+      ok: true, status: 206,
+      headers: new Headers({ "content-type": "video/mp4", "content-range": "bytes 0-0/123456", "content-length": "1" }),
+      body: { cancel: async () => { cancelled = true; } }
+    };
+  });
+  const req = h.request();
+  req.method = "HEAD";
+  const res = h.response();
+  await h.c.handleSourceProxy(req, new URL("https://app.test/api/source?url=https://media.test/fixture.mp4"), res);
+  assert.equal(res.status, 200);
+  assert.equal(res.headers["content-length"], "123456");
+  assert.equal(cancelled, true);
+  assert.equal(res.text(), "");
+});
+
+test("leaving an episode cancels its transfer without penalizing the source", async () => {
+  let signal;
+  let cancelled = false;
+  const h = relayHarness((_url, options) => {
+    signal = options.signal;
+    return new Response(new ReadableStream({
+      start(controller) { controller.enqueue(new Uint8Array([1, 2, 3])); },
+      cancel() { cancelled = true; }
+    }), { headers: { "content-type": "video/mp4" } });
+  });
+  const req = h.request();
+  const res = h.response();
+  const firstChunk = new Promise(resolve => res.once("pipe", stream => stream.once("data", resolve)));
+  const pending = h.c.handleSourceProxy(req, new URL("https://app.test/api/source?url=https://media.test/fixture.mp4"), res);
+  await firstChunk;
+  res.destroy();
+  await pending;
+  assert.equal(signal.aborted, true);
+  assert.equal(cancelled, true);
+  assert.equal(h.c.sourceFailureCache.size, 0);
+  assert.equal(req.listenerCount("aborted"), 0);
+});
+
+test("a broken upstream body is contained and briefly suppresses only that media URL", async () => {
+  let controller;
+  const h = relayHarness(() => new Response(new ReadableStream({
+    start(value) { controller = value; value.enqueue(new Uint8Array([1, 2, 3])); }
+  }), { headers: { "content-type": "video/mp4" } }));
+  const url = new URL("https://app.test/api/source?url=https://media.test/broken.mp4");
+  const req = h.request();
+  const res = h.response();
+  const firstChunk = new Promise(resolve => res.once("pipe", stream => stream.once("data", resolve)));
+  const pending = h.c.handleSourceProxy(req, url, res);
+  await firstChunk;
+  controller.error(new Error("upstream connection reset"));
+  await pending;
+  assert.equal(res.destroyed, true);
+  assert.equal(h.c.sourceFailureCache.size, 1);
+  assert.equal(req.listenerCount("aborted"), 0);
+  const retry = h.response();
+  await h.c.handleSourceProxy(h.request(), url, retry);
+  assert.equal(retry.status, 502);
+  assert.equal(h.calls.length, 1);
+});
+
+function embedHarness(fetchImpl) {
+  const h = relayHarness(fetchImpl);
+  Object.assign(h.c, {
+    resolveEmbedCache: new Map(), resolveEmbedInflight: new Map(),
+    RESOLVE_EMBED_CACHE_TTL_MS: 45000, RESOLVE_EMBED_CACHE_HEADERS: { "Cache-Control": "public, max-age=45" },
+    GENERIC_CRAWL_HEADERS: {}, HOSTED_RUNTIME: true,
+    upnShareVideoId: () => "", extractEmbedPageRedirect: () => "",
+    extractStreamFromEmbed: () => ({ url: "https://media.test/fixture.mp4", type: "mp4" }),
+    resolvedEmbedPlaybackUrl: url => url
+  });
+  vm.runInContext(section(server, "async function handleResolveEmbed(", "function animeAv1RelativeReleaseAt("), h.c);
+  return h;
+}
+
+test("failed embed resolution backs off without hiding errors or blocking independent fallbacks", async () => {
+  let down = true;
+  const h = embedHarness(url => {
+    if (down && url.includes("failed")) throw new Error("upstream timeout");
+    return new Response("embed fixture");
+  });
+  const failed = new URL("https://app.test/api/resolve?url=https://embed.test/failed");
+  for (let i = 0; i < 3; i++) {
+    const res = h.response();
+    await h.c.handleResolveEmbed(failed, res);
+    assert.equal(res.status, 502);
+    assert.equal(JSON.parse(res.text()).notFound, undefined);
+    assert.equal(res.headers["Retry-After"], "15");
+    assert.match(res.headers["Cache-Control"], /no-store/);
+  }
+  assert.equal(h.calls.length, 1);
+  const fallback = h.response();
+  await h.c.handleResolveEmbed(new URL("https://app.test/api/resolve?url=https://embed.test/fallback"), fallback);
+  assert.equal(fallback.status, 200);
+  assert.equal(JSON.parse(fallback.text()).ok, true);
+  h.advance(15000);
+  down = false;
+  const recovered = h.response();
+  await h.c.handleResolveEmbed(failed, recovered);
+  assert.equal(recovered.status, 200);
+  assert.equal(h.calls.length, 3);
+  assert.equal(h.c.sourceFailureCache.size, 0);
+});
+
+test("a removed embed remains a scoped missing result, not an upstream outage", async () => {
+  const h = embedHarness(() => new Response("gone", { status: 404 }));
+  const url = new URL("https://app.test/api/resolve?url=https://embed.test/removed");
+  for (let i = 0; i < 2; i++) {
+    const res = h.response();
+    await h.c.handleResolveEmbed(url, res);
+    assert.equal(res.status, 200);
+    assert.equal(JSON.parse(res.text()).notFound, true);
+  }
+  assert.equal(h.calls.length, 1);
+  assert.equal(h.c.sourceFailureCache.size, 0);
 });
 
 test("client retries stop immediately on 429 and never sleep after the final attempt", async () => {

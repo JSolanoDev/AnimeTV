@@ -14,12 +14,65 @@ const SeasonNormalization = (function() {
   const TYPE_MOVIE = 'movie';
   const TYPE_RECAP = 'recap';
 
+  // Display the official TV seasons without renumbering existing watch/progress IDs.
+  function jojoEntryScope(entry = {}) {
+    if (entry.isAdult || entry.adultSource) return null;
+    const aid = String(entry.anilistId || "");
+    const mid = Number(entry.malId || aid.match(/^mal-(\d+)$/)?.[1] || 0);
+    const title = String(entry.sourceTitle || entry.title?.romaji || entry.title || entry.romajiTitle || "");
+    const known = (a, m) => aid === String(a) || mid === m;
+    const isJojo = /jojo|stone ocean|steel ball run/i.test(title);
+    let scope = null;
+    if (known(14719, 14719)) scope = [1, null, 1, 0, 26, "Phantom Blood / Battle Tendency"];
+    else if (known(20474, 20899) || (isJojo && /stardust crusaders/i.test(title) && !/egypt|2nd season/i.test(title))) scope = [2, null, 2, 0, 24, "Stardust Crusaders - Part 1"];
+    else if (known(20799, 26055) || (isJojo && /stardust crusaders/i.test(title) && /egypt|2nd season/i.test(title))) scope = [3, null, 2, 24, 24, "Stardust Crusaders - Egypt Arc"];
+    else if (known(21450, 31933) || (isJojo && /diamond wa kudakenai|diamond is unbreakable/i.test(title))) scope = [4, null, 3, 0, 39, "Diamond Is Unbreakable"];
+    else if (known(102883, 37991) || (isJojo && /ougon no kaze|golden wind/i.test(title))) scope = [5, null, 4, 0, 39, "Golden Wind"];
+    else if (mid === 53273 || (isJojo && /stone ocean.*part\s*3/i.test(title))) scope = [6, 3, 5, 24, 14, "Stone Ocean - Part 3"];
+    else if (known(146722, 51367) || (isJojo && /stone ocean.*part\s*2/i.test(title))) {
+      scope = [6, 2, 5, 12, 12, "Stone Ocean - Part 2"];
+    } else if (known(131942, 48661) || (isJojo && /stone ocean/i.test(title))) scope = [6, 1, 5, 0, 12, "Stone Ocean - Part 1"];
+    else if (aid === "210482" || (isJojo && /steel ball run.*2nd/i.test(title))) scope = [7, 2, 6, 1, 11, "Steel Ball Run - Stages 2 & 3"];
+    else if (known(190327, 61469) || (isJojo && /steel ball run/i.test(title))) scope = [7, 1, 6, 0, 1, "Steel Ball Run - 1st Stage"];
+    if (!scope) return null;
+    const [seasonNumber, partNumber, tmdbSeasonNumber, offset, count, name] = scope;
+    return { seasonNumber, partNumber, tmdbSeasonNumber, offset, count,
+      title: `Season ${tmdbSeasonNumber}: ${name}` };
+  }
+
+  function scopeJojoEpisodes(episodes, entry, provider) {
+    const scope = jojoEntryScope(entry);
+    if (!scope || !Array.isArray(episodes)) return episodes;
+    const providerScope = jojoEntryScope(provider);
+    const combined = providerScope && providerScope.seasonNumber === scope.seasonNumber
+      && providerScope.offset === 0 && episodes.length > providerScope.count;
+    const offset = combined ? scope.offset : 0;
+    return episodes.filter((episode, index) => {
+      const number = Number(episode.providerEpisodeId ?? episode.sourceEpisodeNumber ?? episode.episode ?? index + 1);
+      return !combined || (number > offset && number <= offset + scope.count);
+    }).slice(0, scope.count).map((episode, index) => {
+      const number = combined
+        ? Number(episode.providerEpisodeId ?? episode.sourceEpisodeNumber ?? episode.episode ?? index + 1) - offset
+        : Number(episode.canonicalEpisode ?? episode.episode ?? index + 1);
+      return { ...episode, canonicalEpisode: number, displayEpisodeNumber: number, episode: number,
+        anilistId: entry.anilistId || episode.anilistId, malId: entry.malId || episode.malId };
+    });
+  }
+
   /**
    * Main entry point: takes a list of related anime entries (from AniList franchise or similar)
    * and returns a normalized structure of groups.
    */
   function normalizeFranchise(entries) {
     if (!Array.isArray(entries) || !entries.length) return { groups: [] };
+    // AniList's second entry combines the final two batches. Give the third
+    // batch its existing MAL identity even when a partial relation feed omits it.
+    if (entries.some(entry => jojoEntryScope(entry)?.seasonNumber === 6)
+        && !entries.some(entry => jojoEntryScope(entry)?.seasonNumber === 6 && jojoEntryScope(entry)?.partNumber === 3)) {
+      entries = [...entries, { anilistId: "mal-53273", malId: 53273,
+        title: "JoJo no Kimyou na Bouken: Stone Ocean Part 3", format: "ONA",
+        status: "FINISHED", seasonYear: 2022, episodes: 14 }];
+    }
 
     // A "franchise" with a single entry has nothing to be an extra OF — it's
     // just that show's own episodes, regardless of its AniList format (ONA/OVA/
@@ -148,6 +201,7 @@ const SeasonNormalization = (function() {
 
     // Title parsing
     const parsed = parseTitle(title);
+    const jojo = jojoEntryScope(entry);
     const declaredSeason = Number(entry.canonicalSeasonNumber ?? entry.seasonNumber);
     if (Number.isInteger(declaredSeason) && declaredSeason > 0) {
       parsed.seasonNumber = declaredSeason;
@@ -156,6 +210,11 @@ const SeasonNormalization = (function() {
       // chain to support it: Thunder 3 and 86 are names, not Season 3/86. Keep
       // explicit "Season 3" titles and catalog-declared identities intact.
       parsed.seasonNumber = null;
+    }
+
+    if (jojo) {
+      parsed.seasonNumber = jojo.seasonNumber;
+      parsed.partNumber = jojo.partNumber;
     }
 
     // Classification
@@ -198,7 +257,8 @@ const SeasonNormalization = (function() {
       isFinalChapters: parsed.isFinalChapters,
       arcName: parsed.arcName,
       yearStart,
-      episodeCount
+      episodeCount: jojo ? jojo.count : episodeCount,
+      ...(jojo ? { displaySeasonTitle: jojo.title, episodes: jojo.count } : {})
     };
   }
 
@@ -293,6 +353,11 @@ const SeasonNormalization = (function() {
   }
 
   function determineGroup(item, existingGroups, currentMaxSeason, isStandalone = false) {
+    if (item.displaySeasonTitle) {
+      return { groupId: `season-${item.seasonNumber}${item.partNumber ? `-part-${item.partNumber}` : ""}`,
+        groupTitle: item.displaySeasonTitle, seasonNumber: item.seasonNumber,
+        partNumber: item.partNumber, groupType: TYPE_MAIN };
+    }
     // 1. Movies, Specials, Recaps get their own broad groups if they don't have season markers
     if (item.type === TYPE_MOVIE && !item.seasonNumber) {
       return { groupId: 'movies', groupTitle: 'Movies', groupType: TYPE_MOVIE };
@@ -379,7 +444,9 @@ const SeasonNormalization = (function() {
 
   return {
     normalizeFranchise,
-    parseTitle
+    parseTitle,
+    jojoEntryScope,
+    scopeJojoEpisodes
   };
 })();
 

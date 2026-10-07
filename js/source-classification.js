@@ -98,7 +98,8 @@ function isTioAnimeSource(source = {}) {
 function isHlsSource(source = {}) {
   const url = (source.videoUrl || source.externalUrl || "").toLowerCase();
   const text = sourceIdentityText(source);
-  return /\.m3u8(\?|#|$)/i.test(url) || /\bhls\b/.test(text);
+  return /\.m3u8(\?|#|$)/i.test(url) || /\bhls\b/.test(text)
+    || /mpegurl|\bhls\b/i.test(`${source.mimeType || ""} ${source.container || ""}`);
 }
 
 function isMp4UploadSource(source = {}) {
@@ -186,6 +187,9 @@ function sourcePreferenceScore(source = {}) {
   if (isHentaiOceanSource(source))       return 40 + compatibilityPenalty;
   if (isPreferredAdultSource(source))    return 0 + compatibilityPenalty;
   if (identity.includes("hentaila"))     return 1 + compatibilityPenalty;
+
+  // Format preference never bypasses live verification or codec admission.
+  if (isDirect && isHls)                return -8 + compatibilityPenalty;
 
   if (isAnimeYTSource(source) && isDirect) return -6 + compatibilityPenalty;
 

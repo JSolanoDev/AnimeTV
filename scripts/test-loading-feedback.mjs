@@ -744,6 +744,19 @@ test("release posters share the cached-image ready and fallback lifecycle", () =
   assert.match(css, /\.release-poster img\.img-ready\s*\{[^}]*opacity: 1/);
 });
 
+test("schedule posters paint without a ready class or hover while other surfaces retain their reveal", () => {
+  const css = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+  const rule = css.match(/#schedule \.schedule-thumb-img\s*\{([^}]*)\}/)?.[1];
+  assert.ok(rule, "visibility must be scoped to regular schedule posters");
+  assert.match(rule, /opacity: 1;/);
+  assert.match(rule, /transition: transform 220ms ease;/);
+  assert.doesNotMatch(rule, /transition:[^;]*opacity|!important/);
+  assert.match(css, /\.release-poster img\s*\{[^}]*opacity: 0;/,
+    "other release surfaces keep their existing loading feedback");
+  assert.match(css, /\.release-poster img\.img-ready\s*\{[^}]*opacity: 1;/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)\s*\{\s*#schedule \.schedule-thumb-img, \.release-poster img, \.release-open \{ transition: none;/);
+});
+
 function scheduleImageLifecycleHarness() {
   const failed = new Set();
   const listeners = new Map();

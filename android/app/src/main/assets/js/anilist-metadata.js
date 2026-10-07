@@ -14,7 +14,7 @@
 // ── Franchise version ────────────────────────────────────────────────────────
 // Bump this whenever traversal/merge logic changes so every show gets a fresh
 // franchise rebuild on next open (in-memory cached franchises become stale).
-const _FRANCHISE_VERSION = 15;
+const _FRANCHISE_VERSION = 16;
 const _MEDIA_CACHE_VERSION_KEY = "animetv-anilist-cache-v";
 const _MEDIA_CACHE_VERSION_VAL = "11"; // clears stale localStorage media cache
 
@@ -43,10 +43,15 @@ function franchiseEntryKey(entry = {}) {
 }
 
 function franchiseEntryMatches(entry, show) {
-  return Boolean(entry && show && (
+  if (!entry || !show) return false;
+  const entryScope = typeof SeasonNormalization !== "undefined" ? SeasonNormalization.jojoEntryScope?.(entry) : null;
+  const showScope = typeof SeasonNormalization !== "undefined" ? SeasonNormalization.jojoEntryScope?.(show) : null;
+  if (entryScope && showScope && (entryScope.seasonNumber !== showScope.seasonNumber
+      || entryScope.partNumber !== showScope.partNumber)) return false;
+  return Boolean(
     (entry.anilistId && show.anilistId && String(entry.anilistId) === String(show.anilistId)) ||
     (entry.malId && show.malId && String(entry.malId) === String(show.malId))
-  ));
+  );
 }
 
 function jikanFranchiseMedia(data, anilistId = null) {
@@ -622,7 +627,10 @@ function buildSeasonListFromAniListFranchise(show, showsMap, getDetailSeasons, m
 
   const result = [];
 
-  for (const group of franchise.groups) {
+  const entries = franchise.groups.flatMap(group => group.items || []);
+  const groups = entries.some(entry => SeasonNormalization.jojoEntryScope(entry))
+    ? SeasonNormalization.normalizeFranchise(entries).groups : franchise.groups;
+  for (const group of groups) {
     // A group is current if any of its items match the current show
     const isCurrent = group.items.some(item =>
       franchiseEntryMatches(item, show) ||
@@ -640,9 +648,15 @@ function buildSeasonListFromAniListFranchise(show, showsMap, getDetailSeasons, m
     group.items.forEach(item => {
       const itemIsCurrent = franchiseEntryMatches(item, show);
       const itemMatched = showsMap.get(franchiseEntryKey(item)) || showsMap.get(`mal-${item.malId}`);
+      const provider = typeof jojoEpisodeProvider === "function"
+        ? jojoEpisodeProvider(item, itemIsCurrent ? show : itemMatched, showsMap)
+        : (itemIsCurrent ? show : itemMatched);
 
       let itemEps = [];
-      if (itemIsCurrent) {
+      if (provider && provider !== (itemIsCurrent ? show : itemMatched)) {
+        itemEps = makePlaceholderEpisodes(provider, group.seasonNumber || 1);
+        groupPlayable = true;
+      } else if (itemIsCurrent) {
         const ds = getDetailSeasons(show) || [];
         // Extract episodes that belong to this entry
         itemEps = ds.flatMap(s => s.episodes || []);
@@ -653,9 +667,12 @@ function buildSeasonListFromAniListFranchise(show, showsMap, getDetailSeasons, m
           : makePlaceholderEpisodesFromAniList(item);
       }
 
-      // Cap to aired count
+      itemEps = SeasonNormalization.scopeJojoEpisodes(itemEps, item, provider);
+      // A borrowed JoJo inventory is measured at the provider; stale airing
+      // metadata must not remove released episodes already scoped to this batch.
       const airedCount = getAniListDisplayEpisodeCount(item);
-      if (airedCount > 0 && itemEps.length > airedCount) {
+      const borrowedInventory = provider && provider !== (itemIsCurrent ? show : itemMatched);
+      if (!borrowedInventory && airedCount > 0 && itemEps.length > airedCount) {
         itemEps = itemEps.slice(0, airedCount);
       }
       groupEpisodes.push(...itemEps);

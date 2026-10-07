@@ -7,6 +7,7 @@ const path = require("path");
 const vm = require("vm");
 const { spawn } = require("child_process");
 const { Readable } = require("stream");
+const { pipeline } = require("stream/promises");
 const { gzip } = require("zlib");
 const { createProvider: createAnimeYTProvider } = require("./lib/animeyt-provider.cjs");
 let sharp = null;
@@ -236,6 +237,9 @@ const animeAv1SourceInflight = new Map(); // coalesce concurrent cold lookups
 // and direct video responses are never buffered here.
 const sourcePlaylistCache = new Map();
 const sourcePlaylistInflight = new Map();
+const sourceFailureCache = new Map();
+const SOURCE_FAILURE_CACHE_MAX = 200;
+const SOURCE_FAILURE_TTL_MS = 15000;
 const SOURCE_PLAYLIST_MEMORY_TTL_MS = 15 * 1000;
 const SOURCE_PLAYLIST_CACHE_MAX = 100;
 const streamTapeRelayCache = new Map();
@@ -458,6 +462,32 @@ const JIKAN_EPISODE_BUDGET_MS = 20000;
 let jikanRequestQueue = Promise.resolve();
 let jikanLastRequestAt = 0;
 let jikanRetryAt = 0;
+const jikanCircuit = { failures: 0, retryAt: 0, status: 0 };
+
+function jikanCircuitError() {
+  if (jikanCircuit.retryAt <= Date.now()) return null;
+  const error = new Error("Jikan upstream outage cooldown is active");
+  error.status = jikanCircuit.status || 503;
+  error.retryAfterMs = jikanCircuit.retryAt - Date.now();
+  error.providerCooldown = true;
+  return error;
+}
+
+function recordJikanUpstreamFailure(error) {
+  if (error?.providerCooldown || isPermanentJikanError(error)) return;
+  jikanCircuit.failures += 1;
+  if (jikanCircuit.failures >= 2 || error?.code === "JIKAN_TIMEOUT") {
+    jikanCircuit.status = Number(error?.status) || 503;
+    jikanCircuit.retryAt = Math.max(jikanCircuit.retryAt,
+      Date.now() + Math.max(JIKAN_FAILURE_TTL_MS, Number(error?.retryAfterMs) || 0));
+  }
+}
+
+function resetJikanCircuit() {
+  jikanCircuit.failures = 0;
+  jikanCircuit.retryAt = 0;
+  jikanCircuit.status = 0;
+}
 
 // Jikan is a free, heavily rate-limited upstream and returns 504 regularly. Its
 // handlers used to translate that straight into OUR 500, so a single flaky
@@ -497,6 +527,7 @@ function isPermanentJikanError(error) {
 }
 
 function noteJikanFailure(key, error) {
+  if (error?.providerCooldown || jikanCoolingDown(key)) return;
   jikanFailureCache.set(key, Date.now());
   jikanHealth.consecutiveFailures += 1;
   jikanHealth.totalFailures += 1;
@@ -553,10 +584,12 @@ function sendJikanUnavailable(response, cachedData, fallback, error = null) {
     ok: false,
     stale: hasStale,
     unavailable: true,
-    retryAfterMs: Math.max(JIKAN_FAILURE_TTL_MS, Number(error?.retryAfterMs || 0)),
+    retryAfterMs: error?.providerCooldown
+      ? Math.max(1000, Number(error.retryAfterMs) || 0)
+      : Math.max(JIKAN_FAILURE_TTL_MS, Number(error?.retryAfterMs || 0)),
     ...(error ? {
       upstreamStatus: Number(error.status || 0) || null,
-      reason: error.code === "JIKAN_TIMEOUT"
+      reason: error.providerCooldown ? "cooldown" : error.code === "JIKAN_TIMEOUT"
         ? "timeout"
         : (error.status ? "upstream_http" : "network")
     } : { reason: "cooldown" })
@@ -1490,7 +1523,9 @@ function handleHealth(response) {
         lastFailureAt: jikanHealth.lastFailureAt ? new Date(jikanHealth.lastFailureAt).toISOString() : null,
         lastFailureReason: jikanHealth.lastFailureReason || null,
         lastSuccessAt: jikanHealth.lastSuccessAt ? new Date(jikanHealth.lastSuccessAt).toISOString() : null,
-        coolingDownKeys: jikanFailureCache.size
+        coolingDownKeys: jikanFailureCache.size,
+        circuitOpen: Boolean(jikanCircuitError()),
+        retryAfterMs: Math.max(0, jikanCircuit.retryAt - Date.now())
       },
       anipub: anipubHealthState,
       anime1v: {
@@ -2288,6 +2323,61 @@ function sourcePlaylistIsVod(text) {
     || /^#EXT-X-ENDLIST\s*$/mi.test(String(text || ""));
 }
 
+function sourceFailureFor(key) {
+  const cached = sourceFailureCache.get(key);
+  if (!cached) return null;
+  const retryAfterMs = cached.retryAt - Date.now();
+  if (retryAfterMs <= 0) {
+    sourceFailureCache.delete(key);
+    return null;
+  }
+  const error = new Error(cached.message);
+  error.status = cached.status;
+  error.retryAfterMs = retryAfterMs;
+  error.providerCooldown = true;
+  return error;
+}
+
+function recordSourceFailure(key, error) {
+  if (error?.providerCooldown || sourceFailureFor(key)) return;
+  const status = Number(error?.status) || 502;
+  if (![403, 408, 429].includes(status) && status < 500) return;
+  while (sourceFailureCache.size >= SOURCE_FAILURE_CACHE_MAX) {
+    sourceFailureCache.delete(sourceFailureCache.keys().next().value);
+  }
+  sourceFailureCache.set(key, {
+    status,
+    message: error?.message || "Upstream media unavailable",
+    retryAt: Date.now() + Math.max(Number(error?.retryAfterMs) || 0,
+      status === 403 || status === 429 ? 60000 : SOURCE_FAILURE_TTL_MS)
+  });
+}
+
+async function fetchSourcePlaylistSnapshot(target, headers) {
+  const controller = new AbortController();
+  const error = new Error("Upstream playlist deadline exceeded");
+  error.status = 504;
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => { controller.abort(error); reject(error); }, 12000);
+  });
+  try {
+    // Keep the deadline through body decoding, not only until headers arrive.
+    return await Promise.race([deadline, (async () => {
+      const upstream = await fetch(target, { headers, signal: controller.signal });
+      return {
+        status: upstream.status,
+        statusText: upstream.statusText,
+        headers: Object.fromEntries(upstream.headers.entries()),
+        body: await upstream.text(),
+        ts: Date.now()
+      };
+    })()]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function sourcePlaylistIsMaster(text) {
   return /^#EXT-X-STREAM-INF:/mi.test(String(text || ""));
 }
@@ -2314,16 +2404,8 @@ async function fetchCoalescedSourcePlaylist(target, headers, cacheKey) {
   let pending = sourcePlaylistInflight.get(cacheKey);
   if (!pending) {
     pending = (async () => {
-      const upstream = await fetchWithTimeout(target, { headers }, 12000);
-      const body = await upstream.text();
-      const snapshot = {
-        status: upstream.status,
-        statusText: upstream.statusText,
-        headers: Object.fromEntries(upstream.headers.entries()),
-        body,
-        ts: Date.now()
-      };
-      if (upstream.ok && sourcePlaylistIsReusable(body)) {
+      const snapshot = await fetchSourcePlaylistSnapshot(target, headers);
+      if (snapshot.status >= 200 && snapshot.status < 300 && sourcePlaylistIsReusable(snapshot.body)) {
         while (sourcePlaylistCache.size >= SOURCE_PLAYLIST_CACHE_MAX) {
           sourcePlaylistCache.delete(sourcePlaylistCache.keys().next().value);
         }
@@ -2418,8 +2500,13 @@ async function handleSourceProxy(request, url, response) {
 
   const relayController = new AbortController();
   const abortRelay = () => relayController.abort();
+  const abortClosedRelay = () => { if (!response.writableFinished) abortRelay(); };
+  const failureKey = `relay:${target}\n${url.searchParams.get("refererHost") || ""}\n${request.headers["user-agent"] || ""}`;
   request.once?.("aborted", abortRelay);
+  response.once?.("close", abortClosedRelay);
   try {
+    const failure = sourceFailureFor(failureKey);
+    if (failure) throw failure;
     const isHeadRequest = String(request.method || "").toUpperCase() === "HEAD";
     const refererHost = String(url.searchParams.get("refererHost") || "").trim();
     const castCodecs = sanitizeCastCodecs(url.searchParams.get("castCodecs") || "");
@@ -2545,12 +2632,15 @@ async function handleSourceProxy(request, url, response) {
       ? await fetchCoalescedSourcePlaylist(target, headers, playlistCacheKey)
       : await fetchWithTimeout(relayTarget, { headers, signal: relayController.signal }, 12000);
     if (!upstream.ok) {
+      recordSourceFailure(failureKey, upstreamHttpError("Media", upstream));
       log("warn", "Source relay upstream rejected request", {
         providerHost: targetHost,
         method: String(request.method || "GET").toUpperCase(),
         upstreamStatus: upstream.status,
         ranged: Boolean(headers.Range)
       });
+    } else {
+      sourceFailureCache.delete(failureKey);
     }
     const upstreamType = upstream.headers.get("content-type") || "";
     // "Useless" means the origin told us nothing a player can act on. A real
@@ -2658,21 +2748,36 @@ async function handleSourceProxy(request, url, response) {
       response.end();
       return;
     }
-    Readable.fromWeb(upstream.body).pipe(response);
+    const mediaStream = Readable.fromWeb(upstream.body);
+    const noteStreamFailure = error => {
+      if (!relayController.signal.aborted && !request.aborted) recordSourceFailure(failureKey, error);
+    };
+    mediaStream.once("error", noteStreamFailure);
+    try {
+      await pipeline(mediaStream, response, { signal: relayController.signal });
+    } finally {
+      mediaStream.removeListener("error", noteStreamFailure);
+    }
   } catch (error) {
     if (relayController.signal.aborted || request.aborted || response.destroyed) return;
+    recordSourceFailure(failureKey, error);
     if (response.headersSent) {
       response.destroy(error);
       return;
     }
     let providerHost = "invalid-url";
     try { providerHost = new URL(target).hostname; } catch { /* validated above */ }
-    log("warn", "Source relay failed", {
+    if (!error.providerCooldown) log("warn", "Source relay failed", {
       providerHost,
       method: String(request.method || "GET").toUpperCase(),
       error: error?.name === "AbortError" ? "upstream timeout" : error.message
     });
-    sendJson(response, { ok: false, error: "Local source unavailable" }, 502);
+    const retryAfterMs = sourceFailureFor(failureKey)?.retryAfterMs || 0;
+    sendJson(response, { ok: false, unavailable: true, error: "Local source unavailable", retryAfterMs }, 502,
+      { ...SOURCE_REFRESH_CACHE_HEADERS, ...(retryAfterMs ? { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) } : {}) });
+  } finally {
+    request.removeListener?.("aborted", abortRelay);
+    response.removeListener?.("close", abortClosedRelay);
   }
 }
 
@@ -9645,12 +9750,15 @@ async function handleResolveEmbed(reqUrl, response) {
     return;
   }
   const cacheKey = `${target}\n${customReferer}`;
+  const failureKey = `resolve:${cacheKey}`;
   const cached = resolveEmbedCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < RESOLVE_EMBED_CACHE_TTL_MS) {
     sendJson(response, { ...cached.payload, cached: true }, 200, RESOLVE_EMBED_CACHE_HEADERS);
     return;
   }
   try {
+    const failure = sourceFailureFor(failureKey);
+    if (failure) throw failure;
     const result = await coalesceInflight(resolveEmbedInflight, cacheKey, async () => {
       const upnShareId = upnShareVideoId(target);
       if (upnShareId) {
@@ -9708,6 +9816,7 @@ async function handleResolveEmbed(reqUrl, response) {
         shared: true
       };
     });
+    sourceFailureCache.delete(failureKey);
     if (result.shared && (result.payload.ok || result.payload.notFound)) {
       resolveEmbedCache.set(cacheKey, { payload: result.payload, ts: Date.now() });
     }
@@ -9715,7 +9824,7 @@ async function handleResolveEmbed(reqUrl, response) {
   } catch (error) {
     let providerHost = "invalid-url";
     try { providerHost = new URL(target).hostname; } catch { /* validated above */ }
-    log("warn", "Embed resolve failed", {
+    if (!error.providerCooldown) log("warn", "Embed resolve failed", {
       providerHost,
       upstreamStatus: Number(error.status || 0) || null,
       error: error?.name === "AbortError" ? "upstream timeout" : error.message
@@ -9732,13 +9841,16 @@ async function handleResolveEmbed(reqUrl, response) {
       sendJson(response, payload, 200, RESOLVE_EMBED_CACHE_HEADERS);
       return;
     }
+    recordSourceFailure(failureKey, error);
+    const retryAfterMs = sourceFailureFor(failureKey)?.retryAfterMs || 0;
     sendJson(response, {
       ok: false,
       error: `Resolve failed: ${error.message}`,
       providerHost,
       upstreamStatus: Number(error.status || 0) || null,
-      retryAfterMs: Number(error.retryAfterMs || 0) || undefined
-    }, 502);
+      retryAfterMs: retryAfterMs || undefined
+    }, 502, { ...SOURCE_REFRESH_CACHE_HEADERS,
+      ...(retryAfterMs ? { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) } : {}) });
   }
 }
 
@@ -13392,6 +13504,8 @@ function wait(ms) {
 }
 
 function fetchJikanJson(pathname, { deadlineAt = Infinity } = {}) {
+  const cooldown = jikanCircuitError();
+  if (cooldown) return Promise.reject(cooldown);
   // Include queue time and body decoding in the budget, not only HTTP headers.
   const remainingMs = Math.min(deadlineAt - Date.now(), JIKAN_REQUEST_BUDGET_MS);
   const timeoutError = new Error("Jikan request deadline exceeded");
@@ -13399,8 +13513,10 @@ function fetchJikanJson(pathname, { deadlineAt = Infinity } = {}) {
   if (remainingMs <= 0) return Promise.reject(timeoutError);
   const controller = new AbortController();
   let timer;
+  let upstreamActive = false;
   const deadline = new Promise((_, reject) => {
     timer = setTimeout(() => {
+      if (upstreamActive) recordJikanUpstreamFailure(timeoutError);
       controller.abort(timeoutError);
       reject(timeoutError);
     }, remainingMs);
@@ -13408,6 +13524,8 @@ function fetchJikanJson(pathname, { deadlineAt = Infinity } = {}) {
   const requestJson = async () => {
     for (let attempt = 0; attempt < 3; attempt++) {
       if (controller.signal.aborted) throw timeoutError;
+      const outage = jikanCircuitError();
+      if (outage) throw outage;
       if (jikanRetryAt > Date.now()) {
         const error = new Error("Jikan rate-limit cooldown is active");
         error.status = 429;
@@ -13417,6 +13535,8 @@ function fetchJikanJson(pathname, { deadlineAt = Infinity } = {}) {
       const waitMs = Math.max(0, 350 - (Date.now() - jikanLastRequestAt));
       if (waitMs) await wait(waitMs);
       if (controller.signal.aborted) throw timeoutError;
+      const queuedOutage = jikanCircuitError();
+      if (queuedOutage) throw queuedOutage;
       if (jikanRetryAt > Date.now()) {
         const error = new Error("Jikan rate-limit cooldown is active");
         error.status = 429;
@@ -13425,6 +13545,7 @@ function fetchJikanJson(pathname, { deadlineAt = Infinity } = {}) {
       }
       jikanLastRequestAt = Date.now();
       try {
+        upstreamActive = true;
         const upstream = await fetch(`${JIKAN_API}${pathname}`, { signal: controller.signal });
         if (upstream.ok) {
           const payload = await upstream.json();
@@ -13437,22 +13558,29 @@ function fetchJikanJson(pathname, { deadlineAt = Infinity } = {}) {
             error.status = logicalStatus;
             throw error;
           }
+          resetJikanCircuit();
           return payload;
         }
         await upstream.body?.cancel();
         const error = upstreamHttpError("Jikan", upstream, JIKAN_FAILURE_TTL_MS);
+        if (isPermanentJikanError(error)) resetJikanCircuit();
         if (error.status === 429) {
           jikanRetryAt = Math.max(jikanRetryAt, Date.now() + error.retryAfterMs);
         }
         throw error;
       } catch (error) {
+        upstreamActive = false;
         if (controller.signal.aborted) throw timeoutError;
+        recordJikanUpstreamFailure(error);
         // A 429 is an instruction to stop. Remember its Retry-After across all
         // keys instead of multiplying the rate-limit problem with local retries.
         if (error.status === 429) throw error;
+        if (jikanCircuitError()) throw error;
         const retryable = !error.status || [408, 429, 500, 502, 503, 504].includes(error.status);
         if (!retryable || attempt === 2) throw error;
         await wait(650 * (2 ** attempt));
+      } finally {
+        upstreamActive = false;
       }
     }
   };

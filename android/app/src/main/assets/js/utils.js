@@ -164,6 +164,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
 
 const metadataJsonCache = new Map();
 const metadataJsonInflight = new Map();
+let jikanMetadataRetryAt = 0;
 const METADATA_JSON_CACHE_MAX = 128;
 
 // Only anonymous metadata participates. Never retain source URLs or user data.
@@ -182,6 +183,15 @@ async function fetchMetadataJson(url, timeoutMs = API_TIMEOUT_MS, { refresh = fa
     return JSON.parse(cached.json);
   }
   metadataJsonCache.delete(key);
+
+  const isJikan = parsed.pathname.startsWith("/api/jikan/");
+  if (isJikan && jikanMetadataRetryAt > Date.now()) {
+    return {
+      ok: false, unavailable: true, reason: "cooldown",
+      retryAfterMs: jikanMetadataRetryAt - Date.now(),
+      data: parsed.pathname.endsWith("/full") ? null : []
+    };
+  }
 
   const retain = (entry) => {
     metadataJsonCache.set(key, entry);
@@ -202,12 +212,18 @@ async function fetchMetadataJson(url, timeoutMs = API_TIMEOUT_MS, { refresh = fa
           const retryMs = retryAfter && Number.isFinite(seconds)
             ? seconds * 1000
             : Date.parse(retryAfter) - Date.now();
+          error.retryAfterMs = Math.max(1000, Number.isFinite(retryMs) ? retryMs : 30000);
           retain({ error, expiresAt: Date.now() + Math.max(1000, Number.isFinite(retryMs) ? retryMs : 30000) });
         }
         try { await response.body?.cancel?.(); } catch { /* already closed */ }
         throw error;
       }
-      const json = JSON.stringify(await response.json());
+      const payload = await response.json();
+      if (isJikan && payload?.unavailable) {
+        jikanMetadataRetryAt = Math.max(jikanMetadataRetryAt,
+          Date.now() + Math.max(1000, Number(payload.retryAfterMs) || 60000));
+      }
+      const json = JSON.stringify(payload);
       const control = response.headers?.get?.("cache-control") || "";
       const maxAge = /(?:^|,)\s*max-age=(\d+)\b/i.exec(control);
       if (maxAge && !/\b(?:no-store|no-cache|private)\b/i.test(control)) {
@@ -216,7 +232,13 @@ async function fetchMetadataJson(url, timeoutMs = API_TIMEOUT_MS, { refresh = fa
         if (ttl > 0) retain({ json, expiresAt: Date.now() + ttl });
       }
       return json;
-    })().finally(() => metadataJsonInflight.delete(key));
+    })().catch(error => {
+      if (isJikan && (!error.status || error.status === 429 || error.status >= 500)) {
+        jikanMetadataRetryAt = Math.max(jikanMetadataRetryAt,
+          Date.now() + Math.max(60000, Number(error.retryAfterMs) || 0));
+      }
+      throw error;
+    }).finally(() => metadataJsonInflight.delete(key));
     metadataJsonInflight.set(key, pending);
   }
   // Consumers enrich metadata in place; each receives its own copy.

@@ -14,6 +14,63 @@ const require = createRequire(import.meta.url);
 const server = require("../animetv-server.js");
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
 
+test("exact season background repairs override stale artwork without changing other identities", () => {
+  const code = read("client.js");
+  const backdrop = "https://image.tmdb.org/t/p/original/4ATJwDwspxLCYEZaRbCpIyxd7Wo.jpg";
+  const failed = new Set();
+  const context = vm.createContext({
+    isAdultCatalogShow: show => Boolean(show.adultSource || show.isAdult),
+    pickImage: urls => urls.find(url => !failed.has(url)) || "",
+    hqImage: url => url,
+    getCarouselArtwork: show => show.tmdbBackdrop,
+    isArtworkLowQuality: () => false,
+    fetch: () => assert.fail("the background repair must not fetch metadata")
+  });
+  vm.runInContext(code.slice(code.indexOf("const HELL_MODE_WATCH_BACKDROP"), code.indexOf("// Pick the first usable image")), context);
+  for (const identity of [
+    { id: "source-animetv-api-animeav1-steel-ball-run-jojo-no-kimyou-na-bouken" },
+    { catalogAnimeId: "animeav1-steel-ball-run-jojo-no-kimyou-na-bouken" },
+    { anilistId: 190327 }, { malId: 61469 }
+  ]) {
+    assert.equal(context.getWatchBackdropArtwork({ ...identity, tmdbBackdrop: "old.jpg", _paintedCarouselArtwork: "old.jpg" }), backdrop);
+  }
+  const earlier = { id: "animeav1-jojo-no-kimyou-na-bouken-tv", tmdbId: 45790, tmdbBackdrop: "earlier-season.jpg" };
+  assert.equal(context.getWatchBackdropArtwork(earlier), earlier.tmdbBackdrop);
+  assert.equal(context.curatedWatchBackdrop({ anilistId: 190327, adultSource: "NeutralFixture" }), "");
+  assert.equal(context.curatedWatchBackdrop({ id: "animeav1-other-steel-ball-run" }), "");
+  failed.add(backdrop);
+  assert.equal(context.curatedWatchBackdrop({ anilistId: 190327 }), "", "failed artwork must still fall through to existing fallbacks");
+});
+
+test("automated artwork rebuilds retain the exact season background rather than the franchise default", async () => {
+  const code = read("scripts/build-artwork-map.mjs");
+  const id = "animeav1-steel-ball-run-jojo-no-kimyou-na-bouken";
+  const context = vm.createContext({
+    BASE: "https://fixture.test", ANILIST_OVERRIDES: {}, console: { log() {} },
+    anilistById: async () => null, anilistSearch: async () => null,
+    seasonNumberOf: () => 1,
+    getJson: async () => ({ show: { name: "Neutral Franchise", backdrop_path: "/franchise.jpg",
+      poster_path: "/franchise-poster.jpg", seasons: [{ season_number: 6, poster_path: "/exact-season.jpg" },
+        { season_number: 5, poster_path: "/earlier-arc.jpg" }] } })
+  });
+  vm.runInContext(code.slice(code.indexOf("const TMDB_IMG ="), code.indexOf("const norm =")), context);
+  vm.runInContext(code.slice(code.indexOf("async function resolveOne("), code.indexOf("async function main(")), context);
+  const art = await context.resolveOne({ id, title: "Neutral Exact Season" }, { anilistId: 190327 });
+  assert.equal(art.tmdbBackdrop, "https://image.tmdb.org/t/p/original/4ATJwDwspxLCYEZaRbCpIyxd7Wo.jpg");
+  assert.equal(art.tmdbPoster, "https://image.tmdb.org/t/p/original/exact-season.jpg");
+  assert.equal(art.season, 6);
+  assert.equal(art.tmdbId, 45790);
+  const stoneOcean = await context.resolveOne({ id: "animeav1-jojo-no-kimyou-na-bouken-part-6-stone-ocean",
+    title: "Neutral Earlier Arc", canonicalSeasonNumber: 6 }, { anilistId: 131942 });
+  assert.equal(stoneOcean.season, 5);
+  assert.equal(stoneOcean.tmdbPoster, "https://image.tmdb.org/t/p/original/earlier-arc.jpg");
+  assert.equal(stoneOcean.tmdbBackdrop, "https://image.tmdb.org/t/p/original/7asQhlv0PpWc0fmjq4LTGK7ecl4.jpg");
+  const other = await context.resolveOne({ id: "animeav1-naruto", title: "Neutral Other Series" });
+  assert.equal(other.tmdbBackdrop, "https://image.tmdb.org/t/p/original/franchise.jpg");
+  context.getJson = async () => null;
+  assert.equal((await context.resolveOne({ id, title: "Neutral Exact Season" }, { anilistId: 190327 })).tmdbBackdrop, art.tmdbBackdrop);
+});
+
 test("airing batches use a single Page query rather than costly Media aliases", async () => {
   const code = read("scripts/build-airing-map.mjs");
   const start = code.indexOf("const mediaFields =");

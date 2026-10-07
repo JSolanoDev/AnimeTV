@@ -196,8 +196,11 @@ test("episode normalization retains AnimeYT's verified identity instead of a syn
   assert.equal(options[0].id, source.id);
   assert.equal(options[0].verifiedPlayable, true);
   assert.equal(options[0].verifiedAt, source.verifiedAt);
-  const oldProvider = sandbox.normalizeEpisodeSourceOptions({ videoUrl: video, provider: "AnimeAV1", sourceOptions: [{ ...source, id: "animeav1-direct" }] });
-  assert.equal(oldProvider[0].id, "direct", "unrelated provider normalization is unchanged");
+  const oldProvider = sandbox.normalizeEpisodeSourceOptions({ videoUrl: video, provider: "AnimeAV1", sourceOptions: [{ ...source, id: "animeav1-direct", verifiedPlayable: false }] });
+  assert.equal(oldProvider[0].id, "direct", "unverified legacy provider normalization is unchanged");
+  const verifiedProvider = sandbox.normalizeEpisodeSourceOptions({ videoUrl: video, provider: "AnimeAV1", sourceOptions: [{ ...source, id: "animeav1-direct" }] });
+  assert.equal(verifiedProvider[0].id, "animeav1-direct", "verified sources retain their identity and health");
+  assert.equal(verifiedProvider[0].verifiedAt, source.verifiedAt);
 });
 
 test("preferred provider is still codec gated; adult source behavior is unchanged", () => {

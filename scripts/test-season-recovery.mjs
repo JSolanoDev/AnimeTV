@@ -70,6 +70,396 @@ function context(fetchWithTimeout = async () => ({ ok: false })) {
   return sandbox;
 }
 
+const stoneOceanSeasons = [
+  { season_number: 1, episode_count: 26, name: "Earlier Arc", air_date: "2012-10-06" },
+  { season_number: 5, episode_count: 38, name: "STONE OCEAN", air_date: "2022-01-08" },
+  { season_number: 6, episode_count: 12, name: "STEEL BALL RUN", air_date: "2026-03-19" }
+];
+const stoneOceanEpisodes = Array.from({ length: 38 }, (_, i) => ({
+  episode_number: i + 1, name: `Correct Arc ${i + 1}`, overview: "Neutral fixture",
+  air_date: i < 24 ? "2022-01-08" : "2023-01-07", still_path: `/correct-arc-${i + 1}.jpg`
+}));
+
+function jojoChain() {
+  return [
+    [14719, "JoJo no Kimyou na Bouken (TV)", "TV", 2012, 26],
+    [20474, "JoJo no Kimyou na Bouken: Stardust Crusaders", "TV", 2014, 24],
+    [20799, "JoJo no Kimyou na Bouken: Stardust Crusaders - Egypt-hen", "TV", 2015, 24],
+    [21450, "JoJo no Kimyou na Bouken: Diamond wa Kudakenai", "TV", 2016, 39],
+    [102883, "JoJo no Kimyou na Bouken: Ougon no Kaze", "TV", 2018, 39],
+    [131942, "JoJo no Kimyou na Bouken: Stone Ocean", "ONA", 2021, 12],
+    [146722, "JoJo no Kimyou na Bouken: Stone Ocean Part 2", "ONA", 2022, 26],
+    [190327, "JoJo no Kimyou na Bouken: Steel Ball Run - 1st STAGE", "ONA", 2026, 1],
+    [210482, "JoJo no Kimyou na Bouken: Steel Ball Run - 2nd & 3rd STAGE", "ONA", 2026, 11]
+  ].map(([anilistId, title, format, seasonYear, episodes]) => ({ anilistId, title, format, seasonYear, episodes,
+    ...([190327, 210482].includes(anilistId) ? { malId: 61469 } : {}), status: "FINISHED" }));
+}
+
+test("JoJo uses official TV season labels while preserving existing internal route seasons", () => {
+  const { groups } = SeasonNormalization.normalizeFranchise(jojoChain());
+  assert.deepEqual(groups.map(g => g.seasonNumber), [1, 2, 3, 4, 5, 6, 6, 6, 7, 7]);
+  assert.deepEqual(groups.map(g => g.title.match(/^Season (\d+)/)[1]), ["1", "2", "2", "3", "4", "5", "5", "5", "6", "6"]);
+  assert.deepEqual(groups.map(g => g.episodeCount), [26, 24, 24, 39, 39, 12, 12, 14, 1, 11]);
+  assert.ok(groups.every(g => g.type === "main"), "ONA mainline arcs are not filed under OVAs");
+  assert.ok(groups[7].title.endsWith("Part 3"));
+  const input = jojoChain();
+  const snapshot = JSON.stringify(input);
+  SeasonNormalization.normalizeFranchise(input);
+  assert.equal(JSON.stringify(input), snapshot, "normalization does not mutate the baked inventory");
+});
+
+test("separate MAL Stone Ocean batches remain 12+12+14 without overlapping a combined AniList entry", () => {
+  const chain = jojoChain();
+  chain.push({ anilistId: "mal-53273", malId: 53273, title: "JoJo no Kimyou na Bouken Part 6: Stone Ocean Part 3", format: "ONA", seasonYear: 2022, episodes: 14 });
+  const stone = SeasonNormalization.normalizeFranchise(chain).groups.filter(g => g.seasonNumber === 6);
+  assert.deepEqual(stone.map(g => g.episodeCount), [12, 12, 14]);
+  assert.deepEqual(stone.map(g => g.partNumber), [1, 2, 3]);
+});
+
+function jojoCatalog(c) {
+  const chain = jojoChain();
+  c.state.shows = chain.map(entry => ({ ...entry, id: `anilist-${entry.anilistId}`,
+    totalEpisodes: entry.episodes, episodes: [], franchiseSeasons: chain }));
+  for (const [id, count] of [[131942, 38], [190327, 3]]) {
+    Object.assign(c.state.shows.find(show => show.anilistId === id), {
+      id: `animeav1-neutral-${id}`, animeAv1Slug: `neutral-${id}`, sourceInventoryChecked: true,
+      sourceEpisodeCount: count, sourceEpisodeIds: Array.from({ length: count }, (_, i) => i + 1)
+    });
+  }
+  return c.state.shows;
+}
+
+test("every JoJo selector entry keeps its exact episode range and original provider IDs", () => {
+  const c = context();
+  const shows = jojoCatalog(c);
+  const map = new Map(shows.map(show => [String(show.anilistId), show]));
+  for (const show of shows) {
+    c.ensureFranchiseShowsInCatalog(show);
+    const seasons = c.buildSeasonListFromBakedChain(show, map);
+    assert.deepEqual(Array.from(seasons, s => s.episodes.length), [26, 24, 24, 39, 39, 12, 12, 14, 1, 2]);
+    const stone = seasons.filter(s => s.season === 6);
+    const providerIds = stone.flatMap(s => Array.from(s.episodes, ep => ep.providerEpisodeId));
+    assert.deepEqual(Array.from(providerIds), Array.from({ length: 38 }, (_, i) => i + 1));
+    assert.equal(stone[1].episodes[0].canonicalEpisode, 1);
+    assert.equal(stone[1].episodes[0].providerAnimeSlug, "neutral-131942");
+    assert.deepEqual(Array.from(seasons.filter(s => s.season === 7).flatMap(s => Array.from(s.episodes, ep => ep.providerEpisodeId))), [1, 2, 3]);
+  }
+  assert.equal(shows.find(s => s.anilistId === 131942).sourceEpisodeIds.length, 38);
+});
+
+test("live JoJo relation lists apply the same inventory boundaries as baked lists", () => {
+  const c = context();
+  const shows = jojoCatalog(c);
+  const map = new Map(shows.map(show => [String(show.anilistId), show]));
+  for (const show of shows.filter(s => [131942, 146722, 190327, 210482].includes(s.anilistId))) {
+    c.ensureFranchiseShowsInCatalog(show);
+    show.anilistFranchise = SeasonNormalization.normalizeFranchise(jojoChain());
+    const list = c.buildSeasonListFromAniListFranchise(show, map, c.getDetailSeasons, c.makePlaceholderEpisodes);
+    assert.deepEqual(Array.from(list.filter(s => s.season === 6), s => s.episodes.length), [12, 12, 14]);
+    assert.deepEqual(Array.from(list.filter(s => s.season === 7), s => s.episodes.length), [1, 2]);
+  }
+});
+
+test("stale live JoJo airing metadata cannot hide measured episodes in a borrowed provider inventory", () => {
+  const c = context();
+  const shows = jojoCatalog(c);
+  const map = new Map(shows.map(show => [String(show.anilistId), show]));
+  const chain = jojoChain();
+  Object.assign(chain.at(-1), { status: "RELEASING", latestAiredEp: 1 });
+  for (const show of [shows[7], shows[8]]) {
+    show.anilistFranchise = SeasonNormalization.normalizeFranchise(chain);
+    const list = c.buildSeasonListFromAniListFranchise(show, map, c.getDetailSeasons, c.makePlaceholderEpisodes);
+    const stages = list.filter(season => season.season === 7);
+    assert.deepEqual(Array.from(stages, season => season.episodes.length), [1, 2]);
+    assert.deepEqual(Array.from(stages[1].episodes, episode => episode.providerEpisodeId), [2, 3]);
+  }
+});
+
+test("Steel Ball Run stages sharing a MAL ID retain separate identities and episode ranges", () => {
+  const c = context();
+  const shows = jojoCatalog(c);
+  c.state.shows = shows.filter(show => show.anilistId !== 210482);
+  const first = shows[7];
+  c.ensureFranchiseShowsInCatalog(first);
+  const second = c.state.shows.find(show => show.anilistId === 210482);
+  assert.ok(second);
+  assert.notEqual(second.id, first.id);
+  assert.equal(first.canonicalSeasonPart, 1);
+  assert.equal(second.canonicalSeasonPart, 2);
+  assert.equal(c.franchiseEntryMatches(first, second), false);
+  const map = new Map(c.state.shows.map(show => [String(show.anilistId), show]));
+  for (const show of [first, second]) {
+    const seasons = c.buildSeasonListFromBakedChain(show, map).filter(season => season.season === 7);
+    assert.deepEqual(Array.from(seasons, season => season.episodes.length), [1, 2]);
+    assert.deepEqual(Array.from(seasons[1].episodes, episode => episode.providerEpisodeId), [2, 3]);
+  }
+});
+
+test("JoJo detail panels render the same scoped counts as their selectors without losing provider inventory", () => {
+  const c = context();
+  const shows = jojoCatalog(c);
+  c.ensureFranchiseShowsInCatalog(shows[5]);
+  const parts = c.state.shows.filter(show => SeasonNormalization.jojoEntryScope(show)?.seasonNumber === 6);
+  assert.deepEqual(Array.from(parts, show => c.getDetailSeasons(show)[0].episodes.length), [12, 12, 14]);
+  assert.deepEqual(Array.from(parts).flatMap(show => Array.from(c.getDetailSeasons(show)[0].episodes, ep => ep.providerEpisodeId)), Array.from({ length: 38 }, (_, i) => i + 1));
+  assert.equal(c.getDetailSeasons(parts[1])[0].episodes[0].canonicalEpisode, 1);
+  assert.equal(c.getDetailSeasons(parts[2])[0].episodes[0].providerAnimeSlug, "neutral-131942");
+  assert.equal(shows[5].sourceEpisodeIds.length, 38);
+  assert.equal(c.getDetailSeasons(shows[7])[0].episodes.length, 1);
+  assert.equal(c.getDetailSeasons(shows[8])[0].episodes.length, 2);
+});
+
+test("legacy combined Stone Ocean watch links resolve to the correct batch and provider episode", () => {
+  const c = context();
+  const shows = jojoCatalog(c);
+  for (const [show, episode, part, canonical, absolute] of [
+    [shows[5], 13, 2, 1, 13], [shows[5], 38, 3, 14, 38],
+    [shows[6], 13, 3, 1, 25], [shows[6], 26, 3, 14, 38]
+  ]) {
+    const resolved = c.resolveJojoOpenTarget(show, { seasonNumber: 6, episodeNumber: episode, playIntent: true });
+    assert.equal(resolved.target.seasonPart, part);
+    assert.equal(resolved.target.episodeNumber, canonical);
+    const row = c.getDetailSeasons(resolved.show)[0].episodes[canonical - 1];
+    assert.equal(row.providerEpisodeId, absolute);
+  }
+  assert.equal(c.resolveJojoOpenTarget(shows[5], { episodeNumber: 39 }), null);
+  assert.equal(c.resolveJojoOpenTarget(shows[6], { episodeNumber: 1 }), null);
+});
+
+test("legacy Steel Ball Run episode links and adjacent controls preserve the measured provider sequence", () => {
+  const c = context();
+  const shows = jojoCatalog(c);
+  c.ensureFranchiseShowsInCatalog(shows[7]);
+  for (const episode of [2, 3]) {
+    const resolved = c.resolveJojoOpenTarget(shows[7], { seasonNumber: 7, episodeNumber: episode });
+    assert.equal(resolved.target.seasonPart, 2);
+    assert.equal(resolved.target.seasonNumber, 7);
+    assert.equal(resolved.target.episodeNumber, episode - 1);
+    assert.equal(c.getDetailSeasons(resolved.show)[0].episodes[episode - 2].providerEpisodeId, episode);
+  }
+  vm.runInContext(section(clientSource, "function getEpisodeNavigationTargets(", "function renderPlayerEpisodeActions("), c);
+  for (const show of [shows[7], shows[8]]) {
+    const season = c.getDetailSeasons(show)[0];
+    c.state.activeShow = show;
+    c.state.activeEpisode = { season, episode: season.episodes[0], seasonIndex: 0, episodeIndex: 0 };
+    const nav = c.getEpisodeNavigationTargets();
+    const target = season.part === 1 ? nav.next : nav.previous;
+    assert.equal(target.seasonNumber, 7);
+    assert.equal(target.seasonPart, season.part === 1 ? 2 : 1);
+  }
+});
+
+test("borrowed JoJo provider lists retain the target batch identity for real detail metadata hydration", async () => {
+  const c = context(async () => ({ ok: true, json: async () => ({ season: { episodes: stoneOceanEpisodes } }) }));
+  const shows = jojoCatalog(c);
+  c.ensureFranchiseShowsInCatalog(shows[5]);
+  for (const show of c.state.shows.filter(row => SeasonNormalization.jojoEntryScope(row)?.seasonNumber === 6)) {
+    show.tmdbId = 45790;
+    show.tmdbSeasons = stoneOceanSeasons;
+    const season = c.getDetailSeasons(show)[0];
+    assert.equal(season.anilistId, show.anilistId);
+    assert.equal(season.malId, show.malId);
+    await c.resolver.ensureSeasonStills(show, 6, season);
+    const scope = SeasonNormalization.jojoEntryScope(show);
+    assert.equal(c.resolver.getSeasonEpisodeMeta(show, 6, 1).title, `Correct Arc ${scope.offset + 1}`);
+    assert.equal(Object.keys(show.tmdbEpisodesBySeasonNum[6]).length, scope.count);
+  }
+});
+
+test("JoJo relation enrichment preserves the verified TMDB identity while episode metadata is in flight", async () => {
+  let show;
+  let requests = 0;
+  const c = context(async () => {
+    requests++;
+    c.ensureFranchiseShowsInCatalog(show);
+    assert.equal(show.tmdbId, 45790);
+    return { ok: true, json: async () => ({ season: { episodes: stoneOceanEpisodes } }) };
+  });
+  show = jojoCatalog(c)[6];
+  show.anilistFranchise = SeasonNormalization.normalizeFranchise(jojoChain());
+  show.tmdbId = 45790;
+  show.tmdbSeasons = stoneOceanSeasons;
+  await c.resolver.ensureSeasonStills(show, 6, c.getDetailSeasons(show)[0]);
+  assert.equal(requests, 1);
+  assert.equal(c.resolver.getSeasonEpisodeMeta(show, 6, 1)?.title, "Correct Arc 13");
+  assert.equal(Object.keys(show.tmdbEpisodesBySeasonNum[6]).length, 12);
+});
+
+test("splitting Stone Ocean preserves saved positions without overwriting newer canonical progress", () => {
+  const c = context();
+  const shows = jojoCatalog(c);
+  const map = { [`${shows[5].id}:s6:e13`]: { lastPosition: 123, progress: 10 } };
+  c.buildWatchKey = (show, season, episode) => `${show.id}:s${season}:e${episode}`;
+  c.getAnimeTrackId = show => show.id;
+  c.getWatchMap = () => map;
+  let writes = 0;
+  c.persistWatchMap = () => writes++;
+  const resolved = c.resolveJojoOpenTarget(shows[5], { seasonNumber: 6, episodeNumber: 13 });
+  const key = `${resolved.show.id}:s6:e1`;
+  assert.equal(map[key].lastPosition, 123);
+  map[key].lastPosition = 456;
+  c.resolveJojoOpenTarget(shows[5], { seasonNumber: 6, episodeNumber: 13 });
+  assert.equal(map[key].lastPosition, 456);
+  assert.equal(writes, 1);
+});
+
+test("next and previous continue across Stone Ocean batch boundaries", () => {
+  const c = context();
+  const shows = jojoCatalog(c);
+  c.ensureFranchiseShowsInCatalog(shows[5]);
+  vm.runInContext(section(clientSource, "function getEpisodeNavigationTargets(", "function renderPlayerEpisodeActions("), c);
+  for (const show of c.state.shows.filter(row => SeasonNormalization.jojoEntryScope(row)?.seasonNumber === 6)) {
+    const season = c.getDetailSeasons(show)[0];
+    c.state.activeShow = show;
+    c.state.activeEpisode = { season, episode: season.episodes.at(-1), seasonIndex: 0, episodeIndex: season.episodes.length - 1 };
+    const next = c.getEpisodeNavigationTargets().next;
+    assert.equal(next?.seasonPart || null, season.part < 3 ? season.part + 1 : null);
+    c.state.activeEpisode = { season, episode: season.episodes[0], seasonIndex: 0, episodeIndex: 0 };
+    const previous = c.getEpisodeNavigationTargets().previous;
+    assert.equal(previous?.seasonPart || null, season.part > 1 ? season.part - 1 : null);
+  }
+});
+
+test("JoJo direct-route warmup fetches the absolute provider ID once instead of warming another batch", async () => {
+  const c = context();
+  const shows = jojoCatalog(c);
+  c.ensureFranchiseShowsInCatalog(shows[5]);
+  const warmed = [];
+  c.prefetchPlayerShell = () => {};
+  c.isScraperEnabled = provider => provider === "animeav1";
+  c.shouldPreferUpnShareLookup = () => true;
+  c.warmAnimeAv1PlaybackIntent = (show, target) => { warmed.push(target); return Promise.resolve(null); };
+  vm.runInContext(section(clientSource, "function warmPrimaryPlaybackIntent(", "async function attachAnimeAv1Sources("), c);
+  await c.warmPrimaryPlaybackIntent(shows[6], { episodeNumber: 1 });
+  assert.equal(warmed.length, 1);
+  assert.equal(warmed[0].providerEpisodeId, 13);
+  assert.equal(warmed[0].providerAnimeSlug, "neutral-131942");
+});
+
+test("all JoJo arcs select the correct TMDB season, including both Stardust cours", async () => {
+  const tmdbSeasons = Array.from({ length: 6 }, (_, i) => ({ season_number: i + 1, episode_count: [26, 48, 39, 39, 38, 12][i], name: `Arc ${i + 1}` }));
+  const c = context(async () => ({ ok: true, json: async () => ({ season: { episodes: Array.from({ length: 48 }, (_, i) => ({ episode_number: i + 1, name: `Neutral ${i + 1}`, still_path: `/neutral-${i + 1}.jpg` })) } }) }));
+  for (const entry of jojoChain()) {
+    const scope = SeasonNormalization.jojoEntryScope(entry);
+    const anime = { ...entry, id: `anilist-${entry.anilistId}`, tmdbId: 45790, tmdbSeasons };
+    assert.equal(c.resolver.pickTmdbSeason(anime, { seasons: tmdbSeasons }).season.season_number, scope.tmdbSeasonNumber);
+    await c.resolver.ensureSeasonStills(anime, scope.seasonNumber, { ...entry, part: scope.partNumber, episodeCount: scope.count });
+    assert.equal(c.resolver.getSeasonEpisodeMeta(anime, scope.seasonNumber, 1).title, `Neutral ${scope.offset + 1}`);
+    assert.equal(Object.keys(anime.tmdbEpisodesBySeasonNum[scope.seasonNumber]).length, scope.count);
+  }
+});
+
+test("MAL-only Stone Ocean Part 3 maps episode 25, never the latest JoJo arc", async () => {
+  const c = context(async () => ({ ok: true, json: async () => ({ season: { episodes: stoneOceanEpisodes } }) }));
+  const anime = { id: "jikan-53273", malId: 53273, title: "Neutral catalog label", tmdbId: 45790, tmdbSeasons: stoneOceanSeasons };
+  await c.resolver.ensureSeasonStills(anime, 6, { malId: 53273, part: 3, episodeCount: 14 });
+  assert.equal(c.resolver.getSeasonEpisodeMeta(anime, 6, 1).title, "Correct Arc 25");
+  assert.equal(Object.keys(anime.tmdbEpisodesBySeasonNum[6]).length, 14);
+});
+function stoneOceanFixture(anilistId = 131942) {
+  return { id: `anilist-${anilistId}`, anilistId, tmdbId: 45790,
+    title: anilistId === 131942 ? "JoJo no Kimyou na Bouken: Stone Ocean" : "JoJo no Kimyou na Bouken: Stone Ocean Part 2",
+    seasonNumber: 6, canonicalSeasonNumber: 6, isFranchiseEntry: true, year: anilistId === 131942 ? 2021 : 2022,
+    totalEpisodes: 12, tmdbSeasons: stoneOceanSeasons };
+}
+
+test("Stone Ocean selects its named arc rather than manga Part 6 or the latest JoJo season", () => {
+  const c = context();
+  for (const anime of [stoneOceanFixture(), stoneOceanFixture(146722),
+    { malId: 48661, title: "Neutral catalog label", seasonNumber: 6 },
+    { title: "JoJo's Bizarre Adventure: Stone Ocean Part 3", seasonNumber: 6 }]) {
+    assert.equal(c.resolver.pickTmdbSeason(anime, { seasons: stoneOceanSeasons }).season.season_number, 5);
+  }
+  assert.equal(c.resolver.pickTmdbSeason(stoneOceanFixture(), { seasons: [stoneOceanSeasons[2]] }).season, null);
+  assert.equal(c.resolver.pickTmdbSeason({ title: "STEEL BALL RUN", seasonNumber: 6 }, { seasons: stoneOceanSeasons }).season.season_number, 6);
+});
+
+test("Stone Ocean hydration repairs old snapshots, scopes both entries, and reuses the corrected cache", async () => {
+  for (const [anilistId, offset, count] of [[131942, 0, 12], [146722, 12, 12]]) {
+    const requests = [];
+    const c = context(async url => {
+      requests.push(url);
+      return { ok: true, json: async () => url.includes("/api/tmdb/tv?")
+        ? { show: { seasons: stoneOceanSeasons, number_of_episodes: 200, poster_path: "/parent.jpg" } }
+        : { season: { episodes: stoneOceanEpisodes } } };
+    });
+    const anime = { ...stoneOceanFixture(anilistId), _tmdbResolved: true,
+      sourceEpisodeIds: [1, count], sourceEpisodeCount: count,
+      tmdbEpisodesByNum: { 1: { title: "Leaked Latest Arc" } },
+      tmdbEpisodeStills: { 1: "https://fixture.test/leaked.jpg" },
+      tmdbEpisodesBySeasonNum: { 6: { 1: { title: "Leaked Latest Arc" } } },
+      tmdbStillsBySeason: { 6: { 1: "https://fixture.test/leaked.jpg" } } };
+    c.localStorage.setItem(`zenkaitv:tmdb-match:v18:${anilistId}`, JSON.stringify({ savedAt: Date.now(), data: {
+      tmdbId: 45790, confidence: 100, episodeStills: { 1: "https://fixture.test/leaked.jpg" },
+      episodesByNum: { 1: { title: "Leaked Latest Arc" }, [count]: { title: "Leaked Final" } }, seasons: stoneOceanSeasons
+    } }));
+    assert.equal(c.resolver.getSeasonEpisodeMeta(anime, 6, 1), null, "old in-memory metadata must not paint before repair");
+    assert.equal(c.resolver.getEpisodeStill(anime, { episode: 1 }, 6), "");
+    await c.resolver.hydrateTmdbImages(anime);
+    assert.equal(anime.tmdbEpisodesByNum[1].title, `Correct Arc ${offset + 1}`);
+    assert.equal(anime.tmdbEpisodesByNum[count].title, `Correct Arc ${offset + count}`);
+    assert.equal(Object.keys(anime.tmdbEpisodesByNum).length, count);
+    assert.ok(Object.values(anime.tmdbEpisodeStills).every(url => url.includes("correct-arc-")));
+    assert.deepEqual(requests.map(url => new URL(url, "https://fixture.test").pathname), ["/api/tmdb/tv", "/api/tmdb/season"]);
+    assert.ok(requests[1].endsWith("season=5"));
+    assert.deepEqual(anime.sourceEpisodeIds, [1, count], "playback inventory is untouched");
+    const restored = stoneOceanFixture(anilistId);
+    await c.resolver.hydrateTmdbImages(restored);
+    assert.equal(requests.length, 2, "validated match cache avoids repeat functions");
+    assert.equal(restored.tmdbEpisodesByNum[1].title, `Correct Arc ${offset + 1}`);
+  }
+});
+
+test("Stone Ocean parts reject same-season wrong-range caches and deduplicate season lookups", async () => {
+  const requests = [];
+  const c = context(async url => {
+    requests.push(url);
+    return { ok: true, json: async () => ({ season: { episodes: stoneOceanEpisodes, poster_path: "/arc-poster.jpg" } }) };
+  });
+  for (const [anilistId, offset, count] of [[131942, 0, 12], [146722, 12, 12]]) {
+    const anime = stoneOceanFixture(anilistId);
+    c.localStorage.setItem(`zenkaitv:tmdb-season-art:v8:${anilistId}:s6`, JSON.stringify({ savedAt: Date.now(), data: {
+      tmdbId: "45790", anilistId: String(anilistId), tmdbSeasonNumber: 5, requestedEpisodeCount: count,
+      metas: { 1: { title: "Wrong Cour" } }, stills: { 1: "https://fixture.test/wrong-cour.jpg" }
+    } }));
+    const season = { season: 6, anilistId, year: anime.year, episodeCount: count, providerEpisodeOffset: 999 };
+    const before = requests.length;
+    await Promise.all([c.resolver.ensureSeasonStills(anime, 6, season), c.resolver.ensureSeasonStills(anime, 6, season)]);
+    assert.equal(requests.length, before + 1);
+    assert.ok(requests.at(-1).endsWith("season=5"));
+    assert.equal(Object.keys(anime.tmdbEpisodesBySeasonNum[6]).length, count);
+    assert.equal(c.resolver.getSeasonEpisodeMeta(anime, 6, 1).title, `Correct Arc ${offset + 1}`);
+    assert.equal(c.resolver.getSeasonEpisodeMeta(anime, 6, count).title, `Correct Arc ${offset + count}`);
+    assert.equal(c.resolver.getSeasonEpisodeMeta(anime, 6, count + 1), null);
+    assert.ok(c.resolver.getEpisodeStill(anime, { episode: count }, 6).includes(`correct-arc-${offset + count}.jpg`));
+    await c.resolver.ensureSeasonStills(anime, 6, season);
+    await c.resolver.ensureSeasonStills(stoneOceanFixture(anilistId), 6, season);
+    assert.equal(requests.length, before + 1, "memory and persisted range caches remain reusable");
+  }
+});
+
+test("a failed Stone Ocean metadata request remains bounded instead of retrying every render", async () => {
+  let requests = 0;
+  const c = context(async () => { requests += 1; return { ok: false, status: 503 }; });
+  const anime = stoneOceanFixture();
+  for (let i = 0; i < 5; i += 1) await c.resolver.ensureSeasonStills(anime, 6, { episodeCount: 12 });
+  assert.equal(requests, 1);
+});
+
+test("the complete Stone Ocean provider page retains all 38 episode titles and source IDs", async () => {
+  const c = context(async () => ({ ok: true, json: async () => ({ season: { episodes: stoneOceanEpisodes } }) }));
+  const anime = { ...stoneOceanFixture(), sourceEpisodeCount: 38,
+    sourceEpisodeIds: Array.from({ length: 38 }, (_, i) => i + 1) };
+  const originalIds = [...anime.sourceEpisodeIds];
+  await c.resolver.ensureSeasonStills(anime, 6, { anilistId: 131942, episodeCount: 38 });
+  assert.equal(Object.keys(anime.tmdbEpisodesBySeasonNum[6]).length, 38);
+  for (let episode = 1; episode <= 38; episode += 1) {
+    assert.equal(c.resolver.getSeasonEpisodeMeta(anime, 6, episode).title, `Correct Arc ${episode}`);
+    assert.ok(c.resolver.getEpisodeStill(anime, { episode }, 6).includes(`correct-arc-${episode}.jpg`));
+  }
+  assert.deepEqual(anime.sourceEpisodeIds, originalIds);
+});
+
 test("a new season seen first at episode two retains both episode rows", () => {
   const c = context();
   vm.runInContext(section(clientSource, "function animeAv1CatalogSlugForShow(", "function queueLiveSearch("), c);

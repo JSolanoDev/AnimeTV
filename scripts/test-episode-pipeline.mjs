@@ -162,7 +162,7 @@ function playbackFallbackContext({ primaryFound, slowJk = false, language = "spa
     isAnimeAv1Source: sourceMatches.animeav1,
     isJKAnimeSource: sourceMatches.jkanime,
     isTioAnimeSource: sourceMatches.tioanime,
-    isHlsSource: () => true,
+    isHlsSource: sourceClassification.isHlsSource,
     isAdFreeFallbackCandidate: () => true,
     sourcePreferenceScore: () => 0,
     getKnownSourceServer: (key) => ({ match: sourceMatches[key] || (() => false) }),
@@ -248,6 +248,8 @@ function sourceRaceContext(overrides = {}) {
     hasRecentlyFailedPlaybackFamily: () => false,
     isLocalPlaybackRelay: () => true,
     isFastPreferredPlaybackSource: () => false,
+    isHlsSource: sourceClassification.isHlsSource,
+    browserSupportsDeclaredCodec: sourceClassification.browserSupportsDeclaredCodec,
     verifiedFallbackPreference: () => 0,
     pickFallbackRaceCandidates: (sources) => sources.slice(0, 4),
     firstSuccessfulFallback: (tasks) => Promise.any(tasks.map(async (task) => {
@@ -265,7 +267,7 @@ function sourceRaceContext(overrides = {}) {
   return sandbox;
 }
 
-test("AnimeYT: available native metadata leaves other provider lookups dormant", async () => {
+test("HLS: available AnimeAV1 metadata leaves AnimeYT and backups dormant", async () => {
   const { sandbox, calls, completed } = playbackFallbackContext({ primaryFound: true, language: "sub" });
   sandbox.animeYTTarget = () => ({ slug: "sample-series" });
   sandbox.attachAnimeYTSources = async (_show, episode) => {
@@ -274,21 +276,23 @@ test("AnimeYT: available native metadata leaves other provider lookups dormant",
   };
   await sandbox.attachPlaybackSourceOptions({}, { sourceOptions: [] }, 1);
   await completed;
-  assert.deepEqual(calls, ["animeyt"]);
+  assert.deepEqual(calls, ["animeav1:primary:start", "animeav1:primary:end"]);
 });
 
 test("AnimeYT: a native-source miss retains the existing primary lookup", async () => {
   const { sandbox, calls, completed } = playbackFallbackContext({ primaryFound: true, language: "sub" });
   sandbox.animeYTTarget = () => ({ slug: "sample-series" });
   sandbox.attachAnimeYTSources = async () => { calls.push("animeyt:miss"); };
+  sandbox.attachAnimeAv1Sources = async () => { calls.push("animeav1:miss"); };
   await sandbox.attachPlaybackSourceOptions({}, { sourceOptions: [] }, 1);
   await completed;
-  assert.deepEqual(calls, ["animeyt:miss", "animeav1:primary:start", "animeav1:primary:end"]);
+  assert.deepEqual(calls, ["animeav1:miss", "animeyt:miss", "animeneon:primary:start", "animeneon:primary:end"]);
 });
 
 test("AnimeYT: eager fallback discovery cannot finish before the preferred lookup settles", async () => {
   const { sandbox, completed } = playbackFallbackContext({ primaryFound: true, language: "sub" });
   sandbox.animeYTTarget = () => ({ slug: "sample-series" });
+  sandbox.attachAnimeAv1Sources = async () => {};
   let release;
   sandbox.attachAnimeYTSources = () => new Promise(resolve => { release = resolve; });
   const episode = { sourceOptions: [] };
@@ -319,13 +323,89 @@ test("AnimeYT: successful verification takes priority; failed media selects the 
   }
 });
 
-test("UPNShare: preferred host ranks first without replacing other providers", () => {
+test("HLS: direct playlists rank first without replacing other providers", () => {
   const upn = { id: "animeav1-upn", provider: "UPNShare", type: "iframe", externalUrl: "https://animeav1.uns.bio/#episode" };
   const neon = { id: "animeneon-voe", type: "iframe", externalUrl: "https://voe.sx/e/episode" };
   const hls = { id: "animeav1-hls", type: "direct", videoUrl: "https://media.test/master.m3u8" };
-  assert.deepEqual(sourceClassification.orderSourceOptions([neon, hls, upn]), [upn, neon, hls]);
+  assert.deepEqual(sourceClassification.orderSourceOptions([neon, hls, upn]), [hls, upn, neon]);
   assert.equal(sourceClassification.isUpnShareSource(upn), true);
   assert.equal(sourceClassification.isUpnShareSource(neon), false);
+});
+
+test("HLS: opaque playlist URLs use MIME/container hints and retain codec protection", () => {
+  const hls = { id: "animeav1-hls", type: "direct", videoUrl: "https://media.test/playlist", mimeType: "application/vnd.apple.mpegurl", codec: "avc1.42E01E" };
+  const mp4 = { id: "animeyt-omega", type: "direct", videoUrl: "https://media.test/episode.mp4" };
+  assert.equal(sourceClassification.isHlsSource(hls), true);
+  assert.deepEqual(sourceClassification.orderSourceOptions([mp4, hls]), [hls, mp4]);
+  const previous = globalThis.MediaSource;
+  globalThis.MediaSource = { isTypeSupported: (mime) => !mime.includes("av01") };
+  try {
+    assert.ok(sourceClassification.sourcePreferenceScore({ ...hls, codec: "av01" }) > sourceClassification.sourcePreferenceScore(mp4));
+  } finally {
+    if (previous === undefined) delete globalThis.MediaSource;
+    else globalThis.MediaSource = previous;
+  }
+});
+
+test("HLS: live verification wins before AnimeYT/UPN and a failure retains the backup", async () => {
+  const hls = { id: "animeav1-hls", type: "direct", videoUrl: "https://media.test/playlist.m3u8" };
+  const backup = { id: "animeyt-omega", provider: "AnimeYT", type: "direct", videoUrl: "https://media.test/episode.mp4" };
+  for (const healthy of [true, false]) {
+    const checked = [];
+    let lookups = 0;
+    const sandbox = sourceRaceContext({
+      isAnimeYTSource: sourceClassification.isAnimeYTSource,
+      isFastPreferredPlaybackSource: () => true,
+      attachPlaybackFailureFallbacks: async () => { lookups++; },
+      verifyReliablePlaybackCandidate: async (_episode, source) => {
+        checked.push(source.id);
+        return source === hls && !healthy ? null : source;
+      }
+    });
+    const result = await sandbox.prepareReliablePlaybackSource({}, { sourceOptions: [backup, hls] }, { eagerBackups: true });
+    assert.equal(result.id, healthy ? hls.id : backup.id);
+    assert.deepEqual(checked, healthy ? [hls.id] : [hls.id, backup.id]);
+    assert.equal(lookups, healthy ? 0 : 1);
+  }
+});
+
+test("HLS: Sub cannot displace the requested Latino track", async () => {
+  const hls = { id: "animeav1-hls", type: "direct", videoUrl: "https://media.test/playlist.m3u8" };
+  const spanish = { id: "animeneon-spanish", languageVersion: "spanish" };
+  const sandbox = sourceRaceContext({
+    preferredWatchLanguageForEpisode: () => "spanish",
+    isFastPreferredPlaybackSource: () => true,
+    verifyReliablePlaybackCandidate: async (_episode, source) => source
+  });
+  const result = await sandbox.prepareReliablePlaybackSource({}, { sourceOptions: [hls, spanish] });
+  assert.equal(result.id, spanish.id);
+});
+
+test("HLS: incompatible playlists cannot enter the fast primary pool", async () => {
+  const { sandbox } = playbackFallbackContext({ primaryFound: true, language: "sub" });
+  sandbox.browserSupportsDeclaredCodec = () => false;
+  assert.equal(sandbox.isFastPreferredPlaybackSource({ type: "direct", videoUrl: "https://media.test/playlist.m3u8" }), false);
+  const hls = { id: "hls", type: "direct", videoUrl: "https://media.test/playlist.m3u8" };
+  const backup = { id: "animeyt-omega", provider: "AnimeYT" };
+  const checked = [];
+  const race = sourceRaceContext({
+    isAnimeYTSource: sourceClassification.isAnimeYTSource,
+    isFastPreferredPlaybackSource: () => true,
+    browserSupportsDeclaredCodec: () => false,
+    verifyReliablePlaybackCandidate: async (_episode, source) => { checked.push(source.id); return source; }
+  });
+  assert.equal((await race.prepareReliablePlaybackSource({}, { sourceOptions: [hls, backup] })).id, backup.id);
+  assert.deepEqual(checked, [backup.id]);
+});
+
+test("HLS: production discovery does not wait on AnimeYT or use the IP-bound UPN embed", async () => {
+  const { sandbox, calls, completed } = playbackFallbackContext({ primaryFound: true, language: "sub", hostname: "zenkaitv.test" });
+  sandbox.animeYTTarget = () => ({ slug: "sample-series" });
+  sandbox.attachAnimeYTSources = () => { throw new Error("unnecessary source lookup"); };
+  assert.equal(sandbox.shouldPreferHlsLookup({}, {}), true);
+  await sandbox.attachPlaybackSourceOptions({}, { sourceOptions: [] }, 1);
+  await completed;
+  assert.deepEqual(calls, ["animeav1:primary:start", "animeav1:primary:end"]);
 });
 
 test("UPNShare: local Sub discovery uses one primary lookup and leaves backups dormant", async () => {
@@ -766,6 +846,7 @@ test("audit: next-episode probes wait for buffer and stop after a navigation", a
     getEpisodeNavigationTargets: () => ({ next: { seasonIndex: 0, episodeIndex: 1 } }),
     getDetailSeasons: () => [{ episodes: [episode, next] }],
     attachAnimeNeonSources: () => new Promise((resolve) => { finishMetadata = resolve; }),
+    shouldPreferHlsLookup: () => false,
     getEpisodePlaybackSources: () => [],
     isAnimeNeonSource: () => false,
     isScraperEnabled: () => true,
@@ -872,8 +953,11 @@ test("audit: healthy buffers still warm one next episode, then dispose its liste
     isPlaybackAttemptCurrent: () => true,
     getEpisodeNavigationTargets: () => ({ next: { seasonIndex: 0, episodeIndex: 1 } }),
     getDetailSeasons: () => [{ episodes: [{}, next] }],
-    attachAnimeNeonSources: async () => next,
-    getEpisodePlaybackSources: () => [{}], isAnimeNeonSource: () => true,
+    attachAnimeNeonSources: () => { throw new Error("healthy HLS should not fetch other providers"); },
+    attachAnimeAv1Sources: async () => next,
+    shouldPreferHlsLookup: () => true,
+    getEpisodePlaybackSources: () => [{ id: "hls" }],
+    isFastPreferredPlaybackSource: () => true,
     playbackSelectionKey: () => "next", selectedSeasonIdentity: () => ({ seasonNumber: 1 }),
     warmEpisodePlaybackIntent: async () => { warmed++; return {}; }
   });
@@ -1566,7 +1650,9 @@ test("7f2a1. eager playback does not promote a fragile progressive source before
 
 test("7f2a2. a quick Streamtape resolve cannot outrank segmented playback", () => {
   const sandbox = vm.createContext({
-    location: { hostname: "localhost" }
+    location: { hostname: "localhost" },
+    isHlsSource: sourceClassification.isHlsSource,
+    browserSupportsDeclaredCodec: sourceClassification.browserSupportsDeclaredCodec
   });
   vm.runInContext(
     section(clientSource, "function isDirectMediaResolverCandidate(", "function hasFastPreferredPlaybackSource("),
@@ -1901,7 +1987,8 @@ test("7f2e. episode intent and adjacent playback warm the shared source path bef
   assert.match(renderer, /timeoutMs:\s*RELIABLE_PLAYBACK_FAST_TARGET_MS/);
   assert.match(warmup, /primaryOnly:\s*true/);
   assert.match(warmup, /const promiseKey = eagerBackups/);
-  assert.match(warmup, /attachPlaybackFailureFallbacks\(show, episode\)/);
+  assert.match(warmup, /shouldPreferHlsLookup\(show, episode\)/);
+  assert.match(warmup, /eagerBackups:\s*true/);
   assert.match(warmup, /softFailures:\s*true/);
   assert.match(warmup, /prefetchSegment:\s*Boolean\(options\.prefetchSegment\)/);
   assert.doesNotMatch(clientSource, /allowResolvedFallback/);
@@ -2793,6 +2880,55 @@ test("11g2. verified fallback playback keeps the same referer-aware proxy used b
   assert.match(selected.videoUrl, /referer=https%3A%2F%2Fembed\.test%2Fe%2F1/);
 });
 
+test("verified direct media keeps its source identity and cannot regain an embed alias", () => {
+  const sandbox = normalizationContext();
+  sandbox.proxiedStreamUrl = (url) => `/api/source?url=${encodeURIComponent(url)}`;
+  sandbox.getEpisodePlaybackSources = sandbox.pipeline.normalizeEpisodeSourceOptions;
+  vm.runInContext(
+    section(clientSource, "function persistVerifiedFallbackSource(", "function verifyFallbackCandidate("),
+    sandbox
+  );
+  const mediaUrl = "https://animeav1.uns.bio/v4/pl/media/master.m3u8?token=temporary";
+  const episode = {
+    videoUrl: `/api/source?url=${encodeURIComponent(mediaUrl)}`,
+    sourceOptions: [{
+      id: "animeav1-upnshare-1", type: "iframe", provider: "UPNShare",
+      externalUrl: "https://animeav1.uns.bio/#episode",
+      embedUrl: "https://animeav1.uns.bio/#episode",
+      iframeUrl: "https://animeav1.uns.bio/#episode",
+      embed: "https://animeav1.uns.bio/#episode",
+      resolver: { endpoint: "/api/resolve" }
+    }]
+  };
+  const verified = sandbox.persistVerifiedFallbackSource(episode, episode.sourceOptions[0], { url: mediaUrl });
+  const normalized = sandbox.pipeline.normalizeEpisodeSourceOptions(episode);
+  assert.equal(normalized.length, 1);
+  assert.equal(normalized[0].id, "animeav1-upnshare-1");
+  assert.equal(normalized[0].verifiedPlayable, true);
+  assert.equal(normalized[0].verifiedAt, verified.verifiedAt);
+  assert.equal(normalized[0].externalUrl, "");
+  assert.equal(normalized[0].streamResolver, null);
+});
+
+test("resolved media on an embed host stays in the custom player and Cast path", () => {
+  const sandbox = vm.createContext({
+    URL, location: { origin: "https://app.test" }, LOCAL_SOURCE_PROXY_ENDPOINT: "/api/source"
+  });
+  vm.runInContext(section(clientSource, "function originalStreamUrlFromProxy(", "function streamProxyHost("), sandbox);
+  vm.runInContext(section(clientSource, "function isEmbedUrl(", "function renderExternalPlaybackOption("), sandbox);
+  for (const url of [
+    "https://animeav1.uns.bio/v4/pl/media/master.m3u8?token=temporary",
+    "https://animeav1.uns.bio/v4/pl/media/episode.mp4",
+    "https://animeav1.uns.bio/v4/pl/media/master.mpd"
+  ]) {
+    assert.equal(sandbox.isEmbedUrl(url), false);
+    assert.equal(sandbox.isEmbedUrl(`/api/source?url=${encodeURIComponent(url)}`), false);
+  }
+  assert.equal(sandbox.isEmbedUrl("https://animeav1.uns.bio/#episode"), true);
+  assert.equal(sandbox.isEmbedUrl("https://youtube.com/embed/episode"), true);
+  assert.equal(sandbox.isEmbedUrl("https://luluvidstream.com/embed/episode"), true);
+});
+
 test("11h. playback failure verifies and opens the backup without asking", () => {
   const renderer = section(
     clientSource,
@@ -2975,7 +3111,7 @@ test("12b. the primary and regular backup providers remain identifiable after no
   assert.equal(sourceClassification.isJKAnimeSource({ id: "jkanime-ribbon-1", provider: "Streamwish" }), true);
   assert.equal(sourceClassification.isTioAnimeSource({ id: "tioanime-ribbon-1", provider: "YourUpload" }), true);
   assert.equal(sourceClassification.isTioAnimeSource({ id: "underhentai-ribbon-1" }), false);
-  assert.ok(sourceClassification.sourcePreferenceScore(animeNeon) < sourceClassification.sourcePreferenceScore(animeAv1));
+  assert.ok(sourceClassification.sourcePreferenceScore(animeAv1) < sourceClassification.sourcePreferenceScore(animeNeon));
 });
 
 test("13. AV1 remains available but ranks behind supported H264 when unsupported", () => {

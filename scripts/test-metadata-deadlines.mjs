@@ -37,6 +37,7 @@ function harness(fetchImpl) {
     jikanRequestQueue: Promise.resolve(),
     jikanLastRequestAt: 0,
     jikanRetryAt: 0,
+    jikanCircuit: { failures: 0, retryAt: 0, status: 0 },
     jikanInflight: new Map(),
     jikanEpisodeCache: new Map(),
     jikanSearchCache: new Map(),
@@ -48,6 +49,7 @@ function harness(fetchImpl) {
     sendJson: (response, body, status = 200, headers) => Object.assign(response, { body, status, headers })
   });
   vm.runInContext([
+    section("function jikanCircuitError(", "// Jikan is a free,"),
     section("function isPermanentJikanError(", "function noteJikanFailure("),
     section("function sendJikanUnavailable(", "setInterval("),
     section("function coalesceInflight(", "function anilistCoalesce("),
@@ -178,22 +180,24 @@ test("TMDB shares its Retry-After cooldown across route keys", async () => {
 
 test("an HTTP 200 body carrying an upstream 500 is retried instead of cached empty", async () => {
   let attempts = 0;
-  const h = harness(() => ++attempts < 3
+  const h = harness(() => ++attempts < 2
     ? { ok: true, json: async () => ({ status: 500, type: "UpstreamException", message: "temporary failure" }) }
     : success([{ title: "Recovered episode" }]));
   const request = h.context.fetchJikanJson("/anime/20/episodes");
   await h.advance(1950);
   assert.equal((await request).data[0].title, "Recovered episode");
-  assert.equal(attempts, 3);
+  assert.equal(attempts, 2);
   assert.equal(h.timers.size, 0);
 });
 
-test("repeated HTTP failures stop after three attempts", async () => {
+test("repeated HTTP failures open the circuit after two attempts", async () => {
   const h = harness(() => ({ ok: false, status: 504 }));
   const request = assert.rejects(h.context.fetchJikanJson("/anime/1/full"), { status: 504 });
   await h.advance(2000);
   await request;
-  assert.equal(h.calls.length, 3);
+  assert.equal(h.calls.length, 2);
+  await assert.rejects(h.context.fetchJikanJson("/anime/2/full"), { providerCooldown: true });
+  assert.equal(h.calls.length, 2);
   assert.equal(h.timers.size, 0);
 });
 
@@ -215,6 +219,7 @@ for (const stage of ["headers", "body"]) {
     await rejected;
     assert.equal(h.calls[0].signal.aborted, true);
     hung = false;
+    await h.advance(60000);
     await h.context.fetchJikanJson("/anime/2/full");
     assert.equal(h.calls.length, 2);
     assert.equal(h.timers.size, 0);
@@ -277,6 +282,69 @@ test("successful episode pagination still returns every page", async () => {
   assert.equal(response.body.ok, true);
   assert.deepEqual(Array.from(response.body.data, (episode) => episode.episode), [1, 2, 3]);
   assert.equal(response.body.pages, 3);
+});
+
+test("an outage blocks other metadata keys, permits one recovery probe, and resets on success", async () => {
+  let down = true;
+  const h = harness(() => down ? { ok: false, status: 503 } : success([{ title: "Recovered" }]));
+  const failure = assert.rejects(h.context.fetchJikanJson("/anime/1/full"), { status: 503 });
+  await h.advance(650);
+  await failure;
+  const responses = Array.from({ length: 25 }, (_, index) => {
+    const response = {};
+    return h.context.handleJikanFull(new URL(`https://app.test/api/jikan/full?id=${index + 2}`), response)
+      .then(() => response);
+  });
+  const results = await Promise.all(responses);
+  assert.equal(h.calls.length, 2);
+  assert.equal(results.every(result => result.status === 200 && result.body.unavailable && !result.body.notFound), true);
+  assert.equal(h.context.jikanFullCache.size, 0);
+  down = false;
+  await h.advance(60000);
+  const probes = Array.from({ length: 25 }, () => {
+    const response = {};
+    return h.context.handleJikanFull(new URL("https://app.test/api/jikan/full?id=99"), response).then(() => response);
+  });
+  assert.equal((await Promise.all(probes)).every(response => response.body.ok), true);
+  assert.equal(h.calls.length, 3);
+  assert.equal(h.context.jikanCircuit.failures, 0);
+  assert.equal(h.context.jikanCircuit.retryAt, 0);
+});
+
+test("fresh metadata remains available while the global circuit is open", async () => {
+  const h = harness(() => { throw new Error("must not reach upstream"); });
+  h.context.jikanCircuit.retryAt = 160000;
+  h.context.jikanFullCache.set("1", { data: { title: "Cached title" }, ts: 100000 });
+  h.context.jikanEpisodeCache.set("1", { data: [{ episode: 1 }], ts: 100000 });
+  const full = {};
+  const episodes = {};
+  await h.context.handleJikanFull(new URL("https://app.test/api/jikan/full?id=1"), full);
+  await h.context.handleJikanEpisodes(new URL("https://app.test/api/jikan/episodes?id=1"), episodes);
+  assert.equal(full.body.data.title, "Cached title");
+  assert.equal(episodes.body.data.length, 1);
+  assert.equal(h.calls.length, 0);
+});
+
+test("missing titles do not trip Jikan's outage circuit", async () => {
+  const h = harness(() => ({ ok: false, status: 404 }));
+  const first = assert.rejects(h.context.fetchJikanJson("/anime/1/full"), { status: 404 });
+  await first;
+  const second = assert.rejects(h.context.fetchJikanJson("/anime/2/full"), { status: 404 });
+  await h.advance(350);
+  await second;
+  assert.equal(h.context.jikanCircuit.failures, 0);
+  assert.equal(h.calls.length, 2);
+});
+
+test("playlist headers and body share one abortable deadline", async () => {
+  const h = harness(() => ({ status: 200, headers: new Map(), text: never }));
+  vm.runInContext(section("async function fetchSourcePlaylistSnapshot(", "function sourcePlaylistIsMaster("), h.context);
+  const request = assert.rejects(h.context.fetchSourcePlaylistSnapshot("https://media.test/video.m3u8", {}), { status: 504 });
+  await h.advance(12000);
+  await request;
+  assert.equal(h.calls.length, 1);
+  assert.equal(h.calls[0].signal.aborted, true);
+  assert.equal(h.timers.size, 0);
 });
 
 test("a fresh episode cache refreshes when it does not include the confirmed release", async () => {
