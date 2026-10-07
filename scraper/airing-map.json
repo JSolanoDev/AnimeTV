@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-06T20:31:34.286Z",
-  "count": 6635,
+  "generatedAt": "2026-10-07T12:56:32.602Z",
+  "count": 6645,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -807,8 +807,8 @@
       "nextAiringAt": 1791909300000,
       "nextAiringEpisodeNumber": 15,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 13,
-      "lastEpisodeAt": "2026-09-29T17:48:13.398Z"
+      "sourceEpisodeCount": 14,
+      "lastEpisodeAt": "2026-10-06T18:03:07.267Z"
     },
     "animeav1-tefuda-ga-oome-no-victoria": {
       "anilistId": 198709,
@@ -7488,7 +7488,7 @@
           "title": "Tougen Anki: Nikko・Kegon no Taki-hen",
           "format": "TV",
           "status": "RELEASING",
-          "episodes": 24,
+          "episodes": 12,
           "season": "FALL",
           "seasonYear": 2026,
           "startedAt": 1790899200000,
@@ -14155,6 +14155,17 @@
           "order": 4
         },
         {
+          "anilistId": 5968,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2006,
+          "startedAt": 1136332800000,
+          "order": 5
+        },
+        {
           "anilistId": 162796,
           "title": "Kinnikuman: Kanpeki Choujin Shiso-hen",
           "format": "TV",
@@ -14163,7 +14174,7 @@
           "season": "SUMMER",
           "seasonYear": 2024,
           "startedAt": 1720310400000,
-          "order": 5
+          "order": 6
         },
         {
           "anilistId": 181886,
@@ -14174,7 +14185,7 @@
           "season": "WINTER",
           "seasonYear": 2025,
           "startedAt": 1736640000000,
-          "order": 6
+          "order": 7
         },
         {
           "anilistId": 196893,
@@ -14185,7 +14196,7 @@
           "season": "",
           "seasonYear": null,
           "startedAt": 0,
-          "order": 7
+          "order": 8
         }
       ]
     },
@@ -14896,6 +14907,17 @@
           "seasonYear": 2026,
           "startedAt": 1768003200000,
           "order": 10
+        },
+        {
+          "anilistId": 214536,
+          "title": "Cardfight!! Vanguard Divinez Unmei Seisen-hen",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 3,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1794009600000,
+          "order": 11
         }
       ]
     },
@@ -17687,6 +17709,17 @@
           "seasonYear": 2026,
           "startedAt": 1768003200000,
           "order": 10
+        },
+        {
+          "anilistId": 214536,
+          "title": "Cardfight!! Vanguard Divinez Unmei Seisen-hen",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 3,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1794009600000,
+          "order": 11
         }
       ]
     },
@@ -24082,6 +24115,17 @@
           "seasonYear": 2026,
           "startedAt": 1768003200000,
           "order": 10
+        },
+        {
+          "anilistId": 214536,
+          "title": "Cardfight!! Vanguard Divinez Unmei Seisen-hen",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 3,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1794009600000,
+          "order": 11
         }
       ]
     },
@@ -48236,6 +48280,17 @@
           "seasonYear": 2026,
           "startedAt": 1768003200000,
           "order": 10
+        },
+        {
+          "anilistId": 214536,
+          "title": "Cardfight!! Vanguard Divinez Unmei Seisen-hen",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 3,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1794009600000,
+          "order": 11
         }
       ]
     },
@@ -48357,6 +48412,17 @@
           "seasonYear": 2026,
           "startedAt": 1768003200000,
           "order": 10
+        },
+        {
+          "anilistId": 214536,
+          "title": "Cardfight!! Vanguard Divinez Unmei Seisen-hen",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 3,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1794009600000,
+          "order": 11
         }
       ]
     },
@@ -51096,6 +51162,17 @@
           "seasonYear": 2026,
           "startedAt": 1768003200000,
           "order": 10
+        },
+        {
+          "anilistId": 214536,
+          "title": "Cardfight!! Vanguard Divinez Unmei Seisen-hen",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 3,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1794009600000,
+          "order": 11
         }
       ]
     },
@@ -51217,6 +51294,17 @@
           "seasonYear": 2026,
           "startedAt": 1768003200000,
           "order": 10
+        },
+        {
+          "anilistId": 214536,
+          "title": "Cardfight!! Vanguard Divinez Unmei Seisen-hen",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 3,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1794009600000,
+          "order": 11
         }
       ]
     },
@@ -51338,6 +51426,17 @@
           "seasonYear": 2026,
           "startedAt": 1768003200000,
           "order": 10
+        },
+        {
+          "anilistId": 214536,
+          "title": "Cardfight!! Vanguard Divinez Unmei Seisen-hen",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 3,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1794009600000,
+          "order": 11
         }
       ]
     },
@@ -53246,6 +53345,17 @@
           "order": 4
         },
         {
+          "anilistId": 5968,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2006,
+          "startedAt": 1136332800000,
+          "order": 5
+        },
+        {
           "anilistId": 162796,
           "title": "Kinnikuman: Kanpeki Choujin Shiso-hen",
           "format": "TV",
@@ -53254,7 +53364,7 @@
           "season": "SUMMER",
           "seasonYear": 2024,
           "startedAt": 1720310400000,
-          "order": 5
+          "order": 6
         },
         {
           "anilistId": 181886,
@@ -53265,7 +53375,7 @@
           "season": "WINTER",
           "seasonYear": 2025,
           "startedAt": 1736640000000,
-          "order": 6
+          "order": 7
         },
         {
           "anilistId": 196893,
@@ -53276,7 +53386,7 @@
           "season": "",
           "seasonYear": null,
           "startedAt": 0,
-          "order": 7
+          "order": 8
         }
       ]
     },
@@ -53334,6 +53444,17 @@
           "order": 4
         },
         {
+          "anilistId": 5968,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2006,
+          "startedAt": 1136332800000,
+          "order": 5
+        },
+        {
           "anilistId": 162796,
           "title": "Kinnikuman: Kanpeki Choujin Shiso-hen",
           "format": "TV",
@@ -53342,7 +53463,7 @@
           "season": "SUMMER",
           "seasonYear": 2024,
           "startedAt": 1720310400000,
-          "order": 5
+          "order": 6
         },
         {
           "anilistId": 181886,
@@ -53353,7 +53474,7 @@
           "season": "WINTER",
           "seasonYear": 2025,
           "startedAt": 1736640000000,
-          "order": 6
+          "order": 7
         },
         {
           "anilistId": 196893,
@@ -53364,7 +53485,7 @@
           "season": "",
           "seasonYear": null,
           "startedAt": 0,
-          "order": 7
+          "order": 8
         }
       ]
     },
@@ -53422,6 +53543,17 @@
           "order": 4
         },
         {
+          "anilistId": 5968,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2006,
+          "startedAt": 1136332800000,
+          "order": 5
+        },
+        {
           "anilistId": 162796,
           "title": "Kinnikuman: Kanpeki Choujin Shiso-hen",
           "format": "TV",
@@ -53430,7 +53562,7 @@
           "season": "SUMMER",
           "seasonYear": 2024,
           "startedAt": 1720310400000,
-          "order": 5
+          "order": 6
         },
         {
           "anilistId": 181886,
@@ -53441,7 +53573,7 @@
           "season": "WINTER",
           "seasonYear": 2025,
           "startedAt": 1736640000000,
-          "order": 6
+          "order": 7
         },
         {
           "anilistId": 196893,
@@ -53452,7 +53584,7 @@
           "season": "",
           "seasonYear": null,
           "startedAt": 0,
-          "order": 7
+          "order": 8
         }
       ]
     },
@@ -61344,6 +61476,17 @@
           "seasonYear": 2019,
           "startedAt": 1554422400000,
           "order": 4
+        },
+        {
+          "anilistId": 116786,
+          "title": "Beyblade Burst Sparking",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2020,
+          "startedAt": 1585872000000,
+          "order": 5
         }
       ]
     },
@@ -101081,6 +101224,39 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": []
     },
+    "animeav1-last-exile-ginyoku-no-fam-adjournment": {
+      "anilistId": 97,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2003,
+      "anilistEpisodeCount": 26,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 97,
+          "title": "Last Exile",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 26,
+          "season": "SPRING",
+          "seasonYear": 2003,
+          "startedAt": 1049673600000,
+          "order": 1
+        },
+        {
+          "anilistId": 10336,
+          "title": "Last Exile: Ginyoku no Fam",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 21,
+          "season": "FALL",
+          "seasonYear": 2011,
+          "startedAt": 1318636800000,
+          "order": 2
+        }
+      ]
+    },
     "animeav1-lupin-iii-chi-no-kokuin-eien-no-mermaid": {
       "anilistId": 11777,
       "airingStatus": "FINISHED",
@@ -129145,7 +129321,7 @@
           "anilistId": 152677,
           "title": "Tantei wa mou, Shindeiru. Season 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": 13,
           "season": "FALL",
           "seasonYear": 2026,
@@ -165737,7 +165913,7 @@
           "anilistId": 152677,
           "title": "Tantei wa mou, Shindeiru. Season 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": 13,
           "season": "FALL",
           "seasonYear": 2026,
@@ -165748,12 +165924,12 @@
     },
     "anilist-152677": {
       "anilistId": 152677,
-      "airingStatus": "NOT_YET_RELEASED",
+      "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1791376200000,
-      "nextAiringEpisodeNumber": 1,
+      "nextAiringAt": 1791981000000,
+      "nextAiringEpisodeNumber": 2,
       "franchiseSeasons": [
         {
           "anilistId": 128712,
@@ -165770,7 +165946,7 @@
           "anilistId": 152677,
           "title": "Tantei wa mou, Shindeiru. Season 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": 13,
           "season": "FALL",
           "seasonYear": 2026,
@@ -170716,7 +170892,7 @@
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
-      "anilistEpisodeCount": 24,
+      "anilistEpisodeCount": 12,
       "nextAiringAt": 1791556200000,
       "nextAiringEpisodeNumber": 2,
       "franchiseSeasons": [
@@ -170736,7 +170912,7 @@
           "title": "Tougen Anki: Nikko・Kegon no Taki-hen",
           "format": "TV",
           "status": "RELEASING",
-          "episodes": 24,
+          "episodes": 12,
           "season": "FALL",
           "seasonYear": 2026,
           "startedAt": 1790899200000,
@@ -181184,7 +181360,7 @@
           "title": "Tougen Anki: Nikko・Kegon no Taki-hen",
           "format": "TV",
           "status": "RELEASING",
-          "episodes": 24,
+          "episodes": 12,
           "season": "FALL",
           "seasonYear": 2026,
           "startedAt": 1790899200000,
@@ -181198,7 +181374,7 @@
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
-      "anilistEpisodeCount": 24,
+      "anilistEpisodeCount": 12,
       "nextAiringAt": 1791556200000,
       "nextAiringEpisodeNumber": 2,
       "franchiseSeasons": [
@@ -181218,7 +181394,7 @@
           "title": "Tougen Anki: Nikko・Kegon no Taki-hen",
           "format": "TV",
           "status": "RELEASING",
-          "episodes": 24,
+          "episodes": 12,
           "season": "FALL",
           "seasonYear": 2026,
           "startedAt": 1790899200000,
@@ -187604,6 +187780,17 @@
           "order": 4
         },
         {
+          "anilistId": 5968,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2006,
+          "startedAt": 1136332800000,
+          "order": 5
+        },
+        {
           "anilistId": 162796,
           "title": "Kinnikuman: Kanpeki Choujin Shiso-hen",
           "format": "TV",
@@ -187612,7 +187799,7 @@
           "season": "SUMMER",
           "seasonYear": 2024,
           "startedAt": 1720310400000,
-          "order": 5
+          "order": 6
         },
         {
           "anilistId": 181886,
@@ -187623,7 +187810,7 @@
           "season": "WINTER",
           "seasonYear": 2025,
           "startedAt": 1736640000000,
-          "order": 6
+          "order": 7
         },
         {
           "anilistId": 196893,
@@ -187634,7 +187821,7 @@
           "season": "",
           "seasonYear": null,
           "startedAt": 0,
-          "order": 7
+          "order": 8
         }
       ]
     },
@@ -188614,6 +188801,17 @@
           "seasonYear": 2026,
           "startedAt": 1768003200000,
           "order": 10
+        },
+        {
+          "anilistId": 214536,
+          "title": "Cardfight!! Vanguard Divinez Unmei Seisen-hen",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 3,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1794009600000,
+          "order": 11
         }
       ]
     },
@@ -188735,6 +188933,17 @@
           "seasonYear": 2026,
           "startedAt": 1768003200000,
           "order": 10
+        },
+        {
+          "anilistId": 214536,
+          "title": "Cardfight!! Vanguard Divinez Unmei Seisen-hen",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 3,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1794009600000,
+          "order": 11
         }
       ]
     },
@@ -199165,6 +199374,17 @@
           "seasonYear": 2019,
           "startedAt": 1554422400000,
           "order": 4
+        },
+        {
+          "anilistId": 116786,
+          "title": "Beyblade Burst Sparking",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2020,
+          "startedAt": 1585872000000,
+          "order": 5
         }
       ]
     },
@@ -199220,6 +199440,17 @@
           "seasonYear": 2019,
           "startedAt": 1554422400000,
           "order": 4
+        },
+        {
+          "anilistId": 116786,
+          "title": "Beyblade Burst Sparking",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2020,
+          "startedAt": 1585872000000,
+          "order": 5
         }
       ]
     },
@@ -236920,7 +237151,7 @@
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
-      "anilistEpisodeCount": null,
+      "anilistEpisodeCount": 12,
       "nextAiringAt": 1791735600000,
       "nextAiringEpisodeNumber": 2,
       "franchiseSeasons": [],
@@ -236991,7 +237222,7 @@
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
-      "anilistEpisodeCount": null,
+      "anilistEpisodeCount": 12,
       "nextAiringAt": 1791723600000,
       "nextAiringEpisodeNumber": 2,
       "franchiseSeasons": [],
@@ -237143,6 +237374,17 @@
           "order": 4
         },
         {
+          "anilistId": 5968,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2006,
+          "startedAt": 1136332800000,
+          "order": 5
+        },
+        {
           "anilistId": 162796,
           "title": "Kinnikuman: Kanpeki Choujin Shiso-hen",
           "format": "TV",
@@ -237151,7 +237393,7 @@
           "season": "SUMMER",
           "seasonYear": 2024,
           "startedAt": 1720310400000,
-          "order": 5
+          "order": 6
         },
         {
           "anilistId": 181886,
@@ -237162,7 +237404,7 @@
           "season": "WINTER",
           "seasonYear": 2025,
           "startedAt": 1736640000000,
-          "order": 6
+          "order": 7
         },
         {
           "anilistId": 196893,
@@ -237173,7 +237415,7 @@
           "season": "",
           "seasonYear": null,
           "startedAt": 0,
-          "order": 7
+          "order": 8
         }
       ]
     },
@@ -237231,6 +237473,17 @@
           "order": 4
         },
         {
+          "anilistId": 5968,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2006,
+          "startedAt": 1136332800000,
+          "order": 5
+        },
+        {
           "anilistId": 162796,
           "title": "Kinnikuman: Kanpeki Choujin Shiso-hen",
           "format": "TV",
@@ -237239,7 +237492,7 @@
           "season": "SUMMER",
           "seasonYear": 2024,
           "startedAt": 1720310400000,
-          "order": 5
+          "order": 6
         },
         {
           "anilistId": 181886,
@@ -237250,7 +237503,7 @@
           "season": "WINTER",
           "seasonYear": 2025,
           "startedAt": 1736640000000,
-          "order": 6
+          "order": 7
         },
         {
           "anilistId": 196893,
@@ -237261,7 +237514,7 @@
           "season": "",
           "seasonYear": null,
           "startedAt": 0,
-          "order": 7
+          "order": 8
         }
       ]
     },
@@ -237383,6 +237636,17 @@
           "seasonYear": 2026,
           "startedAt": 1768003200000,
           "order": 10
+        },
+        {
+          "anilistId": 214536,
+          "title": "Cardfight!! Vanguard Divinez Unmei Seisen-hen",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 3,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1794009600000,
+          "order": 11
         }
       ]
     },
@@ -237504,6 +237768,17 @@
           "seasonYear": 2026,
           "startedAt": 1768003200000,
           "order": 10
+        },
+        {
+          "anilistId": 214536,
+          "title": "Cardfight!! Vanguard Divinez Unmei Seisen-hen",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 3,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1794009600000,
+          "order": 11
         }
       ]
     },
@@ -237790,6 +238065,17 @@
           "seasonYear": 2019,
           "startedAt": 1554422400000,
           "order": 4
+        },
+        {
+          "anilistId": 116786,
+          "title": "Beyblade Burst Sparking",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2020,
+          "startedAt": 1585872000000,
+          "order": 5
         }
       ]
     },
@@ -238998,7 +239284,7 @@
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
-      "anilistEpisodeCount": null,
+      "anilistEpisodeCount": 12,
       "nextAiringAt": 1791808200000,
       "nextAiringEpisodeNumber": 2,
       "franchiseSeasons": [],
@@ -239051,6 +239337,704 @@
       ],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-05T23:19:38.378Z"
+    },
+    "anilist-206244": {
+      "anilistId": 206244,
+      "airingStatus": "NOT_YET_RELEASED",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": 6,
+      "nextAiringAt": 1793332800000,
+      "nextAiringEpisodeNumber": 1,
+      "franchiseSeasons": [
+        {
+          "anilistId": 102663,
+          "title": "Luo Xiaohei Zhan Ji",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 28,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1300320000000,
+          "order": 1
+        },
+        {
+          "anilistId": 131239,
+          "title": "Luo Xiaohei Zhan Ji: Zhongsheng Zhi Men",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1619222400000,
+          "order": 2
+        },
+        {
+          "anilistId": 166475,
+          "title": "Luo Xiaohei Zhan Ji 2",
+          "format": "MOVIE",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1752796800000,
+          "order": 3
+        },
+        {
+          "anilistId": 206244,
+          "title": "Luo Xiaohei Zhan Ji: Xue Qian Pian",
+          "format": "ONA",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 6,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1793318400000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-5967": {
+      "anilistId": 5967,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2004,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 3272,
+          "title": "Kinnikuman",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 137,
+          "season": "SPRING",
+          "seasonYear": 1983,
+          "startedAt": 418176000000,
+          "order": 1
+        },
+        {
+          "anilistId": 3281,
+          "title": "Kinnikuman: Kinnikusei Oui Soudatsu-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 46,
+          "season": "FALL",
+          "seasonYear": 1991,
+          "startedAt": 686707200000,
+          "order": 2
+        },
+        {
+          "anilistId": 1707,
+          "title": "Kinnikuman Nisei",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "WINTER",
+          "seasonYear": 2002,
+          "startedAt": 1010534400000,
+          "order": 3
+        },
+        {
+          "anilistId": 5967,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SPRING",
+          "seasonYear": 2004,
+          "startedAt": 1081296000000,
+          "order": 4
+        },
+        {
+          "anilistId": 5968,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2006,
+          "startedAt": 1136332800000,
+          "order": 5
+        },
+        {
+          "anilistId": 162796,
+          "title": "Kinnikuman: Kanpeki Choujin Shiso-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1720310400000,
+          "order": 6
+        },
+        {
+          "anilistId": 181886,
+          "title": "Kinnikuman: Kanpeki Choujin Shiso-hen Season 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 11,
+          "season": "WINTER",
+          "seasonYear": 2025,
+          "startedAt": 1736640000000,
+          "order": 7
+        },
+        {
+          "anilistId": 196893,
+          "title": "Kinnikuman: Kanpeki Choujin Shiso-hen Season 3",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 8
+        }
+      ]
+    },
+    "anilist-203296": {
+      "anilistId": 203296,
+      "airingStatus": "FINISHED",
+      "season": "WINTER",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 121962,
+          "title": "Cardfight!! Vanguard: overDress",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617408000000,
+          "order": 1
+        },
+        {
+          "anilistId": 128827,
+          "title": "Cardfight!! Vanguard: overDress Season 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2021,
+          "startedAt": 1633392000000,
+          "order": 2
+        },
+        {
+          "anilistId": 139212,
+          "title": "Cardfight!! Vanguard: will+Dress",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2022,
+          "startedAt": 1656979200000,
+          "order": 3
+        },
+        {
+          "anilistId": 139213,
+          "title": "Cardfight!! Vanguard: will+Dress Season 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1673654400000,
+          "order": 4
+        },
+        {
+          "anilistId": 150970,
+          "title": "Cardfight!! Vanguard: will+Dress Season 3",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688774400000,
+          "order": 5
+        },
+        {
+          "anilistId": 164204,
+          "title": "Cardfight!! Vanguard: Divinez",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1705104000000,
+          "order": 6
+        },
+        {
+          "anilistId": 165681,
+          "title": "Cardfight!! Vanguard: Divinez Season 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1720224000000,
+          "order": 7
+        },
+        {
+          "anilistId": 182920,
+          "title": "Cardfight!! Vanguard: Divinez - Deluxe-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2025,
+          "startedAt": 1736553600000,
+          "order": 8
+        },
+        {
+          "anilistId": 191994,
+          "title": "Cardfight!! Vanguard: Divinez - Deluxe Kesshou-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2025,
+          "startedAt": 1751673600000,
+          "order": 9
+        },
+        {
+          "anilistId": 203296,
+          "title": "Cardfight!! Vanguard: Divinez - Genma Seisen-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1768003200000,
+          "order": 10
+        },
+        {
+          "anilistId": 214536,
+          "title": "Cardfight!! Vanguard Divinez Unmei Seisen-hen",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 3,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1794009600000,
+          "order": 11
+        }
+      ]
+    },
+    "anilist-112325": {
+      "anilistId": 112325,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2020,
+      "anilistEpisodeCount": 48,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 112325,
+          "title": "Shadowverse",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 48,
+          "season": "SPRING",
+          "seasonYear": 2020,
+          "startedAt": 1586217600000,
+          "order": 1
+        },
+        {
+          "anilistId": 140085,
+          "title": "Shadowverse Flame",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 50,
+          "season": "SPRING",
+          "seasonYear": 2022,
+          "startedAt": 1648857600000,
+          "order": 2
+        },
+        {
+          "anilistId": 163136,
+          "title": "Shadowverse Flame: Seven Shadows-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 25,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688774400000,
+          "order": 3
+        },
+        {
+          "anilistId": 172187,
+          "title": "Shadowverse Flame: Arc-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 23,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1712966400000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-108853": {
+      "anilistId": 108853,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2019,
+      "anilistEpisodeCount": 52,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 21236,
+          "title": "Beyblade Burst",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2016,
+          "startedAt": 1459728000000,
+          "order": 1
+        },
+        {
+          "anilistId": 98289,
+          "title": "Beyblade Burst God",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2017,
+          "startedAt": 1491177600000,
+          "order": 2
+        },
+        {
+          "anilistId": 101115,
+          "title": "Beyblade Burst Chouzetsu",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2018,
+          "startedAt": 1522627200000,
+          "order": 3
+        },
+        {
+          "anilistId": 108853,
+          "title": "Beyblade Burst Gachi",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554422400000,
+          "order": 4
+        },
+        {
+          "anilistId": 116786,
+          "title": "Beyblade Burst Sparking",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2020,
+          "startedAt": 1585872000000,
+          "order": 5
+        }
+      ]
+    },
+    "anilist-175120": {
+      "anilistId": 175120,
+      "airingStatus": "FINISHED",
+      "season": "SUMMER",
+      "seasonYear": 2024,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 3841,
+          "title": "Chi's Sweet Home",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 104,
+          "season": "SPRING",
+          "seasonYear": 2008,
+          "startedAt": 1206921600000,
+          "order": 1
+        },
+        {
+          "anilistId": 6024,
+          "title": "Chi's Sweet Home: Atarashii Ouchi",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 104,
+          "season": "SPRING",
+          "seasonYear": 2009,
+          "startedAt": 1238371200000,
+          "order": 2
+        },
+        {
+          "anilistId": 21796,
+          "title": "Koneko no Chii: Ponponra Daibouken",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "FALL",
+          "seasonYear": 2016,
+          "startedAt": 1475366400000,
+          "order": 3
+        },
+        {
+          "anilistId": 99478,
+          "title": "Koneko no Chii: Ponponra Dairyokou",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 25,
+          "season": "SPRING",
+          "seasonYear": 2018,
+          "startedAt": 1523145600000,
+          "order": 4
+        },
+        {
+          "anilistId": 175120,
+          "title": "Koneko no Chii: Ponponra Natsuyasumi",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1721347200000,
+          "order": 5
+        }
+      ]
+    },
+    "anilist-156109": {
+      "anilistId": 156109,
+      "airingStatus": "FINISHED",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 110646,
+          "title": "Hanhua Riji",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1563667200000,
+          "order": 1
+        },
+        {
+          "anilistId": 121679,
+          "title": "Hanhua Riji 2",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1605398400000,
+          "order": 2
+        },
+        {
+          "anilistId": 132530,
+          "title": "Hanhua Riji 3",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1659225600000,
+          "order": 3
+        },
+        {
+          "anilistId": 156109,
+          "title": "Hanhua Riji 4",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1710028800000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-13231": {
+      "anilistId": 13231,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2012,
+      "anilistEpisodeCount": 38,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 5962,
+          "title": "Metal Fight Beyblade",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2009,
+          "startedAt": 1238889600000,
+          "order": 1
+        },
+        {
+          "anilistId": 8410,
+          "title": "Metal Fight Beyblade: Baku",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2010,
+          "startedAt": 1270339200000,
+          "order": 2
+        },
+        {
+          "anilistId": 10370,
+          "title": "Metal Fight Beyblade 4D",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2011,
+          "startedAt": 1301788800000,
+          "order": 3
+        },
+        {
+          "anilistId": 13231,
+          "title": "Metal Fight Beyblade ZERO G",
+          "format": "TV_SHORT",
+          "status": "FINISHED",
+          "episodes": 38,
+          "season": "SPRING",
+          "seasonYear": 2012,
+          "startedAt": 1333843200000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-151898": {
+      "anilistId": 151898,
+      "airingStatus": "FINISHED",
+      "season": "SUMMER",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 21305,
+          "title": "Overlord: Ple Ple Pleiades",
+          "format": "SPECIAL",
+          "status": "FINISHED",
+          "episodes": 8,
+          "season": "SUMMER",
+          "seasonYear": 2015,
+          "startedAt": 1438646400000,
+          "order": 1
+        },
+        {
+          "anilistId": 101083,
+          "title": "Overlord: Ple Ple Pleiades 2",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2018,
+          "startedAt": 1515456000000,
+          "order": 2
+        },
+        {
+          "anilistId": 103209,
+          "title": "Overlord: Ple Ple Pleiades 3",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2018,
+          "startedAt": 1531180800000,
+          "order": 3
+        },
+        {
+          "anilistId": 151898,
+          "title": "Overlord: Ple Ple Pleiades 4",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2022,
+          "startedAt": 1656979200000,
+          "order": 4
+        }
+      ]
+    },
+    "animeav1-choujun-choujou-senpai": {
+      "anilistId": 200294,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": 1791900000000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-06T15:05:29.705Z"
+    },
+    "animeav1-shiotaiou-no-satou-san-ga-ore-ni-dake-amai": {
+      "anilistId": 209502,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": 1791896400000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-06T13:54:49.454Z"
+    },
+    "animeav1-kyouran-reijou-nia-liston-byoujaku-reijou-ni-tensei-shita-kamigoroshi-no-bujin-no-karei-naru-musouroku": {
+      "anilistId": 206949,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 25,
+      "nextAiringAt": 1791894360000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-06T16:44:05.401Z"
+    },
+    "animeav1-tsuihou-sareta-cheat-fuyo-majutsushi-wa-kimama-na-second-life-wo-ouka-suru-ore-wa-buki-dake-ja-naku-arayuru-mono-ni-kyouka-point-wo-fuyo-dekiru-shi-ore-no-ishi-de-itsudemo-kouka-wo-kaijo-dekiru-kedo-nokotta-hitotachi-daijoubu": {
+      "anilistId": 207329,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": 1791903600000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-06T16:02:57.781Z"
+    },
+    "animeav1-battle-spirits-re-zekkai-no-kuu": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-06T15:13:45.235Z"
     },
     "animeav1-kimi-no-koto-ga-daidaidaidaidaisuki-na-100-nin-no-kanojo-3rd-season": {
       "anilistId": "mal-62811",
@@ -239583,41 +240567,6 @@
           "order": 3
         }
       ]
-    },
-    "animeav1-battle-spirits-re-zekkai-no-kuu": {
-      "anilistId": 187990,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1791900000000,
-      "nextAiringEpisodeNumber": 2
-    },
-    "animeav1-choujun-choujou-senpai": {
-      "anilistId": 200294,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1791900000000,
-      "nextAiringEpisodeNumber": 2
-    },
-    "animeav1-shiotaiou-no-satou-san-ga-ore-ni-dake-amai": {
-      "anilistId": 209502,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1791896400000,
-      "nextAiringEpisodeNumber": 2
-    },
-    "animeav1-kyouran-reijou-nia-liston-byoujaku-reijou-ni-tensei-shita-kamigoroshi-no-bujin-no-karei-naru-musouroku": {
-      "anilistId": 206949,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1791894360000,
-      "nextAiringEpisodeNumber": 2
-    },
-    "animeav1-tsuihou-sareta-cheat-fuyo-majutsushi-wa-kimama-na-second-life-wo-ouka-suru-ore-wa-buki-dake-ja-naku-arayuru-mono-ni-kyouka-point-wo-fuyo-dekiru-shi-ore-no-ishi-de-itsudemo-kouka-wo-kaijo-dekiru-kedo-nokotta-hitotachi-daijoubu": {
-      "anilistId": 207329,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1791903600000,
-      "nextAiringEpisodeNumber": 2
     }
   },
   "seasonArtwork": {
@@ -247621,10 +248570,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx106144-iY5AFDjifnNk.jpg",
       "anilistBanner": ""
     },
-    "anilist-151898": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151898-O2DNX5aVCB8q.png",
-      "anilistBanner": ""
-    },
     "anilist-135806": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx135806-uhqZSNTYZe04.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/135806-1220X720dDpZ.jpg"
@@ -252027,7 +252972,7 @@
     },
     "anilist-100083": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx100083-TdvGpOG6ZYZP.jpg",
-      "anilistBanner": ""
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/100083-EHExfoqVLYjT.jpg"
     },
     "anilist-100388": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx100388-hjkg1AnlJR5z.jpg",
@@ -252867,14 +253812,6 @@
     },
     "anilist-97486": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx97486-wSl11UwfxrfL.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-13231": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx13231-l2tS23CDbinP.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-108853": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx108853-ebznx715AJ9x.jpg",
       "anilistBanner": ""
     },
     "anilist-116786": {
@@ -262169,6 +263106,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx105655-Q8ZPRKOVtiwz.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/105655-3HdrCjJRkBjO.jpg"
     },
+    "anilist-60207": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/30207.jpg",
+      "anilistBanner": ""
+    },
     "anilist-1695": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1695-etz4t9yoXO19.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1695-f2BWoFWAhG27.jpg"
@@ -262417,22 +263358,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx20141-1VtZnvaHOHGl.jpg",
       "anilistBanner": ""
     },
-    "anilist-20461": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20461-YTSZiG163mi7.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20461-tlZVmmmb6SAd.jpg"
-    },
-    "anilist-53818": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b53818-Yp5TqFD56voA.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/53818-jWVmOMasChhc.jpg"
-    },
-    "anilist-30222": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30222-8jNgJix8ePVK.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30222-xLtdmDONrJD5.jpg"
-    },
-    "anilist-60207": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/30207.jpg",
-      "anilistBanner": ""
-    },
     "anilist-149": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx149-6QGLHgJc8gum.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/149-1ObNHNwgBy8H.jpg"
@@ -262524,6 +263449,18 @@
     "anilist-1437": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1437-0oQS3aiiyyp7.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1437-4x3umb48Bogs.jpg"
+    },
+    "anilist-20461": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20461-YTSZiG163mi7.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20461-tlZVmmmb6SAd.jpg"
+    },
+    "anilist-53818": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b53818-Yp5TqFD56voA.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/53818-jWVmOMasChhc.jpg"
+    },
+    "anilist-30222": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30222-8jNgJix8ePVK.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30222-xLtdmDONrJD5.jpg"
     },
     "anilist-20914": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20914-Ib3EeuXWmNLi.jpg",
@@ -272298,7 +273235,7 @@
       "anilistBanner": ""
     },
     "anilist-182615": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx182615-hCQdFVlj0Jlk.png",
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx182615-dHrZ0kJtLL0x.png",
       "anilistBanner": ""
     },
     "anilist-2158": {
@@ -272534,7 +273471,7 @@
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/179207-qZqknXITLTIg.jpg"
     },
     "anilist-199007": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx199007-qxUDe3KA6AGI.jpg",
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx199007-8R1HsnflnHJE.jpg",
       "anilistBanner": ""
     },
     "anilist-150463": {
@@ -272542,7 +273479,7 @@
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/150463-wS8OrBmrqI8a.jpg"
     },
     "anilist-202250": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx202250-duq4XpZP8TU3.jpg",
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx202250-mpm2cvr92Au2.jpg",
       "anilistBanner": ""
     },
     "anilist-202228": {
@@ -272586,7 +273523,7 @@
       "anilistBanner": ""
     },
     "anilist-216557": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx216557-9CXz04CEmXOi.png",
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx216557-b72dAqbVEDO7.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/216557-qig0mKuvYRIb.jpg"
     },
     "anilist-30390": {
@@ -272761,10 +273698,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx3071-hoAZ5A2dKdHS.jpg",
       "anilistBanner": ""
     },
-    "anilist-5967": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b5967-EfufMGDaJG5R.jpg",
-      "anilistBanner": ""
-    },
     "anilist-35451": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx35451-EoBa6UMlO9JI.png",
       "anilistBanner": ""
@@ -272861,10 +273794,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx214537-990UgdCwzNND.jpg",
       "anilistBanner": ""
     },
-    "anilist-206244": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx206244-ke6bcfsL40qY.jpg",
-      "anilistBanner": ""
-    },
     "anilist-126304": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx126304-LVxhLCF5gqIi.jpg",
       "anilistBanner": ""
@@ -272872,10 +273801,6 @@
     "anilist-141814": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b141814-iaiogpb8Yzoz.jpg",
       "anilistBanner": ""
-    },
-    "anilist-112325": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx112325-NXi6RerKkbi6.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/112325-WQdu0tAq52oQ.jpg"
     },
     "anilist-10825": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b10825-MyGZa3MxbMoS.jpg",
@@ -272905,10 +273830,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx116551-Sb6CQDbhdPtO.png",
       "anilistBanner": ""
     },
-    "anilist-203296": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx203296-LYXWSdP4N4YF.jpg",
-      "anilistBanner": ""
-    },
     "anilist-200455": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx200455-P3XStRQMJ7Di.png",
       "anilistBanner": ""
@@ -272930,7 +273851,7 @@
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/120567-YF0Lz2lgl6JX.jpg"
     },
     "anilist-206774": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx206774-S65hVQp46NUf.jpg",
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx206774-gXVdrySlLY6y.jpg",
       "anilistBanner": ""
     },
     "anilist-199993": {
@@ -272989,6 +273910,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/8149.jpg",
       "anilistBanner": ""
     },
+    "anilist-5968": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx5968-EVCZg2ilzba8.jpg",
+      "anilistBanner": ""
+    },
     "anilist-8150": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/8150.jpg",
       "anilistBanner": ""
@@ -273025,14 +273950,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b8493-j3JtXHlXIGij.png",
       "anilistBanner": ""
     },
-    "anilist-175120": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx175120-zzdJBduaJJHS.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/175120-B9YF8xwqRqyS.jpg"
-    },
-    "anilist-156109": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx156109-L3gsaRaacZit.jpg",
-      "anilistBanner": ""
-    },
     "anilist-204011": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx204011-j45RZoqYbdZK.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/204011-hBOwte9MzykA.jpg"
@@ -273042,7 +273959,7 @@
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/33438-soFEXrIocedj.jpg"
     },
     "anilist-207191": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b207191-MV0uJNxN7LNY.jpg",
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx207191-VgkIzfH92WoZ.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/207191-xYgpkCDnXc5m.jpg"
     },
     "anilist-122068": {
@@ -273060,6 +273977,70 @@
     "anilist-120236": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx120236-8RSopHXGTHWH.jpg",
       "anilistBanner": ""
+    },
+    "anilist-136110": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b136110-sDzQOOwVtxyj.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-153443": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx153443-7sAZFAwwdluF.png",
+      "anilistBanner": ""
+    },
+    "anilist-170620": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx170620-NVOVCrK0Y1XX.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-200294": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx200294-E6KIgkFaJOfG.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/200294-PPEwId1xfGNO.jpg"
+    },
+    "anilist-174546": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx174546-AGjBNKezhDIc.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/174546-KY9xpJXhYOjm.jpg"
+    },
+    "anilist-210681": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx210681-bxawqplu7EjI.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-214536": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx214536-dl2KJdHcKWJl.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-206949": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx206949-4HYI3YuP0eLI.png",
+      "anilistBanner": ""
+    },
+    "anilist-154010": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx154010-kUX5Qcbg4jBE.png",
+      "anilistBanner": ""
+    },
+    "anilist-174279": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx174279-uezldEIrZ3MA.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-207329": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b207329-6VPeZIDfF4Sr.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/207329-9IqRSKIsM3TC.jpg"
+    },
+    "anilist-207330": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx207330-FqMfiXzEIhoI.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-161741": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx161741-zWPEykzuwjO0.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-209502": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx209502-C81oN8M4Smlo.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-114783": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx114783-dZ1fQDxIoRQ4.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/114783-dhNWhATKd9Ys.jpg"
+    },
+    "anilist-123130": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx123130-MaFfe8w08Ny1.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/123130-a1T9ekCqXRct.jpg"
     }
   }
 }
