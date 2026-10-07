@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-07T13:49:39.161Z",
-  "count": 6646,
+  "generatedAt": "2026-10-07T20:07:26.636Z",
+  "count": 6650,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -240571,6 +240571,34 @@
     "animeav1-sasaki-to-pii-chan-season-2": {
       "anilistId": 176314,
       "airingStatus": "NOT_YET_RELEASED",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791982800000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-tantei-wa-mou-shindeiru-season-2": {
+      "anilistId": 152677,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791981000000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-kikansha-no-mahou-wa-tokubetsu-desu-2nd-season": {
+      "anilistId": 172192,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791992700000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-magic-knight-rayearth-2026": {
+      "anilistId": 178868,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791989160000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-sekai-saikyou-no-majo-hajimemashita": {
+      "anilistId": 211778,
+      "airingStatus": "RELEASING",
       "franchiseSeasons": [],
       "nextAiringAt": 1791982800000,
       "nextAiringEpisodeNumber": 2
