@@ -64,6 +64,8 @@ function comparableSnapshot(body) {
 
 export async function refreshAdultCatalog({ root = process.cwd(), run = execute,
   prepareArtwork = prepareAdultArtwork, report = "artifacts/adult-refresh-report.json" } = {}) {
+  // A failed run must not leave an older successful report for CI to upload.
+  await rm(resolve(root, report), { force: true });
   const baseline = await readSnapshot(root);
   let artwork = null;
   const hasBaseline = [...baseline.values()].some((body) => body !== null);
@@ -72,12 +74,13 @@ export async function refreshAdultCatalog({ root = process.cwd(), run = execute,
     await run("verify-underhentai-playability.mjs", root);
     await run("test-adult-releases.mjs", root);
   };
-  const saveReport = async (status, reason = null) => {
+  const saveReport = async (status, error = null) => {
     const path = resolve(root, report);
     const catalog = JSON.parse(await readFile(resolve(root, "scraper/underhentai_catalog.json"), "utf8"));
     const generatedAt = catalog.generatedAt || null;
     const generatedMs = Date.parse(generatedAt);
-    const result = { status, checkedAt: new Date().toISOString(), reason,
+    const result = { status, checkedAt: new Date().toISOString(), reason: error?.message || null,
+      failureCode: error?.code || null, snapshotValidated: true,
       catalogGeneratedAt: generatedAt,
       catalogAgeHours: Number.isFinite(generatedMs) ? Math.max(0, Math.round((Date.now() - generatedMs) / 3600000)) : null,
       titleCount: Array.isArray(catalog.items) ? catalog.items.length : 0,
@@ -107,7 +110,12 @@ export async function refreshAdultCatalog({ root = process.cwd(), run = execute,
     await restoreSnapshot(root, baseline);
     if (!hasBaseline || error.code !== "ADULT_UPSTREAM_UNAVAILABLE") throw error;
     await validate();
-    return await saveReport("stale", error.message);
+    const restored = await readSnapshot(root);
+    if (!ADULT_SNAPSHOT_FILES.every((file) => restored.get(file)?.equals(baseline.get(file)))) {
+      await restoreSnapshot(root, baseline);
+      throw new Error("Adult snapshot changed during outage validation; refusing to report a safe rollback.");
+    }
+    return await saveReport("stale", error);
   }
 }
 

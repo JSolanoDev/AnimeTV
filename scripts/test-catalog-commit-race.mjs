@@ -165,6 +165,15 @@ test("daily adult workflow is independent, paced, validated, and publishes only 
   assert.match(workflow, /run: npm run adult:verify && npm run test:releases/);
   assert.match(workflow, /if: always\(\)[\s\S]*artifacts\/adult-refresh-report\.json/);
   assert.match(workflow, /if: steps\.commit-catalog\.outputs\.changes_detected == 'true'/);
+  assert.match(workflow, /check-adult-refresh-status\.mjs --allow-preserved-outage/);
+  assert.doesNotMatch(workflow, /continue-on-error/);
+  assert.match(workflow, /runs-on: ubuntu-24\.04/);
+  assert.match(workflow, /node-version: 24/);
+  assert.match(workflow, /package-manager-cache: false/);
+  assert.doesNotMatch(workflow, /FORCE_JAVASCRIPT_ACTIONS_TO_NODE24|actions\/[^\s]+@v4/);
+  for (const action of ["checkout", "setup-node", "upload-artifact"]) {
+    assert.match(workflow, new RegExp(`uses: actions/${action}@[a-f0-9]{40} # v6\\.`));
+  }
   assert.ok(workflow.indexOf("run: node scripts/check-adult-refresh-status.mjs") < workflow.indexOf("run: bash scripts/commit-catalog-update.sh"));
 });
 

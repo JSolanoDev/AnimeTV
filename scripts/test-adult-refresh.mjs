@@ -39,6 +39,9 @@ test("403 preserves every adult asset byte-for-byte and skips the remaining buil
     if (!isValidation(script)) throw blocked();
   } });
   assert.equal(result.status, "stale");
+  assert.equal(result.failureCode, "ADULT_UPSTREAM_UNAVAILABLE");
+  assert.equal(result.snapshotValidated, true);
+  assert.equal(result.changesDetected, false);
   assert.deepEqual(await snapshot(root), before);
   assert.equal(calls.filter((script) => !isValidation(script)).length, 1);
   assert.equal(calls.filter(isValidation).length, 4);
@@ -148,6 +151,109 @@ test("the online publication gate refuses stale or inconsistent reports", async 
     assert.equal((await readFile(outputPath, "utf8")).trim(), expectedOutput ? `changes_detected=${expectedOutput}` : "");
     if (status === "stale") assert.match(child.stderr, /Existing catalog preserved; nothing published/);
   }
+});
+
+async function checkRefreshReport(root, args = ["--allow-preserved-outage"]) {
+  const outputPath = join(root, "github-output.txt");
+  await writeFile(outputPath, "");
+  const script = fileURLToPath(new URL("./check-adult-refresh-status.mjs", import.meta.url));
+  const child = spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: "utf8",
+    env: { ...process.env, GITHUB_OUTPUT: outputPath }, timeout: 10000 });
+  return { ...child, output: (await readFile(outputPath, "utf8")).trim() };
+}
+
+test("expected provider outages warn without publishing only after byte-identical rollback", async t => {
+  for (const status of [403, 429, 503, "timeout"]) {
+    const root = await fixture(t);
+    const before = await snapshot(root);
+    await refreshAdultCatalog({ root, run: async script => {
+      if (script === "build-underhentai-catalog.mjs") await writeSnapshot(root, "partial");
+      if (script === "build-underhentai-details.mjs") {
+        throw new AdultUpstreamUnavailableError(`Adult provider ${status}`, { status });
+      }
+    } });
+    const result = await checkRefreshReport(root);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.output, "changes_detected=false");
+    assert.match(result.stderr, /::warning::Adult provider unavailable/);
+    assert.match(result.stderr, /publishing and deployment skipped/);
+    assert.doesNotMatch(result.stdout, /Provider check passed|ready to publish/);
+    assert.deepEqual(await snapshot(root), before);
+  }
+});
+
+test("warning mode rejects unproven outages, malformed reports, and inconsistent publication flags", async t => {
+  const root = await fixture(t);
+  const reportPath = join(root, "artifacts/adult-refresh-report.json");
+  const valid = await refreshAdultCatalog({ root, run: async script => {
+    if (!isValidation(script)) throw blocked();
+  } });
+  for (const patch of [
+    { failureCode: null }, { failureCode: "ADULT_REFRESH_FAILED" }, { snapshotValidated: false },
+    { retainedSnapshot: false }, { reason: "" }, { reason: {} }, { webAndAndroidMatch: false },
+    { changesDetected: true }, { status: "unknown" }, { status: "fresh", changesDetected: false }
+  ]) {
+    await writeFile(reportPath, JSON.stringify({ ...valid, ...patch }));
+    const result = await checkRefreshReport(root);
+    assert.equal(result.status, 1, JSON.stringify(patch));
+    assert.equal(result.output, "");
+    assert.doesNotMatch(result.stderr, /::warning::/);
+  }
+  for (const body of ["not JSON", "null", "[]"]) {
+    await writeFile(reportPath, body);
+    const result = await checkRefreshReport(root);
+    assert.equal(result.status, 1);
+    assert.equal(result.output, "");
+  }
+  await rm(reportPath);
+  const missing = await checkRefreshReport(root);
+  assert.equal(missing.status, 1);
+  assert.equal(missing.output, "");
+});
+
+test("a previous success report cannot survive a later programming or validation error", async t => {
+  for (const validationError of [false, true]) {
+    const root = await fixture(t);
+    const reportPath = join(root, "artifacts/adult-refresh-report.json");
+    await mkdir(dirname(reportPath), { recursive: true });
+    await writeFile(reportPath, JSON.stringify({ status: "fresh", changesDetected: true, webAndAndroidMatch: true }));
+    const before = await snapshot(root);
+    await assert.rejects(refreshAdultCatalog({ root, run: async script => {
+      if (validationError || !isValidation(script)) throw new Error("neutral validation or parser error");
+    } }), /neutral validation or parser error/);
+    assert.deepEqual(await snapshot(root), before);
+    await assert.rejects(readFile(reportPath), { code: "ENOENT" });
+    assert.equal((await checkRefreshReport(root)).status, 1);
+  }
+});
+
+test("outage validation must not modify the saved snapshot", async t => {
+  const root = await fixture(t);
+  const before = await snapshot(root);
+  let validations = 0;
+  await assert.rejects(refreshAdultCatalog({ root, run: async script => {
+    if (!isValidation(script)) throw blocked();
+    if (++validations === 3) await writeSnapshot(root, "unexpected validation change");
+  } }), /changed during outage validation/);
+  assert.deepEqual(await snapshot(root), before);
+  await assert.rejects(readFile(join(root, "artifacts/adult-refresh-report.json")), { code: "ENOENT" });
+});
+
+test("warning mode resumes normal publication when provider access recovers", async t => {
+  const root = await fixture(t);
+  await refreshAdultCatalog({ root, run: async script => {
+    if (!isValidation(script)) throw blocked();
+  } });
+  assert.equal((await checkRefreshReport(root)).output, "changes_detected=false");
+  const recovered = await refreshAdultCatalog({ root, run: async script => {
+    if (script === "build-underhentai-catalog.mjs") await writeSnapshot(root, "fresh");
+  } });
+  assert.equal(recovered.failureCode, null);
+  const result = await checkRefreshReport(root);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.output, "changes_detected=true");
+  assert.match(result.stdout, /ready to publish/);
+  assert.equal(result.stderr, "");
 });
 
 test("a blocked refresh reports the retained snapshot's real age and title count", async (t) => {
