@@ -3,12 +3,21 @@
 set -euo pipefail
 umask 077
 export GIT_TERMINAL_PROMPT=0
+check_auth=0
+if (($# > 0)); then
+  [[ "$#" == "1" && "$1" == "--check-auth" ]] || { echo "Usage: run-adult-refresh-linux.sh [--check-auth]"; exit 2; }
+  check_auth=1
+fi
 
 state="${ZENKAITV_ADULT_STATE_DIR:-${HOME}/.local/state/zenkaitv-adult-refresh}"
 repository="${ZENKAITV_ADULT_REPOSITORY_URL:-https://github.com/JSolanoDev/AnimeTV.git}"
 checkout="${state}/checkout"
+deploy_key="${ZENKAITV_ADULT_DEPLOY_KEY:-}"
+known_hosts="${ZENKAITV_ADULT_KNOWN_HOSTS:-${state}/github_known_hosts}"
 
-for executable in node npm git gh flock timeout; do
+executables=(node npm git flock timeout)
+if [[ -n "$deploy_key" ]]; then executables+=(ssh stat); else executables+=(gh); fi
+for executable in "${executables[@]}"; do
   command -v "$executable" >/dev/null || { echo "Required command unavailable: ${executable}"; exit 1; }
 done
 mkdir -p "$state"
@@ -19,7 +28,7 @@ if ! flock -n 9; then
 fi
 
 # Avoid re-crawling when a persistent timer catches up just after a manual run.
-if [[ "${ZENKAITV_ADULT_FORCE_REFRESH:-0}" != "1" && -f "${state}/last-completed-at" ]]; then
+if [[ "$check_auth" == "0" && "${ZENKAITV_ADULT_FORCE_REFRESH:-0}" != "1" && -f "${state}/last-completed-at" ]]; then
   read -r previous <"${state}/last-completed-at" || previous=""
   now="$(date +%s)"
   if [[ "$previous" =~ ^[0-9]{1,12}$ ]]; then
@@ -43,9 +52,20 @@ run() {
   "$@" >>"$log" 2>&1
 }
 
-run "Check GitHub authentication" gh auth status
+if [[ -n "$deploy_key" ]]; then
+  [[ "$repository" == "https://github.com/JSolanoDev/AnimeTV.git" ]] || { echo "Deploy key is restricted to the expected repository."; exit 1; }
+  [[ -f "$deploy_key" && -r "$deploy_key" && -f "$known_hosts" && -r "$known_hosts" ]] || { echo "Deploy key or pinned host keys unavailable; refusing credential fallback."; exit 1; }
+  [[ "$(stat -c '%u' "$deploy_key")" == "$UID" ]] || { echo "Deploy key has an unexpected owner."; exit 1; }
+  key_mode="$(stat -c '%a' "$deploy_key")"
+  [[ "$key_mode" == "600" || "$key_mode" == "400" ]] || { echo "Deploy key must be private (mode 600 or 400)."; exit 1; }
+  printf -v GIT_SSH_COMMAND 'ssh -F /dev/null -i %q -o IdentitiesOnly=yes -o IdentityAgent=none -o BatchMode=yes -o StrictHostKeyChecking=yes -o UpdateHostKeys=no -o UserKnownHostsFile=%q -o GlobalKnownHostsFile=/dev/null -o HostKeyAlgorithms=ssh-ed25519 -o ConnectTimeout=15' "$deploy_key" "$known_hosts"
+  export GIT_SSH_COMMAND GIT_SSH_VARIANT=ssh
+  unset SSH_AUTH_SOCK GH_TOKEN GITHUB_TOKEN GH_ENTERPRISE_TOKEN GITHUB_ENTERPRISE_TOKEN
+else
+  run "Check GitHub authentication" timeout --kill-after=10s 60s gh auth status
+fi
 if [[ ! -e "$checkout" ]]; then
-  run "Create isolated catalog checkout" git clone --no-tags --depth 50 "$repository" "$checkout"
+  run "Create isolated catalog checkout" timeout --kill-after=30s 5m git -c credential.helper= clone --no-tags --depth 50 "$repository" "$checkout"
 fi
 [[ -d "${checkout}/.git" ]] || { echo "Refusing to overwrite a non-repository checkout."; exit 1; }
 cd "$checkout"
@@ -53,9 +73,22 @@ cd "$checkout"
 [[ "$(git branch --show-current)" == "main" ]] || { echo "Unexpected checkout branch; refusing to publish."; exit 1; }
 [[ -z "$(git status --porcelain)" ]] || { echo "Checkout has pending changes; preserving them and refusing to publish."; exit 1; }
 git config --local --replace-all credential.helper ''
-git config --local --add credential.helper '!gh auth git-credential'
-run "Fetch trusted main branch" git fetch --no-tags --depth 50 origin '+refs/heads/main:refs/remotes/origin/main'
+if [[ -n "$deploy_key" ]]; then
+  git config --local --replace-all remote.origin.pushurl 'git@github.com:JSolanoDev/AnimeTV.git'
+else
+  git config --local --add credential.helper '!gh auth git-credential'
+  # Switching back to the legacy mode must not retain the SSH-only push URL.
+  git config --local --replace-all remote.origin.pushurl "$repository"
+fi
+run "Fetch trusted main branch" timeout --kill-after=30s 5m git fetch --no-tags --depth 50 origin '+refs/heads/main:refs/remotes/origin/main'
 run "Update without discarding local work" git merge --ff-only refs/remotes/origin/main
+if [[ -n "$deploy_key" ]]; then
+  run "Check unattended repository write access without publishing" timeout --kill-after=10s 60s git push --dry-run origin HEAD:main
+fi
+if [[ "$check_auth" == "1" ]]; then
+  echo "Configured authentication check passed; no provider requests or publication."
+  exit 0
+fi
 
 export npm_config_cache="${state}/npm-cache"
 fingerprint="$( { sha256sum package.json package-lock.json; node --version; npm --version; } | sha256sum | cut -d ' ' -f 1)"

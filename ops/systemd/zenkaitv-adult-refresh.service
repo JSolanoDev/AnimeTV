@@ -8,6 +8,7 @@ TimeoutStartSec=65min
 UMask=0077
 Environment=PATH=/usr/local/bin:/usr/bin:/bin
 Environment=ZENKAITV_ADULT_STATE_DIR=%h/.local/state/zenkaitv-adult-refresh
+EnvironmentFile=-%h/.local/state/zenkaitv-adult-refresh/auth.env
 StateDirectory=zenkaitv-adult-refresh
 StateDirectoryMode=0700
 NoNewPrivileges=true
