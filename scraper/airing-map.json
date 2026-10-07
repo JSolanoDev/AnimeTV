@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-07T12:56:32.602Z",
-  "count": 6645,
+  "generatedAt": "2026-10-07T13:49:39.161Z",
+  "count": 6646,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -240567,6 +240567,13 @@
           "order": 3
         }
       ]
+    },
+    "animeav1-sasaki-to-pii-chan-season-2": {
+      "anilistId": 176314,
+      "airingStatus": "NOT_YET_RELEASED",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1791982800000,
+      "nextAiringEpisodeNumber": 2
     }
   },
   "seasonArtwork": {
