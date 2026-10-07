@@ -5083,7 +5083,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1004";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1005";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -6981,7 +6981,11 @@ function getStableShowHue(show = {}) {
   return Math.abs(hash) % 360;
 }
 
+// Latino dub is parked: flip to true to bring back the pill, toggle, prompt and setting.
+const LATINO_DUB_ENABLED = false;
+
 function showHasLatinoDub(show = {}) {
+  if (!LATINO_DUB_ENABLED) return false;
   return show.hasLatinoDub === true && Number(show.latinoEpisodeCount || 0) > 0;
 }
 
@@ -7866,6 +7870,7 @@ function getLanguagePreferences() {
 let watchLanguageChoicePromise = null;
 
 function preferredWatchLanguage() {
+  if (!LATINO_DUB_ENABLED) return "sub";
   if (state.watchLanguageChoice === "spanish") return "spanish";
   return "sub";
 }
@@ -9672,13 +9677,13 @@ function renderSettings() {
         </div>
 
         <div class="settings-group-label">Playback</div>
-        <div class="settings-line">
+        ${LATINO_DUB_ENABLED ? `        <div class="settings-line">
           <span>${language === "es" ? "Version del anime" : "Anime version"} <small>${language === "es" ? "Idioma preferido para nuevos episodios" : "Preferred language for new episodes"}</small></span>
           <div class="settings-row settings-segment">
             <button class="settings-choice focusable ${watchLanguage === "spanish" ? "is-selected" : ""}" data-watch-language-setting="spanish" type="button">Latino</button>
             <button class="settings-choice focusable ${watchLanguage === "sub" ? "is-selected" : ""}" data-watch-language-setting="sub" type="button">Sub Español</button>
           </div>
-        </div>
+        </div>` : ""}
         <div class="settings-line">
           <span>Video fit <small>Same contain, cover, and fill modes as the APK player</small></span>
           <div class="settings-row settings-segment">
@@ -24245,7 +24250,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1004");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1005");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
