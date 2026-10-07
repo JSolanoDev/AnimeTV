@@ -1,0 +1,17 @@
+[Unit]
+Description=Validate and publish the ZenkaiTV adult catalog
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash %h/.local/libexec/zenkaitv-adult-refresh.sh
+TimeoutStartSec=65min
+UMask=0077
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=ZENKAITV_ADULT_STATE_DIR=%h/.local/state/zenkaitv-adult-refresh
+StateDirectory=zenkaitv-adult-refresh
+StateDirectoryMode=0700
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.local/state/zenkaitv-adult-refresh

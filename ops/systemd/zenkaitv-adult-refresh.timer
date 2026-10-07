@@ -1,0 +1,12 @@
+[Unit]
+Description=Check the ZenkaiTV adult catalog every day
+
+[Timer]
+OnCalendar=*-*-* 06:17:00 UTC
+Persistent=true
+RandomizedDelaySec=2min
+AccuracySec=1min
+Unit=zenkaitv-adult-refresh.service
+
+[Install]
+WantedBy=timers.target

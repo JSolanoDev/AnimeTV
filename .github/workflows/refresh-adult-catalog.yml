@@ -11,6 +11,9 @@ on:
       - '.github/workflows/refresh-adult-catalog.yml'
       - 'scripts/refresh-adult-catalog.mjs'
       - 'scripts/check-adult-refresh-status.mjs'
+      - 'scripts/run-adult-refresh-linux.sh'
+      - 'scripts/test-linux-adult-refresh.mjs'
+      - 'ops/systemd/zenkaitv-adult-refresh.*'
       - 'scripts/prepare-adult-artwork.mjs'
       - 'scripts/commit-catalog-update.sh'
       - 'scripts/lib/adult-upstream.mjs'
@@ -29,6 +32,8 @@ concurrency:
 jobs:
   refresh:
     name: Check, validate, and publish Adult Mode catalog
+    # Enable only after the external daily service has passed end-to-end checks.
+    if: github.event_name != 'schedule' || vars.ADULT_REFRESH_EXTERNAL != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
