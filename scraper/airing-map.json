@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-08T13:58:44.735Z",
-  "count": 6650,
+  "generatedAt": "2026-10-08T20:04:36.919Z",
+  "count": 6652,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -1588,8 +1588,8 @@
       "season": "SUMMER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 26,
-      "nextAiringAt": 1791473160000,
-      "nextAiringEpisodeNumber": 15,
+      "nextAiringAt": 1792077960000,
+      "nextAiringEpisodeNumber": 16,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 14,
       "lastEpisodeAt": "2026-10-01T16:45:47.661Z"
@@ -171042,8 +171042,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791471360000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792076160000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 186497,
@@ -240601,6 +240601,20 @@
       "airingStatus": "RELEASING",
       "franchiseSeasons": [],
       "nextAiringAt": 1791982800000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-tetsuryou-meet-with-tetsudou-musume": {
+      "anilistId": 199594,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1792076400000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-hyouken-no-majutsushi-ga-sekai-wo-suberu-ii": {
+      "anilistId": 212503,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1792081680000,
       "nextAiringEpisodeNumber": 2
     }
   },
