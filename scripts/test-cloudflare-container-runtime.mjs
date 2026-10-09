@@ -79,7 +79,9 @@ try {
     for (let n = 0; n < 2; n++) {
       const response = await request("/api/catalog", { headers: { "Accept-Encoding": encoding } });
       assert.equal(response.status, 200);
+      assert.equal(response.headers.get("x-zenkai-gateway-cache"), n ? "HIT" : "MISS", encoding);
       assert.ok(await response.json());
+      if (!n) await sleep(200);
     }
   }
   const media = await request("/api/source?url=" + encodeURIComponent("https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"),
@@ -115,8 +117,17 @@ try {
       await sleep(500);
     }
     if (remaining.length) {
-      console.error("Remaining Docker instances:", execFileSync("docker", ["inspect", "--format",
-        "{{json .Name}} {{json .Config.Image}} {{json .Config.Labels}}", ...remaining], { encoding: "utf8" }));
+      // Miniflare can leave its egress helper alive after stopping the app container.
+      // Stop only this session's verified helper, never preexisting or unrelated instances.
+      for (const id of remaining) {
+        const [info] = JSON.parse(execFileSync("docker", ["inspect", id], { encoding: "utf8" }));
+        if (/^\/workerd-zenkaitv-container-staging-ZenkaiBackend-[a-f\d]+-proxy$/.test(info.Name)
+          && info.Config.Image.startsWith("cloudflare/proxy-everything:")) {
+          execFileSync("docker", ["stop", "--time", "5", id], { encoding: "utf8" });
+        }
+      }
+      remaining = containers().filter((id) => !before.has(id));
+      if (remaining.length) console.error("Wrangler instances still running:", remaining.join(", "));
       if (!failure) assert.equal(remaining.length, 0, "Wrangler left running containers after shutdown");
     }
   }

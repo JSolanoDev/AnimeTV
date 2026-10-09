@@ -151,8 +151,8 @@ export async function handleGateway(request, env, ctx, { fetchImpl = fetch, cach
     const redirect = new URL(location, backend);
     if (redirect.origin === backend.origin) headers.set("location", redirect.pathname + redirect.search + redirect.hash);
   }
-  // Container fetches carry opaque Node bytes, not fetch's compression metadata.
-  // Keep disconnect cancellation attached until the stream ends, without buffering it.
+  // Reading a Fetcher stream yields decoded bytes. Automatic encoding preserves
+  // Content-Encoding when the cancellable wrapper no longer carries passthrough metadata.
   let body = upstream.body;
   if (containerMedia && body) {
     const reader = body.getReader();
@@ -174,7 +174,7 @@ export async function handleGateway(request, env, ctx, { fetchImpl = fetch, cach
   const response = secureResponse(new Response(body, { status: upstream.status, headers }), {
     "X-Zenkai-Gateway-Cache": cacheable ? "MISS" : "BYPASS",
     "Server-Timing": `gateway;dur=${Math.round(performance.now() - started)}`
-  }, containerMedia ? "manual" : "automatic");
+  });
   const ttl = cacheable ? publicCacheTtl(response, url.pathname) : 0;
   if (ttl && cache && ctx?.waitUntil) {
     const cached = response.clone();
