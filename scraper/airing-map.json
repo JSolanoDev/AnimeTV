@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-09T06:39:57.630Z",
-  "count": 6652,
+  "generatedAt": "2026-10-09T19:43:37.749Z",
+  "count": 6654,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -1388,8 +1388,8 @@
       "season": "SUMMER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 24,
-      "nextAiringAt": 1791558000000,
-      "nextAiringEpisodeNumber": 14,
+      "nextAiringAt": 1792162800000,
+      "nextAiringEpisodeNumber": 15,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 13,
       "lastEpisodeAt": "2026-10-02T16:48:28.956Z"
@@ -170893,8 +170893,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791556200000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792161000000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 177474,
@@ -170928,8 +170928,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791554400000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792159200000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 161645,
@@ -240615,6 +240615,20 @@
       "airingStatus": "RELEASING",
       "franchiseSeasons": [],
       "nextAiringAt": 1792081680000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-toaru-anbu-no-item": {
+      "anilistId": 186742,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1792157400000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-hotaru-no-yomeiri": {
+      "anilistId": 205909,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1792161000000,
       "nextAiringEpisodeNumber": 2
     }
   },
