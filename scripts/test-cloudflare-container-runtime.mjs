@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn, execFileSync } from "node:child_process";
-import { resolve } from "node:path";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { dirname, join, delimiter } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { root, verifyContainerContext } from "./prepare-cloudflare-containers.mjs";
 
@@ -9,14 +10,20 @@ verifyContainerContext();
 const containers = () => execFileSync("docker", ["ps", "--quiet"], { encoding: "utf8" }).trim().split("\n").filter(Boolean);
 const before = new Set(containers());
 const origin = "http://127.0.0.1:4193";
+const bin = process.env.PATH.split(delimiter).map((directory) => join(directory, "wrangler")).find(existsSync);
+assert.ok(bin, "Run through the pinned npm integration script");
+const packageDirectory = dirname(dirname(realpathSync(bin)));
+assert.equal(JSON.parse(readFileSync(join(packageDirectory, "package.json"), "utf8")).version, "4.149.0");
 let logs = "";
-const child = spawn(process.execPath, [resolve(root, "scripts/cloudflare-containers-cli.mjs"), "dev"], {
+const child = spawn(process.execPath, [join(packageDirectory, "wrangler-dist/cli.js"), "dev", "--local",
+  "--config", "wrangler.container-staging.json", "--ip", "127.0.0.1", "--port", "4193"], {
   cwd: root, detached: true, stdio: ["ignore", "pipe", "pipe"],
   env: { ...process.env, CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: "false", WRANGLER_SEND_METRICS: "false" }
 });
 child.stdout.on("data", (data) => { logs = (logs + data).slice(-16000); });
 child.stderr.on("data", (data) => { logs = (logs + data).slice(-16000); });
 let launchError;
+let failure;
 child.on("error", (error) => { launchError = error; });
 const closed = new Promise((done) => child.on("close", done));
 const request = (path, options = {}) => fetch(origin + path, { signal: AbortSignal.timeout(30000), ...options });
@@ -89,9 +96,13 @@ try {
   assert.equal((await (await request("/api/health")).json()).api, "ready");
   console.log(JSON.stringify({ integration: "Worker -> Durable Object -> Linux container passed", coldConcurrentMs: coldMs,
     warmHealthMs: Math.round(performance.now() - warmStart), note: "Runner/local emulation latency, not hosted Cloudflare performance" }));
+} catch (error) {
+  failure = error;
+  console.error("Local Worker integration failed:", error.message, "\nWrangler diagnostics:\n", logs);
+  throw error;
 } finally {
   if (child.pid) {
-    signalGroup("SIGINT");
+    child.kill("SIGINT");
     await Promise.race([closed, sleep(10000)]);
     if (child.exitCode === null) {
       signalGroup("SIGKILL");
@@ -103,6 +114,10 @@ try {
       if (!remaining.length) break;
       await sleep(500);
     }
-    assert.equal(remaining.length, 0, "Wrangler left running containers after shutdown");
+    if (remaining.length) {
+      console.error("Remaining Docker instances:", execFileSync("docker", ["inspect", "--format",
+        "{{json .Name}} {{json .Config.Image}} {{json .Config.Labels}}", ...remaining], { encoding: "utf8" }));
+      if (!failure) assert.equal(remaining.length, 0, "Wrangler left running containers after shutdown");
+    }
   }
 }
