@@ -43,3 +43,5 @@ jobs:
         run: npm run cloudflare:containers:smoke -- --network
       - name: Validate Worker and container with no upload
         run: npm run cloudflare:containers:dry-run
+      - name: Exercise real local Worker, Durable Object and container together
+        run: npm run cloudflare:containers:integration

@@ -6,7 +6,7 @@ const action = process.argv[2];
 const wrangler = ["exec", "--yes", "--package=wrangler@4.149.0", "--", "wrangler"];
 const config = "wrangler.container-staging.json";
 const commands = {
-  "dev": [...wrangler, "dev", "--config", config, "--port", "4193"],
+  "dev": [...wrangler, "dev", "--config", config, "--ip", "127.0.0.1", "--port", "4193"],
   "dry-run": [...wrangler, "deploy", "--config", config, "--dry-run", "--minify", "--outdir", ".cache/cloudflare-container-bundle"],
   "bundle": [...wrangler, "deploy", "--config", config, "--dry-run", "--minify", "--containers-rollout=none", "--outdir", ".cache/cloudflare-container-bundle"],
   "build": ["build", "--platform", "linux/amd64", "--tag", "zenkaitv-container-staging:local", contextDirectory]

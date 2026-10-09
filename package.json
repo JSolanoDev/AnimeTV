@@ -26,6 +26,7 @@
     "cloudflare:containers:bundle": "node scripts/cloudflare-containers-cli.mjs bundle",
     "cloudflare:containers:build": "node scripts/cloudflare-containers-cli.mjs build",
     "cloudflare:containers:smoke": "node scripts/smoke-cloudflare-container.mjs",
+    "cloudflare:containers:integration": "node scripts/test-cloudflare-container-runtime.mjs",
     "cloudflare:dev": "node scripts/cloudflare-cli.mjs dev",
     "cloudflare:login": "node scripts/cloudflare-cli.mjs login",
     "cloudflare:whoami": "node scripts/cloudflare-cli.mjs whoami",
