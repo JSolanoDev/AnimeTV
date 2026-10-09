@@ -265,8 +265,69 @@ scanner/SSRF/method guards, same-origin neutral MP4 Range/HEAD/OPTIONS and rewri
 HLS manifests passed. A neutral HLS sample decoded at 1920x1080 with readyState 4
 and advancing playback time, without console or media errors. This does not prove
 all real-provider streams, episode navigation, mobile orientation, OAuth or Cast.
-The public config currently reports authentication unconfigured: approved runtime
-settings still need secure transfer. Production, DNS and updater jobs are unchanged.
+At initial deployment the public config reported authentication unconfigured.
+The subsequent approved settings transfer is recorded below. Production, DNS and
+updater jobs are unchanged.
+
+The follow-up deployment run passed completely:
+<https://github.com/JSolanoDev/AnimeTV/actions/runs/37920246605>.
+Staging branch commit: `9474045f5a2e7aed55a4911a545abc44c4d90cb2`.
+Code deployment version before runtime secret updates:
+`be7ad3fb-3023-4b1f-8da8-0c48b320a9fd`.
+Rewind/forward recovered to readyState 4 without a media error. Phone-landscape
+emulation had no horizontal overflow; fullscreen UI toggled but native fullscreen
+was not available in this browser. No hardware Cast or physical orientation test.
+Approval was requested and received before transferring existing runtime settings.
+The staging deployment token expires October 16 and must be renewed securely before
+later automated deploys; do not expand its permissions or silently extend access.
+
+## Runtime settings validation on 2026-10-09
+
+The user approved transferring the existing settings to isolated staging. Exactly
+four settings were uploaded using Wrangler secret bulk JSON through stdin:
+`TMDB_API_KEY`, `TMDB_READ_ACCESS_TOKEN`, `SUPABASE_URL` and public
+`SUPABASE_ANON_KEY`. No secret values were printed, stored in new local files,
+committed, embedded in the image or copied into GitHub. No service-role key or
+deployment credential was transferred. The public Supabase key passed the
+container's public-key guard, and hosted `/api/config` matches production.
+
+Hosted TMDB search returned HTTP 200, configured true and ten neutral results.
+An opaque neutral image passed Sharp decoding at 480x720, was optimized to a
+51,910-byte WebP and returned HTTP 200 on both requests. One separate TMDB request
+returned a transient 503 before subsequent health/config/search checks passed;
+the cause is not established and cold-start behavior still needs follow-up.
+
+A low-volume real-provider check for the user-selected One Piece episode 904
+returned one AnimeAV1 source and a valid HLS manifest through the same-origin
+relay (HTTP 200). AnimeYT and TioAnime returned 404 for this sample. This is not
+proof of every episode or decoded playback. The app's watch UI remained on
+"Loading stream..." with no video or iframe after episode selection and explicit
+Play. Preserve the screenshot in `.cache/cloudflare-runtime-watch-check.jpg`;
+investigate this before domain cutover rather than treating a manifest as playback.
+
+Both Google and Cloudflare public DNS returned NXDOMAIN for the Supabase hostname.
+The user subsequently clarified that Supabase is unused and login is hidden.
+`ENABLE_SUPABASE_AUTH` was already false: this external DNS check was unnecessary
+and is not established as the cause of the playback stall. Authentication is not
+a migration gate while deliberately disabled.
+
+The unused `SUPABASE_URL` and `SUPABASE_ANON_KEY` settings were deleted only from
+isolated staging via Wrangler secret bulk stdin, retaining both TMDB settings.
+Hosted `/api/config` now reports configured false with no auth URL/key; the app
+loads no Supabase SDK and keeps login hidden. Production configuration, hosting,
+DNS and daily publishing remain untouched.
+
+Fresh hosted checks subsequently decoded One Piece 904 and, through Next episode,
+905 at 1920x1080, readyState 4 and advancing time, with no media error. Rewind and
+forward moved the playhead about ten seconds. This recovery predates deployment
+of the new startup guard and does not prove why the earlier attempt stalled.
+Unexpected playback startup rejections previously reached callers that discarded
+them; the narrow v1006 guard renders the existing Retry/other-source error UI
+instead and cannot overwrite a newer episode. It adds no requests, retries or
+provider changes. Root/Android copies match; pipeline tests now total 142, including
+coalesced startup rejection and late stale rejection coverage. Full app checks,
+tests, 34 gateway/container tests and targeted ESLint pass. Linux deployment and
+hosted latest-fix/cold-start verification are still required before domain cutover.
 
 ## Current reference documentation
 

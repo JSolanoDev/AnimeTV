@@ -2567,6 +2567,40 @@ test("11c4. one episode has one active playback run and stale runs are rejected"
   await Promise.all([first, second]);
 });
 
+test("11c4b. a startup exception becomes a recoverable error instead of an endless loader", async () => {
+  const episode = { id: "show-s1-e1", canonicalEpisode: 1 };
+  const state = { activeShow: { id: "show" }, activeEpisode: { episode } };
+  const errors = [];
+  const frame = {};
+  let reject;
+  const sandbox = vm.createContext({
+    state,
+    console: { warn() {} }, debugPromotion() {},
+    document: { querySelector: () => frame },
+    mountedEpisodePlayback: () => null,
+    getShowKey: (show) => show.id,
+    getCanonicalEpisodeNumber: (value, fallback) => value.canonicalEpisode ?? fallback,
+    runActivePlaybackAttempt: () => new Promise((_resolve, fail) => { reject = fail; }),
+    renderPlaybackError: (...args) => errors.push(args)
+  });
+  vm.runInContext(section(clientSource, "let activePlaybackAttemptSequence", "function stopActivePlayback()"), sandbox);
+  vm.runInContext(section(clientSource, "function playActiveShow(", "async function runActivePlaybackAttempt("), sandbox);
+  const first = sandbox.playActiveShow();
+  assert.equal(first, sandbox.playActiveShow());
+  reject(new Error("Startup failed"));
+  await first;
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0][0], frame);
+  assert.equal(errors[0][1], episode);
+  assert.equal(errors[0][2].title, "Could not start playback");
+
+  const stale = sandbox.playActiveShow();
+  sandbox.invalidateActivePlaybackAttempt();
+  reject(new Error("Previous episode failed late"));
+  await stale;
+  assert.equal(errors.length, 1);
+});
+
 function mountedPlaybackContext() {
   const source = { id: "working", type: "direct", videoUrl: "https://media.test/first.mp4" };
   const episode = { id: "show-s1-e1", canonicalSeason: 1, canonicalEpisode: 1, sourceOptions: [source] };
