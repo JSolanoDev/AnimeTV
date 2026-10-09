@@ -7,7 +7,7 @@ import { SECURITY_HEADERS } from "../ops/cloudflare/gateway.mjs";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const stagingDirectory = resolve(root, ".cache/cloudflare-static");
 
-export function prepareCloudflare(sourceDirectory = resolve(root, "dist"), outputDirectory = stagingDirectory) {
+export function prepareCloudflare(sourceDirectory = resolve(root, "dist"), outputDirectory = stagingDirectory, { production = false } = {}) {
   if (resolve(outputDirectory) !== stagingDirectory) throw new Error("Cloudflare output must stay in the staging cache directory");
   const manifest = JSON.parse(readFileSync(join(sourceDirectory, BUILD_MANIFEST), "utf8"));
   verifyLocalBuild(sourceDirectory, manifest);
@@ -22,7 +22,7 @@ export function prepareCloudflare(sourceDirectory = resolve(root, "dist"), outpu
     mkdirSync(dirname(target), { recursive: true });
     copyFileSync(join(sourceDirectory, name), target);
   }
-  const headers = ["/*", ...Object.entries({ ...SECURITY_HEADERS, "X-Robots-Tag": "noindex, nofollow" })
+  const headers = ["/*", ...Object.entries({ ...SECURITY_HEADERS, ...(production ? {} : { "X-Robots-Tag": "noindex, nofollow" }) })
     .map(([key, value]) => `  ${key}: ${value}`)];
   for (const name of files) {
     let policy = "public, max-age=0, must-revalidate";

@@ -1,0 +1,32 @@
+{
+  "name": "zenkaitv",
+  "account_id": "82846f471a6cc2b416851facadcd324b",
+  "main": "ops/cloudflare/production-worker.mjs",
+  "compatibility_date": "2026-10-08",
+  "compatibility_flags": ["enable_request_signal"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": ".cache/cloudflare-static",
+    "binding": "ASSETS",
+    "html_handling": "none",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api", "/api/*", "/.env*", "/.git", "/.git/*", "/wp-*", "/xmlrpc.php", "/vendor/*", "/cgi-bin/*"]
+  },
+  "containers": [{
+    "name": "zenkai-backend-production",
+    "class_name": "ZenkaiBackend",
+    "image": "./ops/cloudflare/Dockerfile",
+    "image_build_context": "./.cache/cloudflare-container-context",
+    "scheduling_policy": "default",
+    "instance_type": "basic",
+    "max_instances": 1
+  }],
+  "durable_objects": {
+    "bindings": [{ "name": "BACKEND", "class_name": "ZenkaiBackend" }]
+  },
+  "exports": {
+    "ZenkaiBackend": { "type": "durable-object", "storage": "sqlite", "container": "zenkai-backend-production" }
+  },
+  "observability": { "enabled": false }
+}

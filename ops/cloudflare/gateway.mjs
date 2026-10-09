@@ -65,21 +65,21 @@ export function publicCacheTtl(response, pathname) {
   return Math.min(maxAge, PUBLIC_CACHE_TTLS.get(pathname) || 0);
 }
 
-function forwardHeaders(request) {
+function forwardHeaders(request, production) {
   const headers = new Headers(request.headers);
   const connectionHeaders = (headers.get("connection") || "").split(",").map((value) => value.trim()).filter(Boolean);
   const clientIp = request.cf ? headers.get("cf-connecting-ip") : null;
   for (const name of [...HOP_HEADERS, ...connectionHeaders,
     "forwarded", "x-forwarded-for", "x-real-ip", "x-forwarded-host", "x-forwarded-proto", "cf-connecting-ip"]) headers.delete(name);
   if (clientIp) headers.set("x-forwarded-for", clientIp);
-  headers.set("x-zenkai-gateway", "cloudflare-staging");
+  headers.set("x-zenkai-gateway", production ? "cloudflare-production" : "cloudflare-staging");
   return headers;
 }
 
-export async function handleGateway(request, env, ctx, { fetchImpl = fetch, cache = globalThis.caches?.default, containerMedia = false } = {}) {
+export async function handleGateway(request, env, ctx, { fetchImpl = fetch, cache = globalThis.caches?.default, containerMedia = false, production = false } = {}) {
   const url = new URL(request.url);
   if (isScannerPath(url.pathname)) return errorResponse(404, "Not found");
-  if (url.hostname === "zenkaitv.com" || url.hostname === "www.zenkaitv.com") {
+  if (!production && (url.hostname === "zenkaitv.com" || url.hostname === "www.zenkaitv.com")) {
     return errorResponse(503, "This configuration is staging-only");
   }
   if (url.pathname !== "/api" && !url.pathname.startsWith("/api/")) {
@@ -128,7 +128,7 @@ export async function handleGateway(request, env, ctx, { fetchImpl = fetch, cach
   let upstream;
   try {
     upstream = await fetchImpl(backend.href, {
-      method: request.method, headers: forwardHeaders(request),
+      method: request.method, headers: forwardHeaders(request, production),
       body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
       redirect: "manual", signal: controller.signal
     });

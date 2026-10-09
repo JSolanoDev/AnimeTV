@@ -19,15 +19,19 @@ export class ZenkaiBackend extends DurableObject {
   }
 }
 
-export default {
+export function createContainerGateway(instanceName, gateway = handleGateway) {
+  return {
   fetch(request, env, ctx) {
-    return handleGateway(request, { ...env, BACKEND_ORIGIN: INTERNAL_ORIGIN }, ctx, {
+    return gateway(request, { ...env, BACKEND_ORIGIN: INTERNAL_ORIGIN }, ctx, {
       containerMedia: true,
       fetchImpl: (url, options) => {
         // The fixed instance name and binding prevent client-controlled container creation or origins.
-        const stub = env.BACKEND.getByName("staging-backend-v1");
+        const stub = env.BACKEND.getByName(instanceName);
         return stub.fetch(new Request(url, options));
       }
     });
   }
-};
+  };
+}
+
+export default createContainerGateway("staging-backend-v1");

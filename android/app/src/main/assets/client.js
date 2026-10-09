@@ -5083,7 +5083,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1006";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1007";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -7139,7 +7139,10 @@ function getCardTarget(show) {
   const seasonNumber = feedEpisode !== null && Number(show.canonicalSeasonNumber) > 0
     ? Number(show.canonicalSeasonNumber)
     : extractSeasonNumber(show.title, 1);
-  const episodeNumber = feedEpisode !== null && feedEpisode > 0 ? feedEpisode : cardEpisodeNumber(show);
+  const scope = typeof SeasonNormalization !== "undefined" ? SeasonNormalization.jojoEntryScope?.(show) : null;
+  // Library cards name one batch; only an explicit release may target a later batch.
+  const episodeNumber = feedEpisode !== null && feedEpisode > 0
+    ? feedEpisode : Math.min(cardEpisodeNumber(show), Number(scope?.count) || Infinity);
   return {
     seasonNumber,
     episodeNumber: episodeNumber > 0 ? episodeNumber : ""
@@ -24259,7 +24262,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1006");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1007");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
