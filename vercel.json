@@ -8,76 +8,146 @@
     }
   },
   "rewrites": [
-    { "source": "/favicon.ico", "destination": "/logo-round.png" },
-    { "source": "/api/(.*)", "destination": "/api/[...path]" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/favicon.ico",
+      "destination": "/logo-round.png"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/[...path]"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ],
   "redirects": [
-    { "source": "/anime/player/player.html", "destination": "/player/player.html", "permanent": false }
+    {
+      "source": "/anime/player/player.html",
+      "destination": "/player/player.html",
+      "permanent": false
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Strict-Transport-Security",  "value": "max-age=31536000; includeSubDomains; preload" },
-        { "key": "Content-Security-Policy",     "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.gstatic.com https://cdn.vercel-insights.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' data:; img-src 'self' data: blob: http: https:; media-src 'self' blob: http: https:; connect-src 'self' http: https: ws: wss:; frame-src 'self' http: https: blob:; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'" },
-        { "key": "Referrer-Policy",             "value": "no-referrer" },
-        { "key": "X-Content-Type-Options",      "value": "nosniff" },
-        { "key": "X-Frame-Options",             "value": "SAMEORIGIN" },
-        { "key": "Cross-Origin-Opener-Policy",  "value": "same-origin" },
-        { "key": "Permissions-Policy",          "value": "autoplay=*, fullscreen=*, picture-in-picture=*, camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), xr-spatial-tracking=()" },
-        { "key": "Cache-Control",               "value": "public, max-age=60, stale-while-revalidate=300" }
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains; preload"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.gstatic.com https://cdn.vercel-insights.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' data:; img-src 'self' data: blob: http: https:; media-src 'self' blob: http: https:; connect-src 'self' http: https: ws: wss:; frame-src 'self' http: https: blob:; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "autoplay=*, fullscreen=*, picture-in-picture=*, camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), xr-spatial-tracking=()"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=60, stale-while-revalidate=300"
+        }
       ]
     },
     {
       "source": "/api/image",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
       "source": "/api/catalog",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=300, s-maxage=600, stale-while-revalidate=86400" },
-        { "key": "Vary", "value": "Accept-Encoding" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=300, s-maxage=600, stale-while-revalidate=86400"
+        },
+        {
+          "key": "Vary",
+          "value": "Accept-Encoding"
+        }
       ]
     },
     {
       "source": "/api/(anilist|jikan)/(.*)",
       "headers": [
-        { "key": "Vary", "value": "Accept-Encoding" }
+        {
+          "key": "Vary",
+          "value": "Accept-Encoding"
+        }
       ]
     },
     {
       "source": "/api/(animeav1|tioanime|jkanime|animeonlineninja)/slugs",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400"
+        }
       ]
     },
     {
       "source": "/api/(animeneon|animeav1|tioanime|jkanime)/sources",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=60, s-maxage=300, stale-while-revalidate=600, stale-if-error=1800" },
-        { "key": "Vary", "value": "Accept-Encoding" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=60, s-maxage=300, stale-while-revalidate=600, stale-if-error=1800"
+        },
+        {
+          "key": "Vary",
+          "value": "Accept-Encoding"
+        }
       ]
     },
     {
       "source": "/(.*)\\.(js|css|svg|webmanifest|ico|png|webp|jpg|jpeg|woff2?|ttf|eot)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
       "source": "/service-worker.js",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, max-age=0, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, max-age=0, must-revalidate"
+        }
       ]
     },
     {
       "source": "/(robots.txt|sitemap.xml|llms.txt)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=86400" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, stale-while-revalidate=86400"
+        }
       ]
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": false
+  }
 }

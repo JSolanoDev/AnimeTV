@@ -2031,6 +2031,7 @@ test("7f3b. AnimeNeon multiserver pages expose preferred real player entries", (
 
 test("7f3c. Latino selection is limited to episodes present in the dub inventory", () => {
   const sandbox = vm.createContext({
+    LATINO_DUB_ENABLED: true,
     state: {
       activeShow: null,
       activeEpisode: null,
@@ -2048,6 +2049,8 @@ test("7f3c. Latino selection is limited to episodes present in the dub inventory
   assert.equal(sandbox.episodeHasLatinoDub(show, { episode: 878 }), false);
   assert.equal(sandbox.preferredWatchLanguageForEpisode(show, { episode: 877 }), "spanish");
   assert.equal(sandbox.preferredWatchLanguageForEpisode(show, { episode: 878 }), "sub");
+  sandbox.LATINO_DUB_ENABLED = false;
+  assert.equal(sandbox.preferredWatchLanguageForEpisode(show, { episode: 877 }), "sub");
 });
 
 test("7f3d. player language follows the selected episode source instead of the global preference", () => {

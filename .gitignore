@@ -25,6 +25,8 @@ android/app/build/
 Thumbs.db
 
 .vercel
+.wrangler/
+.dev.vars*
 .env*
 
 # Scraper — anime_metadata.json IS committed (CI updates it for Vercel).
