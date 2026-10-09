@@ -1,0 +1,47 @@
+name: Verify Cloudflare container (no deployment)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["cloudflare-validation/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-container-check
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: "false"
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      - name: Checkout without stored credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Install existing locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Check existing app and regressions on Linux
+        run: npm run check && npm test
+      - name: Check gateway and container routing
+        run: npm run test:cloudflare && npm run test:cloudflare:containers
+      - name: Prepare verified assets and sanitized backend context
+        run: npm run cloudflare:containers:prepare
+      - name: Build Linux image locally on runner
+        run: npm run cloudflare:containers:build
+      - name: Check Node API, native Sharp, outbound guard and neutral media
+        run: npm run cloudflare:containers:smoke -- --network
+      - name: Validate Worker and container with no upload
+        run: npm run cloudflare:containers:dry-run
+      - name: Exercise real local Worker, Durable Object and container together
+        run: npm run cloudflare:containers:integration

@@ -1,0 +1,89 @@
+name: Deploy Cloudflare production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Scrape anime catalog", "Refresh Latest Release Artwork", "Refresh Adult Mode catalog"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  production:
+    if: >-
+      github.repository == 'JSolanoDev/AnimeTV' && github.ref == 'refs/heads/main' &&
+      vars.CLOUDFLARE_PRODUCTION_ENABLED == 'true' &&
+      (github.event_name != 'workflow_run' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_repository.full_name == 'JSolanoDev/AnimeTV'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: "false"
+      WRANGLER_SEND_METRICS: "false"
+    steps:
+      # Updater commits made with GITHUB_TOKEN do not trigger push workflows.
+      # Checkout trusted main, not the updater's older starting SHA or a downloaded artifact.
+      - name: Checkout current trusted main without credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Validate trigger and pin this snapshot
+        id: snapshot
+        run: |
+          node --input-type=module -e 'import {readFileSync} from "node:fs"; import {validateProductionEvent} from "./scripts/cloudflare-production-policy.mjs"; validateProductionEvent(process.env,JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH,"utf8")));'
+          printf 'sha=%s\n' "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Skip a snapshot already successfully deployed
+        id: deployed
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/cloudflare-production-deployed
+          key: cloudflare-production-v1-${{ steps.snapshot.outputs.sha }}
+      - name: Set up Node.js
+        if: steps.deployed.outputs.cache-hit != 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Install locked dependencies
+        if: steps.deployed.outputs.cache-hit != 'true'
+        run: npm ci --no-audit --no-fund
+      - name: Validate app, staging isolation and production policy
+        if: steps.deployed.outputs.cache-hit != 'true'
+        run: npm run check && npm test && npm run test:cloudflare && npm run test:cloudflare:containers && npm run test:cloudflare:production
+      - name: Prepare matching verified frontend and backend snapshot
+        if: steps.deployed.outputs.cache-hit != 'true'
+        run: npm run cloudflare:production:prepare
+      - name: Test Linux image and neutral media
+        if: steps.deployed.outputs.cache-hit != 'true'
+        run: npm run cloudflare:containers:build && npm run cloudflare:containers:smoke -- --network
+      - name: Check production bundle and real local container integration
+        if: steps.deployed.outputs.cache-hit != 'true'
+        run: npm run cloudflare:production:dry-run && npm run cloudflare:containers:integration
+      - name: Publish only the approved capped production configuration
+        if: steps.deployed.outputs.cache-hit != 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_STAGING_API_TOKEN }}
+          CLOUDFLARE_APPROVE_PRODUCTION_DEPLOY: "1"
+        run: npm run cloudflare:production:deploy
+      - name: Verify deployment before recording success
+        if: steps.deployed.outputs.cache-hit != 'true'
+        run: |
+          node scripts/check-cloudflare-hosted-readiness.mjs production
+          mkdir -p .cache
+          git rev-parse HEAD > .cache/cloudflare-production-deployed
+      - name: Remember only successful published snapshots
+        if: success() && steps.deployed.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/cloudflare-production-deployed
+          key: cloudflare-production-v1-${{ steps.snapshot.outputs.sha }}

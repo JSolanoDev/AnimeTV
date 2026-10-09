@@ -1,0 +1,31 @@
+{
+  "name": "zenkaitv-staging",
+  "account_id": "82846f471a6cc2b416851facadcd324b",
+  "main": "ops/cloudflare/gateway.mjs",
+  "compatibility_date": "2026-10-08",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": ".cache/cloudflare-static",
+    "binding": "ASSETS",
+    "html_handling": "none",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": [
+      "/api",
+      "/api/*",
+      "/.env*",
+      "/.git",
+      "/.git/*",
+      "/wp-*",
+      "/xmlrpc.php",
+      "/vendor/*",
+      "/cgi-bin/*"
+    ]
+  },
+  "vars": {
+    "BACKEND_ORIGIN": "https://zenkaitv.com"
+  },
+  "observability": {
+    "enabled": false
+  }
+}

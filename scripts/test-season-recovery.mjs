@@ -129,6 +129,23 @@ function jojoCatalog(c) {
   return c.state.shows;
 }
 
+test("JoJo library cards stay in the named batch while explicit releases retain absolute episode routing", () => {
+  const c = context();
+  const shows = jojoCatalog(c);
+  c.extractSeasonNumber = () => 1;
+  vm.runInContext(section(clientSource, "function cardEpisodeNumber(", "function cardMeta("), c);
+  for (const [index, expected] of [[5, 12], [6, 12], [7, 1]]) {
+    const target = c.getCardTarget(shows[index]);
+    assert.equal(target.episodeNumber, expected);
+    assert.equal(c.resolveJojoOpenTarget(shows[index], target), null);
+  }
+  assert.equal(c.getCardTarget({ title: "Neutral series", sourceEpisodeCount: 100 }).episodeNumber, 100);
+  const release = { ...shows[5], _av1Episode: 38 };
+  const target = c.getCardTarget(release);
+  assert.equal(target.episodeNumber, 38);
+  assert.equal(c.resolveJojoOpenTarget(release, target).target.seasonPart, 3);
+});
+
 test("every JoJo selector entry keeps its exact episode range and original provider IDs", () => {
   const c = context();
   const shows = jojoCatalog(c);

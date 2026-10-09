@@ -24,7 +24,7 @@ loadLocalEnv();
 
 const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || "0.0.0.0";
-const HOSTED_RUNTIME = Boolean(process.env.VERCEL || process.env.RENDER || process.env.FLY_APP_NAME || process.env.RAILWAY_ENVIRONMENT);
+const HOSTED_RUNTIME = Boolean(process.env.ZENKAI_HOSTED_RUNTIME === "1" || process.env.VERCEL || process.env.RENDER || process.env.FLY_APP_NAME || process.env.RAILWAY_ENVIRONMENT);
 const ANILIST_ENDPOINT = "https://graphql.anilist.co";
 // Overridable so the outage/recovery path can be exercised against a stub. Same
 // pattern as TIOANIME_API; defaults to the real service.

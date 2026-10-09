@@ -2031,6 +2031,7 @@ test("7f3b. AnimeNeon multiserver pages expose preferred real player entries", (
 
 test("7f3c. Latino selection is limited to episodes present in the dub inventory", () => {
   const sandbox = vm.createContext({
+    LATINO_DUB_ENABLED: true,
     state: {
       activeShow: null,
       activeEpisode: null,
@@ -2048,6 +2049,8 @@ test("7f3c. Latino selection is limited to episodes present in the dub inventory
   assert.equal(sandbox.episodeHasLatinoDub(show, { episode: 878 }), false);
   assert.equal(sandbox.preferredWatchLanguageForEpisode(show, { episode: 877 }), "spanish");
   assert.equal(sandbox.preferredWatchLanguageForEpisode(show, { episode: 878 }), "sub");
+  sandbox.LATINO_DUB_ENABLED = false;
+  assert.equal(sandbox.preferredWatchLanguageForEpisode(show, { episode: 877 }), "sub");
 });
 
 test("7f3d. player language follows the selected episode source instead of the global preference", () => {
@@ -2562,6 +2565,40 @@ test("11c4. one episode has one active playback run and stale runs are rejected"
 
   pending.forEach((resolve) => resolve());
   await Promise.all([first, second]);
+});
+
+test("11c4b. a startup exception becomes a recoverable error instead of an endless loader", async () => {
+  const episode = { id: "show-s1-e1", canonicalEpisode: 1 };
+  const state = { activeShow: { id: "show" }, activeEpisode: { episode } };
+  const errors = [];
+  const frame = {};
+  let reject;
+  const sandbox = vm.createContext({
+    state,
+    console: { warn() {} }, debugPromotion() {},
+    document: { querySelector: () => frame },
+    mountedEpisodePlayback: () => null,
+    getShowKey: (show) => show.id,
+    getCanonicalEpisodeNumber: (value, fallback) => value.canonicalEpisode ?? fallback,
+    runActivePlaybackAttempt: () => new Promise((_resolve, fail) => { reject = fail; }),
+    renderPlaybackError: (...args) => errors.push(args)
+  });
+  vm.runInContext(section(clientSource, "let activePlaybackAttemptSequence", "function stopActivePlayback()"), sandbox);
+  vm.runInContext(section(clientSource, "function playActiveShow(", "async function runActivePlaybackAttempt("), sandbox);
+  const first = sandbox.playActiveShow();
+  assert.equal(first, sandbox.playActiveShow());
+  reject(new Error("Startup failed"));
+  await first;
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0][0], frame);
+  assert.equal(errors[0][1], episode);
+  assert.equal(errors[0][2].title, "Could not start playback");
+
+  const stale = sandbox.playActiveShow();
+  sandbox.invalidateActivePlaybackAttempt();
+  reject(new Error("Previous episode failed late"));
+  await stale;
+  assert.equal(errors.length, 1);
 });
 
 function mountedPlaybackContext() {
