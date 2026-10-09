@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-08T20:04:36.919Z",
+  "generatedAt": "2026-10-09T06:39:57.630Z",
   "count": 6652,
   "entries": {
     "animeav1-one-piece": {
@@ -111,8 +111,8 @@
       "season": "SUMMER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791514800000,
-      "nextAiringEpisodeNumber": 10,
+      "nextAiringAt": 1792119600000,
+      "nextAiringEpisodeNumber": 11,
       "franchiseSeasons": [
         {
           "anilistId": 126403,
