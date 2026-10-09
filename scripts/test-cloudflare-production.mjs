@@ -82,6 +82,11 @@ test("daily publishing checks current main, skips unchanged snapshots and record
   assert.match(workflow, /cancel-in-progress: false/);
   assert.match(workflow, /cache-hit != 'true'/);
   assert.match(workflow, /if: success\(\)/);
+  const integration = workflow.indexOf("npm run cloudflare:containers:prepare && npm run cloudflare:containers:integration");
+  const productionSnapshot = workflow.indexOf("npm run cloudflare:production:prepare && npm run cloudflare:production:dry-run");
+  const deploy = workflow.indexOf("run: npm run cloudflare:production:deploy");
+  assert.ok(integration > 0 && integration < productionSnapshot && productionSnapshot < deploy,
+    "Staging integration must retain its noindex assets; rebuild production assets before publishing");
   assert.ok(workflow.indexOf("check-cloudflare-hosted-readiness.mjs production") < workflow.indexOf("actions/cache/save@"));
   assert.doesNotMatch(workflow, /contents: write|pull_request|download-artifact|head_sha|ref: \$\{/);
 });

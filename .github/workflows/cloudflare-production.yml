@@ -66,9 +66,12 @@ jobs:
       - name: Test Linux image and neutral media
         if: steps.deployed.outputs.cache-hit != 'true'
         run: npm run cloudflare:containers:build && npm run cloudflare:containers:smoke -- --network
-      - name: Check production bundle and real local container integration
+      - name: Check real local staging container integration
         if: steps.deployed.outputs.cache-hit != 'true'
-        run: npm run cloudflare:production:dry-run && npm run cloudflare:containers:integration
+        run: npm run cloudflare:containers:prepare && npm run cloudflare:containers:integration
+      - name: Restore and check the matching production snapshot
+        if: steps.deployed.outputs.cache-hit != 'true'
+        run: npm run cloudflare:production:prepare && npm run cloudflare:production:dry-run
       - name: Publish only the approved capped production configuration
         if: steps.deployed.outputs.cache-hit != 'true'
         env:

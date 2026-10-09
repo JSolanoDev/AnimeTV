@@ -3399,8 +3399,8 @@ test("20. a resolved URL mounts after the first episode-row click", async () => 
   assert.equal(lateSourceEpisode.videoUrl, undefined);
 });
 
-test("21. an episode-row click reaches source scheduling with canonical season identity", () => {
-  let scheduled = null;
+test("21. an episode-row click starts bounded playback without waiting for background discovery", () => {
+  let plays = 0;
   let loadingFeedback = null;
   const episode = { id: "show-s2-e3", episode: 3, canonicalEpisode: 3 };
   const season = { season: 2, part: 1, episodes: [episode] };
@@ -3436,9 +3436,8 @@ test("21. an episode-row click reaches source scheduling with canonical season i
     renderPlayerPopupMessage: (_frame, label, message) => {
       loadingFeedback = { label, message };
     },
-    schedulePlaybackSourceOptions: (_show, value, canonicalSeason, options) => {
-      scheduled = { value, canonicalSeason, options };
-    },
+    schedulePlaybackSourceOptions: () => { throw new Error("row must not wait for a pending background sweep"); },
+    playActiveShow: () => { plays++; return new Promise(() => {}); },
     renderEpisodeList() {},
     refreshFocusables() {},
     Math
@@ -3448,11 +3447,13 @@ test("21. an episode-row click reaches source scheduling with canonical season i
   vm.runInContext(section(clientSource, "let activePlaybackAttemptSequence", "function stopActivePlayback()"), sandbox);
   vm.runInContext(section(clientSource, "function selectEpisodeByPosition(", "function showEpisodeListTab("), sandbox);
   sandbox.selectEpisodeByPosition(0, 0, true);
-  assert.equal(scheduled.value, episode);
-  assert.equal(scheduled.canonicalSeason, 2);
-  assert.equal(scheduled.options.autoReplay, true);
+  assert.equal(plays, 1);
+  assert.equal(state.activeEpisode.episode, episode);
+  assert.equal(state.playIntent, true);
   assert.equal(sandbox.location.pathname, "/watch/show/s2-part-1-e3");
   assert.deepEqual(loadingFeedback, { label: "Season 2 Part 1 Episode 3", message: "" });
+  sandbox.selectEpisodeByPosition(0, 0, false);
+  assert.equal(plays, 1, "browsing an episode does not autoplay");
 });
 
 test("AnimeAV1 source warmup coalesces concurrent requests for one episode", async () => {
@@ -3567,15 +3568,16 @@ test("AnimeAV1 episode payloads expire and a confirmed failure bypasses cached s
   assert.equal(getLastFetchOptions().cache, "no-store");
 });
 
-test("the main Play action marks intent before scheduling source resolution", () => {
+test("the main Play action marks intent before starting bounded playback", () => {
   const handler = section(
     clientSource,
     'fakePlay.addEventListener("click",',
     'castButton?.addEventListener("click",'
   );
   const intentAt = handler.indexOf("state.playIntent = true;");
-  const scheduleAt = handler.indexOf("schedulePlaybackSourceOptions(");
-  assert.ok(intentAt >= 0 && scheduleAt > intentAt);
+  const playAt = handler.indexOf("playActiveShow(");
+  assert.ok(intentAt >= 0 && playAt > intentAt);
+  assert.doesNotMatch(handler, /schedulePlaybackSourceOptions\(/);
 });
 
 test("22. catalog dedupe cannot erase a baked franchise chain", () => {

@@ -5083,7 +5083,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1007";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1008";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -16377,7 +16377,9 @@ function selectEpisodeByPosition(seasonIndex, episodeIndex, shouldPlay = true) {
       // finishes. The same compact loader remains in place when playActiveShow
       // takes over, so this adds no extra transition or player reinitialization.
       renderPlayerPopupMessage(frame, currentEpisodeLabel(), "");
-      schedulePlaybackSourceOptions(show, episode, seasonNumber, { autoReplay: true });
+      // Start bounded verification now, rather than waiting for a complete
+      // background sweep. playActiveShow coalesces the same provider requests.
+      Promise.resolve(playActiveShow()).catch(() => {});
       // Keep the episode list on screen. Picking an episode used to replace it
       // with the source picker, so the list you were browsing vanished the
       // moment you used it - and when the "best servers" filter matched nothing
@@ -17078,8 +17080,7 @@ async function selectEpisode(season, episode, seasonIndex, episodeIndex) {
     setPlayerCinemaOpen(false);
     const background = getWatchBackdropArtwork(show, season);
     frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
-    const { seasonNumber } = selectedSeasonIdentity(show, state.activeEpisode, seasonIndex);
-    schedulePlaybackSourceOptions(show, episode, seasonNumber, { autoReplay: true });
+    Promise.resolve(playActiveShow()).catch(() => {});
     // Keep the episode list up rather than swapping it for the source picker -
     // see selectEpisodeByPosition. Servers stay reachable from the Servers
     // button under the player.
@@ -23036,7 +23037,7 @@ fakePlay.addEventListener("click", () => {
     const background = getWatchBackdropArtwork(show, ep.season);
     frame.style.setProperty("--watch-bg", background ? `url("${background}")` : "none");
     renderPlayerPopupMessage(frame, currentEpisodeLabel(), "");
-    schedulePlaybackSourceOptions(show, ep.episode, seasonNumber, { autoReplay: true });
+    Promise.resolve(playActiveShow()).catch(() => {});
     // Keep the episode list up rather than swapping it for the source picker -
     // see selectEpisodeByPosition. Servers stay reachable from the Servers
     // button under the player.
@@ -24262,7 +24263,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1007");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1008");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
