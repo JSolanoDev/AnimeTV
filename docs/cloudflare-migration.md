@@ -165,6 +165,7 @@ npm run cloudflare:containers:bundle
 npm run cloudflare:containers:build
 npm run cloudflare:containers:smoke -- --network
 npm run cloudflare:containers:dry-run
+npm run cloudflare:containers:integration
 ```
 
 The bundle command validates only the Worker, not the image. All container
@@ -180,7 +181,30 @@ do not merge that branch-only `vercel.json` setting into production.
 Local gateway/container tests (16 each), app checks, ESLint, asset preparation
 and the Worker bundle passed on 2026-10-08. Windows has no Docker. The user
 chose a GitHub Linux runner instead of requiring the laptop to host the app.
-Record the actual Linux run result before claiming image validation.
+
+The final Linux verification passed at
+<https://github.com/JSolanoDev/AnimeTV/actions/runs/37887183140>, testing commit
+`d4b4801e843e94818c56855cd4ac3a1d6eb86ae1` on
+`cloudflare-validation/container-staging-2026-10-08`. Existing app checks and
+regressions, clean locked installs, the Docker build, native Sharp, non-root/
+read-only smoke checks, neutral HLS/MP4 ranges and the full Wrangler dry-run
+passed without a deployment or Cloudflare credentials. Existing remote main
+stayed at `abd57fc7658d4c81214a879f44780693e1f1833f`; the local checkout/index
+were preserved. The lockfile was not changed.
+
+The real local Worker -> Durable Object -> Docker test caught a decoded-body/
+compressed-header mismatch that Node fixtures could not reveal. The container
+gateway now automatically re-encodes decoded Fetcher streams; cached encoded
+responses keep their existing manual passthrough. This fixed catalog JSON on
+both cache misses and hits without changing the live free-staging path. The
+final test exercised static/deep/player URLs, concurrent cold requests, public
+config, scanner/private-network blocks, gzip/identity clients, cache reuse,
+same-origin neutral media and cleanup. Miniflare's leftover egress helper is
+explicitly stopped only after its test-owned name/image are verified.
+
+Runner-only measurements were 616 ms for three concurrent cold health requests,
+5 ms for a warm health request and 99 MiB baseline RSS. These are not hosted
+Cloudflare latency, peak memory, capacity or playback-start measurements.
 
 ## Paid staging and production gate
 
@@ -208,6 +232,27 @@ that path is verified. Review production rate limits, monitoring, capacity,
 media-delivery terms/costs, OAuth redirects and rollback. Keep Vercel and DNS
 unchanged until hosted checks pass and production cutover is approved.
 
+## Paid staging authorization on 2026-10-09
+
+The user completed payment; the dashboard confirms Workers Paid is the current
+plan. The user approved an account-scoped deployment credential with only
+Workers Scripts, Containers and Cloudchamber edit access, to be stored as
+encrypted `CLOUDFLARE_STAGING_API_TOKEN` in the AnimeTV GitHub repository. Do not use the
+dashboard's broad automatic Workers Builds token or grant DNS permissions.
+The custom token is prepared for October 9-16, but has not yet been created;
+GitHub browser sign-in is required before securely saving its one-time value.
+
+The new `cloudflare-container-staging.yml` workflow runs only on
+`cloudflare-staging/container-staging-2026-10-09`, with read-only checkout and
+the existing regression, Linux Docker, neutral-media and real local integration
+gates before deployment. Only the deploy step receives the credential. The CLI
+requires the exact repository/branch, explicit CI approval and the isolated
+single basic container configuration, and rejects production/DNS/cron changes.
+The previous validation workflow remains credential-free and deployment-free.
+Local app checks/full tests, 16 gateway and 17 container tests, ESLint and the
+57-file hash-verified minified build passed. The new deploy workflow has not run.
+No hosted backend, production, DNS or updater changes have been made yet.
+
 ## Current reference documentation
 
 - Static assets: <https://developers.cloudflare.com/workers/static-assets/>
@@ -219,3 +264,4 @@ unchanged until hosted checks pass and production cutover is approved.
 - Containers API: <https://developers.cloudflare.com/containers/api/durable-object-container/>
 - Containers configuration: <https://developers.cloudflare.com/containers/configuration/wrangler/>
 - Containers pricing: <https://developers.cloudflare.com/containers/platform/pricing/>
+- Local container development: <https://developers.cloudflare.com/containers/guides/local-dev/>

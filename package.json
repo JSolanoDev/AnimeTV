@@ -24,6 +24,7 @@
     "cloudflare:containers:dev": "node scripts/cloudflare-containers-cli.mjs dev",
     "cloudflare:containers:dry-run": "node scripts/cloudflare-containers-cli.mjs dry-run",
     "cloudflare:containers:bundle": "node scripts/cloudflare-containers-cli.mjs bundle",
+    "cloudflare:containers:deploy:staging": "node scripts/cloudflare-containers-cli.mjs deploy-staging",
     "cloudflare:containers:build": "node scripts/cloudflare-containers-cli.mjs build",
     "cloudflare:containers:smoke": "node scripts/smoke-cloudflare-container.mjs",
     "cloudflare:containers:integration": "npm exec --yes --package=wrangler@4.149.0 -- node scripts/test-cloudflare-container-runtime.mjs",

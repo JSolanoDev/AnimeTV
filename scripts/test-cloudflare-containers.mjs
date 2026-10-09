@@ -10,6 +10,7 @@ import { handleGateway } from "../ops/cloudflare/gateway.mjs";
 import { BACKEND_FILES, contextDirectory, prepareContainerContext, root, verifyContainerContext } from "./prepare-cloudflare-containers.mjs";
 import networkPolicy from "../ops/cloudflare/container-network.cjs";
 import { smokeContainer } from "./smoke-cloudflare-container.mjs";
+import { STAGING_BRANCH, validateStagingDeployment } from "./cloudflare-staging-deploy-policy.mjs";
 
 const health = () => Response.json({ ok: true, app: "ZenkaiTV", api: "ready" });
 function fakeContainer(handler = () => Response.json({ ok: true })) {
@@ -259,7 +260,7 @@ test("outbound sockets use exactly the validated DNS result and reject mixed pub
   assert.equal(lookups, 2);
 });
 
-test("staging config and CLI cannot accidentally deploy, change DNS or enable unbounded containers", () => {
+test("staging config and CLI restrict deployments and cannot change DNS or enable unbounded containers", () => {
   const config = JSON.parse(readFileSync(join(root, "wrangler.container-staging.json"), "utf8"));
   assert.equal(config.containers.length, 1);
   assert.equal(config.containers[0].max_instances, 1);
@@ -270,12 +271,33 @@ test("staging config and CLI cannot accidentally deploy, change DNS or enable un
   assert.equal(config.vars, undefined);
   const cli = readFileSync(join(root, "scripts/cloudflare-containers-cli.mjs"), "utf8");
   assert.match(cli, /"--dry-run"/);
-  assert.doesNotMatch(cli, /"deploy-staging"|"deploy-production"/);
+  assert.match(cli, /validateStagingDeployment/);
+  assert.doesNotMatch(cli, /"deploy-production"/);
   assert.equal(JSON.parse(readFileSync(join(root, "wrangler.staging.json"), "utf8")).vars.BACKEND_ORIGIN, "https://zenkaitv.com");
   const workflow = readFileSync(join(root, ".github/workflows/cloudflare-container-check.yml"), "utf8");
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /push:\s+branches: \["cloudflare-validation\/\*\*"\]/);
   assert.doesNotMatch(workflow, /secrets\.|contents: write|schedule:|deploy:staging|branches: \[main\]/);
+});
+
+test("hosted deployment requires explicit approval and the exact repository and staging branch", () => {
+  const config = JSON.parse(readFileSync(join(root, "wrangler.container-staging.json"), "utf8"));
+  const approved = { CI: "true", GITHUB_REPOSITORY: "JSolanoDev/AnimeTV", GITHUB_REF: "refs/heads/" + STAGING_BRANCH,
+    CLOUDFLARE_APPROVE_STAGING_DEPLOY: "1", CLOUDFLARE_API_TOKEN: "neutral-fixture" };
+  validateStagingDeployment(config, approved);
+  for (const key of Object.keys(approved)) {
+    assert.throws(() => validateStagingDeployment(config, { ...approved, [key]: "" }), /requires/);
+  }
+  assert.throws(() => validateStagingDeployment(config, { ...approved, GITHUB_REF: "refs/heads/main" }), /requires/);
+  for (const mutation of [{ name: "zenkaitv-production" }, { routes: ["zenkaitv.com/*"] }, { triggers: { crons: ["* * * * *"] } },
+    { containers: [{ ...config.containers[0], max_instances: 2 }] }]) {
+    assert.throws(() => validateStagingDeployment({ ...config, ...mutation }, approved), /Refusing/);
+  }
+  const workflow = readFileSync(join(root, ".github/workflows/cloudflare-container-staging.yml"), "utf8");
+  assert.match(workflow, /branches: \["cloudflare-staging\/container-staging-2026-10-09"\]/);
+  assert.match(workflow, /contents: read/);
+  assert.match(workflow, /secrets\.CLOUDFLARE_STAGING_API_TOKEN/);
+  assert.doesNotMatch(workflow, /schedule:|contents: write|branches: \[main\]/);
 });
 
 test("Docker smoke harness uses a loopback-only, resource-limited container without credentials and always stops it", async () => {
