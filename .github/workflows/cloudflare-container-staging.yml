@@ -45,4 +45,4 @@ jobs:
           CLOUDFLARE_APPROVE_STAGING_DEPLOY: "1"
         run: npm run cloudflare:containers:deploy:staging
       - name: Confirm hosted staging readiness
-        run: curl --fail --show-error --silent --max-time 40 https://zenkaitv-container-staging.juankisantiago.workers.dev/api/health
+        run: node scripts/check-cloudflare-hosted-readiness.mjs

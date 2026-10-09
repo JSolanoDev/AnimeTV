@@ -11,6 +11,7 @@ import { BACKEND_FILES, contextDirectory, prepareContainerContext, root, verifyC
 import networkPolicy from "../ops/cloudflare/container-network.cjs";
 import { smokeContainer } from "./smoke-cloudflare-container.mjs";
 import { STAGING_BRANCH, validateStagingDeployment } from "./cloudflare-staging-deploy-policy.mjs";
+import { waitForHostedStaging } from "./check-cloudflare-hosted-readiness.mjs";
 
 const health = () => Response.json({ ok: true, app: "ZenkaiTV", api: "ready" });
 function fakeContainer(handler = () => Response.json({ ok: true })) {
@@ -298,6 +299,35 @@ test("hosted deployment requires explicit approval and the exact repository and 
   assert.match(workflow, /contents: read/);
   assert.match(workflow, /secrets\.CLOUDFLARE_STAGING_API_TOKEN/);
   assert.doesNotMatch(workflow, /schedule:|contents: write|branches: \[main\]/);
+});
+
+test("hosted readiness waits only for the staging health URL and bounds propagation failures", async () => {
+  let time = 0;
+  let calls = 0;
+  const options = { now: () => time, wait: async (ms) => { time += ms; }, report: () => {},
+    request: async (url, init) => {
+      assert.equal(url, "https://zenkaitv-container-staging.juankisantiago.workers.dev/api/health");
+      assert.equal(init.redirect, "manual");
+      assert.equal(init.cache, "no-store");
+      return ++calls < 3 ? new Response(null, { status: 404 }) : health();
+    } };
+  assert.deepEqual(await waitForHostedStaging(options), { attempts: 3, readinessMs: 30000 });
+  await assert.rejects(waitForHostedStaging({ ...options, request: async () => new Response(null, { status: 403 }) }), /HTTP 403/);
+  await assert.rejects(waitForHostedStaging({ ...options, request: async () => Response.json({ ok: true }) }), /unexpected health/);
+  calls = 0;
+  time = 0;
+  await assert.rejects(waitForHostedStaging({ ...options, timeoutMs: 30000, request: async () => {
+    calls++;
+    throw new TypeError("network unavailable");
+  } }), /bounded propagation window/);
+  assert.equal(calls, 2);
+  time = 0;
+  calls = 0;
+  await assert.rejects(waitForHostedStaging({ ...options, request: async () => {
+    calls++;
+    return new Response(null, { status: 503 });
+  } }), /bounded propagation window/);
+  assert.equal(calls, 8);
 });
 
 test("Docker smoke harness uses a loopback-only, resource-limited container without credentials and always stops it", async () => {

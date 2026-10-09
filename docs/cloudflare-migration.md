@@ -239,8 +239,10 @@ plan. The user approved an account-scoped deployment credential with only
 Workers Scripts, Containers and Cloudchamber edit access, to be stored as
 encrypted `CLOUDFLARE_STAGING_API_TOKEN` in the AnimeTV GitHub repository. Do not use the
 dashboard's broad automatic Workers Builds token or grant DNS permissions.
-The custom token is prepared for October 9-16, but has not yet been created;
-GitHub browser sign-in is required before securely saving its one-time value.
+The token expires October 16. An initial unused token value appeared in a tool
+result; the user approved replacement and Cloudflare confirmed successful Roll,
+invalidating that value. The replacement was saved directly in GitHub's encrypted
+secret without displaying it or writing it to local files.
 
 The new `cloudflare-container-staging.yml` workflow runs only on
 `cloudflare-staging/container-staging-2026-10-09`, with read-only checkout and
@@ -249,9 +251,22 @@ gates before deployment. Only the deploy step receives the credential. The CLI
 requires the exact repository/branch, explicit CI approval and the isolated
 single basic container configuration, and rejects production/DNS/cron changes.
 The previous validation workflow remains credential-free and deployment-free.
-Local app checks/full tests, 16 gateway and 17 container tests, ESLint and the
-57-file hash-verified minified build passed. The new deploy workflow has not run.
-No hosted backend, production, DNS or updater changes have been made yet.
+Local app checks/full tests, 16 gateway and 18 container tests, ESLint and the
+57-file hash-verified minified build passed. The first Linux deploy run passed
+all validation gates and published version `5976c8fc-1088-466a-829a-bfed000645bb`.
+Its immediate health check received HTTP 404 while the new URL was propagating;
+the deployment itself succeeded. The readiness gate now waits at most two minutes
+and eight attempts, only against staging health, without retrying provider or
+episode requests. Authentication errors and invalid health payloads still fail.
+
+Hosted staging: <https://zenkaitv-container-staging.juankisantiago.workers.dev>.
+Health, SPA/deep-watch/player HTML, gzip/identity catalog cache miss/hit pairs,
+scanner/SSRF/method guards, same-origin neutral MP4 Range/HEAD/OPTIONS and rewritten
+HLS manifests passed. A neutral HLS sample decoded at 1920x1080 with readyState 4
+and advancing playback time, without console or media errors. This does not prove
+all real-provider streams, episode navigation, mobile orientation, OAuth or Cast.
+The public config currently reports authentication unconfigured: approved runtime
+settings still need secure transfer. Production, DNS and updater jobs are unchanged.
 
 ## Current reference documentation
 
