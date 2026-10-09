@@ -77,7 +77,9 @@ try {
   await post.body?.cancel();
   for (const encoding of ["gzip", "identity"]) {
     for (let n = 0; n < 2; n++) {
-      const response = await request("/api/catalog", { headers: { "Accept-Encoding": encoding } });
+      // Cloudflare may normalize Accept-Encoding before the Worker sees it.
+      // Separate fixture URLs guarantee a miss/hit pair for each client preference.
+      const response = await request("/api/catalog?migration_encoding=" + encoding, { headers: { "Accept-Encoding": encoding } });
       assert.equal(response.status, 200);
       assert.equal(response.headers.get("x-zenkai-gateway-cache"), n ? "HIT" : "MISS", encoding);
       assert.ok(await response.json());
