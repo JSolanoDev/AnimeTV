@@ -3,7 +3,7 @@ import { test } from "node:test";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { latestArtworkRows, selectLatestArtwork, selectLatestAiring, refreshLatestArtwork } from "./refresh-latest-artwork.mjs";
+import { latestArtworkRows, selectLatestArtwork, selectLatestAiring, reconcileLatestReleaseInventory, refreshLatestArtwork } from "./refresh-latest-artwork.mjs";
 
 test("release seeding deduplicates exact provider identities without inventing episodes", () => {
   const rows = latestArtworkRows({ items: [
@@ -28,6 +28,39 @@ test("complete saved metadata makes hourly runs no-ops; misses retry only daily"
   assert.deepEqual(selectLatestArtwork(rows, entries, now), [{ id: "new" }]);
   assert.deepEqual(selectLatestArtwork(rows, entries, now + 86400000), [{ id: "new" }, { id: "retry" }]);
   assert.equal(selectLatestArtwork(rows, entries, now, 1).length, 1);
+});
+
+test("hourly releases preserve known episodes, exact identities and missing route boundaries", () => {
+  const now = Date.parse("2026-10-09T20:00:00Z");
+  const existing = { id: "animeav1-neutral", title: "Neutral", sourceEpisodeIds: [1, 3],
+    sourceEpisodeCount: 3, sourcePlayableEpisodeCount: 2, sourceInventoryChecked: true,
+    sourceUnavailableEpisodeIds: [2, 4], sourceDeclaredEpisodeCount: 12 };
+  const other = { id: "animeav1-neutral-special", sourceEpisodeIds: [1] };
+  const catalog = { items: [existing, other] };
+  const release = { slug: "neutral", episode: 4, releasedAt: "2026-10-09T12:30:00Z" };
+  assert.deepEqual(reconcileLatestReleaseInventory(catalog, [release], now), [existing.id]);
+  assert.deepEqual(existing.sourceEpisodeIds, [1, 3, 4]);
+  assert.deepEqual(existing.sourceUnavailableEpisodeIds, [2]);
+  assert.equal(existing.sourceEpisodeCount, 4);
+  assert.equal(existing.latestAiredEp, 4);
+  assert.equal(existing.sourceDeclaredEpisodeCount, 12);
+  assert.equal(existing.lastEpisodeAt, release.releasedAt.replace("Z", ".000Z"));
+  assert.deepEqual(other.sourceEpisodeIds, [1]);
+  const saved = JSON.stringify(catalog);
+  assert.deepEqual(reconcileLatestReleaseInventory(catalog, [release], now + 3600000), []);
+  assert.equal(JSON.stringify(catalog), saved, "unchanged releases do not republish timestamp churn");
+  assert.deepEqual(reconcileLatestReleaseInventory(catalog, [
+    { slug: "neutral", episode: -1 }, { slug: "../neutral", episode: 5 },
+    { slug: "unknown", episode: 5 }, { slug: "neutral", episode: 6, releasedAt: "2026-10-10T12:00:00Z" }
+  ], now), []);
+});
+
+test("an hourly feed-only observation stays partial and never invents previous episodes", () => {
+  const item = { id: "animeav1-neutral" };
+  reconcileLatestReleaseInventory({ items: [item] }, [{ slug: "neutral", episode: 5 }]);
+  assert.deepEqual(item.sourceEpisodeIds, [5]);
+  assert.equal(item.sourceInventoryPartial, true);
+  assert.equal(item.sourcePlayableEpisodeCount, 1);
 });
 
 test("recent exact schedules reuse known identities and are checked at most daily", () => {
@@ -159,6 +192,37 @@ test("pending HD checks use the publication gate without repeating metadata/API 
       if (script === "prepare-regular-artwork.mjs") assert.equal(args[args.indexOf("--carousel-ids") + 1], id);
     } });
   assert.deepEqual(calls, ["prepare-regular-artwork.mjs", "build-homepage-bootstrap.mjs"]);
+});
+
+test("a new episode saves during an artwork no-op with one upstream request and no metadata lookups", async t => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "art-refresh-episode-"));
+  t.after(() => fs.rmSync(rootDir, { recursive: true, force: true }));
+  const id = "animeav1-neutral";
+  fs.mkdirSync(path.join(rootDir, "scraper"));
+  const map = { entries: { [id]: { anilistId: 123, status: "ok",
+    tmdbBackdrop: "https://image.tmdb.org/t/p/original/neutral.jpg", anilistCover: "cover.jpg",
+    airingCheckedAt: new Date().toISOString(), meta: { description: "Neutral synopsis.", genres: ["Adventure"] },
+    carouselArtwork: { version: 1, width: 1920, height: 1080,
+      url: "https://image.tmdb.org/t/p/original/neutral.jpg" } } } };
+  fs.writeFileSync(path.join(rootDir, "scraper/artwork-map.json"), JSON.stringify(map));
+  const catalogPath = path.join(rootDir, "scraper/anime_metadata.json");
+  fs.writeFileSync(catalogPath, JSON.stringify({ items: [{ id, sourceInventoryChecked: true,
+    sourceEpisodeIds: [1, 2, 3], sourceEpisodeCount: 3, sourcePlayableEpisodeCount: 3 }] }));
+  let requests = 0;
+  const calls = [];
+  const fetchImpl = async () => { requests++; return { ok: true,
+    text: async () => '<article><a href="/media/neutral/4"><span class="sr-only">Ver Neutral 4</span></a></article>' }; };
+  const run = script => calls.push(script);
+  assert.deepEqual(await refreshLatestArtwork({ rootDir, fetchImpl, run }), [id]);
+  assert.equal(requests, 1);
+  assert.ok(!calls.includes("build-artwork-map.mjs") && !calls.includes("add-artwork-metadata.mjs"));
+  assert.deepEqual(JSON.parse(fs.readFileSync(catalogPath, "utf8")).items[0].sourceEpisodeIds, [1, 2, 3, 4]);
+  const saved = fs.readFileSync(catalogPath, "utf8");
+  calls.length = 0;
+  await refreshLatestArtwork({ rootDir, fetchImpl, run });
+  assert.equal(fs.readFileSync(catalogPath, "utf8"), saved);
+  assert.equal(requests, 2, "each hourly check makes only one feed request");
+  assert.deepEqual(calls, [], "an unchanged release skips all metadata and publication work");
 });
 
 test("a failed publication gate restores root, Android and bootstrap bytes", async () => {

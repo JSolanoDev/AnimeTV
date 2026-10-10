@@ -3714,6 +3714,25 @@ function registerAv1Show(show) {
   return state.av1Shows.get(show.id);
 }
 
+function jojoLatestReleaseCard(show) {
+  const scope = typeof SeasonNormalization !== "undefined" ? SeasonNormalization.jojoEntryScope?.(show) : null;
+  if (!scope || ![6, 7].includes(scope.seasonNumber)) return show;
+  const providerEpisodeId = parseEpisodeNumber(show._av1ProviderEpisode ?? show._av1Episode ?? show.episode);
+  if (!(providerEpisodeId > scope.offset)) return show;
+  const resolved = resolveJojoOpenTarget(show, { episodeNumber: providerEpisodeId - scope.offset,
+    seasonNumber: scope.seasonNumber });
+  const current = resolved?.show || show;
+  const currentScope = SeasonNormalization.jojoEntryScope(current);
+  const episode = providerEpisodeId - currentScope.offset;
+  if (!(episode > 0 && episode <= currentScope.count)) return show;
+  // Keep the provider's absolute ID while naming the batch users will open.
+  return { ...show, ...current, episode, latestAiredEp: episode, _av1Episode: episode,
+    sourceEpisodeCount: episode,
+    _av1ProviderEpisode: providerEpisodeId, _av1Slug: show._av1Slug || show.animeAv1Slug || "",
+    canonicalSeasonNumber: scope.seasonNumber, canonicalSeasonPart: currentScope.partNumber,
+    lastEpisodeAt: show.lastEpisodeAt || "" };
+}
+
 function buildAnimeAv1ReleaseCards(limit = HOME_CARD_LIMIT, { applyUiFilters = true } = {}) {
   const av1 = state.av1Latest || [];
   if (!av1.length) return [];
@@ -3772,6 +3791,7 @@ function buildAnimeAv1ReleaseCards(limit = HOME_CARD_LIMIT, { applyUiFilters = t
       card.broadcastTime = item.broadcastTime;
       card.broadcastTimezone = item.broadcastTimezone;
     }
+    card = typeof jojoLatestReleaseCard === "function" ? jojoLatestReleaseCard(card) : card;
     const titleKey = titleKeyOf(card);
     if (usedIds.has(card.id) || (titleKey && usedTitles.has(titleKey))) continue;
     if (typeof AdultMode !== "undefined" && !AdultMode.matchesActiveCatalog(card)) continue;
@@ -3925,6 +3945,7 @@ function buildLatestEpisodesList(limit = HOME_CARD_LIMIT) {
   };
   const add = (show) => {
     if (!show || list.length >= limit) return;
+    show = typeof jojoLatestReleaseCard === "function" ? jojoLatestReleaseCard(show) : show;
     const id = String(show.id || "");
     const titleKey = titleKeyOf(show);
     if ((id && usedIds.has(id)) || (titleKey && usedTitles.has(titleKey))) return;
@@ -5083,7 +5104,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1008";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1009";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -24263,7 +24284,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1008");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1009");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

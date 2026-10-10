@@ -25,13 +25,14 @@ function preview(value, limit = 320) {
 export function buildHomepageBootstrap(catalog, artwork, airing, limit = 96) {
   const artById = artwork?.entries || {};
   const airingById = airing?.entries || {};
+  const releaseTime = row => Math.max(Date.parse(row.lastEpisodeAt || "") || 0,
+    Date.parse(airingById[row.id]?.lastEpisodeAt || "") || 0);
   const rows = (catalog?.items || [])
     .filter((row) => row?.id && row?.title && (
       Number(row.sourcePlayableEpisodeCount) > 0 || Number(row.fallbackPlayableEpisodeCount) > 0
     ))
     .sort((a, b) => {
-      const recency = (Date.parse(airingById[b.id]?.lastEpisodeAt || "") || 0)
-        - (Date.parse(airingById[a.id]?.lastEpisodeAt || "") || 0);
+      const recency = releaseTime(b) - releaseTime(a);
       return recency || String(a.id).localeCompare(String(b.id));
     })
     .slice(0, limit);
@@ -80,7 +81,7 @@ export function buildHomepageBootstrap(catalog, artwork, airing, limit = 96) {
       confirmedNextAiringAt: exactAir ? air.nextAiringAt || null : null,
       tmdbPoster: art.tmdbPoster || "",
       episodeThumbnailFallback: art.episodeThumbnailFallback || row.episodeThumbnailFallback || "",
-      lastEpisodeAt: air.lastEpisodeAt || "",
+      lastEpisodeAt: releaseTime(row) ? new Date(releaseTime(row)).toISOString() : "",
       nextAiringAt: air.nextAiringAt || null,
       nextAiringEpisodeNumber: air.nextAiringEpisodeNumber || null,
       broadcastDay: exactAir ? air.broadcastDay || "" : "",

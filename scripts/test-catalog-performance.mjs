@@ -1027,6 +1027,24 @@ test("catalog omits scrape timestamps but keeps playback inventory", () => {
   assert.equal(item.lastScrapedAt, "2026-09-17T00:00:00Z");
 });
 
+test("baked schedule enrichment cannot downgrade a newly persisted provider release", () => {
+  const item = { id: "animeav1-neutral", title: "Neutral", source: "AnimeAV1",
+    sourceInventoryChecked: true, sourceEpisodeIds: [1, 2, 3, 4], sourceEpisodeCount: 4,
+    sourcePlayableEpisodeCount: 4, lastEpisodeAt: "2026-10-09T12:30:30.205Z" };
+  const c = vm.createContext({ Date, JSON, root: "/neutral", path: { join: (...parts) => parts.join("/") },
+    fs: { readFileSync: () => JSON.stringify({ items: [item] }) },
+    applyRegularSourceFallback: value => value,
+    readArtworkMap: () => ({}),
+    readAiringMap: () => ({ [item.id]: { sourceEpisodeCount: 3, lastEpisodeAt: "2026-10-02T12:30:00Z" } }),
+    buildArtworkIdentityIndex: () => ({ byAniList: new Map(), byMal: new Map() }),
+    mergeExactArtworkRecords: () => ({}) });
+  vm.runInContext(section(server, "function readScrapedRegularCatalogItems()", "function handleScrapedCatalog("), c);
+  const [row] = c.readScrapedRegularCatalogItems();
+  assert.equal(row.sourceEpisodeCount, 4);
+  assert.equal(row.lastEpisodeAt, item.lastEpisodeAt);
+  assert.deepEqual(Array.from(row.sourceEpisodeIds), [1, 2, 3, 4]);
+});
+
 test("catalog reads have a separate shared-IP limit without lifting other API limits", () => {
   const c = vm.createContext({
     Date,

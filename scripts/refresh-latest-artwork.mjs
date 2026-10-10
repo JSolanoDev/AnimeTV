@@ -4,11 +4,41 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { selectCarouselArtworkIds } from "./lib/carousel-artwork.mjs";
+import { animeAv1Slug, applyAnimeAv1EpisodeInventory, retainAnimeAv1EpisodeInventory } from "./build-animeav1-inventory.mjs";
 
 const { parseAnimeAv1Latest } = createRequire(import.meta.url)("../animetv-server.js");
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const RETRY_MS = 24 * 60 * 60 * 1000;
+
+export function reconcileLatestReleaseInventory(catalog, releases, now = Date.now()) {
+  const bySlug = new Map((catalog?.items || []).map(item => [animeAv1Slug(item).toLowerCase(), item]));
+  const changed = new Set();
+  for (const release of releases || []) {
+    const slug = String(release.slug || "").toLowerCase();
+    const episode = Number(release.episode);
+    const item = bySlug.get(slug);
+    if (!item || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
+        || !Number.isFinite(episode) || episode < 0 || episode > 10000) continue;
+    const releasedAt = Date.parse(release.releasedAt || "");
+    if (Number.isFinite(releasedAt) && releasedAt > now) continue;
+    const known = item.sourceEpisodeIds?.map(Number).includes(episode);
+    const newerTime = Number.isFinite(releasedAt) && releasedAt > (Date.parse(item.lastEpisodeAt || "") || 0);
+    if (known && !newerTime) continue;
+    if (!known) {
+      const partial = item.sourceInventoryPartial === true || item.sourceInventoryChecked !== true;
+      const inventory = retainAnimeAv1EpisodeInventory({ ...item, sourceEpisodeIds: [episode],
+        sourceEpisodeCount: episode === 0 ? 1 : episode, sourcePlayableEpisodeCount: 1,
+        sourceInventoryChecked: true }, item);
+      applyAnimeAv1EpisodeInventory(item, inventory, new Date(now).toISOString());
+      item.sourceInventoryPartial = partial;
+      item.latestAiredEp = item.sourceEpisodeCount;
+    }
+    if (newerTime) item.lastEpisodeAt = new Date(releasedAt).toISOString();
+    changed.add(item.id);
+  }
+  return [...changed];
+}
 
 export function latestArtworkRows(feed) {
   const rows = new Map();
@@ -56,12 +86,18 @@ export async function refreshLatestArtwork({ base = "https://zenkaitv.com", fetc
   const response = await fetchImpl("https://animeav1.com/",
     { signal: AbortSignal.timeout(15000), headers: { Accept: "text/html", "User-Agent": "ZenkaiTV-catalog-artwork/1.0" } });
   if (!response.ok) throw new Error(`Latest release feed HTTP ${response.status}; keeping saved artwork.`);
-  const rows = latestArtworkRows({ items: parseAnimeAv1Latest(await response.text()) });
+  const releases = parseAnimeAv1Latest(await response.text());
+  const rows = latestArtworkRows({ items: releases });
   if (!rows.length) throw new Error("Latest release feed contained no valid titles; keeping saved artwork.");
   const selected = selectLatestArtwork(rows, saved.entries || {});
   const scheduleRows = selectLatestAiring(rows, saved.entries || {});
   const carouselIds = selectCarouselArtworkIds(rows.map(row => row.id), saved.entries || {});
-  if (!selected.length && !scheduleRows.length && !carouselIds.length) {
+  const catalogPath = path.join(rootDir, "scraper", "anime_metadata.json");
+  const catalog = fs.existsSync(catalogPath) ? JSON.parse(fs.readFileSync(catalogPath, "utf8")) : null;
+  // Save only routes actually present in the feed, even if the daily crawler
+  // failed. The existing hourly request is enough; no per-title probing here.
+  const inventoryIds = reconcileLatestReleaseInventory(catalog, releases);
+  if (!selected.length && !scheduleRows.length && !carouselIds.length && !inventoryIds.length) {
     console.log("Latest release artwork and schedules are current; no lookups or writes."); return [];
   }
   const snapshots = new Map(["scraper/artwork-map.json", "scraper/airing-map.json", "scraper/anime_metadata.json",
@@ -74,6 +110,7 @@ export async function refreshLatestArtwork({ base = "https://zenkaitv.com", fetc
   fs.writeFileSync(input, JSON.stringify({ items: selected }));
   const ids = [...new Set([...selected, ...scheduleRows].map(({ id }) => id))].join(",");
   try {
+    if (inventoryIds.length) fs.writeFileSync(catalogPath, `${JSON.stringify(catalog, null, 2)}\n`);
     if (selected.length) run("build-artwork-map.mjs", ["--catalog", input,
       "--ids", selected.map(({ id }) => id).join(","), "--base", base,
       "--concurrency", "1", "--max-minutes", "6", "--mark-checked"]);
@@ -92,8 +129,8 @@ export async function refreshLatestArtwork({ base = "https://zenkaitv.com", fetc
   } finally {
     fs.rmSync(input, { force: true });
   }
-  const checkedIds = [...new Set([...(ids ? ids.split(",") : []), ...carouselIds])];
-  console.log(`Prepared artwork for ${selected.length} titles; ${checkedIds.length} recent titles checked; episode inventories unchanged.`);
+  const checkedIds = [...new Set([...(ids ? ids.split(",") : []), ...carouselIds, ...inventoryIds])];
+  console.log(`Prepared artwork for ${selected.length} titles; ${checkedIds.length} recent titles checked; ${inventoryIds.length} episode inventories updated.`);
   return checkedIds;
 }
 

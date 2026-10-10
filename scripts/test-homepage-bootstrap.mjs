@@ -74,6 +74,20 @@ test("provider release observations override stale completed-stage metadata", ()
   assert.equal(row.lastEpisodeAt, "2026-09-25T13:33:03.015Z");
 });
 
+test("an hourly episode observation outranks last week's schedule in the offline starter", () => {
+  const catalog = { items: [{ id: "animeav1-neutral", title: "Neutral", episode: 4,
+    sourceEpisodeCount: 4, sourcePlayableEpisodeCount: 4, sourceEpisodeIds: [1, 2, 3, 4],
+    lastEpisodeAt: "2026-10-09T12:30:30.205Z" },
+  { id: "animeav1-other", title: "Other", episode: 1, sourcePlayableEpisodeCount: 1 }] };
+  const airing = { entries: { "animeav1-neutral": { lastEpisodeAt: "2026-10-02T12:30:00Z" },
+    "animeav1-other": { lastEpisodeAt: "2026-10-08T12:30:00Z" } } };
+  const payload = buildHomepageBootstrap(catalog, {}, airing);
+  assert.equal(payload.items[0].id, "animeav1-neutral");
+  assert.equal(payload.items[0].episode, 4);
+  assert.equal(payload.items[0].lastEpisodeAt, catalog.items[0].lastEpisodeAt);
+  assert.deepEqual(payload.items[0].sourceEpisodeIds, [1, 2, 3, 4]);
+});
+
 test("starter inventories stay partial when exact long-series ids are deliberately omitted", () => {
   const sourceEpisodeIds = Array.from({ length: 40 }, (_, index) => index + 1);
   const [row] = buildHomepageBootstrap({ items: [{

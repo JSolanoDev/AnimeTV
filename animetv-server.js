@@ -3772,8 +3772,10 @@ function readScrapedRegularCatalogItems() {
             season: item.season || airingHit.season || "",
             seasonYear: item.seasonYear || airingHit.seasonYear || null,
             status: item.status || airingHit.airingStatus || (meta ? meta.airingStatus : "") || "",
-            ...(airingHit.sourceEpisodeCount ? { sourceEpisodeCount: airingHit.sourceEpisodeCount } : {}),
-            ...(airingHit.lastEpisodeAt ? { lastEpisodeAt: airingHit.lastEpisodeAt } : {}),
+            ...(airingHit.sourceEpisodeCount ? { sourceEpisodeCount: Math.max(Number(item.sourceEpisodeCount) || 0,
+              Number(airingHit.sourceEpisodeCount) || 0) } : {}),
+            ...(airingHit.lastEpisodeAt ? { lastEpisodeAt: (Date.parse(item.lastEpisodeAt || "") || 0)
+              > (Date.parse(airingHit.lastEpisodeAt) || 0) ? item.lastEpisodeAt : airingHit.lastEpisodeAt } : {}),
             ...(airingHit.broadcastDay && (!airingHit.anilistId || !artHit.anilistId
               || Number(airingHit.anilistId) === Number(artHit.anilistId)) ? {
               broadcastDay: airingHit.broadcastDay,

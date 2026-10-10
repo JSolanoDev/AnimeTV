@@ -164,6 +164,41 @@ test("every JoJo selector entry keeps its exact episode range and original provi
   assert.equal(shows.find(s => s.anilistId === 131942).sourceEpisodeIds.length, 38);
 });
 
+test("fresh and cached JoJo release cards name the current batch without changing library cards", () => {
+  const c = context();
+  const shows = jojoCatalog(c);
+  c.extractSeasonNumber = () => 1;
+  vm.runInContext(section(clientSource, "function jojoLatestReleaseCard(", "function buildAnimeAv1ReleaseCards("), c);
+  vm.runInContext(section(clientSource, "function cardEpisodeNumber(", "function cardMeta("), c);
+  const first = shows[7];
+  const before = JSON.stringify(first);
+  const card = c.jojoLatestReleaseCard({ ...first, episode: 4, _av1Episode: 4,
+    _av1ProviderEpisode: 4, _av1Slug: "neutral-190327", lastEpisodeAt: "2026-10-09T12:30:00Z" });
+  assert.equal(card.anilistId, 210482);
+  assert.match(card.title, /2nd & 3rd/);
+  assert.equal(card._av1Episode, 3);
+  assert.equal(card._av1ProviderEpisode, 4);
+  assert.equal(c.cardEpisodeNumber(card), 3);
+  assert.equal(c.getCardTarget(card).seasonNumber, 7);
+  assert.equal(c.getCardTarget(card).episodeNumber, 3);
+  assert.equal(c.resolveJojoOpenTarget(card, c.getCardTarget(card)), null);
+  assert.equal(c.jojoLatestReleaseCard(card)._av1Episode, 3, "repeated rendering is idempotent");
+  assert.equal(first.title, JSON.parse(before).title);
+  assert.deepEqual(first.sourceEpisodeIds, JSON.parse(before).sourceEpisodeIds);
+  assert.equal(c.getCardTarget(first).episodeNumber, 1);
+  const next = c.jojoLatestReleaseCard({ ...card, episode: 5, _av1Episode: 5, _av1ProviderEpisode: 5 });
+  assert.equal(next._av1Episode, 4);
+  assert.equal(next._av1ProviderEpisode, 5);
+  const cached = c.jojoLatestReleaseCard({ ...first, episode: 4 });
+  assert.equal(cached.anilistId, 210482);
+  assert.equal(cached._av1Episode, 3);
+  assert.equal(cached._av1ProviderEpisode, 4);
+  const stone = c.jojoLatestReleaseCard({ ...shows[5], episode: 25, _av1ProviderEpisode: 25 });
+  assert.equal(SeasonNormalization.jojoEntryScope(stone).partNumber, 3);
+  assert.equal(stone._av1Episode, 1);
+  assert.equal(stone._av1ProviderEpisode, 25);
+});
+
 test("live JoJo relation lists apply the same inventory boundaries as baked lists", () => {
   const c = context();
   const shows = jojoCatalog(c);
