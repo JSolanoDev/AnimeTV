@@ -153,6 +153,57 @@ async function timedRequest(label, task) {
 }
 
 let backendStartupRecovery = null;
+let backendReadyAt = 0;
+let backendReadiness = null;
+let backendUnavailableUntil = 0;
+
+function waitForBackendReadiness(promise, signal) {
+  if (signal?.aborted) return Promise.reject(new DOMException("Request cancelled", "AbortError"));
+  if (!signal) return promise;
+  return new Promise((resolve, reject) => {
+    const abort = () => { signal.removeEventListener("abort", abort); reject(new DOMException("Request cancelled", "AbortError")); };
+    signal.addEventListener("abort", abort, { once: true });
+    promise.then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
+  });
+}
+
+async function ensureBackendReady(signal) {
+  if (signal?.aborted) throw new DOMException("Request cancelled", "AbortError");
+  if (!/^https?:$/.test(new URL(location.href || location.origin).protocol)) return;
+  if (backendReadyAt && Date.now() - backendReadyAt < 4 * 60 * 1000) return;
+  if (Date.now() < backendUnavailableUntil) throw new Error("Backend temporarily unavailable");
+  if (!backendReadiness) {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 24000);
+    // One local check covers a sleeping container; provider timeouts start afterward.
+    backendReadiness = (async () => {
+      const response = await waitForBackendReadiness(fetch("/api/health", { cache: "no-store", signal: controller.signal }), controller.signal);
+      if (!response.ok) { await response.body?.cancel(); throw new Error("Backend temporarily unavailable"); }
+      const health = await waitForBackendReadiness(response.json(), controller.signal);
+      if (health.ok !== true || health.app !== "ZenkaiTV" || health.api !== "ready") {
+        throw new Error("Backend temporarily unavailable");
+      }
+      backendReadyAt = Date.now();
+      backendUnavailableUntil = 0;
+    })().catch(() => {
+      backendReadyAt = 0;
+      backendUnavailableUntil = Date.now() + 10000;
+      throw new Error("Backend temporarily unavailable");
+    }).finally(() => {
+      window.clearTimeout(timer);
+      backendReadiness = null;
+    });
+  }
+  return waitForBackendReadiness(backendReadiness, signal);
+}
+
+function isBackendRead(url, options) {
+  if (String(options.method || "GET").toUpperCase() !== "GET") return false;
+  const parsed = new URL(url, location.href || location.origin);
+  return parsed.origin === location.origin && /^https?:$/.test(parsed.protocol)
+    && parsed.pathname.startsWith("/api/")
+    && !["/api/health", "/api/source", "/api/image"].includes(parsed.pathname);
+}
 
 function waitForBackendStartup(signal) {
   if (signal.aborted) return Promise.reject(new DOMException("Request cancelled", "AbortError"));
@@ -164,7 +215,9 @@ function waitForBackendStartup(signal) {
       const response = await fetch("/api/health", { cache: "no-store", signal: controller.signal });
       if (!response.ok) { await response.body?.cancel(); return false; }
       const health = await response.json();
-      return health.ok === true && health.app === "ZenkaiTV" && health.api === "ready";
+      const ready = health.ok === true && health.app === "ZenkaiTV" && health.api === "ready";
+      if (ready) backendReadyAt = Date.now();
+      return ready;
     })().catch(() => false).finally(() => {
       window.clearTimeout(timer);
       backendStartupRecovery = null;
@@ -178,6 +231,8 @@ function waitForBackendStartup(signal) {
 }
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
+  const backendRead = isBackendRead(url, options);
+  if (backendRead) await ensureBackendReady(options.signal);
   const controller = new AbortController();
   const abort = () => controller.abort(options.signal?.reason);
   if (options.signal?.aborted) abort();
@@ -196,6 +251,9 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
     await response.body?.cancel();
     if (controller.signal.aborted) throw new DOMException("Request cancelled", "AbortError");
     return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) throw new DOMException("Request cancelled", "AbortError");
+    throw error;
   } finally {
     window.clearTimeout(timeout);
     options.signal?.removeEventListener("abort", abort);

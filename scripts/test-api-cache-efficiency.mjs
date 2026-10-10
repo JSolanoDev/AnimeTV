@@ -329,7 +329,7 @@ test("refreshing a provider clears stale source-family health", () => {
 
 const utils = readFileSync(new URL("../js/utils.js", import.meta.url), "utf8");
 
-function startupHarness(fetchImpl) {
+function startupHarness(fetchImpl, { cold = false } = {}) {
   const calls = [];
   const timers = new Set();
   const context = vm.createContext({
@@ -342,6 +342,7 @@ function startupHarness(fetchImpl) {
     fetch: async (url, options) => { calls.push({ url, options }); return fetchImpl(url, options); }
   });
   vm.runInContext(section(utils, "let backendStartupRecovery =", "const metadataJsonCache ="), context);
+  if (!cold) vm.runInContext("backendReadyAt = Date.now()", context);
   return { context, calls, timers };
 }
 
@@ -426,6 +427,132 @@ test("startup recovery stays within the original caller timeout", async () => {
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(h.calls.length, 2);
   assert.equal(h.timers.size, 0);
+});
+
+test("cold reads share readiness before their shorter source deadlines start", async () => {
+  let release;
+  const health = new Promise(resolve => { release = resolve; });
+  const h = startupHarness(url => url === "/api/health" ? health : Response.json({ ok: true }), { cold: true });
+  const reads = Array.from({ length: 20 }, (_, n) => h.context.fetchWithTimeout(`/api/animeav1/sources?episode=${n}`, {}, 10));
+  await new Promise(resolve => setTimeout(resolve, 30));
+  assert.equal(h.calls.length, 1, "no source request or source timeout should run during startup");
+  assert.equal(h.calls[0].url, "/api/health");
+  release(readyResponse());
+  assert.equal((await Promise.all(reads)).every(r => r.status === 200), true);
+  assert.equal(h.calls.length, 21, "each original read is sent once, never replayed");
+  await h.context.fetchWithTimeout("/api/animeav1/sources?episode=21");
+  assert.equal(h.calls.filter(c => c.url === "/api/health").length, 1);
+  assert.equal(h.timers.size, 0);
+});
+
+test("cold readiness cancellation neither sends the old episode nor cancels another consumer", async () => {
+  let release;
+  const health = new Promise(resolve => { release = resolve; });
+  const h = startupHarness(url => url === "/api/health" ? health : Response.json({ ok: true }), { cold: true });
+  const controller = new AbortController();
+  const first = h.context.fetchWithTimeout("/api/animeav1/sources?episode=1", { signal: controller.signal });
+  const rejected = assert.rejects(first, { name: "AbortError" });
+  const next = h.context.fetchWithTimeout("/api/animeav1/sources?episode=2");
+  controller.abort();
+  await rejected;
+  release(readyResponse());
+  assert.equal((await next).status, 200);
+  assert.deepEqual(h.calls.map(c => c.url), ["/api/health", "/api/animeav1/sources?episode=2"]);
+  assert.equal(h.timers.size, 0);
+});
+
+test("an unavailable backend has a short shared cooldown without provider requests or polling", async () => {
+  const h = startupHarness(() => Response.json({ ok: false }, { status: 503 }), { cold: true });
+  await assert.rejects(h.context.fetchWithTimeout("/api/animeav1/sources"), /Backend temporarily unavailable/);
+  await assert.rejects(h.context.fetchWithTimeout("/api/jkanime/sources"), /Backend temporarily unavailable/);
+  assert.equal(h.calls.length, 1);
+  vm.runInContext("backendUnavailableUntil = 0", h.context);
+  await assert.rejects(h.context.ensureBackendReady(), /Backend temporarily unavailable/);
+  assert.equal(h.calls.length, 2);
+  assert.equal(h.timers.size, 0);
+});
+
+test("readiness bounds both a stalled transport and a stalled health body", async () => {
+  for (const stage of ["transport", "body"]) {
+    const hung = new Promise(() => {});
+    const h = startupHarness(() => stage === "transport" ? hung : { ok: true, json: () => hung }, { cold: true });
+    const originalTimeout = h.context.window.setTimeout;
+    h.context.window.setTimeout = (fn, ms) => {
+      assert.equal(ms, 24000);
+      return originalTimeout(fn, 20);
+    };
+    await assert.rejects(h.context.fetchWithTimeout("/api/animeav1/sources"), /Backend temporarily unavailable/);
+    assert.equal(h.calls.length, 1);
+    assert.equal(h.timers.size, 0);
+  }
+});
+
+test("readiness expires before container sleep; cached API responses cannot extend it", async () => {
+  const h = startupHarness(url => url === "/api/health" ? readyResponse()
+    : Response.json({}, { headers: { "x-zenkai-gateway-cache": "BYPASS" } }), { cold: true });
+  await h.context.fetchWithTimeout("/api/animeav1/latest");
+  vm.runInContext("backendReadyAt = Date.now() - 240001", h.context);
+  await h.context.fetchWithTimeout("/api/animeav1/latest");
+  assert.equal(h.calls.filter(c => c.url === "/api/health").length, 2);
+  vm.runInContext("backendReadyAt = Date.now() - 200000", h.context);
+  await h.context.fetchWithTimeout("/api/animeav1/latest");
+  assert.ok(vm.runInContext("Date.now() - backendReadyAt", h.context) >= 200000);
+  const edge = startupHarness(() => Response.json({}, { headers: { "x-zenkai-gateway-cache": "HIT" } }));
+  vm.runInContext("backendReadyAt = Date.now() - 200000", edge.context);
+  await edge.context.fetchWithTimeout("/api/catalog");
+  assert.ok(vm.runInContext("Date.now() - backendReadyAt", edge.context) >= 200000);
+});
+
+test("readiness never gates media, images, writes, other origins or file-based clients", async () => {
+  for (const [url, options] of [
+    ["/api/source?url=opaque", {}], ["/api/image?src=opaque", {}], ["/api/health", {}],
+    ["/api/settings", { method: "POST" }], ["https://provider.test/api/sources", {}]
+  ]) {
+    const h = startupHarness(() => Response.json({}), { cold: true });
+    await h.context.fetchWithTimeout(url, options);
+    assert.equal(h.calls.length, 1);
+    assert.equal(h.calls[0].url, url);
+  }
+  const file = startupHarness(() => assert.fail("file-based clients must not issue a relative health fetch"), { cold: true });
+  file.context.location.href = "file:///android_asset/index.html";
+  await file.context.ensureBackendReady();
+});
+
+test("a pre-cancelled cold read does not wake the backend", async () => {
+  const h = startupHarness(() => assert.fail("no network request"), { cold: true });
+  const controller = new AbortController();
+  controller.abort();
+  await assert.rejects(h.context.fetchWithTimeout("/api/animeav1/sources", { signal: controller.signal }), { name: "AbortError" });
+  assert.equal(h.timers.size, 0);
+});
+
+test("network rejection after the request deadline remains cancellation, not a fake provider error", async () => {
+  const h = startupHarness((_url, { signal }) => new Promise((_resolve, reject) => {
+    signal.addEventListener("abort", () => reject(new TypeError("network unavailable")), { once: true });
+  }));
+  await assert.rejects(h.context.fetchWithTimeout("/api/animeav1/sources", {}, 10), { name: "AbortError" });
+  assert.equal(h.calls.length, 1);
+  assert.equal(h.timers.size, 0);
+});
+
+test("the service worker preserves real provider responses and transport failures separately", async () => {
+  const listeners = new Map();
+  let result = Response.json({ ok: false, source: "neutral" }, { status: 503 });
+  const context = vm.createContext({ URL, Response,
+    self: { location: { origin: "https://app.test" }, addEventListener: (name, fn) => listeners.set(name, fn) },
+    fetch: async () => { if (result instanceof Error) throw result; return result; }
+  });
+  vm.runInContext(readFileSync(new URL("../service-worker.js", import.meta.url), "utf8"), context);
+  const read = () => {
+    let promise;
+    listeners.get("fetch")({ request: new Request("https://app.test/api/animeav1/sources"), respondWith: value => { promise = value; } });
+    return promise;
+  };
+  assert.equal(await read(), result);
+  result = new TypeError("network unavailable");
+  await assert.rejects(read(), { name: "TypeError" });
+  result = new DOMException("cancelled", "AbortError");
+  await assert.rejects(read(), { name: "AbortError" });
 });
 
 function metadataHarness(fetchImpl) {

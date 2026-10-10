@@ -1,4 +1,4 @@
-const CACHE_NAME = "zenkaitv-v1015";
+const CACHE_NAME = "zenkaitv-v1016";
 const ADULT_CATALOG_CACHE = "zenkaitv-adult-catalog-v1";
 // Remote artwork lives in its OWN cache that survives version bumps. It used
 // to share CACHE_NAME, so every deploy wiped every poster and the app
@@ -170,7 +170,8 @@ self.addEventListener("fetch", (event) => {
 
   // Other API calls: network-only (always fresh)
   if (url.pathname.startsWith("/api/")) {
-    event.respondWith(fetch(event.request).catch(() => new Response("", { status: 503 })));
+    // Preserve network/cancellation failures instead of inventing a provider HTTP 503.
+    event.respondWith(fetch(event.request));
     return;
   }
 

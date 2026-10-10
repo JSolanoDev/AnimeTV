@@ -267,6 +267,24 @@ function sourceRaceContext(overrides = {}) {
   return sandbox;
 }
 
+test("container readiness completes before the playback verification budget begins", async () => {
+  let now = 0;
+  const source = { id: "neutral-hls", type: "direct", videoUrl: "https://media.test/episode.m3u8" };
+  const sandbox = sourceRaceContext({
+    Date: { now: () => now },
+    ensureBackendReady: async () => { now = 20000; },
+    hasFreshVerifiedPlaybackSource: () => true,
+    isFastPreferredPlaybackSource: () => true
+  });
+  const selected = await sandbox.prepareReliablePlaybackSource({}, { sourceOptions: [source] });
+  assert.equal(selected.id, source.id);
+  const preparation = section(clientSource, "async function prepareReliablePlaybackSource(", "function renderDirectVideoPlayer(");
+  assert.ok(preparation.indexOf("await ensureBackendReady()") < preparation.indexOf("const startedAt = Date.now()"));
+  const playback = section(clientSource, "async function runActivePlaybackAttempt(", "function isExternalIframeEpisode(");
+  assert.ok(playback.indexOf("await ensureBackendReady()") < playback.indexOf("schedulePlaybackSourceOptions(show"));
+  assert.match(playback, /await ensureBackendReady\(\);\s*if \(!isPlaybackAttemptCurrent/);
+});
+
 test("HLS: available AnimeAV1 metadata leaves AnimeYT and backups dormant", async () => {
   const { sandbox, calls, completed } = playbackFallbackContext({ primaryFound: true, language: "sub" });
   sandbox.animeYTTarget = () => ({ slug: "sample-series" });
