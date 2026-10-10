@@ -108979,8 +108979,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/kashita-maryoku-wa-revo-barai-de-kyousei-choushuu",
-      "totalEpisodes": 1,
-      "episode": 1,
+      "totalEpisodes": 2,
+      "episode": 2,
       "lastScrapedAt": "2026-10-10T11:35:57.780464+00:00",
       "episodes": [
         {
@@ -109030,14 +109030,18 @@
         "#251d47"
       ],
       "sourceEpisodeIds": [
-        1
+        1,
+        2
       ],
-      "sourceEpisodeCount": 1,
-      "sourcePlayableEpisodeCount": 1,
+      "sourceEpisodeCount": 2,
+      "sourcePlayableEpisodeCount": 2,
       "sourceDeclaredEpisodeCount": 1,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-10T11:40:45.048Z"
+      "sourceInventoryCheckedAt": "2026-10-10T21:57:49.801Z",
+      "sourceInventoryRetainedEpisodeCount": 1,
+      "latestAiredEp": 2,
+      "lastEpisodeAt": "2026-10-10T17:57:49.775Z"
     },
     {
       "id": "animeav1-kusuriya-no-hitorigoto-3rd-season",
@@ -186845,8 +186849,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/seitokai-ni-mo-ana-wa-aru",
-      "totalEpisodes": 1,
-      "episode": 1,
+      "totalEpisodes": 2,
+      "episode": 2,
       "lastScrapedAt": "2026-10-10T11:38:01.832846+00:00",
       "episodes": [
         {
@@ -186896,14 +186900,18 @@
         "#251d47"
       ],
       "sourceEpisodeIds": [
-        1
+        1,
+        2
       ],
-      "sourceEpisodeCount": 1,
-      "sourcePlayableEpisodeCount": 1,
+      "sourceEpisodeCount": 2,
+      "sourcePlayableEpisodeCount": 2,
       "sourceDeclaredEpisodeCount": 1,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-10T11:40:45.048Z"
+      "sourceInventoryCheckedAt": "2026-10-10T21:57:49.801Z",
+      "sourceInventoryRetainedEpisodeCount": 1,
+      "latestAiredEp": 2,
+      "lastEpisodeAt": "2026-10-10T21:52:49.775Z"
     },
     {
       "id": "animeav1-shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen",
