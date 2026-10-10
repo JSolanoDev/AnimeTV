@@ -109,6 +109,65 @@ test("failed source delivery is never retried by the container controller", asyn
   assert.equal(state.calls, 1);
 });
 
+test("the startup deadline includes idle configuration and exposes only a local startup marker", async () => {
+  const { container, state } = fakeContainer();
+  container.setInactivityTimeout = () => new Promise(() => {});
+  const backend = new ContainerBackend(container, {}, { readinessTimeoutMs: 20 });
+  const result = await backend.fetch(new Request(INTERNAL_ORIGIN + "/api/test"));
+  assert.equal(result.status, 503);
+  assert.equal(result.headers.get("x-zenkai-backend-state"), "starting");
+  assert.equal(result.headers.get("cache-control"), "no-store");
+  assert.equal(state.calls, 0);
+});
+
+test("a container started during the running check is probed before forwarding exactly once", async () => {
+  const { container, state } = fakeContainer();
+  container.start = () => { container.running = true; throw new Error("Container already running"); };
+  const backend = new ContainerBackend(container, {});
+  assert.equal((await backend.fetch(new Request(INTERNAL_ORIGIN + "/api/test"))).status, 200);
+  assert.equal(state.probes, 1);
+  assert.equal(state.calls, 1);
+});
+
+test("provider 503 responses are never marked as backend startup or retried", async () => {
+  const { container, state } = fakeContainer(() => Response.json({ ok: false, source: "neutral-provider" }, { status: 503 }));
+  const result = await new ContainerBackend(container, {}).fetch(new Request(INTERNAL_ORIGIN + "/api/test"));
+  assert.equal(result.status, 503);
+  assert.equal(result.headers.get("x-zenkai-backend-state"), null);
+  assert.equal(state.calls, 1);
+});
+
+test("a stalled readiness body is bounded before any source handler runs", async () => {
+  const { container, state } = fakeContainer();
+  container.getTcpPort = () => ({ fetch: async () => ({ ok: true, json: () => new Promise(() => {}) }) });
+  const backend = new ContainerBackend(container, {}, { readinessTimeoutMs: 20 });
+  const result = await backend.fetch(new Request(INTERNAL_ORIGIN + "/api/test"));
+  assert.equal(result.status, 503);
+  assert.equal(state.calls, 0);
+});
+
+test("the gateway preserves startup markers but never marks provider outages or caches either error", async () => {
+  for (const startup of [true, false]) {
+    const { container, state } = fakeContainer(() => Response.json({ ok: false }, {
+      status: 503, headers: { "Cache-Control": "no-store" }
+    }));
+    if (startup) container.start = () => { throw new Error("Neutral startup failure"); };
+    const backend = new ContainerBackend(container, {});
+    let forwards = 0;
+    const response = await gateway("/api/animeav1/sources?episode=1", {}, (url, options) => {
+      forwards++;
+      return backend.fetch(new Request(url, options));
+    });
+    assert.equal(response.status, 503);
+    assert.equal(response.headers.get("x-zenkai-backend-state"), startup ? "starting" : null);
+    assert.equal(response.headers.get("cache-control"), "no-store");
+    assert.equal(response.headers.get("x-zenkai-gateway-cache"), "BYPASS");
+    assert.equal(forwards, 1);
+    assert.equal(state.calls, startup ? 0 : 1);
+    assert.equal((await response.json()).ok, false);
+  }
+});
+
 test("only explicitly allowed runtime secrets are passed and public config rejects privileged Supabase keys", () => {
   const values = containerEnvironment({ TMDB_READ_ACCESS_TOKEN: "test-token", SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
     SUPABASE_SERVICE_ROLE_KEY: "never-copy", VERCEL_TOKEN: "never-copy", HOME: "never-copy", PORT: "9999" });

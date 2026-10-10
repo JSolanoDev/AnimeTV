@@ -329,6 +329,105 @@ test("refreshing a provider clears stale source-family health", () => {
 
 const utils = readFileSync(new URL("../js/utils.js", import.meta.url), "utf8");
 
+function startupHarness(fetchImpl) {
+  const calls = [];
+  const timers = new Set();
+  const context = vm.createContext({
+    URL, Response, AbortController, DOMException, API_TIMEOUT_MS: 1000,
+    location: { origin: "https://app.test", href: "https://app.test/watch/neutral/s1-e1" },
+    window: {
+      setTimeout(fn, ms) { const timer = setTimeout(fn, ms); timers.add(timer); return timer; },
+      clearTimeout(timer) { clearTimeout(timer); timers.delete(timer); }
+    },
+    fetch: async (url, options) => { calls.push({ url, options }); return fetchImpl(url, options); }
+  });
+  vm.runInContext(section(utils, "let backendStartupRecovery =", "const metadataJsonCache ="), context);
+  return { context, calls, timers };
+}
+
+const startingResponse = () => Response.json({ ok: false }, {
+  status: 503, headers: { "x-zenkai-backend-state": "starting", "cache-control": "no-store" }
+});
+const readyResponse = () => Response.json({ ok: true, app: "ZenkaiTV", api: "ready" });
+
+test("marked backend startup reads share one health check and resume each request once", async () => {
+  let release;
+  const health = new Promise(resolve => { release = resolve; });
+  const seen = new Set();
+  const h = startupHarness(url => {
+    if (url === "/api/health") return health;
+    if (!seen.has(url)) { seen.add(url); return startingResponse(); }
+    return Response.json({ ok: true });
+  });
+  const reads = ["/api/animeav1/sources?episode=1", "/api/animeav1/latest"].map(url => h.context.fetchWithTimeout(url));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.calls.filter(c => c.url === "/api/health").length, 1);
+  release(readyResponse());
+  assert.deepEqual((await Promise.all(reads)).map(r => r.status), [200, 200]);
+  assert.equal(h.calls.length, 5);
+  assert.equal(h.timers.size, 0);
+});
+
+test("ordinary outages, media bytes, other origins and writes are never startup-replayed", async () => {
+  for (const [url, options, response] of [
+    ["/api/animeav1/sources", {}, Response.json({}, { status: 503 })],
+    ["/api/animeav1/sources", {}, Response.json({}, { status: 429 })],
+    ["/api/source?url=opaque", { headers: { Range: "bytes=0-3" } }, startingResponse()],
+    ["/api/health", {}, startingResponse()],
+    ["https://provider.test/api/sources", {}, startingResponse()],
+    ["/api/settings", { method: "POST", body: "neutral" }, startingResponse()]
+  ]) {
+    const h = startupHarness(() => response);
+    assert.equal(await h.context.fetchWithTimeout(url, options), response);
+    assert.equal(h.calls.length, 1);
+    assert.equal(h.timers.size, 0);
+  }
+});
+
+test("failed health and repeated startup errors do not loop or claim successful playback", async () => {
+  for (const healthy of [true, false]) {
+    const h = startupHarness(url => url === "/api/health"
+      ? (healthy ? readyResponse() : Response.json({}, { status: 503 })) : startingResponse());
+    assert.equal((await h.context.fetchWithTimeout("/api/animeav1/sources")).status, 503);
+    assert.equal(h.calls.length, healthy ? 3 : 2);
+    assert.equal(h.timers.size, 0);
+  }
+});
+
+test("episode cancellation stops its startup recovery without cancelling another consumer", async () => {
+  let release;
+  const health = new Promise(resolve => { release = resolve; });
+  const seen = new Set();
+  const h = startupHarness(url => {
+    if (url === "/api/health") return health;
+    if (!seen.has(url)) { seen.add(url); return startingResponse(); }
+    return Response.json({ ok: true });
+  });
+  const controller = new AbortController();
+  const cancelled = h.context.fetchWithTimeout("/api/animeav1/sources?episode=1", { signal: controller.signal });
+  const rejected = assert.rejects(cancelled, { name: "AbortError" });
+  const next = h.context.fetchWithTimeout("/api/animeav1/sources?episode=2");
+  await new Promise(resolve => setImmediate(resolve));
+  controller.abort();
+  await rejected;
+  release(readyResponse());
+  assert.equal((await next).status, 200);
+  assert.equal(h.calls.filter(c => c.url.includes("episode=1")).length, 1);
+  assert.equal(h.calls.filter(c => c.url === "/api/health").length, 1);
+  assert.equal(h.timers.size, 0);
+});
+
+test("startup recovery stays within the original caller timeout", async () => {
+  let release;
+  const health = new Promise(resolve => { release = resolve; });
+  const h = startupHarness(url => url === "/api/health" ? health : startingResponse());
+  await assert.rejects(h.context.fetchWithTimeout("/api/animeav1/sources", {}, 20), { name: "AbortError" });
+  release(readyResponse());
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.calls.length, 2);
+  assert.equal(h.timers.size, 0);
+});
+
 function metadataHarness(fetchImpl) {
   let now = 100000;
   const calls = [];

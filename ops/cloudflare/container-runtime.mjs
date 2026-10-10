@@ -64,25 +64,33 @@ export class ContainerBackend {
 
   async startAndProbe() {
     if (!this.container) throw new Error("Container unavailable");
-    if (!this.container.running) {
-      this.container.start({ enableInternet: true, env: containerEnvironment(this.env) });
-      await this.container.setInactivityTimeout(INACTIVITY_TIMEOUT_MS);
-    }
     const controller = new AbortController();
     const deadline = setTimeout(() => controller.abort(), this.readinessTimeoutMs);
     try {
+      if (!this.container.running) {
+        const options = { enableInternet: true, env: containerEnvironment(this.env) };
+        try { this.container.start(options); }
+        catch (error) {
+          // A lifecycle transition may start the instance after the running check.
+          if (error.name !== "Error" || !this.container.running) throw error;
+        }
+        await waitForCaller(this.container.setInactivityTimeout(INACTIVITY_TIMEOUT_MS), controller.signal);
+      }
       const port = this.container.getTcpPort(CONTAINER_PORT);
       while (!controller.signal.aborted) {
         try {
-          const response = await port.fetch("http://container/api/health", { signal: controller.signal });
+          const response = await waitForCaller(port.fetch("http://container/api/health", { signal: controller.signal }), controller.signal);
           if (response.ok) {
-            const health = await response.json();
+            const health = await waitForCaller(response.json(), controller.signal);
             if (health.ok === true && health.app === "ZenkaiTV" && health.api === "ready") return;
           } else await response.body?.cancel();
         } catch { /* Probe the local listening port only, never replay a provider request. */ }
         if (!controller.signal.aborted) await new Promise((resolve) => setTimeout(resolve, this.probeDelayMs));
       }
       throw new Error("Container startup timed out");
+    } catch (error) {
+      if (controller.signal.aborted) throw new Error("Container startup timed out");
+      throw error;
     } finally { clearTimeout(deadline); }
   }
 
@@ -96,7 +104,7 @@ export class ContainerBackend {
     catch (error) {
       if (error.name === "AbortError") throw error;
       return Response.json({ ok: false, error: "Backend startup temporarily unavailable" },
-        { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "10" } });
+        { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "10", "X-Zenkai-Backend-State": "starting" } });
     }
     request.signal.throwIfAborted();
     url.protocol = "http:";

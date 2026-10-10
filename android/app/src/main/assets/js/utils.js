@@ -152,13 +152,53 @@ async function timedRequest(label, task) {
   }
 }
 
+let backendStartupRecovery = null;
+
+function waitForBackendStartup(signal) {
+  if (signal.aborted) return Promise.reject(new DOMException("Request cancelled", "AbortError"));
+  if (!backendStartupRecovery) {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 6000);
+    // Only our local health endpoint is shared, never an episode or signed URL.
+    backendStartupRecovery = (async () => {
+      const response = await fetch("/api/health", { cache: "no-store", signal: controller.signal });
+      if (!response.ok) { await response.body?.cancel(); return false; }
+      const health = await response.json();
+      return health.ok === true && health.app === "ZenkaiTV" && health.api === "ready";
+    })().catch(() => false).finally(() => {
+      window.clearTimeout(timer);
+      backendStartupRecovery = null;
+    });
+  }
+  return new Promise((resolve, reject) => {
+    const abort = () => { signal.removeEventListener("abort", abort); reject(new DOMException("Request cancelled", "AbortError")); };
+    signal.addEventListener("abort", abort, { once: true });
+    backendStartupRecovery.then(value => { signal.removeEventListener("abort", abort); resolve(value); });
+  });
+}
+
 async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
   const controller = new AbortController();
+  const abort = () => controller.abort(options.signal?.reason);
+  if (options.signal?.aborted) abort();
+  else options.signal?.addEventListener("abort", abort, { once: true });
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    if (response.status !== 503 || response.headers.get("x-zenkai-backend-state") !== "starting"
+      || String(options.method || "GET").toUpperCase() !== "GET") return response;
+    const parsed = new URL(url, location.href || location.origin);
+    if (parsed.origin !== location.origin || !parsed.pathname.startsWith("/api/")
+      || ["/api/health", "/api/source"].includes(parsed.pathname)) return response;
+    // A marked startup failure never reached the Node handler. Resume once only;
+    // provider errors and media delivery are not replayed, and the original deadline remains.
+    if (!await waitForBackendStartup(controller.signal)) return response;
+    await response.body?.cancel();
+    if (controller.signal.aborted) throw new DOMException("Request cancelled", "AbortError");
     return await fetch(url, { ...options, signal: controller.signal });
   } finally {
     window.clearTimeout(timeout);
+    options.signal?.removeEventListener("abort", abort);
   }
 }
 
