@@ -3528,16 +3528,53 @@ test("AnimeAV1 card intent warms the exact provider episode for later playback",
   await sandbox.attachAnimeAv1Sources(show, playbackEpisode);
   assert.equal(getFetchCount(), 1, "playback should reuse the intent-warmed response");
   assert.equal(playbackEpisode.sourceOptions.length, 1);
+  sandbox.prefetchPlayerShell();
+  sandbox.prefetchPlayerShell();
   assert.deepEqual(
     prefetched,
     [
       "/player/player.html?v=765",
       "/player/player.css?v=765",
       "/player/player.js?v=765",
-      "https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js",
+      "https://cdn.jsdelivr.net/npm/artplayer@5.4.0/dist/artplayer.js",
       "https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js"
     ]
   );
+});
+
+test("startup: direct watch links warm player assets before asynchronous source preparation", async () => {
+  const calls = [];
+  let finishLanguage;
+  const show = { id: "neutral-show" };
+  const sandbox = vm.createContext({
+    state: { activeShow: show, playIntent: true },
+    document: { querySelector: () => ({}) },
+    activePlaybackRun: { attempt: 2 },
+    prefetchPlayerShell: () => calls.push("player-assets"),
+    ensureWatchLanguageChoice: () => {
+      calls.push("language");
+      return new Promise(resolve => { finishLanguage = resolve; });
+    }
+  });
+  vm.runInContext(section(clientSource, "async function runActivePlaybackAttempt(", "function isExternalIframeEpisode("), sandbox);
+  const pending = sandbox.runActivePlaybackAttempt({}, { attempt: 1 });
+  assert.deepEqual(calls, ["player-assets", "language"], "assets must overlap the existing preparation, not wait for the source");
+  finishLanguage();
+  await pending;
+  sandbox.state.activeShow = null;
+  await sandbox.runActivePlaybackAttempt({}, { attempt: 3 });
+  assert.equal(calls.length, 2, "an inactive page must not prefetch player assets");
+});
+
+test("startup: the player and native fallback use the same pinned playback libraries", () => {
+  const artplayer = "https://cdn.jsdelivr.net/npm/artplayer@5.4.0/dist/artplayer.js";
+  const hls = "https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js";
+  const html = readFileSync(new URL("../player/player.html", import.meta.url), "utf8");
+  const prefetch = section(clientSource, "function prefetchPlayerShell(", "function warmAnimeAv1PlaybackIntent(");
+  assert.ok(html.includes(artplayer) && prefetch.includes(artplayer));
+  assert.ok(html.includes(hls) && prefetch.includes(hls));
+  assert.ok(section(clientSource, "function loadHlsScript(", "function originalStreamUrlFromProxy(").includes(hls));
+  assert.ok(!clientSource.includes("hls.js@1.5.17"), "the fallback must reuse the main player's warmed HLS version");
 });
 
 test("AnimeAV1 episode payloads expire and a confirmed failure bypasses cached source metadata", async () => {

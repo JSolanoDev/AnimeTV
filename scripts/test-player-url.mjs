@@ -105,7 +105,7 @@ check("the service worker pre-caches first-play app assets",
 check("versioned player navigations use the cached shell document",
   /url\.pathname === "\/player\/player\.html"[\s\S]*?cache\.match\(shellKey\)/.test(serviceWorker), true);
 check("player libraries warm while the anime detail page is open",
-  /function prefetchPlayerShell\(\)[\s\S]*?artplayer\/dist\/artplayer\.js[\s\S]*?hls\.js@1\.6\.16/.test(src), true);
+  /function prefetchPlayerShell\(\)[\s\S]*?artplayer@5\.4\.0\/dist\/artplayer\.js[\s\S]*?hls\.js@1\.6\.16/.test(src), true);
 check("direct files do not wait for the HLS library script",
   /<script async src="https:\/\/cdn\.jsdelivr\.net\/npm\/hls\.js@1\.6\.16/.test(playerHtml), true);
 

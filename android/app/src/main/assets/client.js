@@ -5123,7 +5123,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1013";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1014";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -14750,7 +14750,7 @@ function loadHlsScript() {
   if (!hlsScriptPromise) {
     hlsScriptPromise = new Promise((resolve, reject) => {
       const script = document.createElement("script");
-      script.src = "https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js";
+      script.src = "https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js";
       script.async = true;
       script.onload = () => resolve(window.Hls);
       script.onerror = () => reject(new Error("hls.js failed to load"));
@@ -18659,7 +18659,7 @@ function prefetchPlayerShell() {
     // These execute inside the same-origin player iframe. Browser caches are
     // shared with the parent, so low-priority prefetching here removes both CDN
     // downloads from the critical path when Play is pressed.
-    { href: "https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js", as: "script" },
+    { href: "https://cdn.jsdelivr.net/npm/artplayer@5.4.0/dist/artplayer.js", as: "script" },
     { href: "https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js", as: "script" }
   ];
   assets.forEach(({ href, as }) => {
@@ -20012,6 +20012,9 @@ async function runActivePlaybackAttempt(options = {}, playbackContext) {
   const show = state.activeShow;
   const frame = document.querySelector("#videoFrame");
   if (!show || !frame) return;
+  // Deep watch links have no preceding hover intent. Warm the one-shot player
+  // assets while source discovery/verification runs, not after it finishes.
+  prefetchPlayerShell();
   if (
     state.playIntent
     && !(typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show))
@@ -24398,7 +24401,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1013");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1014");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
