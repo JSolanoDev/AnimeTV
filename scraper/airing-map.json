@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-10T12:17:00.483Z",
-  "count": 6658,
+  "generatedAt": "2026-10-10T17:57:49.092Z",
+  "count": 6659,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -171454,8 +171454,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791642600000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792247400000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-03T15:22:32.907Z"
@@ -241127,6 +241127,13 @@
           "order": 3
         }
       ]
+    },
+    "animeav1-kyoufu-collector": {
+      "anilistId": 203473,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1792248300000,
+      "nextAiringEpisodeNumber": 2
     }
   },
   "seasonArtwork": {
