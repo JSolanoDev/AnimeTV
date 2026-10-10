@@ -49,6 +49,9 @@ test("hourly releases preserve known episodes, exact identities and missing rout
   const saved = JSON.stringify(catalog);
   assert.deepEqual(reconcileLatestReleaseInventory(catalog, [release], now + 3600000), []);
   assert.equal(JSON.stringify(catalog), saved, "unchanged releases do not republish timestamp churn");
+  assert.deepEqual(reconcileLatestReleaseInventory(catalog, [{ ...release,
+    releasedAt: "2026-10-09T13:30:00Z" }], now + 3600000), []);
+  assert.equal(JSON.stringify(catalog), saved, "a recalculated relative timestamp is not a new release");
   assert.deepEqual(reconcileLatestReleaseInventory(catalog, [
     { slug: "neutral", episode: -1 }, { slug: "../neutral", episode: 5 },
     { slug: "unknown", episode: 5 }, { slug: "neutral", episode: 6, releasedAt: "2026-10-10T12:00:00Z" }

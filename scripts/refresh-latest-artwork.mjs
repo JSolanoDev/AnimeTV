@@ -23,7 +23,10 @@ export function reconcileLatestReleaseInventory(catalog, releases, now = Date.no
     const releasedAt = Date.parse(release.releasedAt || "");
     if (Number.isFinite(releasedAt) && releasedAt > now) continue;
     const known = item.sourceEpisodeIds?.map(Number).includes(episode);
-    const newerTime = Number.isFinite(releasedAt) && releasedAt > (Date.parse(item.lastEpisodeAt || "") || 0);
+    const savedTime = Date.parse(item.lastEpisodeAt || "");
+    // Relative provider labels drift on every fetch; date an episode only once.
+    const newerTime = Number.isFinite(releasedAt) && (!Number.isFinite(savedTime)
+      || (!known && releasedAt > savedTime));
     if (known && !newerTime) continue;
     if (!known) {
       const partial = item.sourceInventoryPartial === true || item.sourceInventoryChecked !== true;
