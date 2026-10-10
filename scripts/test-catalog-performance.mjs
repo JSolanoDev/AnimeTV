@@ -5,7 +5,7 @@ import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 
 const require = createRequire(import.meta.url);
-const { CompositeAdultSourceAdapter } = require("../js/adult-source-adapter.js");
+const { CompositeAdultSourceAdapter, UnderHentaiAdultSourceAdapter, HentaiOceanAdultSourceAdapter } = require("../js/adult-source-adapter.js");
 const client = readFileSync(new URL("../client.js", import.meta.url), "utf8");
 const server = readFileSync(new URL("../animetv-server.js", import.meta.url), "utf8");
 const section = (source, start, end) => {
@@ -56,6 +56,68 @@ test("a refreshed source replaces the title index and retains unmatched rows", (
   assert.deepEqual(merged.map(item => item.id), ["primary", "new"]);
   assert.equal(adapter._findExactOceanMatch({ title: "Old Series" }), null);
   assert.equal(adapter._findExactOceanMatch({ title: "New Series" }), next);
+});
+
+function adultRefreshHarness() {
+  const primary = new UnderHentaiAdultSourceAdapter();
+  const secondary = new HentaiOceanAdultSourceAdapter();
+  const rows = (adapter, prefix, count) => Array.from({ length: count }, (_, index) => ({
+    id: `${prefix}-${index}`, title: `Neutral ${prefix} Series ${index} Alpha`, isAdult: true,
+    adultSource: adapter.name
+  }));
+  const primaryRows = rows(primary, "primary", 983);
+  const secondaryRows = rows(secondary, "secondary", 269);
+  let primaryFailure = false;
+  let secondaryFailure = false;
+  let emptyPrimary = false;
+  let requests = 0;
+  primary.listLatest = async () => {
+    requests++;
+    if (primaryFailure) throw new Error("Neutral primary unavailable");
+    return emptyPrimary ? [] : primaryRows;
+  };
+  secondary.listLatest = async () => {
+    requests++;
+    if (secondaryFailure) throw new Error("Neutral secondary unavailable");
+    return secondaryRows;
+  };
+  return { adapter: new CompositeAdultSourceAdapter([primary, secondary]), primaryRows, secondaryRows,
+    failPrimary: () => { primaryFailure = true; }, failSecondary: () => { secondaryFailure = true; },
+    emptyPrimary: () => { emptyPrimary = true; }, recover: () => { primaryFailure = secondaryFailure = emptyPrimary = false; },
+    requests: () => requests };
+}
+
+test("a partial provider refresh keeps the full previously loaded catalog without retries", async () => {
+  for (const failure of ["failPrimary", "failSecondary", "emptyPrimary"]) {
+    const h = adultRefreshHarness();
+    const full = await h.adapter.listLatest();
+    assert.equal(full.length, 1252);
+    assert.equal(h.adapter.catalogRefreshComplete, true);
+    h[failure]();
+    const partial = await h.adapter.listLatest();
+    assert.equal(partial.length, full.length);
+    assert.deepEqual(partial.map(item => item.id), full.map(item => item.id));
+    assert.equal(h.adapter.catalogRefreshComplete, false);
+    assert.equal(h.requests(), 4, "only one request per provider per refresh");
+    h.recover();
+    h.primaryRows.push({ id: "new-primary", title: "Neutral New Release", isAdult: true, adultSource: "UnderHentai" });
+    assert.equal((await h.adapter.listLatest()).length, 1253);
+    assert.equal(h.adapter.catalogRefreshComplete, true);
+  }
+});
+
+test("a cold refresh restores saved provider catalogs and never imports regular or unknown sources", async () => {
+  const h = adultRefreshHarness();
+  h.adapter.restoreCatalog([...h.primaryRows, ...h.secondaryRows,
+    { id: "regular", isAdult: false, adultSource: "UnderHentai" },
+    { id: "unknown", isAdult: true, adultSource: "Unknown" }]);
+  h.failPrimary(); h.failSecondary();
+  assert.equal((await h.adapter.listLatest()).length, 1252);
+  assert.equal(h.adapter.catalogRefreshComplete, false);
+  assert.equal(h.requests(), 2);
+  const empty = adultRefreshHarness();
+  empty.failPrimary(); empty.failSecondary();
+  await assert.rejects(empty.adapter.listLatest(), /unavailable/);
 });
 
 function loadHarness({ age = 0, empty = false, fail = false } = {}) {
@@ -110,6 +172,23 @@ test("a failed refresh keeps existing cards and does not mark stale data fresh",
   assert.equal((await h.c.loadAdultCatalog()).length, 1);
   assert.equal(h.c.adultCatalogLoadedAt, before);
   assert.equal(h.c.state.shows.length, 1);
+});
+
+test("partial provider results preserve regular rows and do not overwrite the durable complete snapshot", async () => {
+  const h = loadHarness({ age: 400000 });
+  h.c.state.shows = [{ id: "regular" }, { id: "saved-adult", isAdult: true }];
+  const before = h.c.adultCatalogLoadedAt;
+  let writes = 0;
+  let restored;
+  h.c.AdultSourceRegistry.get = () => ({ name: "Fixture", catalogRefreshComplete: false,
+    restoreCatalog: items => { restored = items; },
+    listLatest: async () => [...restored, { id: "new-adult", isAdult: true }] });
+  h.c.writeDurableAdultCatalog = async () => { writes++; };
+  const items = await h.c.loadAdultCatalog();
+  assert.deepEqual(Array.from(items, item => item.id), ["saved-adult", "new-adult"]);
+  assert.deepEqual(Array.from(h.c.state.shows, item => item.id), ["regular", "saved-adult", "new-adult"]);
+  assert.equal(h.c.adultCatalogLoadedAt, before);
+  assert.equal(writes, 0);
 });
 
 test("an in-flight addon load cannot replace a newer full catalog", async () => {

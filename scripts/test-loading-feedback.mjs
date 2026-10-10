@@ -647,6 +647,7 @@ function libraryHarness() {
     libraryAutoLoaderStatus: { textContent: "" },
     renderNow: () => {}
   });
+  c.window.addEventListener = () => {};
   vm.runInContext(section("let libraryAutoLoadObserver =", "function observeLibraryScrollSentinel("), c);
   return { c, clock, classes };
 }
@@ -709,6 +710,63 @@ test("scrolling still requests a batch when the intersection callback fired too 
   clock.frame();
   clock.idle();
   assert.equal(c.state.libraryVisibleLimit, 112);
+});
+
+test("phone page scrolling loads every library batch even without IntersectionObserver", () => {
+  for (const mode of ["regular", "adult"]) {
+    const { c, clock } = libraryHarness();
+    const listeners = new Map();
+    c.state.libraryQuerySig = mode;
+    c.libraryGrid.scrollWidth = c.libraryGrid.clientWidth;
+    c.libraryGrid.getBoundingClientRect = () => ({ bottom: 900 });
+    c.window.innerHeight = 800;
+    c.document = { documentElement: { clientHeight: 800 } };
+    c.libraryGrid.addEventListener = () => {};
+    c.window.addEventListener = (type, listener) => listeners.set(type, listener);
+    c.libraryGrid.dataset.totalCards = "1252";
+    let renders = 0;
+    c.renderNow = () => {
+      renders++;
+      c.libraryGrid.dataset.visibleCards = String(c.state.libraryVisibleLimit);
+      c.libraryGrid.dataset.hasMore = c.state.libraryVisibleLimit < 1252 ? "true" : "false";
+    };
+    vm.runInContext(section("function observeLibraryScrollSentinel(", "function ensureLibraryScrollSentinel("), c);
+    c.observeLibraryScrollSentinel({});
+    assert.equal(typeof listeners.get("scroll"), "function");
+    while (c.state.libraryVisibleLimit < 1252) {
+      listeners.get("scroll")();
+      clock.frame(); clock.frame(); clock.idle();
+    }
+    assert.equal(c.state.libraryVisibleLimit, 1252);
+    assert.equal(renders, Math.ceil((1252 - 84) / c.LIBRARY_RENDER_STEP));
+    listeners.get("scroll")(); clock.frame();
+    assert.equal(c.libraryGrid["aria-busy"], "false");
+  }
+});
+
+test("resizing rebinds the existing library sentinel when the scrolling axis changes", () => {
+  const { c } = libraryHarness();
+  const roots = [];
+  const listeners = new Map();
+  let disconnects = 0;
+  const Observer = class {
+    constructor(callback, options) { roots.push(options.root); }
+    observe() {}
+    disconnect() { disconnects++; }
+  };
+  c.IntersectionObserver = Observer;
+  c.window.IntersectionObserver = Observer;
+  c.libraryGrid.addEventListener = () => {};
+  c.window.addEventListener = (type, listener) => listeners.set(type, listener);
+  vm.runInContext(section("function observeLibraryScrollSentinel(", "function ensureLibraryScrollSentinel("), c);
+  vm.runInContext("libraryScrollSentinel = {}", c);
+  c.observeLibraryScrollSentinel({});
+  assert.equal(roots[0], c.libraryGrid);
+  c.libraryGrid.scrollWidth = c.libraryGrid.clientWidth;
+  listeners.get("resize")();
+  assert.equal(roots[1], null);
+  assert.equal(disconnects, 1);
+  assert.equal(listeners.size, 2, "only one shared page-scroll and resize listener");
 });
 
 test("the last batch finishes with no extra requests", async () => {

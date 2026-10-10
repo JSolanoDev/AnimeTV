@@ -2400,12 +2400,18 @@ function observeLibraryScrollSentinel(sentinel) {
   if (!libraryFallbackScrollWired) {
     libraryFallbackScrollWired = true;
     let scrollFrame = 0;
-    libraryGrid.addEventListener("scroll", () => {
+    const checkNearEnd = () => {
       if (scrollFrame) return;
       scrollFrame = window.requestAnimationFrame(() => {
         scrollFrame = 0;
         requestNextLibraryBatch();
       });
+    };
+    libraryGrid.addEventListener("scroll", checkNearEnd, { passive: true });
+    window.addEventListener("scroll", checkNearEnd, { passive: true });
+    window.addEventListener("resize", () => {
+      if (libraryScrollSentinel) observeLibraryScrollSentinel(libraryScrollSentinel);
+      checkNearEnd();
     }, { passive: true });
   }
 }
@@ -2833,11 +2839,12 @@ async function loadAdultCatalog(force = false) {
     let cachedItems = readResponseCache(cacheKey, CATALOG_CACHE_TTL);
     if (!cachedItems?.length) cachedItems = await readDurableAdultCatalog(cacheKey);
     if (cachedItems?.length) applyAdultItems(cachedItems, `Cached ${adapter.name}`);
+    adapter.restoreCatalog?.(state.shows.filter((item) => item?.isAdult === true));
 
     try {
       const items = await adapter.listLatest(1, { refresh: force });
       const adultItems = applyAdultItems(items);
-      if (adultItems.length) {
+      if (adultItems.length && adapter.catalogRefreshComplete !== false) {
         adultCatalogLoadedAt = Date.now();
         const storedDurably = await writeDurableAdultCatalog(cacheKey, adultItems);
         if (!storedDurably) writeResponseCache(cacheKey, adultItems);
@@ -5116,7 +5123,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1012";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1013";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -24391,7 +24398,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1012");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1013");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

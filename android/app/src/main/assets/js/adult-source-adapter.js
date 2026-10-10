@@ -488,6 +488,16 @@ class CompositeAdultSourceAdapter extends AdultSourceAdapter {
     this._oceanCatalog = [];
     this._oceanTitleIndex = new Map();
     this._indexedOceanCatalog = null;
+    this._catalogsBySource = new Map();
+    this.catalogRefreshComplete = false;
+  }
+
+  restoreCatalog(items = []) {
+    for (const adapter of this.adapters) {
+      if (this._catalogsBySource.has(adapter)) continue;
+      const restored = items.filter((item) => item?.isAdult === true && item.adultSource === adapter.name);
+      if (restored.length) this._catalogsBySource.set(adapter, restored);
+    }
   }
 
   _titleKey(value = "") {
@@ -631,9 +641,21 @@ class CompositeAdultSourceAdapter extends AdultSourceAdapter {
 
   async listLatest(page = 1, options = {}) {
     const results = await Promise.allSettled(this.adapters.map((adapter) => adapter.listLatest(page, options)));
-    const primaryItems = results[0]?.status === "fulfilled" ? results[0].value : [];
+    // A failed provider must not replace its last good inventory with an empty list.
+    const catalogs = results.map((result, index) => {
+      const adapter = this.adapters[index];
+      if (result.status === "fulfilled" && Array.isArray(result.value) && result.value.length) {
+        this._catalogsBySource.set(adapter, result.value);
+        return result.value;
+      }
+      return this._catalogsBySource.get(adapter) || [];
+    });
+    this.catalogRefreshComplete = results.length > 0 && results.every((result) => (
+      result.status === "fulfilled" && Array.isArray(result.value) && result.value.length > 0
+    ));
+    const primaryItems = catalogs[0] || [];
     const oceanIndex = this.adapters.indexOf(this.hentaiOcean);
-    const oceanItems = oceanIndex >= 0 && results[oceanIndex]?.status === "fulfilled" ? results[oceanIndex].value : [];
+    const oceanItems = oceanIndex >= 0 ? catalogs[oceanIndex] || [] : [];
     if (!primaryItems.length && !oceanItems.length) {
       const message = results.map((result) => result.status === "rejected" ? result.reason?.message : "").find(Boolean);
       throw new Error(message || "Adult catalogs are unavailable");
