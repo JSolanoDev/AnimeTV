@@ -164,7 +164,7 @@ test("every JoJo selector entry keeps its exact episode range and original provi
   assert.equal(shows.find(s => s.anilistId === 131942).sourceEpisodeIds.length, 38);
 });
 
-test("fresh and cached JoJo release cards name the current batch without changing library cards", () => {
+test("Steel Ball Run release cards use absolute numbering while Stone Ocean keeps its batch", () => {
   const c = context();
   const shows = jojoCatalog(c);
   c.extractSeasonNumber = () => 1;
@@ -174,24 +174,24 @@ test("fresh and cached JoJo release cards name the current batch without changin
   const before = JSON.stringify(first);
   const card = c.jojoLatestReleaseCard({ ...first, episode: 4, _av1Episode: 4,
     _av1ProviderEpisode: 4, _av1Slug: "neutral-190327", lastEpisodeAt: "2026-10-09T12:30:00Z" });
-  assert.equal(card.anilistId, 210482);
-  assert.match(card.title, /2nd & 3rd/);
-  assert.equal(card._av1Episode, 3);
+  assert.equal(card.anilistId, 190327);
+  assert.match(card.title, /Steel Ball Run$/);
+  assert.equal(card._av1Episode, 4);
   assert.equal(card._av1ProviderEpisode, 4);
-  assert.equal(c.cardEpisodeNumber(card), 3);
+  assert.equal(c.cardEpisodeNumber(card), 4);
   assert.equal(c.getCardTarget(card).seasonNumber, 7);
-  assert.equal(c.getCardTarget(card).episodeNumber, 3);
-  assert.equal(c.resolveJojoOpenTarget(card, c.getCardTarget(card)), null);
-  assert.equal(c.jojoLatestReleaseCard(card)._av1Episode, 3, "repeated rendering is idempotent");
+  assert.equal(c.getCardTarget(card).episodeNumber, 4);
+  assert.equal(c.resolveJojoOpenTarget(card, c.getCardTarget(card)).target.episodeNumber, 4);
+  assert.equal(c.jojoLatestReleaseCard(card)._av1Episode, 4, "repeated rendering is idempotent");
   assert.equal(first.title, JSON.parse(before).title);
   assert.deepEqual(first.sourceEpisodeIds, JSON.parse(before).sourceEpisodeIds);
   assert.equal(c.getCardTarget(first).episodeNumber, 1);
   const next = c.jojoLatestReleaseCard({ ...card, episode: 5, _av1Episode: 5, _av1ProviderEpisode: 5 });
-  assert.equal(next._av1Episode, 4);
+  assert.equal(next._av1Episode, 5);
   assert.equal(next._av1ProviderEpisode, 5);
   const cached = c.jojoLatestReleaseCard({ ...first, episode: 4 });
-  assert.equal(cached.anilistId, 210482);
-  assert.equal(cached._av1Episode, 3);
+  assert.equal(cached.anilistId, 190327);
+  assert.equal(cached._av1Episode, 4);
   assert.equal(cached._av1ProviderEpisode, 4);
   const stone = c.jojoLatestReleaseCard({ ...shows[5], episode: 25, _av1ProviderEpisode: 25 });
   assert.equal(SeasonNormalization.jojoEntryScope(stone).partNumber, 3);
@@ -257,8 +257,8 @@ test("JoJo detail panels render the same scoped counts as their selectors withou
   assert.equal(c.getDetailSeasons(parts[1])[0].episodes[0].canonicalEpisode, 1);
   assert.equal(c.getDetailSeasons(parts[2])[0].episodes[0].providerAnimeSlug, "neutral-131942");
   assert.equal(shows[5].sourceEpisodeIds.length, 38);
-  assert.equal(c.getDetailSeasons(shows[7])[0].episodes.length, 1);
-  assert.equal(c.getDetailSeasons(shows[8])[0].episodes.length, 2);
+  assert.equal(c.getDetailSeasons(shows[7])[0].episodes.length, 3);
+  assert.equal(c.getDetailSeasons(shows[8])[0].episodes.length, 3);
 });
 
 test("legacy combined Stone Ocean watch links resolve to the correct batch and provider episode", () => {
@@ -283,11 +283,13 @@ test("legacy Steel Ball Run episode links and adjacent controls preserve the mea
   const shows = jojoCatalog(c);
   c.ensureFranchiseShowsInCatalog(shows[7]);
   for (const episode of [2, 3]) {
-    const resolved = c.resolveJojoOpenTarget(shows[7], { seasonNumber: 7, episodeNumber: episode });
-    assert.equal(resolved.target.seasonPart, 2);
+    const resolved = c.resolveJojoOpenTarget(shows[8], { seasonNumber: 7, seasonPart: 2, episodeNumber: episode - 1 });
+    assert.equal(resolved.show, shows[7]);
+    assert.equal(resolved.target.seasonPart, "");
     assert.equal(resolved.target.seasonNumber, 7);
-    assert.equal(resolved.target.episodeNumber, episode - 1);
-    assert.equal(c.getDetailSeasons(resolved.show)[0].episodes[episode - 2].providerEpisodeId, episode);
+    assert.equal(resolved.target.episodeNumber, episode);
+    assert.equal(c.getDetailSeasons(resolved.show)[0].episodes[episode - 1].providerEpisodeId, episode);
+    assert.equal(c.resolveJojoOpenTarget(shows[7], { seasonNumber: 7, episodeNumber: episode }), null);
   }
   vm.runInContext(section(clientSource, "function getEpisodeNavigationTargets(", "function renderPlayerEpisodeActions("), c);
   for (const show of [shows[7], shows[8]]) {
@@ -295,9 +297,10 @@ test("legacy Steel Ball Run episode links and adjacent controls preserve the mea
     c.state.activeShow = show;
     c.state.activeEpisode = { season, episode: season.episodes[0], seasonIndex: 0, episodeIndex: 0 };
     const nav = c.getEpisodeNavigationTargets();
-    const target = season.part === 1 ? nav.next : nav.previous;
-    assert.equal(target.seasonNumber, 7);
-    assert.equal(target.seasonPart, season.part === 1 ? 2 : 1);
+    assert.equal(nav.previous, null);
+    assert.equal(nav.next.episodeIndex, 1);
+    c.state.activeEpisode = { season, episode: season.episodes.at(-1), seasonIndex: 0, episodeIndex: season.episodes.length - 1 };
+    assert.equal(c.getEpisodeNavigationTargets().next, null, "no wrap back to another batch at the last release");
   }
 });
 
@@ -396,8 +399,8 @@ test("all JoJo arcs select the correct TMDB season, including both Stardust cour
     const anime = { ...entry, id: `anilist-${entry.anilistId}`, tmdbId: 45790, tmdbSeasons };
     assert.equal(c.resolver.pickTmdbSeason(anime, { seasons: tmdbSeasons }).season.season_number, scope.tmdbSeasonNumber);
     await c.resolver.ensureSeasonStills(anime, scope.seasonNumber, { ...entry, part: scope.partNumber, episodeCount: scope.count });
-    assert.equal(c.resolver.getSeasonEpisodeMeta(anime, scope.seasonNumber, 1).title, `Neutral ${scope.offset + 1}`);
-    assert.equal(Object.keys(anime.tmdbEpisodesBySeasonNum[scope.seasonNumber]).length, scope.count);
+    assert.equal(c.resolver.getSeasonEpisodeMeta(anime, scope.seasonNumber, 1).title, `Neutral ${scope.seasonNumber === 7 ? 1 : scope.offset + 1}`);
+    assert.equal(Object.keys(anime.tmdbEpisodesBySeasonNum[scope.seasonNumber]).length, scope.seasonNumber === 7 ? 12 : scope.count);
   }
 });
 
@@ -630,6 +633,107 @@ test("deep links match the exact season rather than a newer title prefix", () =>
   assert.equal(c.findShowBySlugOrId("shiguang-dailiren"), base);
 });
 
+test("Steel Ball Run has one Season 6 selector and four observed episodes on either title", () => {
+  const c = context();
+  const shows = jojoCatalog(c);
+  Object.assign(shows[7], { sourceEpisodeIds: [1, 2, 3, 4], sourceEpisodeCount: 4 });
+  const map = new Map(shows.map(show => [String(show.anilistId), show]));
+  vm.runInContext(section(clientSource, "function buildSeasonNav(", "function resetEpisodePanelScroll("), c);
+  vm.runInContext(section(clientSource, "function selectedSeasonIdentity(", "function normalizeDisplayText("), c);
+  for (const show of [shows[7], shows[8], shows[5]]) {
+    c.ensureFranchiseShowsInCatalog(show);
+    const raw = c.buildSeasonListFromBakedChain(show, map);
+    const list = c.combineSteelBallRunSeasonList(raw, show);
+    const steel = list.filter(season => season.season === 7);
+    assert.equal(steel.length, 1);
+    assert.equal(steel[0].title, "Season 6: Steel Ball Run");
+    assert.equal(steel[0].part, null);
+    assert.deepEqual(Array.from(steel[0].episodes, episode => episode.episode), [1, 2, 3, 4]);
+    assert.deepEqual(Array.from(list.filter(season => season.season === 6), season => season.episodes.length), [12, 12, 14]);
+    const nav = c.buildSeasonNav(show, c.getDetailSeasons(show), list);
+    assert.equal(nav.filter(entry => entry.label === "Season 6: Steel Ball Run").length, 1);
+    if (show !== shows[5]) {
+      assert.equal(nav.at(-1).isCurrent, true);
+      assert.deepEqual({ ...c.selectedSeasonIdentity(show) }, { seasonNumber: 7, seasonPart: "" });
+    }
+  }
+});
+
+test("the combined Steel Ball Run list preserves inventory holes and expands when a real release arrives", () => {
+  const c = context();
+  const shows = jojoCatalog(c);
+  Object.assign(shows[7], { sourceEpisodeIds: [1, 3, 4], sourceEpisodeCount: 4 });
+  assert.deepEqual(Array.from(c.getDetailSeasons(shows[8])[0].episodes, ep => ep.episode), [1, 3, 4]);
+  shows[7].sourceEpisodeIds.push(5);
+  shows[7].sourceEpisodeCount = 5;
+  assert.deepEqual(Array.from(c.getDetailSeasons(shows[7])[0].episodes, ep => ep.providerEpisodeId), [1, 3, 4, 5]);
+});
+
+test("legacy Steel Ball Run progress and links become absolute without overwriting newer saved positions", () => {
+  const c = context();
+  const shows = jojoCatalog(c);
+  const key = (show, season, episode) => `${show.id}:s${season}:e${episode}`;
+  const map = { [key(shows[8], 7, 3)]: { lastPosition: 123, progress: 10 } };
+  c.buildWatchKey = key;
+  c.getAnimeTrackId = show => show.id;
+  c.getWatchMap = () => map;
+  let writes = 0;
+  c.persistWatchMap = () => writes++;
+  const resolved = c.resolveJojoOpenTarget(shows[8], { seasonNumber: 7, seasonPart: 2, episodeNumber: 3 });
+  assert.equal(resolved.show, shows[7]);
+  assert.equal(resolved.target.episodeNumber, 4);
+  assert.equal(map[key(shows[7], 7, 4)].lastPosition, 123);
+  assert.equal(map[key(shows[8], 7, 3)].lastPosition, 123, "legacy data remains available");
+  map[key(shows[7], 7, 4)].lastPosition = 222;
+  assert.equal(c.resolveJojoOpenTarget(shows[7], { seasonNumber: 7, episodeNumber: 4 }), null);
+  assert.equal(map[key(shows[7], 7, 4)].lastPosition, 222);
+  assert.equal(writes, 1);
+  c.reconcileWatchMapSeasons = () => false;
+  c.isResumableWatchEntry = entry => !!entry.progress;
+  c.sanitizeWatchEntry = () => {};
+  vm.runInContext(section(clientSource, "function getContinueWatchingList(", "let _cwTimer ="), c);
+  assert.equal(c.getContinueWatchingList().length, 1, "a migrated episode does not appear twice in Continue Watching");
+  assert.equal(c.resolveJojoOpenTarget(shows[7], { seasonNumber: 7, seasonPart: 1, episodeNumber: 4 }).target.episodeNumber, 4);
+  assert.equal(c.resolveJojoOpenTarget(shows[8], { seasonNumber: 7, episodeNumber: 3 }).target.episodeNumber, 4);
+  assert.equal(c.resolveJojoOpenTarget(shows[8], {}).show, shows[7]);
+});
+
+test("separate Steel Ball Run source pages combine without changing their provider episode IDs", () => {
+  const c = context();
+  const shows = jojoCatalog(c);
+  Object.assign(shows[7], { sourceEpisodeIds: [1], sourceEpisodeCount: 1 });
+  Object.assign(shows[8], { id: "animeav1-neutral-stages", animeAv1Slug: "neutral-stages",
+    sourceInventoryChecked: true, sourceEpisodeIds: [1, 2, 3], sourceEpisodeCount: 3 });
+  const season = c.getDetailSeasons(shows[7])[0];
+  assert.deepEqual(Array.from(season.episodes, ep => ep.episode), [1, 2, 3, 4]);
+  assert.deepEqual(Array.from(season.episodes, ep => ep.providerEpisodeId), [1, 1, 2, 3]);
+  assert.equal(season.episodes[3].providerAnimeSlug, "neutral-stages");
+});
+
+test("combined Steel Ball Run metadata repairs old rebased titles and stills without repeated requests", async () => {
+  let requests = 0;
+  const c = context(async () => {
+    requests++;
+    return { ok: true, json: async () => ({ season: { episodes: Array.from({ length: 4 }, (_, i) => ({
+      episode_number: i + 1, name: `Neutral Stage ${i + 1}`, still_path: `/neutral-stage-${i + 1}.jpg`
+    })) } }) };
+  });
+  const shows = jojoCatalog(c);
+  Object.assign(shows[7], { sourceEpisodeIds: [1, 2, 3, 4], sourceEpisodeCount: 4 });
+  for (const show of [shows[7], shows[8]]) {
+    Object.assign(show, { tmdbId: 45790, tmdbSeasons: stoneOceanSeasons,
+      _tmdbEpisodeScope: "jojo:7:1:11", tmdbEpisodesByNum: { 1: { title: "Old rebased title" } } });
+    const season = c.getDetailSeasons(show)[0];
+    await c.resolver.ensureSeasonStills(show, 7, season);
+    assert.equal(c.resolver.getSeasonEpisodeMeta(show, 7, 4).title, "Neutral Stage 4");
+    assert.ok(c.resolver.getEpisodeStill(show, { episode: 4 }, 7).includes("neutral-stage-4.jpg"));
+    assert.equal(Object.keys(show.tmdbEpisodesBySeasonNum[7]).length, 4);
+    assert.equal(c.getDetailSeasons(show)[0].episodes.length, 4);
+    await c.resolver.ensureSeasonStills(show, 7, season);
+  }
+  assert.equal(requests, 2, "each identity requests metadata once, not on every render");
+});
+
 test("a fresh Steel Ball Run continuation URL never selects the premiere sharing its MAL ID", () => {
   const c = context();
   const routerSource = readFileSync(new URL("../js/router.js", import.meta.url), "utf8");
@@ -647,7 +751,7 @@ test("a fresh Steel Ball Run continuation URL never selects the premiere sharing
   assert.equal(continuation.malId, anchor.malId);
   assert.equal(SeasonNormalization.jojoEntryScope(continuation).partNumber, 2);
   const season = c.getDetailSeasons(continuation)[0];
-  assert.deepEqual(Array.from(season.episodes, episode => episode.providerEpisodeId), [2, 3, 4]);
+  assert.deepEqual(Array.from(season.episodes, episode => episode.providerEpisodeId), [1, 2, 3, 4]);
   assert.equal(c.findShowBySlugOrId(slug), continuation);
   assert.equal(c.findShowBySlugOrId(anchor.animeAv1Slug), anchor);
 });

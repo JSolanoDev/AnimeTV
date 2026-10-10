@@ -3719,6 +3719,18 @@ function jojoLatestReleaseCard(show) {
   if (!scope || ![6, 7].includes(scope.seasonNumber)) return show;
   const providerEpisodeId = parseEpisodeNumber(show._av1ProviderEpisode ?? show._av1Episode ?? show.episode);
   if (!(providerEpisodeId > scope.offset)) return show;
+  if (scope.seasonNumber === 7) {
+    const current = jojoPartShow(show, 1) || show;
+    return { ...show, ...current, routeSlug: getShowSlug(current),
+      title: "JoJo no Kimyou na Bouken: Steel Ball Run",
+      romajiTitle: "JoJo no Kimyou na Bouken: Steel Ball Run",
+      episode: providerEpisodeId, latestAiredEp: providerEpisodeId,
+      sourceEpisodeCount: providerEpisodeId,
+      _av1Episode: providerEpisodeId, _av1ProviderEpisode: providerEpisodeId,
+      _av1Slug: show._av1Slug || show.animeAv1Slug || "",
+      lastEpisodeAt: show.lastEpisodeAt || "",
+      canonicalSeasonNumber: 7, canonicalSeasonPart: null };
+  }
   const resolved = resolveJojoOpenTarget(show, { episodeNumber: providerEpisodeId - scope.offset,
     seasonNumber: scope.seasonNumber });
   const current = resolved?.show || show;
@@ -5104,7 +5116,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1010";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1011";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -10407,7 +10419,9 @@ async function openShow(id, target = {}) {
     show = jojoTarget.show;
     target = jojoTarget.target;
     if (target.skipHistory) {
-      appRouter()?.replace?.(episodePathForShow(show, target.seasonNumber, target.episodeNumber, target.seasonPart), { silent: true });
+      appRouter()?.replace?.(target.episodeNumber
+        ? episodePathForShow(show, target.seasonNumber, target.episodeNumber, target.seasonPart)
+        : animePathForShow(show), { silent: true });
       state.currentRouteInfo = appRouter()?.parsePath?.(location.pathname) || state.currentRouteInfo;
     }
   }
@@ -11528,6 +11542,9 @@ function resetVideoFrame(knownSeasons = null) {
 }
 
 function selectedSeasonIdentity(show = state.activeShow || {}, selected = state.activeEpisode, fallbackIndex = state.activeSeasonIndex) {
+  if (typeof SeasonNormalization !== "undefined" && SeasonNormalization.jojoEntryScope?.(show)?.seasonNumber === 7) {
+    return { seasonNumber: 7, seasonPart: "" };
+  }
   const season = selected?.season || {};
   const episode = selected?.episode || {};
   const showSeason = Number(show?.canonicalSeasonNumber);
@@ -11602,6 +11619,9 @@ function selectedSeasonIdentity(show = state.activeShow || {}, selected = state.
 function selectedSeasonLabel(selected = state.activeEpisode) {
   const season = selected?.season || {};
   const show = state.activeShow || {};
+  if (typeof SeasonNormalization !== "undefined" && SeasonNormalization.jojoEntryScope?.(show)?.seasonNumber === 7) {
+    return "Season 6: Steel Ball Run";
+  }
   const { seasonNumber, seasonPart } = selectedSeasonIdentity(show, selected);
   const canonicalLabel = `Season ${seasonNumber}${seasonPart ? ` Part ${seasonPart}` : ""}`;
   const normalizedTitle = String(show.normalizedSeasonTitle || "").trim();
@@ -11870,7 +11890,9 @@ function syncWatchHeading(show = state.activeShow, season = null, knownSeasons =
   if (!show) return;
   const seasons = Array.isArray(knownSeasons) ? knownSeasons : getDetailSeasons(show);
   const activeSeason = season || seasons[state.activeSeasonIndex] || seasons[0];
-  const title = getShowTitle(show) || "Selected anime";
+  const title = activeSeason?.jojoCombined
+    ? "JoJo no Kimyou na Bouken: Steel Ball Run"
+    : getShowTitle(show) || "Selected anime";
   const titleNode = document.querySelector("#watchTitle");
   const metaNode = document.querySelector("#watchMeta");
   if (titleNode) {
@@ -13636,7 +13658,7 @@ function getEpisodeNavigationTargets() {
 
   const jojoScope = typeof SeasonNormalization !== "undefined"
     ? SeasonNormalization.jojoEntryScope?.(state.activeShow) : null;
-  if ([6, 7].includes(jojoScope?.seasonNumber)) {
+  if (jojoScope?.seasonNumber === 6) {
     if (!previous) previous = jojoAdjacentPartTarget(state.activeShow, jojoScope.partNumber - 1, true);
     if (!next) next = jojoAdjacentPartTarget(state.activeShow, jojoScope.partNumber + 1);
   }
@@ -16861,6 +16883,7 @@ function getContinueWatchingList(limit = 20) {
   const map = getWatchMap();
   if (reconcileWatchMapSeasons(map)) persistWatchMap();
   const entries = Object.values(map)
+    .filter(entry => !entry?.jojoMergedInto || !map[entry.jojoMergedInto])
     .filter(isResumableWatchEntry)
     .sort((a, b) => (b.lastWatchedAt || 0) - (a.lastWatchedAt || 0))
     .slice(0, limit);
@@ -17252,6 +17275,39 @@ function resolveJojoOpenTarget(show, target = {}) {
   if (typeof SeasonNormalization === "undefined" || !SeasonNormalization.jojoEntryScope) return null;
   const scope = SeasonNormalization.jojoEntryScope(show);
   const episode = parseEpisodeNumber(target.episodeNumber);
+  if (scope?.seasonNumber === 7) {
+    ensureFranchiseShowsInCatalog(show);
+    const anchor = jojoPartShow(show, 1) || show;
+    const absolute = episode === null ? null
+      : episode + (Number(target.seasonPart) === 2 || (!target.seasonPart && scope.partNumber === 2) ? 1 : 0);
+    if (absolute !== null && (!Number.isInteger(absolute) || absolute < 1 || absolute > 12)) return null;
+    if (typeof getWatchMap === "function" && typeof buildWatchKey === "function") {
+      const map = getWatchMap();
+      let changed = false;
+      const legacy = jojoPartShow(show, 2);
+      if (legacy && legacy !== anchor) {
+        for (let number = 1; number <= 11; number++) {
+          const oldKey = buildWatchKey(legacy, 7, number);
+          const key = buildWatchKey(anchor, 7, number + 1);
+          if (map[oldKey] && !map[key]) {
+            map[key] = { ...map[oldKey], episodeKey: key, animeId: getAnimeTrackId(anchor),
+              showId: anchor.id, anilistId: anchor.anilistId, malId: anchor.malId,
+              title: "JoJo no Kimyou na Bouken: Steel Ball Run",
+              season: 7, episode: number + 1 };
+            changed = true;
+          }
+          if (map[oldKey] && map[key] && map[oldKey].jojoMergedInto !== key) {
+            map[oldKey].jojoMergedInto = key;
+            changed = true;
+          }
+        }
+      }
+      if (changed) persistWatchMap();
+    }
+    if (anchor === show && !target.seasonPart) return null;
+    return { show: anchor, target: { ...target, showRef: anchor, seasonNumber: 7,
+      seasonPart: "", ...(absolute !== null ? { episodeNumber: absolute } : {}) } };
+  }
   if (![6, 7].includes(scope?.seasonNumber) || !Number.isInteger(episode) || episode < 1) return null;
   const requestedPart = Number(target.seasonPart) || scope.partNumber;
   const offsets = scope.seasonNumber === 6 ? [0, 12, 24] : [0, 1];
@@ -17404,7 +17460,9 @@ function buildSeasonListFromBakedChain(show, showsMap) {
     } else if (combinedEpisodes.length) {
       episodes = combinedEpisodes;
     } else if (isCurrent) {
-      episodes = (getDetailSeasons(show) || []).flatMap((s) => s.episodes || []);
+      const rawDetail = typeof SeasonNormalization !== "undefined" && SeasonNormalization.jojoEntryScope?.(show)?.seasonNumber === 7
+        ? getProviderDetailSeasons(show) : getDetailSeasons(show);
+      episodes = (rawDetail || []).flatMap((s) => s.episodes || []);
     } else if (matched) {
       episodes = makePlaceholderEpisodes(matched, seasonNumber);
     } else if (Number(group.episodeCount || entry.episodes) > 0 && String(entry.status || "").toUpperCase() !== "NOT_YET_RELEASED") {
@@ -17471,6 +17529,23 @@ function buildSeasonListFromBakedChain(show, showsMap) {
   return list.some((s) => (s.episodes || []).length) ? list : null;
 }
 
+function combineSteelBallRunSeasonList(list, show) {
+  if (typeof SeasonNormalization === "undefined") return list;
+  const stages = list.filter(season => Number(season.season) === 7
+    && SeasonNormalization.jojoEntryScope?.(season)?.seasonNumber === 7);
+  if (!stages.length) return list;
+  const anchor = state.shows.find(row => {
+    const scope = SeasonNormalization.jojoEntryScope?.(row);
+    return scope?.seasonNumber === 7 && scope.partNumber === 1;
+  });
+  if (!anchor) return list;
+  const current = SeasonNormalization.jojoEntryScope?.(show)?.seasonNumber === 7;
+  const combined = { ...stages[0], ...getDetailSeasons(anchor)[0], id: anchor.id,
+    isCurrentShow: current, relatedShowId: current ? null : anchor.id, playable: true };
+  return list.flatMap(season => stages.includes(season)
+    ? (season === stages[0] ? [combined] : []) : [season]);
+}
+
 function getFranchiseSeasonList(show, alreadyEnsured = false) {
   // Materialize relation-backed entries before the map is built so every
   // selector row has a deterministic navigation target, even when the source's
@@ -17498,10 +17573,10 @@ function getFranchiseSeasonList(show, alreadyEnsured = false) {
     const live = buildSeasonListFromAniListFranchise(
       show, showsMap, getDetailSeasons, makePlaceholderEpisodes
     );
-    if (live && live.length > (baked ? baked.length : 0)) return live;
+    if (live && live.length > (baked ? baked.length : 0)) return combineSteelBallRunSeasonList(live, show);
   }
 
-  if (baked && baked.length > 1) return baked;
+  if (baked && baked.length > 1) return combineSteelBallRunSeasonList(baked, show);
 
   // ── No relation-based franchise available ────────────────────────────────
   // Do NOT group different shows just because they share a normalized title —
@@ -19442,6 +19517,7 @@ function getDetailSeasons(show) {
   const scope = typeof SeasonNormalization !== "undefined" ? SeasonNormalization.jojoEntryScope?.(show) : null;
   if (!scope) return getProviderDetailSeasons(show);
   let provider = show;
+  let continuation = null;
   if ([6, 7].includes(scope.seasonNumber)) {
     let cached = jojoDetailProviderCache.get(show);
     if (cached?.catalog !== state.shows) {
@@ -19449,11 +19525,37 @@ function getDetailSeasons(show) {
       const anchorMal = scope.seasonNumber === 6 ? 48661 : 61469;
       const anchor = state.shows.find(row => (String(row.anilistId) === anchorId || Number(row.malId) === anchorMal)
         && SeasonNormalization.jojoEntryScope(row)?.partNumber === 1);
-      cached = { catalog: state.shows, anchor };
+      const stageTwo = scope.seasonNumber === 7 ? state.shows.find(row => {
+        const rowScope = SeasonNormalization.jojoEntryScope(row);
+        return rowScope?.seasonNumber === 7 && rowScope.partNumber === 2 && !isSyntheticFranchiseRow(row);
+      }) : null;
+      cached = { catalog: state.shows, anchor, continuation: stageTwo };
       jojoDetailProviderCache.set(show, cached);
     }
     const map = new Map([[scope.seasonNumber === 6 ? "131942" : "190327", cached.anchor]]);
-    provider = jojoEpisodeProvider(show, show, map) || show;
+    provider = scope.seasonNumber === 7 ? (cached.anchor || show) : (jojoEpisodeProvider(show, show, map) || show);
+    continuation = cached.continuation;
+  }
+  if (scope.seasonNumber === 7) {
+    const byNumber = new Map();
+    // The provider's observed sequence is authoritative. Never expand it to the
+    // planned 12 episodes or fill holes while combining the display batches.
+    const rows = [...new Set([provider, continuation, show].filter(Boolean))];
+    for (const row of rows) {
+      if (isSyntheticFranchiseRow(row)) continue;
+      const rowScope = SeasonNormalization.jojoEntryScope(row);
+      for (const episode of getProviderDetailSeasons(row).flatMap(season => season.episodes || [])) {
+        const local = getCanonicalEpisodeNumber(episode);
+        const absolute = local + rowScope.offset;
+        if (!(absolute >= 1 && absolute <= 12) || byNumber.has(absolute)) continue;
+        byNumber.set(absolute, { ...episode, canonicalSeason: 7,
+          canonicalEpisode: absolute, displayEpisodeNumber: absolute, episode: absolute });
+      }
+    }
+    return [{ season: 7, canonicalSeasonNumber: 7, part: null, canonicalSeasonPart: null,
+      title: "Season 6: Steel Ball Run", sourceTitle: "JoJo no Kimyou na Bouken: Steel Ball Run", jojoCombined: true,
+      anilistId: provider.anilistId, malId: provider.malId,
+      episodes: [...byNumber.values()].sort((a, b) => a.episode - b.episode) }];
   }
   const seasons = getProviderDetailSeasons(provider);
   const episodes = SeasonNormalization.scopeJojoEpisodes(seasons.flatMap(season => season.episodes || []), show, provider);
@@ -24286,7 +24388,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1010");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1011");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
