@@ -630,6 +630,28 @@ test("deep links match the exact season rather than a newer title prefix", () =>
   assert.equal(c.findShowBySlugOrId("shiguang-dailiren"), base);
 });
 
+test("a fresh Steel Ball Run continuation URL never selects the premiere sharing its MAL ID", () => {
+  const c = context();
+  const routerSource = readFileSync(new URL("../js/router.js", import.meta.url), "utf8");
+  vm.runInContext(section(routerSource, "function slugify(", "function safeDecode("), c);
+  c.appRouter = () => ({ slugify: c.slugify });
+  const chain = jojoChain();
+  const anchor = { ...chain.find(entry => entry.anilistId === 190327),
+    id: "animeav1-steel-ball-run-jojo-no-kimyou-na-bouken",
+    animeAv1Slug: "steel-ball-run-jojo-no-kimyou-na-bouken", franchiseSeasons: chain,
+    sourceInventoryChecked: true, sourceEpisodeIds: [1, 2, 3, 4], sourceEpisodeCount: 4 };
+  c.state.shows = [anchor];
+  const slug = "jojo-no-kimyou-na-bouken-steel-ball-run-2nd-and-3rd-stage";
+  const continuation = c.findShowBySlugOrId(slug);
+  assert.equal(continuation.anilistId, 210482);
+  assert.equal(continuation.malId, anchor.malId);
+  assert.equal(SeasonNormalization.jojoEntryScope(continuation).partNumber, 2);
+  const season = c.getDetailSeasons(continuation)[0];
+  assert.deepEqual(Array.from(season.episodes, episode => episode.providerEpisodeId), [2, 3, 4]);
+  assert.equal(c.findShowBySlugOrId(slug), continuation);
+  assert.equal(c.findShowBySlugOrId(anchor.animeAv1Slug), anchor);
+});
+
 test("a bare number in a standalone title is not invented as a season", () => {
   const c = context();
   const [normalizedThunder] = SeasonNormalization.normalizeFranchise([{
