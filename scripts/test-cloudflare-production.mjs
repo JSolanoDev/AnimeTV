@@ -90,3 +90,13 @@ test("daily publishing checks current main, skips unchanged snapshots and record
   assert.ok(workflow.indexOf("check-cloudflare-hosted-readiness.mjs production") < workflow.indexOf("actions/cache/save@"));
   assert.doesNotMatch(workflow, /contents: write|pull_request|download-artifact|head_sha|ref: \$\{/);
 });
+
+test("catalog updates skip legacy Vercel hooks only while Cloudflare production is enabled", () => {
+  for (const file of ["scrape-catalog.yml", "refresh-latest-artwork.yml", "refresh-adult-catalog.yml"]) {
+    const workflow = readFileSync(".github/workflows/" + file, "utf8");
+    const hook = workflow.slice(workflow.search(/- name: Trigger (?:configured )?Vercel deploy hook/));
+    assert.match(hook, /if: steps\.commit-catalog\.outputs\.changes_detected == 'true' && vars\.CLOUDFLARE_PRODUCTION_ENABLED != 'true'/);
+    assert.match(hook, /secrets\.VERCEL_DEPLOY_HOOK_URL/);
+    assert.match(hook, /curl .*\"\$VERCEL_DEPLOY_HOOK_URL\"/);
+  }
+});

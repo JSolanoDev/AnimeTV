@@ -47,7 +47,7 @@ jobs:
           CATALOG_UPDATE_SCOPE: regular
         run: bash scripts/commit-catalog-update.sh
       - name: Trigger configured Vercel deploy hook
-        if: steps.commit-catalog.outputs.changes_detected == 'true'
+        if: steps.commit-catalog.outputs.changes_detected == 'true' && vars.CLOUDFLARE_PRODUCTION_ENABLED != 'true'
         env:
           VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
         run: |
