@@ -260,7 +260,9 @@ const ImageResolver = (function () {
       const jojo = typeof SeasonNormalization !== "undefined" ? SeasonNormalization.jojoEntryScope?.(entry) : null;
       if (jojo) {
         if (jojo.seasonNumber === 7) {
-          return { ...jojo, offset: 0, count: 12, key: "jojo:7:combined:12" };
+          const count = Math.max(12, Number(anime.sourceEpisodeCount) || 0,
+            ...(Array.isArray(seasonMeta?.episodes) ? seasonMeta.episodes : []).map(episode => Number(episode.episode) || 0));
+          return { ...jojo, offset: 0, count, key: `jojo:7:combined:${count}` };
         }
         let count = jojo.count;
         // AnimeAV1 also publishes the complete 38-episode arc on its original

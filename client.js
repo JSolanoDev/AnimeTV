@@ -5116,7 +5116,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1011";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1012";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -16807,6 +16807,9 @@ function isResumableWatchEntry(entry) {
 }
 
 function authoritativeWatchSeason(show = {}, savedSeason = 1) {
+  if (typeof SeasonNormalization !== "undefined" && SeasonNormalization.jojoEntryScope?.(show)?.seasonNumber === 7) {
+    return 7;
+  }
   const requested = Number(savedSeason) || 1;
   const seasonNumbers = [...new Set((Array.isArray(show.seasons) ? show.seasons : [])
     .map((season, index) => Number(
@@ -17280,7 +17283,7 @@ function resolveJojoOpenTarget(show, target = {}) {
     const anchor = jojoPartShow(show, 1) || show;
     const absolute = episode === null ? null
       : episode + (Number(target.seasonPart) === 2 || (!target.seasonPart && scope.partNumber === 2) ? 1 : 0);
-    if (absolute !== null && (!Number.isInteger(absolute) || absolute < 1 || absolute > 12)) return null;
+    if (absolute !== null && (!Number.isInteger(absolute) || absolute < 1 || absolute > 10000)) return null;
     if (typeof getWatchMap === "function" && typeof buildWatchKey === "function") {
       const map = getWatchMap();
       let changed = false;
@@ -19547,7 +19550,7 @@ function getDetailSeasons(show) {
       for (const episode of getProviderDetailSeasons(row).flatMap(season => season.episodes || [])) {
         const local = getCanonicalEpisodeNumber(episode);
         const absolute = local + rowScope.offset;
-        if (!(absolute >= 1 && absolute <= 12) || byNumber.has(absolute)) continue;
+        if (!(absolute >= 1 && absolute <= 10000) || byNumber.has(absolute)) continue;
         byNumber.set(absolute, { ...episode, canonicalSeason: 7,
           canonicalEpisode: absolute, displayEpisodeNumber: absolute, episode: absolute });
       }
@@ -24388,7 +24391,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1011");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1012");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

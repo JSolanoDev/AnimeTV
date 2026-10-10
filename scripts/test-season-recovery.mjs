@@ -667,6 +667,10 @@ test("the combined Steel Ball Run list preserves inventory holes and expands whe
   shows[7].sourceEpisodeIds.push(5);
   shows[7].sourceEpisodeCount = 5;
   assert.deepEqual(Array.from(c.getDetailSeasons(shows[7])[0].episodes, ep => ep.providerEpisodeId), [1, 3, 4, 5]);
+  shows[7].sourceEpisodeIds.push(13);
+  shows[7].sourceEpisodeCount = 13;
+  assert.deepEqual(Array.from(c.getDetailSeasons(shows[7])[0].episodes, ep => ep.providerEpisodeId), [1, 3, 4, 5, 13],
+    "observed future releases are not capped to an old planned total");
 });
 
 test("legacy Steel Ball Run progress and links become absolute without overwriting newer saved positions", () => {
@@ -696,6 +700,16 @@ test("legacy Steel Ball Run progress and links become absolute without overwriti
   assert.equal(c.resolveJojoOpenTarget(shows[7], { seasonNumber: 7, seasonPart: 1, episodeNumber: 4 }).target.episodeNumber, 4);
   assert.equal(c.resolveJojoOpenTarget(shows[8], { seasonNumber: 7, episodeNumber: 3 }).target.episodeNumber, 4);
   assert.equal(c.resolveJojoOpenTarget(shows[8], {}).show, shows[7]);
+});
+
+test("Steel Ball Run progress ignores a provider's Season 1 wrapper", () => {
+  const c = context();
+  const shows = jojoCatalog(c);
+  vm.runInContext(section(clientSource, "function authoritativeWatchSeason(", "// Catalog corrections"), c);
+  const anchor = { ...shows[7], seasons: [{ season: 1 }] };
+  assert.equal(c.authoritativeWatchSeason(anchor, 7), 7);
+  assert.equal(c.authoritativeWatchSeason(anchor, 1), 7);
+  assert.equal(c.authoritativeWatchSeason({ title: "Neutral series", seasons: [{ season: 1 }] }, 7), 1);
 });
 
 test("separate Steel Ball Run source pages combine without changing their provider episode IDs", () => {
