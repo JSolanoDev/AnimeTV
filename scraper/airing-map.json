@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-10T03:58:54.790Z",
-  "count": 6654,
+  "generatedAt": "2026-10-10T12:17:00.483Z",
+  "count": 6658,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -159,8 +159,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 9,
-      "lastEpisodeAt": "2026-10-02T03:06:56.383Z"
+      "sourceEpisodeCount": 10,
+      "lastEpisodeAt": "2026-10-09T03:09:01.178Z"
     },
     "animeav1-the-ribbon-hero": {
       "anilistId": 211308,
@@ -1391,8 +1391,8 @@
       "nextAiringAt": 1792162800000,
       "nextAiringEpisodeNumber": 15,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 13,
-      "lastEpisodeAt": "2026-10-02T16:48:28.956Z"
+      "sourceEpisodeCount": 14,
+      "lastEpisodeAt": "2026-10-09T16:41:54.237Z"
     },
     "animeav1-neko-to-ryuu": {
       "anilistId": 186863,
@@ -1591,8 +1591,8 @@
       "nextAiringAt": 1792077960000,
       "nextAiringEpisodeNumber": 16,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 14,
-      "lastEpisodeAt": "2026-10-01T16:45:47.661Z"
+      "sourceEpisodeCount": 15,
+      "lastEpisodeAt": "2026-10-08T16:17:26.086Z"
     },
     "animeav1-bang-dream-yumemita": {
       "anilistId": 198376,
@@ -3686,8 +3686,8 @@
           "order": 9
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-02T12:30:18.319Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-09T12:54:48.854Z"
     },
     "animeav1-beastars-final-season-part-2": {
       "anilistId": 187267,
@@ -18468,7 +18468,7 @@
           "anilistId": 176314,
           "title": "Sasaki to Pii-chan Season 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": 12,
           "season": "FALL",
           "seasonYear": 2026,
@@ -19415,7 +19415,7 @@
           "anilistId": 172192,
           "title": "Kikansha no Mahou wa Tokubetsu desu 2nd Season",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -24888,7 +24888,7 @@
           "anilistId": 212503,
           "title": "Hyouken no Majutsushi ga Sekai wo Suberu II",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -31499,8 +31499,8 @@
       "season": "WINTER",
       "seasonYear": 1996,
       "anilistEpisodeCount": 1205,
-      "nextAiringAt": 1791622800000,
-      "nextAiringEpisodeNumber": 1216,
+      "nextAiringAt": 1792227600000,
+      "nextAiringEpisodeNumber": 1217,
       "franchiseSeasons": [],
       "broadcastDay": "Saturdays",
       "broadcastTime": "18:00",
@@ -34676,8 +34676,8 @@
           "order": 9
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-02T12:30:18.319Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-09T12:54:48.854Z"
     },
     "anilist-185262": {
       "anilistId": 185262,
@@ -36997,8 +36997,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791554400000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792159200000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 161645,
@@ -37045,8 +37045,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-02T15:08:06.559Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-09T15:06:58.041Z"
     },
     "anilist-175409": {
       "anilistId": 175409,
@@ -39112,7 +39112,7 @@
           "anilistId": 172192,
           "title": "Kikansha no Mahou wa Tokubetsu desu 2nd Season",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -39123,12 +39123,12 @@
     },
     "anilist-172192": {
       "anilistId": 172192,
-      "airingStatus": "NOT_YET_RELEASED",
+      "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791387900000,
-      "nextAiringEpisodeNumber": 1,
+      "nextAiringAt": 1791992700000,
+      "nextAiringEpisodeNumber": 2,
       "franchiseSeasons": [
         {
           "anilistId": 163142,
@@ -39145,14 +39145,16 @@
           "anilistId": 172192,
           "title": "Kikansha no Mahou wa Tokubetsu desu 2nd Season",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
           "startedAt": 1791417600000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-07T18:18:52.592Z"
     },
     "anilist-130298": {
       "anilistId": 130298,
@@ -40945,8 +40947,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791387000000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1791991800000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 139587,
@@ -40971,8 +40973,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-09-30T19:57:49.334Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-07T19:02:49.344Z"
     },
     "anilist-139274": {
       "anilistId": 139274,
@@ -49275,7 +49277,7 @@
           "anilistId": 176314,
           "title": "Sasaki to Pii-chan Season 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": 12,
           "season": "FALL",
           "seasonYear": 2026,
@@ -49286,12 +49288,12 @@
     },
     "anilist-176314": {
       "anilistId": 176314,
-      "airingStatus": "NOT_YET_RELEASED",
+      "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791381600000,
-      "nextAiringEpisodeNumber": 1,
+      "nextAiringAt": 1791982800000,
+      "nextAiringEpisodeNumber": 2,
       "franchiseSeasons": [
         {
           "anilistId": 152682,
@@ -49308,14 +49310,16 @@
           "anilistId": 176314,
           "title": "Sasaki to Pii-chan Season 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": 12,
           "season": "FALL",
           "seasonYear": 2026,
           "startedAt": 1791331200000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-07T13:14:39.224Z"
     },
     "anilist-162780": {
       "anilistId": 162780,
@@ -52689,8 +52693,8 @@
       "season": "SUMMER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791514800000,
-      "nextAiringEpisodeNumber": 10,
+      "nextAiringAt": 1792119600000,
+      "nextAiringEpisodeNumber": 11,
       "franchiseSeasons": [
         {
           "anilistId": 126403,
@@ -52737,8 +52741,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 9,
-      "lastEpisodeAt": "2026-10-02T03:06:56.383Z"
+      "sourceEpisodeCount": 10,
+      "lastEpisodeAt": "2026-10-09T03:09:01.178Z"
     },
     "anilist-127399": {
       "anilistId": 127399,
@@ -53051,7 +53055,7 @@
           "anilistId": 212503,
           "title": "Hyouken no Majutsushi ga Sekai wo Suberu II",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -53062,12 +53066,12 @@
     },
     "anilist-212503": {
       "anilistId": 212503,
-      "airingStatus": "NOT_YET_RELEASED",
+      "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791476880000,
-      "nextAiringEpisodeNumber": 1,
+      "nextAiringAt": 1792081680000,
+      "nextAiringEpisodeNumber": 2,
       "franchiseSeasons": [
         {
           "anilistId": 148116,
@@ -53084,14 +53088,16 @@
           "anilistId": 212503,
           "title": "Hyouken no Majutsushi ga Sekai wo Suberu II",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
           "startedAt": 1791504000000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-08T17:22:21.062Z"
     },
     "anilist-107294": {
       "anilistId": 107294,
@@ -61487,6 +61493,17 @@
           "seasonYear": 2020,
           "startedAt": 1585872000000,
           "order": 5
+        },
+        {
+          "anilistId": 130253,
+          "title": "Beyblade Burst DB",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617321600000,
+          "order": 6
         }
       ]
     },
@@ -101224,39 +101241,6 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": []
     },
-    "animeav1-last-exile-ginyoku-no-fam-adjournment": {
-      "anilistId": 97,
-      "airingStatus": "FINISHED",
-      "season": "SPRING",
-      "seasonYear": 2003,
-      "anilistEpisodeCount": 26,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 97,
-          "title": "Last Exile",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 26,
-          "season": "SPRING",
-          "seasonYear": 2003,
-          "startedAt": 1049673600000,
-          "order": 1
-        },
-        {
-          "anilistId": 10336,
-          "title": "Last Exile: Ginyoku no Fam",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 21,
-          "season": "FALL",
-          "seasonYear": 2011,
-          "startedAt": 1318636800000,
-          "order": 2
-        }
-      ]
-    },
     "animeav1-lupin-iii-chi-no-kokuin-eien-no-mermaid": {
       "anilistId": 11777,
       "airingStatus": "FINISHED",
@@ -105142,6 +105126,16 @@
           "order": 3
         }
       ]
+    },
+    "animeav1-manyuu-hikenchou-specials": {
+      "anilistId": 10845,
+      "airingStatus": "FINISHED",
+      "season": "FALL",
+      "seasonYear": 2011,
+      "anilistEpisodeCount": 4,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
     },
     "animeav1-maji-de-watashi-ni-koi-shinasai": {
       "anilistId": 10213,
@@ -165953,7 +165947,9 @@
           "startedAt": 1791331200000,
           "order": 2
         }
-      ]
+      ],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-07T13:49:42.101Z"
     },
     "anilist-120120": {
       "anilistId": 120120,
@@ -170884,8 +170880,8 @@
       "nextAiringAt": 1792197000000,
       "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-03T02:12:03.129Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-10T01:16:26.345Z"
     },
     "animeav1-tougen-anki-nikko-kegon-no-taki-hen": {
       "anilistId": 204650,
@@ -170919,8 +170915,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-02T16:19:15.793Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-09T16:22:37.532Z"
     },
     "animeav1-kusuriya-no-hitorigoto-3rd-season": {
       "anilistId": 195516,
@@ -170976,8 +170972,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-02T15:08:06.559Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-09T15:06:58.041Z"
     },
     "animeav1-tokyo-revengers-santen-sensou-hen": {
       "anilistId": 178083,
@@ -170985,8 +170981,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1791564780000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792169580000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 120120,
@@ -171033,8 +171029,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-02T12:29:41.634Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-09T12:50:50.699Z"
     },
     "animeav1-koori-no-jouheki-2nd-season": {
       "anilistId": 213805,
@@ -171068,8 +171064,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-01T15:53:07.443Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-08T15:52:09.720Z"
     },
     "animeav1-fx-senshi-kurumi-chan": {
       "anilistId": 206401,
@@ -171080,8 +171076,8 @@
       "nextAiringAt": 1792067400000,
       "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-01T12:58:44.242Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-08T13:46:39.827Z"
     },
     "animeav1-shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen": {
       "anilistId": 199068,
@@ -171159,8 +171155,8 @@
           "order": 6
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-09-30T16:23:21.216Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-07T16:21:30.069Z"
     },
     "animeav1-tensei-shitara-ken-deshita-ii": {
       "anilistId": 159042,
@@ -171194,8 +171190,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-09-30T19:57:49.334Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-07T19:02:49.344Z"
     },
     "animeav1-mononoke-movie-3-hebigami": {
       "anilistId": 179874,
@@ -171282,8 +171278,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791471360000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792076160000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 186497,
@@ -171308,8 +171304,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-01T15:53:07.443Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-08T15:52:09.720Z"
     },
     "animeav1-gensou-suikoden": {
       "anilistId": 187316,
@@ -171317,8 +171313,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 23,
-      "nextAiringAt": 1791630000000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792234800000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-03T20:21:19.213Z"
@@ -171387,7 +171383,7 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1791584160000,
+      "nextAiringAt": 1791644400000,
       "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 2,
@@ -171446,8 +171442,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 20,
-      "nextAiringAt": 1791624300000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792229100000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-03T15:28:17.345Z"
@@ -171470,8 +171466,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791633600000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792238400000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-03T14:28:16.457Z"
@@ -174284,8 +174280,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 11,
-      "nextAiringAt": 1791532800000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1792137600000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [
         {
           "anilistId": 14719,
@@ -181375,8 +181371,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791556200000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792161000000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 177474,
@@ -181401,8 +181397,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-02T16:19:15.793Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-09T16:22:37.532Z"
     },
     "anilist-8795": {
       "anilistId": 8795,
@@ -186729,8 +186725,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791385200000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1791990000000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 11371,
@@ -186799,8 +186795,8 @@
           "order": 6
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-09-30T16:23:21.216Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-07T16:21:30.069Z"
     },
     "anilist-162984": {
       "anilistId": 162984,
@@ -191340,8 +191336,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1791564780000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792169580000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 120120,
@@ -191388,8 +191384,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-02T12:29:41.634Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-09T12:50:50.699Z"
     },
     "anilist-100745": {
       "anilistId": 100745,
@@ -199385,6 +199381,17 @@
           "seasonYear": 2020,
           "startedAt": 1585872000000,
           "order": 5
+        },
+        {
+          "anilistId": 130253,
+          "title": "Beyblade Burst DB",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617321600000,
+          "order": 6
         }
       ]
     },
@@ -199451,6 +199458,17 @@
           "seasonYear": 2020,
           "startedAt": 1585872000000,
           "order": 5
+        },
+        {
+          "anilistId": 130253,
+          "title": "Beyblade Burst DB",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617321600000,
+          "order": 6
         }
       ]
     },
@@ -238076,6 +238094,17 @@
           "seasonYear": 2020,
           "startedAt": 1585872000000,
           "order": 5
+        },
+        {
+          "anilistId": 130253,
+          "title": "Beyblade Burst DB",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617321600000,
+          "order": 6
         }
       ]
     },
@@ -239742,6 +239771,17 @@
           "seasonYear": 2020,
           "startedAt": 1585872000000,
           "order": 5
+        },
+        {
+          "anilistId": 130253,
+          "title": "Beyblade Burst DB",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617321600000,
+          "order": 6
         }
       ]
     },
@@ -240024,6 +240064,514 @@
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-06T16:02:57.781Z"
     },
+    "anilist-5968": {
+      "anilistId": 5968,
+      "airingStatus": "FINISHED",
+      "season": "WINTER",
+      "seasonYear": 2006,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 3272,
+          "title": "Kinnikuman",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 137,
+          "season": "SPRING",
+          "seasonYear": 1983,
+          "startedAt": 418176000000,
+          "order": 1
+        },
+        {
+          "anilistId": 3281,
+          "title": "Kinnikuman: Kinnikusei Oui Soudatsu-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 46,
+          "season": "FALL",
+          "seasonYear": 1991,
+          "startedAt": 686707200000,
+          "order": 2
+        },
+        {
+          "anilistId": 1707,
+          "title": "Kinnikuman Nisei",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "WINTER",
+          "seasonYear": 2002,
+          "startedAt": 1010534400000,
+          "order": 3
+        },
+        {
+          "anilistId": 5967,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SPRING",
+          "seasonYear": 2004,
+          "startedAt": 1081296000000,
+          "order": 4
+        },
+        {
+          "anilistId": 5968,
+          "title": "Kinnikuman II Sei: ULTIMATE MUSCLE 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2006,
+          "startedAt": 1136332800000,
+          "order": 5
+        },
+        {
+          "anilistId": 162796,
+          "title": "Kinnikuman: Kanpeki Choujin Shiso-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1720310400000,
+          "order": 6
+        },
+        {
+          "anilistId": 181886,
+          "title": "Kinnikuman: Kanpeki Choujin Shiso-hen Season 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 11,
+          "season": "WINTER",
+          "seasonYear": 2025,
+          "startedAt": 1736640000000,
+          "order": 7
+        },
+        {
+          "anilistId": 196893,
+          "title": "Kinnikuman: Kanpeki Choujin Shiso-hen Season 3",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 8
+        }
+      ]
+    },
+    "anilist-214536": {
+      "anilistId": 214536,
+      "airingStatus": "NOT_YET_RELEASED",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 3,
+      "nextAiringAt": 1794061800000,
+      "nextAiringEpisodeNumber": 1,
+      "franchiseSeasons": [
+        {
+          "anilistId": 121962,
+          "title": "Cardfight!! Vanguard: overDress",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617408000000,
+          "order": 1
+        },
+        {
+          "anilistId": 128827,
+          "title": "Cardfight!! Vanguard: overDress Season 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2021,
+          "startedAt": 1633392000000,
+          "order": 2
+        },
+        {
+          "anilistId": 139212,
+          "title": "Cardfight!! Vanguard: will+Dress",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2022,
+          "startedAt": 1656979200000,
+          "order": 3
+        },
+        {
+          "anilistId": 139213,
+          "title": "Cardfight!! Vanguard: will+Dress Season 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1673654400000,
+          "order": 4
+        },
+        {
+          "anilistId": 150970,
+          "title": "Cardfight!! Vanguard: will+Dress Season 3",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688774400000,
+          "order": 5
+        },
+        {
+          "anilistId": 164204,
+          "title": "Cardfight!! Vanguard: Divinez",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1705104000000,
+          "order": 6
+        },
+        {
+          "anilistId": 165681,
+          "title": "Cardfight!! Vanguard: Divinez Season 2",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1720224000000,
+          "order": 7
+        },
+        {
+          "anilistId": 182920,
+          "title": "Cardfight!! Vanguard: Divinez - Deluxe-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2025,
+          "startedAt": 1736553600000,
+          "order": 8
+        },
+        {
+          "anilistId": 191994,
+          "title": "Cardfight!! Vanguard: Divinez - Deluxe Kesshou-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2025,
+          "startedAt": 1751673600000,
+          "order": 9
+        },
+        {
+          "anilistId": 203296,
+          "title": "Cardfight!! Vanguard: Divinez - Genma Seisen-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1768003200000,
+          "order": 10
+        },
+        {
+          "anilistId": 214536,
+          "title": "Cardfight!! Vanguard Divinez Unmei Seisen-hen",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 3,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1794009600000,
+          "order": 11
+        }
+      ]
+    },
+    "anilist-116786": {
+      "anilistId": 116786,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2020,
+      "anilistEpisodeCount": 52,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 21236,
+          "title": "Beyblade Burst",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2016,
+          "startedAt": 1459728000000,
+          "order": 1
+        },
+        {
+          "anilistId": 98289,
+          "title": "Beyblade Burst God",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2017,
+          "startedAt": 1491177600000,
+          "order": 2
+        },
+        {
+          "anilistId": 101115,
+          "title": "Beyblade Burst Chouzetsu",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2018,
+          "startedAt": 1522627200000,
+          "order": 3
+        },
+        {
+          "anilistId": 108853,
+          "title": "Beyblade Burst Gachi",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554422400000,
+          "order": 4
+        },
+        {
+          "anilistId": 116786,
+          "title": "Beyblade Burst Sparking",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2020,
+          "startedAt": 1585872000000,
+          "order": 5
+        },
+        {
+          "anilistId": 130253,
+          "title": "Beyblade Burst DB",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617321600000,
+          "order": 6
+        }
+      ]
+    },
+    "animeav1-sasaki-to-pii-chan-season-2": {
+      "anilistId": 176314,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": 1791982800000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [
+        {
+          "anilistId": 152682,
+          "title": "Sasaki to Pii-chan",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1704412800000,
+          "order": 1
+        },
+        {
+          "anilistId": 176314,
+          "title": "Sasaki to Pii-chan Season 2",
+          "format": "TV",
+          "status": "RELEASING",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1791331200000,
+          "order": 2
+        }
+      ],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-07T13:14:39.224Z"
+    },
+    "animeav1-kikansha-no-mahou-wa-tokubetsu-desu-2nd-season": {
+      "anilistId": 172192,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": 1791992700000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [
+        {
+          "anilistId": 163142,
+          "title": "Kikansha no Mahou wa Tokubetsu desu",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2023,
+          "startedAt": 1696723200000,
+          "order": 1
+        },
+        {
+          "anilistId": 172192,
+          "title": "Kikansha no Mahou wa Tokubetsu desu 2nd Season",
+          "format": "TV",
+          "status": "RELEASING",
+          "episodes": null,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1791417600000,
+          "order": 2
+        }
+      ],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-07T18:18:52.592Z"
+    },
+    "animeav1-magic-knight-rayearth-2026": {
+      "anilistId": 178868,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": 1791989160000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-07T15:32:30.643Z"
+    },
+    "animeav1-sekai-saikyou-no-majo-hajimemashita": {
+      "anilistId": 211778,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": 1791982800000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-07T14:35:33.769Z"
+    },
+    "animeav1-tantei-wa-mou-shindeiru-season-2": {
+      "anilistId": 152677,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 13,
+      "nextAiringAt": 1791981000000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [
+        {
+          "anilistId": 128712,
+          "title": "Tantei wa mou, Shindeiru.",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2021,
+          "startedAt": 1625356800000,
+          "order": 1
+        },
+        {
+          "anilistId": 152677,
+          "title": "Tantei wa mou, Shindeiru. Season 2",
+          "format": "TV",
+          "status": "RELEASING",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1791331200000,
+          "order": 2
+        }
+      ],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-07T13:49:42.101Z"
+    },
+    "animeav1-tetsuryou-meet-with-tetsudou-musume": {
+      "anilistId": 199594,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": 1792076400000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-08T19:40:40.114Z"
+    },
+    "animeav1-hyouken-no-majutsushi-ga-sekai-wo-suberu-ii": {
+      "anilistId": 212503,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": 1792081680000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [
+        {
+          "anilistId": 148116,
+          "title": "Hyouken no Majutsushi ga Sekai wo Suberu",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1672963200000,
+          "order": 1
+        },
+        {
+          "anilistId": 212503,
+          "title": "Hyouken no Majutsushi ga Sekai wo Suberu II",
+          "format": "TV",
+          "status": "RELEASING",
+          "episodes": null,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1791504000000,
+          "order": 2
+        }
+      ],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-08T17:22:21.062Z"
+    },
+    "animeav1-hotaru-no-yomeiri": {
+      "anilistId": 205909,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": 1792161000000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-09T16:17:49.251Z"
+    },
+    "animeav1-toaru-anbu-no-item": {
+      "anilistId": 186742,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": 1792157400000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-09T15:45:38.721Z"
+    },
     "animeav1-battle-spirits-re-zekkai-no-kuu": {
       "anilistId": null,
       "airingStatus": "RELEASING",
@@ -240035,6 +240583,18 @@
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-06T15:13:45.235Z"
+    },
+    "animeav1-juuou-mujin-dandivine": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-07T17:23:18.768Z"
     },
     "animeav1-kimi-no-koto-ga-daidaidaidaidaisuki-na-100-nin-no-kanojo-3rd-season": {
       "anilistId": "mal-62811",
@@ -240567,69 +241127,6 @@
           "order": 3
         }
       ]
-    },
-    "animeav1-sasaki-to-pii-chan-season-2": {
-      "anilistId": 176314,
-      "airingStatus": "NOT_YET_RELEASED",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1791982800000,
-      "nextAiringEpisodeNumber": 2
-    },
-    "animeav1-tantei-wa-mou-shindeiru-season-2": {
-      "anilistId": 152677,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1791981000000,
-      "nextAiringEpisodeNumber": 2
-    },
-    "animeav1-kikansha-no-mahou-wa-tokubetsu-desu-2nd-season": {
-      "anilistId": 172192,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1791992700000,
-      "nextAiringEpisodeNumber": 2
-    },
-    "animeav1-magic-knight-rayearth-2026": {
-      "anilistId": 178868,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1791989160000,
-      "nextAiringEpisodeNumber": 2
-    },
-    "animeav1-sekai-saikyou-no-majo-hajimemashita": {
-      "anilistId": 211778,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1791982800000,
-      "nextAiringEpisodeNumber": 2
-    },
-    "animeav1-tetsuryou-meet-with-tetsudou-musume": {
-      "anilistId": 199594,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1792076400000,
-      "nextAiringEpisodeNumber": 2
-    },
-    "animeav1-hyouken-no-majutsushi-ga-sekai-wo-suberu-ii": {
-      "anilistId": 212503,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1792081680000,
-      "nextAiringEpisodeNumber": 2
-    },
-    "animeav1-toaru-anbu-no-item": {
-      "anilistId": 186742,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1792157400000,
-      "nextAiringEpisodeNumber": 2
-    },
-    "animeav1-hotaru-no-yomeiri": {
-      "anilistId": 205909,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1792161000000,
-      "nextAiringEpisodeNumber": 2
     }
   },
   "seasonArtwork": {
@@ -242007,6 +242504,10 @@
     },
     "anilist-210823": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx210823-ZORGfXut75bD.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-166876": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx166876-3jhqI99oyqet.jpg",
       "anilistBanner": ""
     },
     "anilist-31706": {
@@ -245725,12 +246226,8 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b121991-hwrVszteyodi.jpg",
       "anilistBanner": ""
     },
-    "anilist-1241": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1241.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1241-LgdUG14UXnZk.jpg"
-    },
     "anilist-183692": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx183692-0V7IiVQKCyMC.jpg",
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx183692-s7IeQgTDMkI5.jpg",
       "anilistBanner": ""
     },
     "anilist-189296": {
@@ -248387,6 +248884,10 @@
     },
     "anilist-125261": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx125261-Sh9fN2heZ1rm.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-218057": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx218057-PtZjGGHd4n3N.jpg",
       "anilistBanner": ""
     },
     "anilist-66719": {
@@ -252362,7 +252863,7 @@
       "anilistBanner": ""
     },
     "anilist-101": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx101-x3YmfrzYZ9kM.jpg",
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx101-8ugQ3UjUQ8Ki.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/101-svfB4pd7QpT5.jpg"
     },
     "anilist-656": {
@@ -253876,10 +254377,6 @@
     "anilist-97486": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx97486-wSl11UwfxrfL.jpg",
       "anilistBanner": ""
-    },
-    "anilist-116786": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx116786-ZIUM2E11AK0y.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/116786-pFUeB9WaAtJs.jpg"
     },
     "anilist-130253": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx130253-xGqNj5lKnuwN.png",
@@ -262265,6 +262762,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/11720.jpg",
       "anilistBanner": ""
     },
+    "anilist-1241": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1241.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1241-LgdUG14UXnZk.jpg"
+    },
     "anilist-2294": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b2294-zEmPJsCdhRKx.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/2294-g1dW9PAtKV8s.jpg"
@@ -263169,10 +263670,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx105655-Q8ZPRKOVtiwz.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/105655-3HdrCjJRkBjO.jpg"
     },
-    "anilist-60207": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/30207.jpg",
-      "anilistBanner": ""
-    },
     "anilist-1695": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1695-etz4t9yoXO19.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1695-f2BWoFWAhG27.jpg"
@@ -263421,6 +263918,22 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx20141-1VtZnvaHOHGl.jpg",
       "anilistBanner": ""
     },
+    "anilist-20461": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20461-YTSZiG163mi7.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20461-tlZVmmmb6SAd.jpg"
+    },
+    "anilist-53818": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b53818-Yp5TqFD56voA.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/53818-jWVmOMasChhc.jpg"
+    },
+    "anilist-30222": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30222-8jNgJix8ePVK.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30222-xLtdmDONrJD5.jpg"
+    },
+    "anilist-60207": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/30207.jpg",
+      "anilistBanner": ""
+    },
     "anilist-149": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx149-6QGLHgJc8gum.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/149-1ObNHNwgBy8H.jpg"
@@ -263512,18 +264025,6 @@
     "anilist-1437": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1437-0oQS3aiiyyp7.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1437-4x3umb48Bogs.jpg"
-    },
-    "anilist-20461": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20461-YTSZiG163mi7.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20461-tlZVmmmb6SAd.jpg"
-    },
-    "anilist-53818": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b53818-Yp5TqFD56voA.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/53818-jWVmOMasChhc.jpg"
-    },
-    "anilist-30222": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30222-8jNgJix8ePVK.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30222-xLtdmDONrJD5.jpg"
     },
     "anilist-20914": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20914-Ib3EeuXWmNLi.jpg",
@@ -264313,21 +264814,13 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/17328.jpg",
       "anilistBanner": ""
     },
-    "anilist-10465": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx10465-8T6TfRIJTgPt.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/10465-IXOMlltvhIGr.jpg"
-    },
-    "anilist-36784": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/6784.jpg",
-      "anilistBanner": ""
-    },
     "anilist-10845": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/10845.jpg",
       "anilistBanner": ""
     },
-    "anilist-12239": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/12239.jpg",
-      "anilistBanner": ""
+    "anilist-10465": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx10465-8T6TfRIJTgPt.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/10465-IXOMlltvhIGr.jpg"
     },
     "anilist-67419": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx67419-X3Xbi4nPXG2f.jpg",
@@ -264601,6 +265094,14 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx51860-SXYbTnLRQK73.jpg",
       "anilistBanner": ""
     },
+    "anilist-36784": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/6784.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-12239": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/12239.jpg",
+      "anilistBanner": ""
+    },
     "anilist-10721": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx10721-lNEbDPX24qzn.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/10721-tN8SLwirGDAB.jpg"
@@ -264721,10 +265222,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx3991-qb67k1GY2TSy.png",
       "anilistBanner": ""
     },
-    "anilist-30423": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30423-7ww41wrOMamK.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30423-P1KQMsAlvlTR.jpg"
-    },
     "anilist-55144": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/25144.jpg",
       "anilistBanner": ""
@@ -264812,6 +265309,10 @@
     "anilist-38442": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx38442-mbRfHqMn5JRG.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/38442-cepB2ueFcix2.jpg"
+    },
+    "anilist-30423": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30423-7ww41wrOMamK.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30423-P1KQMsAlvlTR.jpg"
     },
     "anilist-585": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx585-5uq7j2xNNVmN.jpg",
@@ -264941,10 +265442,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/4406.jpg",
       "anilistBanner": ""
     },
-    "anilist-6209": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx6209-rDvY827POOpj.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/6209-6W6bWzPRgXiv.jpg"
-    },
     "anilist-512": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx512-UwP8X4BR8YoM.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/512-Ssp3EE2NdeoA.jpg"
@@ -264976,6 +265473,10 @@
     "anilist-48385": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx48385-KXxOX3BQ7bUx.jpg",
       "anilistBanner": ""
+    },
+    "anilist-6209": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx6209-rDvY827POOpj.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/6209-6W6bWzPRgXiv.jpg"
     },
     "anilist-143426": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx143426-1sizsZUe0mFO.jpg",
@@ -265036,14 +265537,6 @@
     "anilist-113924": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx113924-hhZAXZAsOenJ.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/113924-CG361WQZC78w.jpg"
-    },
-    "anilist-106239": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx106239-fWKPmljR8dIB.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/106239-lct2vuB2d5KF.jpg"
-    },
-    "anilist-99594": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx99594-BsVOvpEYeYby.png",
-      "anilistBanner": ""
     },
     "anilist-86994": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86994-dD2VeOMADGhC.png",
@@ -265124,10 +265617,6 @@
     "anilist-131047": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx131047-2wIT4jn2jOIM.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/131047-VisIPNE4Wr6w.jpg"
-    },
-    "anilist-21585": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21585-7JLUZe4iooea.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/21585-FQ1QWbVdXzPF.jpg"
     },
     "anilist-86693": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86693-pnTuR9rpJuRI.png",
@@ -265269,6 +265758,14 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx88203-8oEIA4nmMCkV.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/88203-lc7DYn0aogEI.jpg"
     },
+    "anilist-106239": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx106239-fWKPmljR8dIB.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/106239-lct2vuB2d5KF.jpg"
+    },
+    "anilist-99594": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx99594-BsVOvpEYeYby.png",
+      "anilistBanner": ""
+    },
     "anilist-13093": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx13093-zPk93tzXlDA8.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/13093-sbVWHoUdDVT6.jpg"
@@ -265373,6 +265870,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20478-CLBOf5ao3dWK.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20478-bo07YIxFXD6e.jpg"
     },
+    "anilist-21585": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21585-7JLUZe4iooea.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/21585-FQ1QWbVdXzPF.jpg"
+    },
     "anilist-21104": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21104-uG9LZiOYJST2.jpg",
       "anilistBanner": ""
@@ -265399,10 +265900,6 @@
     },
     "anilist-20942": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/20942.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-33728": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/3728.jpg",
       "anilistBanner": ""
     },
     "anilist-30419": {
@@ -265439,6 +265936,10 @@
     },
     "anilist-45469": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx45469-BPI2UbsreeOY.png",
+      "anilistBanner": ""
+    },
+    "anilist-33728": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/3728.jpg",
       "anilistBanner": ""
     },
     "anilist-35664": {
@@ -265673,14 +266174,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/6187.jpg",
       "anilistBanner": ""
     },
-    "anilist-143080": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx143080-T5jgumGJBbNa.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-128547": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx128547-nNekWTKqmvEi.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/128547-aVWJmZz9dwJJ.jpg"
-    },
     "anilist-143747": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx143747-dxRIq37Odflm.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/143747-ONZgF38x7N1f.jpg"
@@ -265692,14 +266185,6 @@
     "anilist-98831": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx98831-QIJ0WBteK6uR.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/98831-CPoWYOvfyvqH.jpg"
-    },
-    "anilist-98873": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx98873-XAcxAF1rXuyM.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-101098": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/101098-1cOz8WyzC0Yi.jpg",
-      "anilistBanner": ""
     },
     "anilist-99698": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx99698-5k8bDkhcJx9B.jpg",
@@ -265801,9 +266286,17 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx114015-oeAn8qu2UX6A.jpg",
       "anilistBanner": ""
     },
+    "anilist-128547": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx128547-nNekWTKqmvEi.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/128547-aVWJmZz9dwJJ.jpg"
+    },
     "anilist-128564": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx128564-TOB0GlDMx2xe.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/128564-ZHkTRNenJkRn.jpg"
+    },
+    "anilist-143080": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx143080-T5jgumGJBbNa.jpg",
+      "anilistBanner": ""
     },
     "anilist-158676": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx158676-7L3dRZ1FYvIz.png",
@@ -265812,14 +266305,6 @@
     "anilist-177173": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx177173-OX9mPiT1Jdqq.jpg",
       "anilistBanner": ""
-    },
-    "anilist-20720": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20720-R6P0akaKRhan.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20720-GIzcSmO9cT4C.jpg"
-    },
-    "anilist-81475": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx81475-tMcM7vYVmgYS.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/81475-g6Hbens35aN0.jpg"
     },
     "anilist-20771": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20771-sh0k9VAB3Df8.jpg",
@@ -265851,6 +266336,10 @@
     },
     "anilist-87489": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/87489-rizr4yabatdV.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-98873": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx98873-XAcxAF1rXuyM.jpg",
       "anilistBanner": ""
     },
     "anilist-166035": {
@@ -265937,13 +266426,9 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx87067-BZUYJVC3Gw4a.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/57067-1u6Rlg7kR4tP.jpg"
     },
-    "anilist-5040": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx5040-9ruuekq2LZKJ.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/5040-DGZoPmQP7bV9.jpg"
-    },
-    "anilist-41327": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx41327-ayO3EwG9Hcgk.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/41327-G1TM7cFGIddd.jpg"
+    "anilist-101098": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/101098-1cOz8WyzC0Yi.jpg",
+      "anilistBanner": ""
     },
     "anilist-5341": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx5341-gyp5OZ1NYPxi.jpg",
@@ -266069,6 +266554,14 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/99643-LGskotVgKg8g.jpg",
       "anilistBanner": ""
     },
+    "anilist-20720": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20720-R6P0akaKRhan.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20720-GIzcSmO9cT4C.jpg"
+    },
+    "anilist-81475": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx81475-tMcM7vYVmgYS.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/81475-g6Hbens35aN0.jpg"
+    },
     "anilist-195": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx195-0qMiRJbg60Tc.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/195-bJP2XyNS08sG.jpg"
@@ -266149,18 +266642,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b30470-aTXdhz84EVnR.jpg",
       "anilistBanner": ""
     },
-    "anilist-785": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx785-aaH0guDvFr2o.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/785-0NImIvpjPOCn.jpg"
-    },
-    "anilist-2724": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx2724-q3BwS59924IV.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/2724-2hSomR12fveU.jpg"
-    },
-    "anilist-121664": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx121664-W0B2xLXXNxpj.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/121664-pC5VqgwWHrhq.jpg"
-    },
     "anilist-853": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx853-fiUtW8yohsSF.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/853-03VYT300hMaf.jpg"
@@ -266196,6 +266677,26 @@
     "anilist-33299": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx33299-nUzvmDAp3fvA.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/33299-QwtgsfI9CtnO.jpg"
+    },
+    "anilist-5040": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx5040-9ruuekq2LZKJ.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/5040-DGZoPmQP7bV9.jpg"
+    },
+    "anilist-41327": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx41327-ayO3EwG9Hcgk.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/41327-G1TM7cFGIddd.jpg"
+    },
+    "anilist-785": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx785-aaH0guDvFr2o.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/785-0NImIvpjPOCn.jpg"
+    },
+    "anilist-2724": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx2724-q3BwS59924IV.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/2724-2hSomR12fveU.jpg"
+    },
+    "anilist-121664": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx121664-W0B2xLXXNxpj.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/121664-pC5VqgwWHrhq.jpg"
     },
     "anilist-795": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx795-HJhtGq0Hql2r.jpg",
@@ -266253,6 +266754,14 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx135255-dDgl35U2UhvV.png",
       "anilistBanner": ""
     },
+    "anilist-32895": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx32895-UuiBOroOpyu2.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/32895-EvQANNmKSwPs.jpg"
+    },
+    "anilist-104382": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx104382-uUSwPWXZ8f8n.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/104382-5TpwI416Oe6r.jpg"
+    },
     "anilist-102649": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx102649-gfShc1x0QQZv.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/102649-lvR5uPAGUAq6.jpg"
@@ -266260,14 +266769,6 @@
     "anilist-105321": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx105321-xtIwn85cglAE.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/105321-CZ8ndATI1H1m.jpg"
-    },
-    "anilist-104382": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx104382-uUSwPWXZ8f8n.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/104382-5TpwI416Oe6r.jpg"
-    },
-    "anilist-32895": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx32895-UuiBOroOpyu2.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/32895-EvQANNmKSwPs.jpg"
     },
     "anilist-123911": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx123911-FSHNeQVvRhTY.jpg",
@@ -266348,26 +266849,6 @@
     "anilist-171026": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx171026-vGW0uvrXjrxn.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/171026-vqC1SfOtSfgW.jpg"
-    },
-    "anilist-17901": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/17901.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-74933": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx74933-CCBZrsqS8fPb.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-85603": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85603-X8amXimYb0rV.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-85602": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85602-zKlusZS1YRB3.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-86120": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86120-EPKKx5OmnYoz.jpg",
-      "anilistBanner": ""
     },
     "anilist-14407": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b14407-MgkKNW85qOot.png",
@@ -266532,22 +267013,6 @@
     "anilist-101732": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx101732-tJ4bZuppLBz9.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/101732-IumEEevHT2AJ.jpg"
-    },
-    "anilist-161": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx161-oa4X4lL0KUO4.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/161-YdvXIXaeQ4x3.jpg"
-    },
-    "anilist-30474": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30474-B2taXTO4Q03I.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30474-hnsuHSusYnPx.jpg"
-    },
-    "anilist-9568": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/9568.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-21770": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx21770-GgEnnkspM7gW.jpg",
-      "anilistBanner": ""
     },
     "anilist-30029": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx30029-yQdvHqd3GxKy.jpg",
@@ -266733,6 +267198,42 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx52634-qmXiHNaSLpff.jpg",
       "anilistBanner": ""
     },
+    "anilist-17901": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/17901.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-74933": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx74933-CCBZrsqS8fPb.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-85603": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85603-X8amXimYb0rV.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-85602": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85602-zKlusZS1YRB3.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-86120": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86120-EPKKx5OmnYoz.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-161": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx161-oa4X4lL0KUO4.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/161-YdvXIXaeQ4x3.jpg"
+    },
+    "anilist-30474": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30474-B2taXTO4Q03I.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30474-hnsuHSusYnPx.jpg"
+    },
+    "anilist-9568": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/9568.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-21770": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx21770-GgEnnkspM7gW.jpg",
+      "anilistBanner": ""
+    },
     "anilist-162": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx162-mYmCcLeO1QQh.jpg",
       "anilistBanner": ""
@@ -266889,18 +267390,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b118566-HFopq3w68sJJ.jpg",
       "anilistBanner": ""
     },
-    "anilist-111501": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx111501-qZgcR8eb86t3.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/111501-UiK9ho96bkt5.jpg"
-    },
-    "anilist-99757": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx99757-daVTRPuOz1LM.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/99757-XFI5EbYkpiQq.jpg"
-    },
-    "anilist-116328": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx116328-8A0lsY232bTF.png",
-      "anilistBanner": ""
-    },
     "anilist-87377": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx87377-OsXotXwZAOed.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/57377-wICCce31n1Ru.jpg"
@@ -266928,18 +267417,6 @@
     "anilist-157330": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx157330-Ow09pWu8lqCT.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/157330-aj6Wx9iSvuaV.jpg"
-    },
-    "anilist-14921": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx14921-w925e6kTfEHW.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/14921-YoziBkziGU4B.jpg"
-    },
-    "anilist-71259": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/41259.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-75605": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/45605.jpg",
-      "anilistBanner": ""
     },
     "anilist-54600": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b54600-H69FH7BKSJDm.jpg",
@@ -267085,6 +267562,18 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx87424-MwVs98CXUrkG.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/57424-EFNbCRa5t1uL.png"
     },
+    "anilist-111501": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx111501-qZgcR8eb86t3.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/111501-UiK9ho96bkt5.jpg"
+    },
+    "anilist-99757": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx99757-daVTRPuOz1LM.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/99757-XFI5EbYkpiQq.jpg"
+    },
+    "anilist-116328": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx116328-8A0lsY232bTF.png",
+      "anilistBanner": ""
+    },
     "anilist-30098": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30098-1DhP1TF05Lct.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30098-nY92YErhXid3.jpg"
@@ -267116,10 +267605,6 @@
     "anilist-47273": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/17273.jpg",
       "anilistBanner": ""
-    },
-    "anilist-758": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx758-R2tugDULnRIL.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/758-gitj1FyEi2uo.jpg"
     },
     "anilist-941": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx941-uYoRI1jr2su7.jpg",
@@ -267201,6 +267686,18 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx65063-pF9aKDlXKbG4.jpg",
       "anilistBanner": ""
     },
+    "anilist-14921": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx14921-w925e6kTfEHW.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/14921-YoziBkziGU4B.jpg"
+    },
+    "anilist-71259": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/41259.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-75605": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/45605.jpg",
+      "anilistBanner": ""
+    },
     "anilist-46": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx46-Steq4sQpA6fq.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n46-xV61YAKDm0lT.jpg"
@@ -267220,6 +267717,10 @@
     "anilist-6591": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/6591.jpg",
       "anilistBanner": ""
+    },
+    "anilist-758": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx758-R2tugDULnRIL.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/758-gitj1FyEi2uo.jpg"
     },
     "anilist-30216": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b30216-RHCz99iFEtO7.jpg",
@@ -267288,10 +267789,6 @@
     "anilist-109946": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx109946-S05QNnNplFV2.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/109946-kqAu0lDwwJJY.jpg"
-    },
-    "anilist-82277": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx82277-EPd5PzBLSI5h.jpg",
-      "anilistBanner": ""
     },
     "anilist-129191": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx129191-F80AgCUP79yE.jpg",
@@ -267384,10 +267881,6 @@
     "anilist-91462": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx91462-E9dkFnZi7u0J.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/91462-AmdEmQRQviZk.jpg"
-    },
-    "anilist-110458": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx110458-Fnh88lYo5pfl.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/110458-qXLCQ16XUVRu.jpg"
     },
     "anilist-101069": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx101069-e04lKe3gvSQc.jpg",
@@ -267484,6 +267977,10 @@
     "anilist-56491": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx56491-83Fl9147NiJi.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/56491-6E6eVxx1MBhJ.jpg"
+    },
+    "anilist-82277": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx82277-EPd5PzBLSI5h.jpg",
+      "anilistBanner": ""
     },
     "anilist-129369": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx129369-OR72Z04iJL3W.png",
@@ -267665,6 +268162,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx51479-ufMREP6e1UkT.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/51479-rSGTfYTJfLfA.jpg"
     },
+    "anilist-110458": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx110458-Fnh88lYo5pfl.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/110458-qXLCQ16XUVRu.jpg"
+    },
     "anilist-111500": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx111500-YqqWk16db7FX.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/111500-p0hOAFSghFKQ.jpg"
@@ -267720,18 +268221,6 @@
     "anilist-44978": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx44978-64jpzqGsVVn7.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/44978-aVajaC6XIpHm.jpg"
-    },
-    "anilist-97903": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx97903-x34aD15XP8hZ.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/97903-huMVMwgTMani.png"
-    },
-    "anilist-109891": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx109891-2T8kpkBHo1PL.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-110751": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx110751-Yy8E0zLj2EXb.jpg",
-      "anilistBanner": ""
     },
     "anilist-97984": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx97984-6xwATnrownC5.jpg",
@@ -267953,18 +268442,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21508-oPCi7pDPJAU2.png",
       "anilistBanner": ""
     },
-    "anilist-20910": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20910-U7txwG3o9gma.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20910-QoDcFgTDAeRE.jpg"
-    },
-    "anilist-86319": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86319-3lrt0dBFAjBs.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-86320": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86320-pJQR731ji9OB.jpg",
-      "anilistBanner": ""
-    },
     "anilist-56704": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx56704-ZofbsbuLTByN.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/56704-O01i4qfbtfk3.jpg"
@@ -268089,6 +268566,18 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx89234-hzab4bZKk7Qc.jpg",
       "anilistBanner": ""
     },
+    "anilist-97903": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx97903-x34aD15XP8hZ.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/97903-huMVMwgTMani.png"
+    },
+    "anilist-109891": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx109891-2T8kpkBHo1PL.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-110751": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx110751-Yy8E0zLj2EXb.jpg",
+      "anilistBanner": ""
+    },
     "anilist-12783": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx12783-xWgKouYg3i2u.jpg",
       "anilistBanner": ""
@@ -268096,14 +268585,6 @@
     "anilist-112303": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx112303-KKwnJEYjGpoI.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/112303-RKfpzBAnCDsJ.jpg"
-    },
-    "anilist-43723": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx43723-FWCBxAMFZhWq.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/43723-CDrbpgyLBsRm.jpg"
-    },
-    "anilist-21154": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21154-yYGNC8yFxM5l.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/21154-v7ABJoOvh1Yc.jpg"
     },
     "anilist-20449": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20449-6Ub6v2RHvern.png",
@@ -268193,6 +268674,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx200007-KaieSyjpTC8I.jpg",
       "anilistBanner": ""
     },
+    "anilist-43723": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx43723-FWCBxAMFZhWq.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/43723-CDrbpgyLBsRm.jpg"
+    },
     "anilist-85199": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85199-IzuYa59zXTBN.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/85199-zQzwTAYKL9sS.jpg"
@@ -268225,6 +268710,18 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b121755-hfhVCCTZzoSL.jpg",
       "anilistBanner": ""
     },
+    "anilist-20910": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20910-U7txwG3o9gma.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20910-QoDcFgTDAeRE.jpg"
+    },
+    "anilist-86319": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86319-3lrt0dBFAjBs.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-86320": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86320-pJQR731ji9OB.jpg",
+      "anilistBanner": ""
+    },
     "anilist-21691": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21691-9RejHe6U6vLK.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/21691-P13udQMgCQWs.jpg"
@@ -268239,18 +268736,6 @@
     },
     "anilist-21129": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/21129-0wokSF6mHpaT.png",
-      "anilistBanner": ""
-    },
-    "anilist-42243": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/12243.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-15963": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/15963.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-127676": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx127676-c6q8DNRqgdI4.jpg",
       "anilistBanner": ""
     },
     "anilist-12477": {
@@ -268283,6 +268768,14 @@
     },
     "anilist-20452": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20452-xhFSfxfGQu4E.png",
+      "anilistBanner": ""
+    },
+    "anilist-15963": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/15963.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-127676": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx127676-c6q8DNRqgdI4.jpg",
       "anilistBanner": ""
     },
     "anilist-59859": {
@@ -268344,6 +268837,10 @@
     "anilist-86395": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx86395-1MWiUajolIgP.jpg",
       "anilistBanner": ""
+    },
+    "anilist-21154": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21154-yYGNC8yFxM5l.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/21154-v7ABJoOvh1Yc.jpg"
     },
     "anilist-20895": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx20895-twb9qIBXCjMg.png",
@@ -268515,6 +269012,10 @@
     },
     "anilist-15015": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/15015.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-42243": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/12243.jpg",
       "anilistBanner": ""
     },
     "anilist-97610": {
@@ -268721,10 +269222,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx33486-Csp6kwFggFCt.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/n33486-Rlp00KdDbDuv.jpg"
     },
-    "anilist-7759": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx7759-x6omT5iAMElr.jpg",
-      "anilistBanner": ""
-    },
     "anilist-15095": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/15095.jpg",
       "anilistBanner": ""
@@ -268817,10 +269314,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b169678-pkgro0SeXYuL.jpg",
       "anilistBanner": ""
     },
-    "anilist-3759": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/3759.jpg",
-      "anilistBanner": ""
-    },
     "anilist-38876": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx38876-5dButi7yaXs3.jpg",
       "anilistBanner": ""
@@ -268903,6 +269396,10 @@
     },
     "anilist-150095": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx150095-oj2HcT8utsTp.png",
+      "anilistBanner": ""
+    },
+    "anilist-7759": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx7759-x6omT5iAMElr.jpg",
       "anilistBanner": ""
     },
     "anilist-21642": {
@@ -269051,6 +269548,10 @@
     },
     "anilist-14617": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx14617-YLbJRuhN3uQz.png",
+      "anilistBanner": ""
+    },
+    "anilist-3759": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/3759.jpg",
       "anilistBanner": ""
     },
     "anilist-756": {
@@ -269249,10 +269750,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx561-ke7B6XcWEI3Y.png",
       "anilistBanner": ""
     },
-    "anilist-30717": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b30717-2sn1K2AREmVC.jpg",
-      "anilistBanner": ""
-    },
     "anilist-1081": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx1081-FW0DHatfkBma.jpg",
       "anilistBanner": ""
@@ -269349,18 +269846,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b56103-NCpGqPqpOHEn.jpg",
       "anilistBanner": ""
     },
-    "anilist-538": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx538-yPo9msL7L6sm.png",
-      "anilistBanner": ""
-    },
-    "anilist-8767": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b8767-dpAB4cvTZRkc.png",
-      "anilistBanner": ""
-    },
-    "anilist-539": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx539-rwTm0bUFunNX.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/539-mcJklaaaHshY.jpg"
-    },
     "anilist-1165": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b1165-cmxTudQc5wHO.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1165-v2FI8ei9CzAc.jpg"
@@ -269383,6 +269868,10 @@
     },
     "anilist-31603": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b31603-9M2uJvT9gp1e.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-30717": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b30717-2sn1K2AREmVC.jpg",
       "anilistBanner": ""
     },
     "anilist-868": {
@@ -269496,6 +269985,18 @@
     "anilist-104723": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx104723-pmcUwRbKTFWB.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/104723-qK6enMYMqg8k.jpg"
+    },
+    "anilist-538": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx538-yPo9msL7L6sm.png",
+      "anilistBanner": ""
+    },
+    "anilist-8767": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b8767-dpAB4cvTZRkc.png",
+      "anilistBanner": ""
+    },
+    "anilist-539": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx539-rwTm0bUFunNX.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/539-mcJklaaaHshY.jpg"
     },
     "anilist-21566": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/21566-z5tDAuzdE4dT.jpg",
@@ -269637,14 +270138,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx206163-c5DwZdBNCXEO.jpg",
       "anilistBanner": ""
     },
-    "anilist-104822": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104822-TI00BWjLiEjK.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-163660": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx163660-11xZf5a2frso.jpg",
-      "anilistBanner": ""
-    },
     "anilist-132467": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx132467-KVpD81s5ZvJP.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/132467-O79Pn14olLQ8.jpg"
@@ -269765,14 +270258,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx37775-YvzrjPxbsSNF.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/37775-hhYRUxzzacyo.jpg"
     },
-    "anilist-100762": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx100762-erCb6yxKQ6Qc.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/100762-WpONqVuUaUIl.jpg"
-    },
-    "anilist-86908": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx86908-FGLfdPlkM1PY.jpg",
-      "anilistBanner": ""
-    },
     "anilist-85611": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85611-Asb0BNP23NsJ.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/85611-xK7DMNtc0MNZ.jpg"
@@ -269869,6 +270354,14 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85141-qHR957V3FVco.png",
       "anilistBanner": ""
     },
+    "anilist-104822": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx104822-TI00BWjLiEjK.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-163660": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx163660-11xZf5a2frso.jpg",
+      "anilistBanner": ""
+    },
     "anilist-122807": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx122807-m8jdQLQRSSUI.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/122807-WuQXmiTg70lh.jpg"
@@ -269928,10 +270421,6 @@
     "anilist-47486": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx47486-xIHZPXwA1s4O.jpg",
       "anilistBanner": ""
-    },
-    "anilist-21064": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/21064-HchJJfkPjq1P.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n21064-xJz7d0yUJubM.jpg"
     },
     "anilist-21564": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/21564-3NVEd5vlIU5a.jpg",
@@ -270021,6 +270510,14 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx101519-IVZkFl9aORyJ.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/101519-nnEKdYwJrK9o.jpg"
     },
+    "anilist-100762": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx100762-erCb6yxKQ6Qc.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/100762-WpONqVuUaUIl.jpg"
+    },
+    "anilist-86908": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx86908-FGLfdPlkM1PY.jpg",
+      "anilistBanner": ""
+    },
     "anilist-11743": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx11743-w4fFSBTi2TtW.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n11743-cXydiYEZDIYP.jpg"
@@ -270039,18 +270536,6 @@
     },
     "anilist-90011": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/90011-YZfz1uTnATlq.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-13333": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx13333-yDRfFOMbrbf0.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/13333-7nMTQrwPi90k.jpg"
-    },
-    "anilist-20847": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20847-XunWWr7mWCGB.png",
-      "anilistBanner": ""
-    },
-    "anilist-69849": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/39849.jpg",
       "anilistBanner": ""
     },
     "anilist-13851": {
@@ -270165,6 +270650,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx91293-wPbUDvN0hNzM.jpg",
       "anilistBanner": ""
     },
+    "anilist-21064": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/21064-HchJJfkPjq1P.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n21064-xJz7d0yUJubM.jpg"
+    },
     "anilist-113221": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b113221-DlRbl5HcIDoM.jpg",
       "anilistBanner": ""
@@ -270224,14 +270713,6 @@
     "anilist-30009": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30009-09bbURlklWWL.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30009-6uPhBYWFwFhm.jpg"
-    },
-    "anilist-33254": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx33254-LpUVN731Pvh6.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/33254-VvZqLGmHcawb.jpg"
-    },
-    "anilist-566": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b566-o7Btb4cx4Ku4.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n566-lE7xa0XONTiw.jpg"
     },
     "anilist-5734": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx5734-HaegyErRLtXd.png",
@@ -270437,6 +270918,18 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx11553-wj42fK4eFcvZ.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n11553-JINiEwKOJenK.jpg"
     },
+    "anilist-13333": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx13333-yDRfFOMbrbf0.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/13333-7nMTQrwPi90k.jpg"
+    },
+    "anilist-20847": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20847-XunWWr7mWCGB.png",
+      "anilistBanner": ""
+    },
+    "anilist-69849": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/39849.jpg",
+      "anilistBanner": ""
+    },
     "anilist-27": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx27-MOAaiBHHLfOY.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/27-33qla7duy3Gq.jpg"
@@ -270448,22 +270941,6 @@
     "anilist-30556": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30556-J595SEy1nNjG.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30556-ZF4q8rJT9AGn.jpg"
-    },
-    "anilist-174": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx174-s2PpkrK9X3Rw.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/174-r8BOv8sOHWR5.jpg"
-    },
-    "anilist-448": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx448-gbPXMCC1Gkcf.png",
-      "anilistBanner": ""
-    },
-    "anilist-30073": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30073-yWexDmfmuxrX.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30073-tZ4OlHhx4zGp.jpg"
-    },
-    "anilist-760": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/760.jpg",
-      "anilistBanner": ""
     },
     "anilist-807": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/807.jpg",
@@ -270589,6 +271066,14 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30049-ipwZTsHitrhC.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30049-GCNwJO8reLYK.jpg"
     },
+    "anilist-33254": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx33254-LpUVN731Pvh6.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/33254-VvZqLGmHcawb.jpg"
+    },
+    "anilist-566": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b566-o7Btb4cx4Ku4.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n566-lE7xa0XONTiw.jpg"
+    },
     "anilist-37149": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx37149-DNawemQUcuu9.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/37149-C4A3glhijZot.jpg"
@@ -270689,6 +271174,22 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx176712-ThVVtwZXSA9e.jpg",
       "anilistBanner": ""
     },
+    "anilist-174": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx174-s2PpkrK9X3Rw.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/174-r8BOv8sOHWR5.jpg"
+    },
+    "anilist-448": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx448-gbPXMCC1Gkcf.png",
+      "anilistBanner": ""
+    },
+    "anilist-30073": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30073-yWexDmfmuxrX.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30073-tZ4OlHhx4zGp.jpg"
+    },
+    "anilist-760": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/760.jpg",
+      "anilistBanner": ""
+    },
     "anilist-407": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx407-W9afaUJfEsoR.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/407-OfInblist1dh.jpg"
@@ -270749,21 +271250,13 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b1303-Y09OcK2V0KmJ.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1303-l14Hy7nlMzRD.jpg"
     },
-    "anilist-1577": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1577.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n1577-RYdvOriUF209.jpg"
+    "anilist-2010": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/2010.jpg",
+      "anilistBanner": ""
     },
     "anilist-31292": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx31292-HDOxvP3aZfwQ.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/31292-jToBg5gCjZ9w.jpg"
-    },
-    "anilist-4162": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx4162-Tu0Wa37eolgP.png",
-      "anilistBanner": ""
-    },
-    "anilist-2010": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/2010.jpg",
-      "anilistBanner": ""
     },
     "anilist-91928": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/91928-0DFUdxfaTpMQ.jpg",
@@ -270771,6 +271264,10 @@
     },
     "anilist-35405": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b35405-kiLDJI3JrEJH.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-4162": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx4162-Tu0Wa37eolgP.png",
       "anilistBanner": ""
     },
     "anilist-65177": {
@@ -270881,6 +271378,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx90616-xQchImsJkw8R.jpg",
       "anilistBanner": ""
     },
+    "anilist-1577": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1577.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n1577-RYdvOriUF209.jpg"
+    },
     "anilist-2500": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx2500-GqIx6Oz61vap.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/2500-RRPKYh9OdRji.jpg"
@@ -270892,18 +271393,6 @@
     "anilist-118640": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx118640-FguJsywQQ0Jg.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/118640-xpsgbCQFjNY2.jpg"
-    },
-    "anilist-101506": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx101506-uY2udopqvdYp.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n101506-PSbyUwaglatk.jpg"
-    },
-    "anilist-87450": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx87450-hd7ysW6TSAZI.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/87450-29IeYuggOU0O.jpg"
-    },
-    "anilist-108548": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b108548-MzDqvdg0b4HB.jpg",
-      "anilistBanner": ""
     },
     "anilist-101773": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b101773-hb7ccdHdtEfT.jpg",
@@ -270924,6 +271413,14 @@
     "anilist-87375": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx87375-vQlq1JB3DA8g.jpg",
       "anilistBanner": ""
+    },
+    "anilist-108548": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b108548-MzDqvdg0b4HB.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-101506": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx101506-uY2udopqvdYp.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n101506-PSbyUwaglatk.jpg"
     },
     "anilist-116943": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx116943-mafaoyrLL1lF.png",
@@ -270995,10 +271492,6 @@
     },
     "anilist-31160": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx31160-triBRtdo2d2K.png",
-      "anilistBanner": ""
-    },
-    "anilist-2470": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/2470-t0BnhV4HTPeU.png",
       "anilistBanner": ""
     },
     "anilist-6743": {
@@ -271169,6 +271662,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx99853-iUye9t5XJKBC.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/99853-gqFMmq4xY5NA.jpg"
     },
+    "anilist-87450": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx87450-hd7ysW6TSAZI.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/87450-29IeYuggOU0O.jpg"
+    },
     "anilist-1112": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1112-DceDNIPho0tS.png",
       "anilistBanner": ""
@@ -271197,16 +271694,12 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b31360-lmf2r5vu4YSR.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/31360-OKPtrtYZzv7I.jpg"
     },
+    "anilist-2470": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/2470-t0BnhV4HTPeU.png",
+      "anilistBanner": ""
+    },
     "anilist-100148": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx100148-0tfdtJVMCyMm.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-1343": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1343.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-1342": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1342.jpg",
       "anilistBanner": ""
     },
     "anilist-38558": {
@@ -271341,16 +271834,16 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1341.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1341-F1iz0fj3QPFr.jpg"
     },
-    "anilist-74021": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/44021.jpg",
+    "anilist-1342": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1342.jpg",
       "anilistBanner": ""
     },
-    "anilist-18245": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx18245-7eMtaBsi00dl.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/18245-kcqQvFqQmMg2.jpg"
+    "anilist-1343": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1343.jpg",
+      "anilistBanner": ""
     },
-    "anilist-39134": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/9134.jpg",
+    "anilist-74021": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/44021.jpg",
       "anilistBanner": ""
     },
     "anilist-33044": {
@@ -271477,6 +271970,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/102572-QSQFQYGnptqn.jpg",
       "anilistBanner": ""
     },
+    "anilist-18245": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx18245-7eMtaBsi00dl.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/18245-kcqQvFqQmMg2.jpg"
+    },
     "anilist-107138": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx107138-pwlT0xFz3syy.jpg",
       "anilistBanner": ""
@@ -271503,6 +272000,10 @@
     },
     "anilist-31899": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx31899-sLdqCormfPLY.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-39134": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/9134.jpg",
       "anilistBanner": ""
     },
     "anilist-87423": {
@@ -271560,22 +272061,6 @@
     "anilist-139588": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx139588-ZXAvUYIjUAdA.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/139588-OYgxwBPcOGmq.jpg"
-    },
-    "anilist-21088": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21088-T5qFaSe9ohRK.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/21088-9ZJIOWGApSmO.jpg"
-    },
-    "anilist-41593": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx41593-F0bPs2QLOuzL.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/41593-d744voL1k0FY.jpg"
-    },
-    "anilist-21214": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21214-nKcMytzKkOUU.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/21214-PaCt6lizdONd.jpg"
-    },
-    "anilist-102090": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx102090-unOFHc0pmYAr.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/102090-owqDmPD29vJy.jpg"
     },
     "anilist-102505": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/102505-9c3h5tSEaaBu.jpg",
@@ -271725,14 +272210,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b124083-0d6amQqwvoez.png",
       "anilistBanner": ""
     },
-    "anilist-9331": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx9331-f2bAShenxOeX.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n9331-23a8eQpfJr86.jpg"
-    },
-    "anilist-44065": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx44065-8HPpg3r3WP5Q.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/44065-u5vLmy4VZRGD.jpg"
-    },
     "anilist-52114": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/22114.jpg",
       "anilistBanner": ""
@@ -271821,6 +272298,14 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx21003-PzoNo7cztKPJ.jpg",
       "anilistBanner": ""
     },
+    "anilist-41593": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx41593-F0bPs2QLOuzL.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/41593-d744voL1k0FY.jpg"
+    },
+    "anilist-21214": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21214-nKcMytzKkOUU.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/21214-PaCt6lizdONd.jpg"
+    },
     "anilist-21194": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/21194-CQsEZJJOUeDk.jpg",
       "anilistBanner": ""
@@ -271876,6 +272361,14 @@
     "anilist-20740": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20740-dOOyhRmwNnoy.jpg",
       "anilistBanner": ""
+    },
+    "anilist-21088": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx21088-T5qFaSe9ohRK.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/21088-9ZJIOWGApSmO.jpg"
+    },
+    "anilist-102090": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx102090-unOFHc0pmYAr.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/102090-owqDmPD29vJy.jpg"
     },
     "anilist-62429": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx62429-pNTxn2s1YP9S.png",
@@ -271985,9 +272478,13 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx8985-evIGRMCQrkmE.jpg",
       "anilistBanner": ""
     },
-    "anilist-20661": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20661-aCR7QgzDfOSI.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20661-JwMKrCzeSTZ7.png"
+    "anilist-9331": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx9331-f2bAShenxOeX.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n9331-23a8eQpfJr86.jpg"
+    },
+    "anilist-44065": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx44065-8HPpg3r3WP5Q.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/44065-u5vLmy4VZRGD.jpg"
     },
     "anilist-107352": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/n107352-ZdT0yfOgmsh5.jpg",
@@ -272113,14 +272610,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/10183.jpg",
       "anilistBanner": ""
     },
-    "anilist-492": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx492-s8gMCJIBAGfR.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/492-3u0wCY4eQCol.jpg"
-    },
-    "anilist-55614": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b55614-RpQb2CpJSdrM.jpg",
-      "anilistBanner": ""
-    },
     "anilist-35450": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx35450-DwSrsZgHZNgw.jpg",
       "anilistBanner": ""
@@ -272201,6 +272690,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/49319.jpg",
       "anilistBanner": ""
     },
+    "anilist-20661": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20661-aCR7QgzDfOSI.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20661-JwMKrCzeSTZ7.png"
+    },
     "anilist-99916": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx99916-1GGvAujPHu6F.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/99916-A1CqNrdSMHM4.jpg"
@@ -272219,6 +272712,14 @@
     },
     "anilist-31564": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx31564-dBkVEbENSH5m.png",
+      "anilistBanner": ""
+    },
+    "anilist-492": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx492-s8gMCJIBAGfR.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/492-3u0wCY4eQCol.jpg"
+    },
+    "anilist-55614": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b55614-RpQb2CpJSdrM.jpg",
       "anilistBanner": ""
     },
     "anilist-5036": {
@@ -272287,14 +272788,6 @@
     },
     "anilist-122062": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b122062-ZKmgBmx9arpQ.png",
-      "anilistBanner": ""
-    },
-    "anilist-121433": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b121433-M091YGfDIJxN.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-119774": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b119774-nOofxsIZMZZr.jpg",
       "anilistBanner": ""
     },
     "anilist-87501": {
@@ -272405,6 +272898,14 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/96683-FXd7YTocEjnF.jpg",
       "anilistBanner": ""
     },
+    "anilist-121433": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b121433-M091YGfDIJxN.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-119774": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b119774-nOofxsIZMZZr.jpg",
+      "anilistBanner": ""
+    },
     "anilist-10949": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/10949.jpg",
       "anilistBanner": ""
@@ -272509,20 +273010,12 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b163259-uOeb1eNCAdma.jpg",
       "anilistBanner": ""
     },
-    "anilist-86778": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86778-yms0DmPwIXu9.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86778-0zS6iKLgGXtq.jpg"
-    },
-    "anilist-130939": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b130939-qQNJIk6MokBQ.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/130939-AyqdI59EOkUn.jpg"
+    "anilist-1084": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1084.jpg",
+      "anilistBanner": ""
     },
     "anilist-31822": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx31822-4uwIE6yJvcLq.png",
-      "anilistBanner": ""
-    },
-    "anilist-1084": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1084.jpg",
       "anilistBanner": ""
     },
     "anilist-3782": {
@@ -272545,6 +273038,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/36615.jpg",
       "anilistBanner": ""
     },
+    "anilist-86778": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86778-yms0DmPwIXu9.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86778-0zS6iKLgGXtq.jpg"
+    },
     "anilist-105662": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx105662-hQ04rdwCot6p.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n105662-nckOkQODboJB.jpg"
@@ -272564,6 +273061,10 @@
     "anilist-86338": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx86338-Z9RsXBc7Ao16.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86338-EaYIoaeM2UNE.jpg"
+    },
+    "anilist-130939": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b130939-qQNJIk6MokBQ.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/130939-AyqdI59EOkUn.jpg"
     },
     "anilist-131944": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx131944-zm20wDKPu0EH.png",
@@ -272909,14 +273410,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx35733-TyRLWfkytasx.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/35733-qtSRVH0eqUw8.jpg"
     },
-    "anilist-108730": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b108730-mrqPezOjeeVo.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-31231": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/1231.jpg",
-      "anilistBanner": ""
-    },
     "anilist-109884": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b109884-MUL0w4U9jptw.jpg",
       "anilistBanner": ""
@@ -273023,7 +273516,7 @@
     },
     "anilist-178868": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx178868-mfp0HIHNJNAm.jpg",
-      "anilistBanner": ""
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/178868-l7VyM7j7LRtH.jpg"
     },
     "anilist-47259": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/17259.jpg",
@@ -273061,6 +273554,14 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx2954-adluWf6XGZsr.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n2954-XJx8V9WRzj8d.jpg"
     },
+    "anilist-108730": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b108730-mrqPezOjeeVo.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-31231": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/1231.jpg",
+      "anilistBanner": ""
+    },
     "anilist-579": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/579.jpg",
       "anilistBanner": ""
@@ -273069,16 +273570,12 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx43667-GB6leA3WTeAK.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/43667-EnajDzob7i4l.jpg"
     },
-    "anilist-45317": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx45317-LzALrXpq3TCe.jpg",
-      "anilistBanner": ""
-    },
     "anilist-10108": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/10108.jpg",
       "anilistBanner": ""
     },
-    "anilist-19727": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/19727.jpg",
+    "anilist-45317": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx45317-LzALrXpq3TCe.jpg",
       "anilistBanner": ""
     },
     "anilist-19845": {
@@ -273149,26 +273646,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx145594-wURR2hX2HMkg.jpg",
       "anilistBanner": ""
     },
-    "anilist-2451": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx2451-nNs4TE6zKxjW.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/2451-P5zq4gU8i8rk.jpg"
-    },
-    "anilist-4646": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/4646.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-31062": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx31062-5uQ2mmbAPA7K.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/31062-4CVx3adCVcoh.jpg"
-    },
-    "anilist-2452": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/2452-i3EvWxRFphBI.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/2452-MzFxvtcsDWKT.jpg"
-    },
-    "anilist-5742": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/5742.jpg",
-      "anilistBanner": ""
-    },
     "anilist-114244": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b114244-tOIngLbKP3ux.jpg",
       "anilistBanner": ""
@@ -273199,6 +273676,10 @@
     },
     "anilist-15453": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/15453.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-19727": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/19727.jpg",
       "anilistBanner": ""
     },
     "anilist-20371": {
@@ -273317,6 +273798,26 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx2560-fGJFfEvVBGMB.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/2560-IwgxLlDphkwQ.jpg"
     },
+    "anilist-2451": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx2451-nNs4TE6zKxjW.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/2451-P5zq4gU8i8rk.jpg"
+    },
+    "anilist-4646": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/4646.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-31062": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx31062-5uQ2mmbAPA7K.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/31062-4CVx3adCVcoh.jpg"
+    },
+    "anilist-2452": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/2452-i3EvWxRFphBI.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/2452-MzFxvtcsDWKT.jpg"
+    },
+    "anilist-5742": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/5742.jpg",
+      "anilistBanner": ""
+    },
     "anilist-5751": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx5751-JesSCzrB9xeg.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/5751-K8LMEAqQ4I0A.jpg"
@@ -273368,10 +273869,6 @@
     "anilist-21800": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/21800-0vXIUrT4m1hl.jpg",
       "anilistBanner": ""
-    },
-    "anilist-33041": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx33041-kJBX4VVQPHF8.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/33041-j0DlsHm4Fa9O.jpg"
     },
     "anilist-31216": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx31216-3n5n6gxWelpl.png",
@@ -273436,6 +273933,10 @@
     "anilist-208176": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx208176-IoRJzmQzxvsi.jpg",
       "anilistBanner": ""
+    },
+    "anilist-33041": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx33041-kJBX4VVQPHF8.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/33041-j0DlsHm4Fa9O.jpg"
     },
     "anilist-125826": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx125826-4gX5jL7LtaFi.png",
@@ -273509,6 +274010,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx189063-Jz4Kq03T2jLq.jpg",
       "anilistBanner": ""
     },
+    "anilist-217946": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx217946-Z2amFW9T0WCg.jpg",
+      "anilistBanner": ""
+    },
     "anilist-187402": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx187402-ReKkLwFmMV3q.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/187402-bRt4OO90jcmt.jpg"
@@ -273563,7 +274068,7 @@
     },
     "anilist-209562": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx209562-kQQbTKDuql9p.jpg",
-      "anilistBanner": ""
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/209562-dvyIvOOVgDNp.jpg"
     },
     "anilist-212799": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx212799-n7WDdic7IL1z.png",
@@ -273601,18 +274106,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/20543.jpg",
       "anilistBanner": ""
     },
-    "anilist-102664": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx102664-0AGHiTWCBPwd.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-133700": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b133700-J7mk0tFrP5xl.png",
-      "anilistBanner": ""
-    },
-    "anilist-142553": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx142553-wKpAM5Y7lPjv.png",
-      "anilistBanner": ""
-    },
     "anilist-156289": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx156289-IShQd1NSFCPa.jpg",
       "anilistBanner": ""
@@ -273643,6 +274136,18 @@
     },
     "anilist-138871": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx138871-GLWM151vBaiM.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-102664": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx102664-0AGHiTWCBPwd.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-133700": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b133700-J7mk0tFrP5xl.png",
+      "anilistBanner": ""
+    },
+    "anilist-142553": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx142553-wKpAM5Y7lPjv.png",
       "anilistBanner": ""
     },
     "anilist-1749": {
@@ -273895,7 +274400,7 @@
     },
     "anilist-200455": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx200455-P3XStRQMJ7Di.png",
-      "anilistBanner": ""
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/200455-rlIXyuk0jHE3.jpg"
     },
     "anilist-151603": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx151603-KrP81rSieGyM.jpg",
@@ -273971,10 +274476,6 @@
     },
     "anilist-8149": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/8149.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-5968": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx5968-EVCZg2ilzba8.jpg",
       "anilistBanner": ""
     },
     "anilist-8150": {
@@ -274053,6 +274554,22 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx170620-NVOVCrK0Y1XX.jpg",
       "anilistBanner": ""
     },
+    "anilist-162615": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx162615-yeFyAgx4thii.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-159459": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx159459-wTOSTzcrdEFI.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/159459-OiB0coJOu6tx.jpg"
+    },
+    "anilist-199594": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx199594-moYKzlfIH03U.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/199594-iw8KRAiBp3sO.jpg"
+    },
+    "anilist-44196": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b44196-R9rBlpOi4L1i.jpg",
+      "anilistBanner": ""
+    },
     "anilist-200294": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx200294-E6KIgkFaJOfG.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/200294-PPEwId1xfGNO.jpg"
@@ -274065,13 +274582,17 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx210681-bxawqplu7EjI.jpg",
       "anilistBanner": ""
     },
-    "anilist-214536": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx214536-dl2KJdHcKWJl.jpg",
-      "anilistBanner": ""
+    "anilist-205909": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx205909-DM0fAzNQulod.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/205909-hGeuFYrdhf9S.jpg"
+    },
+    "anilist-159142": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx159142-S9GSi03mT8Qa.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/159142-lwsoXC2qeE6y.jpg"
     },
     "anilist-206949": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx206949-4HYI3YuP0eLI.png",
-      "anilistBanner": ""
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/206949-c5hfhixdgvy5.jpg"
     },
     "anilist-154010": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx154010-kUX5Qcbg4jBE.png",
@@ -274095,7 +274616,7 @@
     },
     "anilist-209502": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx209502-C81oN8M4Smlo.jpg",
-      "anilistBanner": ""
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/209502-TATgyznMxQOe.jpg"
     },
     "anilist-114783": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx114783-dZ1fQDxIoRQ4.jpg",
@@ -274104,6 +274625,18 @@
     "anilist-123130": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx123130-MaFfe8w08Ny1.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/123130-a1T9ekCqXRct.jpg"
+    },
+    "anilist-211778": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx211778-0MXK5HqVFBYH.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/211778-ZbXEhqfFkj62.jpg"
+    },
+    "anilist-187703": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx187703-a5GdHoE8D6Dg.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-176270": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx176270-aTao5jejW17i.png",
+      "anilistBanner": ""
     }
   }
 }
