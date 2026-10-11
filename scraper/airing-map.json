@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-11T12:29:00.917Z",
-  "count": 6663,
+  "generatedAt": "2026-10-11T19:41:06.640Z",
+  "count": 6665,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -170834,8 +170834,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791729000000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1792333800000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [
         {
           "anilistId": 164702,
@@ -170880,8 +170880,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791729000000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1792333800000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 2,
       "lastEpisodeAt": "2026-10-04T15:08:25.580Z"
@@ -237207,8 +237207,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791735600000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792340400000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-04T17:38:41.382Z"
@@ -237219,8 +237219,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791730800000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792335600000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-04T16:20:39.017Z"
@@ -237231,8 +237231,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1791729900000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792334700000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 184034,
@@ -237266,8 +237266,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791729000000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792333800000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-04T15:14:57.963Z"
@@ -237290,8 +237290,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791721800000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792326600000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-04T15:09:49.375Z"
@@ -237302,8 +237302,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791727200000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792332000000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-04T15:07:47.562Z"
@@ -241423,6 +241423,20 @@
           "order": 3
         }
       ]
+    },
+    "animeav1-shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku": {
+      "anilistId": 205896,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1792333800000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-dragon-ball-super-beerus": {
+      "anilistId": 206814,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1792332960000,
+      "nextAiringEpisodeNumber": 2
     }
   },
   "seasonArtwork": {
