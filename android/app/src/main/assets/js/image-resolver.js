@@ -278,33 +278,45 @@ const ImageResolver = (function () {
     return null;
   }
 
-  function repairJojoEpisodeMetadata(anime) {
-    const scope = jojoEpisodeScope(anime);
+  function episodeMetadataScope(anime = {}, seasonMeta = null) {
+    const jojo = jojoEpisodeScope(anime, seasonMeta);
+    if (jojo) return { ...jojo, tmdbId: 45790 };
+    if (anime.adultSource || anime.isAdult) return null;
+    for (const entry of [seasonMeta, anime].filter(Boolean)) {
+      const diamond = typeof SeasonNormalization !== "undefined" ? SeasonNormalization.diamondEntryScope?.(entry) : null;
+      if (diamond) return { ...diamond, key: `diamond:${diamond.seasonNumber}:${diamond.offset}:${diamond.count}` };
+    }
+    return null;
+  }
+
+  function repairScopedEpisodeMetadata(anime) {
+    const scope = episodeMetadataScope(anime);
     if (!scope || anime._tmdbEpisodeScope === scope.key) return scope;
-    // Old snapshots treated manga Part 6 as TMDB Season 6 (Steel Ball Run).
-    // Invalidate only this identity, without flushing unrelated metadata caches.
+    // Reject old arc/cour metadata only for this exact identity.
     for (const field of ["tmdbEpisodeStills", "tmdbEpisodesByNum", "tmdbStillsBySeason",
       "tmdbEpisodesBySeasonNum", "tmdbSeasonBackdropsBySeason", "tmdbSeasonPostersBySeason",
       "_tmdbSeasonArtCoverage", "_tmdbSeasonArtAttemptedCount", "_tmdbSeasonEpisodeScopes",
       "_seasonStillsTried", "_seasonArtworkWarmKey", "_tmdbResolved", "tmdbSeasonPoster"]) delete anime[field];
     anime._tmdbEpisodeScope = scope.key;
-    anime.tmdbId = 45790;
+    anime.tmdbId = scope.tmdbId;
+    if (scope.backdropPath) anime.tmdbBackdrop = tmdbBackdropUrl(scope.backdropPath);
+    if (scope.posterUrl) anime.tmdbPoster = scope.posterUrl;
     return scope;
   }
 
-  function scopeJojoMetadataEpisodes(episodes, scope) {
+  function scopeMetadataEpisodes(episodes, scope) {
     return episodes.filter(episode => Number(episode.episode_number) > scope.offset
-      && Number(episode.episode_number) <= scope.offset + scope.count);
+      && (!scope.count || Number(episode.episode_number) <= scope.offset + scope.count));
   }
 
   function pickTmdbSeason(anime, tmdbShow) {
     const real = (tmdbShow.seasons || []).filter((s) => Number(s.season_number) > 0 && Number(s.episode_count) > 0);
     if (!real.length) return { season: null, reason: "no numbered TMDB seasons" };
 
-    const jojoScope = jojoEpisodeScope(anime);
+    const jojoScope = episodeMetadataScope(anime);
     if (jojoScope) {
       return { season: real.find(season => Number(season.season_number) === jojoScope.tmdbSeasonNumber) || null,
-        reason: "verified JoJo TV arc, independent of catalog numbering" };
+        reason: "verified franchise season, independent of provider numbering" };
     }
 
     const titleToParse = anime.title || anime.romajiTitle || anime.englishTitle || "";
@@ -650,6 +662,8 @@ const ImageResolver = (function () {
   function lookupTmdbOverride(anime) {
     if (!anime) return null;
     if (jojoEpisodeScope(anime)) return 45790;
+    const scope = episodeMetadataScope(anime);
+    if (scope) return scope.tmdbId;
     const titleObj = (anime.title && typeof anime.title === "object") ? anime.title : {};
     const titles = [
       typeof anime.title === "string" ? anime.title : "",
@@ -679,8 +693,9 @@ const ImageResolver = (function () {
       show = payload?.show || null;
     } catch { /* keep going with search-level paths below */ }
 
-    const showPoster = tmdbPosterUrl(show?.poster_path || searchResult.poster_path);
-    const showBackdrop = tmdbBackdropUrl(show?.backdrop_path || searchResult.backdrop_path);
+    const identityScope = episodeMetadataScope(anime);
+    const showPoster = identityScope?.posterUrl || tmdbPosterUrl(show?.poster_path || searchResult.poster_path);
+    const showBackdrop = tmdbBackdropUrl(identityScope?.backdropPath || show?.backdrop_path || searchResult.backdrop_path);
     const realSeasons = (show?.seasons || [])
       .filter((s) => Number(s.season_number) > 0 && Number(s.episode_count) > 0)
       .sort((a, b) => Number(a.season_number) - Number(b.season_number));
@@ -693,7 +708,7 @@ const ImageResolver = (function () {
     if (show) {
       const { season, reason } = pickTmdbSeason(anime, show);
       if (season) {
-        seasonPoster = tmdbPosterUrl(season.poster_path);
+        seasonPoster = identityScope?.posterUrl || tmdbPosterUrl(season.poster_path);
         debug(`season mapping for ${idLabel}: TMDB S${season.season_number} (${reason})`);
         try {
           const payload = await fetchMetadataJson(
@@ -701,9 +716,9 @@ const ImageResolver = (function () {
             12000
           );
           if (payload?.season) fetchedSeasonPayloads.set(Number(season.season_number), payload);
-          const episodeScope = jojoEpisodeScope(anime);
+          const episodeScope = episodeMetadataScope(anime);
           const tmdbEpisodes = episodeScope
-            ? scopeJojoMetadataEpisodes(payload?.season?.episodes || [], episodeScope)
+            ? scopeMetadataEpisodes(payload?.season?.episodes || [], episodeScope)
             : payload?.season?.episodes || [];
 
           // Check if we need to offset episodes (e.g. all seasons grouped under Season 1 on TMDB)
@@ -755,7 +770,7 @@ const ImageResolver = (function () {
     // across seasons), so episode 101 maps correctly to S3 ep 38, etc.
     const totalEps = Math.max(Number(anime.totalEpisodes || anime.episodeCount || 0), Number(anime.latestAiredEp || anime.episode || 0), Number(show?.number_of_episodes || 0));
     const numberedSequel = typeof SeasonNormalization !== "undefined" && SeasonNormalization.parseTitle(anime.romajiTitle || anime.title || "").seasonNumber > 1;
-    if (show && totalEps > 100 && !numberedSequel && !jojoEpisodeScope(anime) && realSeasons.length > 2) {
+    if (show && totalEps > 100 && !numberedSequel && !identityScope && realSeasons.length > 2) {
       // Wipe local-numbered stills from the single-season pass; rebuild globally.
       for (const k of Object.keys(episodeStills)) delete episodeStills[k];
       for (const k of Object.keys(episodesByNum)) delete episodesByNum[k];
@@ -807,7 +822,7 @@ const ImageResolver = (function () {
       seasonPoster,
       episodeStills,
       episodesByNum,
-      episodeScope: jojoEpisodeScope(anime)?.key || null,
+      episodeScope: identityScope?.key || null,
       seasons: show?.seasons || []
     };
   }
@@ -815,7 +830,7 @@ const ImageResolver = (function () {
   // Resolve + attach TMDB artwork to an anime object. Safe to call repeatedly;
   // it no-ops once resolved and dedupes concurrent calls.
   async function hydrateTmdbImages(anime) {
-    if (anime) repairJojoEpisodeMetadata(anime);
+    if (anime) repairScopedEpisodeMetadata(anime);
     if (!anime || anime._tmdbResolved) return anime;
     const anilistId = anime.anilistId || anime.id;
     if (!anilistId) return anime;
@@ -852,7 +867,7 @@ const ImageResolver = (function () {
       const cachedStillCount = cached && cached.episodeStills ? Object.keys(cached.episodeStills).length : 0;
       const expectedEpisodes = (cached?.seasons || []).filter(season => Number(season.season_number) > 0)
         .reduce((sum, season) => sum + Number(season.episode_count || 0), 0);
-      const continuous = !jojoEpisodeScope(anime) && typeof SeasonNormalization !== "undefined" &&
+      const continuous = !episodeMetadataScope(anime) && typeof SeasonNormalization !== "undefined" &&
         SeasonNormalization.parseTitle(anime.romajiTitle || anime.title || "").seasonNumber <= 1;
       const incompleteArcs = continuous && expectedEpisodes > 100 &&
         Object.keys(cached?.episodesByNum || {}).length < expectedEpisodes;
@@ -879,7 +894,7 @@ const ImageResolver = (function () {
         cachedStillCount === 0
         || incompleteArcs
         || missingNewestMetadata
-        || (jojoEpisodeScope(anime) && cached.episodeScope !== jojoEpisodeScope(anime).key)
+        || (episodeMetadataScope(anime) && cached.episodeScope !== episodeMetadataScope(anime).key)
       );
       if (cached && !cachedStale && (!trustedTmdbId || Number(cached.tmdbId) === Number(trustedTmdbId))) {
         applyResolvedMatch(anime, cached);
@@ -1058,7 +1073,7 @@ const ImageResolver = (function () {
 
   function getEpisodeStill(anime, episode, appSeasonNumber) {
     if (!anime) return "";
-    repairJojoEpisodeMetadata(anime);
+    repairScopedEpisodeMetadata(anime);
     const num = Number(episode?.episode || episode?.episodeNumber || 0);
     if (!num) return "";
     // Season-aware first: multi-season shows keyed by a single flat episode number
@@ -1080,7 +1095,7 @@ const ImageResolver = (function () {
 
   function getNearestEpisodeStill(anime, episode, appSeasonNumber) {
     if (!anime) return "";
-    repairJojoEpisodeMetadata(anime);
+    repairScopedEpisodeMetadata(anime);
     const num = Number(episode?.episode || episode?.episodeNumber || 0);
     if (!num) return "";
     const sNum = Number(appSeasonNumber || 0);
@@ -1127,9 +1142,10 @@ const ImageResolver = (function () {
 
   function getSeasonBackdrop(anime, appSeasonNumber, appSeasonMeta) {
     if (!anime) return "";
-    repairJojoEpisodeMetadata(anime);
+    repairScopedEpisodeMetadata(anime);
     const sNum = Number(appSeasonNumber || appSeasonMeta?.season || 0);
     return firstValidImage([
+      tmdbBackdropUrl(episodeMetadataScope(anime, appSeasonMeta)?.backdropPath),
       appSeasonMeta?.tmdbBackdrop,
       appSeasonMeta?.highQualityBackground,
       appSeasonMeta?.banner,
@@ -1275,7 +1291,7 @@ const ImageResolver = (function () {
     const seasons = anime.tmdbSeasons || [];
     if (!seasons.length) return null;
     const meta = appSeasonMeta || {};
-    const jojoScope = jojoEpisodeScope(anime, meta);
+    const jojoScope = episodeMetadataScope(anime, meta);
     if (jojoScope) {
       const season = seasons.find(entry => Number(entry.season_number) === jojoScope.tmdbSeasonNumber);
       return season ? Number(season.season_number) : null;
@@ -1322,12 +1338,12 @@ const ImageResolver = (function () {
   }
 
   function ensureSeasonStills(anime, appSeasonNumber, appSeasonMeta) {
-    if (anime) repairJojoEpisodeMetadata(anime);
+    if (anime) repairScopedEpisodeMetadata(anime);
     if (!anime || !anime.tmdbId) return Promise.resolve(anime);
     const sNum = Number(appSeasonNumber || 0);
     if (!sNum) return Promise.resolve(anime);
     const triedSeasons = seasonStillsTried(anime);
-    const episodeScope = jojoEpisodeScope(anime, appSeasonMeta);
+    const episodeScope = episodeMetadataScope(anime, appSeasonMeta);
     if (episodeScope && anime._tmdbSeasonEpisodeScopes?.[sNum] !== episodeScope.key) {
       for (const field of ["tmdbStillsBySeason", "tmdbEpisodesBySeasonNum", "tmdbSeasonBackdropsBySeason",
         "tmdbSeasonPostersBySeason", "_tmdbSeasonArtCoverage", "_tmdbSeasonArtAttemptedCount"]) {
@@ -1392,7 +1408,7 @@ const ImageResolver = (function () {
           anime.seasonYear || anime.year || 0
         );
         const expectedCount = knownCount;
-        let scopedEpisodes = episodeScope ? scopeJojoMetadataEpisodes(eps, episodeScope) : eps;
+        let scopedEpisodes = episodeScope ? scopeMetadataEpisodes(eps, episodeScope) : eps;
         if (!episodeScope && targetYear && eps.length > Math.max(12, expectedCount || 12)) {
           // Split cours can air in the same calendar year, so year alone points
           // both parts at episode 1. Relation normalization already computed the
@@ -1437,7 +1453,7 @@ const ImageResolver = (function () {
           };
         }
 
-        const poster = tmdbPosterUrl(payload?.season?.poster_path);
+        const poster = episodeScope?.posterUrl || tmdbPosterUrl(payload?.season?.poster_path);
         let backdrop = "";
         if (stillPaths.length) {
           const fraction = Math.min(0.85, 0.2 + Math.max(0, sNum - 1) * 0.18);
@@ -1452,7 +1468,7 @@ const ImageResolver = (function () {
           && (!requestAniListId || String(anime.anilistId || "") === requestAniListId)
           && (!requestTmdbId || String(anime.tmdbId || "") === requestTmdbId);
         if (!sameIdentity || Number(currentTmdbSeasonNumber) !== Number(tmdbSeasonNumber)
-          || jojoEpisodeScope(anime, appSeasonMeta)?.key !== episodeScope?.key) return anime;
+          || episodeMetadataScope(anime, appSeasonMeta)?.key !== episodeScope?.key) return anime;
 
         const data = {
           stills,
@@ -1494,7 +1510,7 @@ const ImageResolver = (function () {
   // map when present, falling back to the flat one. Returns null when unknown.
   function getSeasonEpisodeMeta(anime, appSeasonNumber, episodeNumber) {
     if (!anime) return null;
-    repairJojoEpisodeMetadata(anime);
+    repairScopedEpisodeMetadata(anime);
     const sNum = Number(appSeasonNumber || 0);
     const num = Number(episodeNumber || 0);
     if (!num) return null;

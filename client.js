@@ -4538,6 +4538,7 @@ function getWatchPosterArtwork(show = {}, season = null) {
   season = season || {};
   const rawCandidates = [
     show.adultPortraitCover,
+    typeof SeasonNormalization !== "undefined" ? SeasonNormalization.diamondEntryScope?.(show)?.posterUrl : "",
     curatedDottoKoniArtwork(show)?.poster,
     // TMDB key art first, season-specific before show-wide. It is 2000x3000 where
     // the scraped cover is 225x350 and the AniList one 460x690, so leading with
@@ -4580,7 +4581,9 @@ function artworkShowIdentity(show = {}) {
 function stableArtworkCandidates(show, candidates, role) {
   const identity = artworkShowIdentity(show);
   const key = `${role}:${identity}`;
-  const previous = stableArtworkChoices.get(key);
+  const diamondPoster = role === "poster" && typeof SeasonNormalization !== "undefined"
+    ? SeasonNormalization.diamondEntryScope?.(show)?.posterUrl : "";
+  const previous = diamondPoster || stableArtworkChoices.get(key);
   const valid = (url) => url && !isArtworkLowQuality(url, role)
     && (typeof ImageResolver === "undefined" || !ImageResolver.isImageFailed(url));
   const choices = [...new Set([previous, ...candidates].filter(valid))];
@@ -4595,6 +4598,7 @@ function getCardPosterCandidates(show = {}) {
   const curated = curatedDottoKoniArtwork(show);
   const candidates = [
     show.adultPortraitCover,
+    typeof SeasonNormalization !== "undefined" ? SeasonNormalization.diamondEntryScope?.(show)?.posterUrl : "",
     curated?.poster,
     show.tmdbSeasonPoster,
     show.tmdbPoster,
@@ -4767,6 +4771,8 @@ function curatedDottoKoniArtwork(show = {}) {
 }
 
 function curatedWatchBackdrop(show = {}) {
+  const diamond = typeof SeasonNormalization !== "undefined" ? SeasonNormalization.diamondEntryScope?.(show) : null;
+  if (diamond?.backdropPath) return pickImage([`https://image.tmdb.org/t/p/original${diamond.backdropPath}`]) || "";
   // Also correct franchise artwork restored from an older client cache.
   const steelBallRun = [show.catalogAnimeId, show.id].some((id) =>
     /(?:^|-)animeav1-steel-ball-run-jojo-no-kimyou-na-bouken$/.test(String(id || "")))
@@ -5123,7 +5129,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1016";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1017";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -10421,7 +10427,7 @@ async function openShow(id, target = {}) {
     if (!state.shows.some((entry) => entry.id === show.id)) state.shows = [...state.shows, show];
   }
   if (!show) return;
-  const jojoTarget = resolveJojoOpenTarget(show, target);
+  const jojoTarget = resolveDiamondOpenTarget(show, target) || resolveJojoOpenTarget(show, target);
   if (jojoTarget) {
     show = jojoTarget.show;
     target = jojoTarget.target;
@@ -17279,6 +17285,13 @@ function jojoPartShow(show, part) {
     const candidate = SeasonNormalization.jojoEntryScope(row);
     return candidate?.seasonNumber === scope.seasonNumber && candidate.partNumber === part;
   }) || null;
+}
+
+function resolveDiamondOpenTarget(show, target = {}) {
+  const scope = typeof SeasonNormalization !== "undefined" ? SeasonNormalization.diamondEntryScope?.(show) : null;
+  if (scope?.seasonNumber !== 4 || scope.partNumber !== 2 || Number(target.seasonNumber) !== 2
+      || (target.seasonPart && Number(target.seasonPart) !== 2)) return null;
+  return { show, target: { ...target, seasonNumber: 4, seasonPart: 2 } };
 }
 
 function resolveJojoOpenTarget(show, target = {}) {
@@ -24404,7 +24417,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1016");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1017");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

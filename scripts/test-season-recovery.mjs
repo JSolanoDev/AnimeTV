@@ -3,6 +3,7 @@ import test from "node:test";
 import vm from "node:vm";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { explicitOfflineSeasonNumber } from "./lib/offline-identity.mjs";
 
 const require = createRequire(import.meta.url);
 const utils = require("../js/utils.js");
@@ -12,6 +13,108 @@ const clientSource = readFileSync(new URL("../client.js", import.meta.url), "utf
 const imageSource = readFileSync(new URL("../js/image-resolver.js", import.meta.url), "utf8");
 const serverSource = readFileSync(new URL("../animetv-server.js", import.meta.url), "utf8");
 const utilsSource = readFileSync(new URL("../js/utils.js", import.meta.url), "utf8");
+
+const diamondRows = [
+  [18689, 18689, "Diamond no Ace", 2013, 75, 1],
+  [21085, 30230, "Diamond no Ace: Second Season", 2015, 51, 2],
+  [105749, 38731, "Diamond no Ace act II", 2019, 52, 3],
+  [177634, 58877, "Diamond no Ace act II: Second Season", 2026, 13, 4],
+  [213658, 64505, "Diamond no Ace act II: Second Season Part 2", 2026, 1, 2]
+].map(([anilistId, malId, title, year, episodes, canonicalSeasonNumber]) => ({
+  anilistId, malId, title, year, episodes, format: "TV", canonicalSeasonNumber
+}));
+
+test("Diamond cour numbering overrides stale Season 2 without rewriting inventory", () => {
+  const original = JSON.stringify(diamondRows);
+  const groups = SeasonNormalization.normalizeFranchise(diamondRows).groups;
+  assert.deepEqual(groups.map(g => [g.title, g.episodeCount]), [
+    ["Season 1", 75], ["Season 2", 51], ["Season 3", 52], ["Season 4 Part 1", 13], ["Season 4 Part 2", 1]
+  ]);
+  assert.equal(JSON.stringify(diamondRows), original);
+  for (const [title, expected] of [["Diamond no Ace act II", 3], ["Ace of Diamond Act II Season 2 Part 2", 4],
+    ["Diamond no Ace: Act II Second Season", 4]]) {
+    assert.equal(SeasonNormalization.parseTitle(title).seasonNumber, expected);
+    assert.equal(explicitOfflineSeasonNumber({ title, synonyms: ["Act II Season 2"] }), expected);
+  }
+  assert.equal(SeasonNormalization.diamondEntryScope({ title: "Diamond no Ace Second Season OVA", format: "OVA" }), null);
+  assert.equal(SeasonNormalization.diamondEntryScope({ ...diamondRows[4], adultSource: "NeutralFixture" }), null);
+  assert.equal(SeasonNormalization.diamondEntryScope({ title: "Diamond no Ace act II Second Season Part 3" }), null);
+  assert.equal(SeasonNormalization.parseTitle("Other Series Second Season Part 2").seasonNumber, 2);
+  const withOva = SeasonNormalization.normalizeFranchise([...diamondRows, {
+    anilistId: 98582, title: "Diamond no Ace: Second Season OVA", format: "OVA", year: 2016,
+    episodes: 2, canonicalSeasonNumber: 2
+  }]).groups;
+  assert.equal(withOva.find(g => g.title === "Season 2").episodeCount, 51);
+  assert.equal(withOva.find(g => g.type === "special").episodeCount, 2);
+});
+
+const diamondSeasons = diamondRows.slice(0, 4).map(row => ({ season_number: row.canonicalSeasonNumber,
+  name: "Neutral Season", episode_count: row.episodes, poster_path: "/neutral-season.jpg" }));
+const diamondEpisodes = Array.from({ length: 14 }, (_, i) => ({ episode_number: i + 1,
+  name: `Current Cour Episode ${i + 1}`, air_date: i < 13 ? "2026-04-05" : "2026-10-11", still_path: `/current-${i + 1}.jpg` }));
+
+test("Diamond second cour repairs old metadata, maps local 1 to TMDB 14 and reuses cache", async () => {
+  const requests = [];
+  const c = context(async url => {
+    requests.push(url);
+    return { ok: true, json: async () => url.includes("/api/tmdb/tv?")
+      ? { show: { seasons: diamondSeasons, number_of_episodes: 203, backdrop_path: "/old.jpg", poster_path: "/old.jpg" } }
+      : { season: { episodes: diamondEpisodes } } };
+  });
+  const anime = { ...diamondRows[4], id: "diamond-part-2", tmdbId: 60761, _tmdbResolved: true,
+    _artworkPinned: true, tmdbBackdrop: "old-background", tmdbPoster: "old-poster", sourceEpisodeIds: [1],
+    sourceEpisodeCount: 1, providerEpisodeOffset: 0, tmdbEpisodesByNum: { 1: { title: "Wrong 2015 Episode" } } };
+  c.localStorage.setItem("zenkaitv:tmdb-match:v18:213658", JSON.stringify({ savedAt: Date.now(), data: {
+    tmdbId: 60761, episodeStills: { 1: "wrong.jpg" }, episodesByNum: { 1: { title: "Wrong 2015 Episode" } }, seasons: diamondSeasons
+  } }));
+  assert.equal(c.resolver.getSeasonEpisodeMeta(anime, 4, 1), null);
+  await c.resolver.hydrateTmdbImages(anime);
+  assert.equal(anime.tmdbEpisodesByNum[1].title, "Current Cour Episode 14");
+  assert.equal(anime.tmdbEpisodesByNum[1].aired, "2026-10-11");
+  assert.equal(Object.keys(anime.tmdbEpisodesByNum).length, 1);
+  assert.ok(anime.tmdbEpisodeStills[1].includes("current-14.jpg"));
+  assert.ok(anime.tmdbBackdrop.endsWith("/dZwWHWxCJaLoDmXPtLI0alF6qrq.jpg"));
+  assert.equal(anime.tmdbPoster, SeasonNormalization.diamondEntryScope(anime).posterUrl);
+  assert.deepEqual(anime.sourceEpisodeIds, [1]);
+  assert.equal(anime.providerEpisodeOffset, 0, "metadata offset must not alter source requests");
+  assert.equal(requests.length, 2, "only series and Season 4 are read, not all franchise seasons");
+  assert.ok(requests[1].endsWith("season=4"));
+  await c.resolver.hydrateTmdbImages({ ...diamondRows[4], id: "diamond-restored", sourceEpisodeCount: 1 });
+  assert.equal(requests.length, 2);
+});
+
+test("Diamond split-cour still caches stay separate and future second-cour episodes are not capped", async () => {
+  let requests = 0;
+  const c = context(async () => { requests++; return { ok: true, json: async () => ({ season: {
+    episodes: [...diamondEpisodes, { episode_number: 15, name: "Future Observed Metadata", still_path: "/current-15.jpg" }]
+  } }) }; });
+  for (const [row, count, first] of [[diamondRows[3], 13, 1], [diamondRows[4], 2, 14]]) {
+    const anime = { ...row, id: `diamond-${first}`, tmdbId: 60761, tmdbSeasons: diamondSeasons, sourceEpisodeCount: count };
+    const season = { season: 4, anilistId: row.anilistId, episodeCount: count, providerEpisodeOffset: 0 };
+    await Promise.all([c.resolver.ensureSeasonStills(anime, 4, season), c.resolver.ensureSeasonStills(anime, 4, season)]);
+    assert.equal(c.resolver.getSeasonEpisodeMeta(anime, 4, 1).title, `Current Cour Episode ${first}`);
+    assert.equal(Object.keys(anime.tmdbStillsBySeason[4]).length, count);
+    assert.equal(c.resolver.getSeasonEpisodeMeta(anime, 4, count + 1), null);
+    await c.resolver.ensureSeasonStills(anime, 4, season);
+  }
+  assert.equal(requests, 2, "each cour refreshes once; concurrent/repeated calls reuse its result");
+});
+
+test("old Diamond second-cour watch links keep the episode and map to Season 4 only on that exact title", () => {
+  const c = context();
+  vm.runInContext(section(clientSource, "function resolveDiamondOpenTarget(", "function resolveJojoOpenTarget("), c);
+  const legacy = { seasonNumber: 2, seasonPart: 2, episodeNumber: 1, skipHistory: true, playIntent: true };
+  const repaired = c.resolveDiamondOpenTarget(diamondRows[4], legacy);
+  assert.equal(repaired.show, diamondRows[4]);
+  assert.equal(repaired.target.seasonNumber, 4);
+  assert.equal(repaired.target.seasonPart, 2);
+  assert.equal(repaired.target.episodeNumber, 1);
+  assert.equal(repaired.target.playIntent, true);
+  assert.equal(repaired.target.skipHistory, true);
+  assert.equal(c.resolveDiamondOpenTarget(diamondRows[1], legacy), null);
+  assert.equal(c.resolveDiamondOpenTarget(diamondRows[3], legacy), null);
+  assert.equal(c.resolveDiamondOpenTarget(diamondRows[4], { ...legacy, seasonNumber: 4 }), null);
+});
 function section(source, start, end) {
   const from = source.indexOf(start);
   const to = source.indexOf(end, from + start.length);

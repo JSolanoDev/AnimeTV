@@ -14,6 +14,34 @@ const SeasonNormalization = (function() {
   const TYPE_MOVIE = 'movie';
   const TYPE_RECAP = 'recap';
 
+  // Act II starts a new numbering cycle in provider titles, not in this franchise.
+  function diamondEntryScope(entry = {}) {
+    if (entry.isAdult || entry.adultSource) return null;
+    const aid = String(entry.anilistId || "");
+    const mid = Number(entry.malId || aid.match(/^mal-(\d+)$/)?.[1] || 0);
+    const title = String(entry.sourceTitle || entry.title?.romaji || entry.title || entry.romajiTitle || "")
+      .replace(/[:-]/g, " ").replace(/\s+/g, " ").trim();
+    if (/\b(ova|oav|special|recap|movie)\b/i.test(title) || /^(OVA|SPECIAL|MOVIE)$/i.test(entry.format || "")) return null;
+    const known = (a, m) => aid === String(a) || mid === m;
+    const diamond = /^(?:diamond no ace|ace of (?:the )?diamond)\b/i.test(title);
+    const actII = /\bact\s*(?:ii|2)\b/i.test(title);
+    const second = /\b(?:second|2nd) season\b|\bseason\s*2\b/i.test(title);
+    let scope = null;
+    if (known(213658, 64505) || (diamond && actII && second && /\bpart\s*2\b/i.test(title))) scope = [4, 2, 13, 0];
+    else if (known(177634, 58877) || (diamond && actII && second && !/\bpart\b/i.test(title))) scope = [4, 1, 0, 13];
+    else if (known(105749, 38731) || (diamond && /\bact\s*(?:ii|2)$/i.test(title))) scope = [3, null, 0, 52];
+    else if (known(21085, 30230) || (diamond && !actII && second && !/\bpart\b/i.test(title))) scope = [2, null, 0, 51];
+    else if (known(18689, 18689) || /^(?:diamond no ace|ace of (?:the )?diamond)$/i.test(title)) scope = [1, null, 0, 75];
+    if (!scope) return null;
+    const [seasonNumber, partNumber, offset, count] = scope;
+    return { seasonNumber, partNumber, tmdbSeasonNumber: seasonNumber, offset, count, tmdbId: 60761,
+      ...(seasonNumber === 4 ? {
+        backdropPath: partNumber === 2 ? "/dZwWHWxCJaLoDmXPtLI0alF6qrq.jpg" : "/hAy6Du8IWd1wfIEQMsKX48T7u47.jpg",
+        posterUrl: partNumber === 2 ? "https://cdn.myanimelist.net/images/anime/1271/158770l.jpg"
+          : "https://image.tmdb.org/t/p/original/pdKVf4O4HVhJVt6qDzru4u4rUYN.jpg"
+      } : {}) };
+  }
+
   // Display the official TV seasons without renumbering existing watch/progress IDs.
   function jojoEntryScope(entry = {}) {
     if (entry.isAdult || entry.adultSource) return null;
@@ -216,12 +244,23 @@ const SeasonNormalization = (function() {
       parsed.seasonNumber = jojo.seasonNumber;
       parsed.partNumber = jojo.partNumber;
     }
+    const diamond = diamondEntryScope(entry);
+    if (diamond) {
+      parsed.seasonNumber = diamond.seasonNumber;
+      parsed.partNumber = diamond.partNumber;
+    }
 
     // Classification
     let type = TYPE_MAIN;
     if (!isStandalone) {
       if (format === 'MOVIE') type = TYPE_MOVIE;
       else if (parsed.isRecap || /\b(recap|summary|digest)\b/i.test(title)) type = TYPE_RECAP;
+      else if (/^(?:diamond no ace|ace of (?:the )?diamond)\b/i.test(title)
+          && (format === 'OVA' || format === 'SPECIAL' || parsed.isSpecial)) {
+        type = TYPE_SPECIAL;
+        parsed.seasonNumber = null;
+        parsed.partNumber = null;
+      }
       else if (entry.mainline === false) {
         type = TYPE_SPECIAL;
         parsed.seasonNumber = null;
@@ -329,6 +368,12 @@ const SeasonNormalization = (function() {
           }
         }
       }
+    }
+
+    const diamond = diamondEntryScope({ title });
+    if (diamond) {
+      seasonNumber = diamond.seasonNumber;
+      partNumber = diamond.partNumber;
     }
 
     // Arc parsing
@@ -446,6 +491,7 @@ const SeasonNormalization = (function() {
     normalizeFranchise,
     parseTitle,
     jojoEntryScope,
+    diamondEntryScope,
     scopeJojoEpisodes
   };
 })();

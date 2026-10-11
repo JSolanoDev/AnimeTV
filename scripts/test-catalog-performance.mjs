@@ -329,6 +329,7 @@ test("anime details paint before franchise and episode-list work", async () => {
     Date,
     Promise,
     getShowKey: (value) => value.id,
+    resolveDiamondOpenTarget: () => null,
     resolveJojoOpenTarget: () => null,
     warmSkipTimes() {},
     updateRouteMeta() {},

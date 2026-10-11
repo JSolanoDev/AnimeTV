@@ -12,6 +12,7 @@ import { regularArtworkPriority } from "./lib/regular-artwork-priority.mjs";
 
 const require = createRequire(import.meta.url);
 const server = require("../animetv-server.js");
+const { diamondEntryScope } = require("../js/season-normalization.js");
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
 
 test("exact season background repairs override stale artwork without changing other identities", () => {
@@ -47,6 +48,7 @@ test("automated artwork rebuilds retain the exact season background rather than 
   const id = "animeav1-steel-ball-run-jojo-no-kimyou-na-bouken";
   const context = vm.createContext({
     BASE: "https://fixture.test", ANILIST_OVERRIDES: {}, console: { log() {} },
+    diamondArtworkScope: item => diamondEntryScope(item),
     anilistById: async () => null, anilistSearch: async () => null,
     seasonNumberOf: () => 1,
     getJson: async () => ({ show: { name: "Neutral Franchise", backdrop_path: "/franchise.jpg",
@@ -69,6 +71,31 @@ test("automated artwork rebuilds retain the exact season background rather than 
   assert.equal(other.tmdbBackdrop, "https://image.tmdb.org/t/p/original/franchise.jpg");
   context.getJson = async () => null;
   assert.equal((await context.resolveOne({ id, title: "Neutral Exact Season" }, { anilistId: 190327 })).tmdbBackdrop, art.tmdbBackdrop);
+});
+
+test("Diamond automatic artwork repairs pin the current cour, keep provider numbering and become a no-op", async () => {
+  const code = read("scripts/build-artwork-map.mjs");
+  const context = vm.createContext({
+    diamondEntryScope, BASE: "https://fixture.test", ANILIST_OVERRIDES: {}, console: { log() {} },
+    anilistById: async () => null, anilistSearch: async () => null, seasonNumberOf: () => 2,
+    getJson: async () => ({ show: { name: "Neutral Franchise", backdrop_path: "/old.jpg", poster_path: "/old-poster.jpg",
+      seasons: [{ season_number: 4, poster_path: "/current-poster.jpg" }] } })
+  });
+  vm.runInContext(code.slice(code.indexOf("function diamondArtworkScope("), code.indexOf("const root =")), context);
+  vm.runInContext(code.slice(code.indexOf("const TMDB_IMG ="), code.indexOf("const norm =")), context);
+  vm.runInContext(code.slice(code.indexOf("async function resolveOne("), code.indexOf("async function main(")), context);
+  const item = { id: "animeav1-diamond-no-ace-act-ii-second-season-part-2", anilistId: 213658, title: "Diamond no Ace act II: Second Season Part 2" };
+  const stale = { anilistId: 213658, canonicalSeasonNumber: 2, tmdbBackdrop: "old.jpg", status: "ok" };
+  assert.equal(context.needsDiamondArtworkRepair(item, stale), true);
+  const art = await context.resolveOne(item, stale);
+  assert.equal(art.canonicalSeasonNumber, 4);
+  assert.equal(art.tmdbId, 60761);
+  assert.equal(art.season, 4);
+  assert.ok(art.tmdbBackdrop.endsWith("/dZwWHWxCJaLoDmXPtLI0alF6qrq.jpg"));
+  assert.equal(art.tmdbPoster, diamondEntryScope(item).posterUrl);
+  assert.equal(art.providerEpisodeOffset, undefined);
+  assert.equal(context.needsDiamondArtworkRepair(item, art), false);
+  assert.equal(context.needsDiamondArtworkRepair({ title: "Other Series", anilistId: 999 }, { status: "ok" }), false);
 });
 
 test("airing batches use a single Page query rather than costly Media aliases", async () => {

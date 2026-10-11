@@ -1,3 +1,7 @@
+import { createRequire } from "node:module";
+
+const { diamondEntryScope } = createRequire(import.meta.url)("../../js/season-normalization.js");
+
 export function normalizeOfflineTitle(value) {
   return String(value || "")
     .toLowerCase()
@@ -15,6 +19,8 @@ export function offlineIdentityKey(entry = {}) {
 }
 
 export function explicitOfflineSeasonNumber(entry = {}) {
+  const diamond = diamondEntryScope(entry);
+  if (diamond) return diamond.seasonNumber;
   const numbers = [];
   for (const value of namesOf(entry)) {
     const title = normalizeOfflineTitle(value);

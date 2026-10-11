@@ -20,8 +20,23 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { createEnrichmentBudget } from "./lib/enrichment-budget.mjs";
 import { readPublishedArtworkIds, regularArtworkPriority } from "./lib/regular-artwork-priority.mjs";
+
+const { diamondEntryScope } = createRequire(import.meta.url)("../js/season-normalization.js");
+
+function diamondArtworkScope(item, existing) {
+  return diamondEntryScope({ ...existing, ...item, anilistId: item.anilistId || existing?.anilistId,
+    malId: item.malId || existing?.malId });
+}
+
+function needsDiamondArtworkRepair(item, existing) {
+  const scope = diamondArtworkScope(item, existing);
+  return Boolean(scope?.backdropPath && (existing?.canonicalSeasonNumber !== scope.seasonNumber
+    || existing?.tmdbBackdrop !== `https://image.tmdb.org/t/p/original${scope.backdropPath}`
+    || existing?.tmdbPoster !== scope.posterUrl));
+}
 
 const root = path.resolve(new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
 const SRC = path.join(root, "scraper", "anime_metadata.json");
@@ -473,10 +488,12 @@ async function resolveOne(item, existing = null) {
   const media = fetchedMedia || fallbackMedia;
   const aniTitles = media ? [media.title?.romaji, media.title?.english, media.title?.native, ...(media.synonyms || [])] : [title];
   const year = media?.seasonYear || media?.startDate?.year || item.year || null;
-  const wantSeason = Number(existing?.canonicalSeasonNumber)
+  const diamond = diamondArtworkScope(item, existing);
+  const wantSeason = diamond?.seasonNumber || Number(existing?.canonicalSeasonNumber)
     || seasonNumberOf(media?.title?.romaji || title);
   const catalogIdentity = {
     ...(CATALOG_IDENTITY_OVERRIDES.get(item.id) || {}),
+    ...(diamond ? { canonicalSeasonNumber: diamond.seasonNumber } : {}),
     ...(EPISODE_THUMBNAIL_OVERRIDES.has(item.id)
       ? { episodeThumbnailFallback: EPISODE_THUMBNAIL_OVERRIDES.get(item.id) }
       : {})
@@ -506,23 +523,23 @@ async function resolveOne(item, existing = null) {
   // season-stripped english title is by far the best query. Every query is also
   // retried without the year: for a later season AniList reports 2026 while the
   // TMDB series first aired years earlier, and the year filter returns nothing.
-  const pinnedTmdbId = TMDB_ID_OVERRIDES.get(item.id);
+  const pinnedTmdbId = diamond?.tmdbId || TMDB_ID_OVERRIDES.get(item.id);
   if (pinnedTmdbId) {
     const details = await getJson(`${BASE}/api/tmdb/tv?id=${pinnedTmdbId}`);
     const show = details?.show;
-    const pinnedSeason = Number(TMDB_SEASON_OVERRIDES.get(item.id) || wantSeason);
+    const pinnedSeason = Number(diamond?.tmdbSeasonNumber || TMDB_SEASON_OVERRIDES.get(item.id) || wantSeason);
     const seasonEntry = (show?.seasons || []).find((entry) => Number(entry.season_number) === pinnedSeason);
     const posterPath = TMDB_POSTER_OVERRIDES.get(item.id) || seasonEntry?.poster_path || show?.poster_path || "";
-    const backdropPath = TMDB_BACKDROP_OVERRIDES.get(item.id) || show?.backdrop_path || "";
+    const backdropPath = diamond?.backdropPath || TMDB_BACKDROP_OVERRIDES.get(item.id) || show?.backdrop_path || "";
     if (backdropPath || posterPath) {
       return {
         status: backdropPath ? "ok" : "poster-only",
         ...identityArtwork,
         tmdbId: TMDB_ARTWORK_ONLY_OVERRIDES.has(item.id) ? null : pinnedTmdbId,
         tmdbBackdrop: backdropPath ? `${TMDB_IMG}${backdropPath}` : "",
-        tmdbPoster: TMDB_POSTER_SUPPRESSIONS.has(item.id)
+        tmdbPoster: diamond?.posterUrl || (TMDB_POSTER_SUPPRESSIONS.has(item.id)
           ? ""
-          : (posterPath ? `${TMDB_IMG}${posterPath}` : ""),
+          : (posterPath ? `${TMDB_IMG}${posterPath}` : "")),
         confidence: 100,
         matchedName: show?.name || show?.original_name || "pinned TMDB series",
         season: pinnedSeason
@@ -683,7 +700,7 @@ async function main() {
   }
   let todo = items.filter((i) =>
     (!ONLY_IDS.size || ONLY_IDS.has(i.id))
-    && (FORCE || !map[i.id] || map[i.id].status !== "ok")
+    && (FORCE || !map[i.id] || map[i.id].status !== "ok" || needsDiamondArtworkRepair(i, map[i.id]))
   );
   // Identity corrections must be rebuilt before ordinary rejected artwork
   // retries. This also makes a bounded nightly/manual run repair stale seasons
