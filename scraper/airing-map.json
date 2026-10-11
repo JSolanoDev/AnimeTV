@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-10T17:57:49.092Z",
-  "count": 6659,
+  "generatedAt": "2026-10-11T12:29:00.917Z",
+  "count": 6663,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -1995,7 +1995,7 @@
           "anilistId": 213657,
           "title": "Yozakura-san Chi no Daisakusen 2nd Season Part 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -2690,7 +2690,7 @@
           "anilistId": 213658,
           "title": "Diamond no Ace act II: Second Season Part 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -5934,8 +5934,8 @@
           "format": "TV",
           "status": "NOT_YET_RELEASED",
           "episodes": null,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2027,
           "startedAt": 1798761600000,
           "order": 5
         }
@@ -16458,7 +16458,7 @@
           "anilistId": 213657,
           "title": "Yozakura-san Chi no Daisakusen 2nd Season Part 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -30927,8 +30927,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791640800000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792245600000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 97940,
@@ -30953,8 +30953,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-03T15:28:35.192Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-10T15:19:32.589Z"
     },
     "anilist-127720": {
       "anilistId": 127720,
@@ -32267,8 +32267,8 @@
           "format": "TV",
           "status": "NOT_YET_RELEASED",
           "episodes": null,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2027,
           "startedAt": 1798761600000,
           "order": 5
         }
@@ -34850,8 +34850,8 @@
           "format": "TV",
           "status": "NOT_YET_RELEASED",
           "episodes": null,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2027,
           "startedAt": 1798761600000,
           "order": 5
         }
@@ -34916,8 +34916,8 @@
           "format": "TV",
           "status": "NOT_YET_RELEASED",
           "episodes": null,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2027,
           "startedAt": 1798761600000,
           "order": 5
         }
@@ -34983,8 +34983,8 @@
           "format": "TV",
           "status": "NOT_YET_RELEASED",
           "episodes": null,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2027,
           "startedAt": 1798761600000,
           "order": 5
         }
@@ -35530,8 +35530,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791647760000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792252560000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 178533,
@@ -35567,8 +35567,8 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-03T17:26:09.926Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-10T17:23:21.646Z"
     },
     "anilist-138565": {
       "anilistId": 138565,
@@ -35699,8 +35699,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791639000000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1792243800000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [
         {
           "anilistId": 180523,
@@ -35725,8 +35725,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-03T14:25:18.831Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-10T13:48:13.549Z"
     },
     "anilist-139630": {
       "anilistId": 139630,
@@ -37694,8 +37694,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791703800000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792308600000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 170942,
@@ -37720,8 +37720,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-04T10:26:15.101Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-11T09:51:07.584Z"
     },
     "anilist-9656": {
       "anilistId": 9656,
@@ -42951,7 +42951,7 @@
           "anilistId": 213657,
           "title": "Yozakura-san Chi no Daisakusen 2nd Season Part 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -42995,7 +42995,7 @@
           "anilistId": 213657,
           "title": "Yozakura-san Chi no Daisakusen 2nd Season Part 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -43007,12 +43007,12 @@
     },
     "anilist-213657": {
       "anilistId": 213657,
-      "airingStatus": "NOT_YET_RELEASED",
+      "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791705600000,
-      "nextAiringEpisodeNumber": 1,
+      "nextAiringAt": 1792310400000,
+      "nextAiringEpisodeNumber": 2,
       "franchiseSeasons": [
         {
           "anilistId": 158898,
@@ -43040,14 +43040,16 @@
           "anilistId": 213657,
           "title": "Yozakura-san Chi no Daisakusen 2nd Season Part 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
           "startedAt": 1791676800000,
           "order": 3
         }
-      ]
+      ],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-11T09:53:22.720Z"
     },
     "anilist-169228": {
       "anilistId": 169228,
@@ -43395,7 +43397,7 @@
           "anilistId": 213658,
           "title": "Diamond no Ace act II: Second Season Part 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -43407,12 +43409,12 @@
     },
     "anilist-213658": {
       "anilistId": 213658,
-      "airingStatus": "NOT_YET_RELEASED",
+      "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791707400000,
-      "nextAiringEpisodeNumber": 1,
+      "nextAiringAt": 1792312200000,
+      "nextAiringEpisodeNumber": 2,
       "franchiseSeasons": [
         {
           "anilistId": 18689,
@@ -43462,14 +43464,16 @@
           "anilistId": 213658,
           "title": "Diamond no Ace act II: Second Season Part 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
           "startedAt": 1791676800000,
           "order": 5
         }
-      ]
+      ],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-11T10:01:07.072Z"
     },
     "anilist-190704": {
       "anilistId": 190704,
@@ -61504,6 +61508,17 @@
           "seasonYear": 2021,
           "startedAt": 1617321600000,
           "order": 6
+        },
+        {
+          "anilistId": 166062,
+          "title": "Beyblade Burst QuadStrike",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 26,
+          "season": "SPRING",
+          "seasonYear": 2023,
+          "startedAt": 1680566400000,
+          "order": 7
         }
       ]
     },
@@ -67591,7 +67606,7 @@
           "anilistId": 213658,
           "title": "Diamond no Ace act II: Second Season Part 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -68843,7 +68858,7 @@
           "anilistId": 213658,
           "title": "Diamond no Ace act II: Second Season Part 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -69407,7 +69422,7 @@
           "anilistId": 213658,
           "title": "Diamond no Ace act II: Second Season Part 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -111947,8 +111962,8 @@
           "format": "TV",
           "status": "NOT_YET_RELEASED",
           "episodes": null,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2027,
           "startedAt": 1798761600000,
           "order": 5
         }
@@ -112821,8 +112836,8 @@
           "format": "TV",
           "status": "NOT_YET_RELEASED",
           "episodes": null,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2027,
           "startedAt": 1798761600000,
           "order": 5
         }
@@ -112996,8 +113011,8 @@
           "format": "TV",
           "status": "NOT_YET_RELEASED",
           "episodes": null,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2027,
           "startedAt": 1798761600000,
           "order": 5
         }
@@ -150281,8 +150296,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 24,
-      "nextAiringAt": 1791705600000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792310400000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 134732,
@@ -150307,8 +150322,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-04T10:26:37.161Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-11T09:54:54.251Z"
     },
     "anilist-101571": {
       "anilistId": 101571,
@@ -171209,8 +171224,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791639000000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1792243800000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [
         {
           "anilistId": 180523,
@@ -171235,8 +171250,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-03T14:25:18.831Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-10T13:48:13.549Z"
     },
     "anilist-186497": {
       "anilistId": 186497,
@@ -171313,8 +171328,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 23,
-      "nextAiringAt": 1792234800000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1791901800000,
+      "nextAiringEpisodeNumber": 2,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-03T20:21:19.213Z"
@@ -171325,11 +171340,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791649800000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792254600000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-03T18:37:05.995Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-10T18:18:57.535Z"
     },
     "animeav1-ranma-2024-3rd-season": {
       "anilistId": 209872,
@@ -171337,8 +171352,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791647760000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792252560000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 178533,
@@ -171374,8 +171389,8 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-03T17:26:09.926Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-10T17:23:21.646Z"
     },
     "animeav1-magicalexplorer": {
       "anilistId": 169581,
@@ -171383,11 +171398,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1791644400000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1792249200000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-03T17:03:37.496Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-10T16:38:50.005Z"
     },
     "animeav1-vertex-force": {
       "anilistId": 209562,
@@ -171395,11 +171410,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791642600000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792247400000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-03T16:13:34.847Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-10T16:21:02.520Z"
     },
     "animeav1-black-clover-2nd-season": {
       "anilistId": 195604,
@@ -171407,8 +171422,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791640800000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792245600000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 97940,
@@ -171433,8 +171448,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-03T15:28:35.192Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-10T15:19:32.589Z"
     },
     "animeav1-marronnier-oukoku-no-shichinin-no-kishi": {
       "anilistId": 212799,
@@ -171445,8 +171460,8 @@
       "nextAiringAt": 1792229100000,
       "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-03T15:28:17.345Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-10T15:20:14.003Z"
     },
     "animeav1-zombie-sagashitemasu": {
       "anilistId": 199007,
@@ -171457,8 +171472,8 @@
       "nextAiringAt": 1792247400000,
       "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-03T15:22:32.907Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-10T15:14:21.683Z"
     },
     "animeav1-romelia-senki": {
       "anilistId": 180894,
@@ -171469,8 +171484,8 @@
       "nextAiringAt": 1792238400000,
       "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-03T14:28:16.457Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-10T13:17:26.881Z"
     },
     "animeav1-tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu": {
       "anilistId": 187402,
@@ -171478,11 +171493,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791637200000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1792242000000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-03T14:28:00.626Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-10T13:16:07.233Z"
     },
     "animeav1-seitokai-ni-mo-ana-wa-aru": {
       "anilistId": 191656,
@@ -171490,11 +171505,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791646200000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792251000000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-04T02:16:28.285Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-10T21:51:39.541Z"
     },
     "anilist-21": {
       "anilistId": 21,
@@ -173701,7 +173716,7 @@
           "anilistId": 213658,
           "title": "Diamond no Ace act II: Second Season Part 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -173767,7 +173782,7 @@
           "anilistId": 213658,
           "title": "Diamond no Ace act II: Second Season Part 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -173833,7 +173848,7 @@
           "anilistId": 213658,
           "title": "Diamond no Ace act II: Second Season Part 2",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -180531,8 +180546,8 @@
           "format": "TV",
           "status": "NOT_YET_RELEASED",
           "episodes": null,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2027,
           "startedAt": 1798761600000,
           "order": 5
         }
@@ -199392,6 +199407,17 @@
           "seasonYear": 2021,
           "startedAt": 1617321600000,
           "order": 6
+        },
+        {
+          "anilistId": 166062,
+          "title": "Beyblade Burst QuadStrike",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 26,
+          "season": "SPRING",
+          "seasonYear": 2023,
+          "startedAt": 1680566400000,
+          "order": 7
         }
       ]
     },
@@ -199469,6 +199495,17 @@
           "seasonYear": 2021,
           "startedAt": 1617321600000,
           "order": 6
+        },
+        {
+          "anilistId": 166062,
+          "title": "Beyblade Burst QuadStrike",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 26,
+          "season": "SPRING",
+          "seasonYear": 2023,
+          "startedAt": 1680566400000,
+          "order": 7
         }
       ]
     },
@@ -237100,8 +237137,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 24,
-      "nextAiringAt": 1791705600000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792310400000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 134732,
@@ -237126,8 +237163,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-04T10:26:37.161Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-11T09:54:54.251Z"
     },
     "animeav1-ao-no-hako-season-2": {
       "anilistId": 189123,
@@ -237135,8 +237172,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791703800000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792308600000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 170942,
@@ -237161,8 +237198,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-04T10:26:15.101Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-11T09:51:07.584Z"
     },
     "animeav1-dark-summoner-to-dekiteiru": {
       "anilistId": 208025,
@@ -238105,6 +238142,17 @@
           "seasonYear": 2021,
           "startedAt": 1617321600000,
           "order": 6
+        },
+        {
+          "anilistId": 166062,
+          "title": "Beyblade Burst QuadStrike",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 26,
+          "season": "SPRING",
+          "seasonYear": 2023,
+          "startedAt": 1680566400000,
+          "order": 7
         }
       ]
     },
@@ -239782,6 +239830,17 @@
           "seasonYear": 2021,
           "startedAt": 1617321600000,
           "order": 6
+        },
+        {
+          "anilistId": 166062,
+          "title": "Beyblade Burst QuadStrike",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 26,
+          "season": "SPRING",
+          "seasonYear": 2023,
+          "startedAt": 1680566400000,
+          "order": 7
         }
       ]
     },
@@ -240369,6 +240428,17 @@
           "seasonYear": 2021,
           "startedAt": 1617321600000,
           "order": 6
+        },
+        {
+          "anilistId": 166062,
+          "title": "Beyblade Burst QuadStrike",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 26,
+          "season": "SPRING",
+          "seasonYear": 2023,
+          "startedAt": 1680566400000,
+          "order": 7
         }
       ]
     },
@@ -240571,6 +240641,232 @@
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-09T15:45:38.721Z"
+    },
+    "anilist-130253": {
+      "anilistId": 130253,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 52,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 21236,
+          "title": "Beyblade Burst",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2016,
+          "startedAt": 1459728000000,
+          "order": 1
+        },
+        {
+          "anilistId": 98289,
+          "title": "Beyblade Burst God",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2017,
+          "startedAt": 1491177600000,
+          "order": 2
+        },
+        {
+          "anilistId": 101115,
+          "title": "Beyblade Burst Chouzetsu",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2018,
+          "startedAt": 1522627200000,
+          "order": 3
+        },
+        {
+          "anilistId": 108853,
+          "title": "Beyblade Burst Gachi",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554422400000,
+          "order": 4
+        },
+        {
+          "anilistId": 116786,
+          "title": "Beyblade Burst Sparking",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2020,
+          "startedAt": 1585872000000,
+          "order": 5
+        },
+        {
+          "anilistId": 130253,
+          "title": "Beyblade Burst DB",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617321600000,
+          "order": 6
+        },
+        {
+          "anilistId": 166062,
+          "title": "Beyblade Burst QuadStrike",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 26,
+          "season": "SPRING",
+          "seasonYear": 2023,
+          "startedAt": 1680566400000,
+          "order": 7
+        }
+      ]
+    },
+    "animeav1-shuiro-no-kamen": {
+      "anilistId": 195571,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": 1792225800000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-10T12:40:04.737Z"
+    },
+    "animeav1-kyoufu-collector": {
+      "anilistId": 203473,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": 1792248300000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-10T17:26:51.109Z"
+    },
+    "animeav1-diamond-no-ace-act-ii-second-season-part-2": {
+      "anilistId": 213658,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": 1792312200000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [
+        {
+          "anilistId": 18689,
+          "title": "Diamond no Ace",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 75,
+          "season": "FALL",
+          "seasonYear": 2013,
+          "startedAt": 1381017600000,
+          "order": 1
+        },
+        {
+          "anilistId": 21085,
+          "title": "Diamond no Ace: Second Season",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2015,
+          "startedAt": 1428278400000,
+          "order": 2
+        },
+        {
+          "anilistId": 105749,
+          "title": "Diamond no Ace act II",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554163200000,
+          "order": 3
+        },
+        {
+          "anilistId": 177634,
+          "title": "Diamond no Ace act II: Second Season",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775347200000,
+          "order": 4
+        },
+        {
+          "anilistId": 213658,
+          "title": "Diamond no Ace act II: Second Season Part 2",
+          "format": "TV",
+          "status": "RELEASING",
+          "episodes": null,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1791676800000,
+          "order": 5
+        }
+      ],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-11T10:01:07.072Z"
+    },
+    "animeav1-yozakura-san-chi-no-daisakusen-2nd-season-part-2": {
+      "anilistId": 213657,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": 1792310400000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [
+        {
+          "anilistId": 158898,
+          "title": "Yozakura-san Chi no Daisakusen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 27,
+          "season": "SPRING",
+          "seasonYear": 2024,
+          "startedAt": 1712448000000,
+          "order": 1
+        },
+        {
+          "anilistId": 182578,
+          "title": "Yozakura-san Chi no Daisakusen 2nd Season",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2026,
+          "startedAt": 1775952000000,
+          "order": 2
+        },
+        {
+          "anilistId": 213657,
+          "title": "Yozakura-san Chi no Daisakusen 2nd Season Part 2",
+          "format": "TV",
+          "status": "RELEASING",
+          "episodes": null,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1791676800000,
+          "order": 3
+        }
+      ],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-11T09:53:22.720Z"
     },
     "animeav1-battle-spirits-re-zekkai-no-kuu": {
       "anilistId": null,
@@ -241127,13 +241423,6 @@
           "order": 3
         }
       ]
-    },
-    "animeav1-kyoufu-collector": {
-      "anilistId": 203473,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1792248300000,
-      "nextAiringEpisodeNumber": 2
     }
   },
   "seasonArtwork": {
@@ -242548,6 +242837,10 @@
     "anilist-98416": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b98416-L44f4idEGMAX.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/98416-1XM7oOALCGjA.jpg"
+    },
+    "anilist-218099": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx218099-D8t4YUt0Jonv.jpg",
+      "anilistBanner": ""
     },
     "anilist-201817": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx201817-pyfL9F8muPeq.jpg",
@@ -254383,10 +254676,6 @@
     },
     "anilist-97486": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx97486-wSl11UwfxrfL.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-130253": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx130253-xGqNj5lKnuwN.png",
       "anilistBanner": ""
     },
     "anilist-165159": {
@@ -274569,6 +274858,14 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx159459-wTOSTzcrdEFI.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/159459-OiB0coJOu6tx.jpg"
     },
+    "anilist-195571": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx195571-fvj7u5GI7BRT.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-130729": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx130729-EOOFhNdcAb6l.png",
+      "anilistBanner": ""
+    },
     "anilist-199594": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx199594-moYKzlfIH03U.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/199594-iw8KRAiBp3sO.jpg"
@@ -274587,6 +274884,14 @@
     },
     "anilist-210681": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx210681-bxawqplu7EjI.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-203473": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b203473-pzyaqV432Qko.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/203473-KCGlCZL2ApjB.jpg"
+    },
+    "anilist-146120": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx146120-42C8Tc7yOkk7.jpg",
       "anilistBanner": ""
     },
     "anilist-205909": {
