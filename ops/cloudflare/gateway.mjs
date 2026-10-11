@@ -11,13 +11,25 @@ export const SECURITY_HEADERS = {
 const PUBLIC_CACHE_TTLS = new Map([
   ["/api/image", 86400],
   ["/api/catalog", 300],
-  ["/api/skip-times", 300]
+  ["/api/skip-times", 300],
+  ["/api/tmdb/search", 300],
+  ["/api/tmdb/tv", 300],
+  ["/api/tmdb/season", 300],
+  ["/api/anilist/airing", 120],
+  ["/api/animeav1/latest", 60]
 ]);
+const METADATA_CACHE_PATHS = new Set(["/api/tmdb/search", "/api/tmdb/tv", "/api/tmdb/season",
+  "/api/anilist/airing", "/api/animeav1/latest"]);
+const CACHE_POLICY_HEADER = "X-Zenkai-Cache-Policy";
+const CACHE_STORED_HEADER = "X-Zenkai-Cache-Stored-At";
+const CACHE_EXPIRY_HEADER = "X-Zenkai-Cache-Expires-At";
+const METADATA_CACHE_MAX_BYTES = 256 * 1024;
 const HOP_HEADERS = ["host", "connection", "keep-alive", "transfer-encoding", "upgrade",
   "proxy-authorization", "proxy-authenticate", "trailer", "te"];
 
 function secureResponse(response, extraHeaders = {}, encodeBody = "automatic") {
   const headers = new Headers(response.headers);
+  for (const name of [CACHE_POLICY_HEADER, CACHE_STORED_HEADER, CACHE_EXPIRY_HEADER]) headers.delete(name);
   for (const [name, value] of Object.entries({ ...SECURITY_HEADERS,
     "X-Robots-Tag": "noindex, nofollow", ...extraHeaders })) headers.set(name, value);
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers, encodeBody });
@@ -47,6 +59,8 @@ function backendOrigin(env, incoming) {
 function publicCacheRequest(request, url) {
   return request.method === "GET" && PUBLIC_CACHE_TTLS.has(url.pathname)
     && !["authorization", "cookie", "range", "if-none-match", "if-modified-since"].some((key) => request.headers.has(key))
+    && !/\b(?:no-cache|no-store|max-age\s*=\s*0)\b/i.test(request.headers.get("cache-control") || "")
+    && !/\bno-cache\b/i.test(request.headers.get("pragma") || "")
     && ![...url.searchParams.keys()].some((key) => /^(?:refresh|force|nocache|no-cache|bypass)$/i.test(key));
 }
 
@@ -62,7 +76,36 @@ export function publicCacheTtl(response, pathname) {
   if (!response.headers.has("content-length") || !Number.isSafeInteger(length) || length <= 0 || length > 16 * 1024 * 1024) return 0;
   const maxAge = Number(policy.match(/(?:^|,)\s*(?:s-maxage)=(\d+)/i)?.[1]
     ?? policy.match(/(?:^|,)\s*max-age=(\d+)/i)?.[1] ?? 0);
-  return Math.min(maxAge, PUBLIC_CACHE_TTLS.get(pathname) || 0);
+  const age = Math.max(0, Number(response.headers.get("age")) || 0);
+  return Math.max(0, Math.min(maxAge, PUBLIC_CACHE_TTLS.get(pathname) || 0) - age);
+}
+
+async function successfulPublicMetadata(response, pathname) {
+  if (!METADATA_CACHE_PATHS.has(pathname)) return true;
+  if (Number(response.headers.get("content-length")) > METADATA_CACHE_MAX_BYTES) return false;
+  // Inspect only small, public metadata, off the response's critical path. Never buffer media/catalogs.
+  const reader = response.clone().body.getReader();
+  const chunks = [];
+  let length = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      length += value.byteLength;
+      if (length > METADATA_CACHE_MAX_BYTES) { void reader.cancel().catch(() => {}); return false; }
+      chunks.push(value);
+    }
+    const bytes = new Uint8Array(length);
+    let offset = 0;
+    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+    const payload = JSON.parse(new TextDecoder().decode(bytes));
+    if (payload?.ok !== true || payload.configured === false || payload.unavailable || payload.stale || payload.notFound) return false;
+    if (pathname === "/api/tmdb/tv") return Boolean(payload.show && typeof payload.show === "object" && !Array.isArray(payload.show));
+    const items = pathname === "/api/tmdb/season" ? payload.season?.episodes
+      : pathname === "/api/tmdb/search" ? payload.results : payload.items;
+    return Array.isArray(items) && items.length > 0;
+  } catch { return false; }
+  finally { reader.releaseLock(); }
 }
 
 function forwardHeaders(request, production) {
@@ -107,12 +150,25 @@ export async function handleGateway(request, env, ctx, { fetchImpl = fetch, cach
   const keyUrl = new URL(url);
   // Cache API bodies lose fetch's compressed-stream passthrough metadata.
   // Isolate encodings and return cached bytes without compressing them twice.
-  keyUrl.searchParams.append("__zenkai_gateway_encoding_v1", request.headers.get("accept-encoding") || "identity");
+  keyUrl.searchParams.sort();
+  keyUrl.searchParams.append("__zenkai_gateway_encoding_v2", request.headers.get("accept-encoding") || "identity");
   const key = cacheable ? new Request(keyUrl.href, { method: "GET" }) : null;
   if (key && cache) {
     try {
       const hit = await cache.match(key);
-      if (hit) return secureResponse(hit, { "X-Zenkai-Gateway-Cache": "HIT" }, "manual");
+      if (hit) {
+        const policy = hit.headers.get(CACHE_POLICY_HEADER);
+        const storedAt = Number(hit.headers.get(CACHE_STORED_HEADER));
+        const expiresAt = Number(hit.headers.get(CACHE_EXPIRY_HEADER));
+        if (policy && storedAt > 0 && expiresAt > Date.now()) {
+          // Zone Browser TTL can rewrite cached Cache-Control. Keep origin policy and hard expiry separate.
+          return secureResponse(hit, { "X-Zenkai-Gateway-Cache": "HIT", "Cache-Control": policy,
+            Age: String(Math.max(Number(hit.headers.get("age")) || 0,
+              Math.floor((Date.now() - storedAt) / 1000))) }, "manual");
+        }
+        // A cloned stream's cancel promise can wait for other consumers. Do not delay the fresh fetch.
+        void hit.body?.cancel().catch(() => {});
+      }
     } catch { /* Cache availability must not block the existing API. */ }
   }
   const controller = new AbortController();
@@ -146,6 +202,7 @@ export async function handleGateway(request, env, ctx, { fetchImpl = fetch, cach
   }
   const headers = new Headers(upstream.headers);
   for (const name of HOP_HEADERS) headers.delete(name);
+  for (const name of [CACHE_POLICY_HEADER, CACHE_STORED_HEADER, CACHE_EXPIRY_HEADER]) headers.delete(name);
   const location = headers.get("location");
   if (location) {
     const redirect = new URL(location, backend);
@@ -178,9 +235,17 @@ export async function handleGateway(request, env, ctx, { fetchImpl = fetch, cach
   const ttl = cacheable ? publicCacheTtl(response, url.pathname) : 0;
   if (ttl && cache && ctx?.waitUntil) {
     const cached = response.clone();
-    cached.headers.set("cache-control", `public, max-age=${ttl}`);
+    const storedAt = Date.now();
+    cached.headers.set(CACHE_POLICY_HEADER, response.headers.get("cache-control"));
+    // Carry upstream Age forward rather than granting a second full browser freshness window.
+    cached.headers.set(CACHE_STORED_HEADER, String(storedAt - (Math.max(0, Number(response.headers.get("age")) || 0) * 1000)));
+    cached.headers.set(CACHE_EXPIRY_HEADER, String(storedAt + ttl * 1000));
+    cached.headers.set("cache-control", `public, max-age=${ttl}, s-maxage=${ttl}`);
     cached.headers.delete("server-timing");
-    ctx.waitUntil(cache.put(key, cached).catch(() => {}));
+    ctx.waitUntil((async () => {
+      if (await successfulPublicMetadata(cached, url.pathname)) await cache.put(key, cached);
+      else await cached.body?.cancel();
+    })().catch(() => {}));
   }
   return response;
 }
