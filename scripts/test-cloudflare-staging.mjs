@@ -149,6 +149,40 @@ test("equivalent parameter order reuses metadata; year, language, season and adu
   assert.equal(count, 5);
 });
 
+test("chunked public metadata is bounded and validated before reuse; other unknown lengths stay uncacheable", async () => {
+  const payload = { ok: true, results: [{ id: 1 }], show: { id: 1 }, season: { episodes: [{ id: 1 }] }, items: [{ id: 1 }] };
+  for (const path of ["/api/tmdb/search", "/api/tmdb/tv", "/api/tmdb/season", "/api/anilist/airing", "/api/animeav1/latest"]) {
+    const fixture = cacheFixture();
+    let count = 0;
+    const opts = { cache: fixture.cache, fetchImpl: async () => {
+      count++;
+      const response = metadata(payload);
+      response.headers.delete("content-length");
+      return response;
+    } };
+    assert.deepEqual(await (await handleGateway(request(path), ENV, fixture.ctx, opts)).json(), payload);
+    await fixture.flush();
+    const hit = await handleGateway(request(path), ENV, fixture.ctx, opts);
+    assert.equal(hit.headers.get("x-zenkai-gateway-cache"), "HIT");
+    assert.deepEqual(await hit.json(), payload);
+    assert.equal(count, 1);
+  }
+  for (const payload of [{ ok: true, results: [] }, { ok: true, results: [{ id: "x".repeat(262145) }] }]) {
+    const fixture = cacheFixture();
+    const upstream = metadata(payload);
+    upstream.headers.delete("content-length");
+    const response = await handleGateway(request("/api/tmdb/search"), ENV, fixture.ctx,
+      { cache: fixture.cache, fetchImpl: async () => upstream });
+    await response.text();
+    await fixture.flush();
+    assert.equal(fixture.entries.size, 0);
+  }
+  const unknownLength = json();
+  unknownLength.headers.delete("content-length");
+  for (const path of ["/api/catalog", "/api/image", "/api/skip-times", "/api/source"])
+    assert.equal(publicCacheTtl(unknownLength, path), 0);
+});
+
 test("unavailable, stale, unconfigured, missing, empty and oversized metadata never become cached successes", async () => {
   const cases = [
     metadata({ ok: false, results: [{ id: 1 }] }),

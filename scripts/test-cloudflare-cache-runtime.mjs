@@ -19,15 +19,17 @@ const request = (path, init) => worker.dispatchFetch("https://staging.example" +
 
 try {
   for (const encoding of ["identity", "gzip"]) {
-    for (let n = 0; n < 2; n++) {
-      const response = await request("/api/tmdb/search?q=neutral&encoding=" + encoding);
-      assert.equal(response.status, 200);
-      assert.equal(response.headers.get("x-zenkai-gateway-cache"), n ? "HIT" : "MISS", `${encoding} round ${n}`);
-      assert.equal(response.headers.get("cache-control"), "public, max-age=120, s-maxage=600");
-      assert.equal(response.headers.get("etag"), '"neutral-v1"');
-      assert.equal(response.headers.has("x-zenkai-cache-policy"), false);
-      assert.equal((await response.json()).fixture, "neutral");
-      if (!n) await sleep(150);
+    for (const length of ["declared", "absent"]) {
+      for (let n = 0; n < 2; n++) {
+        const response = await request("/api/tmdb/search?q=neutral&encoding=" + encoding + "&length=" + length);
+        assert.equal(response.status, 200);
+        assert.equal(response.headers.get("x-zenkai-gateway-cache"), n ? "HIT" : "MISS", `${encoding} ${length} round ${n}`);
+        assert.equal(response.headers.get("cache-control"), "public, max-age=120, s-maxage=600");
+        assert.equal(response.headers.get("etag"), '"neutral-v1"');
+        assert.equal(response.headers.has("x-zenkai-cache-policy"), false);
+        assert.equal((await response.json()).fixture, "neutral");
+        if (!n) await sleep(150);
+      }
     }
   }
   for (const status of [429, 502]) {
@@ -43,7 +45,7 @@ try {
   assert.equal(privateResponse.headers.get("x-zenkai-gateway-cache"), "BYPASS");
   await privateResponse.text();
   assert.equal((await request("/.env")).status, 404);
-  console.log("Local workerd Cache API passed: metadata MISS/HIT, JSON/gzip, origin policy, validators, privacy, errors and scanner blocking.");
+  console.log("Local workerd Cache API passed: bounded chunked/declared metadata MISS/HIT, JSON/gzip, origin policy, validators, privacy, errors and scanner blocking.");
 } finally {
   await worker.dispose();
 }

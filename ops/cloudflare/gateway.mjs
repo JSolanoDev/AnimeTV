@@ -73,7 +73,9 @@ export function publicCacheTtl(response, pathname) {
   const type = response.headers.get("content-type") || "";
   if (pathname === "/api/image" ? !/^image\//i.test(type) : !/application\/json/i.test(type)) return 0;
   const length = Number(response.headers.get("content-length"));
-  if (!response.headers.has("content-length") || !Number.isSafeInteger(length) || length <= 0 || length > 16 * 1024 * 1024) return 0;
+  if (response.headers.has("content-length")) {
+    if (!Number.isSafeInteger(length) || length <= 0 || length > 16 * 1024 * 1024) return 0;
+  } else if (!METADATA_CACHE_PATHS.has(pathname)) return 0;
   const maxAge = Number(policy.match(/(?:^|,)\s*(?:s-maxage)=(\d+)/i)?.[1]
     ?? policy.match(/(?:^|,)\s*max-age=(\d+)/i)?.[1] ?? 0);
   const age = Math.max(0, Number(response.headers.get("age")) || 0);
@@ -83,7 +85,7 @@ export function publicCacheTtl(response, pathname) {
 async function successfulPublicMetadata(response, pathname) {
   if (!METADATA_CACHE_PATHS.has(pathname)) return true;
   if (Number(response.headers.get("content-length")) > METADATA_CACHE_MAX_BYTES) return false;
-  // Inspect only small, public metadata, off the response's critical path. Never buffer media/catalogs.
+  // Chunked JSON has no declared length; bound decoded public metadata off the response path. Never buffer media/catalogs.
   const reader = response.clone().body.getReader();
   const chunks = [];
   let length = 0;

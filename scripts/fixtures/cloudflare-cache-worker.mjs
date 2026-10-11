@@ -11,6 +11,7 @@ export default {
         const headers = { "Content-Type": "application/json", "Content-Length": String(new TextEncoder().encode(body).byteLength),
           "Cache-Control": "public, max-age=120, s-maxage=600", ETag: '"neutral-v1"' };
         if (query.get("encoding") === "gzip") headers["Content-Encoding"] = "gzip";
+        if (query.get("length") === "absent") delete headers["Content-Length"];
         return new Response(body, { status, headers });
       }
     });
