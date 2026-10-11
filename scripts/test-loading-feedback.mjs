@@ -13,6 +13,122 @@ function section(start, end) {
   return client.slice(from, to);
 }
 
+function seasonMenuHarness(anchor = { top: 600, bottom: 640, left: 280, width: 160 }) {
+  const listeners = new Map();
+  const windowListeners = new Map();
+  const document = {
+    documentElement: { clientWidth: 1280 }, activeElement: null,
+    addEventListener: (name, callback) => listeners.set(name, callback),
+    removeEventListener: (name, callback) => { if (listeners.get(name) === callback) listeners.delete(name); }
+  };
+  const item = (label) => ({ label, focus(options) { document.activeElement = this; this.focusOptions = options; }, scrollIntoView() {} });
+  const items = [item("Season 1"), item("Season 2")];
+  const selector = { append(element) { element.parentElement = this; }, contains: (element) => element === button || element === menu };
+  const buttonEvents = new Map();
+  const button = {
+    ...item("selector"), parentElement: selector, attrs: {},
+    getBoundingClientRect: () => anchor,
+    setAttribute(name, value) { this.attrs[name] = value; },
+    addEventListener: (name, callback) => buttonEvents.set(name, callback)
+  };
+  const menu = {
+    hidden: true, style: {}, offsetWidth: 230, scrollHeight: 340, parentElement: selector,
+    contains: (element) => element === menu || items.includes(element),
+    querySelector: (query) => query === ".is-selected" ? items[1] : items[0],
+    querySelectorAll: () => items,
+    addEventListener() {}
+  };
+  const overlay = { append(element) { element.parentElement = this; } };
+  const c = vm.createContext({ document, overlay, refreshFocusables() {}, window: {
+    innerHeight: 720,
+    addEventListener: (name, callback) => windowListeners.set(name, callback),
+    removeEventListener: (name, callback) => { if (windowListeners.get(name) === callback) windowListeners.delete(name); },
+    clearTimeout() {}, setTimeout() {}
+  } });
+  vm.runInContext(section("let activeSeasonMenuClose =", "function renderEpisodeList("), c);
+  const close = c.bindSeasonMenu(button, menu);
+  const click = () => buttonEvents.get("click")({ stopPropagation() {} });
+  return { c, document, button, menu, items, selector, overlay, listeners, windowListeners, click, close };
+}
+
+test("season menu opens above its trigger and remains inside phone/tablet/desktop viewports", () => {
+  const { c } = seasonMenuHarness();
+  for (const [width, height] of [[320, 568], [390, 844], [844, 390], [768, 1024], [1024, 768], [1280, 720], [1920, 1080]]) {
+    const anchor = { left: width - 160, width: 150, top: height - 100, bottom: height - 60 };
+    const box = c.seasonMenuPlacement(anchor, { width, height }, { width: 240, height: 342 });
+    assert.equal(box.opensAbove, true);
+    assert.ok(box.top >= 8 && box.left >= 8);
+    assert.ok(box.left + box.width <= width - 8);
+    assert.ok(box.top + box.height < anchor.top);
+  }
+});
+
+test("season menu uses available height above desktop header and falls below only at the screen edge", () => {
+  const { c } = seasonMenuHarness();
+  const desktop = c.seasonMenuPlacement({ top: 158, bottom: 198, left: 1000, width: 160 }, { width: 1280, height: 720 }, { width: 240, height: 342 });
+  assert.equal(desktop.opensAbove, true);
+  assert.equal(desktop.top, 8);
+  assert.equal(desktop.height, 144);
+  const edge = c.seasonMenuPlacement({ top: 12, bottom: 52, left: 0, width: 140 }, { width: 320, height: 568 }, { width: 400, height: 342 });
+  assert.equal(edge.opensAbove, false);
+  assert.equal(edge.top, 58);
+  assert.equal(edge.width, 304);
+});
+
+test("season menu escapes sidebar clipping and focuses the selected season without page scrolling", () => {
+  const h = seasonMenuHarness();
+  h.click();
+  assert.equal(h.menu.parentElement, h.overlay);
+  assert.equal(h.document.activeElement, h.items[1]);
+  assert.equal(h.items[1].focusOptions.preventScroll, true);
+  assert.equal(h.button.attrs["aria-expanded"], "true");
+  assert.equal(h.menu.style.top, "252px");
+  h.close();
+  assert.equal(h.menu.hidden, true);
+  assert.equal(h.menu.parentElement, h.selector);
+  assert.equal(h.listeners.size, 0);
+  assert.equal(h.windowListeners.size, 0);
+});
+
+test("season menu Escape stays in details; arrow/Home/End navigation reaches every option", () => {
+  const h = seasonMenuHarness();
+  h.click();
+  const event = (key) => ({ key, target: h.document.activeElement, preventDefault() {}, stopPropagation() { this.stopped = true; } });
+  for (const [key, expected] of [["Home", 0], ["ArrowDown", 1], ["ArrowUp", 0], ["End", 1]]) {
+    const e = event(key);
+    h.listeners.get("keydown")(e);
+    assert.equal(h.document.activeElement, h.items[expected]);
+    assert.equal(e.stopped, true);
+  }
+  const escape = event("Escape");
+  h.listeners.get("keydown")(escape);
+  assert.equal(escape.stopped, true);
+  assert.equal(h.document.activeElement, h.button);
+  assert.equal(h.menu.hidden, true);
+});
+
+test("season menu ignores its own scrolling/clicks and cleans up on outside click, resize or rerender", () => {
+  for (const reason of ["outside", "resize", "render", "scroll", "fullscreen"]) {
+    const h = seasonMenuHarness();
+    h.click();
+    h.listeners.get("pointerdown")({ target: h.items[0] });
+    h.listeners.get("scroll")({ target: h.menu });
+    assert.equal(h.menu.hidden, false);
+    if (reason === "outside") h.listeners.get("pointerdown")({ target: {} });
+    if (reason === "resize") h.windowListeners.get("resize")();
+    if (reason === "render") h.c.dismissSeasonMenu();
+    if (reason === "scroll") h.listeners.get("scroll")({ target: {} });
+    if (reason === "fullscreen") h.listeners.get("fullscreenchange")();
+    assert.equal(h.menu.hidden, true, reason);
+    assert.equal(h.listeners.size, 0, reason);
+    assert.equal(h.windowListeners.size, 0, reason);
+  }
+  assert.match(section("function renderEpisodeList(", "const isAdultSourceShow ="), /dismissSeasonMenu\(\)/);
+  assert.match(section("function renderEpisodeList(", "const isAdultSourceShow ="), /dataset\.showKey === getShowKey\(show\)/);
+  assert.match(client, /if \(restoreSeasonMenu && seasonMenu\) seasonBtn\.click\(\)/);
+  assert.match(section("function closeShow(", "function handleWatchBack("), /dismissSeasonMenu\(\)/);
+});
+
 function historyRouteHarness(active = true) {
   const calls = [];
   const show = { id: "show-1" };
@@ -83,6 +199,7 @@ function closeShowHarness() {
     setPlayerCinemaOpen: () => {},
     setWatchDetailLoading: () => {},
     hideAdultGalleryPanel: () => {},
+    dismissSeasonMenu: () => calls.push(["dismiss-season-menu"]),
     refreshFocusables: () => {},
     renderCarousel: () => {},
     resumeVisibleMetadataWarm: () => {},

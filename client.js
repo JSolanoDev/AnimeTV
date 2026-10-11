@@ -5129,7 +5129,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1017";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1019";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -11199,6 +11199,7 @@ function selectedEpisodeMatchesTarget(show, selected, target = {}) {
 }
 
 function closeShow(options = {}) {
+  dismissSeasonMenu();
   if (overlay.classList.contains("is-closing") && !options.immediate) return;
   if (!options.skipHistory && /^\/(?:anime|watch)\//.test(location.pathname)) {
     appRouter()?.replace?.(routePathFor(state.route === "not-found" ? "home" : state.route), { silent: true });
@@ -12711,8 +12712,117 @@ function getEpisodeChunkIndex(show, season, seasonIndex, chunksCount, chunkSize)
   return safeIndex;
 }
 
+let activeSeasonMenuClose = null;
+
+function dismissSeasonMenu() {
+  activeSeasonMenuClose?.();
+}
+
+function seasonMenuPlacement(anchor, viewport, menuSize) {
+  const margin = 8;
+  const gap = 6;
+  const above = Math.max(0, anchor.top - margin - gap);
+  const below = Math.max(0, viewport.height - anchor.bottom - margin - gap);
+  const opensAbove = above >= Math.min(menuSize.height, 132) || above >= below;
+  const height = Math.min(menuSize.height, opensAbove ? above : below);
+  const width = Math.min(Math.max(anchor.width, menuSize.width), Math.max(0, viewport.width - margin * 2));
+  return {
+    width,
+    height,
+    left: Math.max(margin, Math.min(anchor.left + (anchor.width - width) / 2, viewport.width - width - margin)),
+    top: opensAbove ? anchor.top - gap - height : anchor.bottom + gap,
+    opensAbove
+  };
+}
+
+function bindSeasonMenu(button, menu) {
+  const selector = button.parentElement;
+  let blurTimer = null;
+  const close = () => {
+    if (menu.hidden) return;
+    menu.hidden = true;
+    selector.append(menu);
+    button.setAttribute("aria-expanded", "false");
+    document.removeEventListener("pointerdown", onOutside, true);
+    document.removeEventListener("keydown", onKey, true);
+    document.removeEventListener("scroll", onScroll, true);
+    document.removeEventListener("fullscreenchange", close);
+    window.removeEventListener("resize", close);
+    window.clearTimeout(blurTimer);
+    if (activeSeasonMenuClose === close) activeSeasonMenuClose = null;
+    refreshFocusables();
+  };
+  const onOutside = (event) => {
+    if (!selector.contains(event.target) && !menu.contains(event.target)) close();
+  };
+  const onScroll = (event) => {
+    if (!menu.contains(event.target)) close();
+  };
+  const onKey = (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+      button.focus({ preventScroll: true });
+      return;
+    }
+    if (!menu.contains(event.target)) return;
+    const items = [...menu.querySelectorAll("[data-season-nav]")];
+    let index = items.indexOf(document.activeElement);
+    if (event.key === "ArrowUp") index = Math.max(0, index - 1);
+    else if (event.key === "ArrowDown") index = Math.min(items.length - 1, index + 1);
+    else if (event.key === "Home") index = 0;
+    else if (event.key === "End") index = items.length - 1;
+    else return;
+    event.preventDefault();
+    event.stopPropagation();
+    items[index]?.focus({ preventScroll: true });
+    items[index]?.scrollIntoView({ block: "nearest", behavior: "auto" });
+  };
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (!menu.hidden) { close(); return; }
+    dismissSeasonMenu();
+    // Escape the sidebar's clipping/filter layers, but stay inside the watch
+    // overlay so fullscreen and TV focus navigation keep owning this menu.
+    overlay.append(menu);
+    menu.hidden = false;
+    menu.style.width = "";
+    menu.style.maxHeight = "";
+    const placement = seasonMenuPlacement(button.getBoundingClientRect(), {
+      width: document.documentElement.clientWidth,
+      height: window.innerHeight
+    }, { width: menu.offsetWidth, height: Math.min(menu.scrollHeight + 2, 352) });
+    menu.style.width = `${placement.width}px`;
+    menu.style.maxHeight = `${placement.height}px`;
+    menu.style.left = `${placement.left}px`;
+    menu.style.top = `${placement.top}px`;
+    button.setAttribute("aria-expanded", "true");
+    activeSeasonMenuClose = close;
+    document.addEventListener("pointerdown", onOutside, true);
+    document.addEventListener("keydown", onKey, true);
+    document.addEventListener("scroll", onScroll, true);
+    document.addEventListener("fullscreenchange", close);
+    window.addEventListener("resize", close);
+    refreshFocusables();
+    const selected = menu.querySelector(".is-selected") || menu.querySelector("[data-season-nav]");
+    selected?.focus({ preventScroll: true });
+    selected?.scrollIntoView({ block: "nearest", behavior: "auto" });
+  });
+  menu.addEventListener("focusout", () => {
+    window.clearTimeout(blurTimer);
+    blurTimer = window.setTimeout(() => {
+      if (!selector.contains(document.activeElement) && !menu.contains(document.activeElement)) close();
+    }, 0);
+  });
+  return close;
+}
+
 function renderEpisodeList(show, options = {}) {
   if (!episodeList || !show) return;
+  const restoreSeasonMenu = Boolean(activeSeasonMenuClose &&
+    overlay.querySelector(".ep-season-menu")?.dataset.showKey === getShowKey(show));
+  dismissSeasonMenu();
   hideAdultGalleryPanel();
   // Lazily pull AniList per-episode titles/thumbnails + HQ banner once the show's
   // anilistId is known (for scraped shows it arrives after source enrichment).
@@ -12834,11 +12944,12 @@ function renderEpisodeList(show, options = {}) {
             <span class="ep-season-caret" aria-hidden="true">▾</span>
           </button>
           ${multiSeason ? `
-          <div class="ep-season-menu" role="listbox" hidden>
+          <div class="ep-season-menu" role="listbox" aria-label="Seasons" data-show-key="${escapeHtml(getShowKey(show))}" hidden>
+            <div class="ep-season-menu-title" aria-hidden="true">Seasons</div>
             ${seasonNav.map((s, i) => `
-              <button class="ep-season-option focusable ${i === activeNavIndex ? "is-selected" : ""}" role="option" data-season-nav="${i}" type="button">
+              <button class="ep-season-option focusable ${i === activeNavIndex ? "is-selected" : ""}" role="option" aria-selected="${i === activeNavIndex}" data-season-nav="${i}" type="button">
                 <span>${escapeHtml(s.label)}</span>
-                <small>${s.badge ? escapeHtml(s.badge) : `${s.epCount} eps`}</small>
+                <small>${s.badge ? escapeHtml(s.badge) : `${s.epCount} ${s.epCount === 1 ? "ep" : "eps"}`}</small>
               </button>
             `).join("")}
           </div>` : ""}
@@ -13170,47 +13281,8 @@ function renderEpisodeList(show, options = {}) {
   // ── Season dropdown toggle ──────────────────────────────────────────────
   const seasonBtn = episodeList.querySelector("[data-season-toggle]");
   const seasonMenu = episodeList.querySelector(".ep-season-menu");
-  const closeSeasonMenu = () => {
-    if (!seasonMenu) return;
-    seasonMenu.hidden = true;
-    seasonBtn?.setAttribute("aria-expanded", "false");
-    document.removeEventListener("pointerdown", _onSeasonDocClick, true);
-    document.removeEventListener("keydown", _onSeasonKeydown, true);
-  };
-  function _onSeasonDocClick(event) {
-    // Close when clicking anywhere outside the season selector.
-    if (!event.target.closest(".ep-season-select")) closeSeasonMenu();
-  }
-  function _onSeasonKeydown(event) {
-    if (event.key === "Escape") {
-      closeSeasonMenu();
-      seasonBtn?.focus?.();
-    }
-  }
-  if (seasonBtn && seasonMenu) {
-    seasonBtn.addEventListener("click", (event) => {
-      event.stopPropagation();
-      const willOpen = seasonMenu.hidden;
-      seasonMenu.hidden = !willOpen;
-      seasonBtn.setAttribute("aria-expanded", willOpen ? "true" : "false");
-      if (willOpen) {
-        document.addEventListener("pointerdown", _onSeasonDocClick, true);
-        document.addEventListener("keydown", _onSeasonKeydown, true);
-        episodeList.querySelector(".ep-season-option")?.focus?.();
-      } else {
-        document.removeEventListener("pointerdown", _onSeasonDocClick, true);
-        document.removeEventListener("keydown", _onSeasonKeydown, true);
-      }
-      refreshFocusables();
-    });
-    seasonMenu.addEventListener("focusout", () => {
-      window.setTimeout(() => {
-        if (!episodeList.querySelector(".ep-season-select")?.contains(document.activeElement)) {
-          closeSeasonMenu();
-        }
-      }, 0);
-    });
-  }
+  const closeSeasonMenu = seasonBtn && seasonMenu ? bindSeasonMenu(seasonBtn, seasonMenu) : () => {};
+  if (restoreSeasonMenu && seasonMenu) seasonBtn.click();
 
   // Resolve the live nav at click time so a stale render-time list (e.g. built
   // before the franchise finished loading) can never strand navigation.
@@ -24417,7 +24489,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1017");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1019");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

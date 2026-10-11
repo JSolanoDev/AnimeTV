@@ -9798,7 +9798,7 @@ body.has-embedded-player .watch-side {
    remaining width, which is what keeps the button centred as the panel grows. */
 .ep-panel-head > .ep-nav-btn:first-child { justify-self: start; }
 .ep-panel-head > .ep-nav-btn:last-child { justify-self: end; }
-.ep-panel-head > .ep-season-select { position: static; justify-self: center; max-width: 100%; }
+.ep-panel-head > .ep-season-select { justify-self: center; max-width: 100%; }
 .ep-nav-btn {
   display: inline-flex;
   align-items: center;
@@ -9827,9 +9827,8 @@ body.has-embedded-player .watch-side {
   min-height: 2.38rem;
   padding: 0.38rem 0.82rem;
   border: 0.08rem solid rgba(255, 255, 255, 0.12);
-  border-radius: 999rem;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.06);
   color: #fff;
   font-size: 0.9rem;
   font-weight: 800;
@@ -9843,6 +9842,11 @@ body.has-embedded-player .watch-side {
   box-shadow: 0 0 0 0.16rem rgba(0, 210, 255, 0.08);
   outline: 0;
 }
+.ep-season-btn[aria-expanded="true"] {
+  border-color: var(--accent, #8a5cff);
+  background: rgba(138, 92, 255, 0.16);
+}
+.ep-season-btn[aria-expanded="true"] .ep-season-caret { transform: rotate(180deg); }
 .ep-season-name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -9852,36 +9856,50 @@ body.has-embedded-player .watch-side {
 .ep-season-btn { max-width: 100%; }
 .ep-season-caret { flex: 0 0 auto; font-size: 0.8rem; color: rgba(255,255,255,0.6); }
 .ep-season-menu {
-  position: absolute;
-  top: calc(100% + 0.35rem);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 20;
+  position: fixed;
+  z-index: 30;
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  width: max-content;
-  min-width: min(12rem, 100%);
-  max-width: 100%;
+  width: 18rem;
+  min-width: 0;
+  max-width: calc(100vw - 1rem);
   box-sizing: border-box;
-  max-height: 18rem;
+  max-height: 22rem;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: 2.5rem 0.4rem;
   padding: 0.4rem;
   border: 0.08rem solid rgba(255,255,255,0.12);
-  border-radius: 0.8rem;
-  background: rgba(18, 19, 32, 0.98);
-  box-shadow: 0 1.2rem 3rem rgba(0,0,0,0.55);
-  scrollbar-width: none;
+  border-radius: 0.5rem;
+  background: #151520;
+  box-shadow: 0 0.6rem 1.6rem rgba(0,0,0,0.4);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.3) transparent;
 }
 .ep-season-menu[hidden] {
   display: none;
 }
-.ep-season-menu::-webkit-scrollbar { display: none; }
+.ep-season-menu::-webkit-scrollbar { width: 4px; }
+.ep-season-menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
+.ep-season-menu-title {
+  position: sticky;
+  top: -0.4rem;
+  z-index: 1;
+  flex: 0 0 auto;
+  padding: 0.5rem 0.7rem;
+  background: #151520;
+  color: rgba(232,234,246,0.65);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
 .ep-season-option {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
   gap: 0.8rem;
+  min-height: 2.75rem;
   padding: 0.55rem 0.7rem;
   border: 0;
   border-radius: 0.5rem;
@@ -9893,7 +9911,7 @@ body.has-embedded-player .watch-side {
   cursor: pointer;
   white-space: nowrap;
 }
-.ep-season-option small { color: rgba(255,255,255,0.45); font-weight: 600; }
+.ep-season-option small { color: rgba(255,255,255,0.65); font-weight: 600; }
 .ep-season-option > span { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
 .ep-season-option > small { flex-shrink: 0; }
 .ep-season-option:is(:hover, :focus-visible) { background: rgba(255,255,255,0.1); color: #fff; outline: 0; }
