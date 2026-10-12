@@ -346,6 +346,7 @@ test("the v1020 review branch runs CI without triggering a hosted publishing wor
   assert.match(ci, /push:\s+branches: \[main, "codex\/network-service-worker-audit"\]/);
   assert.match(ci, /npm exec --yes --package=eslint@8 -- eslint/);
   assert.doesNotMatch(ci, /npm i --no-save eslint/);
+  assert.doesNotMatch(ci, /npm run adult:setup/);
   for (const step of ["test:releases", "test:cloudflare:production", "cloudflare:production:dry-run", "cloudflare:containers:integration"]) {
     assert.ok(check.includes(step));
   }

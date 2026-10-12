@@ -31,7 +31,8 @@ jobs:
         run: npm test
 
       - name: Release calendar tests
-        run: npm run adult:setup && npm run test:releases
+        # Cheerio is already installed by npm ci; do not re-resolve app packages.
+        run: npm run test:releases
 
       # Bug-focused rules (no-redeclare, no-dupe-keys, no-unreachable, ...).
       # Isolated tooling must not re-resolve the app's locked dependencies.
