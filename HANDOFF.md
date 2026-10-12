@@ -1,39 +1,33 @@
 # Handoff (Claude <-> ChatGPT/Codex)
 
-Read this first; update it before you stop. Keep it under ~40 lines.
-Rules live in AGENTS.md. Do not duplicate them here.
+Read this first; update it before stopping. Rules live in AGENTS.md.
 
-## Last tool / date
-- Codex, October 11, 2026 (America/Denver): user approved review-branch push for CI ONLY; production/configuration changes remain prohibited.
+## Current Release
+- Codex, October 11, 2026 (America/Denver): preparing v1021; CI-only branch push approved, no production/configuration/monitoring changes.
+- Checkout AnimeTV-network-audit, branch codex/console-reliability-v1021, based on current main/v1020 6ccf149ca559f1e68f44d137edffc63a7681deed.
+- Two runtime fixes: carousel preload gets canonical href before insertion; player/embed/trailer use modern fullscreen policy with legacy boolean fallback when needed.
+- Required v1021 asset/cache version bumps; all 28 Android mirrors byte-identical. No HLS/Cast/source/Supabase/cache-policy/CSP changes.
+- Approved CI-only guards: exact branch triggers general CI/no-deploy Linux check; matching Vercel branch block. Publishing workflows/live settings unchanged.
+- Full local checks/tests/release-calendar/lint/build/54 Cloudflare contracts pass. Exact final SHA/remote CI evidence goes in .cache/v1021-ci-validation.md after pushing.
+- Docs: docs/v1021-console-warning-fixes.md and docs/v1021-production-readiness.md cover scope, validation, checklist and rollback.
+- Desktop 1440x900 and mobile 390x844/844x390: carousel art/preload valid, fullscreen enter/exit, decoded 1080p 904 -> 905 and seek pass locally.
+- Native fullscreen flags unavailable through DOM wrapper; physical phones, Android APKs, old browser hardware and Chromecast not certified.
+- Loopback preview http://127.0.0.1:4195/, background Node PID 39048. Stop streams before closing owned tabs; reset viewport overrides.
+- Build-only bootstrap delta excluded through unchanged generator at prior baseline clock; CI still uses real time.
 
-## Done
-- Current worktree `AnimeTV-network-audit`, branch `codex/network-service-worker-audit`, base 35e4b39 (live v1019).
-- Prior approved audit deployed through CI 38180798427, Worker cf3e0939-2294-410d-b1c2-c80b8c05c15f; gateway cache fixes are already live.
-- New report: docs/network-service-worker-audit.md. Two bounded 90-second episode 904 samples decoded/advanced at 1080p.
-- Screenshot has Disable cache checked. XHR/SW pairs are interception, not double transfers; numbered source paths are HLS fragments.
-- Local v1020 patch fixes cache read/write failures, synthetic image 503s, pinned 204 artwork and unsupported 206/Vary writes.
-- Network-only source/Range/provider-error contracts, player behavior and CSP unchanged; all 28 Android mirrors match.
-- Full checks/tests/lint/production preparation and dry-run bundle pass; 53 Cloudflare contracts and 16 focused SW tests pass.
-- Neutral real-browser counter fixture passes: fetch+XHR -> two origin requests, cached/recovered images -> one each, 206 uncached; clean console.
-- Native catalog GET is gzip, about 2.93 MB received versus about 16.25 MB JavaScript-visible. Body-volume tables are NOT wire/billing totals.
-- Final readiness/rollback/checklist: docs/v1020-production-readiness.md; runtime diff is SW + version refs only, 25 backend inputs unchanged.
-- Local v1020 desktop/mobile 904 -> 905 decoded/advanced at 1080p; seek, browser Back/frame cleanup and SW MP4 Range 206/4 bytes passed.
-- Read-only rollback record: active v1019 Worker cf3e0939-2294-410d-b1c2-c80b8c05c15f; container image digest saved in readiness doc; max 1 unchanged.
+## Production / Rollback
+- Keep v1020 live: Git 6ccf149ca559f1e68f44d137edffc63a7681deed; Worker 67501211-4f8c-4fa0-bc46-70d754927707 at 100%.
+- Deployment 86a117e6-3da7-4543-b3fe-8186541ce3c2; container a03e7b17-8464-4ab7-80ef-c00efc02efa8, version 29, max 1.
+- v1020 image digest 08b4e8af9a2b29128c95a95f2d807f47235289d617cff4596a2bf9d23ba3ef78; exact registry reference in readiness doc.
+- Live SW hash 11d6e9fa4b3532d2e33183250a05d78b377c4e20d29822adc1bba62360b80385; .cache/v1020-production-validation.md retains baseline evidence.
+- Older v1019 rollback retained. Worker rollback does NOT revert container configuration; no rollback authorized now.
+- Read-only monitor monitor-zenkaitv-v1020-for-24-hours unchanged; ends October 13 UTC 04:08 (October 12 22:08 MDT).
+- Analytics enforced-CSP block/report-only noise and existing provider faults belong to separate releases; do not hide them.
+- No main push, publishing dispatch, purge, DNS/security/credential/billing change without explicit new approval.
 
-## Next
-- Push ONLY codex/network-service-worker-audit for CI. Never merge/push main or dispatch a publishing workflow without separate approval.
-- CI-only additions: exact branch push triggers on CI/no-deploy verification; Linux job adds release-calendar/lint, production-policy tests and production dry-run.
-- Vercel auto-deploy disabled for this exact review branch only; no main/global deployment setting or Cloudflare config changed.
-- One CSP-blocked injected analytics script reproduced; original eval issue/57 resource issues/106 errors were NOT individually reproduced.
-- Do not enable unsafe-eval or dismiss all original errors; original DevTools history is not available through the connected audit browser.
-- Higher-risk follow-ups: exact successful probe reuse, lazy long-series metadata, public-static external cache allowlist; no playback edits yet.
-- Fixture server/tab were stopped after testing. Screenshot returned inline; browser tool denied workspace-file export, not bypassed.
-- Local preview stopped. Generated bootstrap excluded/restored to baseline using its prior verification clock; CI still uses real time.
-- Production GIF idle response revalidates (max-age=0); conditional GET 304/0 bytes. Policy changes remain outside this release.
-- Linux Docker/native Sharp/real container integration remain gated CI requirements after approval; no Docker here, no zero-downtime/hardware guarantee.
-
-## Gotchas / do not touch
-- Working tree is deployed, not git: commit or stash WIP before switching tools.
-- One tool edits at a time (or use separate git worktrees).
-- Primary checkout contains unrelated already-live changes; never reset it.
-- Keep Supabase disabled, source/media/cache contracts, security guards, one basic container cap and idle sleep.
+## Gotchas
+- Primary AnimeTV checkout contains unrelated WIP; never reset it or mix it into this release.
+- Deployment uploads working tree: verify exact SHA/tree/cleanliness before any future authorized publish.
+- Preserve disabled Supabase, all security/media/source contracts, one basic container and five-minute idle sleep.
+- Chrome DevTools stalled previously; in-app browser works. No TLS bypass or signed-media URL/token logging.
+- Isolated ESLint avoids dependency edits. No package-lock.json/deploy-vercel.ps1 commits without scoped exception.

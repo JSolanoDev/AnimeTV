@@ -144,6 +144,43 @@ check("High-resolution portrait still requires containment", artworkDimensionsAr
 ctx.CINEMATIC_BACKDROP_WIDTH = 1280;
 check("Mobile 1280x720 hero stays sharp", artworkDimensionsAreUseful(img(1280, 720, "", false), "carousel"), true);
 
+/* ---- the real carousel preload block is valid before it enters the DOM ---- */
+const preloadBlock = src.match(/  if \(art(?: && deliveredArt)?\) \{[\r\n]+    let lcp = document\.getElementById\("lcpPreload"\);[\s\S]*?[\r\n]  \}/)?.[0];
+check("carousel preload block is covered", Boolean(preloadBlock), true);
+if (preloadBlock) {
+  let connected = null;
+  const inserted = [];
+  const removed = [];
+  const preloadContext = vm.createContext({
+    art: "https://image.example/hero.jpg",
+    deliveredArt: "/api/image?src=hero&w=2560&q=92",
+    document: {
+      getElementById: () => connected,
+      createElement: () => ({ removeAttribute: (name) => removed.push(name) }),
+      head: { appendChild: (link) => { inserted.push(link.href || ""); connected = link; } }
+    }
+  });
+  vm.runInContext(preloadBlock, preloadContext);
+  check("new preload already has its canonical href when connected", inserted, [preloadContext.deliveredArt]);
+  check("hero preload remains high-priority image preload", [connected.rel, connected.as, connected.fetchPriority], ["preload", "image", "high"]);
+  preloadContext.deliveredArt = "/api/image?src=second-hero&w=2560&q=92";
+  vm.runInContext(preloadBlock, preloadContext);
+  check("slide changes reuse one preload element", inserted.length, 1);
+  check("slide changes update the canonical href", connected.href, preloadContext.deliveredArt);
+  check("stale responsive preload hints are removed", ["imagesrcset", "imagesizes"].every((name) => removed.includes(name)), true);
+  connected = null;
+  inserted.length = 0;
+  preloadContext.deliveredArt = "";
+  vm.runInContext(preloadBlock, preloadContext);
+  check("unresolved canonical artwork never inserts an empty preload", inserted.length, 0);
+  connected = null;
+  inserted.length = 0;
+  preloadContext.art = "";
+  preloadContext.deliveredArt = "/api/image?src=irrelevant";
+  vm.runInContext(preloadBlock, preloadContext);
+  check("missing artwork does not create a preload", inserted.length, 0);
+}
+
 console.log(rows.join("\n"));
 const failed = rows.filter((r) => r.startsWith("FAIL")).length;
 console.log(failed ? `\n${failed} FAILED` : "\nall checks passed");

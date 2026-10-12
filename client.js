@@ -5129,7 +5129,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1020";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1021";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -5366,13 +5366,21 @@ function renderCarousel() {
       }
     }
   }
-  if (art) {
+  if (art && deliveredArt) {
     let lcp = document.getElementById("lcpPreload");
-    if (!lcp) { lcp = document.createElement("link"); lcp.id = "lcpPreload"; lcp.rel = "preload"; lcp.as = "image"; lcp.fetchPriority = "high"; document.head.appendChild(lcp); }
+    const addPreload = !lcp;
+    if (!lcp) {
+      lcp = document.createElement("link");
+      lcp.id = "lcpPreload";
+      lcp.rel = "preload";
+      lcp.as = "image";
+      lcp.fetchPriority = "high";
+    }
     // Preload the exact same canonical file used by both visual layers.
     lcp.removeAttribute("imagesrcset");
     lcp.removeAttribute("imagesizes");
     lcp.href = deliveredArt;
+    if (addPreload) document.head.appendChild(lcp);
   }
   carouselTitle.textContent = getShowTitle(show);
   carouselText.textContent = simpleCarouselText(show);
@@ -15312,6 +15320,12 @@ function playerPosterParam(poster) {
   return value;
 }
 
+function legacyIframeFullscreenAttribute() {
+  // The modern allow policy already grants fullscreen; retain the old fallback only when needed.
+  return typeof HTMLIFrameElement !== "undefined" && "allow" in HTMLIFrameElement.prototype
+    ? "" : "allowfullscreen";
+}
+
 function buildPlayerUrl(videoUrl = "", title = "", options = {}) {
   const playerUrl = new URL("/player/player.html", location.origin);
   if (PLAYER_SHELL_VERSION) playerUrl.searchParams.set("v", PLAYER_SHELL_VERSION);
@@ -21804,7 +21818,7 @@ function renderDirectVideoPlayer(frame, url, episode, playbackContext = null) {
     <div class="video-player-shell vidstream-player fit-${escapeHtml(fit)} ${useApkPlayer ? "is-artplayer-frame" : useNativeControls ? "is-iframe" : ""}" data-stream-type="${escapeHtml(streamType || "direct")}">
       <div class="vid-player-stage">
         ${useApkPlayer
-          ? `<iframe id="animePlayerFrame" class="apk-video-frame" src="${escapeHtml(buildApkPlayerUrl(url, true, episode))}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer" title="ZenkaiTV video player"></iframe>`
+          ? `<iframe id="animePlayerFrame" class="apk-video-frame" src="${escapeHtml(buildApkPlayerUrl(url, true, episode))}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" ${legacyIframeFullscreenAttribute()} referrerpolicy="no-referrer" title="ZenkaiTV video player"></iframe>`
           : `<video id="animePlayer" ${useNativeControls ? "controls" : ""} autoplay playsinline x-webkit-airplay="allow" crossorigin="anonymous">
               ${spanishTrack ? `<track kind="subtitles" srclang="es" label="Español" src="${escapeHtml(spanishTrack.url)}" default>` : ""}
             </video>`}
@@ -22486,7 +22500,7 @@ function renderEmbeddedAniPubPlayer(show, externalUrl) {
           class="embedded-iframe"
           src="${escapeHtml(externalUrl)}"
           frameborder="0"
-          allowfullscreen
+          ${legacyIframeFullscreenAttribute()}
           allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
           sandbox="${sandboxAttr}"
           referrerpolicy="no-referrer"
@@ -23303,7 +23317,7 @@ function openTrailerModal(id, site, watchUrl) {
       <div class="trailer-modal-frame">
         <iframe src="${escapeHtml(trailerModalEmbedUrl(id, site))}"
           title="Trailer" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-          allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+          ${legacyIframeFullscreenAttribute()} referrerpolicy="strict-origin-when-cross-origin"></iframe>
       </div>
     </div>
   `;
@@ -24489,7 +24503,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1020");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1021");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

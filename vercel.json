@@ -2,7 +2,8 @@
   "framework": null,
   "git": {
     "deploymentEnabled": {
-      "codex/network-service-worker-audit": false
+      "codex/network-service-worker-audit": false,
+      "codex/console-reliability-v1021": false
     }
   },
   "outputDirectory": "dist",

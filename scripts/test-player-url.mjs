@@ -31,6 +31,19 @@ const HTTP = "http://cdn.example.com/poster.jpg";
 const DATA = "data:image/jpeg;base64," + "A".repeat(40000);
 const DATA_SMALL = "data:image/png;base64,iVBORw0KGgo=";
 
+/* ---- modern fullscreen policy without dropping legacy iframe support ---- */
+const hasFullscreenFallback = vm.runInContext("typeof legacyIframeFullscreenAttribute === 'function'", ctx);
+check("iframe fullscreen compatibility is covered", hasFullscreenFallback, true);
+if (hasFullscreenFallback) {
+  const fallbackAttribute = vm.runInContext("legacyIframeFullscreenAttribute", ctx);
+  check("unknown iframe API keeps the legacy fullscreen attribute", fallbackAttribute(), "allowfullscreen");
+  ctx.HTMLIFrameElement = class {};
+  check("legacy iframe implementations retain fullscreen", fallbackAttribute(), "allowfullscreen");
+  Object.defineProperty(ctx.HTMLIFrameElement.prototype, "allow", { get() { throw new Error("feature detection must not read a permission"); } });
+  check("modern iframe implementations use the existing allow policy only", fallbackAttribute(), "");
+}
+check("player, embed and trailer share the compatibility fallback", (src.match(/\$\{legacyIframeFullscreenAttribute\(\)\}/g) || []).length, 3);
+
 /* ---- allowed ---- */
 check("TMDB https poster passes through", playerPosterParam(TMDB), TMDB);
 check("ordinary https poster passes through", playerPosterParam(HTTPS), HTTPS);
