@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-11T19:41:06.640Z",
-  "count": 6665,
+  "generatedAt": "2026-10-12T14:32:39.583Z",
+  "count": 6667,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -11886,7 +11886,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -30012,7 +30012,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -31629,7 +31629,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -41882,7 +41882,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -42014,7 +42014,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -46530,8 +46530,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1791729900000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792334700000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 184034,
@@ -46556,8 +46556,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-04T15:43:59.977Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-11T16:14:29.065Z"
     },
     "anilist-141391": {
       "anilistId": 141391,
@@ -47732,8 +47732,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791729000000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1792333800000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [
         {
           "anilistId": 164702,
@@ -47769,8 +47769,8 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-04T15:43:28.702Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-11T15:37:33.842Z"
     },
     "anilist-100891": {
       "anilistId": 100891,
@@ -67866,7 +67866,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -68727,7 +68727,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -69739,7 +69739,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -71205,7 +71205,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -71347,7 +71347,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -71549,7 +71549,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -71784,7 +71784,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -91897,7 +91897,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -91963,7 +91963,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -92323,7 +92323,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -92389,7 +92389,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -93773,7 +93773,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -93839,7 +93839,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -96221,7 +96221,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -96287,7 +96287,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -97275,7 +97275,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -97341,7 +97341,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -98183,7 +98183,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -98249,7 +98249,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -98391,7 +98391,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -98457,7 +98457,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -98589,7 +98589,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -98655,7 +98655,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -98903,7 +98903,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -98969,7 +98969,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -99134,7 +99134,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -99200,7 +99200,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -99332,7 +99332,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -99398,7 +99398,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -99540,7 +99540,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -99606,7 +99606,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -101255,6 +101255,39 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": []
+    },
+    "animeav1-last-exile-ginyoku-no-fam-adjournment": {
+      "anilistId": 97,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2003,
+      "anilistEpisodeCount": 26,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 97,
+          "title": "Last Exile",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 26,
+          "season": "SPRING",
+          "seasonYear": 2003,
+          "startedAt": 1049673600000,
+          "order": 1
+        },
+        {
+          "anilistId": 10336,
+          "title": "Last Exile: Ginyoku no Fam",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 21,
+          "season": "FALL",
+          "seasonYear": 2011,
+          "startedAt": 1318636800000,
+          "order": 2
+        }
+      ]
     },
     "animeav1-lupin-iii-chi-no-kokuin-eien-no-mermaid": {
       "anilistId": 11777,
@@ -123553,7 +123586,7 @@
         },
         {
           "anilistId": 12929,
-          "title": "Saint Seiya Omega",
+          "title": "Saint Seiya Ω",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 97,
@@ -126418,7 +126451,7 @@
         },
         {
           "anilistId": 12929,
-          "title": "Saint Seiya Omega",
+          "title": "Saint Seiya Ω",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 97,
@@ -145231,7 +145264,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -145297,7 +145330,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -145429,7 +145462,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -145495,7 +145528,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -158653,7 +158686,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -158719,7 +158752,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -158871,7 +158904,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -158937,7 +158970,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -159069,7 +159102,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -159135,7 +159168,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -159267,7 +159300,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -159333,7 +159366,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -170871,8 +170904,8 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-04T15:43:28.702Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-11T15:37:33.842Z"
     },
     "animeav1-tempal-item-no-chikara": {
       "anilistId": 212888,
@@ -170883,8 +170916,8 @@
       "nextAiringAt": 1792333800000,
       "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-04T15:08:25.580Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-11T15:09:11.779Z"
     },
     "animeav1-keroro-gunsou": {
       "anilistId": 216557,
@@ -184272,7 +184305,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -184404,7 +184437,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -184536,7 +184569,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -184668,7 +184701,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -184800,7 +184833,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -184932,7 +184965,7 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
@@ -184943,12 +184976,12 @@
     },
     "anilist-206814": {
       "anilistId": 206814,
-      "airingStatus": "NOT_YET_RELEASED",
+      "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791728160000,
-      "nextAiringEpisodeNumber": 1,
+      "nextAiringAt": 1792332960000,
+      "nextAiringEpisodeNumber": 2,
       "franchiseSeasons": [
         {
           "anilistId": 223,
@@ -185064,14 +185097,16 @@
           "anilistId": 206814,
           "title": "Dragon Ball Super: Beerus",
           "format": "TV",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": null,
           "season": "FALL",
           "seasonYear": 2026,
           "startedAt": 1791676800000,
           "order": 11
         }
-      ]
+      ],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-11T16:14:55.060Z"
     },
     "anilist-217578": {
       "anilistId": 217578,
@@ -214524,7 +214559,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -214590,7 +214625,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -214722,7 +214757,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -214788,7 +214823,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -214920,7 +214955,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -214986,7 +215021,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -215118,7 +215153,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -215184,7 +215219,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -215316,7 +215351,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -215382,7 +215417,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -215514,7 +215549,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -215580,7 +215615,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -215712,7 +215747,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -215778,7 +215813,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -215910,7 +215945,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -215976,7 +216011,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -216108,7 +216143,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -216174,7 +216209,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -216306,7 +216341,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -216372,7 +216407,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -216504,7 +216539,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -216570,7 +216605,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -218143,7 +218178,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -218209,7 +218244,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -218341,7 +218376,7 @@
         },
         {
           "anilistId": 85,
-          "title": "Kidou Senshi Z Gundam",
+          "title": "Kidou Senshi Ζ Gundam",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 50,
@@ -218407,7 +218442,7 @@
         },
         {
           "anilistId": 1967,
-          "title": "Kidou Senshi Z Gundam: A New Translation - Hoshi wo Tsugu Mono",
+          "title": "Kidou Senshi Ζ Gundam: A New Translation - Hoshi wo Tsugu Mono",
           "format": "MOVIE",
           "status": "FINISHED",
           "episodes": 1,
@@ -230410,7 +230445,7 @@
         },
         {
           "anilistId": 12929,
-          "title": "Saint Seiya Omega",
+          "title": "Saint Seiya Ω",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 97,
@@ -230443,7 +230478,7 @@
         },
         {
           "anilistId": 12929,
-          "title": "Saint Seiya Omega",
+          "title": "Saint Seiya Ω",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 97,
@@ -237210,8 +237245,8 @@
       "nextAiringAt": 1792340400000,
       "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-04T17:38:41.382Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-11T17:31:15.304Z"
     },
     "animeav1-kanata-kara": {
       "anilistId": 209463,
@@ -237222,8 +237257,8 @@
       "nextAiringAt": 1792335600000,
       "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-04T16:20:39.017Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-11T16:16:23.768Z"
     },
     "animeav1-hotel-inhumans-2nd-season": {
       "anilistId": 199426,
@@ -237257,8 +237292,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-04T15:43:59.977Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-11T16:14:29.065Z"
     },
     "animeav1-yowaki-max-reijou-nanoni-ratsuwan-konyakusha-sama-no-kake-ni-notte-shimatta": {
       "anilistId": 200455,
@@ -237269,8 +237304,8 @@
       "nextAiringAt": 1792333800000,
       "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-04T15:14:57.963Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-11T15:10:39.752Z"
     },
     "animeav1-ojisan-wa-kawaii-mono-ga-osuki": {
       "anilistId": 202079,
@@ -237278,23 +237313,23 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791723600000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792328400000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-04T15:10:42.151Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-11T15:08:49.514Z"
     },
     "animeav1-mezametara-saikyou-soubi-to-uchuusenmochi-datta-node-ikkodate-mezashite-youhei-toshite-jiyuu-ni-ikitai": {
       "anilistId": 186541,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
-      "anilistEpisodeCount": null,
+      "anilistEpisodeCount": 13,
       "nextAiringAt": 1792326600000,
       "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-04T15:09:49.375Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-11T15:07:45.813Z"
     },
     "animeav1-tank-chair": {
       "anilistId": 209499,
@@ -237305,8 +237340,8 @@
       "nextAiringAt": 1792332000000,
       "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-04T15:07:47.562Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-11T15:20:16.421Z"
     },
     "animeav1-mouse-cursor-de-genjitsu-wo-sousa-dekiru-you-ni-natta-node-onna-no-ko-wo-ippai-click-shimaasu": {
       "anilistId": 206774,
@@ -237314,11 +237349,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 8,
-      "nextAiringAt": 1791734400000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792339200000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-04T18:18:46.963Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-11T19:02:49.597Z"
     },
     "anilist-131239": {
       "anilistId": 131239,
@@ -239350,8 +239385,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791813600000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792418400000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-05T14:48:10.645Z"
@@ -239362,11 +239397,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791808200000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792413000000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-05T14:08:21.290Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-12T13:24:26.554Z"
     },
     "animeav1-tensei-goblin-dakedo-shitsumon-aru": {
       "anilistId": 209219,
@@ -239374,11 +239409,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791810000000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1792414800000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-05T14:07:13.466Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-12T13:28:15.572Z"
     },
     "animeav1-mahou-shoujo-ikusei-keikaku-restart": {
       "anilistId": 160803,
@@ -240868,6 +240903,240 @@
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-11T09:53:22.720Z"
     },
+    "anilist-166062": {
+      "anilistId": 166062,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2023,
+      "anilistEpisodeCount": 26,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 21236,
+          "title": "Beyblade Burst",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2016,
+          "startedAt": 1459728000000,
+          "order": 1
+        },
+        {
+          "anilistId": 98289,
+          "title": "Beyblade Burst God",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2017,
+          "startedAt": 1491177600000,
+          "order": 2
+        },
+        {
+          "anilistId": 101115,
+          "title": "Beyblade Burst Chouzetsu",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 51,
+          "season": "SPRING",
+          "seasonYear": 2018,
+          "startedAt": 1522627200000,
+          "order": 3
+        },
+        {
+          "anilistId": 108853,
+          "title": "Beyblade Burst Gachi",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2019,
+          "startedAt": 1554422400000,
+          "order": 4
+        },
+        {
+          "anilistId": 116786,
+          "title": "Beyblade Burst Sparking",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2020,
+          "startedAt": 1585872000000,
+          "order": 5
+        },
+        {
+          "anilistId": 130253,
+          "title": "Beyblade Burst DB",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1617321600000,
+          "order": 6
+        },
+        {
+          "anilistId": 166062,
+          "title": "Beyblade Burst QuadStrike",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 26,
+          "season": "SPRING",
+          "seasonYear": 2023,
+          "startedAt": 1680566400000,
+          "order": 7
+        }
+      ]
+    },
+    "animeav1-dragon-ball-super-beerus": {
+      "anilistId": 206814,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": 1792332960000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [
+        {
+          "anilistId": 223,
+          "title": "Dragon Ball",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 153,
+          "season": "WINTER",
+          "seasonYear": 1986,
+          "startedAt": 509760000000,
+          "order": 1
+        },
+        {
+          "anilistId": 813,
+          "title": "Dragon Ball Z",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 291,
+          "season": "SPRING",
+          "seasonYear": 1989,
+          "startedAt": 609552000000,
+          "order": 2
+        },
+        {
+          "anilistId": 225,
+          "title": "Dragon Ball GT",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 64,
+          "season": "WINTER",
+          "seasonYear": 1996,
+          "startedAt": 823651200000,
+          "order": 3
+        },
+        {
+          "anilistId": 987,
+          "title": "Dragon Ball GT: Goku Gaiden! Yuuki no Akashi wa Suushinchuu",
+          "format": "SPECIAL",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "SPRING",
+          "seasonYear": 1997,
+          "startedAt": 859334400000,
+          "order": 4
+        },
+        {
+          "anilistId": 6033,
+          "title": "Dragon Ball Kai",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 97,
+          "season": "SPRING",
+          "seasonYear": 2009,
+          "startedAt": 1238889600000,
+          "order": 5
+        },
+        {
+          "anilistId": 14837,
+          "title": "Dragon Ball Z: Kami to Kami",
+          "format": "MOVIE",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "SPRING",
+          "seasonYear": 2013,
+          "startedAt": 1364601600000,
+          "order": 6
+        },
+        {
+          "anilistId": 20635,
+          "title": "Dragon Ball Kai (2014)",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 69,
+          "season": "SPRING",
+          "seasonYear": 2014,
+          "startedAt": 1396742400000,
+          "order": 7
+        },
+        {
+          "anilistId": 21175,
+          "title": "Dragon Ball Super",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 131,
+          "season": "SUMMER",
+          "seasonYear": 2015,
+          "startedAt": 1436054400000,
+          "order": 8
+        },
+        {
+          "anilistId": 101302,
+          "title": "Dragon Ball Super: Broly",
+          "format": "MOVIE",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "FALL",
+          "seasonYear": 2018,
+          "startedAt": 1544745600000,
+          "order": 9
+        },
+        {
+          "anilistId": 170083,
+          "title": "Dragon Ball DAIMA",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 20,
+          "season": "FALL",
+          "seasonYear": 2024,
+          "startedAt": 1728604800000,
+          "order": 10
+        },
+        {
+          "anilistId": 206814,
+          "title": "Dragon Ball Super: Beerus",
+          "format": "TV",
+          "status": "RELEASING",
+          "episodes": null,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1791676800000,
+          "order": 11
+        }
+      ],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-11T16:14:55.060Z"
+    },
+    "animeav1-shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku": {
+      "anilistId": 205896,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": 1792333800000,
+      "nextAiringEpisodeNumber": 2,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 1,
+      "lastEpisodeAt": "2026-10-11T15:19:41.041Z"
+    },
     "animeav1-battle-spirits-re-zekkai-no-kuu": {
       "anilistId": null,
       "airingStatus": "RELEASING",
@@ -241423,20 +241692,6 @@
           "order": 3
         }
       ]
-    },
-    "animeav1-shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku": {
-      "anilistId": 205896,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1792333800000,
-      "nextAiringEpisodeNumber": 2
-    },
-    "animeav1-dragon-ball-super-beerus": {
-      "anilistId": 206814,
-      "airingStatus": "RELEASING",
-      "franchiseSeasons": [],
-      "nextAiringAt": 1792332960000,
-      "nextAiringEpisodeNumber": 2
     }
   },
   "seasonArtwork": {
@@ -254696,10 +254951,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx165159-aCFC9Sng7t4M.png",
       "anilistBanner": ""
     },
-    "anilist-166062": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b166062-TMMGelSGcWJu.jpg",
-      "anilistBanner": ""
-    },
     "anilist-693": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx693-2vsA1F4SK84h.jpg",
       "anilistBanner": ""
@@ -263980,6 +264231,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx105655-Q8ZPRKOVtiwz.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/105655-3HdrCjJRkBjO.jpg"
     },
+    "anilist-60207": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/30207.jpg",
+      "anilistBanner": ""
+    },
     "anilist-1695": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1695-etz4t9yoXO19.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1695-f2BWoFWAhG27.jpg"
@@ -264228,22 +264483,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx20141-1VtZnvaHOHGl.jpg",
       "anilistBanner": ""
     },
-    "anilist-20461": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20461-YTSZiG163mi7.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20461-tlZVmmmb6SAd.jpg"
-    },
-    "anilist-53818": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b53818-Yp5TqFD56voA.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/53818-jWVmOMasChhc.jpg"
-    },
-    "anilist-30222": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30222-8jNgJix8ePVK.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30222-xLtdmDONrJD5.jpg"
-    },
-    "anilist-60207": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/30207.jpg",
-      "anilistBanner": ""
-    },
     "anilist-149": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx149-6QGLHgJc8gum.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/149-1ObNHNwgBy8H.jpg"
@@ -264335,6 +264574,18 @@
     "anilist-1437": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1437-0oQS3aiiyyp7.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1437-4x3umb48Bogs.jpg"
+    },
+    "anilist-20461": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20461-YTSZiG163mi7.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20461-tlZVmmmb6SAd.jpg"
+    },
+    "anilist-53818": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b53818-Yp5TqFD56voA.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/53818-jWVmOMasChhc.jpg"
+    },
+    "anilist-30222": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30222-8jNgJix8ePVK.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30222-xLtdmDONrJD5.jpg"
     },
     "anilist-20914": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20914-Ib3EeuXWmNLi.jpg",
@@ -274874,7 +275125,7 @@
     },
     "anilist-195571": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx195571-fvj7u5GI7BRT.jpg",
-      "anilistBanner": ""
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/195571-UkdB06UpyL8k.jpg"
     },
     "anilist-130729": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx130729-EOOFhNdcAb6l.png",
@@ -274906,6 +275157,18 @@
     },
     "anilist-146120": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx146120-42C8Tc7yOkk7.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-205896": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx205896-ElrV8oVAsuax.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-117945": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx117945-LIjjgsdswFPN.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-117946": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx117946-nPC2t5RIyhl2.jpg",
       "anilistBanner": ""
     },
     "anilist-205909": {
