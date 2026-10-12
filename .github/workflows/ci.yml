@@ -33,17 +33,10 @@ jobs:
       - name: Release calendar tests
         run: npm run adult:setup && npm run test:releases
 
-      # ESLint is deliberately not a devDependency: it would add ~98 packages to
-      # every Vercel install for a tool the production build never runs. Install
-      # it for this step only, without touching package.json or the lockfile.
-      - name: Install lint tooling
-        run: npm i --no-save eslint@8
-
       # Bug-focused rules (no-redeclare, no-dupe-keys, no-unreachable, ...).
-      # no-redeclare is what would have caught the `supabase` global collision
-      # that broke login.
-      - name: Lint
-        run: npm run lint
+      # Isolated tooling must not re-resolve the app's locked dependencies.
+      - name: Lint without dependency edits
+        run: npm exec --yes --package=eslint@8 -- eslint client.js animetv-local.js animetv-server.js "js/*.js" "player/*.js" "scripts/*.mjs" "api/**/*.js" service-worker.js
 
       - name: Production build
         run: npm run build && npm run build:verify
