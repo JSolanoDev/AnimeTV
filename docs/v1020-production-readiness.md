@@ -1,7 +1,4 @@
-# MP4 Range bytes=0-3: 206, exactly 4 bytes and correct Content-Range; HLS: 200, valid rewritten manifest |
-| Local browser media through active v1020 SW | MP4 Range: 206, 4 bytes, Content-Range bytes 0-3/1128375 |
-| Desktop, 1366x768 | Home painted all sampled visible images; normal warm reload reused versioned assets; active SW reported v1020; no horizontal overflow |
-| Local regular episode samplev1020 Production Readiness
+# v1020 Production Readiness
 
 Prepared October 11, 2026, using the user's America/Denver date. This is a preparation record, not deployment authorization.
 
@@ -39,14 +36,17 @@ Security review: API/media still use the original Request (including Range/cance
 | npm run check | Pass: syntax, collision, catalog integrity, security and mirror/version guards |
 | npm test | Pass: complete existing regression suite after final-review test additions |
 | Focused service-worker tests | 16 pass; slow write is off the response path, FIFO deletion failure stays harmless, Range body/status/headers preserved |
-| Cloudflare contracts | 53 pass: gateway, container, production guards, Range/HLS/cancellation/compression/provider errors |
+| Cloudflare contracts | 54 pass after CI-only guard additions: gateway, container, production guards, Range/HLS/cancellation/compression/provider errors |
 | ESLint including service-worker.js | Pass via existing ESLint 8 rules; no dependency edits |
 | npm run cloudflare:production:prepare | Pass: minified frontend, verified dist/public and 25 allowlisted backend inputs |
 | npm run cloudflare:production:bundle | Pass with pinned Wrangler 4.149.0, dry-run and container rollout none; no upload or hosted rollout |
 | Root/Android assets | All 25 index references on v1020; 28 mirrors byte-identical; no stale helper/player references |
 | git diff --check | Pass |
 | Existing neutral browser counter fixture | Pass: one fetch + one XHR = two origin requests; repeated/recovered artwork = one origin response each; 206 not cached |
-| Local native neutral media |  | One Piece 904 decoded/advanced at 1920x1080, readyState 4, one player iframe, no media error |
+| Local native neutral media | MP4 Range bytes=0-3: 206, exactly 4 bytes and correct Content-Range; HLS: 200, valid rewritten manifest |
+| Local browser media through active v1020 SW | MP4 Range: 206, 4 bytes, Content-Range bytes 0-3/1128375 |
+| Desktop, 1366x768 | Home painted all sampled visible images; normal warm reload reused versioned assets; active SW reported v1020; no horizontal overflow |
+| Local regular episode sample | One Piece 904 decoded/advanced at 1920x1080, readyState 4, one player iframe, no media error |
 | Mobile emulation, 390x844 / 844x390 | No horizontal overflow; portrait player about 390x220; seek succeeded; Next to 905 decoded/advanced at 1080p; one player frame |
 | Browser Back after playback | Returned home and removed the player iframe |
 
@@ -129,3 +129,5 @@ The user subsequently authorized pushing the reviewed branch for GitHub CI valid
 Two CI-only workflow edits enable this validation: CI and no-deployment container verification accept the exact review-branch push; the latter also checks release-calendar/lint, production policy and a production dry-run after real local Linux container integration. A matching test asserts the branch cannot trigger publishing. Vercel git.deploymentEnabled is false for this exact branch only, preventing an unintended legacy preview deployment; unspecified branches retain their existing behavior. No publishing step, Cloudflare credential, new secret, write permission, staging/production deployment workflow, security header or application runtime change was added. Record the exact local/remote commit match and both workflow outcomes before recommending deployment. These CI-only differences are additional to the original runtime review and must be disclosed.
 
 Both first GitHub runs passed on a9f51ab, but log review found the legacy Node 20 CI lint installation re-resolved dependencies through npm i --no-save, producing engine warnings for newer packages. A CI-only follow-up replaces it with isolated npm exec ESLint, leaving the lockfile and application dependencies untouched. Rerun both workflows on the final commit before recommending publication. Legacy Vercel status checks also report an account deployment block; this is not an app-test failure, and no Vercel account/payment change is authorized.
+
+The first no-deployment Linux run also passed the actual Docker image build, native Sharp/API/SSRF/media smoke, real local Worker/Durable Object/container integration and production dry-run. This closes the Windows-only Docker test gap for that snapshot; the final SHA still requires the same complete CI run. A documentation-only correction repairs this record's heading and displaced validation rows without changing any runtime or workflow input.
