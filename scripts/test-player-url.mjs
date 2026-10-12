@@ -103,7 +103,7 @@ check("source resolution loader stays compact and quick",
 check("the service worker pre-caches first-play app assets",
   /versioned\("\.\/player\/player\.html"\)[\s\S]*?versioned\("\.\/player\/player\.css"\)[\s\S]*?versioned\("\.\/player\/player\.js"\)/.test(serviceWorker), true);
 check("versioned player navigations use the cached shell document",
-  /url\.pathname === "\/player\/player\.html"[\s\S]*?cache\.match\(shellKey\)/.test(serviceWorker), true);
+  /url\.pathname === "\/player\/player\.html"[\s\S]*?readCacheEntry\(CACHE_NAME, versioned\("\.\/player\/player\.html"\)\)[\s\S]*?if \(cached\) return cached/.test(serviceWorker), true);
 check("player libraries warm while the anime detail page is open",
   /function prefetchPlayerShell\(\)[\s\S]*?artplayer@5\.4\.0\/dist\/artplayer\.js[\s\S]*?hls\.js@1\.6\.16/.test(src), true);
 check("direct files do not wait for the HLS library script",

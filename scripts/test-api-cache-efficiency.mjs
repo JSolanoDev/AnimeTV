@@ -555,6 +555,243 @@ test("the service worker preserves real provider responses and transport failure
   await assert.rejects(read(), { name: "AbortError" });
 });
 
+function serviceWorkerCacheHarness({ fail = "", cached = null, writeGate = null, cacheKeys = [], response = new Response("neutral-image", {
+  headers: { "Content-Type": "image/webp" }
+}) } = {}) {
+  const listeners = new Map();
+  const requests = [];
+  const reads = [];
+  const writes = [];
+  const deletes = [];
+  const background = [];
+  const cache = {
+    match: async (key) => { reads.push(key); if (fail === "read") throw new Error("Cache unavailable"); return cached?.clone(); },
+    put: async (key, value) => {
+      writes.push({ key, status: value.status });
+      if (writeGate) await writeGate;
+      if (fail === "write") throw new DOMException("Storage full", "QuotaExceededError");
+      if (value.status === 206 || value.headers.get("vary") === "*") throw new TypeError("Unsupported cache response");
+    },
+    keys: async () => cacheKeys,
+    delete: async (key) => { deletes.push(key); if (fail === "trim") throw new Error("Cache unavailable"); return true; }
+  };
+  const context = vm.createContext({ URL, Response, Promise,
+    self: { location: { origin: "https://app.test", href: "https://app.test/service-worker.js" },
+      addEventListener: (name, fn) => listeners.set(name, fn) },
+    caches: { open: async () => { if (fail === "open") throw new Error("Cache unavailable"); return cache; },
+      match: cache.match },
+    fetch: async (request) => { requests.push(request); return response.clone(); }
+  });
+  vm.runInContext(readFileSync(new URL("../service-worker.js", import.meta.url), "utf8"), context);
+  return { requests, reads, writes, deletes, background,
+    request: (url, init = {}, mode = "") => {
+      let result;
+      const request = new Request(url, init);
+      if (mode) Object.defineProperty(request, "mode", { value: mode });
+      listeners.get("fetch")({ request, respondWith: value => { result = value; },
+        waitUntil: task => background.push(task) });
+      return result;
+    },
+    drain: async () => { for (const task of background) await task; }
+  };
+}
+
+test("service worker image cache write failure preserves a successful download", async () => {
+  const h = serviceWorkerCacheHarness({ fail: "write" });
+  const response = await h.request("https://app.test/api/image?src=neutral&w=400&q=80");
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), "neutral-image");
+  await h.drain();
+  assert.equal(h.requests.length, 1);
+});
+
+test("service worker slow cache writes do not hold a successful image response", async () => {
+  let release;
+  const writeGate = new Promise(resolve => { release = resolve; });
+  const h = serviceWorkerCacheHarness({ writeGate });
+  let timer;
+  try {
+    const result = await Promise.race([
+      h.request("https://app.test/api/image?src=neutral"),
+      new Promise((_resolve, reject) => { timer = setTimeout(() => reject(new Error("Download waited for storage")), 2000); })
+    ]);
+    assert.equal(result.status, 200);
+    assert.equal(await result.text(), "neutral-image");
+    assert.equal(h.requests.length, 1);
+    assert.equal(h.background.length, 1);
+  } finally {
+    clearTimeout(timer);
+    release();
+    await h.drain();
+  }
+});
+
+test("service worker artwork trimming keeps its FIFO bound and tolerates deletion failure", async () => {
+  for (const fail of ["", "trim"]) {
+    const cacheKeys = Array.from({ length: 502 }, (_, index) => `neutral-${index}`);
+    const h = serviceWorkerCacheHarness({ fail, cacheKeys });
+    const response = await h.request("https://app.test/api/image?src=neutral");
+    assert.equal(response.status, 200);
+    await response.text();
+    await h.drain();
+    assert.deepEqual(h.deletes, cacheKeys.slice(0, 2));
+    assert.equal(h.requests.length, 1);
+  }
+});
+
+test("service worker image cache read/open failure falls through to one network request", async () => {
+  for (const fail of ["open", "read"]) {
+    const h = serviceWorkerCacheHarness({ fail });
+    const response = await h.request("https://app.test/api/image?src=neutral");
+    assert.equal(response.status, 200);
+    assert.equal(await response.text(), "neutral-image");
+    await h.drain();
+    assert.equal(h.requests.length, 1);
+  }
+});
+
+test("service worker ignores legacy empty artwork responses instead of pinning a broken poster", async () => {
+  const h = serviceWorkerCacheHarness({ cached: new Response(null, { status: 204 }) });
+  const response = await h.request("https://app.test/api/image?src=neutral");
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), "neutral-image");
+  await h.drain();
+  assert.equal(h.requests.length, 1);
+});
+
+test("service worker healthy artwork cache hits need no network or background write", async () => {
+  const h = serviceWorkerCacheHarness({ cached: new Response("cached-image", {
+    headers: { "Content-Type": "image/webp" }
+  }) });
+  const response = await h.request("https://app.test/api/image?src=neutral");
+  assert.equal(await response.text(), "cached-image");
+  assert.equal(h.requests.length, 0);
+  assert.equal(h.writes.length, 0);
+  assert.equal(h.background.length, 0);
+});
+
+test("service worker does not persist empty, error or non-image artwork responses", async () => {
+  for (const response of [new Response(null, { status: 204 }),
+    new Response("unavailable", { status: 404 }), new Response("unavailable", { status: 503 }),
+    new Response("neutral-page", { headers: { "Content-Type": "text/html" } })]) {
+    const h = serviceWorkerCacheHarness({ response });
+    const result = await h.request("https://app.test/api/image?src=neutral");
+    assert.equal(result.status, response.status);
+    assert.equal(await result.text(), await response.text());
+    await h.drain();
+    assert.equal(h.writes.length, 0);
+    assert.equal(h.requests.length, 1);
+  }
+});
+
+test("service worker player shell cache failures preserve one canonical document download", async () => {
+  const version = readFileSync(new URL("../service-worker.js", import.meta.url), "utf8")
+    .match(/CACHE_NAME = "zenkaitv-v(\d+)"/)[1];
+  for (const fail of ["open", "read", "write"]) {
+    const h = serviceWorkerCacheHarness({ fail, response: new Response("neutral-player", {
+      headers: { "Content-Type": "text/html" }
+    }) });
+    const result = await h.request(`https://app.test/player/player.html?v=${version}&title=neutral`, {}, "navigate");
+    assert.equal(result.status, 200);
+    assert.equal(await result.text(), "neutral-player");
+    await h.drain();
+    assert.deepEqual(h.requests, [`./player/player.html?v=${version}`]);
+  }
+});
+
+test("service worker player queries reuse only the canonical cached document", async () => {
+  const version = readFileSync(new URL("../service-worker.js", import.meta.url), "utf8")
+    .match(/CACHE_NAME = "zenkaitv-v(\d+)"/)[1];
+  const h = serviceWorkerCacheHarness({ cached: new Response("cached-player") });
+  for (const title of ["first", "second"]) {
+    const result = await h.request(`https://app.test/player/player.html?v=${version}&title=${title}`, {}, "navigate");
+    assert.equal(await result.text(), "cached-player");
+  }
+  assert.deepEqual(h.reads, [`./player/player.html?v=${version}`, `./player/player.html?v=${version}`]);
+  assert.equal(h.requests.length, 0);
+  assert.equal(h.background.length, 0);
+});
+
+test("service worker static cache read/write failures preserve online script responses", async () => {
+  for (const fail of ["open", "read", "write"]) {
+    const h = serviceWorkerCacheHarness({ fail, response: new Response("void 0;", {
+      headers: { "Content-Type": "application/javascript" }
+    }) });
+    const response = await h.request("https://app.test/client.js?v=neutral");
+    assert.equal(response.status, 200);
+    assert.equal(await response.text(), "void 0;");
+    await h.drain();
+    assert.equal(h.requests.length, 1);
+  }
+});
+
+test("service worker external cache hits return immediately and hold one background refresh", async () => {
+  const h = serviceWorkerCacheHarness({ cached: new Response("cached-image"), fail: "write" });
+  const result = await h.request("https://cdn.test/neutral.webp");
+  assert.equal(await result.text(), "cached-image");
+  await h.drain();
+  assert.equal(h.requests.length, 1);
+  assert.equal(h.writes.length, 1);
+  assert.ok(h.background.length > 0);
+});
+
+test("service worker cache writes never store partial or wildcard-Vary responses", async () => {
+  for (const response of [new Response("neutral-range", { status: 206 }),
+    new Response("neutral-vary", { headers: { Vary: "*" } }),
+    new Response("neutral-vary", { headers: { Vary: "Accept-Encoding, *" } })]) {
+    const h = serviceWorkerCacheHarness({ response });
+    const result = await h.request("https://cdn.test/neutral.js");
+    assert.equal(result.status, response.status);
+    await result.text();
+    await h.drain();
+    assert.equal(h.writes.length, 0);
+    assert.equal(h.requests.length, 1);
+  }
+});
+
+test("service worker external cache failures do not replay a successful network response", async () => {
+  for (const fail of ["open", "read", "write"]) {
+    const h = serviceWorkerCacheHarness({ fail });
+    const response = await h.request("https://cdn.test/neutral.webp");
+    assert.equal(response.status, 200);
+    assert.equal(await response.text(), "neutral-image");
+    await h.drain();
+    assert.equal(h.requests.length, 1);
+  }
+});
+
+test("service worker forwards source and episode API requests once without touching Cache Storage", async () => {
+  for (const path of ["/api/source?url=https%3A%2F%2Fmedia.test%2Fneutral.m3u8", "/api/animeav1/sources?id=neutral"]) {
+    const h = serviceWorkerCacheHarness({ fail: "open" });
+    const request = new Request("https://app.test" + path, { headers: { Range: "bytes=0-1023" } });
+    const response = await h.request(request.url, { headers: request.headers });
+    assert.equal(response.status, 200);
+    await response.text();
+    assert.equal(h.requests.length, 1);
+    assert.equal(h.requests[0].headers.get("range"), "bytes=0-1023");
+    assert.equal(h.writes.length, 0);
+    assert.equal(h.background.length, 0);
+  }
+});
+
+test("service worker media Range passthrough preserves the partial body and response headers", async () => {
+  const h = serviceWorkerCacheHarness({ fail: "open", response: new Response("range", {
+    status: 206, headers: { "Content-Type": "video/mp4", "Content-Range": "bytes 0-4/10", "Accept-Ranges": "bytes" }
+  }) });
+  const result = await h.request("https://app.test/api/source?url=https%3A%2F%2Fmedia.test%2Fneutral.mp4", {
+    headers: { Range: "bytes=0-4" }
+  });
+  assert.equal(result.status, 206);
+  assert.equal(result.headers.get("content-range"), "bytes 0-4/10");
+  assert.equal(result.headers.get("accept-ranges"), "bytes");
+  assert.equal(await result.text(), "range");
+  assert.equal(h.requests[0].headers.get("range"), "bytes=0-4");
+  assert.equal(h.requests.length, 1);
+  assert.equal(h.writes.length, 0);
+  assert.equal(h.reads.length, 0);
+  assert.equal(h.background.length, 0);
+});
+
 function metadataHarness(fetchImpl) {
   let now = 100000;
   const calls = [];

@@ -1,4 +1,4 @@
-const CACHE_NAME = "zenkaitv-v1019";
+const CACHE_NAME = "zenkaitv-v1020";
 const ADULT_CATALOG_CACHE = "zenkaitv-adult-catalog-v1";
 // Remote artwork lives in its OWN cache that survives version bumps. It used
 // to share CACHE_NAME, so every deploy wiped every poster and the app
@@ -76,14 +76,45 @@ self.addEventListener("activate", (event) => {
 });
 
 // Keep the artwork cache bounded (FIFO): drop the oldest entries past the cap.
-let trimPending = false;
+let trimPending = null;
 function trimImageCache(cache) {
-  if (trimPending) return;
-  trimPending = true;
-  cache.keys().then((keys) => {
+  if (trimPending) return trimPending;
+  trimPending = cache.keys().then((keys) => {
     const excess = keys.length - IMAGE_CACHE_MAX;
     if (excess > 0) return Promise.all(keys.slice(0, excess).map((k) => cache.delete(k)));
-  }).catch(() => {}).then(() => { trimPending = false; });
+  }).catch(() => {}).then(() => { trimPending = null; });
+  return trimPending;
+}
+
+async function readCacheEntry(name, request) {
+  try {
+    const cache = await caches.open(name);
+    return { cache, cached: await cache.match(request) };
+  } catch {
+    return { cache: null, cached: null };
+  }
+}
+
+function isCacheableResponse(response) {
+  return response.status === 200
+    && !(response.headers.get("Vary") || "").split(",").some((value) => value.trim() === "*");
+}
+
+function isArtworkResponse(response) {
+  return response && isCacheableResponse(response)
+    && /^image\//i.test(response.headers.get("Content-Type") || "");
+}
+
+// Storage is optional: neither quota errors nor unsupported cache responses
+// may replace a successful download or cause a second network request.
+function storeResponse(event, cachePromise, request, response, trim = false) {
+  if (!cachePromise || !isCacheableResponse(response)) return;
+  const copy = response.clone();
+  event.waitUntil(Promise.resolve(cachePromise).then(async (cache) => {
+    if (!cache) return;
+    await cache.put(request, copy);
+    if (trim) await trimImageCache(cache);
+  }).catch(() => {}));
 }
 
 self.addEventListener("fetch", (event) => {
@@ -103,14 +134,12 @@ self.addEventListener("fetch", (event) => {
     && url.searchParams.get("v") === ASSET_VERSION
   ) {
     event.respondWith(
-      caches.open(CACHE_NAME).then((cache) => {
+      readCacheEntry(CACHE_NAME, versioned("./player/player.html")).then(({ cache, cached }) => {
+        if (cached) return cached;
         const shellKey = versioned("./player/player.html");
-        return cache.match(shellKey).then((cached) => {
-          if (cached) return cached;
-          return fetch(shellKey).then((response) => {
-            if (response.ok) cache.put(shellKey, response.clone());
-            return response;
-          });
+        return fetch(shellKey).then((response) => {
+          storeResponse(event, cache, shellKey, response);
+          return response;
         });
       }).catch(() => fetch(event.request))
     );
@@ -153,14 +182,11 @@ self.addEventListener("fetch", (event) => {
   // A URL that is not cached still goes to the network exactly as before.
   if (url.origin === self.location.origin && url.pathname === "/api/image") {
     event.respondWith(
-      caches.open(IMAGE_CACHE).then(async (cache) => {
-        const cached = await cache.match(event.request);
-        if (cached) return cached;
-        return fetch(event.request).then(async (response) => {
-          if (response.ok) {
-            await cache.put(event.request, response.clone());
-            trimImageCache(cache);
-          }
+      readCacheEntry(IMAGE_CACHE, event.request).then(({ cache, cached }) => {
+        // Old workers cached empty 204 responses; do not pin those across deploys.
+        if (isArtworkResponse(cached)) return cached;
+        return fetch(event.request).then((response) => {
+          if (isArtworkResponse(response)) storeResponse(event, cache, event.request, response, true);
           return response;
         }).catch(() => new Response("", { status: 503 }));
       })
@@ -180,13 +206,10 @@ self.addEventListener("fetch", (event) => {
   // matched things like ?rev=2 and pinned them as permanently immutable.
   if (url.origin === self.location.origin && url.searchParams.has("v")) {
     event.respondWith(
-      caches.match(event.request).then((cached) => {
+      caches.match(event.request).catch(() => null).then((cached) => {
         if (cached) return cached;
         return fetch(event.request).then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
+          if (isCacheableResponse(response)) storeResponse(event, caches.open(CACHE_NAME), event.request, response);
           return response;
         }).catch(() =>
           // NEVER fall back to offline.html here. This branch serves .js and .css;
@@ -207,19 +230,16 @@ self.addEventListener("fetch", (event) => {
   // External images and CDN resources: stale-while-revalidate
   if (url.origin !== self.location.origin) {
     event.respondWith(
-      caches.open(IMAGE_CACHE).then((cache) =>
-        cache.match(event.request).then((cached) => {
-          const networkFetch = fetch(event.request).then((response) => {
-            if (response.ok) {
-              cache.put(event.request, response.clone()).then(() => trimImageCache(cache));
-            }
-            return response;
-          }).catch(() => cached);
-          // Serve the cached copy immediately when we have one; only revalidate
-          // in the background so repeat visits do not re-request every poster.
-          return cached || networkFetch;
-        })
-      )
+      readCacheEntry(IMAGE_CACHE, event.request).then(({ cache, cached }) => {
+        const networkFetch = fetch(event.request).then((response) => {
+          storeResponse(event, cache, event.request, response, true);
+          return response;
+        }).catch(() => cached);
+        // Serve the cached copy immediately when we have one; only revalidate
+        // in the background so repeat visits do not re-request every poster.
+        if (cached) event.waitUntil(networkFetch.then(() => {}));
+        return cached || networkFetch;
+      })
     );
     return;
   }

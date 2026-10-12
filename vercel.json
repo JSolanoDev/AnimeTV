@@ -1,5 +1,10 @@
 {
   "framework": null,
+  "git": {
+    "deploymentEnabled": {
+      "codex/network-service-worker-audit": false
+    }
+  },
   "outputDirectory": "dist",
   "functions": {
     "api/**/*.js": {

@@ -3,7 +3,7 @@ name: Verify Cloudflare container (no deployment)
 on:
   workflow_dispatch:
   push:
-    branches: ["cloudflare-validation/**"]
+    branches: ["cloudflare-validation/**", "codex/network-service-worker-audit"]
 
 permissions:
   contents: read
@@ -33,8 +33,12 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Check existing app and regressions on Linux
         run: npm run check && npm test
+      - name: Check release calendar and lint without dependency edits
+        run: |
+          npm run test:releases
+          npm exec --yes --package=eslint@8 -- eslint client.js animetv-local.js animetv-server.js "js/*.js" "player/*.js" "scripts/*.mjs" "api/**/*.js" service-worker.js
       - name: Check gateway and container routing
-        run: npm run test:cloudflare && npm run test:cloudflare:containers
+        run: npm run test:cloudflare && npm run test:cloudflare:containers && npm run test:cloudflare:production
       - name: Prepare verified assets and sanitized backend context
         run: npm run cloudflare:containers:prepare
       - name: Build Linux image locally on runner
@@ -45,3 +49,5 @@ jobs:
         run: npm run cloudflare:containers:dry-run
       - name: Exercise real local Worker, Durable Object and container together
         run: npm run cloudflare:containers:integration
+      - name: Prepare and validate production snapshot without publishing
+        run: npm run cloudflare:production:prepare && npm run cloudflare:production:dry-run

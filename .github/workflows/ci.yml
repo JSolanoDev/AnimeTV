@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, "codex/network-service-worker-audit"]
   pull_request:
     branches: [main]
 
