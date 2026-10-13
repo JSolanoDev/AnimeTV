@@ -37,6 +37,7 @@
   let startupTimer = null;
   let stallTimer = null;
   let recoveryTimer = null;
+  let recoveryReloadCleanup = null;
   let hlsRecoveryTimer = null;
   let recoveryCount = 0;
   let networkRecoveryCount = 0;
@@ -2353,7 +2354,9 @@
     });
     art.on("video:timeupdate", () => {
       const position = video.currentTime || 0;
-      if (position > lastProgressPosition + 0.2 || position < lastProgressPosition) {
+      if (video.seeking || Date.now() < seekRecoveryUntil || recoveryReloadCleanup || position < lastProgressPosition) {
+        lastProgressPosition = position;
+      } else if (position > lastProgressPosition + 0.2) {
         clearStallWatchdog();
         finishRebufferObservation(video);
         recoveryCount = 0;
@@ -2956,11 +2959,12 @@
 
   function scheduleRecovery(reason) {
     const video = art?.video;
-    if (!video || recoveryTimer || bufferedAhead(video) > 2) return;
+    if (!video || video.paused || video.ended || document.hidden || recoveryTimer || bufferedAhead(video) > 2) return;
     const seekGraceRemaining = seekRecoveryUntil - Date.now();
     if (seekGraceRemaining > 0) {
       recoveryTimer = setTimeout(() => {
         recoveryTimer = null;
+        if (art?.video !== video) return;
         scheduleRecovery("seek-timeout");
       }, seekGraceRemaining + 100);
       return;
@@ -2968,21 +2972,44 @@
     recoveryTimer = setTimeout(() => {
       recoveryTimer = null;
       const currentVideo = art?.video;
-      if (!currentVideo || bufferedAhead(currentVideo) > 2 || elements.error.hidden === false) return;
+      if (currentVideo !== video || video.paused || video.ended || document.hidden
+        || bufferedAhead(video) > 2 || elements.error.hidden === false) return;
       if (!currentVideo.paused && currentVideo.readyState >= 3) return;
       recoveryCount += 1;
       send("recover", { reason, count: recoveryCount, ...getStatus() });
       if (hls) {
         try { hls.startLoad(currentVideo.currentTime || -1); } catch (error) {}
       } else if (currentVideo.readyState < 2 && recoveryCount <= 2) {
-        try { currentVideo.load(); } catch (error) {}
+        reloadVideoAtPosition(currentVideo);
       }
       const playAttempt = currentVideo.play?.();
       if (playAttempt && typeof playAttempt.catch === "function") playAttempt.catch(() => {});
     }, 1200);
   }
 
+  function reloadVideoAtPosition(video) {
+    recoveryReloadCleanup?.();
+    const position = Math.max(0, Number(video.currentTime) || 0);
+    const cleanup = () => {
+      video.removeEventListener("loadedmetadata", restore);
+      if (recoveryReloadCleanup === cleanup) recoveryReloadCleanup = null;
+    };
+    const restore = () => {
+      cleanup();
+      if (art?.video !== video || video.error || elements.error.hidden === false) return;
+      // load() resets currentTime. Restore the seek only after the new resource
+      // has metadata, while retaining the same URL and browser request headers.
+      try { video.currentTime = Math.min(position, playableDuration(video) || position); } catch (error) {}
+    };
+    recoveryReloadCleanup = cleanup;
+    playerCleanups.push(cleanup);
+    video.addEventListener("loadedmetadata", restore, { once: true });
+    try { video.load(); } catch (error) { cleanup(); }
+  }
+
   function armSeekRecoveryGrace() {
+    recoveryReloadCleanup?.();
+    lastProgressPosition = Number(art?.video?.currentTime || 0);
     seekRecoveryUntil = Date.now() + 8000;
     cancelRebufferObservation();
     resetPlaybackHealth(art?.video);

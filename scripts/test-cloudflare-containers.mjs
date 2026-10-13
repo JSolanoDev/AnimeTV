@@ -336,14 +336,14 @@ test("staging config and CLI restrict deployments and cannot change DNS or enabl
   assert.equal(JSON.parse(readFileSync(join(root, "wrangler.staging.json"), "utf8")).vars.BACKEND_ORIGIN, "https://zenkaitv.com");
   const workflow = readFileSync(join(root, ".github/workflows/cloudflare-container-check.yml"), "utf8");
   assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /push:\s+branches: \["cloudflare-validation\/\*\*", "codex\/network-service-worker-audit", "codex\/console-reliability-v1021", "codex\/episode-startup-v1022"\]/);
+  assert.match(workflow, /push:\s+branches: \["cloudflare-validation\/\*\*", "codex\/network-service-worker-audit", "codex\/console-reliability-v1021", "codex\/episode-startup-v1022", "codex\/seek-startup-reliability-v1023"\]/);
   assert.doesNotMatch(workflow, /secrets\.|contents: write|schedule:|deploy:staging|branches: \[main\]/);
 });
 
-test("the v1020, v1021 and v1022 review branches run CI without triggering hosted publishing", () => {
+test("the v1020 through v1023 review branches run CI without triggering hosted publishing", () => {
   const check = readFileSync(join(root, ".github/workflows/cloudflare-container-check.yml"), "utf8");
   const ci = readFileSync(join(root, ".github/workflows/ci.yml"), "utf8");
-  assert.match(ci, /push:\s+branches: \[main, "codex\/network-service-worker-audit", "codex\/console-reliability-v1021", "codex\/episode-startup-v1022"\]/);
+  assert.match(ci, /push:\s+branches: \[main, "codex\/network-service-worker-audit", "codex\/console-reliability-v1021", "codex\/episode-startup-v1022", "codex\/seek-startup-reliability-v1023"\]/);
   assert.match(ci, /npm exec --yes --package=eslint@8 -- eslint/);
   assert.doesNotMatch(ci, /npm i --no-save eslint/);
   assert.doesNotMatch(ci, /npm run adult:setup/);
@@ -355,11 +355,12 @@ test("the v1020, v1021 and v1022 review branches run CI without triggering hoste
   assert.deepEqual(vercel.git.deploymentEnabled, {
     "codex/network-service-worker-audit": false,
     "codex/console-reliability-v1021": false,
-    "codex/episode-startup-v1022": false
+    "codex/episode-startup-v1022": false,
+    "codex/seek-startup-reliability-v1023": false
   });
   for (const name of ["cloudflare-production.yml", "cloudflare-container-staging.yml"]) {
     const workflow = readFileSync(join(root, ".github/workflows", name), "utf8");
-    assert.doesNotMatch(workflow, /network-service-worker-audit|console-reliability-v1021|episode-startup-v1022|Verify Cloudflare container/);
+    assert.doesNotMatch(workflow, /network-service-worker-audit|console-reliability-v1021|episode-startup-v1022|seek-startup-reliability-v1023|Verify Cloudflare container/);
   }
 });
 
