@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-13T13:49:22.090Z",
-  "count": 6666,
+  "generatedAt": "2026-10-13T19:30:02.760Z",
+  "count": 6668,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -804,8 +804,8 @@
       "season": "SUMMER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 24,
-      "nextAiringAt": 1791909300000,
-      "nextAiringEpisodeNumber": 15,
+      "nextAiringAt": 1792514100000,
+      "nextAiringEpisodeNumber": 16,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 14,
       "lastEpisodeAt": "2026-10-06T18:03:07.267Z"
@@ -235271,8 +235271,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791900000000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792504800000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-06T15:05:29.705Z"
@@ -235307,8 +235307,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791903600000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792508400000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-06T16:02:57.781Z"
@@ -241659,6 +241659,20 @@
           "order": 3
         }
       ]
+    },
+    "animeav1-dark-machine-the-animation": {
+      "anilistId": 179876,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1792514700000,
+      "nextAiringEpisodeNumber": 2
+    },
+    "animeav1-chitose-kun-wa-ramune-bin-no-naka-part-2": {
+      "anilistId": 198727,
+      "airingStatus": "RELEASING",
+      "franchiseSeasons": [],
+      "nextAiringAt": 1792504800000,
+      "nextAiringEpisodeNumber": 2
     }
   },
   "seasonArtwork": {
