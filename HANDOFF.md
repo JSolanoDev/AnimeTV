@@ -2,6 +2,18 @@
 
 Read this first; update it before stopping. Rules live in AGENTS.md.
 
+## Current Task: v1022 Candidate
+- Human requested episode-startup/website/Cloudflare optimization. Work is isolated in AnimeTV-episode-startup on codex/episode-startup-v1022, based on current main e746d05606dfa77193e09b6a12fd07cb3b8bef03. Remote main still matched before CI preparation. Human approved CI-only branch push and exact-branch validation/hosted-deploy guards; no main promotion or production deployment/configuration change is authorized.
+- One runtime change: warmPlayableStream cancels its unused response body after headers. Callers only warm connections; Range-ignoring origins otherwise keep sending media. Existing one-byte Range, no-store/credentials policy, URL coalescing, source verification/selection, HLS buffering, player/Cast, Supabase and CSP remain unchanged.
+- Required v1022 version refs/cache generation synchronized; all 28 main Android mirrors match. Do not mix this with the separate uncommitted TV reliability candidate in AnimeTV-network-audit.
+- Four new warmup tests reproduced the v1021 failure and now pass, included in test:pipeline. Five bounded neutral local pairs wrote 640 KiB baseline versus 32 KiB candidate per warmup (95% reduction in origin writes for this fixture, NOT episode startup or Cloudflare billable-byte improvement). Real Chrome independently confirmed one chunk and closed connection.
+- npm check/full tests/isolated ESLint/build/build:verify pass. Cloudflare contracts 54/54 and pinned Wrangler/workerd cache runtime fixture pass. Initial benchmark buffer/timer assumptions and the bare-Node workerd invocation were harness issues repaired before final verification.
+- Production warm homepage trace: LCP 176ms/CLS 0.03, one lab sample. One Piece 904 baseline decoded/advanced at 1080p with one iframe. Source lookup took about 4.7s/6.9s and continuous-series artwork requested 25 TMDB seasons. Neither provider behavior nor long-series identity mapping was changed; precise click-to-first-frame improvement is not measured.
+- Local v1022 desktop/mobile home image/overflow checks pass. Neutral mobile MP4 and desktop HLS decode/advance without media errors; active SW preserves four-byte Range 206 and HLS rewrite. All test playback stopped/owned test tabs closed. Screenshot inspected inline; export to this new worktree was denied, and no path workaround was used.
+- Preview http://127.0.0.1:4196/, background Node PID 48620, bound only to loopback. Startup daily refresh delayed 24h for this preview; this is process-local, not a production config change. Owned warmup fixture PID 63940 was stopped. Shared ignored node_modules junction reuses unchanged existing dependencies; no package-lock edits.
+- docs/v1022-stream-warmup-efficiency.md records scope, evidence, limits, commands and rollback. Exact v1022 branch added only to general CI/no-deploy Linux check, with matching Vercel preview block and regression assertions. Publishing workflows unchanged. Linux/Docker GitHub CI and hosted v1022 validation remain outstanding; production publishing requires separate approval and latest-main recheck. Production stays on approved v1021; existing v1020 rollback retained. Exact candidate SHA and CI readback will be saved in .cache/v1022-ci-validation.md after the approved push.
+- Older release notes below are historical, not a new deployment instruction.
+
 ## Current Release
 - Codex, October 11, 2026 (America/Denver): preparing v1021; CI-only branch push approved, no production/configuration/monitoring changes.
 - Checkout AnimeTV-network-audit, branch codex/console-reliability-v1021, based on current main/v1020 6ccf149ca559f1e68f44d137edffc63a7681deed.

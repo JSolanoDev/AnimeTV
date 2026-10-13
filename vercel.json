@@ -3,7 +3,8 @@
   "git": {
     "deploymentEnabled": {
       "codex/network-service-worker-audit": false,
-      "codex/console-reliability-v1021": false
+      "codex/console-reliability-v1021": false,
+      "codex/episode-startup-v1022": false
     }
   },
   "outputDirectory": "dist",
