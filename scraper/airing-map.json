@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-14T11:29:38.283Z",
+  "generatedAt": "2026-10-14T13:59:25.171Z",
   "count": 6668,
   "entries": {
     "animeav1-one-piece": {
@@ -240452,8 +240452,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1791982800000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792587600000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 152682,
@@ -240534,8 +240534,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1791982800000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792587600000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-07T14:35:33.769Z"
@@ -240546,8 +240546,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1791981000000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792585800000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 128712,
