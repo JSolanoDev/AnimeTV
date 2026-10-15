@@ -1887,7 +1887,7 @@ body:not([data-route="home"]) .section-heading h2 {
   object-fit: cover;
   object-position: center top;
   box-shadow: inset 0 -4rem 4rem rgba(0, 0, 0, 0.18);
-  transition: transform 320ms ease, filter 320ms ease;
+  transition: opacity 0.45s ease, transform 320ms ease, filter 320ms ease;
 }
 
 .thumb-art.has-contained-poster::before {
@@ -8665,6 +8665,8 @@ body.reduce-motion .watch-backdrop-blur { transform: scale(1.08); }
   pointer-events: none;
 }
 .watch-backdrop-title-art[hidden] { display: none; }
+.watch-backdrop-title-art .art-sheen { display: none; }
+.watch-backdrop-title-art.is-loading .art-sheen { display: block; }
 .watch-summary:empty { display: none; }
 .watch-backdrop-title-art::before {
   content: "Z";
@@ -12522,13 +12524,23 @@ body.is-tv .topbar-auth {
   height: 0.15rem;
   border-radius: 999rem;
   pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent, #8a5cff 46%, #30cde8 54%, transparent) 0 0 / 38% 100% no-repeat,
-    rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.07);
   transform: none;
-  will-change: background-position;
-  animation: calm-loader-track 1.7s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  will-change: auto;
+  animation: none;
   transition: opacity 160ms ease;
+}
+
+.art-sheen::after,
+.skeleton-card .thumb-art::after,
+.carousel-poster-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, #8a5cff 46%, #30cde8 54%, transparent);
+  transform: translateX(-100%);
+  animation: skeleton-sheen 1.7s ease-in-out infinite;
 }
 
 .thumb-art.img-ready .art-sheen,
@@ -12537,9 +12549,11 @@ body.is-tv .topbar-auth {
   animation: none;
 }
 
-.thumb-poster,
-.ep-thumb-img {
-  opacity: 1;
+.thumb-art.img-ready .art-sheen::after,
+.ep-thumb.img-ready .art-sheen::after,
+.ep-thumb.is-placeholder .art-sheen::after,
+.watch-backdrop-title-art:not(.is-loading) .art-sheen::after {
+  animation: none;
 }
 
 .skeleton-card .thumb-art,
@@ -12697,6 +12711,7 @@ body.adult-mode .poster-placeholder-mark {
   .loader-mark::before,
   .carousel-wait-track,
   .art-sheen,
+  .art-sheen::after,
   .skeleton-card .thumb-art::after,
   .carousel-poster-skeleton::after,
   .carousel-dot span::after {

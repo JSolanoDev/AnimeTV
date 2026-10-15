@@ -940,7 +940,7 @@ function scheduleImageLifecycleHarness() {
   class FixtureImage {
     constructor(classes, urls) {
       const names = new Set(classes);
-      this.classList = { contains: name => names.has(name), add: name => names.add(name) };
+      this.classList = { contains: name => names.has(name), add: name => names.add(name), remove: name => names.delete(name) };
       this.dataset = { imageFallbacks: encodeURIComponent(JSON.stringify(urls)), imageFallbackIndex: "0" };
       this._src = urls[0];
       this.style = {};

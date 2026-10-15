@@ -5,7 +5,8 @@
       "codex/network-service-worker-audit": false,
       "codex/console-reliability-v1021": false,
       "codex/episode-startup-v1022": false,
-      "codex/seek-startup-reliability-v1023": false
+      "codex/seek-startup-reliability-v1023": false,
+      "codex/artwork-stall-reliability-v1024": false
     }
   },
   "outputDirectory": "dist",

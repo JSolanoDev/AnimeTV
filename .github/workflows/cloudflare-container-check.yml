@@ -3,7 +3,7 @@ name: Verify Cloudflare container (no deployment)
 on:
   workflow_dispatch:
   push:
-    branches: ["cloudflare-validation/**", "codex/network-service-worker-audit", "codex/console-reliability-v1021", "codex/episode-startup-v1022", "codex/seek-startup-reliability-v1023"]
+    branches: ["cloudflare-validation/**", "codex/network-service-worker-audit", "codex/console-reliability-v1021", "codex/episode-startup-v1022", "codex/seek-startup-reliability-v1023", "codex/artwork-stall-reliability-v1024"]
 
 permissions:
   contents: read

@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, "codex/network-service-worker-audit", "codex/console-reliability-v1021", "codex/episode-startup-v1022", "codex/seek-startup-reliability-v1023"]
+    branches: [main, "codex/network-service-worker-audit", "codex/console-reliability-v1021", "codex/episode-startup-v1022", "codex/seek-startup-reliability-v1023", "codex/artwork-stall-reliability-v1024"]
   pull_request:
     branches: [main]
 

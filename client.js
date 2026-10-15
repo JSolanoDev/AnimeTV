@@ -4756,6 +4756,7 @@ function underHentaiBackdropCandidates(show = {}, season = null) {
 
 const HELL_MODE_WATCH_BACKDROP = "https://image.tmdb.org/t/p/original/gf62V8UBVBMFPpD9yI0UFvkFvq2.jpg";
 const STEEL_BALL_RUN_WATCH_BACKDROP = "https://image.tmdb.org/t/p/original/4ATJwDwspxLCYEZaRbCpIyxd7Wo.jpg";
+const NIA_LISTON_WATCH_BACKDROP = "https://image.tmdb.org/t/p/original/5obfnImCRn0LzQnRb4jxuCJRlxd.jpg";
 
 const DOTTO_KONI_ARTWORK = Object.freeze({
   poster: "https://image.tmdb.org/t/p/original/3INoBmgKVIhs3VJ0zCPd7WOrk1Q.jpg",
@@ -4771,6 +4772,11 @@ function curatedDottoKoniArtwork(show = {}) {
 }
 
 function curatedWatchBackdrop(show = {}) {
+  // Exact identity only: the older pinned backdrop is 1320x743; this is the
+  // same series' 1919x1080 original, not an enlarged banner or episode still.
+  const niaListon = Number(show.anilistId) === 206949 || Number(show.malId) === 63382
+    || Number(show.tmdbId) === 312850;
+  if (niaListon && !isAdultCatalogShow(show)) return pickImage([NIA_LISTON_WATCH_BACKDROP]) || "";
   const diamond = typeof SeasonNormalization !== "undefined" ? SeasonNormalization.diamondEntryScope?.(show) : null;
   if (diamond?.backdropPath) return pickImage([`https://image.tmdb.org/t/p/original${diamond.backdropPath}`]) || "";
   // Also correct franchise artwork restored from an older client cache.
@@ -5129,7 +5135,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1023";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1024";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -5681,6 +5687,8 @@ function advanceArtworkCandidate(img) {
     img.removeAttribute("sizes");
     img.style.display = "";
     img.style.opacity = "";
+    img.classList.remove("img-ready");
+    img.closest(".thumb-art, .ep-thumb, .release-poster")?.classList.remove("img-ready");
     img.src = next;
     return true;
   }
@@ -11946,6 +11954,14 @@ function applyWatchBackdrop(show, season) {
   const titleArtText = document.querySelector("#watchBackdropTitleText");
   const key = watchBackdropKey(show, season);
   const showKey = String(show?.id || show?.anilistId || show?.title || "show");
+  const targetIsCurrent = () => {
+    const activeShow = state.activeShow;
+    const activeShowKey = String(activeShow?.id || activeShow?.anilistId || activeShow?.title || "show");
+    if (!activeShow || activeShowKey !== showKey) return false;
+    const activeSeasons = getDetailSeasons(activeShow);
+    const activeSeason = activeSeasons[state.activeSeasonIndex] || activeSeasons[0] || null;
+    return watchBackdropKey(activeShow, activeSeason) === key;
+  };
   const adultShow = isAdultCatalogShow(show);
   const curatedBackdrop = curatedWatchBackdrop(show);
   const carouselBackdrop = getCarouselArtwork(show);
@@ -12041,7 +12057,10 @@ function applyWatchBackdrop(show, season) {
       blur.classList.toggle("is-visible", Boolean(blurUrl));
     }
     if (titleArtText) titleArtText.textContent = getShowTitle(show) || show.title || "ZenkaiTV";
-    if (titleArt) titleArt.hidden = Boolean(url);
+    if (titleArt) {
+      titleArt.hidden = Boolean(url);
+      titleArt.classList.remove("is-loading");
+    }
     // Always cinematic; .has-art only switches image-backdrop vs gradient fallback.
     overlay?.classList.add("cinematic");
     overlay?.classList.toggle("has-backdrop-art", Boolean(url));
@@ -12070,7 +12089,11 @@ function applyWatchBackdrop(show, season) {
     backdrop.dataset.backdropUrl = "";
     backdrop.dataset.backdropShowKey = showKey;
     backdrop.dataset.backdropHeldUrl = url;
-    if (titleArt) titleArt.hidden = true;
+    if (titleArtText) titleArtText.textContent = getShowTitle(show) || show.title || "ZenkaiTV";
+    if (titleArt) {
+      titleArt.hidden = false;
+      titleArt.classList.add("is-loading");
+    }
     overlay?.classList.add("cinematic", "has-backdrop-art");
   };
 
@@ -12084,7 +12107,7 @@ function applyWatchBackdrop(show, season) {
       const activeShowKey = String(state.activeShow?.id || state.activeShow?.anilistId || state.activeShow?.title || "show");
       if ((backdrop.dataset.backdropKey === key || backdrop.dataset.backdropPendingKey === key)
           && (backdrop.classList.contains("is-blur-hold") || backdrop.dataset.backdropPendingKey === key)
-          && activeShowKey === showKey) {
+          && activeShowKey === showKey && targetIsCurrent()) {
         show._backdropForceSharp = true;
         applyWatchBackdrop(show, season);
       }
@@ -12186,15 +12209,6 @@ function applyWatchBackdrop(show, season) {
     backdrop.dataset.backdropPendingKey = key;
     backdrop.dataset.backdropPendingUrl = url;
 
-    const targetIsCurrent = () => {
-      const activeShow = state.activeShow;
-      const activeShowKey = String(activeShow?.id || activeShow?.anilistId || activeShow?.title || "show");
-      if (!activeShow || activeShowKey !== showKey) return false;
-      const activeSeasons = getDetailSeasons(activeShow);
-      const activeSeason = activeSeasons[state.activeSeasonIndex] || activeSeasons[0] || null;
-      return watchBackdropKey(activeShow, activeSeason) === key;
-    };
-
     // Decode the incoming image off-screen, then dip the sharp layer's opacity to
     // reveal the (re-blurred) fill behind it — never a flash to black — swap the
     // image while hidden, and fade it back in. Idempotent + self-healing: a safety
@@ -12294,8 +12308,11 @@ function applyWatchBackdrop(show, season) {
   // a portrait poster in the composed layout - which reads as the background
   // suddenly not covering.
   const isChosenTmdbBackdrop = Boolean(art)
-    && (art === curatedBackdrop || art === hqImage(String(show.tmdbBackdrop || "").trim()));
+    && [curatedBackdrop, show.tmdbBackdrop, season?.tmdbBackdrop,
+      seasonNum && show.tmdbSeasonBackdropsBySeason?.[seasonNum]]
+      .some((value) => art === hqImage(String(value || "").trim()));
   probe.onload = () => {
+    if (!targetIsCurrent()) return;
     // A carousel image has already loaded successfully at this exact URL. Trust
     // that result; the pixel-contrast heuristic can reject intentionally dark
     // artwork and previously caused the detail page to switch to another frame.
@@ -12305,13 +12322,12 @@ function applyWatchBackdrop(show, season) {
       ? artworkDimensionsAreUseful(probe, "adult-backdrop")
       : posterFallback
         ? artworkDimensionsAreUseful(probe, "poster")
-        : bannerFallback
-          ? artworkDimensionsAreUseful(probe, "banner")
-          : isChosenTmdbBackdrop
-            ? artworkDimensionsAreUseful(probe, "backdrop")
+        : isChosenTmdbBackdrop
+          ? artworkDimensionsAreUseful(probe, "backdrop")
+          : bannerFallback
+            ? artworkDimensionsAreUseful(probe, "banner")
             : backdropPixelsLookUseful(probe);
     backdropQualityCache.set(qualityKey, useful);
-    if (state.activeShow?.id !== show.id) return;
     if (useful) {
       paint(art);
       return;
@@ -12321,12 +12337,11 @@ function applyWatchBackdrop(show, season) {
     applyWatchBackdrop(show, season);
   };
   probe.onerror = () => {
+    if (!targetIsCurrent()) return;
     backdropQualityCache.set(qualityKey, false);
     try { ImageResolver.markImageFailed(art); } catch { /* resolver optional */ }
-    if (state.activeShow?.id === show.id) {
-      backdrop.dataset.backdropUrl = "";
-      applyWatchBackdrop(show, season);
-    }
+    backdrop.dataset.backdropUrl = "";
+    applyWatchBackdrop(show, season);
   };
   probe.src = deliveredArt || art;
 }
@@ -21929,7 +21944,9 @@ function renderDirectVideoPlayer(frame, url, episode, playbackContext = null) {
       console.error("[VideoPlayer] Video source setup failed", { url, error });
     });
   }
+  let recoveringPlayback = false;
   player?.addEventListener("playing", () => {
+    if (recoveringPlayback) return;
     if (playbackContext && !isPlaybackAttemptCurrent(playbackContext, skipShow, episode)) return;
     const activeSource = markPlaybackSourceVerified(
       episode,
@@ -21938,6 +21955,7 @@ function renderDirectVideoPlayer(frame, url, episode, playbackContext = null) {
     if (activeSource) recordPlaybackFamilyHealth(activeSource, true);
   });
   player?.addEventListener("error", async () => {
+    if (recoveringPlayback) return;
     if (playbackContext && !isPlaybackAttemptCurrent(playbackContext, skipShow, episode)) return;
     const activeEpisode = state.activeEpisode?.episode;
     const sameEpisode = activeEpisode === episode
@@ -21945,7 +21963,7 @@ function renderDirectVideoPlayer(frame, url, episode, playbackContext = null) {
     const activeSource = getSelectedEpisodeSource(episode);
     if (!sameEpisode || (selectedSource?.id && activeSource?.id && selectedSource.id !== activeSource.id)) return;
 
-    console.error("[VideoPlayer] Direct video playback failed", { url, episode });
+    console.error("[VideoPlayer] Direct video playback failed", { streamType, episodeNumber: episode.number });
 
     if (episode._playbackFallbackPromptActive) return;
 
@@ -21962,42 +21980,41 @@ function renderDirectVideoPlayer(frame, url, episode, playbackContext = null) {
       && AdultMode.isAdultContent(state.activeShow)
     );
     if (!isAdultShow) {
+      recoveringPlayback = true;
       episode._playbackFallbackPromptActive = true;
+      try { saveWatchProgress(player, episode, { force: true }); }
+      catch { console.warn("[VideoPlayer] Could not save the recovery resume point"); }
+      if (_activeProgressPlayer?.player === player) _activeProgressPlayer = null;
+      try {
+        player?._disposeAdjacentWarmup?.();
+        if (useApkPlayer) {
+          player?.destroy?.();
+          if (iframe) iframe._zenkaiPlayerController = null;
+        } else if (player) {
+          if (player._playerComponentInstance) player._playerComponentInstance.destroy();
+          else player._animeTvHls?.destroy?.();
+          player.pause();
+          player.removeAttribute("src");
+          player.load();
+        }
+      } catch { console.warn("[VideoPlayer] Failed player cleanup was incomplete"); }
       renderPlayerPopupMessage(
         frame,
         "Checking backup sources...",
         "The selected server is not responding. Preparing other available sources."
       );
-      const fallbackLookup = attachPlaybackFailureFallbacks(state.activeShow, episode, {
-        refreshProviderKeys: playbackRecoveryProviderKeys(episode, activeSource)
-      });
-      const firstCandidateReady = episode._playbackFailureFastPromise || fallbackLookup;
       renderPlayerPopupMessage(
         frame,
         "Verifying an ad-free backup...",
         "Testing direct media sources and switching automatically."
       );
 
-      // The normal startup path already begins backup discovery after 450 ms.
-      // Verify those existing candidates immediately instead of blocking on a
-      // fresh provider request after the player reports an error.
-      let verifiedFallback = await prepareReliablePlaybackSource(
-        state.activeShow,
-        episode,
-        { timeoutMs: 2800 }
-      );
-      if (!verifiedFallback && !episode.playbackFailureFallbacksComplete) {
-        await Promise.race([firstCandidateReady, wait(650)]);
-        verifiedFallback = await prepareReliablePlaybackSource(
-          state.activeShow,
-          episode,
-          { timeoutMs: 2800 }
-        );
-      }
-      if (!verifiedFallback && !episode.playbackFailureFallbacksComplete) {
-        await fallbackLookup;
-        verifiedFallback = await findVerifiedAdFreeFallbackSource(episode);
-      }
+      const verifiedFallback = await findRuntimePlaybackFallback(skipShow, episode, activeSource, {
+        isCurrent: () => (!playbackContext || isPlaybackAttemptCurrent(playbackContext, skipShow, episode))
+          && state.activeShow === skipShow
+          && (state.activeEpisode?.episode === episode
+            || Boolean(episode.id && state.activeEpisode?.episode?.id === episode.id))
+      });
 
       if (playbackContext && !isPlaybackAttemptCurrent(playbackContext, skipShow, episode)) {
         episode._playbackFallbackPromptActive = false;
@@ -22023,6 +22040,7 @@ function renderDirectVideoPlayer(frame, url, episode, playbackContext = null) {
         return;
       }
 
+      episode._playbackFallbackPromptActive = false;
       renderPlaybackError(frame, episode, {
         title: "Playback source unavailable",
         message: "The current server did not respond and no verified ad-free backup is available for this episode. You can retry after a provider recovers."
@@ -22058,13 +22076,17 @@ function renderDirectVideoPlayer(frame, url, episode, playbackContext = null) {
   // Progress is saved ~every 10s while playing (self-throttled), and forced on
   // pause / exit / completion so the resume point is never lost.
   player?.addEventListener("timeupdate", () => {
+    if (recoveringPlayback) return;
     saveWatchProgress(player, episode);
     if (!useApkPlayer) captureNativeEpisodeFrame(player, episode);
   });
-  player?.addEventListener("pause", () => saveWatchProgress(player, episode, { force: true }));
+  player?.addEventListener("pause", () => {
+    if (!recoveringPlayback) saveWatchProgress(player, episode, { force: true });
+  });
   if (player) _activeProgressPlayer = { player, episode };
   setupAdjacentEpisodeWarmup(player, skipShow, episode, playbackContext);
   player?.addEventListener("ended", () => {
+    if (recoveringPlayback) return;
     saveWatchProgress(player, episode, { force: true, completed: true });
     if (!playAdjacentEpisode("next")) {
       showToast("You've reached the last episode.");
@@ -22074,6 +22096,48 @@ function renderDirectVideoPlayer(frame, url, episode, playbackContext = null) {
   if (!useApkPlayer) wireVidstreamControls(frame, player, episode, url, tracks);
   wirePlayerChrome(frame);
   refreshFocusables();
+}
+
+async function findRuntimePlaybackFallback(show, episode, activeSource, options = {}) {
+  let finished = false;
+  let deadline;
+  const isCurrent = () => !finished && (!options.isCurrent || options.isCurrent());
+  const recover = async () => {
+    if (!isCurrent()) return null;
+    // Keep the existing source ladder and verification; bound the entire chain,
+    // including shared lookups/backend readiness that can outlive a step timeout.
+    const fallbackLookup = Promise.resolve(attachPlaybackFailureFallbacks(show, episode, {
+      refreshProviderKeys: playbackRecoveryProviderKeys(episode, activeSource)
+    })).catch(() => null);
+    const firstCandidateReady = Promise.resolve(episode._playbackFailureFastPromise || fallbackLookup).catch(() => null);
+    let verified = await prepareReliablePlaybackSource(show, episode, { timeoutMs: 2800 });
+    if (!isCurrent()) return null;
+    if (!verified && !episode.playbackFailureFallbacksComplete) {
+      await Promise.race([firstCandidateReady, wait(650)]);
+      if (!isCurrent()) return null;
+      verified = await prepareReliablePlaybackSource(show, episode, { timeoutMs: 2800 });
+      if (!isCurrent()) return null;
+    }
+    if (!verified && !episode.playbackFailureFallbacksComplete) {
+      await fallbackLookup;
+      if (!isCurrent()) return null;
+      verified = await findVerifiedAdFreeFallbackSource(episode);
+    }
+    return isCurrent() ? verified : null;
+  };
+  try {
+    return await Promise.race([
+      Promise.resolve().then(recover),
+      new Promise((resolve) => {
+        deadline = window.setTimeout(() => { finished = true; resolve(null); }, 15000);
+      })
+    ]);
+  } catch {
+    return null;
+  } finally {
+    finished = true;
+    window.clearTimeout(deadline);
+  }
 }
 
 // Full-screen playback-error overlay. The source action leaves cinema mode and
@@ -24508,7 +24572,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1023");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1024");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
