@@ -1,8 +1,8 @@
 id,title,type,status,year,season,genre,rating,totalEpisodes,source,siteUrl
 animeav1-one-piece,One Piece,TV,,1999,,action,87,1180,AnimeAV1,https://animeav1.com/media/one-piece
 animeav1-sousou-no-frieren-2nd-season,Sousou no Frieren 2nd Season,TV,,2026,,anime,89,10,AnimeAV1,https://animeav1.com/media/sousou-no-frieren-2nd-season
-animeav1-dark-machine-the-animation,Dark Machine: The Animation,TV,,,,anime,,,AnimeAV1,https://animeav1.com/media/dark-machine-the-animation
-animeav1-chitose-kun-wa-ramune-bin-no-naka-part-2,Chitose-kun wa Ramune Bin no Naka Part 2,TV,,,,anime,,,AnimeAV1,https://animeav1.com/media/chitose-kun-wa-ramune-bin-no-naka-part-2
+animeav1-dark-machine-the-animation,Dark Machine: The Animation,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/dark-machine-the-animation
+animeav1-chitose-kun-wa-ramune-bin-no-naka-part-2,Chitose-kun wa Ramune Bin no Naka Part 2,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/chitose-kun-wa-ramune-bin-no-naka-part-2
 animeav1-dragon-ball-super-beerus,Dragon Ball Super: Beerus,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/dragon-ball-super-beerus
 animeav1-shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku,Shinja Zero no Megami-sama to Hajimeru Isekai Kouryaku,TV,,2026,,fantasy,,1,AnimeAV1,https://animeav1.com/media/shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku
 animeav1-diamond-no-ace-act-ii-second-season-part-2,Diamond no Ace: Act II Second Season Part 2,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/diamond-no-ace-act-ii-second-season-part-2
@@ -13,12 +13,12 @@ animeav1-hotaru-no-yomeiri,Hotaru no Yomeiri,TV,,2026,,anime,,1,AnimeAV1,https:/
 animeav1-toaru-anbu-no-item,Toaru Anbu no Item,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/toaru-anbu-no-item
 animeav1-hyouken-no-majutsushi-ga-sekai-wo-suberu-ii,Hyouken no Majutsushi ga Sekai wo Suberu II,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/hyouken-no-majutsushi-ga-sekai-wo-suberu-ii
 animeav1-tetsuryou-meet-with-tetsudou-musume,Tetsuryou! Meet with Tetsudou Musume,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/tetsuryou-meet-with-tetsudou-musume
-animeav1-kikansha-no-mahou-wa-tokubetsu-desu-2nd-season,Kikansha no Mahou wa Tokubetsu desu 2nd Season,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/kikansha-no-mahou-wa-tokubetsu-desu-2nd-season
-animeav1-juuou-mujin-dandivine,Juuou Mujin Dandivine,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/juuou-mujin-dandivine
-animeav1-magic-knight-rayearth-2026,Magic Knight Rayearth (2026),TV,,2026,,fantasy,,1,AnimeAV1,https://animeav1.com/media/magic-knight-rayearth-2026
-animeav1-sekai-saikyou-no-majo-hajimemashita,"Sekai Saikyou no Majo, Hajimemashita",TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/sekai-saikyou-no-majo-hajimemashita
-animeav1-sasaki-to-pii-chan-season-2,Sasaki to Pii-chan Season 2,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/sasaki-to-pii-chan-season-2
-animeav1-tantei-wa-mou-shindeiru-season-2,"Tantei wa Mou, Shindeiru. Season 2",TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/tantei-wa-mou-shindeiru-season-2
+animeav1-kikansha-no-mahou-wa-tokubetsu-desu-2nd-season,Kikansha no Mahou wa Tokubetsu desu 2nd Season,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/kikansha-no-mahou-wa-tokubetsu-desu-2nd-season
+animeav1-juuou-mujin-dandivine,Juuou Mujin Dandivine,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/juuou-mujin-dandivine
+animeav1-magic-knight-rayearth-2026,Magic Knight Rayearth (2026),TV,,2026,,fantasy,,2,AnimeAV1,https://animeav1.com/media/magic-knight-rayearth-2026
+animeav1-sekai-saikyou-no-majo-hajimemashita,"Sekai Saikyou no Majo, Hajimemashita",TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/sekai-saikyou-no-majo-hajimemashita
+animeav1-sasaki-to-pii-chan-season-2,Sasaki to Pii-chan Season 2,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/sasaki-to-pii-chan-season-2
+animeav1-tantei-wa-mou-shindeiru-season-2,"Tantei wa Mou, Shindeiru. Season 2",TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/tantei-wa-mou-shindeiru-season-2
 animeav1-battle-spirits-re-zekkai-no-kuu,Battle Spirits [Re]: Zekkai no Kuu,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/battle-spirits-re-zekkai-no-kuu
 animeav1-choujun-choujou-senpai,Choujun! Choujou-senpai,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/choujun-choujou-senpai
 animeav1-zombie-sagashitemasu,#Zombie Sagashitemasu,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/zombie-sagashitemasu
@@ -3347,7 +3347,7 @@ animeav1-riding-bean,Riding Bean,OVA,,1989,,anime,71,1,AnimeAV1,https://animeav1
 animeav1-rezero-kara-hajimeru-isekai-seikatsu-shin-henshuu-ban,Re:Zero kara Hajimeru Isekai Seikatsu: Shin Henshuu-ban,TV,,,,fantasy,,13,AnimeAV1,https://animeav1.com/media/rezero-kara-hajimeru-isekai-seikatsu-shin-henshuu-ban
 animeav1-shiotaiou-no-satou-san-ga-ore-ni-dake-amai,Shiotaiou no Satou-san ga Ore ni dake Amai,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/shiotaiou-no-satou-san-ga-ore-ni-dake-amai
 animeav1-seitokai-ni-mo-ana-wa-aru,Seitokai ni mo Ana wa Aru!,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/seitokai-ni-mo-ana-wa-aru
-animeav1-shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen,Shin Tennis no Oujisama: U-17 World Cup Kesshou Member Ketteisen,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen
+animeav1-shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen,Shin Tennis no Oujisama: U-17 World Cup Kesshou Member Ketteisen,TV,,2026,,anime,,3,AnimeAV1,https://animeav1.com/media/shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen
 animeav1-shiguang-dailiren-iii,Shiguang Dailiren III,ONA,,2026,,anime,86,10,AnimeAV1,https://animeav1.com/media/shiguang-dailiren-iii
 animeav1-super-no-ura-de-yani-suu-futari,Super no Ura de Yani Suu Futari,TV,,2026,,anime,83,12,AnimeAV1,https://animeav1.com/media/super-no-ura-de-yani-suu-futari
 animeav1-sora-wa-akai-kawa-no-hotori,Sora wa Akai Kawa no Hotori,TV,,2026,,anime,59,15,AnimeAV1,https://animeav1.com/media/sora-wa-akai-kawa-no-hotori
@@ -3854,7 +3854,7 @@ animeav1-tank-chair,Tank Chair,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/
 animeav1-tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu,"Tensei shita Daiseijo wa, Seijo de Aru Koto wo Hitakakusu",TV,,2026,,anime,,3,AnimeAV1,https://animeav1.com/media/tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu
 animeav1-tougen-anki-nikko-kegon-no-taki-hen,Tougen Anki: Nikko Kegon no Taki-hen,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/tougen-anki-nikko-kegon-no-taki-hen
 animeav1-tokyo-revengers-santen-sensou-hen,Tokyo Revengers: Santen Sensou-hen,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/tokyo-revengers-santen-sensou-hen
-animeav1-tensei-shitara-ken-deshita-ii,Tensei shitara Ken deshita II,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/tensei-shitara-ken-deshita-ii
+animeav1-tensei-shitara-ken-deshita-ii,Tensei shitara Ken deshita II,TV,,2026,,anime,,3,AnimeAV1,https://animeav1.com/media/tensei-shitara-ken-deshita-ii
 animeav1-tensei-kizoku-kantei-skill-de-nariagaru-3rd-season,"Tensei Kizoku, Kantei Skill de Nariagaru 3rd Season",TV,RELEASING,2026,,anime,69,3,AnimeAV1,https://animeav1.com/media/tensei-kizoku-kantei-skill-de-nariagaru-3rd-season
 animeav1-tempal-item-no-chikara,Tempal: Item no Chikara,TV,RELEASING,2026,,anime,72,3,AnimeAV1,https://animeav1.com/media/tempal-item-no-chikara
 animeav1-the-ribbon-hero,The Ribbon Hero,ONA,,2026,,anime,67,1,AnimeAV1,https://animeav1.com/media/the-ribbon-hero
