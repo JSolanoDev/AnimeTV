@@ -2460,8 +2460,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/hyouken-no-majutsushi-ga-sekai-wo-suberu-ii",
-      "totalEpisodes": 1,
-      "episode": 1,
+      "totalEpisodes": 2,
+      "episode": 2,
       "lastScrapedAt": "2026-10-15T10:32:08.387801+00:00",
       "episodes": [
         {
@@ -2511,15 +2511,18 @@
         "#251d47"
       ],
       "sourceEpisodeIds": [
-        1
+        1,
+        2
       ],
-      "sourceEpisodeCount": 1,
-      "sourcePlayableEpisodeCount": 1,
+      "sourceEpisodeCount": 2,
+      "sourcePlayableEpisodeCount": 2,
       "sourceDeclaredEpisodeCount": 1,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-15T10:38:52.707Z",
-      "lastEpisodeAt": "2026-10-08T12:59:13.543Z"
+      "sourceInventoryCheckedAt": "2026-10-15T20:30:36.231Z",
+      "lastEpisodeAt": "2026-10-15T17:30:36.205Z",
+      "sourceInventoryRetainedEpisodeCount": 1,
+      "latestAiredEp": 2
     },
     {
       "id": "animeav1-tetsuryou-meet-with-tetsudou-musume",
@@ -2542,8 +2545,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/tetsuryou-meet-with-tetsudou-musume",
-      "totalEpisodes": 1,
-      "episode": 1,
+      "totalEpisodes": 2,
+      "episode": 2,
       "lastScrapedAt": "2026-10-15T10:32:08.388620+00:00",
       "episodes": [
         {
@@ -2593,15 +2596,18 @@
         "#251d47"
       ],
       "sourceEpisodeIds": [
-        1
+        1,
+        2
       ],
-      "sourceEpisodeCount": 1,
-      "sourcePlayableEpisodeCount": 1,
+      "sourceEpisodeCount": 2,
+      "sourcePlayableEpisodeCount": 2,
       "sourceDeclaredEpisodeCount": 1,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-15T10:38:52.707Z",
-      "lastEpisodeAt": "2026-10-08T12:59:13.543Z"
+      "sourceInventoryCheckedAt": "2026-10-15T20:30:36.231Z",
+      "lastEpisodeAt": "2026-10-15T18:30:36.205Z",
+      "sourceInventoryRetainedEpisodeCount": 1,
+      "latestAiredEp": 2
     },
     {
       "id": "animeav1-kikansha-no-mahou-wa-tokubetsu-desu-2nd-season",
