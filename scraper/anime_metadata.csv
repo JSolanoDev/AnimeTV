@@ -1,6 +1,8 @@
 id,title,type,status,year,season,genre,rating,totalEpisodes,source,siteUrl
 animeav1-one-piece,One Piece,TV,,1999,,action,87,1180,AnimeAV1,https://animeav1.com/media/one-piece
 animeav1-sousou-no-frieren-2nd-season,Sousou no Frieren 2nd Season,TV,,2026,,anime,89,10,AnimeAV1,https://animeav1.com/media/sousou-no-frieren-2nd-season
+animeav1-dark-machine-the-animation,Dark Machine: The Animation,TV,,,,anime,,,AnimeAV1,https://animeav1.com/media/dark-machine-the-animation
+animeav1-chitose-kun-wa-ramune-bin-no-naka-part-2,Chitose-kun wa Ramune Bin no Naka Part 2,TV,,,,anime,,,AnimeAV1,https://animeav1.com/media/chitose-kun-wa-ramune-bin-no-naka-part-2
 animeav1-dragon-ball-super-beerus,Dragon Ball Super: Beerus,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/dragon-ball-super-beerus
 animeav1-shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku,Shinja Zero no Megami-sama to Hajimeru Isekai Kouryaku,TV,,2026,,fantasy,,1,AnimeAV1,https://animeav1.com/media/shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku
 animeav1-diamond-no-ace-act-ii-second-season-part-2,Diamond no Ace: Act II Second Season Part 2,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/diamond-no-ace-act-ii-second-season-part-2
@@ -17,9 +19,8 @@ animeav1-magic-knight-rayearth-2026,Magic Knight Rayearth (2026),TV,,2026,,fanta
 animeav1-sekai-saikyou-no-majo-hajimemashita,"Sekai Saikyou no Majo, Hajimemashita",TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/sekai-saikyou-no-majo-hajimemashita
 animeav1-sasaki-to-pii-chan-season-2,Sasaki to Pii-chan Season 2,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/sasaki-to-pii-chan-season-2
 animeav1-tantei-wa-mou-shindeiru-season-2,"Tantei wa Mou, Shindeiru. Season 2",TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/tantei-wa-mou-shindeiru-season-2
-animeav1-battle-spirits-re-zekkai-no-kuu,Battle Spirits [Re]: Zekkai no Kuu,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/battle-spirits-re-zekkai-no-kuu
-animeav1-choujun-choujou-senpai,Choujun! Choujou-senpai,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/choujun-choujou-senpai
-animeav1-shiotaiou-no-satou-san-ga-ore-ni-dake-amai,Shiotaiou no Satou-san ga Ore ni dake Amai,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/shiotaiou-no-satou-san-ga-ore-ni-dake-amai
+animeav1-battle-spirits-re-zekkai-no-kuu,Battle Spirits [Re]: Zekkai no Kuu,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/battle-spirits-re-zekkai-no-kuu
+animeav1-choujun-choujou-senpai,Choujun! Choujou-senpai,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/choujun-choujou-senpai
 animeav1-zombie-sagashitemasu,#Zombie Sagashitemasu,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/zombie-sagashitemasu
 animeav1-kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu,"""Kimi wo Aisuru Ki wa Nai"" to Itta Jiki Koushaku-sama ga Nazeka Dekiai shitekimasu",TV,,2026,,anime,68,12,AnimeAV1,https://animeav1.com/media/kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu
 animeav1-oshi-no-ko-3rd-season,[Oshi no Ko] 3rd Season,TV,,2026,,anime,87,11,AnimeAV1,https://animeav1.com/media/oshi-no-ko-3rd-season
@@ -1205,7 +1206,7 @@ animeav1-fushigi-yuugi,Fushigi Yuugi,TV,,1995,,anime,76,52,AnimeAV1,https://anim
 animeav1-fushigi-no-umi-no-nadia-original-movie,Fushigi no Umi no Nadia: Original Movie,MOVIE,,1991,,anime,53,1,AnimeAV1,https://animeav1.com/media/fushigi-no-umi-no-nadia-original-movie
 animeav1-fushigi-no-umi-no-nadia,Fushigi no Umi no Nadia,TV,,1990,,anime,75,39,AnimeAV1,https://animeav1.com/media/fushigi-no-umi-no-nadia
 animeav1-five-star-stories,Five Star Stories,Movie,,1989,,anime,67,1,AnimeAV1,https://animeav1.com/media/five-star-stories
-animeav1-gensou-suikoden,Gensou Suikoden,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/gensou-suikoden
+animeav1-gensou-suikoden,Gensou Suikoden,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/gensou-suikoden
 animeav1-grand-blue-season-3,Grand Blue Season 3,TV,,2026,,anime,84,12,AnimeAV1,https://animeav1.com/media/grand-blue-season-3
 animeav1-gaikotsu-kishi-sama-tadaima-isekai-e-odekakechuu-ii,"Gaikotsu Kishi-sama, Tadaima Isekai e Odekakechuu II",TV,,2026,,fantasy,66,12,AnimeAV1,https://animeav1.com/media/gaikotsu-kishi-sama-tadaima-isekai-e-odekakechuu-ii
 animeav1-grow-up-show-himawari-no-circus-dan,Grow Up Show: Himawari no Circus-dan,TV,,2026,,anime,72,13,AnimeAV1,https://animeav1.com/media/grow-up-show-himawari-no-circus-dan
@@ -1898,7 +1899,7 @@ animeav1-juubee-chan-lovely-gantai-no-himitsu,Juubee-chan: Lovely Gantai no Himi
 animeav1-jungle-de-ikou,Jungle de Ikou!,OVA,,1997,,anime,54,3,AnimeAV1,https://animeav1.com/media/jungle-de-ikou
 animeav1-jojo-no-kimyou-na-bouken,JoJo's Bizarre Adventure,OVA,,1993,,action,76,13,AnimeAV1,https://animeav1.com/media/jojo-no-kimyou-na-bouken
 animeav1-juubee-ninpuuchou,Juubee Ninpuuchou,Movie,,1993,,anime,76,1,AnimeAV1,https://animeav1.com/media/juubee-ninpuuchou
-animeav1-kyouran-reijou-nia-liston-byoujaku-reijou-ni-tensei-shita-kamigoroshi-no-bujin-no-karei-naru-musouroku,Kyouran Reijou Nia Liston: Byoujaku Reijou ni Tensei shita Kamigoroshi no Bujin no Karei Naru Musouroku,TV,,2026,,anime,,1,AnimeAV1,https://animeav1.com/media/kyouran-reijou-nia-liston-byoujaku-reijou-ni-tensei-shita-kamigoroshi-no-bujin-no-karei-naru-musouroku
+animeav1-kyouran-reijou-nia-liston-byoujaku-reijou-ni-tensei-shita-kamigoroshi-no-bujin-no-karei-naru-musouroku,Kyouran Reijou Nia Liston: Byoujaku Reijou ni Tensei shita Kamigoroshi no Bujin no Karei Naru Musouroku,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/kyouran-reijou-nia-liston-byoujaku-reijou-ni-tensei-shita-kamigoroshi-no-bujin-no-karei-naru-musouroku
 animeav1-kanata-kara,Kanata kara,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/kanata-kara
 animeav1-kashita-maryoku-wa-revo-barai-de-kyousei-choushuu,"Kashita Maryoku wa ""Revo Barai"" de Kyousei Choushuu",TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/kashita-maryoku-wa-revo-barai-de-kyousei-choushuu
 animeav1-kusuriya-no-hitorigoto-3rd-season,Kusuriya no Hitorigoto 3rd Season,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/kusuriya-no-hitorigoto-3rd-season
@@ -2484,7 +2485,7 @@ animeav1-lupin-iii-lupin-vs-fukusei-ningen,Lupin III: Lupin vs. Fukusei-ningen,M
 animeav1-lupin-iii-part-ii,Lupin III: Part II,TV,,1977,,anime,78,155,AnimeAV1,https://animeav1.com/media/lupin-iii-part-ii
 animeav1-lupin-iii,Lupin III,TV,,1971,,anime,76,23,AnimeAV1,https://animeav1.com/media/lupin-iii
 animeav1-lupin-iii-pilot-film,Lupin III: Pilot Film,Movie,,1969,,anime,64,1,AnimeAV1,https://animeav1.com/media/lupin-iii-pilot-film
-animeav1-mahou-shoujo-ikusei-keikaku-restart,Mahou Shoujo Ikusei Keikaku: Restart,TV,,2026,,romance,,1,AnimeAV1,https://animeav1.com/media/mahou-shoujo-ikusei-keikaku-restart
+animeav1-mahou-shoujo-ikusei-keikaku-restart,Mahou Shoujo Ikusei Keikaku: Restart,TV,,2026,,romance,,2,AnimeAV1,https://animeav1.com/media/mahou-shoujo-ikusei-keikaku-restart
 animeav1-mouse-cursor-de-genjitsu-wo-sousa-dekiru-you-ni-natta-node-onna-no-ko-wo-ippai-click-shimaasu,"Mouse Cursor de Genjitsu wo Sousa Dekiru You ni Natta node, Onna no Ko wo Ippai Click Shimaasu",ONA,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/mouse-cursor-de-genjitsu-wo-sousa-dekiru-you-ni-natta-node-onna-no-ko-wo-ippai-click-shimaasu
 animeav1-mezametara-saikyou-soubi-to-uchuusenmochi-datta-node-ikkodate-mezashite-youhei-toshite-jiyuu-ni-ikitai,"Mezametara Saikyou Soubi to Uchuusenmochi Datta node, Ikkodate Mezashite Youhei toshite Jiyuu ni Ikitai",TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/mezametara-saikyou-soubi-to-uchuusenmochi-datta-node-ikkodate-mezashite-youhei-toshite-jiyuu-ni-ikitai
 animeav1-marronnier-oukoku-no-shichinin-no-kishi,Marronnier Oukoku no Shichinin no Kishi,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/marronnier-oukoku-no-shichinin-no-kishi
@@ -3344,11 +3345,12 @@ animeav1-ranma-chuugoku-nekonron-daikessen-okite-yaburi-no-gekitou-hen,Ranma ½:
 animeav1-ranma,Ranma ½,TV,,1989,,anime,78,161,AnimeAV1,https://animeav1.com/media/ranma
 animeav1-riding-bean,Riding Bean,OVA,,1989,,anime,71,1,AnimeAV1,https://animeav1.com/media/riding-bean
 animeav1-rezero-kara-hajimeru-isekai-seikatsu-shin-henshuu-ban,Re:Zero kara Hajimeru Isekai Seikatsu: Shin Henshuu-ban,TV,,,,fantasy,,13,AnimeAV1,https://animeav1.com/media/rezero-kara-hajimeru-isekai-seikatsu-shin-henshuu-ban
+animeav1-shiotaiou-no-satou-san-ga-ore-ni-dake-amai,Shiotaiou no Satou-san ga Ore ni dake Amai,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/shiotaiou-no-satou-san-ga-ore-ni-dake-amai
 animeav1-seitokai-ni-mo-ana-wa-aru,Seitokai ni mo Ana wa Aru!,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/seitokai-ni-mo-ana-wa-aru
 animeav1-shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen,Shin Tennis no Oujisama: U-17 World Cup Kesshou Member Ketteisen,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen
 animeav1-shiguang-dailiren-iii,Shiguang Dailiren III,ONA,,2026,,anime,86,10,AnimeAV1,https://animeav1.com/media/shiguang-dailiren-iii
 animeav1-super-no-ura-de-yani-suu-futari,Super no Ura de Yani Suu Futari,TV,,2026,,anime,83,12,AnimeAV1,https://animeav1.com/media/super-no-ura-de-yani-suu-futari
-animeav1-sora-wa-akai-kawa-no-hotori,Sora wa Akai Kawa no Hotori,TV,,2026,,anime,59,14,AnimeAV1,https://animeav1.com/media/sora-wa-akai-kawa-no-hotori
+animeav1-sora-wa-akai-kawa-no-hotori,Sora wa Akai Kawa no Hotori,TV,,2026,,anime,59,15,AnimeAV1,https://animeav1.com/media/sora-wa-akai-kawa-no-hotori
 animeav1-suterare-seijo-no-isekai-gohan-tabi-kakure-skill-de-camping-car-wo-shoukan-shimashita,Suterare Seijo no Isekai Gohan Tabi: Kakure Skill de Camping Car wo Shoukan shimashita,TV,,2026,,fantasy,65,12,AnimeAV1,https://animeav1.com/media/suterare-seijo-no-isekai-gohan-tabi-kakure-skill-de-camping-car-wo-shoukan-shimashita
 animeav1-sayonara-lara,Sayonara Lara,TV,,2026,,anime,79,12,AnimeAV1,https://animeav1.com/media/sayonara-lara
 animeav1-saikyou-degarashi-ouji-no-anyaku-teii-arasoi,Saikyou Degarashi Ouji no Anyaku Teii Arasoi,TV,,2026,,anime,63,12,AnimeAV1,https://animeav1.com/media/saikyou-degarashi-ouji-no-anyaku-teii-arasoi
