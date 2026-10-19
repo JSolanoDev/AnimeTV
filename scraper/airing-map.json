@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-19T11:10:59.377Z",
+  "generatedAt": "2026-10-19T12:11:27.412Z",
   "count": 6669,
   "entries": {
     "animeav1-one-piece": {
@@ -46543,8 +46543,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1792334700000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1792939500000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [
         {
           "anilistId": 184034,
@@ -46569,8 +46569,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-11T16:14:29.065Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-18T15:31:54.485Z"
     },
     "anilist-141391": {
       "anilistId": 141391,
@@ -47745,8 +47745,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1792333800000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1792938600000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 164702,
@@ -47782,8 +47782,8 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-11T15:37:33.842Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-18T15:11:55.004Z"
     },
     "anilist-100891": {
       "anilistId": 100891,
@@ -84748,7 +84748,7 @@
         },
         {
           "anilistId": 7062,
-          "title": "Hidamari Sketch x ☆☆☆",
+          "title": "Hidamari Sketch × ☆☆☆",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -85031,7 +85031,7 @@
         },
         {
           "anilistId": 7062,
-          "title": "Hidamari Sketch x ☆☆☆",
+          "title": "Hidamari Sketch × ☆☆☆",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -85107,7 +85107,7 @@
         },
         {
           "anilistId": 7062,
-          "title": "Hidamari Sketch x ☆☆☆",
+          "title": "Hidamari Sketch × ☆☆☆",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -85326,7 +85326,7 @@
         },
         {
           "anilistId": 7062,
-          "title": "Hidamari Sketch x ☆☆☆",
+          "title": "Hidamari Sketch × ☆☆☆",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -170884,8 +170884,8 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-11T15:37:33.842Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-18T15:11:55.004Z"
     },
     "animeav1-tempal-item-no-chikara": {
       "anilistId": 212888,
@@ -170896,8 +170896,8 @@
       "nextAiringAt": 1792938600000,
       "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-11T15:09:11.779Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-18T14:46:20.022Z"
     },
     "animeav1-keroro-gunsou": {
       "anilistId": 216557,
@@ -184960,8 +184960,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1792332960000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1792937760000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 223,
@@ -185085,8 +185085,8 @@
           "order": 11
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-11T16:14:55.060Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-18T16:08:03.817Z"
     },
     "anilist-217578": {
       "anilistId": 217578,
@@ -212130,7 +212130,7 @@
         },
         {
           "anilistId": 7062,
-          "title": "Hidamari Sketch x ☆☆☆",
+          "title": "Hidamari Sketch × ☆☆☆",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -212196,7 +212196,7 @@
         },
         {
           "anilistId": 7062,
-          "title": "Hidamari Sketch x ☆☆☆",
+          "title": "Hidamari Sketch × ☆☆☆",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -212262,7 +212262,7 @@
         },
         {
           "anilistId": 7062,
-          "title": "Hidamari Sketch x ☆☆☆",
+          "title": "Hidamari Sketch × ☆☆☆",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -212328,7 +212328,7 @@
         },
         {
           "anilistId": 7062,
-          "title": "Hidamari Sketch x ☆☆☆",
+          "title": "Hidamari Sketch × ☆☆☆",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -212394,7 +212394,7 @@
         },
         {
           "anilistId": 7062,
-          "title": "Hidamari Sketch x ☆☆☆",
+          "title": "Hidamari Sketch × ☆☆☆",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -237225,8 +237225,8 @@
       "nextAiringAt": 1792945200000,
       "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-11T17:31:15.304Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-18T17:53:52.893Z"
     },
     "animeav1-kanata-kara": {
       "anilistId": 209463,
@@ -237237,8 +237237,8 @@
       "nextAiringAt": 1792940400000,
       "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-11T16:16:23.768Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-18T16:19:47.680Z"
     },
     "animeav1-hotel-inhumans-2nd-season": {
       "anilistId": 199426,
@@ -237272,8 +237272,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-11T16:14:29.065Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-18T15:31:54.485Z"
     },
     "animeav1-yowaki-max-reijou-nanoni-ratsuwan-konyakusha-sama-no-kake-ni-notte-shimatta": {
       "anilistId": 200455,
@@ -237284,8 +237284,8 @@
       "nextAiringAt": 1792938600000,
       "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-11T15:10:39.752Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-18T14:47:30.354Z"
     },
     "animeav1-ojisan-wa-kawaii-mono-ga-osuki": {
       "anilistId": 202079,
@@ -237296,8 +237296,8 @@
       "nextAiringAt": 1792933200000,
       "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-11T15:08:49.514Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-18T14:13:50.806Z"
     },
     "animeav1-mezametara-saikyou-soubi-to-uchuusenmochi-datta-node-ikkodate-mezashite-youhei-toshite-jiyuu-ni-ikitai": {
       "anilistId": 186541,
@@ -237308,8 +237308,8 @@
       "nextAiringAt": 1792931400000,
       "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-11T15:07:45.813Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-18T14:12:01.220Z"
     },
     "animeav1-tank-chair": {
       "anilistId": 209499,
@@ -237320,8 +237320,8 @@
       "nextAiringAt": 1792936800000,
       "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-11T15:20:16.421Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-18T14:52:13.206Z"
     },
     "animeav1-mouse-cursor-de-genjitsu-wo-sousa-dekiru-you-ni-natta-node-onna-no-ko-wo-ippai-click-shimaasu": {
       "anilistId": 206774,
@@ -237329,11 +237329,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 8,
-      "nextAiringAt": 1792339200000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1793548800000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-11T19:02:49.597Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-18T17:54:09.418Z"
     },
     "anilist-131239": {
       "anilistId": 131239,
@@ -241102,8 +241102,8 @@
           "order": 11
         }
       ],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-11T16:14:55.060Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-18T16:08:03.817Z"
     },
     "animeav1-shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku": {
       "anilistId": 205896,
@@ -241114,8 +241114,8 @@
       "nextAiringAt": 1792938600000,
       "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 1,
-      "lastEpisodeAt": "2026-10-11T15:19:41.041Z"
+      "sourceEpisodeCount": 2,
+      "lastEpisodeAt": "2026-10-18T14:45:54.356Z"
     },
     "animeav1-dark-machine-the-animation": {
       "anilistId": 179876,
@@ -251530,6 +251530,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx218390-5x0fFx3emeYE.png",
       "anilistBanner": ""
     },
+    "anilist-218532": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx218532-I1GCprJrJ5sm.png",
+      "anilistBanner": ""
+    },
     "anilist-11359": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx11359-nrHXrZLrA3CG.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/11359-ynRcowZPtvGQ.jpg"
@@ -251611,7 +251615,7 @@
       "anilistBanner": ""
     },
     "anilist-87402": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/57402-pb1JGDlFUZuq.jpg",
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx87402-1KFzQW6Najfa.jpg",
       "anilistBanner": ""
     },
     "anilist-109819": {
@@ -256130,6 +256134,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx114622-mpMhXM8JqCjc.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/114622-LAxKu53ewNg5.jpg"
     },
+    "anilist-218560": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx218560-mTV8VhASDjhN.png",
+      "anilistBanner": ""
+    },
     "anilist-97626": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx97626-SjsB5tu5mxSz.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/97626-tXDOHrfd0Mgy.png"
@@ -256444,6 +256452,10 @@
     },
     "anilist-145494": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b145494-HnT1yqnxbUcl.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-218561": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx218561-ND3L1Y70XjcX.png",
       "anilistBanner": ""
     },
     "anilist-104601": {
