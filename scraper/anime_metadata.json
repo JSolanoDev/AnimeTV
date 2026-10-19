@@ -21398,8 +21398,8 @@
       "score": 91,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/bleach-sennen-kessen-hen-kashin-tan",
-      "totalEpisodes": 8,
-      "episode": 8,
+      "totalEpisodes": 9,
+      "episode": 9,
       "lastScrapedAt": "2026-10-19T11:30:59.404202+00:00",
       "episodes": [
         {
@@ -21584,14 +21584,18 @@
         5,
         6,
         7,
-        8
+        8,
+        9
       ],
-      "sourceEpisodeCount": 8,
-      "sourcePlayableEpisodeCount": 8,
+      "sourceEpisodeCount": 9,
+      "sourcePlayableEpisodeCount": 9,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-10-19T11:37:01.783Z",
+      "sourceInventoryCheckedAt": "2026-10-19T17:43:42.811Z",
       "sourceDeclaredEpisodeCount": 8,
-      "sourceInventoryPartial": false
+      "sourceInventoryPartial": false,
+      "sourceInventoryRetainedEpisodeCount": 8,
+      "latestAiredEp": 9,
+      "lastEpisodeAt": "2026-10-19T15:43:42.776Z"
     },
     {
       "id": "animeav1-buchigire-reijou-wa-houfuku-wo-chikaimashita-madousho-no-chikara-de-sokoku-wo-tatakitsubushimasu",
@@ -46597,8 +46601,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu",
-      "totalEpisodes": 2,
-      "episode": 2,
+      "totalEpisodes": 3,
+      "episode": 3,
       "lastScrapedAt": "2026-10-19T11:31:30.402219+00:00",
       "episodes": [
         {
@@ -46649,15 +46653,18 @@
       ],
       "sourceEpisodeIds": [
         1,
-        2
+        2,
+        3
       ],
-      "sourceEpisodeCount": 2,
-      "sourcePlayableEpisodeCount": 2,
+      "sourceEpisodeCount": 3,
+      "sourcePlayableEpisodeCount": 3,
       "sourceDeclaredEpisodeCount": 2,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-19T11:37:01.783Z",
-      "lastEpisodeAt": "2026-10-12T13:00:38.821Z"
+      "sourceInventoryCheckedAt": "2026-10-19T17:43:42.811Z",
+      "lastEpisodeAt": "2026-10-19T12:43:42.777Z",
+      "sourceInventoryRetainedEpisodeCount": 2,
+      "latestAiredEp": 3
     },
     {
       "id": "animeav1-dark-summoner-to-dekiteiru",
@@ -175915,8 +175922,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/psyren",
-      "totalEpisodes": 2,
-      "episode": 2,
+      "totalEpisodes": 3,
+      "episode": 3,
       "lastScrapedAt": "2026-10-19T11:34:15.627315+00:00",
       "episodes": [
         {
@@ -175967,16 +175974,18 @@
       ],
       "sourceEpisodeIds": [
         1,
-        2
+        2,
+        3
       ],
-      "sourceEpisodeCount": 2,
-      "sourcePlayableEpisodeCount": 2,
+      "sourceEpisodeCount": 3,
+      "sourcePlayableEpisodeCount": 3,
       "sourceDeclaredEpisodeCount": 2,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-19T11:37:01.783Z",
-      "latestAiredEp": 2,
-      "lastEpisodeAt": "2026-10-12T15:00:38.821Z"
+      "sourceInventoryCheckedAt": "2026-10-19T17:43:42.811Z",
+      "latestAiredEp": 3,
+      "lastEpisodeAt": "2026-10-19T14:43:42.776Z",
+      "sourceInventoryRetainedEpisodeCount": 2
     },
     {
       "id": "animeav1-ponkotsu-fuuki-iin-to-skirt-take-ga-futekisetsu-na-jk-no-hanashi",
@@ -215696,8 +215705,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/tensei-goblin-dakedo-shitsumon-aru",
-      "totalEpisodes": 3,
-      "episode": 3,
+      "totalEpisodes": 4,
+      "episode": 4,
       "lastScrapedAt": "2026-10-19T11:35:07.445108+00:00",
       "episodes": [
         {
@@ -215781,15 +215790,18 @@
       "sourceEpisodeIds": [
         1,
         2,
-        3
+        3,
+        4
       ],
-      "sourceEpisodeCount": 3,
-      "sourcePlayableEpisodeCount": 3,
+      "sourceEpisodeCount": 4,
+      "sourcePlayableEpisodeCount": 4,
       "sourceDeclaredEpisodeCount": 3,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-19T11:37:01.783Z",
-      "lastEpisodeAt": "2026-10-12T13:00:38.821Z"
+      "sourceInventoryCheckedAt": "2026-10-19T17:43:42.811Z",
+      "lastEpisodeAt": "2026-10-19T13:43:42.776Z",
+      "sourceInventoryRetainedEpisodeCount": 3,
+      "latestAiredEp": 4
     },
     {
       "id": "animeav1-tank-chair",
