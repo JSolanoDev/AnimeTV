@@ -140984,8 +140984,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/mahou-shoujo-ikusei-keikaku-restart",
-      "totalEpisodes": 2,
-      "episode": 2,
+      "totalEpisodes": 3,
+      "episode": 3,
       "lastScrapedAt": "2026-10-19T11:33:31.662033+00:00",
       "episodes": [
         {
@@ -141036,16 +141036,18 @@
       ],
       "sourceEpisodeIds": [
         1,
-        2
+        2,
+        3
       ],
-      "sourceEpisodeCount": 2,
-      "sourcePlayableEpisodeCount": 2,
+      "sourceEpisodeCount": 3,
+      "sourcePlayableEpisodeCount": 3,
       "sourceDeclaredEpisodeCount": 2,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-19T11:37:01.783Z",
-      "latestAiredEp": 2,
-      "lastEpisodeAt": "2026-10-13T17:29:46.075Z"
+      "sourceInventoryCheckedAt": "2026-10-19T22:35:55.085Z",
+      "latestAiredEp": 3,
+      "lastEpisodeAt": "2026-10-19T21:35:55.059Z",
+      "sourceInventoryRetainedEpisodeCount": 2
     },
     {
       "id": "animeav1-mouse-cursor-de-genjitsu-wo-sousa-dekiru-you-ni-natta-node-onna-no-ko-wo-ippai-click-shimaasu",
