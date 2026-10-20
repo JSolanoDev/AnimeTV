@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-20T17:29:20.023Z",
+  "generatedAt": "2026-10-20T20:49:18.839Z",
   "count": 6669,
   "entries": {
     "animeav1-one-piece": {
@@ -804,8 +804,8 @@
       "season": "SUMMER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 24,
-      "nextAiringAt": 1792514100000,
-      "nextAiringEpisodeNumber": 16,
+      "nextAiringAt": 1793118900000,
+      "nextAiringEpisodeNumber": 17,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 15,
       "lastEpisodeAt": "2026-10-13T18:00:29.462Z"
@@ -155736,7 +155736,7 @@
       "lastEpisodeAt": "2026-10-18T17:53:52.893Z"
     },
     "animeav1-kanata-kara": {
-      "anilistId": null,
+      "anilistId": 209463,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
@@ -155808,7 +155808,7 @@
       "lastEpisodeAt": "2026-10-18T17:54:09.418Z"
     },
     "animeav1-psyren": {
-      "anilistId": null,
+      "anilistId": 204011,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
@@ -155820,7 +155820,7 @@
       "lastEpisodeAt": "2026-10-19T14:41:55.189Z"
     },
     "animeav1-doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu": {
-      "anilistId": null,
+      "anilistId": 207191,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
@@ -155832,7 +155832,7 @@
       "lastEpisodeAt": "2026-10-19T12:37:14.014Z"
     },
     "animeav1-tensei-goblin-dakedo-shitsumon-aru": {
-      "anilistId": null,
+      "anilistId": 209219,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
@@ -156070,7 +156070,7 @@
       "lastEpisodeAt": "2026-10-17T17:38:24.755Z"
     },
     "animeav1-dragon-ball-super-beerus": {
-      "anilistId": null,
+      "anilistId": 206814,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
@@ -156216,13 +156216,13 @@
       "lastEpisodeAt": "2026-10-18T14:45:54.356Z"
     },
     "animeav1-dark-machine-the-animation": {
-      "anilistId": null,
+      "anilistId": 179876,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 11,
-      "nextAiringAt": 1792514700000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1793119500000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 1,
       "lastEpisodeAt": "2026-10-13T18:42:55.501Z"
