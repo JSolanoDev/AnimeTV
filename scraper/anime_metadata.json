@@ -1720,8 +1720,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/chitose-kun-wa-ramune-bin-no-naka-part-2",
-      "totalEpisodes": 1,
-      "episode": 1,
+      "totalEpisodes": 2,
+      "episode": 2,
       "lastScrapedAt": "2026-10-20T10:36:29.055025+00:00",
       "episodes": [
         {
@@ -1771,15 +1771,18 @@
         "#251d47"
       ],
       "sourceEpisodeIds": [
-        1
+        1,
+        2
       ],
-      "sourceEpisodeCount": 1,
-      "sourcePlayableEpisodeCount": 1,
+      "sourceEpisodeCount": 2,
+      "sourcePlayableEpisodeCount": 2,
       "sourceDeclaredEpisodeCount": 1,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-20T10:43:24.738Z",
-      "lastEpisodeAt": "2026-10-13T16:59:24.518Z"
+      "sourceInventoryCheckedAt": "2026-10-20T17:28:56.417Z",
+      "lastEpisodeAt": "2026-10-20T16:28:56.377Z",
+      "sourceInventoryRetainedEpisodeCount": 1,
+      "latestAiredEp": 2
     },
     {
       "id": "animeav1-dragon-ball-super-beerus",
@@ -3662,8 +3665,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/battle-spirits-re-zekkai-no-kuu",
-      "totalEpisodes": 2,
-      "episode": 2,
+      "totalEpisodes": 3,
+      "episode": 3,
       "lastScrapedAt": "2026-10-20T10:36:29.065820+00:00",
       "episodes": [
         {
@@ -3714,16 +3717,18 @@
       ],
       "sourceEpisodeIds": [
         1,
-        2
+        2,
+        3
       ],
-      "sourceEpisodeCount": 2,
-      "sourcePlayableEpisodeCount": 2,
+      "sourceEpisodeCount": 3,
+      "sourcePlayableEpisodeCount": 3,
       "sourceDeclaredEpisodeCount": 2,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-20T10:43:24.738Z",
-      "latestAiredEp": 2,
-      "lastEpisodeAt": "2026-10-13T15:29:46.075Z"
+      "sourceInventoryCheckedAt": "2026-10-20T17:28:56.417Z",
+      "latestAiredEp": 3,
+      "lastEpisodeAt": "2026-10-20T14:28:56.377Z",
+      "sourceInventoryRetainedEpisodeCount": 2
     },
     {
       "id": "animeav1-choujun-choujou-senpai",
@@ -3746,8 +3751,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/choujun-choujou-senpai",
-      "totalEpisodes": 2,
-      "episode": 2,
+      "totalEpisodes": 3,
+      "episode": 3,
       "lastScrapedAt": "2026-10-20T10:36:29.066421+00:00",
       "episodes": [
         {
@@ -3798,16 +3803,18 @@
       ],
       "sourceEpisodeIds": [
         1,
-        2
+        2,
+        3
       ],
-      "sourceEpisodeCount": 2,
-      "sourcePlayableEpisodeCount": 2,
+      "sourceEpisodeCount": 3,
+      "sourcePlayableEpisodeCount": 3,
       "sourceDeclaredEpisodeCount": 2,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-20T10:43:24.738Z",
-      "latestAiredEp": 2,
-      "lastEpisodeAt": "2026-10-13T15:29:46.075Z"
+      "sourceInventoryCheckedAt": "2026-10-20T17:28:56.417Z",
+      "latestAiredEp": 3,
+      "lastEpisodeAt": "2026-10-20T15:28:56.377Z",
+      "sourceInventoryRetainedEpisodeCount": 2
     },
     {
       "id": "animeav1-zombie-sagashitemasu",
@@ -71779,8 +71786,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/gensou-suikoden",
-      "totalEpisodes": 2,
-      "episode": 2,
+      "totalEpisodes": 3,
+      "episode": 3,
       "lastScrapedAt": "2026-10-20T10:38:00.728641+00:00",
       "episodes": [
         {
@@ -71831,16 +71838,18 @@
       ],
       "sourceEpisodeIds": [
         1,
-        2
+        2,
+        3
       ],
-      "sourceEpisodeCount": 2,
-      "sourcePlayableEpisodeCount": 2,
+      "sourceEpisodeCount": 3,
+      "sourcePlayableEpisodeCount": 3,
       "sourceDeclaredEpisodeCount": 2,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-20T10:43:24.738Z",
-      "latestAiredEp": 2,
-      "lastEpisodeAt": "2026-10-13T18:29:46.075Z"
+      "sourceInventoryCheckedAt": "2026-10-20T17:28:56.417Z",
+      "latestAiredEp": 3,
+      "lastEpisodeAt": "2026-10-20T17:18:56.376Z",
+      "sourceInventoryRetainedEpisodeCount": 2
     },
     {
       "id": "animeav1-grand-blue-season-3",
@@ -109655,8 +109664,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/kyouran-reijou-nia-liston-byoujaku-reijou-ni-tensei-shita-kamigoroshi-no-bujin-no-karei-naru-musouroku",
-      "totalEpisodes": 2,
-      "episode": 2,
+      "totalEpisodes": 3,
+      "episode": 3,
       "lastScrapedAt": "2026-10-20T10:38:53.948958+00:00",
       "episodes": [
         {
@@ -109707,16 +109716,18 @@
       ],
       "sourceEpisodeIds": [
         1,
-        2
+        2,
+        3
       ],
-      "sourceEpisodeCount": 2,
-      "sourcePlayableEpisodeCount": 2,
+      "sourceEpisodeCount": 3,
+      "sourcePlayableEpisodeCount": 3,
       "sourceDeclaredEpisodeCount": 2,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-20T10:43:24.738Z",
-      "latestAiredEp": 2,
-      "lastEpisodeAt": "2026-10-13T15:29:46.075Z"
+      "sourceInventoryCheckedAt": "2026-10-20T17:28:56.417Z",
+      "latestAiredEp": 3,
+      "lastEpisodeAt": "2026-10-20T14:28:56.377Z",
+      "sourceInventoryRetainedEpisodeCount": 2
     },
     {
       "id": "animeav1-kanata-kara",
@@ -187920,8 +187931,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/shiotaiou-no-satou-san-ga-ore-ni-dake-amai",
-      "totalEpisodes": 2,
-      "episode": 2,
+      "totalEpisodes": 3,
+      "episode": 3,
       "lastScrapedAt": "2026-10-20T10:40:45.199744+00:00",
       "episodes": [
         {
@@ -187972,16 +187983,18 @@
       ],
       "sourceEpisodeIds": [
         1,
-        2
+        2,
+        3
       ],
-      "sourceEpisodeCount": 2,
-      "sourcePlayableEpisodeCount": 2,
+      "sourceEpisodeCount": 3,
+      "sourcePlayableEpisodeCount": 3,
       "sourceDeclaredEpisodeCount": 2,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-20T10:43:24.738Z",
-      "latestAiredEp": 2,
-      "lastEpisodeAt": "2026-10-13T14:29:46.075Z"
+      "sourceInventoryCheckedAt": "2026-10-20T17:28:56.417Z",
+      "latestAiredEp": 3,
+      "lastEpisodeAt": "2026-10-20T13:28:56.377Z",
+      "sourceInventoryRetainedEpisodeCount": 2
     },
     {
       "id": "animeav1-seitokai-ni-mo-ana-wa-aru",

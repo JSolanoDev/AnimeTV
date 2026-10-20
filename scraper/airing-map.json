@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-20T11:15:41.387Z",
+  "generatedAt": "2026-10-20T17:29:20.023Z",
   "count": 6669,
   "entries": {
     "animeav1-one-piece": {
@@ -155309,8 +155309,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 11,
-      "nextAiringAt": 1792504800000,
-      "nextAiringEpisodeNumber": 2,
+      "nextAiringAt": 1793109600000,
+      "nextAiringEpisodeNumber": 3,
       "franchiseSeasons": [
         {
           "anilistId": 180082,
@@ -155891,49 +155891,49 @@
       "lastEpisodeAt": "2026-10-13T15:03:15.299Z"
     },
     "animeav1-choujun-choujou-senpai": {
-      "anilistId": null,
+      "anilistId": 200294,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1792504800000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1793109600000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 2,
       "lastEpisodeAt": "2026-10-13T15:03:41.292Z"
     },
     "animeav1-shiotaiou-no-satou-san-ga-ore-ni-dake-amai": {
-      "anilistId": null,
+      "anilistId": 209502,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1792501200000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1793106000000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 2,
       "lastEpisodeAt": "2026-10-13T14:04:21.853Z"
     },
     "animeav1-kyouran-reijou-nia-liston-byoujaku-reijou-ni-tensei-shita-kamigoroshi-no-bujin-no-karei-naru-musouroku": {
-      "anilistId": null,
+      "anilistId": 206949,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 25,
-      "nextAiringAt": 1792499160000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1793103960000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 2,
       "lastEpisodeAt": "2026-10-13T15:33:46.489Z"
     },
     "animeav1-tsuihou-sareta-cheat-fuyo-majutsushi-wa-kimama-na-second-life-wo-ouka-suru-ore-wa-buki-dake-ja-naku-arayuru-mono-ni-kyouka-point-wo-fuyo-dekiru-shi-ore-no-ishi-de-itsudemo-kouka-wo-kaijo-dekiru-kedo-nokotta-hitotachi-daijoubu": {
-      "anilistId": null,
+      "anilistId": 207329,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1792508400000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1793113200000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 2,
       "lastEpisodeAt": "2026-10-13T15:41:10.675Z"
