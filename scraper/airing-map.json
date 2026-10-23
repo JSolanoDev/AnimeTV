@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-22T18:45:32.183Z",
-  "count": 6670,
+  "generatedAt": "2026-10-23T11:23:39.171Z",
+  "count": 6671,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -159,8 +159,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-10-16T03:20:56.785Z"
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-10-23T03:14:37.607Z"
     },
     "animeav1-the-ribbon-hero": {
       "anilistId": 211308,
@@ -1591,8 +1591,8 @@
       "nextAiringAt": 1793287560000,
       "nextAiringEpisodeNumber": 18,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 16,
-      "lastEpisodeAt": "2026-10-15T16:15:33.055Z"
+      "sourceEpisodeCount": 17,
+      "lastEpisodeAt": "2026-10-22T16:22:25.467Z"
     },
     "animeav1-bang-dream-yumemita": {
       "anilistId": 198376,
@@ -52758,8 +52758,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 11,
-      "lastEpisodeAt": "2026-10-16T03:20:56.785Z"
+      "sourceEpisodeCount": 12,
+      "lastEpisodeAt": "2026-10-23T03:14:37.607Z"
     },
     "anilist-127399": {
       "anilistId": 127399,
@@ -53087,8 +53087,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1792686480000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1793291280000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [
         {
           "anilistId": 148116,
@@ -53113,8 +53113,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-15T17:39:21.804Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-22T17:24:02.794Z"
     },
     "anilist-107294": {
       "anilistId": 107294,
@@ -101269,6 +101269,39 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": []
     },
+    "animeav1-last-exile-ginyoku-no-fam-adjournment": {
+      "anilistId": 97,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2003,
+      "anilistEpisodeCount": 26,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 97,
+          "title": "Last Exile",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 26,
+          "season": "SPRING",
+          "seasonYear": 2003,
+          "startedAt": 1049673600000,
+          "order": 1
+        },
+        {
+          "anilistId": 10336,
+          "title": "Last Exile: Ginyoku no Fam",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 21,
+          "season": "FALL",
+          "seasonYear": 2011,
+          "startedAt": 1318636800000,
+          "order": 2
+        }
+      ]
+    },
     "animeav1-lupin-iii-chi-no-kokuin-eien-no-mermaid": {
       "anilistId": 11777,
       "airingStatus": "FINISHED",
@@ -141168,7 +141201,7 @@
       "franchiseSeasons": [
         {
           "anilistId": 21417,
-          "title": "Active Raid: Kidou Kyoushuushitsu Dai Hakkei",
+          "title": "Active Raid: Kidou Kyoushuushitsu Dai Hachi Gakari",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -141179,7 +141212,7 @@
         },
         {
           "anilistId": 21534,
-          "title": "Active Raid: Kidou Kyoushuushitsu Dai Hakkei 2",
+          "title": "Active Raid: Kidou Kyoushuushitsu Dai Hachi Gakari - 2nd",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -141201,7 +141234,7 @@
       "franchiseSeasons": [
         {
           "anilistId": 21417,
-          "title": "Active Raid: Kidou Kyoushuushitsu Dai Hakkei",
+          "title": "Active Raid: Kidou Kyoushuushitsu Dai Hachi Gakari",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -141212,7 +141245,7 @@
         },
         {
           "anilistId": 21534,
-          "title": "Active Raid: Kidou Kyoushuushitsu Dai Hakkei 2",
+          "title": "Active Raid: Kidou Kyoushuushitsu Dai Hachi Gakari - 2nd",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -171066,8 +171099,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1792680960000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1793285760000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 186497,
@@ -171092,8 +171125,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-15T15:51:35.774Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-22T15:48:05.269Z"
     },
     "animeav1-fx-senshi-kurumi-chan": {
       "anilistId": 206401,
@@ -171101,11 +171134,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1792672200000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1793277000000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-15T12:58:37.926Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-22T13:32:14.336Z"
     },
     "animeav1-shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen": {
       "anilistId": 199068,
@@ -171306,8 +171339,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1792680960000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1793285760000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 186497,
@@ -171332,8 +171365,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-15T15:51:35.774Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-22T15:48:05.269Z"
     },
     "animeav1-gensou-suikoden": {
       "anilistId": 187316,
@@ -174308,8 +174341,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 11,
-      "nextAiringAt": 1792742400000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1793347200000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [
         {
           "anilistId": 14719,
@@ -236211,7 +236244,7 @@
       "franchiseSeasons": [
         {
           "anilistId": 21417,
-          "title": "Active Raid: Kidou Kyoushuushitsu Dai Hakkei",
+          "title": "Active Raid: Kidou Kyoushuushitsu Dai Hachi Gakari",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -236222,7 +236255,7 @@
         },
         {
           "anilistId": 21534,
-          "title": "Active Raid: Kidou Kyoushuushitsu Dai Hakkei 2",
+          "title": "Active Raid: Kidou Kyoushuushitsu Dai Hachi Gakari - 2nd",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -236244,7 +236277,7 @@
       "franchiseSeasons": [
         {
           "anilistId": 21417,
-          "title": "Active Raid: Kidou Kyoushuushitsu Dai Hakkei",
+          "title": "Active Raid: Kidou Kyoushuushitsu Dai Hachi Gakari",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -236255,7 +236288,7 @@
         },
         {
           "anilistId": 21534,
-          "title": "Active Raid: Kidou Kyoushuushitsu Dai Hakkei 2",
+          "title": "Active Raid: Kidou Kyoushuushitsu Dai Hachi Gakari - 2nd",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -240595,8 +240628,8 @@
       "nextAiringAt": 1793286000000,
       "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-15T18:57:03.587Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-22T18:27:32.076Z"
     },
     "animeav1-hyouken-no-majutsushi-ga-sekai-wo-suberu-ii": {
       "anilistId": 212503,
@@ -240630,8 +240663,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-15T17:39:21.804Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-22T17:24:02.794Z"
     },
     "animeav1-hotaru-no-yomeiri": {
       "anilistId": 205909,
@@ -242217,7 +242250,7 @@
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/177637-2Ok4Pq0SpvHp.jpg"
     },
     "anilist-216864": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx216864-qlSTW7OObcJT.jpg",
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx216864-6AwkeRlM5vWY.png",
       "anilistBanner": ""
     },
     "anilist-217531": {
@@ -244629,7 +244662,7 @@
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/142568-dHr6C2u01Pp0.jpg"
     },
     "anilist-212539": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx212539-mZ3VbIErKBOr.png",
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx212539-uiod38Ml39AZ.png",
       "anilistBanner": ""
     },
     "anilist-185505": {
@@ -251529,7 +251562,7 @@
       "anilistBanner": ""
     },
     "anilist-200929": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx200929-ZnRFJbEqFbgJ.jpg",
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx200929-dx3hnftE7K7C.jpg",
       "anilistBanner": ""
     },
     "anilist-218387": {
@@ -264292,6 +264325,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx105655-Q8ZPRKOVtiwz.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/105655-3HdrCjJRkBjO.jpg"
     },
+    "anilist-60207": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/30207.jpg",
+      "anilistBanner": ""
+    },
     "anilist-1695": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1695-etz4t9yoXO19.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1695-f2BWoFWAhG27.jpg"
@@ -264540,22 +264577,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx20141-1VtZnvaHOHGl.jpg",
       "anilistBanner": ""
     },
-    "anilist-20461": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20461-YTSZiG163mi7.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20461-tlZVmmmb6SAd.jpg"
-    },
-    "anilist-53818": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b53818-Yp5TqFD56voA.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/53818-jWVmOMasChhc.jpg"
-    },
-    "anilist-30222": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30222-8jNgJix8ePVK.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30222-xLtdmDONrJD5.jpg"
-    },
-    "anilist-60207": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/30207.jpg",
-      "anilistBanner": ""
-    },
     "anilist-149": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx149-6QGLHgJc8gum.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/149-1ObNHNwgBy8H.jpg"
@@ -264647,6 +264668,18 @@
     "anilist-1437": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1437-0oQS3aiiyyp7.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1437-4x3umb48Bogs.jpg"
+    },
+    "anilist-20461": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20461-YTSZiG163mi7.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20461-tlZVmmmb6SAd.jpg"
+    },
+    "anilist-53818": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b53818-Yp5TqFD56voA.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/53818-jWVmOMasChhc.jpg"
+    },
+    "anilist-30222": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30222-8jNgJix8ePVK.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30222-xLtdmDONrJD5.jpg"
     },
     "anilist-20914": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20914-Ib3EeuXWmNLi.jpg",
@@ -271714,7 +271747,7 @@
     },
     "anilist-186742": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx186742-v7yfbefc8fuO.png",
-      "anilistBanner": ""
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/186742-nZP1PcuUpcGg.jpg"
     },
     "anilist-814": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/814.jpg",
