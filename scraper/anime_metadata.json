@@ -188505,8 +188505,8 @@
       "score": 86,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/shiguang-dailiren-iii",
-      "totalEpisodes": 11,
-      "episode": 11,
+      "totalEpisodes": 12,
+      "episode": 12,
       "lastScrapedAt": "2026-10-22T10:52:44.894657+00:00",
       "episodes": [],
       "seasons": [],
@@ -188526,16 +188526,18 @@
         8,
         9,
         10,
-        11
+        11,
+        12
       ],
-      "sourceEpisodeCount": 11,
-      "sourcePlayableEpisodeCount": 11,
+      "sourceEpisodeCount": 12,
+      "sourcePlayableEpisodeCount": 12,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-10-22T10:55:20.836Z",
+      "sourceInventoryCheckedAt": "2026-10-23T07:53:26.533Z",
       "sourceDeclaredEpisodeCount": 11,
       "sourceInventoryPartial": false,
-      "latestAiredEp": 11,
-      "lastEpisodeAt": "2026-10-16T03:20:30.662Z"
+      "latestAiredEp": 12,
+      "lastEpisodeAt": "2026-10-23T02:53:26.508Z",
+      "sourceInventoryRetainedEpisodeCount": 11
     },
     {
       "id": "animeav1-super-no-ura-de-yani-suu-futari",
