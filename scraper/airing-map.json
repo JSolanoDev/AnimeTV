@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-24T06:23:40.658Z",
-  "count": 6671,
+  "generatedAt": "2026-10-24T10:39:21.091Z",
+  "count": 6670,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -149,10 +149,10 @@
         },
         {
           "anilistId": 191832,
-          "title": "Shiguang Dailiren III",
+          "title": "Shiguang Dailiren III Part 1",
           "format": "ONA",
-          "status": "RELEASING",
-          "episodes": null,
+          "status": "FINISHED",
+          "episodes": 12,
           "season": "",
           "seasonYear": null,
           "startedAt": 1786665600000,
@@ -1391,8 +1391,8 @@
       "nextAiringAt": 1793372400000,
       "nextAiringEpisodeNumber": 17,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 15,
-      "lastEpisodeAt": "2026-10-16T16:40:20.631Z"
+      "sourceEpisodeCount": 16,
+      "lastEpisodeAt": "2026-10-23T16:37:46.627Z"
     },
     "animeav1-neko-to-ryuu": {
       "anilistId": 186863,
@@ -3559,9 +3559,9 @@
           "format": "TV",
           "status": "NOT_YET_RELEASED",
           "episodes": null,
-          "season": "",
-          "seasonYear": null,
-          "startedAt": 0,
+          "season": "WINTER",
+          "seasonYear": 2027,
+          "startedAt": 1798761600000,
           "order": 3
         }
       ]
@@ -3686,8 +3686,8 @@
           "order": 9
         }
       ],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-10-16T12:05:17.023Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-10-23T13:41:13.332Z"
     },
     "animeav1-beastars-final-season-part-2": {
       "anilistId": 187267,
@@ -11369,10 +11369,10 @@
         },
         {
           "anilistId": 191832,
-          "title": "Shiguang Dailiren III",
+          "title": "Shiguang Dailiren III Part 1",
           "format": "ONA",
-          "status": "RELEASING",
-          "episodes": null,
+          "status": "FINISHED",
+          "episodes": 12,
           "season": "",
           "seasonYear": null,
           "startedAt": 1786665600000,
@@ -20965,10 +20965,10 @@
         },
         {
           "anilistId": 191832,
-          "title": "Shiguang Dailiren III",
+          "title": "Shiguang Dailiren III Part 1",
           "format": "ONA",
-          "status": "RELEASING",
-          "episodes": null,
+          "status": "FINISHED",
+          "episodes": 12,
           "season": "",
           "seasonYear": null,
           "startedAt": 1786665600000,
@@ -23122,9 +23122,9 @@
           "format": "TV",
           "status": "NOT_YET_RELEASED",
           "episodes": null,
-          "season": "",
-          "seasonYear": null,
-          "startedAt": 0,
+          "season": "WINTER",
+          "seasonYear": 2027,
+          "startedAt": 1798761600000,
           "order": 3
         }
       ]
@@ -31510,8 +31510,8 @@
       "season": "WINTER",
       "seasonYear": 1996,
       "anilistEpisodeCount": 1205,
-      "nextAiringAt": 1792832400000,
-      "nextAiringEpisodeNumber": 1218,
+      "nextAiringAt": 1793437200000,
+      "nextAiringEpisodeNumber": 1219,
       "franchiseSeasons": [],
       "broadcastDay": "Saturdays",
       "broadcastTime": "18:00",
@@ -34687,8 +34687,8 @@
           "order": 9
         }
       ],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-10-16T12:05:17.023Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-10-23T13:41:13.332Z"
     },
     "anilist-185262": {
       "anilistId": 185262,
@@ -37010,8 +37010,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1792764000000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1793368800000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 161645,
@@ -37058,8 +37058,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-16T15:13:26.082Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-23T15:10:23.500Z"
     },
     "anilist-175409": {
       "anilistId": 175409,
@@ -52638,10 +52638,10 @@
         },
         {
           "anilistId": 191832,
-          "title": "Shiguang Dailiren III",
+          "title": "Shiguang Dailiren III Part 1",
           "format": "ONA",
-          "status": "RELEASING",
-          "episodes": null,
+          "status": "FINISHED",
+          "episodes": 12,
           "season": "",
           "seasonYear": null,
           "startedAt": 1786665600000,
@@ -52693,10 +52693,10 @@
         },
         {
           "anilistId": 191832,
-          "title": "Shiguang Dailiren III",
+          "title": "Shiguang Dailiren III Part 1",
           "format": "ONA",
-          "status": "RELEASING",
-          "episodes": null,
+          "status": "FINISHED",
+          "episodes": 12,
           "season": "",
           "seasonYear": null,
           "startedAt": 1786665600000,
@@ -52748,10 +52748,10 @@
         },
         {
           "anilistId": 191832,
-          "title": "Shiguang Dailiren III",
+          "title": "Shiguang Dailiren III Part 1",
           "format": "ONA",
-          "status": "RELEASING",
-          "episodes": null,
+          "status": "FINISHED",
+          "episodes": 12,
           "season": "",
           "seasonYear": null,
           "startedAt": 1786665600000,
@@ -83111,7 +83111,7 @@
           "episodes": 2,
           "season": "WINTER",
           "seasonYear": 2015,
-          "startedAt": 1418947200000,
+          "startedAt": 1421971200000,
           "order": 3
         }
       ]
@@ -83784,7 +83784,7 @@
           "episodes": 2,
           "season": "WINTER",
           "seasonYear": 2015,
-          "startedAt": 1418947200000,
+          "startedAt": 1421971200000,
           "order": 3
         }
       ]
@@ -84438,7 +84438,7 @@
           "episodes": 2,
           "season": "WINTER",
           "seasonYear": 2015,
-          "startedAt": 1418947200000,
+          "startedAt": 1421971200000,
           "order": 3
         }
       ]
@@ -101268,39 +101268,6 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": []
-    },
-    "animeav1-last-exile-ginyoku-no-fam-adjournment": {
-      "anilistId": 97,
-      "airingStatus": "FINISHED",
-      "season": "SPRING",
-      "seasonYear": 2003,
-      "anilistEpisodeCount": 26,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 97,
-          "title": "Last Exile",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 26,
-          "season": "SPRING",
-          "seasonYear": 2003,
-          "startedAt": 1049673600000,
-          "order": 1
-        },
-        {
-          "anilistId": 10336,
-          "title": "Last Exile: Ginyoku no Fam",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 21,
-          "season": "FALL",
-          "seasonYear": 2011,
-          "startedAt": 1318636800000,
-          "order": 2
-        }
-      ]
     },
     "animeav1-lupin-iii-chi-no-kokuin-eien-no-mermaid": {
       "anilistId": 11777,
@@ -118451,10 +118418,10 @@
         },
         {
           "anilistId": 191832,
-          "title": "Shiguang Dailiren III",
+          "title": "Shiguang Dailiren III Part 1",
           "format": "ONA",
-          "status": "RELEASING",
-          "episodes": null,
+          "status": "FINISHED",
+          "episodes": 12,
           "season": "",
           "seasonYear": null,
           "startedAt": 1786665600000,
@@ -156164,7 +156131,7 @@
           "episodes": 2,
           "season": "WINTER",
           "seasonYear": 2015,
-          "startedAt": 1418947200000,
+          "startedAt": 1421971200000,
           "order": 3
         }
       ]
@@ -156208,7 +156175,7 @@
           "episodes": 2,
           "season": "WINTER",
           "seasonYear": 2015,
-          "startedAt": 1418947200000,
+          "startedAt": 1421971200000,
           "order": 3
         }
       ]
@@ -170941,8 +170908,8 @@
       "nextAiringAt": 1793406600000,
       "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-17T01:14:50.232Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-24T05:27:04.551Z"
     },
     "animeav1-tougen-anki-nikko-kegon-no-taki-hen": {
       "anilistId": 204650,
@@ -170950,8 +170917,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1792765800000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1793370600000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 177474,
@@ -170976,8 +170943,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-16T16:16:47.617Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-23T16:11:26.494Z"
     },
     "animeav1-kusuriya-no-hitorigoto-3rd-season": {
       "anilistId": 195516,
@@ -170985,8 +170952,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1792764000000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1793368800000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 161645,
@@ -171033,8 +171000,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-16T15:13:26.082Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-23T15:10:23.500Z"
     },
     "animeav1-tokyo-revengers-santen-sensou-hen": {
       "anilistId": 178083,
@@ -171042,8 +171009,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1792774380000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1793379180000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 120120,
@@ -171090,8 +171057,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-16T11:58:43.741Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-23T17:33:44.184Z"
     },
     "animeav1-koori-no-jouheki-2nd-season": {
       "anilistId": 213805,
@@ -171503,8 +171470,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 20,
-      "nextAiringAt": 1792833900000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1793438700000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 3,
       "lastEpisodeAt": "2026-10-17T15:20:13.772Z"
@@ -171716,10 +171683,10 @@
         },
         {
           "anilistId": 191832,
-          "title": "Shiguang Dailiren III",
+          "title": "Shiguang Dailiren III Part 1",
           "format": "ONA",
-          "status": "RELEASING",
-          "episodes": null,
+          "status": "FINISHED",
+          "episodes": 12,
           "season": "",
           "seasonYear": null,
           "startedAt": 1786665600000,
@@ -174240,9 +174207,9 @@
           "format": "TV",
           "status": "NOT_YET_RELEASED",
           "episodes": null,
-          "season": "",
-          "seasonYear": null,
-          "startedAt": 0,
+          "season": "WINTER",
+          "seasonYear": 2027,
+          "startedAt": 1798761600000,
           "order": 3
         }
       ]
@@ -174284,9 +174251,9 @@
           "format": "TV",
           "status": "NOT_YET_RELEASED",
           "episodes": null,
-          "season": "",
-          "seasonYear": null,
-          "startedAt": 0,
+          "season": "WINTER",
+          "seasonYear": 2027,
+          "startedAt": 1798761600000,
           "order": 3
         }
       ]
@@ -174294,8 +174261,8 @@
     "anilist-209980": {
       "anilistId": 209980,
       "airingStatus": "NOT_YET_RELEASED",
-      "season": "",
-      "seasonYear": null,
+      "season": "WINTER",
+      "seasonYear": 2027,
       "anilistEpisodeCount": null,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -174328,9 +174295,9 @@
           "format": "TV",
           "status": "NOT_YET_RELEASED",
           "episodes": null,
-          "season": "",
-          "seasonYear": null,
-          "startedAt": 0,
+          "season": "WINTER",
+          "seasonYear": 2027,
+          "startedAt": 1798761600000,
           "order": 3
         }
       ]
@@ -181432,8 +181399,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1792765800000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1793370600000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 177474,
@@ -181458,8 +181425,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-16T16:16:47.617Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-23T16:11:26.494Z"
     },
     "anilist-8795": {
       "anilistId": 8795,
@@ -191399,8 +191366,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1792774380000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1793379180000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 120120,
@@ -191447,8 +191414,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-16T11:58:43.741Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-23T17:33:44.184Z"
     },
     "anilist-100745": {
       "anilistId": 100745,
@@ -211047,7 +211014,7 @@
           "episodes": 2,
           "season": "WINTER",
           "seasonYear": 2015,
-          "startedAt": 1418947200000,
+          "startedAt": 1421971200000,
           "order": 3
         }
       ]
@@ -240675,8 +240642,8 @@
       "nextAiringAt": 1793370600000,
       "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-16T16:15:15.183Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-23T16:10:37.439Z"
     },
     "animeav1-toaru-anbu-no-item": {
       "anilistId": 186742,
@@ -240687,8 +240654,8 @@
       "nextAiringAt": 1793367000000,
       "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-10-16T15:42:09.953Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-10-23T15:38:19.733Z"
     },
     "anilist-130253": {
       "anilistId": 130253,
@@ -240784,8 +240751,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1792830600000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1793435400000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 2,
       "lastEpisodeAt": "2026-10-17T12:42:02.777Z"
@@ -242276,6 +242243,10 @@
     "anilist-1151": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1151-SvOaX2oMD1oc.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1151-ZCJH3EkGgDHW.jpg"
+    },
+    "anilist-218740": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx218740-C4H2ePGDUlzJ.jpg",
+      "anilistBanner": ""
     },
     "anilist-85470": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx85470-jt6BF9tDWB2X.jpg",
@@ -264325,10 +264296,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx105655-Q8ZPRKOVtiwz.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/105655-3HdrCjJRkBjO.jpg"
     },
-    "anilist-60207": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/30207.jpg",
-      "anilistBanner": ""
-    },
     "anilist-1695": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1695-etz4t9yoXO19.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1695-f2BWoFWAhG27.jpg"
@@ -264577,6 +264544,22 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx20141-1VtZnvaHOHGl.jpg",
       "anilistBanner": ""
     },
+    "anilist-20461": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20461-YTSZiG163mi7.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20461-tlZVmmmb6SAd.jpg"
+    },
+    "anilist-53818": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b53818-Yp5TqFD56voA.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/53818-jWVmOMasChhc.jpg"
+    },
+    "anilist-30222": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30222-8jNgJix8ePVK.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30222-xLtdmDONrJD5.jpg"
+    },
+    "anilist-60207": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/30207.jpg",
+      "anilistBanner": ""
+    },
     "anilist-149": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx149-6QGLHgJc8gum.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/149-1ObNHNwgBy8H.jpg"
@@ -264668,18 +264651,6 @@
     "anilist-1437": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1437-0oQS3aiiyyp7.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1437-4x3umb48Bogs.jpg"
-    },
-    "anilist-20461": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20461-YTSZiG163mi7.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20461-tlZVmmmb6SAd.jpg"
-    },
-    "anilist-53818": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b53818-Yp5TqFD56voA.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/53818-jWVmOMasChhc.jpg"
-    },
-    "anilist-30222": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30222-8jNgJix8ePVK.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30222-xLtdmDONrJD5.jpg"
     },
     "anilist-20914": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20914-Ib3EeuXWmNLi.jpg",
@@ -270790,7 +270761,7 @@
       "anilistBanner": ""
     },
     "anilist-206163": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx206163-c5DwZdBNCXEO.jpg",
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx206163-pDqpH6qyKhmV.png",
       "anilistBanner": ""
     },
     "anilist-132467": {
