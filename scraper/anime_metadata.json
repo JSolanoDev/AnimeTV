@@ -141704,8 +141704,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/mezametara-saikyou-soubi-to-uchuusenmochi-datta-node-ikkodate-mezashite-youhei-toshite-jiyuu-ni-ikitai",
-      "totalEpisodes": 3,
-      "episode": 3,
+      "totalEpisodes": 4,
+      "episode": 4,
       "lastScrapedAt": "2026-10-25T10:24:17.642587+00:00",
       "episodes": [
         {
@@ -141757,16 +141757,18 @@
       "sourceEpisodeIds": [
         1,
         2,
-        3
+        3,
+        4
       ],
-      "sourceEpisodeCount": 3,
-      "sourcePlayableEpisodeCount": 3,
+      "sourceEpisodeCount": 4,
+      "sourcePlayableEpisodeCount": 4,
       "sourceDeclaredEpisodeCount": 3,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-25T10:28:02.456Z",
-      "latestAiredEp": 3,
-      "lastEpisodeAt": "2026-10-18T14:30:28.799Z"
+      "sourceInventoryCheckedAt": "2026-10-25T14:32:56.547Z",
+      "latestAiredEp": 4,
+      "lastEpisodeAt": "2026-10-25T14:11:56.502Z",
+      "sourceInventoryRetainedEpisodeCount": 3
     },
     {
       "id": "animeav1-marronnier-oukoku-no-shichinin-no-kishi",
@@ -168439,8 +168441,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/ojisan-wa-kawaii-mono-ga-osuki",
-      "totalEpisodes": 3,
-      "episode": 3,
+      "totalEpisodes": 4,
+      "episode": 4,
       "lastScrapedAt": "2026-10-25T10:24:50.764706+00:00",
       "episodes": [
         {
@@ -168492,16 +168494,18 @@
       "sourceEpisodeIds": [
         1,
         2,
-        3
+        3,
+        4
       ],
-      "sourceEpisodeCount": 3,
-      "sourcePlayableEpisodeCount": 3,
+      "sourceEpisodeCount": 4,
+      "sourcePlayableEpisodeCount": 4,
       "sourceDeclaredEpisodeCount": 3,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-25T10:28:02.456Z",
-      "latestAiredEp": 3,
-      "lastEpisodeAt": "2026-10-18T14:30:28.799Z"
+      "sourceInventoryCheckedAt": "2026-10-25T14:32:56.547Z",
+      "latestAiredEp": 4,
+      "lastEpisodeAt": "2026-10-25T14:12:56.501Z",
+      "sourceInventoryRetainedEpisodeCount": 3
     },
     {
       "id": "animeav1-otome-game-sekai-wa-mob-ni-kibishii-sekai-desu-2",
