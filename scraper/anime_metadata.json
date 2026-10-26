@@ -22010,8 +22010,8 @@
       "score": 91,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/bleach-sennen-kessen-hen-kashin-tan",
-      "totalEpisodes": 9,
-      "episode": 9,
+      "totalEpisodes": 10,
+      "episode": 10,
       "lastScrapedAt": "2026-10-26T11:50:09.883694+00:00",
       "episodes": [
         {
@@ -22197,16 +22197,18 @@
         6,
         7,
         8,
-        9
+        9,
+        10
       ],
-      "sourceEpisodeCount": 9,
-      "sourcePlayableEpisodeCount": 9,
+      "sourceEpisodeCount": 10,
+      "sourcePlayableEpisodeCount": 10,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-10-26T11:56:45.167Z",
+      "sourceInventoryCheckedAt": "2026-10-26T20:06:33.693Z",
       "sourceDeclaredEpisodeCount": 9,
       "sourceInventoryPartial": false,
-      "latestAiredEp": 9,
-      "lastEpisodeAt": "2026-10-19T15:43:42.776Z"
+      "latestAiredEp": 10,
+      "lastEpisodeAt": "2026-10-26T16:06:33.658Z",
+      "sourceInventoryRetainedEpisodeCount": 9
     },
     {
       "id": "animeav1-buchigire-reijou-wa-houfuku-wo-chikaimashita-madousho-no-chikara-de-sokoku-wo-tatakitsubushimasu",
@@ -176635,8 +176637,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/psyren",
-      "totalEpisodes": 3,
-      "episode": 3,
+      "totalEpisodes": 4,
+      "episode": 4,
       "lastScrapedAt": "2026-10-26T11:53:34.528272+00:00",
       "episodes": [
         {
@@ -176688,16 +176690,18 @@
       "sourceEpisodeIds": [
         1,
         2,
-        3
+        3,
+        4
       ],
-      "sourceEpisodeCount": 3,
-      "sourcePlayableEpisodeCount": 3,
+      "sourceEpisodeCount": 4,
+      "sourcePlayableEpisodeCount": 4,
       "sourceDeclaredEpisodeCount": 3,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-26T11:56:45.167Z",
-      "latestAiredEp": 3,
-      "lastEpisodeAt": "2026-10-19T14:43:42.776Z"
+      "sourceInventoryCheckedAt": "2026-10-26T20:06:33.693Z",
+      "latestAiredEp": 4,
+      "lastEpisodeAt": "2026-10-26T15:06:33.658Z",
+      "sourceInventoryRetainedEpisodeCount": 3
     },
     {
       "id": "animeav1-ponkotsu-fuuki-iin-to-skirt-take-ga-futekisetsu-na-jk-no-hanashi",
