@@ -1733,8 +1733,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/dark-machine-the-animation",
-      "totalEpisodes": 2,
-      "episode": 2,
+      "totalEpisodes": 3,
+      "episode": 3,
       "lastScrapedAt": "2026-10-27T11:14:15.333165+00:00",
       "episodes": [
         {
@@ -1817,16 +1817,18 @@
       ],
       "sourceEpisodeIds": [
         1,
-        2
+        2,
+        3
       ],
-      "sourceEpisodeCount": 2,
-      "sourcePlayableEpisodeCount": 2,
+      "sourceEpisodeCount": 3,
+      "sourcePlayableEpisodeCount": 3,
       "sourceDeclaredEpisodeCount": 2,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-27T11:21:26.142Z",
-      "lastEpisodeAt": "2026-10-20T18:49:18.149Z",
-      "latestAiredEp": 2
+      "sourceInventoryCheckedAt": "2026-10-27T21:27:47.118Z",
+      "lastEpisodeAt": "2026-10-27T18:27:47.102Z",
+      "latestAiredEp": 3,
+      "sourceInventoryRetainedEpisodeCount": 2
     },
     {
       "id": "animeav1-chitose-kun-wa-ramune-bin-no-naka-part-2",
@@ -72486,8 +72488,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/gensou-suikoden",
-      "totalEpisodes": 3,
-      "episode": 3,
+      "totalEpisodes": 4,
+      "episode": 4,
       "lastScrapedAt": "2026-10-27T11:15:45.718906+00:00",
       "episodes": [
         {
@@ -72539,16 +72541,18 @@
       "sourceEpisodeIds": [
         1,
         2,
-        3
+        3,
+        4
       ],
-      "sourceEpisodeCount": 3,
-      "sourcePlayableEpisodeCount": 3,
+      "sourceEpisodeCount": 4,
+      "sourcePlayableEpisodeCount": 4,
       "sourceDeclaredEpisodeCount": 3,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-27T11:21:26.142Z",
-      "latestAiredEp": 3,
-      "lastEpisodeAt": "2026-10-20T17:18:56.376Z"
+      "sourceInventoryCheckedAt": "2026-10-27T21:27:47.118Z",
+      "latestAiredEp": 4,
+      "lastEpisodeAt": "2026-10-27T17:27:47.103Z",
+      "sourceInventoryRetainedEpisodeCount": 3
     },
     {
       "id": "animeav1-grand-blue-season-3",
@@ -189180,8 +189184,8 @@
       "score": 59,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/sora-wa-akai-kawa-no-hotori",
-      "totalEpisodes": 16,
-      "episode": 16,
+      "totalEpisodes": 17,
+      "episode": 17,
       "lastScrapedAt": "2026-10-27T11:18:28.637179+00:00",
       "episodes": [
         {
@@ -189374,16 +189378,18 @@
         13,
         14,
         15,
-        16
+        16,
+        17
       ],
-      "sourceEpisodeCount": 16,
-      "sourcePlayableEpisodeCount": 16,
+      "sourceEpisodeCount": 17,
+      "sourcePlayableEpisodeCount": 17,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-10-27T11:21:26.142Z",
+      "sourceInventoryCheckedAt": "2026-10-27T21:27:47.118Z",
       "sourceDeclaredEpisodeCount": 16,
       "sourceInventoryPartial": false,
-      "latestAiredEp": 16,
-      "lastEpisodeAt": "2026-10-20T17:49:18.150Z"
+      "latestAiredEp": 17,
+      "lastEpisodeAt": "2026-10-27T17:27:47.102Z",
+      "sourceInventoryRetainedEpisodeCount": 16
     },
     {
       "id": "animeav1-suterare-seijo-no-isekai-gohan-tabi-kakure-skill-de-camping-car-wo-shoukan-shimashita",
