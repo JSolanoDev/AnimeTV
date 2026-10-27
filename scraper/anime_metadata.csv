@@ -1,7 +1,7 @@
 id,title,type,status,year,season,genre,rating,totalEpisodes,source,siteUrl
 animeav1-one-piece,One Piece,TV,,1999,,action,87,1180,AnimeAV1,https://animeav1.com/media/one-piece
 animeav1-sousou-no-frieren-2nd-season,Sousou no Frieren 2nd Season,TV,,2026,,anime,89,10,AnimeAV1,https://animeav1.com/media/sousou-no-frieren-2nd-season
-animeav1-watashi-no-shiawase-na-kekkon-special,Watashi no Shiawase na Kekkon Special,SPECIAL,,,,anime,,,AnimeAV1,https://animeav1.com/media/watashi-no-shiawase-na-kekkon-special
+animeav1-watashi-no-shiawase-na-kekkon-special,Watashi no Shiawase na Kekkon Special,SPECIAL,,2026,,anime,,3,AnimeAV1,https://animeav1.com/media/watashi-no-shiawase-na-kekkon-special
 animeav1-cyberpunk-edgerunners-2,Cyberpunk: Edgerunners 2,ONA,,2026,,anime,77,10,AnimeAV1,https://animeav1.com/media/cyberpunk-edgerunners-2
 animeav1-dark-machine-the-animation,Dark Machine: The Animation,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/dark-machine-the-animation
 animeav1-chitose-kun-wa-ramune-bin-no-naka-part-2,Chitose-kun wa Ramune Bin no Naka Part 2,TV,,2026,,anime,,2,AnimeAV1,https://animeav1.com/media/chitose-kun-wa-ramune-bin-no-naka-part-2
@@ -331,7 +331,7 @@ animeav1-ashita-no-joe,Ashita no Joe,TV,,1970,,anime,84,79,AnimeAV1,https://anim
 animeav1-battle-spirits-re-zekkai-no-kuu,Battle Spirits [Re]: Zekkai no Kuu,TV,,2026,,anime,,3,AnimeAV1,https://animeav1.com/media/battle-spirits-re-zekkai-no-kuu
 animeav1-black-clover-2nd-season,Black Clover 2nd Season,TV,,2026,,anime,,4,AnimeAV1,https://animeav1.com/media/black-clover-2nd-season
 animeav1-boku-no-hero-academia-i-am-a-hero-too,Boku no Hero Academia: I Am a Hero Too,ONA,,2026,,anime,74,1,AnimeAV1,https://animeav1.com/media/boku-no-hero-academia-i-am-a-hero-too
-animeav1-bleach-sennen-kessen-hen-kashin-tan,Bleach: Sennen Kessen-hen - Kashin-tan,TV,,2026,,anime,91,9,AnimeAV1,https://animeav1.com/media/bleach-sennen-kessen-hen-kashin-tan
+animeav1-bleach-sennen-kessen-hen-kashin-tan,Bleach: Sennen Kessen-hen - Kashin-tan,TV,,2026,,anime,91,10,AnimeAV1,https://animeav1.com/media/bleach-sennen-kessen-hen-kashin-tan
 animeav1-buchigire-reijou-wa-houfuku-wo-chikaimashita-madousho-no-chikara-de-sokoku-wo-tatakitsubushimasu,Buchigire Reijou wa Houfuku wo Chikaimashita. Madousho no Chikara de Sokoku wo Tatakitsubushimasu,TV,,2026,,anime,69,12,AnimeAV1,https://animeav1.com/media/buchigire-reijou-wa-houfuku-wo-chikaimashita-madousho-no-chikara-de-sokoku-wo-tatakitsubushimasu
 animeav1-black-torch,Black Torch,TV,,2026,,anime,70,12,AnimeAV1,https://animeav1.com/media/black-torch
 animeav1-bai-ri-cheng-wang,Bai Ri Cheng Wang,ONA,,2026,,anime,67,25,AnimeAV1,https://animeav1.com/media/bai-ri-cheng-wang
@@ -770,7 +770,7 @@ animeav1-captain-tsubasa,Captain Tsubasa (Super Campeones),TV,,1983,,anime,74,12
 animeav1-chirin-no-suzu,Chirin no Suzu,Movie,,1978,,anime,72,1,AnimeAV1,https://animeav1.com/media/chirin-no-suzu
 animeav1-candy-candy,Candy Candy,TV,,1976,,anime,76,115,AnimeAV1,https://animeav1.com/media/candy-candy
 animeav1-cutie-honey,Cutie Honey,TV,,1973,,anime,65,25,AnimeAV1,https://animeav1.com/media/cutie-honey
-animeav1-doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu,"Doumo, Suki na Hito ni Horegusuri wo Irai sareta Majo desu.",TV,,2026,,anime,,3,AnimeAV1,https://animeav1.com/media/doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu
+animeav1-doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu,"Doumo, Suki na Hito ni Horegusuri wo Irai sareta Majo desu.",TV,,2026,,anime,,4,AnimeAV1,https://animeav1.com/media/doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu
 animeav1-dark-summoner-to-dekiteiru,Dark Summoner to Dekiteiru,ONA,,2026,,anime,,4,AnimeAV1,https://animeav1.com/media/dark-summoner-to-dekiteiru
 animeav1-dogulwang,Dogulwang,TV,,2026,,anime,67,12,AnimeAV1,https://animeav1.com/media/dogulwang
 animeav1-devil-may-cry-2026,Devil May Cry 2026,TV,,2026,,anime,,8,AnimeAV1,https://animeav1.com/media/devil-may-cry-2026
@@ -2488,7 +2488,7 @@ animeav1-lupin-iii-part-ii,Lupin III: Part II,TV,,1977,,anime,78,155,AnimeAV1,ht
 animeav1-lupin-iii,Lupin III,TV,,1971,,anime,76,23,AnimeAV1,https://animeav1.com/media/lupin-iii
 animeav1-lupin-iii-pilot-film,Lupin III: Pilot Film,Movie,,1969,,anime,64,1,AnimeAV1,https://animeav1.com/media/lupin-iii-pilot-film
 animeav1-mahou-shoujo-ikusei-keikaku-restart,Mahou Shoujo Ikusei Keikaku: Restart,TV,,2026,,romance,,3,AnimeAV1,https://animeav1.com/media/mahou-shoujo-ikusei-keikaku-restart
-animeav1-mouse-cursor-de-genjitsu-wo-sousa-dekiru-you-ni-natta-node-onna-no-ko-wo-ippai-click-shimaasu,"Mouse Cursor de Genjitsu wo Sousa Dekiru You ni Natta node, Onna no Ko wo Ippai Click Shimaasu",ONA,,2026,,anime,,3,AnimeAV1,https://animeav1.com/media/mouse-cursor-de-genjitsu-wo-sousa-dekiru-you-ni-natta-node-onna-no-ko-wo-ippai-click-shimaasu
+animeav1-mouse-cursor-de-genjitsu-wo-sousa-dekiru-you-ni-natta-node-onna-no-ko-wo-ippai-click-shimaasu,"Mouse Cursor de Genjitsu wo Sousa Dekiru You ni Natta node, Onna no Ko wo Ippai Click Shimaasu",ONA,,2026,,anime,,4,AnimeAV1,https://animeav1.com/media/mouse-cursor-de-genjitsu-wo-sousa-dekiru-you-ni-natta-node-onna-no-ko-wo-ippai-click-shimaasu
 animeav1-mezametara-saikyou-soubi-to-uchuusenmochi-datta-node-ikkodate-mezashite-youhei-toshite-jiyuu-ni-ikitai,"Mezametara Saikyou Soubi to Uchuusenmochi Datta node, Ikkodate Mezashite Youhei toshite Jiyuu ni Ikitai",TV,,2026,,anime,,4,AnimeAV1,https://animeav1.com/media/mezametara-saikyou-soubi-to-uchuusenmochi-datta-node-ikkodate-mezashite-youhei-toshite-jiyuu-ni-ikitai
 animeav1-marronnier-oukoku-no-shichinin-no-kishi,Marronnier Oukoku no Shichinin no Kishi,TV,,2026,,anime,,4,AnimeAV1,https://animeav1.com/media/marronnier-oukoku-no-shichinin-no-kishi
 animeav1-magicalexplorer,Magical★Explorer,TV,,2026,,anime,,5,AnimeAV1,https://animeav1.com/media/magicalexplorer
@@ -3124,7 +3124,7 @@ animeav1-otaku-no-video,Otaku no Video,OVA,,1991,,anime,71,2,AnimeAV1,https://an
 animeav1-omoide-poroporo,Omoide Poroporo,Movie,,1991,,anime,75,1,AnimeAV1,https://animeav1.com/media/omoide-poroporo
 animeav1-oniisama-e,Oniisama e...,TV,,1991,,anime,79,39,AnimeAV1,https://animeav1.com/media/oniisama-e
 animeav1-outlanders,Outlanders,OVA,,1986,,anime,59,1,AnimeAV1,https://animeav1.com/media/outlanders
-animeav1-psyren,Psyren,TV,,2026,,anime,,3,AnimeAV1,https://animeav1.com/media/psyren
+animeav1-psyren,Psyren,TV,,2026,,anime,,4,AnimeAV1,https://animeav1.com/media/psyren
 animeav1-ponkotsu-fuuki-iin-to-skirt-take-ga-futekisetsu-na-jk-no-hanashi,Ponkotsu Fuuki Iin to Skirt-take ga Futekisetsu na JK no Hanashi,TV,,2026,,anime,76,12,AnimeAV1,https://animeav1.com/media/ponkotsu-fuuki-iin-to-skirt-take-ga-futekisetsu-na-jk-no-hanashi
 animeav1-prism-rondo,Prism Rondo,ONA,,2026,,anime,85,20,AnimeAV1,https://animeav1.com/media/prism-rondo
 animeav1-potion-wagami-wo-tasukeru,"Potion, Wagami wo Tasukeru",TV,,2025,,anime,64,12,AnimeAV1,https://animeav1.com/media/potion-wagami-wo-tasukeru
@@ -3851,7 +3851,7 @@ animeav1-space-cobra,Space Cobra,TV,,1982,,anime,77,31,AnimeAV1,https://animeav1
 animeav1-space-adventure-cobra,Space Adventure Cobra,Movie,,1982,,action,71,1,AnimeAV1,https://animeav1.com/media/space-adventure-cobra
 animeav1-shin-taketori-monogatari-1000-nen-joou,Shin Taketori Monogatari: 1000-nen Joou,TV,,1981,,anime,72,41,AnimeAV1,https://animeav1.com/media/shin-taketori-monogatari-1000-nen-joou
 animeav1-sayonara-ginga-tetsudou-999-andromeda-shuuchakueki,Sayonara Ginga Tetsudou 999: Andromeda Shuuchakueki,Movie,,1981,,anime,73,1,AnimeAV1,https://animeav1.com/media/sayonara-ginga-tetsudou-999-andromeda-shuuchakueki
-animeav1-tensei-goblin-dakedo-shitsumon-aru,Tensei Goblin dakedo Shitsumon Aru?,TV,,2026,,anime,,4,AnimeAV1,https://animeav1.com/media/tensei-goblin-dakedo-shitsumon-aru
+animeav1-tensei-goblin-dakedo-shitsumon-aru,Tensei Goblin dakedo Shitsumon Aru?,TV,,2026,,anime,,5,AnimeAV1,https://animeav1.com/media/tensei-goblin-dakedo-shitsumon-aru
 animeav1-tank-chair,Tank Chair,TV,,2026,,anime,,4,AnimeAV1,https://animeav1.com/media/tank-chair
 animeav1-tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu,"Tensei shita Daiseijo wa, Seijo de Aru Koto wo Hitakakusu",TV,,2026,,anime,,5,AnimeAV1,https://animeav1.com/media/tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu
 animeav1-tougen-anki-nikko-kegon-no-taki-hen,Tougen Anki: Nikko Kegon no Taki-hen,TV,,2026,,anime,,4,AnimeAV1,https://animeav1.com/media/tougen-anki-nikko-kegon-no-taki-hen

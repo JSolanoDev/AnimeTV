@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-26T20:06:39.357Z",
-  "count": 6672,
+  "generatedAt": "2026-10-27T11:56:45.965Z",
+  "count": 6673,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -372,7 +372,7 @@
     },
     "animeav1-bleach-sennen-kessen-hen-kashin-tan": {
       "anilistId": 185874,
-      "airingStatus": "RELEASING",
+      "airingStatus": "FINISHED",
       "season": "SUMMER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 10,
@@ -427,7 +427,7 @@
           "anilistId": 185874,
           "title": "BLEACH: Sennen Kessen-hen - Kashin-tan",
           "format": "TV",
-          "status": "RELEASING",
+          "status": "FINISHED",
           "episodes": 10,
           "season": "SUMMER",
           "seasonYear": 2026,
@@ -435,7 +435,7 @@
           "order": 5
         }
       ],
-      "sourceEpisodeCount": 9,
+      "sourceEpisodeCount": 10,
       "lastEpisodeAt": "2026-10-19T16:02:07.550Z"
     },
     "animeav1-ansatsu-kyoushitsu-movie-minna-no-jikan": {
@@ -12877,7 +12877,7 @@
           "anilistId": 185874,
           "title": "BLEACH: Sennen Kessen-hen - Kashin-tan",
           "format": "TV",
-          "status": "RELEASING",
+          "status": "FINISHED",
           "episodes": 10,
           "season": "SUMMER",
           "seasonYear": 2026,
@@ -21600,7 +21600,7 @@
           "anilistId": 185874,
           "title": "BLEACH: Sennen Kessen-hen - Kashin-tan",
           "format": "TV",
-          "status": "RELEASING",
+          "status": "FINISHED",
           "episodes": 10,
           "season": "SUMMER",
           "seasonYear": 2026,
@@ -25720,7 +25720,7 @@
           "anilistId": 185874,
           "title": "BLEACH: Sennen Kessen-hen - Kashin-tan",
           "format": "TV",
-          "status": "RELEASING",
+          "status": "FINISHED",
           "episodes": 10,
           "season": "SUMMER",
           "seasonYear": 2026,
@@ -28574,7 +28574,7 @@
           "anilistId": 185874,
           "title": "BLEACH: Sennen Kessen-hen - Kashin-tan",
           "format": "TV",
-          "status": "RELEASING",
+          "status": "FINISHED",
           "episodes": 10,
           "season": "SUMMER",
           "seasonYear": 2026,
@@ -33351,7 +33351,7 @@
           "anilistId": 185874,
           "title": "BLEACH: Sennen Kessen-hen - Kashin-tan",
           "format": "TV",
-          "status": "RELEASING",
+          "status": "FINISHED",
           "episodes": 10,
           "season": "SUMMER",
           "seasonYear": 2026,
@@ -33362,7 +33362,7 @@
     },
     "anilist-185874": {
       "anilistId": 185874,
-      "airingStatus": "RELEASING",
+      "airingStatus": "FINISHED",
       "season": "SUMMER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 10,
@@ -33417,7 +33417,7 @@
           "anilistId": 185874,
           "title": "BLEACH: Sennen Kessen-hen - Kashin-tan",
           "format": "TV",
-          "status": "RELEASING",
+          "status": "FINISHED",
           "episodes": 10,
           "season": "SUMMER",
           "seasonYear": 2026,
@@ -33425,7 +33425,7 @@
           "order": 5
         }
       ],
-      "sourceEpisodeCount": 9,
+      "sourceEpisodeCount": 10,
       "lastEpisodeAt": "2026-10-19T16:02:07.550Z"
     },
     "anilist-162896": {
@@ -40802,7 +40802,7 @@
           "anilistId": 185874,
           "title": "BLEACH: Sennen Kessen-hen - Kashin-tan",
           "format": "TV",
-          "status": "RELEASING",
+          "status": "FINISHED",
           "episodes": 10,
           "season": "SUMMER",
           "seasonYear": 2026,
@@ -40868,7 +40868,7 @@
           "anilistId": 185874,
           "title": "BLEACH: Sennen Kessen-hen - Kashin-tan",
           "format": "TV",
-          "status": "RELEASING",
+          "status": "FINISHED",
           "episodes": 10,
           "season": "SUMMER",
           "seasonYear": 2026,
@@ -63577,7 +63577,7 @@
           "anilistId": 185874,
           "title": "BLEACH: Sennen Kessen-hen - Kashin-tan",
           "format": "TV",
-          "status": "RELEASING",
+          "status": "FINISHED",
           "episodes": 10,
           "season": "SUMMER",
           "seasonYear": 2026,
@@ -101323,39 +101323,6 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": []
-    },
-    "animeav1-last-exile-ginyoku-no-fam-adjournment": {
-      "anilistId": 97,
-      "airingStatus": "FINISHED",
-      "season": "SPRING",
-      "seasonYear": 2003,
-      "anilistEpisodeCount": 26,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 97,
-          "title": "Last Exile",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 26,
-          "season": "SPRING",
-          "seasonYear": 2003,
-          "startedAt": 1049673600000,
-          "order": 1
-        },
-        {
-          "anilistId": 10336,
-          "title": "Last Exile: Ginyoku no Fam",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 21,
-          "season": "FALL",
-          "seasonYear": 2011,
-          "startedAt": 1318636800000,
-          "order": 2
-        }
-      ]
     },
     "animeav1-lupin-iii-chi-no-kokuin-eien-no-mermaid": {
       "anilistId": 11777,
@@ -221464,8 +221431,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793034000000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1793638800000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 21340,
@@ -239508,11 +239475,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793628000000,
+      "nextAiringAt": 1794232800000,
       "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-19T14:41:55.189Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-26T14:40:28.605Z"
     },
     "animeav1-doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu": {
       "anilistId": 207191,
@@ -239523,8 +239490,8 @@
       "nextAiringAt": 1793622600000,
       "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-19T12:37:14.014Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-26T12:58:09.800Z"
     },
     "animeav1-tensei-goblin-dakedo-shitsumon-aru": {
       "anilistId": 209219,
@@ -239535,8 +239502,8 @@
       "nextAiringAt": 1793624400000,
       "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-19T13:17:05.203Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-10-26T13:19:57.288Z"
     },
     "animeav1-mahou-shoujo-ikusei-keikaku-restart": {
       "anilistId": 160803,
@@ -239544,8 +239511,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793034000000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1793638800000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 21340,
@@ -241372,6 +241339,105 @@
         }
       ]
     },
+    "anilist-190054": {
+      "anilistId": 190054,
+      "airingStatus": "FINISHED",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 3,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 147103,
+          "title": "Watashi no Shiawase na Kekkon",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2023,
+          "startedAt": 1688515200000,
+          "order": 1
+        },
+        {
+          "anilistId": 167486,
+          "title": "Watashi no Shiawase na Katachi",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1710460800000,
+          "order": 2
+        },
+        {
+          "anilistId": 169441,
+          "title": "Watashi no Shiawase na Kekkon 2nd Season",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2025,
+          "startedAt": 1736121600000,
+          "order": 3
+        },
+        {
+          "anilistId": 190054,
+          "title": "Watashi no Shiawase na Kekkon Tokubetsu-hen",
+          "format": "SPECIAL",
+          "status": "FINISHED",
+          "episodes": 3,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1792886400000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-218835": {
+      "anilistId": 218835,
+      "airingStatus": "NOT_YET_RELEASED",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 112667,
+          "title": "Kimi to Boku no Saigo no Senjo, Arui wa Sekai ga Hajimaru Seisen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2020,
+          "startedAt": 1602028800000,
+          "order": 1
+        },
+        {
+          "anilistId": 139825,
+          "title": "Kimi to Boku no Saigo no Senjou, Arui wa Sekai ga Hajimaru Seisen Season II",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2024,
+          "startedAt": 1720569600000,
+          "order": 2
+        },
+        {
+          "anilistId": 218835,
+          "title": "Kimi to Boku no Saigo no Senjou, Arui wa Sekai ga Hajimaru Seisen Season III",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 3
+        }
+      ]
+    },
     "animeav1-battle-spirits-re-zekkai-no-kuu": {
       "anilistId": null,
       "airingStatus": "RELEASING",
@@ -242374,6 +242440,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85486-INqnYx8gL3eX.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/85486-4mTRih1qOdgk.jpg"
     },
+    "anilist-218980": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx218980-GkOgDPC89Bt0.png",
+      "anilistBanner": ""
+    },
     "anilist-128757": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx128757-Iqc6hTjEYIz4.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/128757-kBnCRYXdyw58.jpg"
@@ -242724,6 +242794,10 @@
     },
     "anilist-215743": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx215743-iZ7D0Z9iYr0y.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-218945": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx218945-HzjevONv8vUX.png",
       "anilistBanner": ""
     },
     "anilist-87401": {
@@ -245526,10 +245600,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx125444-2BhwYF044nrV.jpg",
       "anilistBanner": ""
     },
-    "anilist-190054": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx190054-8h0AuqQjwcCL.png",
-      "anilistBanner": ""
-    },
     "anilist-170650": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx170650-iVQC67atMVj3.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/170650-TQbt75Ro1oxw.jpg"
@@ -246200,10 +246270,6 @@
     },
     "anilist-100670": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx100670-mtj2ptnjoEFE.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-218835": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx218835-V5kpcX5a8Qzi.jpg",
       "anilistBanner": ""
     },
     "anilist-144779": {
@@ -252683,7 +252749,7 @@
       "anilistBanner": ""
     },
     "anilist-209785": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx209785-pX2FSPsLW7pE.png",
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx209785-iEq7T9yV3eFc.jpg",
       "anilistBanner": ""
     },
     "anilist-97821": {
@@ -257610,6 +257676,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b2692-3QIsifmn1Q63.jpg",
       "anilistBanner": ""
     },
+    "anilist-150095": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx150095-oj2HcT8utsTp.png",
+      "anilistBanner": ""
+    },
     "anilist-2748": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/2748-IW0iwAZXckJo.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/2748-CSgbCFXSl80X.jpg"
@@ -258545,6 +258615,10 @@
     "anilist-10549": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx10549-vNRxRTUMgFac.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/10549-eMUHFKHZ1pAG.jpg"
+    },
+    "anilist-218956": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx218956-PgRTR0dg2ESq.png",
+      "anilistBanner": ""
     },
     "anilist-1299": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1299-Zz8fUhhwDQDd.png",
@@ -264506,10 +264580,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx105655-Q8ZPRKOVtiwz.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/105655-3HdrCjJRkBjO.jpg"
     },
-    "anilist-60207": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/30207.jpg",
-      "anilistBanner": ""
-    },
     "anilist-1695": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1695-etz4t9yoXO19.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1695-f2BWoFWAhG27.jpg"
@@ -264758,6 +264828,22 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx20141-1VtZnvaHOHGl.jpg",
       "anilistBanner": ""
     },
+    "anilist-20461": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20461-YTSZiG163mi7.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20461-tlZVmmmb6SAd.jpg"
+    },
+    "anilist-53818": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b53818-Yp5TqFD56voA.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/53818-jWVmOMasChhc.jpg"
+    },
+    "anilist-30222": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30222-8jNgJix8ePVK.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30222-xLtdmDONrJD5.jpg"
+    },
+    "anilist-60207": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/30207.jpg",
+      "anilistBanner": ""
+    },
     "anilist-149": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx149-6QGLHgJc8gum.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/149-1ObNHNwgBy8H.jpg"
@@ -264849,18 +264935,6 @@
     "anilist-1437": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1437-0oQS3aiiyyp7.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1437-4x3umb48Bogs.jpg"
-    },
-    "anilist-20461": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20461-YTSZiG163mi7.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20461-tlZVmmmb6SAd.jpg"
-    },
-    "anilist-53818": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b53818-Yp5TqFD56voA.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/53818-jWVmOMasChhc.jpg"
-    },
-    "anilist-30222": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30222-8jNgJix8ePVK.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30222-xLtdmDONrJD5.jpg"
     },
     "anilist-20914": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20914-Ib3EeuXWmNLi.jpg",
@@ -270230,10 +270304,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx31442-ajAVsKBpXNnY.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/31442-uQoUYC7CxirZ.jpg"
     },
-    "anilist-150095": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx150095-oj2HcT8utsTp.png",
-      "anilistBanner": ""
-    },
     "anilist-7759": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx7759-x6omT5iAMElr.jpg",
       "anilistBanner": ""
@@ -275457,6 +275527,10 @@
     "anilist-159142": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx159142-S9GSi03mT8Qa.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/159142-lwsoXC2qeE6y.jpg"
+    },
+    "anilist-218938": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx218938-i29Q90gbQcZQ.png",
+      "anilistBanner": ""
     },
     "anilist-206949": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx206949-4HYI3YuP0eLI.png",
