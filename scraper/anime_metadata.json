@@ -3972,8 +3972,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/sekai-saikyou-no-majo-hajimemashita",
-      "totalEpisodes": 3,
-      "episode": 3,
+      "totalEpisodes": 4,
+      "episode": 4,
       "lastScrapedAt": "2026-10-28T11:47:47.640236+00:00",
       "episodes": [
         {
@@ -4089,16 +4089,18 @@
       "sourceEpisodeIds": [
         1,
         2,
-        3
+        3,
+        4
       ],
-      "sourceEpisodeCount": 3,
-      "sourcePlayableEpisodeCount": 3,
+      "sourceEpisodeCount": 4,
+      "sourcePlayableEpisodeCount": 4,
       "sourceDeclaredEpisodeCount": 3,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-28T11:54:52.144Z",
-      "latestAiredEp": 3,
-      "lastEpisodeAt": "2026-10-21T13:33:14.252Z"
+      "sourceInventoryCheckedAt": "2026-10-28T14:25:54.471Z",
+      "latestAiredEp": 4,
+      "lastEpisodeAt": "2026-10-28T13:25:54.456Z",
+      "sourceInventoryRetainedEpisodeCount": 3
     },
     {
       "id": "animeav1-sasaki-to-pii-chan-season-2",
@@ -4121,8 +4123,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/sasaki-to-pii-chan-season-2",
-      "totalEpisodes": 3,
-      "episode": 3,
+      "totalEpisodes": 4,
+      "episode": 4,
       "lastScrapedAt": "2026-10-28T11:47:47.640812+00:00",
       "episodes": [
         {
@@ -4238,16 +4240,18 @@
       "sourceEpisodeIds": [
         1,
         2,
-        3
+        3,
+        4
       ],
-      "sourceEpisodeCount": 3,
-      "sourcePlayableEpisodeCount": 3,
+      "sourceEpisodeCount": 4,
+      "sourcePlayableEpisodeCount": 4,
       "sourceDeclaredEpisodeCount": 3,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-28T11:54:52.144Z",
-      "latestAiredEp": 3,
-      "lastEpisodeAt": "2026-10-21T13:33:14.252Z"
+      "sourceInventoryCheckedAt": "2026-10-28T14:25:54.471Z",
+      "latestAiredEp": 4,
+      "lastEpisodeAt": "2026-10-28T13:25:54.456Z",
+      "sourceInventoryRetainedEpisodeCount": 3
     },
     {
       "id": "animeav1-tantei-wa-mou-shindeiru-season-2",
@@ -4270,8 +4274,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/tantei-wa-mou-shindeiru-season-2",
-      "totalEpisodes": 3,
-      "episode": 3,
+      "totalEpisodes": 4,
+      "episode": 4,
       "lastScrapedAt": "2026-10-28T11:47:47.641388+00:00",
       "episodes": [
         {
@@ -4387,16 +4391,18 @@
       "sourceEpisodeIds": [
         1,
         2,
-        3
+        3,
+        4
       ],
-      "sourceEpisodeCount": 3,
-      "sourcePlayableEpisodeCount": 3,
+      "sourceEpisodeCount": 4,
+      "sourcePlayableEpisodeCount": 4,
       "sourceDeclaredEpisodeCount": 3,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-28T11:54:52.144Z",
-      "latestAiredEp": 3,
-      "lastEpisodeAt": "2026-10-21T13:33:14.252Z"
+      "sourceInventoryCheckedAt": "2026-10-28T14:25:54.471Z",
+      "latestAiredEp": 4,
+      "lastEpisodeAt": "2026-10-28T13:52:54.455Z",
+      "sourceInventoryRetainedEpisodeCount": 3
     },
     {
       "id": "animeav1-zombie-sagashitemasu",
