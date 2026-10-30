@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-29T19:48:35.926Z",
+  "generatedAt": "2026-10-30T12:31:44.269Z",
   "count": 6673,
   "entries": {
     "animeav1-one-piece": {
@@ -107,7 +107,7 @@
     },
     "animeav1-shiguang-dailiren-iii": {
       "anilistId": 191832,
-      "airingStatus": "RELEASING",
+      "airingStatus": "FINISHED",
       "season": "SUMMER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
@@ -1591,8 +1591,8 @@
       "nextAiringAt": 1793892360000,
       "nextAiringEpisodeNumber": 19,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 17,
-      "lastEpisodeAt": "2026-10-22T16:22:25.467Z"
+      "sourceEpisodeCount": 18,
+      "lastEpisodeAt": "2026-10-29T16:15:34.944Z"
     },
     "animeav1-bang-dream-yumemita": {
       "anilistId": 198376,
@@ -5766,10 +5766,10 @@
           "title": "Disney Twisted-Wonderland: THE ANIMATION - Season 2: EPISODE of SAVANACLAW",
           "format": "ONA",
           "status": "NOT_YET_RELEASED",
-          "episodes": null,
+          "episodes": 8,
           "season": "WINTER",
           "seasonYear": 2027,
-          "startedAt": 1796083200000,
+          "startedAt": 1797984000000,
           "order": 2
         }
       ],
@@ -7188,7 +7188,7 @@
           "anilistId": 206244,
           "title": "Luo Xiaohei Zhan Ji: Xue Qian Pian",
           "format": "ONA",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": 6,
           "season": "",
           "seasonYear": null,
@@ -52750,7 +52750,7 @@
     },
     "anilist-191832": {
       "anilistId": 191832,
-      "airingStatus": "RELEASING",
+      "airingStatus": "FINISHED",
       "season": "SUMMER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
@@ -53131,8 +53131,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793291280000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1793896080000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 148116,
@@ -53157,8 +53157,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-22T17:24:02.794Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-29T17:32:48.002Z"
     },
     "anilist-107294": {
       "anilistId": 107294,
@@ -69190,8 +69190,8 @@
           "format": "OVA",
           "status": "FINISHED",
           "episodes": 1,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2013,
           "startedAt": 1386288000000,
           "order": 2
         },
@@ -69318,8 +69318,8 @@
           "format": "OVA",
           "status": "FINISHED",
           "episodes": 1,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2013,
           "startedAt": 1386288000000,
           "order": 2
         },
@@ -69360,8 +69360,8 @@
     "animeav1-date-a-live-date-to-date": {
       "anilistId": 17641,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "FALL",
+      "seasonYear": 2013,
       "anilistEpisodeCount": 1,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -69383,8 +69383,8 @@
           "format": "OVA",
           "status": "FINISHED",
           "episodes": 1,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2013,
           "startedAt": 1386288000000,
           "order": 2
         },
@@ -69591,8 +69591,8 @@
           "format": "OVA",
           "status": "FINISHED",
           "episodes": 1,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2013,
           "startedAt": 1386288000000,
           "order": 2
         },
@@ -171143,8 +171143,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793285760000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1793890560000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [
         {
           "anilistId": 186497,
@@ -171169,8 +171169,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-22T15:48:05.269Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-10-29T15:55:52.242Z"
     },
     "animeav1-fx-senshi-kurumi-chan": {
       "anilistId": 206401,
@@ -171181,8 +171181,8 @@
       "nextAiringAt": 1793881800000,
       "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-22T13:32:14.336Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-10-29T14:58:44.705Z"
     },
     "animeav1-shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen": {
       "anilistId": 199068,
@@ -171383,8 +171383,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793285760000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1793890560000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [
         {
           "anilistId": 186497,
@@ -171409,8 +171409,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-22T15:48:05.269Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-10-29T15:55:52.242Z"
     },
     "animeav1-gensou-suikoden": {
       "anilistId": 187316,
@@ -174385,8 +174385,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 11,
-      "nextAiringAt": 1793347200000,
-      "nextAiringEpisodeNumber": 6,
+      "nextAiringAt": 1793952000000,
+      "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [
         {
           "anilistId": 14719,
@@ -180182,10 +180182,10 @@
           "title": "Disney Twisted-Wonderland: THE ANIMATION - Season 2: EPISODE of SAVANACLAW",
           "format": "ONA",
           "status": "NOT_YET_RELEASED",
-          "episodes": null,
+          "episodes": 8,
           "season": "WINTER",
           "seasonYear": 2027,
-          "startedAt": 1796083200000,
+          "startedAt": 1797984000000,
           "order": 2
         }
       ],
@@ -180196,7 +180196,7 @@
       "airingStatus": "NOT_YET_RELEASED",
       "season": "WINTER",
       "seasonYear": 2027,
-      "anilistEpisodeCount": null,
+      "anilistEpisodeCount": 8,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [
@@ -180216,10 +180216,10 @@
           "title": "Disney Twisted-Wonderland: THE ANIMATION - Season 2: EPISODE of SAVANACLAW",
           "format": "ONA",
           "status": "NOT_YET_RELEASED",
-          "episodes": null,
+          "episodes": 8,
           "season": "WINTER",
           "seasonYear": 2027,
-          "startedAt": 1796083200000,
+          "startedAt": 1797984000000,
           "order": 2
         }
       ]
@@ -181372,7 +181372,7 @@
           "anilistId": 206244,
           "title": "Luo Xiaohei Zhan Ji: Xue Qian Pian",
           "format": "ONA",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": 6,
           "season": "",
           "seasonYear": null,
@@ -181427,7 +181427,7 @@
           "anilistId": 206244,
           "title": "Luo Xiaohei Zhan Ji: Xue Qian Pian",
           "format": "ONA",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": 6,
           "season": "",
           "seasonYear": null,
@@ -203169,8 +203169,8 @@
           "format": "OVA",
           "status": "FINISHED",
           "episodes": 1,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2013,
           "startedAt": 1386288000000,
           "order": 2
         },
@@ -203201,8 +203201,8 @@
     "anilist-17641": {
       "anilistId": 17641,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "FALL",
+      "seasonYear": 2013,
       "anilistEpisodeCount": 1,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -203224,8 +203224,8 @@
           "format": "OVA",
           "status": "FINISHED",
           "episodes": 1,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2013,
           "startedAt": 1386288000000,
           "order": 2
         },
@@ -203279,8 +203279,8 @@
           "format": "OVA",
           "status": "FINISHED",
           "episodes": 1,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2013,
           "startedAt": 1386288000000,
           "order": 2
         },
@@ -203334,8 +203334,8 @@
           "format": "OVA",
           "status": "FINISHED",
           "episodes": 1,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2013,
           "startedAt": 1386288000000,
           "order": 2
         },
@@ -237491,7 +237491,7 @@
           "anilistId": 206244,
           "title": "Luo Xiaohei Zhan Ji: Xue Qian Pian",
           "format": "ONA",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": 6,
           "season": "",
           "seasonYear": null,
@@ -239542,12 +239542,12 @@
     },
     "anilist-206244": {
       "anilistId": 206244,
-      "airingStatus": "NOT_YET_RELEASED",
+      "airingStatus": "RELEASING",
       "season": "",
       "seasonYear": null,
       "anilistEpisodeCount": 6,
-      "nextAiringAt": 1793332800000,
-      "nextAiringEpisodeNumber": 1,
+      "nextAiringAt": 1793937600000,
+      "nextAiringEpisodeNumber": 2,
       "franchiseSeasons": [
         {
           "anilistId": 102663,
@@ -239586,7 +239586,7 @@
           "anilistId": 206244,
           "title": "Luo Xiaohei Zhan Ji: Xue Qian Pian",
           "format": "ONA",
-          "status": "NOT_YET_RELEASED",
+          "status": "RELEASING",
           "episodes": 6,
           "season": "",
           "seasonYear": null,
@@ -240705,8 +240705,8 @@
       "nextAiringAt": 1793890800000,
       "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-22T18:27:32.076Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-29T18:36:07.049Z"
     },
     "animeav1-hyouken-no-majutsushi-ga-sekai-wo-suberu-ii": {
       "anilistId": 212503,
@@ -240740,8 +240740,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-22T17:24:02.794Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-29T17:32:48.002Z"
     },
     "animeav1-hotaru-no-yomeiri": {
       "anilistId": 205909,
