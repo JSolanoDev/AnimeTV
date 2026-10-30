@@ -1,6 +1,6 @@
 {
   "source": "UnderHentai",
-  "generatedAt": "2026-10-29T06:20:47.871Z",
+  "generatedAt": "2026-10-30T06:21:43.753Z",
   "years": {
     "2012": [
       {
@@ -15968,6 +15968,26 @@
         "episode": 1,
         "date": "2026-12-25",
         "poster": "https://static.underhentai.net/assets/Kajitsu_The_Animation_01_rel.jpg",
+        "catalogId": "",
+        "available": false
+      },
+      {
+        "id": "sakura-saku-chiru-hanabira-e1-2026-12-25",
+        "slug": "sakura-saku-chiru-hanabira",
+        "title": "Sakura Saku Chiru Hanabira",
+        "episode": 1,
+        "date": "2026-12-25",
+        "poster": "https://static.underhentai.net/assets/Sakura_Saku_Chiru_Hanabira_01_rel.jpg",
+        "catalogId": "",
+        "available": false
+      },
+      {
+        "id": "sakura-saku-chiru-hanabira-e2-2026-12-25",
+        "slug": "sakura-saku-chiru-hanabira",
+        "title": "Sakura Saku Chiru Hanabira",
+        "episode": 2,
+        "date": "2026-12-25",
+        "poster": "https://static.underhentai.net/assets/Sakura_Saku_Chiru_Hanabira_02_rel.jpg",
         "catalogId": "",
         "available": false
       }
