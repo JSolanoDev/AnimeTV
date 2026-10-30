@@ -2927,8 +2927,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/hotaru-no-yomeiri",
-      "totalEpisodes": 3,
-      "episode": 3,
+      "totalEpisodes": 4,
+      "episode": 4,
       "lastScrapedAt": "2026-10-30T11:50:32.676624+00:00",
       "episodes": [
         {
@@ -3044,16 +3044,18 @@
       "sourceEpisodeIds": [
         1,
         2,
-        3
+        3,
+        4
       ],
-      "sourceEpisodeCount": 3,
-      "sourcePlayableEpisodeCount": 3,
+      "sourceEpisodeCount": 4,
+      "sourcePlayableEpisodeCount": 4,
       "sourceDeclaredEpisodeCount": 3,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-30T11:57:27.360Z",
-      "lastEpisodeAt": "2026-10-23T16:40:38.038Z",
-      "latestAiredEp": 3
+      "sourceInventoryCheckedAt": "2026-10-30T18:48:49.850Z",
+      "lastEpisodeAt": "2026-10-30T15:48:49.816Z",
+      "latestAiredEp": 4,
+      "sourceInventoryRetainedEpisodeCount": 3
     },
     {
       "id": "animeav1-toaru-anbu-no-item",
@@ -3076,8 +3078,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/toaru-anbu-no-item",
-      "totalEpisodes": 3,
-      "episode": 3,
+      "totalEpisodes": 4,
+      "episode": 4,
       "lastScrapedAt": "2026-10-30T11:50:32.677620+00:00",
       "episodes": [
         {
@@ -3193,16 +3195,18 @@
       "sourceEpisodeIds": [
         1,
         2,
-        3
+        3,
+        4
       ],
-      "sourceEpisodeCount": 3,
-      "sourcePlayableEpisodeCount": 3,
+      "sourceEpisodeCount": 4,
+      "sourcePlayableEpisodeCount": 4,
       "sourceDeclaredEpisodeCount": 3,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-30T11:57:27.360Z",
-      "lastEpisodeAt": "2026-10-23T15:40:38.038Z",
-      "latestAiredEp": 3
+      "sourceInventoryCheckedAt": "2026-10-30T18:48:49.850Z",
+      "lastEpisodeAt": "2026-10-30T15:48:49.816Z",
+      "latestAiredEp": 4,
+      "sourceInventoryRetainedEpisodeCount": 3
     },
     {
       "id": "animeav1-hyouken-no-majutsushi-ga-sekai-wo-suberu-ii",
@@ -110950,8 +110954,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/kusuriya-no-hitorigoto-3rd-season",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-10-30T11:52:47.357741+00:00",
       "episodes": [
         {
@@ -111004,16 +111008,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-10-30T11:57:27.360Z",
+      "sourceInventoryCheckedAt": "2026-10-30T18:48:49.850Z",
       "sourceInventoryPartial": false,
-      "latestAiredEp": 4,
-      "lastEpisodeAt": "2026-10-23T15:40:38.038Z"
+      "latestAiredEp": 5,
+      "lastEpisodeAt": "2026-10-30T15:48:49.816Z",
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-keroro-gunsou",
@@ -190312,8 +190318,8 @@
       "score": 91,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/steel-ball-run-jojo-no-kimyou-na-bouken",
-      "totalEpisodes": 6,
-      "episode": 6,
+      "totalEpisodes": 7,
+      "episode": 7,
       "lastScrapedAt": "2026-10-30T11:54:30.124612+00:00",
       "episodes": [],
       "seasons": [],
@@ -190328,16 +190334,18 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ],
-      "sourceEpisodeCount": 6,
-      "sourcePlayableEpisodeCount": 6,
+      "sourceEpisodeCount": 7,
+      "sourcePlayableEpisodeCount": 7,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-10-30T11:57:27.360Z",
+      "sourceInventoryCheckedAt": "2026-10-30T18:48:49.850Z",
       "sourceDeclaredEpisodeCount": 6,
       "sourceInventoryPartial": false,
-      "latestAiredEp": 6,
-      "lastEpisodeAt": "2026-10-23T13:42:12.193Z"
+      "latestAiredEp": 7,
+      "lastEpisodeAt": "2026-10-30T13:48:49.816Z",
+      "sourceInventoryRetainedEpisodeCount": 6
     },
     {
       "id": "animeav1-seihantai-na-kimi-to-boku",
@@ -217090,8 +217098,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/tougen-anki-nikko-kegon-no-taki-hen",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-10-30T11:55:04.866360+00:00",
       "episodes": [
         {
@@ -217144,16 +217152,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-10-30T11:57:27.360Z",
+      "sourceInventoryCheckedAt": "2026-10-30T18:48:49.850Z",
       "sourceInventoryPartial": false,
-      "latestAiredEp": 4,
-      "lastEpisodeAt": "2026-10-23T16:40:38.038Z"
+      "latestAiredEp": 5,
+      "lastEpisodeAt": "2026-10-30T16:48:49.815Z",
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-tokyo-revengers-santen-sensou-hen",
@@ -217176,8 +217186,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/tokyo-revengers-santen-sensou-hen",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-10-30T11:55:04.867400+00:00",
       "episodes": [
         {
@@ -217230,16 +217240,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-10-30T11:57:27.360Z",
+      "sourceInventoryCheckedAt": "2026-10-30T18:48:49.850Z",
       "sourceInventoryPartial": false,
-      "latestAiredEp": 4,
-      "lastEpisodeAt": "2026-10-23T17:40:38.038Z"
+      "latestAiredEp": 5,
+      "lastEpisodeAt": "2026-10-30T17:48:49.815Z",
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-tensei-shitara-ken-deshita-ii",
@@ -233250,8 +233262,8 @@
       "score": 70,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/uchi-no-otouto-domo-ga-sumimasen",
-      "totalEpisodes": 16,
-      "episode": 16,
+      "totalEpisodes": 17,
+      "episode": 17,
       "lastScrapedAt": "2026-10-30T11:55:25.021793+00:00",
       "episodes": [],
       "seasons": [],
@@ -233276,16 +233288,18 @@
         13,
         14,
         15,
-        16
+        16,
+        17
       ],
-      "sourceEpisodeCount": 16,
-      "sourcePlayableEpisodeCount": 16,
+      "sourceEpisodeCount": 17,
+      "sourcePlayableEpisodeCount": 17,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-10-30T11:57:27.360Z",
+      "sourceInventoryCheckedAt": "2026-10-30T18:48:49.850Z",
       "sourceDeclaredEpisodeCount": 16,
       "sourceInventoryPartial": false,
-      "latestAiredEp": 16,
-      "lastEpisodeAt": "2026-10-23T16:40:38.038Z"
+      "latestAiredEp": 17,
+      "lastEpisodeAt": "2026-10-30T16:48:49.815Z",
+      "sourceInventoryRetainedEpisodeCount": 16
     },
     {
       "id": "animeav1-uruwashi-no-yoi-no-tsuki",
