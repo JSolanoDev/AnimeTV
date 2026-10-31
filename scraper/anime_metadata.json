@@ -2778,8 +2778,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/shuiro-no-kamen",
-      "totalEpisodes": 3,
-      "episode": 3,
+      "totalEpisodes": 4,
+      "episode": 4,
       "lastScrapedAt": "2026-10-31T11:23:51.958733+00:00",
       "episodes": [
         {
@@ -2895,16 +2895,18 @@
       "sourceEpisodeIds": [
         1,
         2,
-        3
+        3,
+        4
       ],
-      "sourceEpisodeCount": 3,
-      "sourcePlayableEpisodeCount": 3,
+      "sourceEpisodeCount": 4,
+      "sourcePlayableEpisodeCount": 4,
       "sourceDeclaredEpisodeCount": 3,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-31T11:31:06.018Z",
-      "lastEpisodeAt": "2026-10-24T12:49:07.949Z",
-      "latestAiredEp": 3
+      "sourceInventoryCheckedAt": "2026-10-31T15:51:43.466Z",
+      "lastEpisodeAt": "2026-10-31T12:51:43.433Z",
+      "latestAiredEp": 4,
+      "sourceInventoryRetainedEpisodeCount": 3
     },
     {
       "id": "animeav1-hotaru-no-yomeiri",
@@ -4749,8 +4751,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/zombie-sagashitemasu",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-10-31T11:23:53.367271+00:00",
       "episodes": [
         {
@@ -4803,16 +4805,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-31T11:31:06.018Z",
-      "latestAiredEp": 4,
-      "lastEpisodeAt": "2026-10-24T15:19:59.117Z"
+      "sourceInventoryCheckedAt": "2026-10-31T15:51:43.466Z",
+      "latestAiredEp": 5,
+      "lastEpisodeAt": "2026-10-31T15:12:43.433Z",
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu",
@@ -22280,8 +22284,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/black-clover-2nd-season",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-10-31T11:24:16.116771+00:00",
       "episodes": [
         {
@@ -22334,16 +22338,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-31T11:31:06.018Z",
-      "latestAiredEp": 4,
-      "lastEpisodeAt": "2026-10-24T15:19:59.117Z"
+      "sourceInventoryCheckedAt": "2026-10-31T15:51:43.466Z",
+      "latestAiredEp": 5,
+      "lastEpisodeAt": "2026-10-31T15:12:43.433Z",
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-boku-no-hero-academia-i-am-a-hero-too",
@@ -142311,8 +142317,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/marronnier-oukoku-no-shichinin-no-kishi",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-10-31T11:26:55.584679+00:00",
       "episodes": [
         {
@@ -142365,16 +142371,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-31T11:31:06.018Z",
-      "latestAiredEp": 4,
-      "lastEpisodeAt": "2026-10-24T15:19:59.117Z"
+      "sourceInventoryCheckedAt": "2026-10-31T15:51:43.466Z",
+      "latestAiredEp": 5,
+      "lastEpisodeAt": "2026-10-31T15:18:43.432Z",
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-magicalexplorer",
@@ -183008,8 +183016,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/romelia-senki",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-10-31T11:27:51.241652+00:00",
       "episodes": [
         {
@@ -183062,16 +183070,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-31T11:31:06.018Z",
-      "latestAiredEp": 4,
-      "lastEpisodeAt": "2026-10-24T12:49:07.949Z"
+      "sourceInventoryCheckedAt": "2026-10-31T15:51:43.466Z",
+      "latestAiredEp": 5,
+      "lastEpisodeAt": "2026-10-31T12:51:43.433Z",
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-ranma-2024-3rd-season",
@@ -217040,8 +217050,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-10-31T11:28:36.184776+00:00",
       "episodes": [
         {
@@ -217127,16 +217137,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-10-31T11:31:06.018Z",
-      "latestAiredEp": 5,
-      "lastEpisodeAt": "2026-10-24T12:49:07.949Z"
+      "sourceInventoryCheckedAt": "2026-10-31T15:51:43.466Z",
+      "latestAiredEp": 6,
+      "lastEpisodeAt": "2026-10-31T12:51:43.433Z",
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-tougen-anki-nikko-kegon-no-taki-hen",
@@ -241893,8 +241905,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/yasei-no-last-boss-ga-arawareta-2nd-season",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-10-31T11:29:11.049311+00:00",
       "episodes": [
         {
@@ -241948,16 +241960,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-10-31T11:31:06.018Z",
+      "sourceInventoryCheckedAt": "2026-10-31T15:51:43.466Z",
       "sourceInventoryPartial": false,
-      "latestAiredEp": 5,
-      "lastEpisodeAt": "2026-10-24T13:49:07.949Z"
+      "latestAiredEp": 6,
+      "lastEpisodeAt": "2026-10-31T13:51:43.433Z",
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-youjo-senki-ii",
