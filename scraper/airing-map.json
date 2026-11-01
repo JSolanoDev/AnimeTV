@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-31T20:15:20.123Z",
+  "generatedAt": "2026-11-01T12:59:17.813Z",
   "count": 6673,
   "entries": {
     "animeav1-one-piece": {
@@ -30982,8 +30982,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1793455200000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794060000000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [
         {
           "anilistId": 97940,
@@ -31008,8 +31008,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-24T15:17:35.509Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-10-31T15:11:22.481Z"
     },
     "anilist-127720": {
       "anilistId": 127720,
@@ -35587,8 +35587,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793462160000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794066960000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [
         {
           "anilistId": 178533,
@@ -35624,8 +35624,8 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-24T17:33:45.029Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-10-31T17:16:25.189Z"
     },
     "anilist-138565": {
       "anilistId": 138565,
@@ -35756,8 +35756,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1793453400000,
-      "nextAiringEpisodeNumber": 6,
+      "nextAiringAt": 1794058200000,
+      "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [
         {
           "anilistId": 180523,
@@ -35782,8 +35782,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-10-24T13:42:39.465Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-10-31T13:40:18.464Z"
     },
     "anilist-139630": {
       "anilistId": 139630,
@@ -43068,8 +43068,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793520000000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1794124800000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 158898,
@@ -43105,8 +43105,8 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-25T08:48:01.389Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-11-01T09:35:49.734Z"
     },
     "anilist-169228": {
       "anilistId": 169228,
@@ -43470,8 +43470,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793521800000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1794126600000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 18689,
@@ -43529,8 +43529,8 @@
           "order": 5
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-25T09:12:38.746Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-11-01T10:14:53.395Z"
     },
     "anilist-190704": {
       "anilistId": 190704,
@@ -150386,8 +150386,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 24,
-      "nextAiringAt": 1793520000000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794124800000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [
         {
           "anilistId": 134732,
@@ -150412,8 +150412,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-25T09:09:54.513Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-01T10:11:39.840Z"
     },
     "anilist-101571": {
       "anilistId": 101571,
@@ -171314,8 +171314,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1793453400000,
-      "nextAiringEpisodeNumber": 6,
+      "nextAiringAt": 1794058200000,
+      "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [
         {
           "anilistId": 180523,
@@ -171340,8 +171340,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-10-24T13:42:39.465Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-10-31T13:40:18.464Z"
     },
     "anilist-186497": {
       "anilistId": 186497,
@@ -171430,11 +171430,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793464200000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794069000000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-24T18:35:28.800Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-10-31T18:14:26.751Z"
     },
     "animeav1-ranma-2024-3rd-season": {
       "anilistId": 209872,
@@ -171442,8 +171442,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793462160000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794066960000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [
         {
           "anilistId": 178533,
@@ -171479,8 +171479,8 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-24T17:33:45.029Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-10-31T17:16:25.189Z"
     },
     "animeav1-magicalexplorer": {
       "anilistId": 169581,
@@ -171488,11 +171488,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1793458800000,
-      "nextAiringEpisodeNumber": 6,
+      "nextAiringAt": 1794063600000,
+      "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-10-24T16:42:51.005Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-10-31T16:45:20.913Z"
     },
     "animeav1-vertex-force": {
       "anilistId": 209562,
@@ -171500,11 +171500,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793457000000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794061800000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-24T16:09:03.084Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-10-31T16:08:00.758Z"
     },
     "animeav1-black-clover-2nd-season": {
       "anilistId": 195604,
@@ -171512,8 +171512,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1793455200000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794060000000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [
         {
           "anilistId": 97940,
@@ -171538,8 +171538,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-24T15:17:35.509Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-10-31T15:11:22.481Z"
     },
     "animeav1-marronnier-oukoku-no-shichinin-no-kishi": {
       "anilistId": 212799,
@@ -171550,8 +171550,8 @@
       "nextAiringAt": 1794043500000,
       "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-24T15:19:26.191Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-10-31T15:17:37.067Z"
     },
     "animeav1-zombie-sagashitemasu": {
       "anilistId": 199007,
@@ -171559,23 +171559,46 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1793457000000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794666600000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-24T15:18:37.782Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-10-31T15:11:48.601Z"
     },
     "animeav1-romelia-senki": {
       "anilistId": 180894,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
-      "anilistEpisodeCount": 24,
+      "anilistEpisodeCount": 12,
       "nextAiringAt": 1794052800000,
       "nextAiringEpisodeNumber": 6,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-24T13:14:52.834Z"
+      "franchiseSeasons": [
+        {
+          "anilistId": 180894,
+          "title": "Romelia Senki: Maou wo Taoshita nochi mo Jinrui Yabasou dakara Guntai Soshiki Shita",
+          "format": "ONA",
+          "status": "RELEASING",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1790985600000,
+          "order": 1
+        },
+        {
+          "anilistId": 219243,
+          "title": "Romelia Senki: Maou wo Taoshita nochi mo Jinrui Yabasou dakara Guntai Soshiki Shita Part II",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": 12,
+          "season": "SPRING",
+          "seasonYear": 2027,
+          "startedAt": 1806537600000,
+          "order": 2
+        }
+      ],
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-10-31T13:10:15.349Z"
     },
     "animeav1-tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu": {
       "anilistId": 187402,
@@ -171583,11 +171606,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793451600000,
-      "nextAiringEpisodeNumber": 6,
+      "nextAiringAt": 1794056400000,
+      "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-10-24T13:15:57.490Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-10-31T13:12:18.371Z"
     },
     "animeav1-seitokai-ni-mo-ana-wa-aru": {
       "anilistId": 191656,
@@ -171595,11 +171618,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1793460600000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794065400000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-24T20:05:04.239Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-10-31T19:31:36.483Z"
     },
     "anilist-21": {
       "anilistId": 21,
@@ -237262,8 +237285,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 24,
-      "nextAiringAt": 1793520000000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794124800000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [
         {
           "anilistId": 134732,
@@ -237288,8 +237311,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-25T09:09:54.513Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-01T10:11:39.840Z"
     },
     "animeav1-ao-no-hako-season-2": {
       "anilistId": 189123,
@@ -237415,8 +237438,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1793536200000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794141000000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 4,
       "lastEpisodeAt": "2026-10-25T14:10:54.495Z"
@@ -240864,8 +240887,8 @@
       "nextAiringAt": 1794040200000,
       "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-24T12:27:32.743Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-31T13:06:04.512Z"
     },
     "animeav1-kyoufu-collector": {
       "anilistId": 203473,
@@ -240876,8 +240899,8 @@
       "nextAiringAt": 1794062700000,
       "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-24T17:36:53.803Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-10-31T17:29:40.313Z"
     },
     "animeav1-diamond-no-ace-act-ii-second-season-part-2": {
       "anilistId": 213658,
@@ -240885,8 +240908,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793521800000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1794126600000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 18689,
@@ -240944,8 +240967,8 @@
           "order": 5
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-25T09:12:38.746Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-11-01T10:14:53.395Z"
     },
     "animeav1-yozakura-san-chi-no-daisakusen-2nd-season-part-2": {
       "anilistId": 213657,
@@ -240953,8 +240976,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793520000000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1794124800000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 158898,
@@ -240990,8 +241013,8 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-25T08:48:01.389Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-11-01T09:35:49.734Z"
     },
     "anilist-166062": {
       "anilistId": 166062,
@@ -242688,6 +242711,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b157175-hthvVQjMgXig.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/157175-o6HrhdxkELHh.jpg"
     },
+    "anilist-219255": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx219255-alDXwkIelN4D.jpg",
+      "anilistBanner": ""
+    },
     "anilist-180136": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx180136-gtMTCRlOD4OE.jpg",
       "anilistBanner": ""
@@ -243463,6 +243490,10 @@
     "anilist-207083": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx207083-iCaqg4QnELfH.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/207083-rXwPMxHTmUaD.jpg"
+    },
+    "anilist-219256": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx219256-lAj5lmdlFV4L.jpg",
+      "anilistBanner": ""
     },
     "anilist-202381": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx202381-bxgyUXGtGtZj.jpg",
@@ -249599,6 +249630,10 @@
     "anilist-171099": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx171099-JexoHylkSZ6r.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/171099-10pR2uCW5Kah.jpg"
+    },
+    "anilist-219282": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx219282-GGsicK5XZMBy.jpg",
+      "anilistBanner": ""
     },
     "anilist-156001": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx156001-jyZ4wEXCaZgL.jpg",
@@ -273608,6 +273643,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20661-aCR7QgzDfOSI.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20661-JwMKrCzeSTZ7.png"
     },
+    "anilist-96734": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/96734-fwin643QsKdu.jpg",
+      "anilistBanner": ""
+    },
     "anilist-99916": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx99916-1GGvAujPHu6F.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/99916-A1CqNrdSMHM4.jpg"
@@ -274874,7 +274913,7 @@
     },
     "anilist-180894": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx180894-o3pz4DWFm3je.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/180894-NHYBUhwfDZGg.jpg"
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/180894-msSUHJ5Qejvf.jpg"
     },
     "anilist-146402": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx146402-Dydo2p6FiHeV.jpg",
@@ -274882,6 +274921,10 @@
     },
     "anilist-146403": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx146403-nfS49k3y27Aa.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-219243": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx219243-o9iT7Rl7vB4k.png",
       "anilistBanner": ""
     },
     "anilist-187316": {
