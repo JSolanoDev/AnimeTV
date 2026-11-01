@@ -2031,8 +2031,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/dragon-ball-super-beerus",
-      "totalEpisodes": 3,
-      "episode": 3,
+      "totalEpisodes": 4,
+      "episode": 4,
       "lastScrapedAt": "2026-11-01T12:16:30.326350+00:00",
       "episodes": [
         {
@@ -2148,16 +2148,18 @@
       "sourceEpisodeIds": [
         1,
         2,
-        3
+        3,
+        4
       ],
-      "sourceEpisodeCount": 3,
-      "sourcePlayableEpisodeCount": 3,
+      "sourceEpisodeCount": 4,
+      "sourcePlayableEpisodeCount": 4,
       "sourceDeclaredEpisodeCount": 3,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-01T12:23:56.868Z",
-      "lastEpisodeAt": "2026-10-25T17:31:01.187Z",
-      "latestAiredEp": 3
+      "sourceInventoryCheckedAt": "2026-11-01T19:08:09.212Z",
+      "lastEpisodeAt": "2026-11-01T17:08:09.181Z",
+      "latestAiredEp": 4,
+      "sourceInventoryRetainedEpisodeCount": 3
     },
     {
       "id": "animeav1-shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku",
@@ -2182,8 +2184,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku",
-      "totalEpisodes": 3,
-      "episode": 3,
+      "totalEpisodes": 4,
+      "episode": 4,
       "lastScrapedAt": "2026-11-01T12:16:30.327250+00:00",
       "episodes": [
         {
@@ -2299,16 +2301,18 @@
       "sourceEpisodeIds": [
         1,
         2,
-        3
+        3,
+        4
       ],
-      "sourceEpisodeCount": 3,
-      "sourcePlayableEpisodeCount": 3,
+      "sourceEpisodeCount": 4,
+      "sourcePlayableEpisodeCount": 4,
       "sourceDeclaredEpisodeCount": 3,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-01T12:23:56.868Z",
-      "lastEpisodeAt": "2026-10-25T14:49:01.187Z",
-      "latestAiredEp": 3
+      "sourceInventoryCheckedAt": "2026-11-01T19:08:09.212Z",
+      "lastEpisodeAt": "2026-11-01T15:08:09.181Z",
+      "latestAiredEp": 4,
+      "sourceInventoryRetainedEpisodeCount": 3
     },
     {
       "id": "animeav1-diamond-no-ace-act-ii-second-season-part-2",
@@ -47917,8 +47921,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/dark-summoner-to-dekiteiru",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-11-01T12:17:27.964853+00:00",
       "episodes": [],
       "seasons": [],
@@ -47931,16 +47935,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-01T12:23:56.868Z",
-      "latestAiredEp": 4,
-      "lastEpisodeAt": "2026-10-25T17:32:01.186Z"
+      "sourceInventoryCheckedAt": "2026-11-01T19:08:09.212Z",
+      "latestAiredEp": 5,
+      "lastEpisodeAt": "2026-11-01T18:08:09.180Z",
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-dogulwang",
@@ -87645,8 +87651,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/hotel-inhumans-2nd-season",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-11-01T12:18:21.033474+00:00",
       "episodes": [
         {
@@ -87699,16 +87705,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-01T12:23:56.868Z",
-      "latestAiredEp": 4,
-      "lastEpisodeAt": "2026-10-25T15:49:01.187Z"
+      "sourceInventoryCheckedAt": "2026-11-01T19:08:09.212Z",
+      "latestAiredEp": 5,
+      "lastEpisodeAt": "2026-11-01T15:08:09.181Z",
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-hanaori-san-wa-tensei-shitemo-kenka-ga-shitai",
@@ -110979,8 +110987,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/kanata-kara",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-11-01T12:18:53.830612+00:00",
       "episodes": [
         {
@@ -111033,16 +111041,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-01T12:23:56.868Z",
-      "latestAiredEp": 4,
-      "lastEpisodeAt": "2026-10-25T15:49:01.187Z"
+      "sourceInventoryCheckedAt": "2026-11-01T19:08:09.212Z",
+      "latestAiredEp": 5,
+      "lastEpisodeAt": "2026-11-01T16:08:09.181Z",
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-kashita-maryoku-wa-revo-barai-de-kyousei-choushuu",
@@ -217099,8 +217109,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/tank-chair",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-11-01T12:21:20.435573+00:00",
       "episodes": [
         {
@@ -217153,16 +217163,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-01T12:23:56.868Z",
-      "latestAiredEp": 4,
-      "lastEpisodeAt": "2026-10-25T14:49:01.187Z"
+      "sourceInventoryCheckedAt": "2026-11-01T19:08:09.212Z",
+      "latestAiredEp": 5,
+      "lastEpisodeAt": "2026-11-01T15:08:09.181Z",
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu",
@@ -217566,8 +217578,8 @@
       "score": 69,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/tensei-kizoku-kantei-skill-de-nariagaru-3rd-season",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-01T12:21:20.440002+00:00",
       "episodes": [
         {
@@ -217621,16 +217633,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-11-01T12:23:56.868Z",
+      "sourceInventoryCheckedAt": "2026-11-01T19:08:09.212Z",
       "sourceInventoryPartial": false,
-      "latestAiredEp": 5,
-      "lastEpisodeAt": "2026-10-25T15:49:01.187Z"
+      "latestAiredEp": 6,
+      "lastEpisodeAt": "2026-11-01T15:08:09.181Z",
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-tempal-item-no-chikara",
@@ -217653,8 +217667,8 @@
       "score": 72,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/tempal-item-no-chikara",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-01T12:21:20.440786+00:00",
       "episodes": [
         {
@@ -217708,16 +217722,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-11-01T12:23:56.868Z",
+      "sourceInventoryCheckedAt": "2026-11-01T19:08:09.212Z",
       "sourceInventoryPartial": false,
-      "latestAiredEp": 5,
-      "lastEpisodeAt": "2026-10-25T14:49:01.187Z"
+      "latestAiredEp": 6,
+      "lastEpisodeAt": "2026-11-01T15:08:09.181Z",
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-the-ribbon-hero",
@@ -241954,8 +241970,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/yowaki-max-reijou-nanoni-ratsuwan-konyakusha-sama-no-kake-ni-notte-shimatta",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-11-01T12:21:55.856004+00:00",
       "episodes": [
         {
@@ -242008,16 +242024,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-01T12:23:56.868Z",
-      "latestAiredEp": 4,
-      "lastEpisodeAt": "2026-10-25T14:49:01.187Z"
+      "sourceInventoryCheckedAt": "2026-11-01T19:08:09.212Z",
+      "latestAiredEp": 5,
+      "lastEpisodeAt": "2026-11-01T15:08:09.181Z",
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-yasei-no-last-boss-ga-arawareta-2nd-season",
