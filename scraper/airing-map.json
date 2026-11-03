@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-02T21:53:54.163Z",
+  "generatedAt": "2026-11-03T13:54:43.405Z",
   "count": 6675,
   "entries": {
     "animeav1-one-piece": {
@@ -221454,8 +221454,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793638800000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794243600000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [
         {
           "anilistId": 21340,
@@ -221480,8 +221480,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-27T12:18:37.223Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-02T20:51:09.669Z"
     },
     "anilist-457": {
       "anilistId": 457,
@@ -239560,8 +239560,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-27T12:18:37.223Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-02T20:51:09.669Z"
     },
     "anilist-206244": {
       "anilistId": 206244,
@@ -240241,11 +240241,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1793710800000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794315600000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-27T13:46:20.139Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-03T13:48:38.145Z"
     },
     "animeav1-kyouran-reijou-nia-liston-byoujaku-reijou-ni-tensei-shita-kamigoroshi-no-bujin-no-karei-naru-musouroku": {
       "anilistId": 206949,
@@ -240253,8 +240253,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 25,
-      "nextAiringAt": 1793708760000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794313560000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 4,
       "lastEpisodeAt": "2026-10-27T15:36:57.928Z"
@@ -247119,16 +247119,16 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx184814-Cjuu0pRB9kWP.png",
       "anilistBanner": ""
     },
-    "anilist-199152": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx199152-ZCGBsqRQ5qbC.jpg",
-      "anilistBanner": ""
-    },
     "anilist-203892": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx203892-IBtKNXYfU2X0.jpg",
       "anilistBanner": ""
     },
     "anilist-206731": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx206731-3J1mUgyPKBn6.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-199152": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx199152-G25rz6ebaBn6.jpg",
       "anilistBanner": ""
     },
     "anilist-94490": {
