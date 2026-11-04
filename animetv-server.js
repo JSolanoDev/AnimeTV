@@ -13812,19 +13812,22 @@ async function handleTmdbSearch(url, response) {
   const cached = tmdbSearchCache.get(cacheKey);
   try {
     if (cached && Date.now() - cached.ts < TMDB_CACHE_TTL_MS) {
-      return sendJson(response, { ok: true, configured: true, cached: true, results: cached.data }, 200, TMDB_SEARCH_CACHE_HEADERS);
+      return sendJson(response, { ok: true, configured: true, cached: true, results: cached.data,
+        ...(cached.yearFallbackApplied ? { yearFallbackApplied: true } : {}) }, 200, TMDB_SEARCH_CACHE_HEADERS);
     }
     const wantMovie = String(url.searchParams.get("type") || "").toLowerCase() === "movie";
-    const sliced = await coalesceInflight(tmdbInflight, `search:${cacheKey}`, async () => {
+    const searchResult = await coalesceInflight(tmdbInflight, `search:${cacheKey}`, async () => {
       const route = wantMovie ? "/search/movie" : "/search/tv";
       const yearKey = wantMovie ? "primary_release_year" : "first_air_date_year";
       const params = { query, include_adult: includeAdult ? "true" : "false", language: "en-US" };
       if (year) params[yearKey] = year;
       let payload = await tmdbFetch(route, params);
       let results = Array.isArray(payload.results) ? payload.results : [];
+      let yearFallbackApplied = false;
       if (year && !results.length) {
         const fallbackParams = { query, include_adult: includeAdult ? "true" : "false", language: "en-US" };
         payload = await tmdbFetch(route, fallbackParams);
+        yearFallbackApplied = true;
         results = Array.isArray(payload.results) ? payload.results : [];
       }
       // A movie result carries title/original_title/release_date. Alias them to the
@@ -13832,10 +13835,11 @@ async function handleTmdbSearch(url, response) {
       const found = results.slice(0, 10).map((r) => (wantMovie
         ? { ...r, name: r.name || r.title, original_name: r.original_name || r.original_title, first_air_date: r.first_air_date || r.release_date, media_type: "movie" }
         : r));
-      tmdbSearchCache.set(cacheKey, { data: found, ts: Date.now() });
-      return found;
+      tmdbSearchCache.set(cacheKey, { data: found, ts: Date.now(), yearFallbackApplied });
+      return { results: found, yearFallbackApplied };
     });
-    sendJson(response, { ok: true, configured: true, results: sliced }, 200, TMDB_SEARCH_CACHE_HEADERS);
+    sendJson(response, { ok: true, configured: true, results: searchResult.results,
+      ...(searchResult.yearFallbackApplied ? { yearFallbackApplied: true } : {}) }, 200, TMDB_SEARCH_CACHE_HEADERS);
   } catch (error) {
     log("warn", "TMDB search failed", {
       query,

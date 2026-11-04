@@ -966,7 +966,12 @@ const ImageResolver = (function () {
             `/api/tmdb/search?q=${encodeURIComponent(title)}${mediaType}${year ? `&year=${encodeURIComponent(year)}` : ""}`,
             12000
           );
-          if ((!payload || !payload.results || !payload.results.length) && year) {
+          // The current proxy already retries without the year. Only trust an
+          // explicit successful fresh response; older/error/stale APIs retain
+          // the existing client fallback and movie-to-TV lookup below.
+          const searchedWithoutYear = payload?.ok === true && payload.configured === true
+            && payload.yearFallbackApplied === true && !payload.stale;
+          if ((!payload || !payload.results || !payload.results.length) && year && !searchedWithoutYear) {
             payload = await fetchMetadataJson(
               `/api/tmdb/search?q=${encodeURIComponent(title)}${mediaType}`,
               12000

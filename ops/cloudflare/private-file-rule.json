@@ -1,0 +1,7 @@
+{
+  "action": "block",
+  "enabled": true,
+  "description": "ZenkaiTV: block private .env/.git probes before SPA fallback",
+  "ref": "zenkaitv_private_file_probe_guard",
+  "expression": "(http.host in {\"zenkaitv.com\" \"www.zenkaitv.com\"} and (lower(http.request.uri.path) contains \"/.env\" or lower(http.request.uri.path) contains \"/.git/\" or ends_with(lower(http.request.uri.path), \"/.git\")))"
+}
