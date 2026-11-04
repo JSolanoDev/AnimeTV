@@ -1321,6 +1321,7 @@ function clientPlaybackCooldownHarness(fetchImpl) {
     writeEpisodeSourcePayloadCache: (map, key, value) => { map.set(key, value); return value; },
     fetchWithTimeout: async (...args) => { calls.push(args); return fetchImpl(...args); }
   });
+  vm.runInContext(section(client, "const episodeSourceMissUntil =", "function readEpisodeSourcePayloadCache("), context);
   vm.runInContext(section(client, "const playbackProviderRetryAt =", "function animeNeonSearchCandidates("), context);
   vm.runInContext(section(client, "function animeNeonEpisodeSourceCacheKey(", "async function attachAnimeNeonSources("), context);
   vm.runInContext(section(client, "function fetchJKAnimeEpisodeSourcePayload(", "async function attachJKAnimeSources("), context);

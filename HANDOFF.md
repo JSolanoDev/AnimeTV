@@ -2,7 +2,15 @@
 
 Read this first; update it before stopping. Rules live in AGENTS.md.
 
-## Current Task: November4 Security and Performance
+## Current Task: Provider Reliability and Analytics CSP (November4)
+- User requested fixing JKAnime/TioAnime errors and analytics CSP warning without weakening security/playback. Isolated AnimeTV-provider-reliability, codex/provider-analytics-reliability, base production1207ed76661362e2a1c4350bc27142744c686126/v1031. Other WIP preserved.
+- LIVE narrow analytics repair: existing Cloudflare RUM ruleset enabled=false, retained auto_install/lite/site history. Apex/www HTTPS200 without beacon injection; enforced CSP hash unchanged. No other production config/app deployment for this task.
+- LOCAL v1032: classify genuine TioAnime absence vs upstream/parser failures, no-store Retry-After/cooldown, stale good fallback, bounded per-episode JK/Tio miss suppression/manual refresh, only promote usable Tio slug. Existing sources, security and player/Cast/HLS behavior preserved.28 mirrors synchronized.
+-21 new regressions, full npm test/check/lint/build/hash verification,124 API/Cloudflare contracts and5 release tests PASS.15 Windows/Linux-only skips; no remote CI yet. Actual local OnePiece904 1080p decode and300->302.05seek PASS; bounded fixture confirms one request/provider then refresh recovery. No whole-catalog or hardware guarantee.
+- External JK upstream403 and Tio missing-main-series404 remain true provider availability limits, never converted to fake success. Local default CSP Vercel script warning is pre-existing; fresh production apex/www show no analytics CSP error.
+- Exact review-branch triggers/no-hosted-deploy guard prepared. No push/main promotion/new app deployment authorized or executed for this candidate. Request CI-only push after local review; then verify general+Linux/Docker before separate production approval. Full evidence/rollback/limits: docs/provider-analytics-reliability.md and private .cache/*.log / analytics-final.json. Preserve current v1031 Worker/backend pair.
+
+## Historical: November4 Security and Performance
 - Human approved committing/pushing this exact reviewed branch for CI-only validation. Verify remote SHA/tree and general plus Linux/Docker jobs. No main promotion, application deployment, new production configuration change or additional WAF edit authorized by this follow-up.
 - User requested fixing the Cloudflare bot alert and safely optimizing the live page. New isolated AnimeTV-security-performance, codex/security-performance-nov4, fresh origin/main48556995b6daa03f930b126c26ad1517c67a08c6. Other checkouts/WIP/UI experiment preserved. No commit/push/app deployment.
 - Confirmed Free Website zone, Bot Fight Mode already enabled. No plan/credential/capacity/CSP/security weakening. November2 total7506requests, not118% more overall traffic. Adaptive data: heavy TMDB search and nested.env probes returning SPA HTML200; no evidence of exposed env values. Bot-score and firewall-event analytics access limited; no raw clients/IPs/secrets gathered.

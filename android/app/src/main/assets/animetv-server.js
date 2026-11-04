@@ -7629,46 +7629,62 @@ async function handleTioAnimeSources(url, response) {
     return;
   }
 
-  // Cache so the same slug+episode isn't fetched on every source-picker open
   const cacheKey = `${slug}:${episode}`;
-  const cached   = tioAnimeSourceCache.get(cacheKey);
+  const cached = tioAnimeSourceCache.get(cacheKey);
   const cachedTtl = cached?.data?.ok ? TIOANIME_CACHE_TTL_MS : TIOANIME_MISS_CACHE_TTL_MS;
-  if (!forceRefresh && cached && Date.now() - cached.ts < cachedTtl) {
-    const status = cached.data.ok ? 200 : 404;
-    sendJson(response, cached.data, status, cached.data.ok ? REGULAR_SOURCE_SUCCESS_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS);
+  // Only verified absence may use the short public miss cache. Outages and
+  // unrecognized provider pages must never become cached missing episodes.
+  if (!forceRefresh && cached && (cached.data.ok || cached.data.notFound)
+    && Date.now() - cached.ts < cachedTtl) {
+    sendJson(response, cached.data, cached.data.ok ? 200 : 404,
+      cached.data.ok ? REGULAR_SOURCE_SUCCESS_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS);
     return;
   }
 
   try {
     const inflightKey = forceRefresh ? `${cacheKey}:refresh` : cacheKey;
-    const result = await coalesceInflight(tioAnimeSourceInflight, inflightKey, async () => {
+    const { data, status } = await coalesceInflight(tioAnimeSourceInflight, inflightKey, async () => {
+      const cooldown = playbackProviderCooldownError("tioanime");
+      if (cooldown) throw cooldown;
       try {
         const data = await fetchTioAnimeEpisodeSourcesDirect(slug, episode);
-        return { data, status: data.ok ? 200 : 404 };
+        return { data, status: data.notFound ? 404 : 200 };
       } catch (err) {
         if (!HOSTED_RUNTIME && !isLoopbackUrl(TIOANIME_SERVICE)) {
           const upstream = await fetchWithTimeout(
             `${TIOANIME_SERVICE}/api/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(episode)}`,
             {}, 9000
           );
-          return { data: await upstream.json(), status: upstream.status };
+          if (!upstream.ok && upstream.status !== 404 && upstream.status !== 410) {
+            throw upstreamHttpError("TioAnime service", upstream);
+          }
+          const data = await upstream.json();
+          if (upstream.status === 404 || upstream.status === 410) {
+            return { data: { ...data, ok: false, notFound: true, upstreamStatus: upstream.status, sources: [] }, status: 404 };
+          }
+          return { data, status: 200 };
         }
         throw err;
       }
     });
-    const { data, status } = result;
-    tioAnimeSourceCache.set(cacheKey, { data, ts: Date.now() });
-    sendJson(response, data, status, forceRefresh
+    if (data.ok || data.notFound) tioAnimeSourceCache.set(cacheKey, { data, ts: Date.now() });
+    sendJson(response, data, status, forceRefresh || (!data.ok && !data.notFound)
       ? SOURCE_REFRESH_CACHE_HEADERS
       : (data.ok ? REGULAR_SOURCE_SUCCESS_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS));
   } catch (err) {
+    const retryAfterMs = recordPlaybackProviderFailure("tioanime", err);
+    if (cached?.data?.ok) {
+      sendJson(response, { ...cached.data, stale: true }, 200, SOURCE_REFRESH_CACHE_HEADERS);
+      return;
+    }
     sendJson(response, {
-      ok: false,
+      ok: false, notFound: false,
       error: "TioAnime sources unavailable.",
       detail: err.message,
-      slug,
-      episode
-    }, 503, forceRefresh ? SOURCE_REFRESH_CACHE_HEADERS : REGULAR_SOURCE_MISS_CACHE_HEADERS);
+      upstreamStatus: Number(err.status) || undefined,
+      retryAfterMs, slug, episode, sources: []
+    }, 503, { ...SOURCE_REFRESH_CACHE_HEADERS,
+      ...(retryAfterMs ? { "Retry-After": String(Math.ceil(retryAfterMs / 1000)) } : {}) });
   }
 }
 
@@ -7743,11 +7759,16 @@ async function fetchTioAnimeEpisodeSourcesDirect(slug, episode) {
   }
   const episodeUrl = `${TIOANIME_BASE}/ver/${encodeURIComponent(safeSlug)}-${epNum}`;
   const upstream = await fetchWithTimeout(episodeUrl, { headers: TIOANIME_HEADERS }, 9000);
-  if (!upstream.ok) {
-    return { ok: false, error: `TioAnime episode page returned HTTP ${upstream.status}.`, sources: [] };
+  if (upstream.status === 404 || upstream.status === 410) {
+    return { ok: false, notFound: true, upstreamStatus: upstream.status,
+      error: `TioAnime episode page returned HTTP ${upstream.status}.`, sources: [] };
   }
+  if (!upstream.ok) throw upstreamHttpError("TioAnime episode", upstream);
   const html = await upstream.text();
   const sources = parseTioAnimeVideoSources(html, episodeUrl);
+  if (!sources.length) {
+    throw Object.assign(new Error("TioAnime episode source data unavailable."), { status: 502 });
+  }
   const playableSources = sources.filter((source) => {
     const prov = String(source.provider).toLowerCase();
     const url = String(source.url).toLowerCase();

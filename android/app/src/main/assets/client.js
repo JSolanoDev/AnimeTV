@@ -5135,7 +5135,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1031";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1032";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -15105,6 +15105,28 @@ const CAST_BACKUP_PREPARE_TIMEOUT_MS = 6000;
 const CAST_ANIMEAV1_PREPARE_TIMEOUT_MS = 7500;
 const CAST_EMBED_RESOLVE_TIMEOUT_MS = 5000;
 const EPISODE_SOURCE_PAYLOAD_TTL_MS = 5 * 60 * 1000;
+const episodeSourceMissUntil = new Map();
+const EPISODE_SOURCE_MISS_TTL_MS = 60 * 1000;
+
+function episodeSourceRecentlyMissing(provider, key, forceRefresh = false) {
+  const missKey = `${provider}:${key}`;
+  const until = episodeSourceMissUntil.get(missKey) || 0;
+  if (forceRefresh || until <= Date.now()) {
+    episodeSourceMissUntil.delete(missKey);
+    return false;
+  }
+  return true;
+}
+
+function rememberEpisodeSourceMiss(provider, key, response) {
+  if (response.status !== 404 && response.status !== 410) return;
+  const missKey = `${provider}:${key}`;
+  episodeSourceMissUntil.delete(missKey);
+  episodeSourceMissUntil.set(missKey, Date.now() + EPISODE_SOURCE_MISS_TTL_MS);
+  if (episodeSourceMissUntil.size > 1000) {
+    episodeSourceMissUntil.delete(episodeSourceMissUntil.keys().next().value);
+  }
+}
 
 function readEpisodeSourcePayloadCache(cache, key) {
   const entry = cache.get(key);
@@ -18218,10 +18240,6 @@ async function attachTioAnimeSources(show, episode, options = {}) {
   const slug = verifiedFallback?.providerAnimeSlug
     || show.tioAnimeSlug
     || animeAv1CatalogSlugForShow(show);
-  if (slug && !show.tioAnimeSlug) {
-    show.tioAnimeSlug = slug;
-    show.tioAnimeSlugSource = verifiedFallback ? "verified-release-fallback" : "animeav1-slug-fallback";
-  }
   if (!slug) {
     episode.tioAnimeSourcesChecked = true;
     return;
@@ -18233,17 +18251,18 @@ async function attachTioAnimeSources(show, episode, options = {}) {
   }
   const cacheKey = `${slug}:${epNum}`;
   const forceRefresh = Boolean(options.forceRefresh);
-  const cached = forceRefresh ? null : readEpisodeSourcePayloadCache(_tioAnimeEpisodeSourceCache, cacheKey);
-  if (cached) {
+  const cached = readEpisodeSourcePayloadCache(_tioAnimeEpisodeSourceCache, cacheKey);
+  const coolingDown = tioAnimeIsDown() || playbackProviderIsCoolingDown("tioanime");
+  if (cached && (!forceRefresh || coolingDown)) {
     mergeTioAnimeSourcesIntoEpisode(show, episode, cached, slug, epNum);
     episode.tioAnimeSourcesChecked = true;
     return;
   }
-  if (forceRefresh) _tioAnimeEpisodeSourceCache.delete(cacheKey);
-  if (tioAnimeIsDown()) {
+  if (episodeSourceRecentlyMissing("tioanime", cacheKey, forceRefresh) || coolingDown) {
     episode.tioAnimeSourcesChecked = true;
     return;
   }
+  if (forceRefresh) _tioAnimeEpisodeSourceCache.delete(cacheKey);
   try {
     const inflightKey = forceRefresh ? `${cacheKey}:refresh` : cacheKey;
     let lookup = _tioAnimeEpisodeSourceInflight.get(inflightKey);
@@ -18253,6 +18272,8 @@ async function attachTioAnimeSources(show, episode, options = {}) {
         { cache: forceRefresh ? "no-store" : "default" }, TIOANIME_SOURCE_TIMEOUT_MS
       ).then(async (res) => {
         if (!res.ok) {
+          rememberEpisodeSourceMiss("tioanime", cacheKey, res);
+          deferPlaybackProviderOnFailure("tioanime", res);
           if (res.status >= 500) markTioAnimeDown();
           return null;
         }
@@ -18329,6 +18350,10 @@ function mergeTioAnimeSourcesIntoEpisode(show, episode, data, slug, epNum) {
     .sort((a, b) => a.sourceRank - b.sourceRank);
 
   if (newOptions.length > 0) {
+    if (show && !show.tioAnimeSlug) {
+      show.tioAnimeSlug = slug;
+      show.tioAnimeSlugSource = "validated-episode-source";
+    }
     episode.sourceOptions = [...(episode.sourceOptions || []), ...newOptions];
     episode.locked = false;
     episode.server = episode.server || "TioAnime";
@@ -19117,7 +19142,7 @@ function fetchJKAnimeEpisodeSourcePayload(slug, epNum, options = {}) {
   const cached = readEpisodeSourcePayloadCache(_jkAnimeEpisodeSourceCache, cacheKey);
   const coolingDown = playbackProviderIsCoolingDown("jkanime");
   if (cached && (!forceRefresh || coolingDown)) return Promise.resolve(cached);
-  if (coolingDown) return Promise.resolve(null);
+  if (episodeSourceRecentlyMissing("jkanime", cacheKey, forceRefresh) || coolingDown) return Promise.resolve(null);
   if (forceRefresh) _jkAnimeEpisodeSourceCache.delete(cacheKey);
   const inflightKey = forceRefresh ? `${cacheKey}:refresh` : cacheKey;
   let lookup = _jkAnimeEpisodeSourceInflight.get(inflightKey);
@@ -19127,6 +19152,7 @@ function fetchJKAnimeEpisodeSourcePayload(slug, epNum, options = {}) {
       { cache: forceRefresh ? "no-store" : "default" }, JKANIME_SOURCE_TIMEOUT_MS
     ).then(async (res) => {
       if (!res.ok) {
+        rememberEpisodeSourceMiss("jkanime", cacheKey, res);
         deferPlaybackProviderOnFailure("jkanime", res);
         return null;
       }
@@ -24572,7 +24598,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1031");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1032");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
