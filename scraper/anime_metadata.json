@@ -3919,8 +3919,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/kikansha-no-mahou-wa-tokubetsu-desu-2nd-season",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-11-04T13:27:02.474077+00:00",
       "episodes": [
         {
@@ -4069,16 +4069,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-04T13:34:25.889Z",
-      "lastEpisodeAt": "2026-10-28T17:48:55.415Z",
-      "latestAiredEp": 4
+      "sourceInventoryCheckedAt": "2026-11-04T22:07:41.684Z",
+      "lastEpisodeAt": "2026-11-04T17:07:41.658Z",
+      "latestAiredEp": 5,
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-juuou-mujin-dandivine",
@@ -4101,8 +4103,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/juuou-mujin-dandivine",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-11-04T13:27:02.474649+00:00",
       "episodes": [
         {
@@ -4251,16 +4253,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-04T13:34:25.889Z",
-      "lastEpisodeAt": "2026-10-28T17:48:55.416Z",
-      "latestAiredEp": 4
+      "sourceInventoryCheckedAt": "2026-11-04T22:07:41.684Z",
+      "lastEpisodeAt": "2026-11-04T17:07:41.658Z",
+      "latestAiredEp": 5,
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-magic-knight-rayearth-2026",
@@ -189570,8 +189574,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-04T13:31:09.437796+00:00",
       "episodes": [
         {
@@ -189625,16 +189629,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-11-04T13:34:25.889Z",
+      "sourceInventoryCheckedAt": "2026-11-04T22:07:41.684Z",
       "sourceInventoryPartial": false,
-      "latestAiredEp": 5,
-      "lastEpisodeAt": "2026-10-28T16:48:55.416Z"
+      "latestAiredEp": 6,
+      "lastEpisodeAt": "2026-11-04T16:07:41.659Z",
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-shiguang-dailiren-iii",
@@ -217693,8 +217699,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/tensei-shitara-ken-deshita-ii",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-04T13:31:46.024461+00:00",
       "episodes": [
         {
@@ -217748,16 +217754,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-11-04T13:34:25.889Z",
+      "sourceInventoryCheckedAt": "2026-11-04T22:07:41.684Z",
       "sourceInventoryPartial": false,
-      "latestAiredEp": 5,
-      "lastEpisodeAt": "2026-10-28T17:48:55.415Z"
+      "latestAiredEp": 6,
+      "lastEpisodeAt": "2026-11-04T17:07:41.659Z",
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-tensei-kizoku-kantei-skill-de-nariagaru-3rd-season",
