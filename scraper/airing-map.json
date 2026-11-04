@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-03T19:45:54.802Z",
+  "generatedAt": "2026-11-04T14:09:21.039Z",
   "count": 6675,
   "entries": {
     "animeav1-one-piece": {
@@ -807,8 +807,8 @@
       "nextAiringAt": 1794328500000,
       "nextAiringEpisodeNumber": 19,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 17,
-      "lastEpisodeAt": "2026-10-27T17:53:17.407Z"
+      "sourceEpisodeCount": 18,
+      "lastEpisodeAt": "2026-11-03T18:06:45.243Z"
     },
     "animeav1-tefuda-ga-oome-no-victoria": {
       "anilistId": 198709,
@@ -35152,8 +35152,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 11,
-      "nextAiringAt": 1793714400000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1794319200000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 180082,
@@ -35178,8 +35178,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-27T16:42:19.166Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-11-03T16:43:13.278Z"
     },
     "anilist-175019": {
       "anilistId": 175019,
@@ -49353,8 +49353,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1793797200000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794402000000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [
         {
           "anilistId": 152682,
@@ -49379,8 +49379,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-28T13:10:10.258Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-04T13:18:20.629Z"
     },
     "anilist-162780": {
       "anilistId": 162780,
@@ -166027,8 +166027,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1793795400000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794400200000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [
         {
           "anilistId": 128712,
@@ -166053,8 +166053,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-28T13:52:05.260Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-04T13:37:28.898Z"
     },
     "anilist-120120": {
       "anilistId": 120120,
@@ -171418,11 +171418,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 23,
-      "nextAiringAt": 1793716200000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794321000000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-27T17:20:03.528Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-03T16:39:34.037Z"
     },
     "animeav1-kashita-maryoku-wa-revo-barai-de-kyousei-choushuu": {
       "anilistId": 202250,
@@ -240232,8 +240232,8 @@
       "nextAiringAt": 1794319200000,
       "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-27T14:53:54.562Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-03T14:48:31.683Z"
     },
     "animeav1-shiotaiou-no-satou-san-ga-ore-ni-dake-amai": {
       "anilistId": 209502,
@@ -240256,8 +240256,8 @@
       "nextAiringAt": 1794313560000,
       "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-27T15:36:57.928Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-03T15:15:58.108Z"
     },
     "animeav1-tsuihou-sareta-cheat-fuyo-majutsushi-wa-kimama-na-second-life-wo-ouka-suru-ore-wa-buki-dake-ja-naku-arayuru-mono-ni-kyouka-point-wo-fuyo-dekiru-shi-ore-no-ishi-de-itsudemo-kouka-wo-kaijo-dekiru-kedo-nokotta-hitotachi-daijoubu": {
       "anilistId": 207329,
@@ -240268,8 +240268,8 @@
       "nextAiringAt": 1794322800000,
       "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-27T15:44:06.500Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-03T16:09:18.244Z"
     },
     "anilist-5968": {
       "anilistId": 5968,
@@ -240596,8 +240596,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1793797200000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794402000000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [
         {
           "anilistId": 152682,
@@ -240622,8 +240622,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-28T13:10:10.258Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-04T13:18:20.629Z"
     },
     "animeav1-kikansha-no-mahou-wa-tokubetsu-desu-2nd-season": {
       "anilistId": 172192,
@@ -240678,11 +240678,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793797200000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794402000000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-28T13:10:51.037Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-04T13:19:19.624Z"
     },
     "animeav1-tantei-wa-mou-shindeiru-season-2": {
       "anilistId": 152677,
@@ -240690,8 +240690,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1793795400000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794400200000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [
         {
           "anilistId": 128712,
@@ -240716,8 +240716,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-28T13:52:05.260Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-04T13:37:28.898Z"
     },
     "animeav1-tetsuryou-meet-with-tetsudou-musume": {
       "anilistId": 199594,
@@ -241259,8 +241259,8 @@
       "nextAiringAt": 1794329100000,
       "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-27T18:35:29.115Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-11-03T18:33:29.259Z"
     },
     "animeav1-chitose-kun-wa-ramune-bin-no-naka-part-2": {
       "anilistId": 198727,
@@ -241294,8 +241294,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-10-27T16:42:19.166Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-11-03T16:43:13.278Z"
     },
     "animeav1-cyberpunk-edgerunners-2": {
       "anilistId": 195539,
@@ -241538,8 +241538,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-27T14:55:03.701Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-03T14:48:51.414Z"
     },
     "animeav1-juuou-mujin-dandivine": {
       "anilistId": null,
@@ -242522,6 +242522,10 @@
     "anilist-31676": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b31676-ReKRBqwbdml1.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/31676-Q85COd0YA5kI.jpg"
+    },
+    "anilist-92207": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b92207-6SVxkcA9DJ96.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/92207-aOOx0OH8PIaG.jpg"
     },
     "anilist-211711": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx211711-CXV5AxBf8yuD.jpg",
@@ -263997,6 +264001,10 @@
     },
     "anilist-208174": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx208174-ygbPjnoBdIVE.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-219247": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b219247-qbjjRfqhdHBI.png",
       "anilistBanner": ""
     },
     "anilist-96": {
