@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-04T22:08:03.852Z",
+  "generatedAt": "2026-11-05T14:23:59.955Z",
   "count": 6675,
   "entries": {
     "animeav1-one-piece": {
@@ -39184,8 +39184,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1793807100000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794411900000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [
         {
           "anilistId": 163142,
@@ -39210,8 +39210,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-28T17:31:27.859Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-04T17:29:02.118Z"
     },
     "anilist-130298": {
       "anilistId": 130298,
@@ -41004,8 +41004,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1793806200000,
-      "nextAiringEpisodeNumber": 6,
+      "nextAiringAt": 1794411000000,
+      "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [
         {
           "anilistId": 139587,
@@ -41030,8 +41030,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-10-28T18:11:00.043Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-04T17:00:57.063Z"
     },
     "anilist-139274": {
       "anilistId": 139274,
@@ -171178,11 +171178,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1793881800000,
-      "nextAiringEpisodeNumber": 6,
+      "nextAiringAt": 1794486600000,
+      "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-10-29T14:58:44.705Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-05T13:35:47.992Z"
     },
     "animeav1-shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen": {
       "anilistId": 199068,
@@ -171190,8 +171190,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793804400000,
-      "nextAiringEpisodeNumber": 6,
+      "nextAiringAt": 1794409200000,
+      "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [
         {
           "anilistId": 11371,
@@ -171260,8 +171260,8 @@
           "order": 6
         }
       ],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-10-28T16:25:12.209Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-04T16:31:35.925Z"
     },
     "animeav1-tensei-shitara-ken-deshita-ii": {
       "anilistId": 159042,
@@ -171269,8 +171269,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1793806200000,
-      "nextAiringEpisodeNumber": 6,
+      "nextAiringAt": 1794411000000,
+      "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [
         {
           "anilistId": 139587,
@@ -171295,8 +171295,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-10-28T18:11:00.043Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-04T17:00:57.063Z"
     },
     "animeav1-mononoke-movie-3-hebigami": {
       "anilistId": 179874,
@@ -186888,8 +186888,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1793804400000,
-      "nextAiringEpisodeNumber": 6,
+      "nextAiringAt": 1794409200000,
+      "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [
         {
           "anilistId": 11371,
@@ -186958,8 +186958,8 @@
           "order": 6
         }
       ],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-10-28T16:25:12.209Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-04T16:31:35.925Z"
     },
     "anilist-162984": {
       "anilistId": 162984,
@@ -240657,8 +240657,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-28T17:31:27.859Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-04T17:29:02.118Z"
     },
     "animeav1-magic-knight-rayearth-2026": {
       "anilistId": 178868,
@@ -240669,8 +240669,8 @@
       "nextAiringAt": 1794408360000,
       "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-28T15:48:16.435Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-04T15:34:02.117Z"
     },
     "animeav1-sekai-saikyou-no-majo-hajimemashita": {
       "anilistId": 211778,
@@ -241550,8 +241550,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-28T17:30:14.840Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-04T17:27:54.189Z"
     },
     "animeav1-kimi-no-koto-ga-daidaidaidaidaisuki-na-100-nin-no-kanojo-3rd-season": {
       "anilistId": "mal-62811",
