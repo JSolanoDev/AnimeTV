@@ -1312,6 +1312,7 @@ function clientPlaybackCooldownHarness(fetchImpl) {
     location: { origin: "https://app.test" },
     _animeNeonEpisodeSourceCache: new Map(), _animeNeonEpisodeSourceInflight: new Map(),
     ANIMENEON_CLIENT_CACHE_TTL_MS: 600000, ANIMENEON_CLIENT_MISS_TTL_MS: 60000,
+    ANIMENEON_CLIENT_STALE_TTL_MS: 15000, animeNeonSourceRequestSequence: 0,
     ANIMENEON_SOURCE_TIMEOUT_MS: 8500, JKANIME_SOURCE_TIMEOUT_MS: 6500,
     _jkAnimeEpisodeSourceCache: new Map(), _jkAnimeEpisodeSourceInflight: new Map(),
     preferredWatchLanguageForEpisode: () => "sub",

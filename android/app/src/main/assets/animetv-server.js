@@ -8722,9 +8722,15 @@ async function fetchAnimeNeonSearch(title, language, forceRefresh = false) {
       endpoint.searchParams.set("lang", lang);
       const upstream = await fetchWithTimeout(endpoint, { headers: ANIMENEON_HEADERS }, HOSTED_RUNTIME ? 6500 : 9000);
       if (!upstream.ok) throw upstreamHttpError("AnimeNeon search", upstream);
-      const payload = await upstream.json();
+      let payload;
+      try { payload = await upstream.json(); } catch {
+        throw Object.assign(new Error("AnimeNeon search returned invalid data."), { status: 502 });
+      }
       const data = animeNeonDataNode(payload);
-      const results = Array.isArray(data?.animes) ? data.animes : [];
+      if (!Array.isArray(data?.animes)) {
+        throw Object.assign(new Error("AnimeNeon search data unavailable."), { status: 502 });
+      }
+      const results = data.animes;
       setAnimeNeonCache(animeNeonSearchCache, key, { items: results, ts: Date.now() });
       return results;
     });
@@ -8839,13 +8845,14 @@ async function fetchAnimeNeonEpisode(identity, episodeNumber, forceRefresh = fal
         setAnimeNeonCache(animeNeonSourceCache, key, { data: miss, ts: Date.now() });
         return miss;
       }
-      const payload = await upstream.json();
+      let payload;
+      try { payload = await upstream.json(); } catch {
+        throw Object.assign(new Error("AnimeNeon episode returned invalid data."), { status: 502 });
+      }
       const data = animeNeonDataNode(payload);
       const actualEpisode = Number(data?.episode?.number);
       if (!Number.isFinite(actualEpisode) || actualEpisode !== Number(episodeNumber)) {
-        const miss = { ok: false, notFound: true, sources: [], error: "Episode identity did not match." };
-        setAnimeNeonCache(animeNeonSourceCache, key, { data: miss, ts: Date.now() });
-        return miss;
+        throw Object.assign(new Error("AnimeNeon episode identity unavailable or mismatched."), { status: 502 });
       }
 
       const rawSources = (Array.isArray(data?.groups) ? data.groups : [])
@@ -8891,8 +8898,11 @@ async function fetchAnimeNeonEpisode(identity, episodeNumber, forceRefresh = fal
           ...server,
           provider: String(server.provider || "AnimeNeon")
         }));
+      if (!sources.length) {
+        throw Object.assign(new Error("AnimeNeon episode sources unavailable."), { status: 502 });
+      }
       const result = {
-        ok: sources.length > 0,
+        ok: true,
         source: "AnimeNeon",
         title: data?.anime?.title || "",
         language: data?.anime?.language || "",
@@ -8908,7 +8918,7 @@ async function fetchAnimeNeonEpisode(identity, episodeNumber, forceRefresh = fal
     });
   } catch (error) {
     recordPlaybackProviderFailure("animeneon", error);
-    if (cached?.data?.ok) return cached.data;
+    if (cached?.data?.ok) return { ...cached.data, stale: true };
     throw error;
   }
 }
@@ -8974,7 +8984,7 @@ async function handleAnimeNeonSources(url, response) {
           const data = await fetchAnimeNeonEpisode(identity, episodeNumber, forceRefresh);
           if (!data?.ok || !data.sources?.length) continue;
           const audio = language === "Lat" ? "es-419" : language === "Cast" ? "es" : "ja";
-          const headers = forceRefresh ? SOURCE_REFRESH_CACHE_HEADERS : REGULAR_SOURCE_SUCCESS_CACHE_HEADERS;
+          const headers = forceRefresh || data.stale ? SOURCE_REFRESH_CACHE_HEADERS : REGULAR_SOURCE_SUCCESS_CACHE_HEADERS;
           sendJson(response, {
             ...data,
             match: { slug: identity.slug, nanoid: identity.nanoid, title: item.title, language },

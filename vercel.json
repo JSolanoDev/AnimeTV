@@ -8,7 +8,8 @@
       "codex/seek-startup-reliability-v1023": false,
       "codex/artwork-stall-reliability-v1024": false,
       "codex/security-performance-nov4": false,
-      "codex/provider-analytics-reliability": false
+      "codex/provider-analytics-reliability": false,
+      "codex/animeneon-reliability-v1033": false
     }
   },
   "outputDirectory": "dist",

@@ -2,7 +2,14 @@
 
 Read this first; update it before stopping. Rules live in AGENTS.md.
 
-## Current Task: Provider Reliability and Analytics CSP (November4)
+## Current Task: AnimeNeon Reliability v1033
+- User requested fixing the AnimeNeon502 without weakening security/playback. IsolatedAnimeTV-animeneon-reliability/codex/animeneon-reliability-v1033, base production71a2cc1/v1032. Current native regularOnePiece904/Sub probe200/5sources; historical502cause remains unproven. No production/config changes or new branch push.
+- LOCAL targeted fix: malformed/mismatched/empty source data not cached as absence; stale successful source marked/no-store with15sclientgrace; forced lookup coalescing and sequence-safe cache/cleanup. Independent sources survive optional-mirror failure. Existing protections/provider selection/player/Cast/HLS/CSP preserved. Version1033/28mirrors synchronized.
+-16newbehavior tests PASS (11initial RED failures); full npm test/check/lint/build/hash57-per-output/54Cloudflare contracts/5release tests PASS.15Windows/Linux-only skips; GitHubLinuxDocker pending separate CI-only approval. Exact branch no-deploy guards prepared.
+- Minified Chrome fixture2requests for normal+2forced, fresh result wins/cleaned up. Owned isolated Chrome actuallocalOnePiece9041920x1080advancing,300->302.0165seek/noerror/oneiframe; paused/leftwatch.390pxnooverflow, proof screenshot reviewed. Inspector tool stalled, used existing cached Playwright without installing app dependencies; only owned temporary browser closed.2existinglocalCSPdiagnostics/no policy weakening;0pageexceptions/providerwarnings. No universal playback/hardware claim.
+- Complete scope/evidence/limits and pairedv1032 rollback: docs/animeneon-reliability-v1033.md. Request CI-only push after preparing reviewed local commit; no v1033 production deployment approval. Older v1032 bullets below are historical.
+
+## Historical: Provider Reliability and Analytics CSP (November4)
 - User requested fixing JKAnime/TioAnime errors and analytics CSP warning without weakening security/playback. Isolated AnimeTV-provider-reliability, codex/provider-analytics-reliability, base production1207ed76661362e2a1c4350bc27142744c686126/v1031. Other WIP preserved.
 - LIVE narrow analytics repair: existing Cloudflare RUM ruleset enabled=false, retained auto_install/lite/site history. Apex/www HTTPS200 without beacon injection; enforced CSP hash unchanged. No other production config/app deployment for this task.
 - LOCAL v1032: classify genuine TioAnime absence vs upstream/parser failures, no-store Retry-After/cooldown, stale good fallback, bounded per-episode JK/Tio miss suppression/manual refresh, only promote usable Tio slug. Existing sources, security and player/Cast/HLS behavior preserved.28 mirrors synchronized.

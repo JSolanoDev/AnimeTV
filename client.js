@@ -5135,7 +5135,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1032";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1033";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -18445,6 +18445,8 @@ const _animeNeonEpisodeSourceInflight = new Map();
 const ANIMENEON_SOURCE_TIMEOUT_MS = 8500;
 const ANIMENEON_CLIENT_CACHE_TTL_MS = 10 * 60 * 1000;
 const ANIMENEON_CLIENT_MISS_TTL_MS = 60 * 1000;
+const ANIMENEON_CLIENT_STALE_TTL_MS = 15 * 1000;
+let animeNeonSourceRequestSequence = 0;
 
 const playbackProviderRetryAt = new Map();
 
@@ -18486,12 +18488,21 @@ async function fetchAnimeNeonEpisodeSources(show, episode, options = {}) {
   if (!titles.length || !Number.isFinite(Number(episodeNumber))) return null;
   const cacheKey = animeNeonEpisodeSourceCacheKey(show, episode, language);
   const cached = _animeNeonEpisodeSourceCache.get(cacheKey);
-  const cacheTtl = cached?.data?.ok ? ANIMENEON_CLIENT_CACHE_TTL_MS : ANIMENEON_CLIENT_MISS_TTL_MS;
+  const cacheTtl = cached?.data?.stale ? ANIMENEON_CLIENT_STALE_TTL_MS
+    : cached?.data?.ok ? ANIMENEON_CLIENT_CACHE_TTL_MS : ANIMENEON_CLIENT_MISS_TTL_MS;
   if (!options.forceRefresh && cached && Date.now() - cached.ts < cacheTtl) return cached.data;
   if (playbackProviderIsCoolingDown("animeneon")) return cached?.data?.ok && Date.now() - cached.ts < cacheTtl ? cached.data : null;
-  if (!options.forceRefresh && _animeNeonEpisodeSourceInflight.has(cacheKey)) {
-    return _animeNeonEpisodeSourceInflight.get(cacheKey);
+  const inflightKey = options.forceRefresh ? `${cacheKey}:refresh` : cacheKey;
+  if (_animeNeonEpisodeSourceInflight.has(inflightKey)) {
+    return _animeNeonEpisodeSourceInflight.get(inflightKey);
   }
+  const requestSequence = ++animeNeonSourceRequestSequence;
+  const remember = (data) => {
+    const current = _animeNeonEpisodeSourceCache.get(cacheKey);
+    if (Number(current?.requestSequence || 0) > requestSequence) return current.data;
+    _animeNeonEpisodeSourceCache.set(cacheKey, { data, ts: Date.now(), requestSequence });
+    return data;
+  };
 
   const lookup = (async () => {
     const endpoint = new URL("/api/animeneon/sources", location.origin);
@@ -18509,19 +18520,19 @@ async function fetchAnimeNeonEpisodeSources(show, episode, options = {}) {
     if (!response.ok) {
       deferPlaybackProviderOnFailure("animeneon", response);
       if (response.status === 404) {
-        _animeNeonEpisodeSourceCache.set(cacheKey, { data: null, ts: Date.now() });
-        return null;
+        return remember(null);
       }
       throw new Error(`AnimeNeon source request failed (${response.status})`);
     }
     const data = await response.json();
     const result = data?.ok && Array.isArray(data.sources) && data.sources.length ? data : null;
-    _animeNeonEpisodeSourceCache.set(cacheKey, { data: result, ts: Date.now() });
-    return result;
+    return remember(result);
   })().finally(() => {
-    _animeNeonEpisodeSourceInflight.delete(cacheKey);
+    if (_animeNeonEpisodeSourceInflight.get(inflightKey) === lookup) {
+      _animeNeonEpisodeSourceInflight.delete(inflightKey);
+    }
   });
-  _animeNeonEpisodeSourceInflight.set(cacheKey, lookup);
+  _animeNeonEpisodeSourceInflight.set(inflightKey, lookup);
   return lookup;
 }
 
@@ -24598,7 +24609,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1032");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1033");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
