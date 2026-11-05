@@ -3555,8 +3555,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/hyouken-no-majutsushi-ga-sekai-wo-suberu-ii",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-11-05T13:41:28.689779+00:00",
       "episodes": [
         {
@@ -3705,16 +3705,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-05T13:49:02.132Z",
-      "lastEpisodeAt": "2026-10-29T17:48:35.123Z",
-      "latestAiredEp": 4
+      "sourceInventoryCheckedAt": "2026-11-05T18:56:29.952Z",
+      "lastEpisodeAt": "2026-11-05T16:56:29.918Z",
+      "latestAiredEp": 5,
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-tetsuryou-meet-with-tetsudou-musume",
@@ -3737,8 +3739,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/tetsuryou-meet-with-tetsudou-musume",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-11-05T13:41:28.690888+00:00",
       "episodes": [
         {
@@ -3887,16 +3889,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-05T13:49:02.132Z",
-      "lastEpisodeAt": "2026-10-29T18:48:35.123Z",
-      "latestAiredEp": 4
+      "sourceInventoryCheckedAt": "2026-11-05T18:56:29.952Z",
+      "lastEpisodeAt": "2026-11-05T17:56:29.917Z",
+      "latestAiredEp": 5,
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-kikansha-no-mahou-wa-tokubetsu-desu-2nd-season",
@@ -111665,8 +111669,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/koori-no-jouheki-2nd-season",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-05T13:43:50.376742+00:00",
       "episodes": [
         {
@@ -111720,16 +111724,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-11-05T13:49:02.132Z",
+      "sourceInventoryCheckedAt": "2026-11-05T18:56:29.952Z",
       "sourceInventoryPartial": false,
-      "latestAiredEp": 5,
-      "lastEpisodeAt": "2026-10-29T15:48:35.123Z"
+      "latestAiredEp": 6,
+      "lastEpisodeAt": "2026-11-05T15:56:29.918Z",
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-kaijuu-8-gou-narumi-no-heijitsu",
@@ -218825,8 +218831,8 @@
       "score": 68,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/tsuihou-sareta-tensei-juukishi-wa-game-chishiki-de-musou-suru",
-      "totalEpisodes": 18,
-      "episode": 18,
+      "totalEpisodes": 19,
+      "episode": 19,
       "lastScrapedAt": "2026-11-05T13:46:15.815485+00:00",
       "episodes": [],
       "seasons": [],
@@ -218853,16 +218859,18 @@
         15,
         16,
         17,
-        18
+        18,
+        19
       ],
-      "sourceEpisodeCount": 18,
-      "sourcePlayableEpisodeCount": 18,
+      "sourceEpisodeCount": 19,
+      "sourcePlayableEpisodeCount": 19,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-11-05T13:49:02.132Z",
+      "sourceInventoryCheckedAt": "2026-11-05T18:56:29.952Z",
       "sourceDeclaredEpisodeCount": 18,
       "sourceInventoryPartial": false,
-      "latestAiredEp": 18,
-      "lastEpisodeAt": "2026-10-29T15:48:35.123Z"
+      "latestAiredEp": 19,
+      "lastEpisodeAt": "2026-11-05T15:56:29.918Z",
+      "sourceInventoryRetainedEpisodeCount": 18
     },
     {
       "id": "animeav1-tsue-to-tsurugi-no-wistoria-season-2",
