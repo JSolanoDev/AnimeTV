@@ -97,5 +97,10 @@
   "devDependencies": {
     "clean-css": "^5.3.3",
     "terser": "^5.48.0"
+  },
+  "overrides": {
+    "cheerio": {
+      "undici": "8.12.2"
+    }
   }
 }
