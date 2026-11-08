@@ -2506,8 +2506,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/diamond-no-ace-act-ii-second-season-part-2",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-11-07T12:03:55.925499+00:00",
       "episodes": [
         {
@@ -2656,16 +2656,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-07T12:11:06.777Z",
-      "lastEpisodeAt": "2026-10-25T09:05:07.253Z",
-      "latestAiredEp": 3
+      "sourceInventoryCheckedAt": "2026-11-08T10:43:32.867Z",
+      "lastEpisodeAt": "2026-11-08T09:43:32.834Z",
+      "latestAiredEp": 5,
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-yozakura-san-chi-no-daisakusen-2nd-season-part-2",
@@ -2688,8 +2690,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/yozakura-san-chi-no-daisakusen-2nd-season-part-2",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-11-07T12:03:55.926558+00:00",
       "episodes": [
         {
@@ -2838,16 +2840,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-07T12:11:06.777Z",
-      "lastEpisodeAt": "2026-10-25T09:05:07.253Z",
-      "latestAiredEp": 3
+      "sourceInventoryCheckedAt": "2026-11-08T10:43:32.867Z",
+      "lastEpisodeAt": "2026-11-08T09:43:32.835Z",
+      "latestAiredEp": 5,
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-kyoufu-collector",
@@ -9320,8 +9324,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/ao-no-hako-season-2",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-11-07T12:04:01.264338+00:00",
       "episodes": [
         {
@@ -9374,16 +9378,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-07T12:11:06.777Z",
-      "lastEpisodeAt": "2026-10-25T09:05:07.254Z",
-      "latestAiredEp": 4
+      "sourceInventoryCheckedAt": "2026-11-08T10:43:32.867Z",
+      "lastEpisodeAt": "2026-11-08T09:43:32.835Z",
+      "latestAiredEp": 5,
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-ao-ashi-season-2",
@@ -9406,8 +9412,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/ao-ashi-season-2",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-07T12:04:01.265404+00:00",
       "episodes": [
         {
@@ -9461,16 +9467,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-07T12:11:06.777Z",
-      "lastEpisodeAt": "2026-10-25T09:05:07.253Z",
-      "latestAiredEp": 4
+      "sourceInventoryCheckedAt": "2026-11-08T10:43:32.867Z",
+      "lastEpisodeAt": "2026-11-08T09:43:32.835Z",
+      "latestAiredEp": 6,
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-azur-lane-bisoku-zenshin-ni",
