@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-08T17:13:18.305Z",
+  "generatedAt": "2026-11-09T15:22:51.486Z",
   "count": 6678,
   "entries": {
     "animeav1-one-piece": {
@@ -6698,6 +6698,17 @@
           "seasonYear": 2025,
           "startedAt": 1759536000000,
           "order": 4
+        },
+        {
+          "anilistId": 219714,
+          "title": "SPY×FAMILY Season 4",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1798761600000,
+          "order": 5
         }
       ],
       "sourceEpisodeCount": 13
@@ -26681,6 +26692,17 @@
           "seasonYear": 2025,
           "startedAt": 1759536000000,
           "order": 4
+        },
+        {
+          "anilistId": 219714,
+          "title": "SPY×FAMILY Season 4",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1798761600000,
+          "order": 5
         }
       ]
     },
@@ -36191,6 +36213,17 @@
           "seasonYear": 2025,
           "startedAt": 1759536000000,
           "order": 4
+        },
+        {
+          "anilistId": 219714,
+          "title": "SPY×FAMILY Season 4",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1798761600000,
+          "order": 5
         }
       ]
     },
@@ -36246,6 +36279,17 @@
           "seasonYear": 2025,
           "startedAt": 1759536000000,
           "order": 4
+        },
+        {
+          "anilistId": 219714,
+          "title": "SPY×FAMILY Season 4",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1798761600000,
+          "order": 5
         }
       ]
     },
@@ -36301,6 +36345,17 @@
           "seasonYear": 2025,
           "startedAt": 1759536000000,
           "order": 4
+        },
+        {
+          "anilistId": 219714,
+          "title": "SPY×FAMILY Season 4",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1798761600000,
+          "order": 5
         }
       ]
     },
@@ -36356,6 +36411,17 @@
           "seasonYear": 2025,
           "startedAt": 1759536000000,
           "order": 4
+        },
+        {
+          "anilistId": 219714,
+          "title": "SPY×FAMILY Season 4",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1798761600000,
+          "order": 5
         }
       ],
       "sourceEpisodeCount": 13
@@ -46610,8 +46676,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1794149100000,
-      "nextAiringEpisodeNumber": 6,
+      "nextAiringAt": 1794753900000,
+      "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [
         {
           "anilistId": 184034,
@@ -46636,8 +46702,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-01T15:26:11.228Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-08T15:25:49.061Z"
     },
     "anilist-141391": {
       "anilistId": 141391,
@@ -47812,8 +47878,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1794148200000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1794753000000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 164702,
@@ -47849,8 +47915,8 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-01T15:11:00.722Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-08T15:16:09.849Z"
     },
     "anilist-100891": {
       "anilistId": 100891,
@@ -117746,6 +117812,17 @@
           "seasonYear": 2025,
           "startedAt": 1759536000000,
           "order": 4
+        },
+        {
+          "anilistId": 219714,
+          "title": "SPY×FAMILY Season 4",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1798761600000,
+          "order": 5
         }
       ]
     },
@@ -170984,8 +171061,8 @@
           "order": 3
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-01T15:11:00.722Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-08T15:16:09.849Z"
     },
     "animeav1-tempal-item-no-chikara": {
       "anilistId": 212888,
@@ -170996,8 +171073,8 @@
       "nextAiringAt": 1794753000000,
       "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-01T14:47:36.349Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-08T14:52:38.563Z"
     },
     "animeav1-keroro-gunsou": {
       "anilistId": 216557,
@@ -185116,8 +185193,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1794147360000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794752160000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [
         {
           "anilistId": 223,
@@ -185241,8 +185318,8 @@
           "order": 11
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-11-01T16:39:48.379Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-08T16:31:14.477Z"
     },
     "anilist-217578": {
       "anilistId": 217578,
@@ -237381,8 +237458,8 @@
       "nextAiringAt": 1794759600000,
       "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-01T17:58:40.772Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-08T17:11:05.927Z"
     },
     "animeav1-kanata-kara": {
       "anilistId": 209463,
@@ -237393,8 +237470,8 @@
       "nextAiringAt": 1794754800000,
       "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-01T16:21:32.909Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-08T16:31:28.747Z"
     },
     "animeav1-hotel-inhumans-2nd-season": {
       "anilistId": 199426,
@@ -237428,8 +237505,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-01T15:26:11.228Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-08T15:25:49.061Z"
     },
     "animeav1-yowaki-max-reijou-nanoni-ratsuwan-konyakusha-sama-no-kake-ni-notte-shimatta": {
       "anilistId": 200455,
@@ -237440,8 +237517,8 @@
       "nextAiringAt": 1794753000000,
       "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-01T14:49:53.260Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-08T14:50:44.374Z"
     },
     "animeav1-ojisan-wa-kawaii-mono-ga-osuki": {
       "anilistId": 202079,
@@ -237452,8 +237529,8 @@
       "nextAiringAt": 1794747600000,
       "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-01T14:11:29.246Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-08T14:11:12.064Z"
     },
     "animeav1-mezametara-saikyou-soubi-to-uchuusenmochi-datta-node-ikkodate-mezashite-youhei-toshite-jiyuu-ni-ikitai": {
       "anilistId": 186541,
@@ -237464,8 +237541,8 @@
       "nextAiringAt": 1794745800000,
       "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-01T14:10:52.622Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-08T14:11:27.591Z"
     },
     "animeav1-tank-chair": {
       "anilistId": 209499,
@@ -237476,8 +237553,8 @@
       "nextAiringAt": 1794751200000,
       "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-01T14:50:37.478Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-08T14:55:13.684Z"
     },
     "animeav1-mouse-cursor-de-genjitsu-wo-sousa-dekiru-you-ni-natta-node-onna-no-ko-wo-ippai-click-shimaasu": {
       "anilistId": 206774,
@@ -237485,11 +237562,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 8,
-      "nextAiringAt": 1794153600000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794758400000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-01T17:58:58.390Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-08T17:11:22.189Z"
     },
     "anilist-131239": {
       "anilistId": 131239,
@@ -239521,11 +239598,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1794232800000,
-      "nextAiringEpisodeNumber": 5,
+      "nextAiringAt": 1794837600000,
+      "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-10-26T14:40:28.605Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-09T14:39:11.253Z"
     },
     "animeav1-doumo-suki-na-hito-ni-horegusuri-wo-irai-sareta-majo-desu": {
       "anilistId": 207191,
@@ -239533,11 +239610,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1794227400000,
-      "nextAiringEpisodeNumber": 6,
+      "nextAiringAt": 1794832200000,
+      "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-02T13:48:45.554Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-09T13:27:33.514Z"
     },
     "animeav1-tensei-goblin-dakedo-shitsumon-aru": {
       "anilistId": 209219,
@@ -239545,8 +239622,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1794229200000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1794834000000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 6,
       "lastEpisodeAt": "2026-11-02T13:49:48.326Z"
@@ -241258,8 +241335,8 @@
           "order": 11
         }
       ],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-11-01T16:39:48.379Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-08T16:31:14.477Z"
     },
     "animeav1-shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku": {
       "anilistId": 205896,
@@ -241270,8 +241347,8 @@
       "nextAiringAt": 1794753000000,
       "nextAiringEpisodeNumber": 6,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 4,
-      "lastEpisodeAt": "2026-11-01T14:49:34.821Z"
+      "sourceEpisodeCount": 5,
+      "lastEpisodeAt": "2026-11-08T14:52:18.671Z"
     },
     "animeav1-dark-machine-the-animation": {
       "anilistId": 179876,
@@ -244404,6 +244481,10 @@
     "anilist-108556": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx108556-NHjkz0BNJhLx.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/108556-iCiPfU0GU4OM.jpg"
+    },
+    "anilist-219714": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx219714-1qmlRk0eU1tb.jpg",
+      "anilistBanner": ""
     },
     "anilist-179302": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx179302-gWWAh5BfQyl4.jpg",
