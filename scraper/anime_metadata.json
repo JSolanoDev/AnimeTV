@@ -1776,8 +1776,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/dark-machine-the-animation",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-11-10T13:55:59.358916+00:00",
       "episodes": [
         {
@@ -1926,16 +1926,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-10T14:03:17.919Z",
-      "lastEpisodeAt": "2026-11-03T18:45:44.347Z",
-      "latestAiredEp": 4
+      "sourceInventoryCheckedAt": "2026-11-10T19:58:15.984Z",
+      "lastEpisodeAt": "2026-11-10T18:58:15.952Z",
+      "latestAiredEp": 5,
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-chitose-kun-wa-ramune-bin-no-naka-part-2",
@@ -1958,8 +1960,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/chitose-kun-wa-ramune-bin-no-naka-part-2",
-      "totalEpisodes": 4,
-      "episode": 4,
+      "totalEpisodes": 5,
+      "episode": 5,
       "lastScrapedAt": "2026-11-10T13:55:59.360023+00:00",
       "episodes": [
         {
@@ -2108,16 +2110,18 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
-      "sourceEpisodeCount": 4,
-      "sourcePlayableEpisodeCount": 4,
+      "sourceEpisodeCount": 5,
+      "sourcePlayableEpisodeCount": 5,
       "sourceDeclaredEpisodeCount": 4,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-10T14:03:17.919Z",
-      "lastEpisodeAt": "2026-11-03T16:45:44.347Z",
-      "latestAiredEp": 4
+      "sourceInventoryCheckedAt": "2026-11-10T19:58:15.984Z",
+      "lastEpisodeAt": "2026-11-10T16:58:15.952Z",
+      "latestAiredEp": 5,
+      "sourceInventoryRetainedEpisodeCount": 4
     },
     {
       "id": "animeav1-dragon-ball-super-beerus",
@@ -22946,8 +22950,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/battle-spirits-re-zekkai-no-kuu",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-10T13:56:22.076271+00:00",
       "episodes": [
         {
@@ -23001,16 +23005,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-10T14:03:17.919Z",
-      "latestAiredEp": 5,
-      "lastEpisodeAt": "2026-11-03T14:45:44.348Z"
+      "sourceInventoryCheckedAt": "2026-11-10T19:58:15.984Z",
+      "latestAiredEp": 6,
+      "lastEpisodeAt": "2026-11-10T14:58:15.952Z",
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-black-clover-2nd-season",
@@ -38873,8 +38879,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/choujun-choujou-senpai",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-10T13:56:40.792975+00:00",
       "episodes": [
         {
@@ -38928,16 +38934,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-10T14:03:17.919Z",
-      "latestAiredEp": 5,
-      "lastEpisodeAt": "2026-11-03T14:45:44.348Z"
+      "sourceInventoryCheckedAt": "2026-11-10T19:58:15.984Z",
+      "latestAiredEp": 6,
+      "lastEpisodeAt": "2026-11-10T14:58:15.952Z",
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-clevatess-ii-majuu-no-ou-to-itsuwari-no-yuusha-denshou",
@@ -73640,8 +73648,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/gensou-suikoden",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-10T13:57:23.332676+00:00",
       "episodes": [
         {
@@ -73695,16 +73703,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-10T14:03:17.919Z",
-      "latestAiredEp": 5,
-      "lastEpisodeAt": "2026-11-03T16:45:44.347Z"
+      "sourceInventoryCheckedAt": "2026-11-10T19:58:15.984Z",
+      "latestAiredEp": 6,
+      "lastEpisodeAt": "2026-11-10T14:58:15.952Z",
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-grand-blue-season-3",
@@ -111522,8 +111532,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/kyouran-reijou-nia-liston-byoujaku-reijou-ni-tensei-shita-kamigoroshi-no-bujin-no-karei-naru-musouroku",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-10T13:58:12.408058+00:00",
       "episodes": [
         {
@@ -111577,16 +111587,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-10T14:03:17.919Z",
-      "latestAiredEp": 5,
-      "lastEpisodeAt": "2026-11-03T15:45:44.348Z"
+      "sourceInventoryCheckedAt": "2026-11-10T19:58:15.984Z",
+      "latestAiredEp": 6,
+      "lastEpisodeAt": "2026-11-10T14:58:15.952Z",
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-kanata-kara",
@@ -190369,8 +190381,8 @@
       "score": 59,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/sora-wa-akai-kawa-no-hotori",
-      "totalEpisodes": 18,
-      "episode": 18,
+      "totalEpisodes": 19,
+      "episode": 19,
       "lastScrapedAt": "2026-11-10T13:59:54.991029+00:00",
       "episodes": [
         {
@@ -190565,16 +190577,18 @@
         15,
         16,
         17,
-        18
+        18,
+        19
       ],
-      "sourceEpisodeCount": 18,
-      "sourcePlayableEpisodeCount": 18,
+      "sourceEpisodeCount": 19,
+      "sourcePlayableEpisodeCount": 19,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-11-10T14:03:17.919Z",
+      "sourceInventoryCheckedAt": "2026-11-10T19:58:15.984Z",
       "sourceDeclaredEpisodeCount": 18,
       "sourceInventoryPartial": false,
-      "latestAiredEp": 18,
-      "lastEpisodeAt": "2026-11-03T17:45:44.347Z"
+      "latestAiredEp": 19,
+      "lastEpisodeAt": "2026-11-10T17:58:15.952Z",
+      "sourceInventoryRetainedEpisodeCount": 18
     },
     {
       "id": "animeav1-suterare-seijo-no-isekai-gohan-tabi-kakure-skill-de-camping-car-wo-shoukan-shimashita",
