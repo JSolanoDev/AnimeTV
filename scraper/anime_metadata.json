@@ -4358,8 +4358,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/kikansha-no-mahou-wa-tokubetsu-desu-2nd-season",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-11T13:09:51.461516+00:00",
       "episodes": [
         {
@@ -4541,16 +4541,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-11T13:17:22.426Z",
-      "lastEpisodeAt": "2026-11-04T17:07:41.658Z",
-      "latestAiredEp": 5
+      "sourceInventoryCheckedAt": "2026-11-11T22:58:49.818Z",
+      "lastEpisodeAt": "2026-11-11T17:58:49.772Z",
+      "latestAiredEp": 6,
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-juuou-mujin-dandivine",
@@ -4573,8 +4575,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/juuou-mujin-dandivine",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-11T13:09:51.462101+00:00",
       "episodes": [
         {
@@ -4756,16 +4758,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-11T13:17:22.426Z",
-      "lastEpisodeAt": "2026-11-04T17:07:41.658Z",
-      "latestAiredEp": 5
+      "sourceInventoryCheckedAt": "2026-11-11T22:58:49.818Z",
+      "lastEpisodeAt": "2026-11-11T16:58:49.772Z",
+      "latestAiredEp": 6,
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-magic-knight-rayearth-2026",
@@ -218215,8 +218219,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/tensei-shitara-ken-deshita-ii",
-      "totalEpisodes": 6,
-      "episode": 6,
+      "totalEpisodes": 7,
+      "episode": 7,
       "lastScrapedAt": "2026-11-11T13:14:28.777386+00:00",
       "episodes": [
         {
@@ -218271,16 +218275,18 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ],
-      "sourceEpisodeCount": 6,
-      "sourcePlayableEpisodeCount": 6,
+      "sourceEpisodeCount": 7,
+      "sourcePlayableEpisodeCount": 7,
       "sourceDeclaredEpisodeCount": 6,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-11-11T13:17:22.426Z",
+      "sourceInventoryCheckedAt": "2026-11-11T22:58:49.818Z",
       "sourceInventoryPartial": false,
-      "latestAiredEp": 6,
-      "lastEpisodeAt": "2026-11-04T17:07:41.659Z"
+      "latestAiredEp": 7,
+      "lastEpisodeAt": "2026-11-11T16:58:49.772Z",
+      "sourceInventoryRetainedEpisodeCount": 6
     },
     {
       "id": "animeav1-tensei-kizoku-kantei-skill-de-nariagaru-3rd-season",
