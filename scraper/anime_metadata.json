@@ -4790,8 +4790,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/magic-knight-rayearth-2026",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-11T13:09:51.462693+00:00",
       "episodes": [
         {
@@ -4973,16 +4973,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-11T13:17:22.426Z",
-      "lastEpisodeAt": "2026-11-04T15:30:59.653Z",
-      "latestAiredEp": 5
+      "sourceInventoryCheckedAt": "2026-11-11T16:32:07.800Z",
+      "lastEpisodeAt": "2026-11-11T15:32:07.766Z",
+      "latestAiredEp": 6,
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-sekai-saikyou-no-majo-hajimemashita",
@@ -5005,8 +5007,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/sekai-saikyou-no-majo-hajimemashita",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-11T13:09:51.463317+00:00",
       "episodes": [
         {
@@ -5188,16 +5190,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-11T13:17:22.426Z",
-      "latestAiredEp": 4,
-      "lastEpisodeAt": "2026-10-28T13:25:54.456Z"
+      "sourceInventoryCheckedAt": "2026-11-11T16:32:07.800Z",
+      "latestAiredEp": 6,
+      "lastEpisodeAt": "2026-11-11T13:32:07.766Z",
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-sasaki-to-pii-chan-season-2",
@@ -5220,8 +5224,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/sasaki-to-pii-chan-season-2",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-11T13:09:51.463921+00:00",
       "episodes": [
         {
@@ -5403,16 +5407,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-11T13:17:22.426Z",
-      "latestAiredEp": 4,
-      "lastEpisodeAt": "2026-10-28T13:25:54.456Z"
+      "sourceInventoryCheckedAt": "2026-11-11T16:32:07.800Z",
+      "latestAiredEp": 6,
+      "lastEpisodeAt": "2026-11-11T13:32:07.766Z",
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-zombie-sagashitemasu",
@@ -190077,8 +190083,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen",
-      "totalEpisodes": 6,
-      "episode": 6,
+      "totalEpisodes": 7,
+      "episode": 7,
       "lastScrapedAt": "2026-11-11T13:13:53.294918+00:00",
       "episodes": [
         {
@@ -190133,16 +190139,18 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ],
-      "sourceEpisodeCount": 6,
-      "sourcePlayableEpisodeCount": 6,
+      "sourceEpisodeCount": 7,
+      "sourcePlayableEpisodeCount": 7,
       "sourceDeclaredEpisodeCount": 6,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-11-11T13:17:22.426Z",
+      "sourceInventoryCheckedAt": "2026-11-11T16:32:07.800Z",
       "sourceInventoryPartial": false,
-      "latestAiredEp": 6,
-      "lastEpisodeAt": "2026-11-04T16:07:41.659Z"
+      "latestAiredEp": 7,
+      "lastEpisodeAt": "2026-11-11T16:27:07.766Z",
+      "sourceInventoryRetainedEpisodeCount": 6
     },
     {
       "id": "animeav1-shiguang-dailiren-iii",
@@ -234201,8 +234209,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/tantei-wa-mou-shindeiru-season-2",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-11T13:14:47.952776+00:00",
       "episodes": [
         {
@@ -234384,16 +234392,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-11T13:17:22.426Z",
-      "latestAiredEp": 5,
-      "lastEpisodeAt": "2026-11-04T13:30:59.653Z"
+      "sourceInventoryCheckedAt": "2026-11-11T16:32:07.800Z",
+      "latestAiredEp": 6,
+      "lastEpisodeAt": "2026-11-11T13:32:07.766Z",
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-uchi-no-otouto-domo-ga-sumimasen",
