@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-11T22:59:12.881Z",
+  "generatedAt": "2026-11-12T14:54:19.522Z",
   "count": 6679,
   "entries": {
     "animeav1-one-piece": {
@@ -13923,8 +13923,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 14,
-      "lastEpisodeAt": "2025-11-11T06:46:14.990Z"
+      "sourceEpisodeCount": 26,
+      "lastEpisodeAt": "2026-11-11T14:49:17.240Z"
     },
     "animeav1-yami-shibai-13": {
       "anilistId": 177922,
@@ -18454,7 +18454,7 @@
           "episodes": null,
           "season": "WINTER",
           "seasonYear": 2027,
-          "startedAt": 1798761600000,
+          "startedAt": 1799452800000,
           "order": 3
         }
       ]
@@ -20125,9 +20125,9 @@
           "format": "TV",
           "status": "NOT_YET_RELEASED",
           "episodes": null,
-          "season": "",
-          "seasonYear": null,
-          "startedAt": 1798761600000,
+          "season": "SPRING",
+          "seasonYear": 2027,
+          "startedAt": 1806537600000,
           "order": 2
         }
       ]
@@ -23031,7 +23031,7 @@
           "episodes": null,
           "season": "WINTER",
           "seasonYear": 2027,
-          "startedAt": 1798761600000,
+          "startedAt": 1799452800000,
           "order": 3
         }
       ]
@@ -39273,8 +39273,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1794411900000,
-      "nextAiringEpisodeNumber": 6,
+      "nextAiringAt": 1795016700000,
+      "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [
         {
           "anilistId": 163142,
@@ -39299,8 +39299,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-04T17:29:02.118Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-11T17:28:25.709Z"
     },
     "anilist-130298": {
       "anilistId": 130298,
@@ -41093,8 +41093,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1794411000000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795015800000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 139587,
@@ -41119,8 +41119,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-04T17:00:57.063Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-11T17:09:00.850Z"
     },
     "anilist-139274": {
       "anilistId": 139274,
@@ -50124,9 +50124,9 @@
           "format": "TV",
           "status": "NOT_YET_RELEASED",
           "episodes": null,
-          "season": "",
-          "seasonYear": null,
-          "startedAt": 1798761600000,
+          "season": "SPRING",
+          "seasonYear": 2027,
+          "startedAt": 1806537600000,
           "order": 2
         }
       ]
@@ -50134,8 +50134,8 @@
     "anilist-211495": {
       "anilistId": 211495,
       "airingStatus": "NOT_YET_RELEASED",
-      "season": "UNDEFINED",
-      "seasonYear": null,
+      "season": "SPRING",
+      "seasonYear": 2027,
       "anilistEpisodeCount": null,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -50157,9 +50157,9 @@
           "format": "TV",
           "status": "NOT_YET_RELEASED",
           "episodes": null,
-          "season": "",
-          "seasonYear": null,
-          "startedAt": 1798761600000,
+          "season": "SPRING",
+          "seasonYear": 2027,
+          "startedAt": 1806537600000,
           "order": 2
         }
       ]
@@ -68664,7 +68664,7 @@
         {
           "anilistId": 17513,
           "title": "DIABOLIK LOVERS",
-          "format": "TV_SHORT",
+          "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
           "season": "FALL",
@@ -69589,7 +69589,7 @@
         {
           "anilistId": 17513,
           "title": "DIABOLIK LOVERS",
-          "format": "TV_SHORT",
+          "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
           "season": "FALL",
@@ -171278,11 +171278,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1794486600000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795091400000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-05T13:35:47.992Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-12T13:22:45.577Z"
     },
     "animeav1-shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen": {
       "anilistId": 199068,
@@ -171290,8 +171290,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1794409200000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795014000000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 11371,
@@ -171360,8 +171360,8 @@
           "order": 6
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-04T16:31:35.925Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-11T16:26:02.180Z"
     },
     "animeav1-tensei-shitara-ken-deshita-ii": {
       "anilistId": 159042,
@@ -171369,8 +171369,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1794411000000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795015800000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 139587,
@@ -171395,8 +171395,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-04T17:00:57.063Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-11T17:09:00.850Z"
     },
     "animeav1-mononoke-movie-3-hebigami": {
       "anilistId": 179874,
@@ -186988,8 +186988,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1794409200000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795014000000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 11371,
@@ -187058,8 +187058,8 @@
           "order": 6
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-04T16:31:35.925Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-11T16:26:02.180Z"
     },
     "anilist-162984": {
       "anilistId": 162984,
@@ -190730,7 +190730,7 @@
           "episodes": null,
           "season": "WINTER",
           "seasonYear": 2027,
-          "startedAt": 1798761600000,
+          "startedAt": 1799452800000,
           "order": 3
         }
       ]
@@ -190774,7 +190774,7 @@
           "episodes": null,
           "season": "WINTER",
           "seasonYear": 2027,
-          "startedAt": 1798761600000,
+          "startedAt": 1799452800000,
           "order": 3
         }
       ]
@@ -190818,7 +190818,7 @@
           "episodes": null,
           "season": "WINTER",
           "seasonYear": 2027,
-          "startedAt": 1798761600000,
+          "startedAt": 1799452800000,
           "order": 3
         }
       ]
@@ -203080,7 +203080,7 @@
         {
           "anilistId": 17513,
           "title": "DIABOLIK LOVERS",
-          "format": "TV_SHORT",
+          "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
           "season": "FALL",
@@ -203113,7 +203113,7 @@
         {
           "anilistId": 17513,
           "title": "DIABOLIK LOVERS",
-          "format": "TV_SHORT",
+          "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
           "season": "FALL",
@@ -240757,8 +240757,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-04T17:29:02.118Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-11T17:28:25.709Z"
     },
     "animeav1-magic-knight-rayearth-2026": {
       "anilistId": 178868,
@@ -240769,8 +240769,8 @@
       "nextAiringAt": 1795013160000,
       "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-04T15:34:02.117Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-11T15:26:57.501Z"
     },
     "animeav1-sekai-saikyou-no-majo-hajimemashita": {
       "anilistId": 211778,
@@ -241795,8 +241795,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-04T17:27:54.189Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-11T17:13:06.557Z"
     },
     "animeav1-kimi-no-koto-ga-daidaidaidaidaisuki-na-100-nin-no-kanojo-3rd-season": {
       "anilistId": "mal-62811",
