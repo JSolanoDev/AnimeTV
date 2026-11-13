@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-12T21:03:11.017Z",
+  "generatedAt": "2026-11-13T14:18:44.192Z",
   "count": 6679,
   "entries": {
     "animeav1-one-piece": {
@@ -1591,7 +1591,7 @@
       "nextAiringAt": 1795101960000,
       "nextAiringEpisodeNumber": 21,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 19,
+      "sourceEpisodeCount": 20,
       "lastEpisodeAt": "2026-11-05T16:17:39.362Z"
     },
     "animeav1-bang-dream-yumemita": {
@@ -3579,7 +3579,7 @@
     },
     "animeav1-steel-ball-run-jojo-no-kimyou-na-bouken": {
       "anilistId": 190327,
-      "airingStatus": "RELEASING",
+      "airingStatus": "FINISHED",
       "season": "WINTER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 1,
@@ -3686,7 +3686,7 @@
           "order": 9
         }
       ],
-      "sourceEpisodeCount": 8,
+      "sourceEpisodeCount": 9,
       "lastEpisodeAt": "2026-11-06T12:35:50.651Z"
     },
     "animeav1-beastars-final-season-part-2": {
@@ -13916,7 +13916,7 @@
     },
     "animeav1-yamato-yo-towa-ni-rebel-3199": {
       "anilistId": 144779,
-      "airingStatus": "RELEASING",
+      "airingStatus": "FINISHED",
       "season": "SUMMER",
       "seasonYear": 2024,
       "anilistEpisodeCount": 26,
@@ -34669,7 +34669,7 @@
     },
     "anilist-190327": {
       "anilistId": 190327,
-      "airingStatus": "RELEASING",
+      "airingStatus": "FINISHED",
       "season": "WINTER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 1,
@@ -34776,7 +34776,7 @@
           "order": 9
         }
       ],
-      "sourceEpisodeCount": 8,
+      "sourceEpisodeCount": 9,
       "lastEpisodeAt": "2026-11-06T12:35:50.651Z"
     },
     "anilist-185262": {
@@ -37143,8 +37143,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1794578400000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795183200000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 161645,
@@ -53220,8 +53220,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1794500880000,
-      "nextAiringEpisodeNumber": 6,
+      "nextAiringAt": 1795105680000,
+      "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [
         {
           "anilistId": 148116,
@@ -171129,8 +171129,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1794578400000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795183200000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 161645,
@@ -171243,8 +171243,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1794495360000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795100160000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 186497,
@@ -171483,8 +171483,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1794495360000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795100160000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 186497,
@@ -174508,8 +174508,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 11,
-      "nextAiringAt": 1794556800000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1795161600000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
         {
           "anilistId": 14719,
@@ -239669,8 +239669,8 @@
       "season": "",
       "seasonYear": null,
       "anilistEpisodeCount": 6,
-      "nextAiringAt": 1794542400000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1795147200000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [
         {
           "anilistId": 102663,
@@ -240884,8 +240884,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1794576600000,
-      "nextAiringEpisodeNumber": 6,
+      "nextAiringAt": 1795181400000,
+      "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 5,
       "lastEpisodeAt": "2026-11-06T15:53:30.239Z"
@@ -241635,8 +241635,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1794571200000,
-      "nextAiringEpisodeNumber": 3,
+      "nextAiringAt": 1795176000000,
+      "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 2,
       "lastEpisodeAt": "2026-11-06T13:14:40.293Z"
@@ -241774,30 +241774,6 @@
         }
       ]
     },
-    "animeav1-battle-spirits-re-zekkai-no-kuu": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-10T14:43:18.390Z"
-    },
-    "animeav1-juuou-mujin-dandivine": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-11T17:13:06.557Z"
-    },
     "animeav1-kimi-no-koto-ga-daidaidaidaidaisuki-na-100-nin-no-kanojo-3rd-season": {
       "anilistId": "mal-62811",
       "airingStatus": "RELEASING",
@@ -241843,6 +241819,30 @@
       ],
       "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-13T14:10:55.131Z"
+    },
+    "animeav1-battle-spirits-re-zekkai-no-kuu": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-10T14:43:18.390Z"
+    },
+    "animeav1-juuou-mujin-dandivine": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-11T17:13:06.557Z"
     },
     "animeav1-bastard-ankoku-no-hakaishin-part-2-ona": {
       "anilistId": "mal-51366",
