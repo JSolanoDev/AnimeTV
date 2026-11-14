@@ -3070,8 +3070,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/kyoufu-collector",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-14T12:41:15.096081+00:00",
       "episodes": [
         {
@@ -3253,16 +3253,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-14T12:48:34.985Z",
-      "lastEpisodeAt": "2026-11-07T17:35:13.765Z",
-      "latestAiredEp": 5
+      "sourceInventoryCheckedAt": "2026-11-14T19:26:42.951Z",
+      "lastEpisodeAt": "2026-11-14T17:26:42.925Z",
+      "latestAiredEp": 6,
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-shuiro-no-kamen",
@@ -5736,8 +5738,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/zombie-sagashitemasu",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-14T12:41:16.419569+00:00",
       "episodes": [
         {
@@ -5919,16 +5921,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-14T12:48:34.985Z",
-      "latestAiredEp": 5,
-      "lastEpisodeAt": "2026-10-31T15:12:43.433Z"
+      "sourceInventoryCheckedAt": "2026-11-14T19:26:42.951Z",
+      "latestAiredEp": 6,
+      "lastEpisodeAt": "2026-11-14T15:26:42.925Z",
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-kimi-wo-aisuru-ki-wa-nai-to-itta-jiki-koushaku-sama-ga-nazeka-dekiai-shitekimasu",
@@ -23401,8 +23405,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/black-clover-2nd-season",
-      "totalEpisodes": 6,
-      "episode": 6,
+      "totalEpisodes": 7,
+      "episode": 7,
       "lastScrapedAt": "2026-11-14T12:41:37.729021+00:00",
       "episodes": [
         {
@@ -23457,16 +23461,18 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ],
-      "sourceEpisodeCount": 6,
-      "sourcePlayableEpisodeCount": 6,
+      "sourceEpisodeCount": 7,
+      "sourcePlayableEpisodeCount": 7,
       "sourceDeclaredEpisodeCount": 6,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-14T12:48:34.985Z",
-      "latestAiredEp": 6,
-      "lastEpisodeAt": "2026-11-07T15:35:13.765Z"
+      "sourceInventoryCheckedAt": "2026-11-14T19:26:42.951Z",
+      "latestAiredEp": 7,
+      "lastEpisodeAt": "2026-11-14T15:26:42.925Z",
+      "sourceInventoryRetainedEpisodeCount": 6
     },
     {
       "id": "animeav1-boku-no-hero-academia-i-am-a-hero-too",
@@ -112069,8 +112075,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/kashita-maryoku-wa-revo-barai-de-kyousei-choushuu",
-      "totalEpisodes": 6,
-      "episode": 6,
+      "totalEpisodes": 7,
+      "episode": 7,
       "lastScrapedAt": "2026-11-14T12:43:29.063520+00:00",
       "episodes": [
         {
@@ -112125,16 +112131,18 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ],
-      "sourceEpisodeCount": 6,
-      "sourcePlayableEpisodeCount": 6,
+      "sourceEpisodeCount": 7,
+      "sourcePlayableEpisodeCount": 7,
       "sourceDeclaredEpisodeCount": 6,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-14T12:48:34.985Z",
-      "latestAiredEp": 6,
-      "lastEpisodeAt": "2026-11-07T19:15:13.764Z"
+      "sourceInventoryCheckedAt": "2026-11-14T19:26:42.951Z",
+      "latestAiredEp": 7,
+      "lastEpisodeAt": "2026-11-14T18:26:42.924Z",
+      "sourceInventoryRetainedEpisodeCount": 6
     },
     {
       "id": "animeav1-kusuriya-no-hitorigoto-3rd-season",
@@ -143464,8 +143472,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/marronnier-oukoku-no-shichinin-no-kishi",
-      "totalEpisodes": 6,
-      "episode": 6,
+      "totalEpisodes": 7,
+      "episode": 7,
       "lastScrapedAt": "2026-11-14T12:44:10.076266+00:00",
       "episodes": [
         {
@@ -143520,16 +143528,18 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ],
-      "sourceEpisodeCount": 6,
-      "sourcePlayableEpisodeCount": 6,
+      "sourceEpisodeCount": 7,
+      "sourcePlayableEpisodeCount": 7,
       "sourceDeclaredEpisodeCount": 6,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-14T12:48:34.985Z",
-      "latestAiredEp": 6,
-      "lastEpisodeAt": "2026-11-07T15:35:13.765Z"
+      "sourceInventoryCheckedAt": "2026-11-14T19:26:42.951Z",
+      "latestAiredEp": 7,
+      "lastEpisodeAt": "2026-11-14T15:26:42.925Z",
+      "sourceInventoryRetainedEpisodeCount": 6
     },
     {
       "id": "animeav1-magicalexplorer",
@@ -143552,8 +143562,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/magicalexplorer",
-      "totalEpisodes": 7,
-      "episode": 7,
+      "totalEpisodes": 8,
+      "episode": 8,
       "lastScrapedAt": "2026-11-14T12:44:10.077282+00:00",
       "episodes": [
         {
@@ -143641,16 +143651,18 @@
         4,
         5,
         6,
-        7
+        7,
+        8
       ],
-      "sourceEpisodeCount": 7,
-      "sourcePlayableEpisodeCount": 7,
+      "sourceEpisodeCount": 8,
+      "sourcePlayableEpisodeCount": 8,
       "sourceDeclaredEpisodeCount": 7,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-14T12:48:34.985Z",
-      "latestAiredEp": 7,
-      "lastEpisodeAt": "2026-11-07T16:35:13.765Z"
+      "sourceInventoryCheckedAt": "2026-11-14T19:26:42.951Z",
+      "latestAiredEp": 8,
+      "lastEpisodeAt": "2026-11-14T16:26:42.925Z",
+      "sourceInventoryRetainedEpisodeCount": 7
     },
     {
       "id": "animeav1-mebius-dust",
@@ -184258,8 +184270,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/ranma-2024-3rd-season",
-      "totalEpisodes": 6,
-      "episode": 6,
+      "totalEpisodes": 7,
+      "episode": 7,
       "lastScrapedAt": "2026-11-14T12:45:02.998735+00:00",
       "episodes": [
         {
@@ -184314,16 +184326,18 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ],
-      "sourceEpisodeCount": 6,
-      "sourcePlayableEpisodeCount": 6,
+      "sourceEpisodeCount": 7,
+      "sourcePlayableEpisodeCount": 7,
       "sourceDeclaredEpisodeCount": 6,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-14T12:48:34.985Z",
-      "latestAiredEp": 6,
-      "lastEpisodeAt": "2026-11-07T17:35:13.765Z"
+      "sourceInventoryCheckedAt": "2026-11-14T19:26:42.951Z",
+      "latestAiredEp": 7,
+      "lastEpisodeAt": "2026-11-14T17:26:42.925Z",
+      "sourceInventoryRetainedEpisodeCount": 6
     },
     {
       "id": "animeav1-ryoumin-0-nin-start-no-henkyou-ryoushu-sama",
@@ -238378,8 +238392,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/vertex-force",
-      "totalEpisodes": 6,
-      "episode": 6,
+      "totalEpisodes": 7,
+      "episode": 7,
       "lastScrapedAt": "2026-11-14T12:46:10.620429+00:00",
       "episodes": [
         {
@@ -238434,16 +238448,18 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ],
-      "sourceEpisodeCount": 6,
-      "sourcePlayableEpisodeCount": 6,
+      "sourceEpisodeCount": 7,
+      "sourcePlayableEpisodeCount": 7,
       "sourceDeclaredEpisodeCount": 6,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-14T12:48:34.985Z",
-      "latestAiredEp": 6,
-      "lastEpisodeAt": "2026-11-07T16:35:13.765Z"
+      "sourceInventoryCheckedAt": "2026-11-14T19:26:42.951Z",
+      "latestAiredEp": 7,
+      "lastEpisodeAt": "2026-11-14T16:26:42.925Z",
+      "sourceInventoryRetainedEpisodeCount": 6
     },
     {
       "id": "animeav1-vigilante-boku-no-hero-academia-illegals-2nd-season",
