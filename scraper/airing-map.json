@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-14T06:57:28.229Z",
+  "generatedAt": "2026-11-14T13:22:47.841Z",
   "count": 6679,
   "entries": {
     "animeav1-one-piece": {
@@ -1391,8 +1391,8 @@
       "nextAiringAt": 1795186800000,
       "nextAiringEpisodeNumber": 20,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 18,
-      "lastEpisodeAt": "2026-11-06T16:44:02.638Z"
+      "sourceEpisodeCount": 19,
+      "lastEpisodeAt": "2026-11-13T17:09:48.231Z"
     },
     "animeav1-neko-to-ryuu": {
       "anilistId": 186863,
@@ -1592,7 +1592,7 @@
       "nextAiringEpisodeNumber": 21,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 20,
-      "lastEpisodeAt": "2026-11-05T16:17:39.362Z"
+      "lastEpisodeAt": "2026-11-12T16:19:53.924Z"
     },
     "animeav1-bang-dream-yumemita": {
       "anilistId": 198376,
@@ -2325,6 +2325,17 @@
           "seasonYear": 2026,
           "startedAt": 1775606400000,
           "order": 5
+        },
+        {
+          "anilistId": 219904,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 5th Season",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 6
         }
       ],
       "sourceEpisodeCount": 19,
@@ -3579,7 +3590,7 @@
     },
     "animeav1-steel-ball-run-jojo-no-kimyou-na-bouken": {
       "anilistId": 190327,
-      "airingStatus": "FINISHED",
+      "airingStatus": "RELEASING",
       "season": "WINTER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 1,
@@ -3687,7 +3698,7 @@
         }
       ],
       "sourceEpisodeCount": 9,
-      "lastEpisodeAt": "2026-11-06T12:35:50.651Z"
+      "lastEpisodeAt": "2026-11-13T13:59:13.596Z"
     },
     "animeav1-beastars-final-season-part-2": {
       "anilistId": 187267,
@@ -13393,6 +13404,17 @@
           "seasonYear": 2026,
           "startedAt": 1775606400000,
           "order": 5
+        },
+        {
+          "anilistId": 219904,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 5th Season",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 6
         }
       ]
     },
@@ -13916,7 +13938,7 @@
     },
     "animeav1-yamato-yo-towa-ni-rebel-3199": {
       "anilistId": 144779,
-      "airingStatus": "FINISHED",
+      "airingStatus": "RELEASING",
       "season": "SUMMER",
       "seasonYear": 2024,
       "anilistEpisodeCount": 26,
@@ -18759,7 +18781,7 @@
           "episodes": null,
           "season": "",
           "seasonYear": null,
-          "startedAt": 0,
+          "startedAt": 1798761600000,
           "order": 2
         }
       ]
@@ -29032,6 +29054,17 @@
           "seasonYear": 2026,
           "startedAt": 1775606400000,
           "order": 5
+        },
+        {
+          "anilistId": 219904,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 5th Season",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 6
         }
       ]
     },
@@ -29175,6 +29208,17 @@
           "seasonYear": 2026,
           "startedAt": 1775606400000,
           "order": 5
+        },
+        {
+          "anilistId": 219904,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 5th Season",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 6
         }
       ]
     },
@@ -29636,6 +29680,17 @@
           "seasonYear": 2026,
           "startedAt": 1775606400000,
           "order": 5
+        },
+        {
+          "anilistId": 219904,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 5th Season",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 6
         }
       ]
     },
@@ -31599,8 +31654,8 @@
       "season": "WINTER",
       "seasonYear": 1996,
       "anilistEpisodeCount": 1205,
-      "nextAiringAt": 1794646800000,
-      "nextAiringEpisodeNumber": 1220,
+      "nextAiringAt": 1795251600000,
+      "nextAiringEpisodeNumber": 1221,
       "franchiseSeasons": [],
       "broadcastDay": "Saturdays",
       "broadcastTime": "18:00",
@@ -34596,6 +34651,17 @@
           "seasonYear": 2026,
           "startedAt": 1775606400000,
           "order": 5
+        },
+        {
+          "anilistId": 219904,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 5th Season",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 6
         }
       ]
     },
@@ -34662,6 +34728,17 @@
           "seasonYear": 2026,
           "startedAt": 1775606400000,
           "order": 5
+        },
+        {
+          "anilistId": 219904,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 5th Season",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 6
         }
       ],
       "sourceEpisodeCount": 19,
@@ -34669,7 +34746,7 @@
     },
     "anilist-190327": {
       "anilistId": 190327,
-      "airingStatus": "FINISHED",
+      "airingStatus": "RELEASING",
       "season": "WINTER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 1,
@@ -34777,7 +34854,7 @@
         }
       ],
       "sourceEpisodeCount": 9,
-      "lastEpisodeAt": "2026-11-06T12:35:50.651Z"
+      "lastEpisodeAt": "2026-11-13T13:59:13.596Z"
     },
     "anilist-185262": {
       "anilistId": 185262,
@@ -37191,8 +37268,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-06T15:53:10.006Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-13T17:06:17.182Z"
     },
     "anilist-175409": {
       "anilistId": 175409,
@@ -49499,7 +49576,7 @@
           "episodes": null,
           "season": "",
           "seasonYear": null,
-          "startedAt": 0,
+          "startedAt": 1798761600000,
           "order": 2
         }
       ]
@@ -49532,7 +49609,7 @@
           "episodes": null,
           "season": "",
           "seasonYear": null,
-          "startedAt": 0,
+          "startedAt": 1798761600000,
           "order": 2
         }
       ]
@@ -53246,8 +53323,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-05T17:22:48.026Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-12T17:07:17.394Z"
     },
     "anilist-107294": {
       "anilistId": 107294,
@@ -116022,6 +116099,17 @@
           "seasonYear": 2026,
           "startedAt": 1775606400000,
           "order": 5
+        },
+        {
+          "anilistId": 219904,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 5th Season",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 6
         }
       ]
     },
@@ -116390,6 +116478,17 @@
           "seasonYear": 2026,
           "startedAt": 1775606400000,
           "order": 5
+        },
+        {
+          "anilistId": 219904,
+          "title": "Re:Zero kara Hajimeru Isekai Seikatsu 5th Season",
+          "format": "TV",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 6
         }
       ]
     },
@@ -171085,8 +171184,8 @@
       "nextAiringAt": 1795221000000,
       "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-07T01:34:53.410Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-14T01:15:55.744Z"
     },
     "animeav1-tougen-anki-nikko-kegon-no-taki-hen": {
       "anilistId": 204650,
@@ -171094,8 +171193,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1794580200000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795185000000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 177474,
@@ -171120,8 +171219,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-06T16:25:50.621Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-13T17:08:01.602Z"
     },
     "animeav1-kusuriya-no-hitorigoto-3rd-season": {
       "anilistId": 195516,
@@ -171177,8 +171276,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-06T15:53:10.006Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-13T17:06:17.182Z"
     },
     "animeav1-tokyo-revengers-santen-sensou-hen": {
       "anilistId": 178083,
@@ -171186,8 +171285,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1794588780000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795193580000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 120120,
@@ -171234,8 +171333,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-06T17:25:08.862Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-13T17:30:28.018Z"
     },
     "animeav1-koori-no-jouheki-2nd-season": {
       "anilistId": 213805,
@@ -171269,8 +171368,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-05T15:53:19.359Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-12T15:43:17.518Z"
     },
     "animeav1-fx-senshi-kurumi-chan": {
       "anilistId": 206401,
@@ -171509,8 +171608,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-05T15:53:19.359Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-12T15:43:17.518Z"
     },
     "animeav1-gensou-suikoden": {
       "anilistId": 187316,
@@ -171647,8 +171746,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 20,
-      "nextAiringAt": 1794648300000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795253100000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 6,
       "lastEpisodeAt": "2026-11-07T15:20:12.568Z"
@@ -171671,8 +171770,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1794657600000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795262400000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 180894,
@@ -171697,8 +171796,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-07T13:11:55.132Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-14T13:13:20.186Z"
     },
     "animeav1-tensei-shita-daiseijo-wa-seijo-de-aru-koto-wo-hitakakusu": {
       "anilistId": 187402,
@@ -171706,11 +171805,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1794661200000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1795266000000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-07T13:09:12.731Z"
+      "sourceEpisodeCount": 8,
+      "lastEpisodeAt": "2026-11-14T13:17:32.458Z"
     },
     "animeav1-seitokai-ni-mo-ana-wa-aru": {
       "anilistId": 191656,
@@ -181599,8 +181698,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1794580200000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795185000000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 177474,
@@ -181625,8 +181724,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-06T16:25:50.621Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-13T17:08:01.602Z"
     },
     "anilist-8795": {
       "anilistId": 8795,
@@ -191599,8 +191698,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1794588780000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795193580000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 120120,
@@ -191647,8 +191746,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-06T17:25:08.862Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-13T17:30:28.018Z"
     },
     "anilist-100745": {
       "anilistId": 100745,
@@ -240828,8 +240927,8 @@
       "nextAiringAt": 1795100400000,
       "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-05T17:49:43.200Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-12T17:52:08.179Z"
     },
     "animeav1-hyouken-no-majutsushi-ga-sekai-wo-suberu-ii": {
       "anilistId": 212503,
@@ -240863,8 +240962,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-05T17:22:48.026Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-12T17:07:17.394Z"
     },
     "animeav1-hotaru-no-yomeiri": {
       "anilistId": 205909,
@@ -240875,8 +240974,8 @@
       "nextAiringAt": 1795185000000,
       "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-06T16:15:26.313Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-13T17:07:04.391Z"
     },
     "animeav1-toaru-anbu-no-item": {
       "anilistId": 186742,
@@ -240887,8 +240986,8 @@
       "nextAiringAt": 1795181400000,
       "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-06T15:53:30.239Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-13T17:06:44.133Z"
     },
     "anilist-130253": {
       "anilistId": 130253,
@@ -240984,11 +241083,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1794645000000,
-      "nextAiringEpisodeNumber": 6,
+      "nextAiringAt": 1795249800000,
+      "nextAiringEpisodeNumber": 7,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 5,
-      "lastEpisodeAt": "2026-11-07T12:11:55.887Z"
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-14T12:53:26.986Z"
     },
     "animeav1-kyoufu-collector": {
       "anilistId": 203473,
@@ -241567,8 +241666,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1794657600000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795262400000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 180894,
@@ -241593,8 +241692,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-07T13:11:55.132Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-14T13:13:20.186Z"
     },
     "anilist-219243": {
       "anilistId": 219243,
@@ -241638,8 +241737,8 @@
       "nextAiringAt": 1795176000000,
       "nextAiringEpisodeNumber": 4,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 2,
-      "lastEpisodeAt": "2026-11-06T13:14:40.293Z"
+      "sourceEpisodeCount": 3,
+      "lastEpisodeAt": "2026-11-13T13:59:55.119Z"
     },
     "anilist-195515": {
       "anilistId": 195515,
@@ -241774,6 +241873,30 @@
         }
       ]
     },
+    "animeav1-battle-spirits-re-zekkai-no-kuu": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-10T14:43:18.390Z"
+    },
+    "animeav1-juuou-mujin-dandivine": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 6,
+      "lastEpisodeAt": "2026-11-11T17:13:06.557Z"
+    },
     "animeav1-kimi-no-koto-ga-daidaidaidaidaisuki-na-100-nin-no-kanojo-3rd-season": {
       "anilistId": "mal-62811",
       "airingStatus": "RELEASING",
@@ -241819,30 +241942,6 @@
       ],
       "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-13T14:10:55.131Z"
-    },
-    "animeav1-battle-spirits-re-zekkai-no-kuu": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-10T14:43:18.390Z"
-    },
-    "animeav1-juuou-mujin-dandivine": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-11T17:13:06.557Z"
     },
     "animeav1-bastard-ankoku-no-hakaishin-part-2-ona": {
       "anilistId": "mal-51366",
@@ -243331,6 +243430,10 @@
     "anilist-85737": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85737-WkWOr5EgwPyo.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/85737-jCG8ine3fTDr.png"
+    },
+    "anilist-219904": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx219904-DQOTtKhwpB8S.jpg",
+      "anilistBanner": ""
     },
     "anilist-125554": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx125554-Rrjx8vLJxXAM.png",
@@ -251665,7 +251768,7 @@
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/212994-7qTPK0rQ0Qma.jpg"
     },
     "anilist-217126": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx217126-HRn0NsNpeUBb.jpg",
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b217126-KdZp3uU87XGL.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/217126-gqywyoooTavt.jpg"
     },
     "anilist-54457": {
