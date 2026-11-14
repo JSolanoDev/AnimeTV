@@ -190310,8 +190310,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/seitokai-ni-mo-ana-wa-aru",
-      "totalEpisodes": 6,
-      "episode": 6,
+      "totalEpisodes": 7,
+      "episode": 7,
       "lastScrapedAt": "2026-11-14T12:45:10.868798+00:00",
       "episodes": [
         {
@@ -190366,16 +190366,18 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ],
-      "sourceEpisodeCount": 6,
-      "sourcePlayableEpisodeCount": 6,
+      "sourceEpisodeCount": 7,
+      "sourcePlayableEpisodeCount": 7,
       "sourceDeclaredEpisodeCount": 6,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-14T12:48:34.985Z",
-      "latestAiredEp": 6,
-      "lastEpisodeAt": "2026-11-07T19:27:13.764Z"
+      "sourceInventoryCheckedAt": "2026-11-14T23:18:59.372Z",
+      "latestAiredEp": 7,
+      "lastEpisodeAt": "2026-11-14T19:18:59.333Z",
+      "sourceInventoryRetainedEpisodeCount": 6
     },
     {
       "id": "animeav1-shin-tennis-no-oujisama-u-17-world-cup-kesshou-member-ketteisen",
