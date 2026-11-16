@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T14:57:03.994Z",
+  "generatedAt": "2026-11-16T22:28:03.275Z",
   "count": 6680,
   "entries": {
     "animeav1-one-piece": {
@@ -237021,8 +237021,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1794848400000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795453200000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 21340,
@@ -238151,7 +238151,7 @@
       "lastEpisodeAt": "2026-11-14T17:33:31.846Z"
     },
     "animeav1-shinja-zero-no-megami-sama-to-hajimeru-isekai-kouryaku": {
-      "anilistId": null,
+      "anilistId": 205896,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,

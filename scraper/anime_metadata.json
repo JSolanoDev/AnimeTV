@@ -143479,8 +143479,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/mahou-shoujo-ikusei-keikaku-restart",
-      "totalEpisodes": 6,
-      "episode": 6,
+      "totalEpisodes": 7,
+      "episode": 7,
       "lastScrapedAt": "2026-11-16T14:17:57.285106+00:00",
       "episodes": [
         {
@@ -143535,16 +143535,18 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ],
-      "sourceEpisodeCount": 6,
-      "sourcePlayableEpisodeCount": 6,
+      "sourceEpisodeCount": 7,
+      "sourcePlayableEpisodeCount": 7,
       "sourceDeclaredEpisodeCount": 6,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-16T14:22:24.008Z",
-      "latestAiredEp": 6,
-      "lastEpisodeAt": "2026-11-09T19:49:35.336Z"
+      "sourceInventoryCheckedAt": "2026-11-16T22:27:55.260Z",
+      "latestAiredEp": 7,
+      "lastEpisodeAt": "2026-11-16T19:27:55.221Z",
+      "sourceInventoryRetainedEpisodeCount": 6
     },
     {
       "id": "animeav1-mouse-cursor-de-genjitsu-wo-sousa-dekiru-you-ni-natta-node-onna-no-ko-wo-ippai-click-shimaasu",
@@ -178440,8 +178442,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/psyren",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-16T14:18:41.472782+00:00",
       "episodes": [
         {
@@ -178495,16 +178497,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-16T14:22:24.008Z",
-      "latestAiredEp": 4,
-      "lastEpisodeAt": "2026-10-26T15:06:33.658Z"
+      "sourceInventoryCheckedAt": "2026-11-16T22:27:55.260Z",
+      "latestAiredEp": 6,
+      "lastEpisodeAt": "2026-11-16T14:27:55.221Z",
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-ponkotsu-fuuki-iin-to-skirt-take-ga-futekisetsu-na-jk-no-hanashi",
