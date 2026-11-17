@@ -23544,8 +23544,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/battle-spirits-re-zekkai-no-kuu",
-      "totalEpisodes": 6,
-      "episode": 6,
+      "totalEpisodes": 7,
+      "episode": 7,
       "lastScrapedAt": "2026-11-16T14:15:25.172666+00:00",
       "episodes": [
         {
@@ -23600,16 +23600,18 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ],
-      "sourceEpisodeCount": 6,
-      "sourcePlayableEpisodeCount": 6,
+      "sourceEpisodeCount": 7,
+      "sourcePlayableEpisodeCount": 7,
       "sourceDeclaredEpisodeCount": 6,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-16T14:22:24.008Z",
-      "latestAiredEp": 6,
-      "lastEpisodeAt": "2026-11-10T14:58:15.952Z"
+      "sourceInventoryCheckedAt": "2026-11-17T14:49:59.747Z",
+      "latestAiredEp": 7,
+      "lastEpisodeAt": "2026-11-17T14:39:59.708Z",
+      "sourceInventoryRetainedEpisodeCount": 6
     },
     {
       "id": "animeav1-black-clover-2nd-season",
@@ -190453,8 +190455,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/shiotaiou-no-satou-san-ga-ore-ni-dake-amai",
-      "totalEpisodes": 6,
-      "episode": 6,
+      "totalEpisodes": 7,
+      "episode": 7,
       "lastScrapedAt": "2026-11-16T14:18:58.563373+00:00",
       "episodes": [
         {
@@ -190509,16 +190511,18 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ],
-      "sourceEpisodeCount": 6,
-      "sourcePlayableEpisodeCount": 6,
+      "sourceEpisodeCount": 7,
+      "sourcePlayableEpisodeCount": 7,
       "sourceDeclaredEpisodeCount": 6,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-16T14:22:24.008Z",
-      "latestAiredEp": 5,
-      "lastEpisodeAt": "2026-11-03T13:45:44.348Z"
+      "sourceInventoryCheckedAt": "2026-11-17T14:49:59.747Z",
+      "latestAiredEp": 7,
+      "lastEpisodeAt": "2026-11-17T13:49:59.708Z",
+      "sourceInventoryRetainedEpisodeCount": 6
     },
     {
       "id": "animeav1-seitokai-ni-mo-ana-wa-aru",

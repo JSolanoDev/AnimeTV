@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-16T22:28:03.275Z",
+  "generatedAt": "2026-11-17T14:50:10.161Z",
   "count": 6680,
   "entries": {
     "animeav1-one-piece": {
@@ -238019,13 +238019,13 @@
       "lastEpisodeAt": "2026-11-10T14:47:25.302Z"
     },
     "animeav1-shiotaiou-no-satou-san-ga-ore-ni-dake-amai": {
-      "anilistId": null,
+      "anilistId": 209502,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1794920400000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795525200000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 6,
       "lastEpisodeAt": "2026-11-10T13:50:35.948Z"
