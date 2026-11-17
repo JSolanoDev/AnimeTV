@@ -1778,8 +1778,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/dark-machine-the-animation",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-17T15:07:01.509568+00:00",
       "episodes": [
         {
@@ -1961,16 +1961,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-17T15:14:44.653Z",
-      "lastEpisodeAt": "2026-11-10T18:58:15.952Z",
-      "latestAiredEp": 5
+      "sourceInventoryCheckedAt": "2026-11-17T23:06:23.964Z",
+      "lastEpisodeAt": "2026-11-17T19:06:23.937Z",
+      "latestAiredEp": 6,
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-chitose-kun-wa-ramune-bin-no-naka-part-2",
@@ -1993,8 +1995,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/chitose-kun-wa-ramune-bin-no-naka-part-2",
-      "totalEpisodes": 5,
-      "episode": 5,
+      "totalEpisodes": 6,
+      "episode": 6,
       "lastScrapedAt": "2026-11-17T15:07:01.510638+00:00",
       "episodes": [
         {
@@ -2176,16 +2178,18 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ],
-      "sourceEpisodeCount": 5,
-      "sourcePlayableEpisodeCount": 5,
+      "sourceEpisodeCount": 6,
+      "sourcePlayableEpisodeCount": 6,
       "sourceDeclaredEpisodeCount": 5,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-17T15:14:44.653Z",
-      "lastEpisodeAt": "2026-11-10T16:58:15.952Z",
-      "latestAiredEp": 5
+      "sourceInventoryCheckedAt": "2026-11-17T23:06:23.964Z",
+      "lastEpisodeAt": "2026-11-17T17:06:23.937Z",
+      "latestAiredEp": 6,
+      "sourceInventoryRetainedEpisodeCount": 5
     },
     {
       "id": "animeav1-dragon-ball-super-beerus",
@@ -74246,8 +74250,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/gensou-suikoden",
-      "totalEpisodes": 6,
-      "episode": 6,
+      "totalEpisodes": 7,
+      "episode": 7,
       "lastScrapedAt": "2026-11-17T15:08:28.022569+00:00",
       "episodes": [
         {
@@ -74302,16 +74306,18 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ],
-      "sourceEpisodeCount": 6,
-      "sourcePlayableEpisodeCount": 6,
+      "sourceEpisodeCount": 7,
+      "sourcePlayableEpisodeCount": 7,
       "sourceDeclaredEpisodeCount": 6,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-17T15:14:44.653Z",
-      "latestAiredEp": 6,
-      "lastEpisodeAt": "2026-11-10T14:58:15.952Z"
+      "sourceInventoryCheckedAt": "2026-11-17T23:06:23.964Z",
+      "latestAiredEp": 7,
+      "lastEpisodeAt": "2026-11-17T15:06:23.937Z",
+      "sourceInventoryRetainedEpisodeCount": 6
     },
     {
       "id": "animeav1-grand-blue-season-3",
@@ -190995,8 +191001,8 @@
       "score": 59,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/sora-wa-akai-kawa-no-hotori",
-      "totalEpisodes": 19,
-      "episode": 19,
+      "totalEpisodes": 20,
+      "episode": 20,
       "lastScrapedAt": "2026-11-17T15:11:12.082798+00:00",
       "episodes": [
         {
@@ -191192,16 +191198,18 @@
         16,
         17,
         18,
-        19
+        19,
+        20
       ],
-      "sourceEpisodeCount": 19,
-      "sourcePlayableEpisodeCount": 19,
+      "sourceEpisodeCount": 20,
+      "sourcePlayableEpisodeCount": 20,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-11-17T15:14:44.653Z",
+      "sourceInventoryCheckedAt": "2026-11-17T23:06:23.964Z",
       "sourceDeclaredEpisodeCount": 19,
       "sourceInventoryPartial": false,
-      "latestAiredEp": 19,
-      "lastEpisodeAt": "2026-11-10T17:58:15.952Z"
+      "latestAiredEp": 20,
+      "lastEpisodeAt": "2026-11-17T19:06:23.937Z",
+      "sourceInventoryRetainedEpisodeCount": 19
     },
     {
       "id": "animeav1-suterare-seijo-no-isekai-gohan-tabi-kakure-skill-de-camping-car-wo-shoukan-shimashita",
