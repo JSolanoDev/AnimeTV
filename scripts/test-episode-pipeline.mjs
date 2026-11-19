@@ -712,9 +712,10 @@ test("readiness: oversized manifests cannot consume unbounded memory", async () 
 test("startup: a reusable VOD init file warms alongside the two required fragments", async () => {
   const map = '#EXT-X-MAP:URI="/api/source?fixture=init"';
   const fragments = "#EXTINF:4,\nfirst.m4s\n#EXTINF:4,\nsecond.m4s";
-  async function run(tags, options = {}) {
+  async function run(tags, options = {}, connection = {}) {
     const playlist = ["#EXTM3U", tags, fragments, "#EXT-X-ENDLIST"].join("\n");
     const sandbox = mediaProbeContext(async () => new Response(playlist));
+    sandbox.navigator = { connection };
     const calls = [];
     sandbox.probeMediaBytes = async (url, _ref, _ms, _mode, opts) => {
       calls.push({ url, opts });
@@ -733,6 +734,8 @@ test("startup: a reusable VOD init file warms alongside the two required fragmen
     assert.equal((await run(tags)).length, 2);
   }
   assert.equal((await run(map, { prefetchSegment: false })).length, 2);
+  assert.equal((await run(map, {}, { saveData: true })).length, 2);
+  assert.equal((await run(map, {}, { effectiveType: "slow-2g" })).length, 2);
 });
 
 test("readiness: embed and resolver JSON bodies share their existing total deadline", async () => {
@@ -2026,6 +2029,7 @@ test("7f2e. episode intent and adjacent playback warm the shared source path bef
   const warmup = section(clientSource, "function warmEpisodePlaybackIntent(", "function renderDirectVideoPlayer(");
   const playback = section(clientSource, "async function runActivePlaybackAttempt(", "function isExternalIframeEpisode(");
   assert.match(renderer, /button\.addEventListener\("pointerenter", warmPrimary/);
+  assert.match(renderer, /const warmPrimary = \(\) => warm\(\{ prefetchSegment: true \}\)/);
   assert.match(renderer, /button\.addEventListener\("pointerdown", warmForPlay/);
   assert.match(renderer, /warmEpisodePlaybackIntent\(show, episode, seasonNumber, options\)/);
   assert.match(renderer, /eagerBackups:\s*true/);

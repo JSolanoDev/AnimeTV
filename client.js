@@ -13423,7 +13423,8 @@ function renderEpisodeList(show, options = {}) {
       }, seasonIndex);
       Promise.resolve(warmEpisodePlaybackIntent(show, episode, seasonNumber, options)).catch(() => {});
     };
-    const warmPrimary = () => warm();
+    // A click can join the media check already started by focus or hover.
+    const warmPrimary = () => warm({ prefetchSegment: true });
     const warmForPlay = () => warm({
       eagerBackups: true,
       timeoutMs: RELIABLE_PLAYBACK_FAST_TARGET_MS,
@@ -20994,8 +20995,9 @@ async function probeHlsManifest(url = "", referer = "", depth = 0, options = {})
     ));
     // The decoder also needs the initialization section of fragmented MP4.
     // Let the player reuse that small file while the media checks are in flight.
+    const connection = globalThis.navigator?.connection;
     if (options.prefetchSegment && options.cacheMode === "default" && /^#EXT-X-ENDLIST\s*$/m.test(manifest)
-      && !globalThis.navigator?.connection?.saveData) {
+      && !connection?.saveData && !/^(slow-)?2g$/.test(connection?.effectiveType || "")) {
       const maps = manifest.match(/^#EXT-X-MAP:.*$/gm);
       const init = maps?.length === 1 && /^#EXT-X-MAP:URI="(\/api\/source\?[^"\r\n]+)"\s*$/.exec(maps[0]);
       if (init) {
