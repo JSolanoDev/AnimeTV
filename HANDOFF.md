@@ -2,6 +2,12 @@
 
 Read this first; update it before stopping. Rules live in AGENTS.md.
 
+## Catalog backend startup v1035
+
+Production v1034 (c048a7151ff92f2500c9d93ff414b9e7ca1923d4, Worker 2bb77773-7a43-43f6-a070-5d1cf6d5ce83) served the reviewed assets. During rollout both dedicated catalog requests returned 503 and an empty first visit failed to recover. A warm visit showed 24 placeholders followed by 24 matching releases. The v1033 rollback pair is Git 2b4a1e52c2e5cfd72497c153042a1a2abc951ecd and Worker 13149ba1-2282-4246-966a-4a1948f7ad2e.
+
+Same-origin catalog adapters now wait for the existing shared, bounded health check before starting their own 15-second response/body deadline. A neutral regression test failed on v1034 and passed on v1035. In Chrome with delayed readiness, zero catalog requests preceded readiness, one request went to each feed, and the correct release replaced the placeholders without another click. Local regression, release tests, static checks, Android mirror and build verification passed.
+
 ## Playback startup and catalog switching v1034
 
 The v1034 candidate on codex/playback-catalog-startup includes the catalog update from main at 2b4a1e52c2e5cfd72497c153042a1a2abc951ecd. This branch runs general CI and Linux/Docker validation. Production deployment requires separate approval.

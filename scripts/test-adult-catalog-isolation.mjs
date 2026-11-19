@@ -189,3 +189,29 @@ test("a failed refresh retains the last-good dedicated catalog without importing
   assert.deepEqual(Array.from(rows, x => x.id), ["dedicated"]);
   assert.equal(h.c.adultCatalogLoadedAt, 0);
 });
+
+test("concurrent catalog feeds wait for one local health check across a marked cold start", async () => {
+  const utils = readFileSync(new URL("../js/utils.js", import.meta.url), "utf8");
+  const calls = [];
+  const location = new URL("https://example.test/");
+  const c = vm.createContext({
+    URL, Response, AbortController, DOMException, location,
+    window: { location, setTimeout, clearTimeout }, setTimeout, clearTimeout,
+    fetch: async url => {
+      const path = new URL(url, location).pathname;
+      calls.push(path);
+      if (path === "/api/health") {
+        if (calls.length === 1) return new Response(null, {
+          status: 503, headers: { "x-zenkai-backend-state": "starting", "Retry-After": "0" }
+        });
+        return Response.json({ ok: true, app: "ZenkaiTV", api: "ready" });
+      }
+      assert.equal(calls.filter(p => p === "/api/health").length, 2);
+      return Response.json({ ok: true, items: [] });
+    }
+  });
+  vm.runInContext(utils.slice(utils.indexOf("let backendStartupRecovery"), utils.indexOf("function isBackendRead(")), c);
+  vm.runInContext(adapterSource + "\nthis.feeds = [new UnderHentaiAdultSourceAdapter(), new HentaiOceanAdultSourceAdapter()];", c);
+  await Promise.all(c.feeds.map(feed => feed.listLatest()));
+  assert.deepEqual(calls, ["/api/health", "/api/health", "/api/adult/underhentai/catalog", "/api/adult/hentaiocean/catalog"]);
+});

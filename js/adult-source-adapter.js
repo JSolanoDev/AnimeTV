@@ -32,6 +32,12 @@ class AdultSourceAdapter {
   }
 
   async _requestCatalog(endpoint) {
+    // A sleeping container may need longer than the catalog's response deadline.
+    // Local feeds share the app's bounded readiness check before starting that clock.
+    if (typeof ensureBackendReady === "function" && /^https?:$/.test(endpoint.protocol)
+      && endpoint.origin === new URL(window.location.href).origin) {
+      await ensureBackendReady();
+    }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 15000);
     try {
