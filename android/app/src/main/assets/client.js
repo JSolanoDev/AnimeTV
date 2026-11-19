@@ -20356,6 +20356,7 @@ async function runActivePlaybackAttempt(options = {}, playbackContext) {
       if (!isPlaybackAttemptCurrent(playbackContext, show, activeEpisode)) return;
       reliableSource = await prepareReliablePlaybackSource(show, activeEpisode, {
         timeoutMs: RELIABLE_PLAYBACK_HANDOFF_VERIFY_MS,
+        prefetchSegment: true,
         pendingDiscovery: sourceOptionsBackgroundLookups.get(activeLookupKey) || lookupPromise
       });
       if (!isPlaybackAttemptCurrent(playbackContext, show, activeEpisode)) return;
@@ -21597,7 +21598,8 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
           attemptedBackupKeys.add(candidateKey(source));
           const verified = await verifyReliablePlaybackCandidate(episode, source, {
             timeoutMs: queue.length ? Math.min(remaining, RELIABLE_PLAYBACK_PRIMARY_PROBE_MS) : remaining,
-            softFailure: Boolean(options.softFailures)
+            softFailure: Boolean(options.softFailures),
+            prefetchSegment: Boolean(options.prefetchSegment && preferred && source === raceCandidates[0])
           }).catch(() => null);
           if (verified) {
             finished = true;

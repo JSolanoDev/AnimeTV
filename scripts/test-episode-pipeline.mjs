@@ -3991,12 +3991,12 @@ test("an arriving primary source can start verification while optional providers
     wait: ms => new Promise(resolve => { if (ms === 450 && !beginBackups) beginBackups = resolve; }),
     attachPlaybackFailureFallbacks: () => backup,
     isFastPreferredPlaybackSource: source => source === preferred,
-    verifyReliablePlaybackCandidate: async (_episode, source) => {
-      checked.push(source.id);
+    verifyReliablePlaybackCandidate: async (_episode, source, options) => {
+      checked.push({ id: source.id, prefetch: options.prefetchSegment });
       return source;
     }
   });
-  const playback = sandbox.prepareReliablePlaybackSource({}, episode, { eagerBackups: true, pendingDiscovery });
+  const playback = sandbox.prepareReliablePlaybackSource({}, episode, { eagerBackups: true, pendingDiscovery, prefetchSegment: true });
   await new Promise(setImmediate);
   beginBackups();
   await new Promise(setImmediate);
@@ -4004,7 +4004,7 @@ test("an arriving primary source can start verification while optional providers
   completeNormal();
   await new Promise(setImmediate);
   try {
-    assert.deepEqual(checked, ["preferred"]);
+    assert.deepEqual(checked, [{ id: "preferred", prefetch: true }]);
   } finally {
     completeBackup();
     await playback;
