@@ -329,12 +329,14 @@ test("refreshing a provider clears stale source-family health", () => {
 
 const utils = readFileSync(new URL("../js/utils.js", import.meta.url), "utf8");
 
-function startupHarness(fetchImpl, { cold = false } = {}) {
+function startupHarness(fetchImpl, { cold = false, pathname, visibilityState = "visible", saveData = false } = {}) {
   const calls = [];
   const timers = new Set();
   const context = vm.createContext({
     URL, Response, AbortController, DOMException, API_TIMEOUT_MS: 1000,
-    location: { origin: "https://app.test", href: "https://app.test/watch/neutral/s1-e1" },
+    location: new URL(pathname || "/watch/neutral/s1-e1", "https://app.test"),
+    document: pathname ? { visibilityState } : undefined,
+    navigator: { onLine: true, connection: { saveData } },
     window: {
       setTimeout(fn, ms) { const timer = setTimeout(fn, ms); timers.add(timer); return timer; },
       clearTimeout(timer) { clearTimeout(timer); timers.delete(timer); }
@@ -427,6 +429,24 @@ test("startup recovery stays within the original caller timeout", async () => {
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(h.calls.length, 2);
   assert.equal(h.timers.size, 0);
+});
+
+test("a visible detail or watch entry starts the shared readiness check ahead of Play", async () => {
+  for (const pathname of ["/anime/neutral", "/watch/neutral/s1-e1"]) {
+    let ready;
+    const h = startupHarness(() => new Promise(resolve => { ready = resolve; }), { cold: true, pathname });
+    assert.deepEqual(h.calls.map(c => c.url), ["/api/health"]);
+    const play = h.context.ensureBackendReady();
+    ready(readyResponse());
+    await play;
+    assert.equal(h.calls.length, 1);
+    assert.equal(h.timers.size, 0);
+  }
+  for (const page of [{ pathname: "/" }, { pathname: "/anime/neutral", saveData: true },
+    { pathname: "/watch/neutral/s1-e1", visibilityState: "hidden" }]) {
+    const h = startupHarness(() => assert.fail("unexpected readiness request"), { cold: true, ...page });
+    assert.equal(h.calls.length, 0);
+  }
 });
 
 test("cold reads share readiness before their shorter source deadlines start", async () => {

@@ -3570,6 +3570,35 @@ test("a late source lookup never remounts an already buffered player", async () 
   assert.equal(replayCount, 1);
 });
 
+test("regular details warm one preferred local HLS playlist even when UPN is unavailable", async () => {
+  const { sandbox } = animeAv1SourceContext();
+  const show = { id: "animeav1-neutral" };
+  const sources = [{ type: "direct", videoUrl: "/api/source?fixture=vod" }];
+  const reads = [];
+  Object.assign(sandbox, {
+    state: { activeShow: show, playIntent: false },
+    navigator: { connection: {} },
+    shouldPreferHlsLookup: () => true, shouldPreferUpnShareLookup: () => false,
+    animeAv1CatalogSlugForShow: () => "neutral",
+    attachAnimeAv1Sources: async (_show, episode) => { episode.sourceOptions = sources; },
+    getEpisodePlaybackSources: e => e.sourceOptions, isFastPreferredPlaybackSource: () => true,
+    hasRecentlyFailedPlaybackFamily: () => false, sourceDirectUrl: s => s.videoUrl,
+    isLocalSourceProxyUrl: u => u.startsWith("/api/source?"), streamTypeFromUrl: () => "hls",
+    fallbackReferer: () => "", FALLBACK_PROBE_TIMEOUT_MS: 4000,
+    probeHlsManifest: async (url, _ref, _depth, options) => { reads.push([url, options.manifestOnly, options.cacheMode]); }
+  });
+  const target = { episodeNumber: 1, warmPlaylist: true };
+  await sandbox.warmPrimaryPlaybackIntent(show, target);
+  assert.deepEqual(reads, [[sources[0].videoUrl, true, "default"]]);
+  await sandbox.warmPrimaryPlaybackIntent(show, { ...target, warmPlaylist: false });
+  sandbox.navigator.connection.saveData = true;
+  await sandbox.warmPrimaryPlaybackIntent(show, target);
+  sandbox.navigator.connection.saveData = false;
+  sandbox.state.playIntent = true;
+  await sandbox.warmPrimaryPlaybackIntent(show, target);
+  assert.equal(reads.length, 1);
+});
+
 test("AnimeAV1 card intent warms the exact provider episode for later playback", async () => {
   const { sandbox, releaseFetch, prefetched, getFetchCount, getLastFetchUrl } = animeAv1SourceContext();
   const show = { animeAv1Slug: "movie-example" };

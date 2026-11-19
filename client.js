@@ -10562,13 +10562,14 @@ async function openShow(id, target = {}) {
       } else if (!isAdultShow && !targetEpisode && !state.playIntent && !document.hidden
         && !navigator.connection?.saveData && !/^(slow-)?2g$/.test(navigator.connection?.effectiveType || "")) {
         // On an untargeted detail page the main Play button opens this row.
-        // Warm its source metadata only. Media checks still follow viewer intent.
+        // Warm its source list and, when available, just the preferred playlist.
         const first = detailSeasons[0]?.episodes?.[0];
         if (first && !first.locked && !first.unavailable && target.episodeNumber == null) {
           Promise.resolve(warmPrimaryPlaybackIntent(show, {
             episodeNumber: getCanonicalEpisodeNumber(first, 1),
             providerEpisodeId: getInventoryProviderEpisodeId(show, first),
-            providerAnimeSlug: first.providerAnimeSlug
+            providerAnimeSlug: first.providerAnimeSlug,
+            warmPlaylist: true
           })).catch(() => {});
         }
       }
@@ -18883,7 +18884,7 @@ function warmAnimeAv1PlaybackIntent(show, target = {}) {
 
   const episodeNumber = parseEpisodeNumber(target.episodeNumber);
   const providerAnimeSlug = String(
-    target.providerAnimeSlug || show.animeAv1Slug || show._av1Slug || ""
+    target.providerAnimeSlug || animeAv1CatalogSlugForShow(show)
   ).trim();
   if (episodeNumber === null || !providerAnimeSlug) return Promise.resolve(null);
 
@@ -18905,7 +18906,19 @@ function warmAnimeAv1PlaybackIntent(show, target = {}) {
   // This detached probe avoids mutating the episode list merely because a card
   // received hover/focus, while the shared in-flight map also dedupes a quick click.
   return Promise.resolve(attachAnimeAv1Sources(show, probeEpisode))
-    .then(() => probeEpisode)
+    .then(() => {
+      if (target.warmPlaylist && state.activeShow === show && !state.playIntent && !document.hidden
+        && !navigator.connection?.saveData && !/^(slow-)?2g$/.test(navigator.connection?.effectiveType || "")) {
+        const preferred = getEpisodePlaybackSources(probeEpisode).find(isFastPreferredPlaybackSource);
+        const url = preferred && sourceDirectUrl(preferred);
+        if (url && isLocalSourceProxyUrl(url) && streamTypeFromUrl(url) === "hls" && !hasRecentlyFailedPlaybackFamily(preferred)) {
+          void probeHlsManifest(url, fallbackReferer(preferred), 0, {
+            manifestOnly: true, cacheMode: "default", timeoutMs: FALLBACK_PROBE_TIMEOUT_MS
+          }).catch(() => {});
+        }
+      }
+      return probeEpisode;
+    })
     .catch(() => null);
 }
 
@@ -18922,9 +18935,8 @@ function warmPrimaryPlaybackIntent(show, target = {}) {
     if (episode) target = { ...target, providerAnimeSlug: episode.providerAnimeSlug || target.providerAnimeSlug,
       providerEpisodeId: episode.providerEpisodeId ?? target.providerEpisodeId };
   }
-  if (isScraperEnabled("animeav1")
-    && shouldPreferUpnShareLookup(show, { episode: episodeNumber })
-    && (target.providerAnimeSlug || show.animeAv1Slug || show._av1Slug)) {
+  if (shouldPreferHlsLookup(show, { episode: episodeNumber })
+    && (target.providerAnimeSlug || animeAv1CatalogSlugForShow(show))) {
     return warmAnimeAv1PlaybackIntent(show, target);
   }
   if (!isScraperEnabled("animeneon")) return warmAnimeAv1PlaybackIntent(show, target);
@@ -20846,6 +20858,7 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
     const response = await fetchWithTimeout(target, {
       cache: cacheMode,
       credentials: "omit",
+      priority: options.priority || "auto",
       headers: requestHeaders
     }, timeoutMs);
     const contentType = String(response.headers.get("content-type") || "").toLowerCase();
@@ -20958,7 +20971,8 @@ async function probeHlsManifest(url = "", referer = "", depth = 0, options = {})
   try {
     const response = await fetchWithTimeout(target, {
       cache: options.cacheMode || "no-store",
-      credentials: "omit"
+      credentials: "omit",
+      priority: options.prefetchSegment ? "high" : "auto"
     }, Math.min(timeoutMs, remainingMs));
     if (!response.ok) {
       await response.body?.cancel().catch(() => {});
@@ -20991,7 +21005,7 @@ async function probeHlsManifest(url = "", referer = "", depth = 0, options = {})
       // A complete first fragment validates the same no-Range request shape
       // used by hls.js. The second remains a small continuation check except
       // for AnimeAV1 UPN, whose media policy verifies every full fragment.
-      { cacheCompleteSegment: index < 2 }
+      { cacheCompleteSegment: index < 2, priority: options.prefetchSegment ? "high" : "auto" }
     ));
     // The decoder also needs the initialization section of fragmented MP4.
     // Let the player reuse that small file while the media checks are in flight.

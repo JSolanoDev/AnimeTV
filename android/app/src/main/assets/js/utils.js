@@ -215,6 +215,14 @@ async function ensureBackendReady(signal) {
   return waitForBackendReadiness(backendReadiness, signal);
 }
 
+// A direct episode/detail visit will need this same readiness promise. Start it
+// while the deferred player and catalog scripts are still loading.
+if (typeof document !== "undefined" && document.visibilityState === "visible"
+  && /^\/(?:watch|anime)\/[^/]/.test(location.pathname)
+  && navigator.onLine !== false && !navigator.connection?.saveData) {
+  ensureBackendReady().catch(() => {});
+}
+
 function isBackendRead(url, options) {
   if (String(options.method || "GET").toUpperCase() !== "GET") return false;
   const parsed = new URL(url, location.href || location.origin);

@@ -485,7 +485,7 @@ test("JoJo direct-route warmup fetches the absolute provider ID once instead of 
   const warmed = [];
   c.prefetchPlayerShell = () => {};
   c.isScraperEnabled = provider => provider === "animeav1";
-  c.shouldPreferUpnShareLookup = () => true;
+  c.shouldPreferHlsLookup = () => true;
   c.warmAnimeAv1PlaybackIntent = (show, target) => { warmed.push(target); return Promise.resolve(null); };
   vm.runInContext(section(clientSource, "function warmPrimaryPlaybackIntent(", "async function attachAnimeAv1Sources("), c);
   await c.warmPrimaryPlaybackIntent(shows[6], { episodeNumber: 1 });
