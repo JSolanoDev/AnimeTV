@@ -2,6 +2,17 @@
 
 Read this first; update it before stopping. Rules live in AGENTS.md.
 
+## Playback startup and catalog switching v1034
+
+The v1034 candidate on codex/playback-catalog-startup includes the catalog update from main at 2b4a1e52c2e5cfd72497c153042a1a2abc951ecd. This branch runs general CI and Linux/Docker validation. Production deployment requires separate approval.
+
+- Speculative checks can warm a success. Play waits for outstanding discovery within the existing deadline and shares a retry on an explicit backend-starting response. The player preserves initial media transfers and active HLS fragment downloads.
+- Adult Mode displays loading placeholders until its dedicated catalog is ready, with immediate display for cached dedicated records. Regular navigation avoids repeated catalog scans and label writes.
+- Six alternating fresh Chrome sessions with 1.65 seconds of delay per MP4 request gave a median request-to-playing time of 4.098 s on v1033 and 1.695 s on v1034. Initial media requests fell from three to one in each respective run.
+- On the final local build, One Piece 904 and Kyouran Reijou Nia Liston S1E2 decoded at 1080p on first open. Both advanced from 4:57 past 5:05 after a seek. Neutral MP4 and HLS decoding and seeking passed. An earlier Kyouran run timed out and optional upstream requests still returned errors. Full-episode continuity and catalog-wide live availability remain unverified.
+- The delayed neutral catalog fixture displayed 24 placeholders and zero stale cards, followed by the expected release. Language switching passed and repeated filter-label writes were zero. Static inventory verified 60,676 episode mappings across 4,480 regular titles.
+- npm test, check, lint, production build and hash verification passed. All 28 Android asset mirrors matched. 54 Cloudflare checks and 5 release tests passed. The Windows suite skipped 15 platform-specific tests. Docker CLI unavailable locally. Sanitized browser and timing results are in .cache.
+
 ## Current Task: AnimeNeon Reliability v1033
 - User requested fixing the AnimeNeon502 without weakening security/playback. IsolatedAnimeTV-animeneon-reliability/codex/animeneon-reliability-v1033, base production71a2cc1/v1032. Current native regularOnePiece904/Sub probe200/5sources; historical502cause remains unproven. No production/config changes or new branch push.
 - LOCAL targeted fix: malformed/mismatched/empty source data not cached as absence; stale successful source marked/no-store with15sclientgrace; forced lookup coalescing and sequence-safe cache/cleanup. Independent sources survive optional-mirror failure. Existing protections/provider selection/player/Cast/HLS/CSP preserved. Version1033/28mirrors synchronized.

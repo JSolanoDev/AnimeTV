@@ -121,7 +121,7 @@ test("a cold refresh restores saved provider catalogs and never imports regular 
 });
 
 function loadHarness({ age = 0, empty = false, fail = false } = {}) {
-  const items = [{ id: "fixture", isAdult: true }];
+  const items = [{ id: "fixture", isAdult: true, adultSource: "Fixture" }];
   const now = 1_000_000;
   let requests = 0;
   let reads = 0;
@@ -135,7 +135,8 @@ function loadHarness({ age = 0, empty = false, fail = false } = {}) {
       if (fail) throw new Error("Fixture unavailable");
       return items;
     } }) },
-    AdultMode: { isEnabled: () => false, isAdultContent: item => item.isAdult === true },
+    AdultMode: { isEnabled: () => false, isAdultContent: item => item.isAdult === true,
+      isSourceContent: item => item?.isAdult === true && typeof item.adultSource === "string" && !!item.adultSource.trim() },
     isolateAdultSourceMetadata: item => item,
     render() {},
     readResponseCache: () => { reads++; return null; },
@@ -176,13 +177,13 @@ test("a failed refresh keeps existing cards and does not mark stale data fresh",
 
 test("partial provider results preserve regular rows and do not overwrite the durable complete snapshot", async () => {
   const h = loadHarness({ age: 400000 });
-  h.c.state.shows = [{ id: "regular" }, { id: "saved-adult", isAdult: true }];
+  h.c.state.shows = [{ id: "regular" }, { id: "saved-adult", isAdult: true, adultSource: "Fixture" }];
   const before = h.c.adultCatalogLoadedAt;
   let writes = 0;
   let restored;
   h.c.AdultSourceRegistry.get = () => ({ name: "Fixture", catalogRefreshComplete: false,
     restoreCatalog: items => { restored = items; },
-    listLatest: async () => [...restored, { id: "new-adult", isAdult: true }] });
+    listLatest: async () => [...restored, { id: "new-adult", isAdult: true, adultSource: "Fixture" }] });
   h.c.writeDurableAdultCatalog = async () => { writes++; };
   const items = await h.c.loadAdultCatalog();
   assert.deepEqual(Array.from(items, item => item.id), ["saved-adult", "new-adult"]);

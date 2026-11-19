@@ -26,7 +26,7 @@ function context(media = video()) {
   let id = 0;
   const sandbox = vm.createContext({
     art: { video: media }, hls: null, recoveryTimer: null, recoveryReloadCleanup: null,
-    playerCleanups: [], recoveryCount: 0, seekRecoveryUntil: 0,
+    playerCleanups: [], playbackHasStarted: true, startupTimer: null, recoveryCount: 0, seekRecoveryUntil: 0,
     document: { hidden: false }, elements: { error: { hidden: true } },
     Date: { now: () => 10000 },
     setTimeout(fn) { timers.set(++id, fn); return id; },
@@ -161,4 +161,30 @@ test("real playback progress still resets the retry budget", () => {
   assert.equal(c.sandbox.recoveryCount, 0);
   assert.equal(c.sandbox.networkRecoveryCount, 0);
   assert.equal(c.sandbox.mediaRecoveryCount, 0);
+});
+
+test("initial buffering allows the original media request to reach the first frame", () => {
+  const c = context(video(0));
+  c.sandbox.playbackHasStarted = false;
+  c.sandbox.startupTimer = 1;
+  c.sandbox.scheduleRecovery("waiting");
+  assert.equal(c.pending(), 0);
+  assert.equal(c.media.loads, 0);
+});
+
+test("an active HLS fragment keeps its transfer while the buffer is low", () => {
+  const c = context();
+  let restarts = 0;
+  c.sandbox.hls = { loadingEnabled: true, inFlightFragments: { main: { state: "FRAG_LOADING" } }, startLoad() { restarts++; } };
+  c.sandbox.scheduleRecovery("waiting");
+  c.fire();
+  assert.equal(restarts, 0);
+});
+
+test("a startup wait without a watchdog still arms recovery", () => {
+  const c = context(video(0));
+  c.sandbox.playbackHasStarted = false;
+  c.sandbox.scheduleRecovery("waiting");
+  c.fire();
+  assert.equal(c.media.loads, 1);
 });

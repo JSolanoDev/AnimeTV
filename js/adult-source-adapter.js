@@ -31,6 +31,21 @@ class AdultSourceAdapter {
     this._session = null;
   }
 
+  async _requestCatalog(endpoint) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(endpoint, { cache: "no-store", signal: controller.signal });
+      const payload = await response.json();
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.error || `${this.name} request failed`);
+      }
+      return payload;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   /**
    * Authenticate, if your source needs it (the AnimeAV1 scraper logs in here).
    * @returns {Promise<boolean>} true on success.
@@ -101,6 +116,7 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== "") endpoint.searchParams.set(key, value);
     });
+    if (path === "/catalog") return this._requestCatalog(endpoint);
     const response = await fetch(endpoint, { cache: "no-store" });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload.ok === false) {
@@ -367,6 +383,7 @@ class HentaiOceanAdultSourceAdapter extends AdultSourceAdapter {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== "") endpoint.searchParams.set(key, value);
     });
+    if (path === "/catalog") return this._requestCatalog(endpoint);
     const response = await fetch(endpoint, { cache: "no-store" });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload.ok === false) throw new Error(payload.error || `${this.name} request failed`);

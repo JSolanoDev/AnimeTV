@@ -174,10 +174,27 @@ async function ensureBackendReady(signal) {
   if (Date.now() < backendUnavailableUntil) throw new Error("Backend temporarily unavailable");
   if (!backendReadiness) {
     const controller = new AbortController();
-    const timer = window.setTimeout(() => controller.abort(), 24000);
+    let timer = window.setTimeout(() => controller.abort(), 24000);
+    let retryTimer;
     // One local check covers a sleeping container; provider timeouts start afterward.
     backendReadiness = (async () => {
-      const response = await waitForBackendReadiness(fetch("/api/health", { cache: "no-store", signal: controller.signal }), controller.signal);
+      const check = () => waitForBackendReadiness(fetch("/api/health", {
+        cache: "no-store", signal: controller.signal
+      }), controller.signal);
+      let response = await check();
+      if (response.status === 503 && response.headers.get("x-zenkai-backend-state") === "starting") {
+        const retryAfter = response.headers.get("retry-after") ?? "1";
+        if (/^\d+$/.test(retryAfter) && Number(retryAfter) <= 10) {
+          const delay = Number(retryAfter) * 1000;
+          await response.body?.cancel();
+          window.clearTimeout(timer);
+          timer = window.setTimeout(() => controller.abort(), delay + 6000);
+          await waitForBackendReadiness(new Promise(resolve => {
+            retryTimer = window.setTimeout(resolve, delay);
+          }), controller.signal);
+          response = await check();
+        }
+      }
       if (!response.ok) { await response.body?.cancel(); throw new Error("Backend temporarily unavailable"); }
       const health = await waitForBackendReadiness(response.json(), controller.signal);
       if (health.ok !== true || health.app !== "ZenkaiTV" || health.api !== "ready") {
@@ -191,6 +208,7 @@ async function ensureBackendReady(signal) {
       throw new Error("Backend temporarily unavailable");
     }).finally(() => {
       window.clearTimeout(timer);
+      window.clearTimeout(retryTimer);
       backendReadiness = null;
     });
   }

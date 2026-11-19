@@ -697,8 +697,8 @@ function updateFilterButtons() {
     buttons.forEach((btn, index) => {
       const f = filters[index];
       if (f && btn) {
-        btn.dataset.filter = f.id;
-        btn.textContent = f.label;
+        if (btn.dataset.filter !== f.id) btn.dataset.filter = f.id;
+        if (btn.textContent !== f.label) btn.textContent = f.label;
         btn.classList.toggle("is-selected", state.filter === f.id);
       }
     });
@@ -706,7 +706,7 @@ function updateFilterButtons() {
 }
 
 function applyAppLanguage() {
-  document.documentElement.lang = state.appLanguage;
+  if (document.documentElement.lang !== state.appLanguage) document.documentElement.lang = state.appLanguage;
   // Scoped to .main-nav on purpose. These used to be bare [data-route="..."]
   // selectors, and <body> also carries data-route - so querySelector returned the
   // BODY (it comes first in document order) and wrote the label into the body's
@@ -714,7 +714,8 @@ function applyAppLanguage() {
   // page. The :not(.brand) guard shows this was known about; it just missed body.
   const navLabel = (route, key) => {
     const link = document.querySelector(`.main-nav [data-route="${route}"]`);
-    if (link?.lastChild) link.lastChild.textContent = ` ${t(key)}`;
+    const label = ` ${t(key)}`;
+    if (link?.lastChild && link.lastChild.textContent !== label) link.lastChild.textContent = label;
   };
   navLabel("home", "navHome");
   navLabel("library", "navSearch");
@@ -751,11 +752,12 @@ function applyAppLanguage() {
 
 function setText(selector, key) {
   const node = document.querySelector(selector);
-  if (node) node.textContent = t(key);
+  const label = t(key);
+  if (node && node.textContent !== label) node.textContent = label;
 }
 
 function setPlaceholder(input, key) {
-  if (input) input.placeholder = t(key);
+  if (input && input.placeholder !== t(key)) input.placeholder = t(key);
 }
 
 function resetCatalogModeControls() {
@@ -2144,7 +2146,7 @@ function catalogStatusLabel(sourceLabel, shows = []) {
 function refreshCatalogStatus() {
   if (typeof AdultMode === "undefined") return;
   if (AdultMode.isEnabled()) {
-    const adultShows = state.shows.filter((s) => s?.adultSource || AdultMode.isAdultContent(s));
+    const adultShows = AdultMode.filterCatalog(state.shows);
     const name = (typeof AdultSourceRegistry !== "undefined" && AdultSourceRegistry.isConfigured())
       ? `${AdultSourceRegistry.get().name} adult catalog`
       : "Adult catalog";
@@ -2542,12 +2544,7 @@ function catalogShows() {
   if (typeof AdultMode === "undefined") return state.shows;
   const filtered = AdultMode.filterCatalog(state.shows);
   if (!AdultMode.isEnabled()) return filtered;
-  // When adult mode is enabled, we want to show all adult content including UnderHentai
-  // The filter below was previously filtering for only UnderHentai shows, but now we should show all adult content
-  return filtered
-    .filter((show) => show?.adultSource === "UnderHentai" || show?.source === "UnderHentai" || AdultMode.isAdultContent(show))
-    .slice()
-    .sort(compareAdultShows);
+  return filtered.sort(compareAdultShows);
 }
 
 function isolateAdultSourceMetadata(show) {
@@ -2810,20 +2807,19 @@ async function loadAdultCatalog(force = false) {
     render();
     return [];
   }
+  const isSourceItem = (item) => typeof AdultMode !== "undefined" && AdultMode.isSourceContent(item);
   if (adultCatalogLoadingPromise) return adultCatalogLoadingPromise;
   if (!force && adultCatalogLoadedAt && Date.now() - adultCatalogLoadedAt < 5 * 60 * 1000) {
-    const loadedItems = state.shows.filter((item) => item?.isAdult === true);
+    const loadedItems = state.shows.filter(isSourceItem);
     if (loadedItems.length) return loadedItems;
   }
   const adapter = AdultSourceRegistry.get();
   const cacheKey = `adult-catalog:${adapter.name}:multi-source-v14`;
   const applyAdultItems = (items = [], labelPrefix = adapter.name) => {
     const adultItems = Array.isArray(items)
-      ? items.filter((item) => item?.isAdult === true).map(isolateAdultSourceMetadata)
+      ? items.filter(isSourceItem).map(isolateAdultSourceMetadata)
       : [];
-    const regularItems = state.shows.filter((item) =>
-      typeof AdultMode === "undefined" ? item?.adultSource !== adapter.name : !AdultMode.isAdultContent(item)
-    );
+    const regularItems = state.shows.filter((item) => !isSourceItem(item));
     state.shows = [...regularItems, ...adultItems];
     if (typeof AdultMode !== "undefined" && AdultMode.isEnabled()) {
       state.isLoadingCatalog = false;
@@ -2839,7 +2835,7 @@ async function loadAdultCatalog(force = false) {
     let cachedItems = readResponseCache(cacheKey, CATALOG_CACHE_TTL);
     if (!cachedItems?.length) cachedItems = await readDurableAdultCatalog(cacheKey);
     if (cachedItems?.length) applyAdultItems(cachedItems, `Cached ${adapter.name}`);
-    adapter.restoreCatalog?.(state.shows.filter((item) => item?.isAdult === true));
+    adapter.restoreCatalog?.(state.shows.filter(isSourceItem));
 
     try {
       const items = await adapter.listLatest(1, { refresh: force });
@@ -2855,9 +2851,7 @@ async function loadAdultCatalog(force = false) {
       return adultItems;
     } catch (error) {
       console.warn("Adult catalog could not load:", error);
-      const visibleAdultItems = state.shows.filter((item) =>
-        typeof AdultMode !== "undefined" && AdultMode.isAdultContent(item)
-      );
+      const visibleAdultItems = state.shows.filter(isSourceItem);
       const adultItems = visibleAdultItems.length
         ? visibleAdultItems
         : (cachedItems?.length ? applyAdultItems(cachedItems, `Cached ${adapter.name}`) : []);
@@ -2870,6 +2864,7 @@ async function loadAdultCatalog(force = false) {
     }
   })().finally(() => {
     adultCatalogLoadingPromise = null;
+    if (typeof AdultMode !== "undefined" && AdultMode.isEnabled()) render();
   });
   return adultCatalogLoadingPromise;
 }
@@ -3607,15 +3602,9 @@ function latestEpisodeReleases(limit = HOME_CARD_LIMIT) {
 
 function adultSourceOrderedShows(limit = HOME_CARD_LIMIT) {
   if (typeof AdultMode === "undefined") return [];
-  const filtered = AdultMode.filterCatalog(visibleShows());
   if (!AdultMode.isEnabled()) return [];
-  
-  // When adult mode is enabled, we want to show all adult content including UnderHentai
-  return filtered
-    .filter(show => show.adultSource === "UnderHentai" || show.source === "UnderHentai" || AdultMode.isAdultContent(show))
-    .slice()
-    .sort(compareAdultShows)
-    .slice(0, limit);
+  // visibleShows already applies provenance, release order, search and genre.
+  return visibleShows().slice(0, limit);
 }
 
 // ── AnimeAV1 "Últimos Episodios" feed ─────────────────────────────────────────
@@ -5135,7 +5124,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1033";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1034";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -10155,7 +10144,6 @@ function renderNow() {
 }
 
 function _render() {
-  updateFilterButtons();
   const isHome = state.route === "home";
   const isLibrary = state.route === "library";
   const isFavorites = state.route === "favorites";
@@ -10163,9 +10151,10 @@ function _render() {
   const isSources = state.route === "sources";
   const isSettings = state.route === "settings";
   const isProfile = state.route === "profile";
-  const filtered = isFavorites ? visibleShows() : [];
 
-  if (state.isLoadingCatalog && !catalogShows().length) {
+  const adultFeedPending = adultCatalogLoadingPromise && typeof AdultMode !== "undefined" && AdultMode.isEnabled();
+  if ((isHome || isLibrary) && (state.isLoadingCatalog || adultFeedPending)
+    && !state.shows.some(show => typeof AdultMode === "undefined" || AdultMode.matchesActiveCatalog(show))) {
     if (isHome) renderSkeletonCards(latestGrid, HOME_INITIAL_CARD_LIMIT);
     if (isLibrary) {
       renderSkeletonCards(libraryGrid, 14);
@@ -20304,7 +20293,8 @@ async function runActivePlaybackAttempt(options = {}, playbackContext) {
       ]);
       if (!isPlaybackAttemptCurrent(playbackContext, show, activeEpisode)) return;
       reliableSource = await prepareReliablePlaybackSource(show, activeEpisode, {
-        timeoutMs: RELIABLE_PLAYBACK_HANDOFF_VERIFY_MS
+        timeoutMs: RELIABLE_PLAYBACK_HANDOFF_VERIFY_MS,
+        pendingDiscovery: sourceOptionsBackgroundLookups.get(activeLookupKey) || lookupPromise
       });
       if (!isPlaybackAttemptCurrent(playbackContext, show, activeEpisode)) return;
     }
@@ -21285,6 +21275,9 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
     const startedAt = Date.now();
     const totalBudgetMs = Math.max(900, Number(options.timeoutMs) || RELIABLE_PLAYBACK_TOTAL_BUDGET_MS);
     let deadlineAt = startedAt + totalBudgetMs;
+    // Speculative checks may warm a success. Only an actual Play attempt
+    // should remember a failure against this episode or provider.
+    const softFailures = primaryOnly || Boolean(options.softFailures);
     const previousSelection = getSelectedEpisodeSource(episode);
     const availableSources = getEpisodePlaybackSources(episode)
       .filter((source) => !episode._failedSourceIds?.has(source.id))
@@ -21387,7 +21380,7 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
     );
     // The head start controls when backups compete, not the lifetime of a media
     // check. Aborting at 850ms discarded healthy cold sources and repeated work.
-    const primaryVerificationBudget = options.softFailures
+    const primaryVerificationBudget = softFailures
       ? Math.min(RELIABLE_PLAYBACK_PRIMARY_PROBE_MS, Math.max(primaryTimeout, deadlineAt - Date.now()))
       : primaryTimeout;
     const primaryResult = initialCandidates.length
@@ -21395,7 +21388,7 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
           firstSuccessfulFallback(initialCandidates.map((source) => (
             verifyReliablePlaybackCandidate(episode, source, {
               timeoutMs: primaryVerificationBudget,
-              softFailure: Boolean(options.softFailures),
+              softFailure: softFailures,
               prefetchSegment: Boolean(options.prefetchSegment)
             })
           ))).then((source) => ({ completed: true, source })),
@@ -21409,7 +21402,7 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
     }
 
     let failedPrimaryRefresh = null;
-    if (primaryResult.completed && !options.softFailures) {
+    if (primaryResult.completed && !softFailures) {
       episode._failedSourceIds = episode._failedSourceIds || new Set();
       initialCandidates.forEach((source) => {
         if (source.id) episode._failedSourceIds.add(source.id);
@@ -21549,14 +21542,15 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
     // not start another API request; it only consumes the in-flight result.
     if (!verifiedBackup && backupLookup) {
       let backupComplete = false;
-      const completion = Promise.resolve(backupLookup).then(
-        () => { backupComplete = true; },
-        () => { backupComplete = true; }
-      );
+      // The normal source lookup and the backup sweep can finish independently.
+      // Keep the final Play attempt open for both within its existing deadline.
+      const completion = Promise.allSettled([backupLookup, options.pendingDiscovery])
+        .then(() => { backupComplete = true; });
       const lateDiscoveryBudgetMs = typeof RELIABLE_PLAYBACK_HANDOFF_WAIT_MS === "number"
         ? RELIABLE_PLAYBACK_HANDOFF_WAIT_MS
         : 3200;
-      const lateDiscoveryDeadline = Math.min(deadlineAt, Date.now() + lateDiscoveryBudgetMs);
+      const lateDiscoveryDeadline = options.pendingDiscovery ? deadlineAt
+        : Math.min(deadlineAt, Date.now() + lateDiscoveryBudgetMs);
       while (!verifiedBackup && Date.now() + 250 <= lateDiscoveryDeadline) {
         const tickMs = Math.min(250, Math.max(0, lateDiscoveryDeadline - Date.now()));
         await Promise.race([completion, wait(tickMs)]);
@@ -24017,7 +24011,7 @@ function handleCatalogModeChange(on) {
   resetCatalogModeControls();
   if (on) state.sourcePickerFilter = "all";
   syncAdultModeChrome();
-  if (on) state.isLoadingCatalog = !catalogShows().length;
+  if (on) state.isLoadingCatalog = !state.shows.some(AdultMode.isSourceContent);
   refreshCatalogStatus();
   renderNow();
 
@@ -24267,7 +24261,7 @@ function wireAuthEvents() {
       if (typeof AdultMode === "undefined") return;
 
       // Toggle the adult mode state
-      await AdultMode.toggle();
+      await AdultMode.toggle({ confirmFn: confirmAdultMode });
 
       // Update UI to reflect new state
       syncAdultModeChrome();
@@ -24609,7 +24603,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1033");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1034");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

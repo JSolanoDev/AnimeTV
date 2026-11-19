@@ -167,6 +167,15 @@ const AdultMode = (function () {
     return isAdultContent(item);
   }
 
+  // Catalog admission requires adapter provenance; title keywords are only an
+  // exclusion signal for the regular catalog, never a replacement adult feed.
+  function isSourceContent(item) {
+    return item?.isAdult === true
+      && typeof item.adultSource === "string"
+      && item.adultSource.trim().length > 0
+      && isSafeAdultContent(item);
+  }
+
   /**
    * Mutually-exclusive catalog filter:
    *   - adult mode ON  → keep ONLY adult items
@@ -177,13 +186,13 @@ const AdultMode = (function () {
   function filterCatalog(items) {
     if (!Array.isArray(items)) return [];
     return _enabled
-      ? items.filter(isAdultContent)
+      ? items.filter(isSourceContent)
       : items.filter((item) => !isAdultContent(item));
   }
 
   // True when `item` belongs in the currently-active catalog.
   function matchesActiveCatalog(item) {
-    return _enabled ? isSafeAdultContent(item) : !isAdultContent(item);
+    return _enabled ? isSourceContent(item) : !isAdultContent(item);
   }
 
   return {
@@ -195,6 +204,7 @@ const AdultMode = (function () {
     onChange,
     isAdultContent,
     isSafeAdultContent,
+    isSourceContent,
     matchesActiveCatalog,
     filterCatalog,
     ENABLED_KEY,

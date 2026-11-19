@@ -688,12 +688,11 @@ function modeHarness(cached = false) {
   const load = new Promise(resolve => { finish = resolve; });
   const c = vm.createContext({
     ...clock,
-    state: { isLoadingCatalog: false },
+    state: { isLoadingCatalog: false, shows: cached ? [{ isAdult: true, adultSource: "Fixture" }] : [] },
     console: { warn() {} },
-    AdultMode: { isEnabled: () => enabled },
+    AdultMode: { isEnabled: () => enabled, isSourceContent: item => Boolean(item.isAdult && item.adultSource) },
     resetCatalogModeControls: () => events.push("reset"),
     syncAdultModeChrome: () => events.push("theme"),
-    catalogShows: () => cached ? [{ id: "fixture" }] : [],
     refreshCatalogStatus: () => events.push("status"),
     renderNow: () => events.push("paint"),
     render: () => events.push("refresh"),

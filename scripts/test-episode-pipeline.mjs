@@ -1957,7 +1957,8 @@ test("7f2d. intent warming verifies only the best primary and never fans out to 
     isFastPreferredPlaybackSource: (source) => source.id === "voe",
     verifiedFallbackPreference: (source) => source.id === "voe" ? 0 : 7,
     pickFallbackRaceCandidates: (sources) => sources.slice(0, 3),
-    verifyReliablePlaybackCandidate: async (_value, source) => {
+    verifyReliablePlaybackCandidate: async (_value, source, options) => {
+      assert.equal(options.softFailure, true, "intent checks must not blacklist a slow source");
       checked.push(source.id);
       return source;
     },
@@ -3919,4 +3920,24 @@ test("stale Continue Watching seasons reconcile against authoritative catalog se
     sandbox.authoritativeWatchSeason({ seasons: [{ season: 1 }, { season: 2 }] }, 3),
     3
   );
+});
+
+test("final verification consumes a pending normal lookup even when backup discovery settled empty", async () => {
+  const episode = { sourceOptions: [] };
+  const source = { id: "late-feed-source" };
+  let finish;
+  const pendingDiscovery = new Promise(resolve => { finish = resolve; });
+  const verified = [];
+  const sandbox = sourceRaceContext({
+    verifyReliablePlaybackCandidate: async (_episode, candidate) => {
+      verified.push(candidate.id);
+      return candidate;
+    }
+  });
+  const playback = sandbox.prepareReliablePlaybackSource({}, episode, { pendingDiscovery });
+  await new Promise(setImmediate);
+  episode.sourceOptions.push(source);
+  finish();
+  assert.equal((await playback)?.id, source.id);
+  assert.deepEqual(verified, [source.id]);
 });

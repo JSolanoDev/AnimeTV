@@ -1408,3 +1408,14 @@ test("catalog gzip is negotiated, coalesced, and preserves every JSON field", as
   assert.equal(context.acceptsCatalogGzip({ headers: { "accept-encoding": "*;q=0" } }), false);
   assert.equal(context.acceptsCatalogGzip({ headers: { "accept-encoding": "gzip;q=0.5" } }), true);
 });
+
+test("concurrent cold callers recover once when the health endpoint reports startup", async () => {
+  let checks = 0;
+  const h = startupHarness(url => url === "/api/health" && ++checks === 1
+    ? new Response(null, { status: 503, headers: { "x-zenkai-backend-state": "starting", "Retry-After": "0" } })
+    : readyResponse(), { cold: true });
+  const responses = await Promise.all(["/api/first", "/api/second"].map(url => h.context.fetchWithTimeout(url)));
+  assert.deepEqual(responses.map(r => r.status), [200, 200]);
+  assert.deepEqual(h.calls.map(c => c.url), ["/api/health", "/api/health", "/api/first", "/api/second"]);
+  assert.equal(h.timers.size, 0);
+});

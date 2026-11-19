@@ -2900,6 +2900,7 @@
   function armStartupWatchdog() {
     clearStartupWatchdog();
     startupTimer = setTimeout(() => {
+      startupTimer = null;
       const video = art?.video;
       if (!video || elements.error.hidden === false) return;
       if (video.readyState >= 2 || bufferedAhead(video) > 0.5) {
@@ -2959,6 +2960,9 @@
 
   function scheduleRecovery(reason) {
     const video = art?.video;
+    // waiting is normal before the first frame. Reloading here discards a
+    // healthy cold transfer before the startup watchdog has assessed it.
+    if (!playbackHasStarted && startupTimer) return;
     if (!video || video.paused || video.ended || document.hidden || recoveryTimer || bufferedAhead(video) > 2) return;
     const seekGraceRemaining = seekRecoveryUntil - Date.now();
     if (seekGraceRemaining > 0) {
@@ -2975,6 +2979,12 @@
       if (currentVideo !== video || video.paused || video.ended || document.hidden
         || bufferedAhead(video) > 2 || elements.error.hidden === false) return;
       if (!currentVideo.paused && currentVideo.readyState >= 3) return;
+      // hls.js owns in-flight segment requests. Its network recovery and the
+      // independent stall watchdog still handle a genuinely stopped stream.
+      if (hls?.loadingEnabled) {
+        const fragments = hls.inFlightFragments;
+        if (fragments?.main?.state === "FRAG_LOADING" || fragments?.audio?.state === "FRAG_LOADING") return;
+      }
       recoveryCount += 1;
       send("recover", { reason, count: recoveryCount, ...getStatus() });
       if (hls) {
