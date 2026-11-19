@@ -943,21 +943,22 @@ function replaceRegularCatalog(items = [], tier = "full") {
               || parseEpisodeNumber(currentTarget.episodeNumber) !== routedEpisodeNumber
             ) return;
 
-            const previousMatches = selectedEpisodeMatchesTarget(open, selected, routedTarget);
-            if (!applyOpenTarget(open, routedTarget)) return;
-            const restored = state.activeEpisode;
-            if (!selectedEpisodeMatchesTarget(open, restored, routedTarget)) return;
-
-            // A lightweight row may already have started its sole (latest)
-            // episode. Switch through the normal selection path so stale source
-            // lookups are invalidated before the requested episode auto-plays.
-            if (!previousMatches) {
-              selectEpisodeByPosition(restored.seasonIndex, restored.episodeIndex, true);
+            if (!state.playIntent) return;
+            const current = state.activeEpisode;
+            if (selectedEpisodeMatchesTarget(open, current, currentTarget)) {
+              // The current episode owns its in-flight media checks. A catalog
+              // placeholder for the same episode has none of that state.
+              applyOpenTarget(open, currentTarget, null, current);
+              renderEpisodeList(open);
+              syncWatchHeading(open, state.activeEpisode?.season || null);
+              refreshFocusables();
               return;
             }
-            renderEpisodeList(open);
-            syncWatchHeading(open, restored.season || null);
-            refreshFocusables();
+            if (state.activeEpisode !== selected || !applyOpenTarget(open, currentTarget)) return;
+            const restored = state.activeEpisode;
+            if (selectedEpisodeMatchesTarget(open, restored, currentTarget)) {
+              selectEpisodeByPosition(restored.seasonIndex, restored.episodeIndex, true);
+            }
             return;
           }
 
@@ -5124,7 +5125,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1035";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1036";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -9248,11 +9249,12 @@ function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options 
   if (episode.sourceOptionsChecked === lookupKey && episode.playbackSourceLookupComplete) {
     return withAutoReplay(Promise.resolve(episode));
   }
-  if (sourceOptionsBackgroundLookups.has(lookupKey)) {
-    return withAutoReplay(sourceOptionsBackgroundLookups.get(lookupKey));
-  }
+  // Share the first usable result before waiting for the entire server sweep.
   if (pendingSourceLookups.has(lookupKey)) {
     return withAutoReplay(pendingSourceLookups.get(lookupKey));
+  }
+  if (sourceOptionsBackgroundLookups.has(lookupKey)) {
+    return withAutoReplay(sourceOptionsBackgroundLookups.get(lookupKey));
   }
 
   episode.sourceOptionsPending = true;
@@ -10557,6 +10559,18 @@ async function openShow(id, target = {}) {
           timeoutMs: 6500,
           prefetchSegment: true
         })).catch(() => {});
+      } else if (!isAdultShow && !targetEpisode && !state.playIntent && !document.hidden
+        && !navigator.connection?.saveData && !/^(slow-)?2g$/.test(navigator.connection?.effectiveType || "")) {
+        // On an untargeted detail page the main Play button opens this row.
+        // Warm its source metadata only. Media checks still follow viewer intent.
+        const first = detailSeasons[0]?.episodes?.[0];
+        if (first && !first.locked && !first.unavailable && target.episodeNumber == null) {
+          Promise.resolve(warmPrimaryPlaybackIntent(show, {
+            episodeNumber: getCanonicalEpisodeNumber(first, 1),
+            providerEpisodeId: getInventoryProviderEpisodeId(show, first),
+            providerAnimeSlug: first.providerAnimeSlug
+          })).catch(() => {});
+        }
       }
 
       renderEpisodeList(show, {
@@ -11141,7 +11155,7 @@ async function hydrateAniPubEpisodes(show) {
   return show;
 }
 
-function applyOpenTarget(show, target = {}, knownSeasons = null) {
+function applyOpenTarget(show, target = {}, knownSeasons = null, playingSelection = null) {
   const seasonNumber = Number(target.seasonNumber || extractSeasonNumber(show.title, 1));
   const seasonPart = target.seasonPart ? Number(target.seasonPart) : "";
   // Only a real episode route/card target may select an episode. Catalog rows
@@ -11184,8 +11198,15 @@ function applyOpenTarget(show, target = {}, knownSeasons = null) {
   if (safeEpisodeIndex < 0) return false;
   const episode = activeSeason.episodes[safeEpisodeIndex];
   if (!episode) return false;
-  state.activeEpisode = { season: activeSeason, episode, seasonIndex, episodeIndex: safeEpisodeIndex };
-  state.activeEpisodeUrl = getEpisodeUrl(episode);
+  const selection = { season: activeSeason, episode, seasonIndex, episodeIndex: safeEpisodeIndex };
+  if (playingSelection) {
+    if (!selectedEpisodeMatchesTarget(show, selection, target)) return false;
+    // Keep the verified media and promises, but use the full season's new
+    // position for Prev/Next and pagination.
+    selection.episode = playingSelection.episode;
+  }
+  state.activeEpisode = selection;
+  state.activeEpisodeUrl = getEpisodeUrl(selection.episode);
   setEpisodeChunkIndex(show, activeSeason, seasonIndex, Math.floor(safeEpisodeIndex / 100));
   return true;
 }
@@ -11316,9 +11337,13 @@ function isPhoneGalleryPopupDisabled() {
 
 let activePlaybackAttemptSequence = 0;
 let activePlaybackRun = null;
+const playbackShowKeys = new WeakMap();
 
 function playbackSelectionKey(show = state.activeShow, selected = state.activeEpisode) {
-  const showKey = String(show?.id || getShowKey(show || {}) || "show");
+  // Catalog enrichment can update the id on the same live show object. An
+  // active attempt and its mounted player must keep the key they started with.
+  const showKey = playbackShowKeys.get(show) || String(show?.id || getShowKey(show || {}) || "show");
+  if (show && !playbackShowKeys.has(show)) playbackShowKeys.set(show, showKey);
   const episode = selected?.episode || null;
   if (!episode) return `${showKey}:auto`;
   const indexedSeason = Number(selected?.seasonIndex);
@@ -12830,8 +12855,27 @@ function bindSeasonMenu(button, menu) {
   return close;
 }
 
+let deferredEpisodeListRender = 0;
+
 function renderEpisodeList(show, options = {}) {
   if (!episodeList || !show) return;
+  if (deferredEpisodeListRender) {
+    window.clearTimeout(deferredEpisodeListRender);
+    deferredEpisodeListRender = 0;
+  }
+  // Replacing a pressed button before mouseup loses the browser's native click.
+  // Coalesce competing renders until release, including cancelled touch gestures.
+  const pressedRow = episodeList.querySelector("[data-episode-index]:active");
+  if (pressedRow && state.activeShow === show) {
+    const openToken = state.activeOpenToken;
+    deferredEpisodeListRender = window.setTimeout(() => {
+      deferredEpisodeListRender = 0;
+      if (pressedRow.isConnected && state.activeOpenToken === openToken && state.activeShow === show) {
+        renderEpisodeList(show, options);
+      }
+    }, 80);
+    return;
+  }
   const restoreSeasonMenu = Boolean(activeSeasonMenuClose &&
     overlay.querySelector(".ep-season-menu")?.dataset.showKey === getShowKey(show));
   dismissSeasonMenu();
@@ -13397,7 +13441,7 @@ function renderEpisodeList(show, options = {}) {
       // lookup before selection so playback can consume it without a second set
       // of provider requests.
       warmForPlay();
-      selectEpisodeByPosition(Number(button.dataset.seasonIndex), Number(button.dataset.episodeIndex), true);
+      selectEpisodeByPosition(Number(button.dataset.seasonIndex), Number(button.dataset.episodeIndex), true, seasons);
     });
   });
 
@@ -15598,12 +15642,12 @@ function animeYTDirectPlaybackUrl(source, url = "") {
   } catch { return ""; }
 }
 
-function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null) {
+function buildApkPlayerUrl(url = "", useNativeControls = false, episode = null,
+  selectedSource = episode ? getSelectedEpisodeSource(episode) : null) {
   const options = {};
   const typeHint = streamTypeQueryValue(streamTypeFromUrl(url));
   if (typeHint) options.type = typeHint;
   const preferences = getLanguagePreferences();
-  const selectedSource = episode ? getSelectedEpisodeSource(episode) : null;
   const directAnimeYT = animeYTDirectPlaybackUrl(selectedSource, url);
   if (directAnimeYT) {
     // Public Omega MP4s play without CORS in the iframe. Keep the existing
@@ -15776,9 +15820,9 @@ function createApkPlayerController(iframe, options = {}) {
       return;
     }
     if (value && typeof value === "object") {
-      controller._currentTime = Number(value.position || 0);
-      controller.duration = Number(value.duration || 0);
-      controller.bufferedEnd = Number(value.buffer || 0);
+      if (Number.isFinite(value.position)) controller._currentTime = value.position;
+      if (Number.isFinite(value.duration)) controller.duration = value.duration;
+      if (Number.isFinite(value.buffer)) controller.bufferedEnd = value.buffer;
     }
     if (command === "ready" || command === "loadedmetadata") {
       emit("loadedmetadata");
@@ -16497,8 +16541,9 @@ function getActiveDownloadUrl(currentUrl = "") {
     || "";
 }
 
-function selectEpisodeByPosition(seasonIndex, episodeIndex, shouldPlay = true) {
-  const seasons = getDetailSeasons(state.activeShow || {});
+function selectEpisodeByPosition(seasonIndex, episodeIndex, shouldPlay = true, renderedSeasons = null) {
+  // A button's indices belong to the list the viewer actually pressed.
+  const seasons = renderedSeasons || getDetailSeasons(state.activeShow || {});
   const season = seasons[seasonIndex];
   const episode = season?.episodes?.[episodeIndex];
   if (!season || !episode) return;
@@ -17729,6 +17774,7 @@ function getFranchiseSeasonList(show, alreadyEnsured = false) {
 // ── TioAnime source integration ───────────────────────────────────────────────
 
 const _tioAnimeSlugCache = new Map(); // anilistId/showKey → slug
+const _tioAnimeSlugInflight = new Map();
 const _tioAnimeMissCache = new Set();
 const _tioAnimeEpisodeSourceCache = new Map();
 const _tioAnimeEpisodeSourceInflight = new Map();
@@ -17861,6 +17907,17 @@ async function fetchTioAnimeSlugSearch(paramName, value, cacheKey) {
   if (!value || _tioAnimeMissCache.has(cacheKey)) return "";
   if (_tioAnimeSlugCache.has(cacheKey)) return _tioAnimeSlugCache.get(cacheKey);
   if (tioAnimeIsDown()) return "";
+  if (_tioAnimeSlugInflight.has(cacheKey)) return _tioAnimeSlugInflight.get(cacheKey);
+  const lookup = requestTioAnimeSlug(paramName, value, cacheKey);
+  _tioAnimeSlugInflight.set(cacheKey, lookup);
+  try {
+    return await lookup;
+  } finally {
+    _tioAnimeSlugInflight.delete(cacheKey);
+  }
+}
+
+async function requestTioAnimeSlug(paramName, value, cacheKey) {
   const qs = `${paramName}=${encodeURIComponent(value)}`;
   let res;
   try {
@@ -18394,7 +18451,10 @@ async function attachAnimeYTSources(show, episode) {
       animeYTEpisodeCache.set(key, { data, ts: Date.now() });
       while (animeYTEpisodeCache.size > 150) animeYTEpisodeCache.delete(animeYTEpisodeCache.keys().next().value);
       return data;
-    })().finally(() => animeYTEpisodeInflight.delete(key));
+    })().catch(error => {
+      if (error?.name !== "AbortError") console.warn("AnimeYT source unavailable; using existing providers:", error);
+      return null;
+    }).finally(() => animeYTEpisodeInflight.delete(key));
     animeYTEpisodeInflight.set(key, lookup);
   }
   try {
@@ -18422,7 +18482,7 @@ async function attachAnimeYTSources(show, episode) {
     episode.sourceOptions = [...(episode.sourceOptions || []), ...sources];
     if (sources.length) episode.locked = false;
   } catch (error) {
-    console.warn("AnimeYT source unavailable; using existing providers:", error);
+    console.warn("Could not apply AnimeYT source options:", error);
   }
 }
 
@@ -20240,6 +20300,7 @@ async function runActivePlaybackAttempt(options = {}, playbackContext) {
         softFailures: true,
         timeoutMs: RELIABLE_PLAYBACK_FAST_TARGET_MS,
         primaryProbeMs: RELIABLE_PLAYBACK_FAST_PRIMARY_MS,
+        pendingDiscovery: lookupPromise || sourceOptionsBackgroundLookups.get(activeLookupKey),
         prefetchSegment: true
       })
     : null;
@@ -20263,6 +20324,7 @@ async function runActivePlaybackAttempt(options = {}, playbackContext) {
     renderEpisodeList(show);
   }
 
+  let source;
   if (
     activeEpisode
     && state.playIntent
@@ -20305,9 +20367,13 @@ async function runActivePlaybackAttempt(options = {}, playbackContext) {
       });
       return;
     }
+    // Discovery can replace the picker list while verification is settling.
+    // Mount the media and source metadata from the same successful check.
+    source = reliableSource;
+  } else {
+    source = getSelectedEpisodeSource(activeEpisode);
   }
 
-  let source = getSelectedEpisodeSource(activeEpisode);
   let url = "";
   if (!source || source.type === "direct") {
     url = source?.videoUrl || getPlayableUrl(show);
@@ -20442,7 +20508,7 @@ async function runActivePlaybackAttempt(options = {}, playbackContext) {
   if (isEmbedUrl(url)) {
     renderExternalPlaybackOption(show, url);
   } else {
-    renderDirectVideoPlayer(frame, url, activeEpisode, playbackContext);
+    renderDirectVideoPlayer(frame, url, activeEpisode, playbackContext, source);
   }
 }
 
@@ -20469,7 +20535,7 @@ async function attemptResolveEmbed(embedUrl, siteReferer = "", timeoutMs = 7000)
       };
     }
   } catch (error) {
-    console.warn("Embed resolution failed:", error);
+    if (error?.name !== "AbortError") console.warn("Embed resolution failed:", error);
   }
   return null;
 }
@@ -20767,6 +20833,7 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
   const cacheCompleteSegment = Boolean(options.cacheCompleteSegment || isAnimeAv1VodSegment)
     && !requiresSustainedProbe;
   const maxCachedSegmentBytes = 12 * 1024 * 1024;
+  const readLimit = Math.min(options.maxBytes || maxCachedSegmentBytes, maxCachedSegmentBytes);
   const rangeStart = Math.max(0, Number(options.rangeStart) || 0);
   const rangeSize = requiresSustainedProbe ? 128 * 1024 : 64 * 1024;
   const rangeEnd = rangeStart + rangeSize - 1;
@@ -20781,6 +20848,11 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
     }, timeoutMs);
     const contentType = String(response.headers.get("content-type") || "").toLowerCase();
     const contentRange = response.headers.get("content-range") || "";
+    if (options.maxBytes && (Number(response.headers.get("content-length")) > options.maxBytes
+      || /\bno-store\b/i.test(response.headers.get("cache-control") || ""))) {
+      await response.body?.cancel().catch(() => {});
+      return false;
+    }
     const acceptedType = /^(video|audio)\//.test(contentType)
       || /application\/(?:octet-stream|mp4)/.test(contentType)
       || /video|audio|octet-stream|mp4/i.test(contentRange);
@@ -20809,7 +20881,7 @@ async function probeMediaBytes(url = "", referer = "", timeoutMs = FALLBACK_PROB
       !streamEnded
       && (
         receivedBytes < minimumBytes
-        || (cacheCompleteSegment && receivedBytes < maxCachedSegmentBytes)
+        || (cacheCompleteSegment && receivedBytes < readLimit)
       )
     ) {
       const remainingMs = Math.max(0, timeoutMs - (Date.now() - startedAt));
@@ -20919,6 +20991,18 @@ async function probeHlsManifest(url = "", referer = "", depth = 0, options = {})
       // for AnimeAV1 UPN, whose media policy verifies every full fragment.
       { cacheCompleteSegment: index < 2 }
     ));
+    // The decoder also needs the initialization section of fragmented MP4.
+    // Let the player reuse that small file while the media checks are in flight.
+    if (options.prefetchSegment && options.cacheMode === "default" && /^#EXT-X-ENDLIST\s*$/m.test(manifest)
+      && !globalThis.navigator?.connection?.saveData) {
+      const maps = manifest.match(/^#EXT-X-MAP:.*$/gm);
+      const init = maps?.length === 1 && /^#EXT-X-MAP:URI="(\/api\/source\?[^"\r\n]+)"\s*$/.exec(maps[0]);
+      if (init) {
+        void probeMediaBytes(init[1], referer, Math.min(timeoutMs, childTimeout), "default", {
+          cacheCompleteSegment: true, maxBytes: 256 * 1024
+        }).catch(() => {});
+      }
+    }
     const results = await Promise.all(probes);
     return results.length > 0 && results.every(Boolean);
   } catch {
@@ -21153,7 +21237,7 @@ function playbackSourceHealthKey(source = {}) {
 
 function hasFreshVerifiedPlaybackSource(source = {}) {
   return Boolean(
-    source.verifiedPlayable
+    source?.verifiedPlayable
     && Date.now() - Number(source.verifiedAt || 0) < PLAYBACK_SOURCE_HEALTH_OK_TTL_MS
   );
 }
@@ -21278,6 +21362,21 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
     // Speculative checks may warm a success. Only an actual Play attempt
     // should remember a failure against this episode or provider.
     const softFailures = primaryOnly || Boolean(options.softFailures);
+    // A Play click with an empty source list already has a primary lookup in
+    // flight. Give it the same head start as a known primary before a fan-out.
+    let pendingDiscovery = options.pendingDiscovery;
+    if (options.eagerBackups && !getEpisodePlaybackSources(episode).length) {
+      // Pointerdown can own the same preparation that Play is about to join.
+      if (!pendingDiscovery && options.seasonNumber != null) {
+        pendingDiscovery = schedulePlaybackSourceOptions(show, episode, options.seasonNumber, { backgroundWarmup: true });
+      }
+      if (pendingDiscovery) {
+        await Promise.race([
+          Promise.resolve(pendingDiscovery).catch(() => null),
+          wait(RELIABLE_PLAYBACK_BACKUP_DELAY_MS)
+        ]);
+      }
+    }
     const previousSelection = getSelectedEpisodeSource(episode);
     const availableSources = getEpisodePlaybackSources(episode)
       .filter((source) => !episode._failedSourceIds?.has(source.id))
@@ -21368,7 +21467,8 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
     // media check is slow, prepare backups concurrently instead of waiting for a
     // multi-second player failure first.
     if (!primaryOnly) {
-      void wait(RELIABLE_PLAYBACK_BACKUP_DELAY_MS).then(() => {
+      const backupDelayMs = Math.max(0, startedAt + RELIABLE_PLAYBACK_BACKUP_DELAY_MS - Date.now());
+      void wait(backupDelayMs).then(() => {
         if (!primaryFinished) return startBackups();
         return null;
       }).catch(() => {});
@@ -21383,6 +21483,15 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
     const primaryVerificationBudget = softFailures
       ? Math.min(RELIABLE_PLAYBACK_PRIMARY_PROBE_MS, Math.max(primaryTimeout, deadlineAt - Date.now()))
       : primaryTimeout;
+    // A head start expiring opens the backup race. The original check can
+    // still finish first, including while a slower backup is reading media.
+    let resolvePreferred;
+    const preferredReady = new Promise(resolve => { resolvePreferred = resolve; });
+    const publishPreferred = source => {
+      if (source && (requestedLanguage !== "spanish" || source.languageVersion === "spanish")) {
+        resolvePreferred(source);
+      }
+    };
     const primaryResult = initialCandidates.length
       ? await Promise.race([
           firstSuccessfulFallback(initialCandidates.map((source) => (
@@ -21391,7 +21500,10 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
               softFailure: softFailures,
               prefetchSegment: Boolean(options.prefetchSegment)
             })
-          ))).then((source) => ({ completed: true, source })),
+          ))).then((source) => {
+            publishPreferred(source);
+            return { completed: true, source };
+          }),
           wait(primaryTimeout).then(() => ({ completed: false, source: null }))
         ])
       : { completed: true, source: null };
@@ -21429,17 +21541,24 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
       failedPrimaryRefresh ? 2200 : (initialCandidates.length ? 650 : 2800),
       Math.max(0, deadlineAt - Date.now())
     );
-    const readyBackup = getEpisodePlaybackSources(episode).some((source) => (
+    const hasReadyBackup = () => getEpisodePlaybackSources(episode).some((source) => (
       !episode._failedSourceIds?.has(source.id)
       && isAdFreeFallbackCandidate(source)
       && isFastPreferredPlaybackSource(source)
       && (!primaryResult.completed || !initialCandidates.some((initial) => initial.id === source.id))
     ));
-    if (discoveryWaitMs > 0 && !readyBackup) {
-      await Promise.race([
-        failedPrimaryRefresh || episode._playbackFailureFastPromise || backupLookup,
-        wait(discoveryWaitMs)
-      ]);
+    if (discoveryWaitMs > 0 && !hasReadyBackup()) {
+      const backupReady = failedPrimaryRefresh || episode._playbackFailureFastPromise || backupLookup;
+      const signals = [backupReady, wait(discoveryWaitMs)];
+      if (pendingDiscovery) {
+        // Verify a preferred source as soon as normal discovery supplies one.
+        // An empty lookup must still give the backup providers their window.
+        signals.push(Promise.resolve(pendingDiscovery).then(
+          () => hasReadyBackup() ? undefined : backupReady,
+          () => backupReady
+        ));
+      }
+      await Promise.race(signals);
     }
 
     let remainingMs = Math.max(0, deadlineAt - Date.now());
@@ -21456,7 +21575,7 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
       .filter(isAdFreeFallbackCandidate)
       .filter((source) => !attemptedBackupKeys.has(candidateKey(source)))
       .sort(compareCandidates);
-    const verifyRace = async (pool, budgetMs) => {
+    const verifyRace = async (pool, budgetMs, preferred = false) => {
       const raceCandidates = pickFallbackRaceCandidates(pool);
       if (!raceCandidates.length || budgetMs < 250) return null;
       const queuedKeys = new Set(raceCandidates.map(candidateKey));
@@ -21489,25 +21608,34 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
         return null;
       });
       try {
+        const checked = firstSuccessfulFallback(workers);
+        if (preferred) checked.then(publishPreferred);
         return await Promise.race([
-          firstSuccessfulFallback(workers),
+          checked,
+          preferredReady.then(source => episode._failedSourceIds?.has(source.id) ? checked : source),
           wait(budgetMs).then(() => null)
         ]);
       } finally {
         finished = true;
       }
     };
+    const hasSpanishCandidate = (sources) => requestedLanguage === "spanish"
+      && sources.some((source) => source.languageVersion === "spanish" && !hasRecentlyFailedPlaybackFamily(source));
+    const findVerifiedSource = () => {
+      const eligible = getEpisodePlaybackSources(episode).filter((source) => (
+        !episode._failedSourceIds?.has(source.id)
+        && isAdFreeFallbackCandidate(source)
+      ));
+      const preferSpanish = hasSpanishCandidate(eligible);
+      return eligible.find((source) => (
+        (!preferSpanish || source.languageVersion === "spanish") && hasFreshVerifiedPlaybackSource(source)
+      ));
+    };
     const verifyAvailableCandidates = async () => {
       remainingMs = Math.max(0, deadlineAt - Date.now());
       const candidates = collectCandidates();
-      const spanishCandidateAvailable = requestedLanguage === "spanish"
-        && candidates.some((source) => source.languageVersion === "spanish" && !hasRecentlyFailedPlaybackFamily(source));
-      const completedVerification = getEpisodePlaybackSources(episode).find((source) => (
-        !episode._failedSourceIds?.has(source.id)
-        && isAdFreeFallbackCandidate(source)
-        && (!spanishCandidateAvailable || source.languageVersion === "spanish")
-        && hasFreshVerifiedPlaybackSource(source)
-      ));
+      const spanishCandidateAvailable = hasSpanishCandidate(candidates);
+      const completedVerification = findVerifiedSource();
       if (completedVerification) return completedVerification;
       const preferredCandidates = candidates.filter((source) => (
         (spanishCandidateAvailable ? source.languageVersion === "spanish" : isFastPreferredPlaybackSource(source))
@@ -21523,7 +21651,7 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
         const preferredBudgetMs = deferredCandidates.length
           ? Math.min(remainingMs, Math.max(900, remainingMs - 1800))
           : remainingMs;
-        verified = await verifyRace(preferredCandidates, preferredBudgetMs);
+        verified = await verifyRace(preferredCandidates, preferredBudgetMs, true);
         remainingMs = Math.max(0, deadlineAt - Date.now());
       }
       if (!verified && deferredCandidates.length && remainingMs >= 250) {
@@ -21544,12 +21672,12 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
       let backupComplete = false;
       // The normal source lookup and the backup sweep can finish independently.
       // Keep the final Play attempt open for both within its existing deadline.
-      const completion = Promise.allSettled([backupLookup, options.pendingDiscovery])
+      const completion = Promise.allSettled([backupLookup, pendingDiscovery])
         .then(() => { backupComplete = true; });
       const lateDiscoveryBudgetMs = typeof RELIABLE_PLAYBACK_HANDOFF_WAIT_MS === "number"
         ? RELIABLE_PLAYBACK_HANDOFF_WAIT_MS
         : 3200;
-      const lateDiscoveryDeadline = options.pendingDiscovery ? deadlineAt
+      const lateDiscoveryDeadline = pendingDiscovery ? deadlineAt
         : Math.min(deadlineAt, Date.now() + lateDiscoveryBudgetMs);
       while (!verifiedBackup && Date.now() + 250 <= lateDiscoveryDeadline) {
         const tickMs = Math.min(250, Math.max(0, lateDiscoveryDeadline - Date.now()));
@@ -21559,6 +21687,9 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
       }
     }
 
+    // An overlapping primary check can succeed during the final backup probe,
+    // even when there is no time left to launch another check.
+    verifiedBackup ||= findVerifiedSource();
     if (verifiedBackup) {
       return selectVerifiedSource(verifiedBackup);
     }
@@ -21624,6 +21755,7 @@ function warmEpisodePlaybackIntent(show, episode, seasonNumber = 1, options = {}
         return prepareReliablePlaybackSource(show, episode, {
           eagerBackups: true,
           softFailures: true,
+          seasonNumber,
           timeoutMs: Math.max(900, Number(options.timeoutMs) || RELIABLE_PLAYBACK_FAST_TARGET_MS),
           primaryProbeMs: Math.max(350, Number(options.primaryProbeMs) || RELIABLE_PLAYBACK_FAST_PRIMARY_MS),
           prefetchSegment: Boolean(options.prefetchSegment)
@@ -21841,9 +21973,9 @@ function setupAdjacentEpisodeWarmup(player, show, episode, playbackContext) {
   };
 }
 
-function renderDirectVideoPlayer(frame, url, episode, playbackContext = null) {
+function renderDirectVideoPlayer(frame, url, episode, playbackContext = null,
+  selectedSource = getSelectedEpisodeSource(episode)) {
   const streamType = streamTypeFromUrl(url);
-  const selectedSource = getSelectedEpisodeSource(episode);
   // The player is about to request an HLS manifest itself. A parallel no-store
   // probe cannot be reused and doubles /api/source work. A source that just
   // passed the live availability check needs only a warm connection here; the
@@ -21869,7 +22001,7 @@ function renderDirectVideoPlayer(frame, url, episode, playbackContext = null) {
     <div class="video-player-shell vidstream-player fit-${escapeHtml(fit)} ${useApkPlayer ? "is-artplayer-frame" : useNativeControls ? "is-iframe" : ""}" data-stream-type="${escapeHtml(streamType || "direct")}">
       <div class="vid-player-stage">
         ${useApkPlayer
-          ? `<iframe id="animePlayerFrame" class="apk-video-frame" src="${escapeHtml(buildApkPlayerUrl(url, true, episode))}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" ${legacyIframeFullscreenAttribute()} referrerpolicy="no-referrer" title="ZenkaiTV video player"></iframe>`
+          ? `<iframe id="animePlayerFrame" class="apk-video-frame" src="${escapeHtml(buildApkPlayerUrl(url, true, episode, selectedSource))}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" ${legacyIframeFullscreenAttribute()} referrerpolicy="no-referrer" title="ZenkaiTV video player"></iframe>`
           : `<video id="animePlayer" ${useNativeControls ? "controls" : ""} autoplay playsinline x-webkit-airplay="allow" crossorigin="anonymous">
               ${spanishTrack ? `<track kind="subtitles" srclang="es" label="Español" src="${escapeHtml(spanishTrack.url)}" default>` : ""}
             </video>`}
@@ -22099,7 +22231,8 @@ function renderDirectVideoPlayer(frame, url, episode, playbackContext = null) {
     renderPlaybackError(frame, episode);
   });
   const resumeAt = getResumePosition(episode);
-  if (player && resumeAt) {
+  // The embedded player receives its resume point in the URL.
+  if (player && !useApkPlayer && resumeAt) {
     player.addEventListener("loadedmetadata", () => {
       if (resumeAt < (player.duration || resumeAt + 1) - 5) player.currentTime = resumeAt;
     }, { once: true });
@@ -24603,7 +24736,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1035");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1036");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

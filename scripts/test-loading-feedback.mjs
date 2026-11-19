@@ -13,6 +13,45 @@ function section(start, end) {
   return client.slice(from, to);
 }
 
+test("an episode press survives list refreshes and leaving the detail cancels the deferred render", () => {
+  const show = {};
+  const row = { isConnected: true };
+  const state = { activeShow: show, activeOpenToken: 1 };
+  let active = true;
+  const timers = new Map();
+  let id = 0;
+  const rendered = [];
+  const c = vm.createContext({
+    state, episodeList: { querySelector: () => active ? row : null },
+    window: {
+      setTimeout: callback => { timers.set(++id, callback); return id; },
+      clearTimeout: handle => timers.delete(handle)
+    },
+    rendered
+  });
+  vm.runInContext(section("let deferredEpisodeListRender =", "  const restoreSeasonMenu =") + "rendered.push(options); }", c);
+  const flush = () => {
+    const pending = [...timers.values()];
+    timers.clear();
+    pending.forEach(run => run());
+  };
+  c.renderEpisodeList(show, { revision: 1 });
+  c.renderEpisodeList(show, { revision: 2 });
+  assert.equal(timers.size, 1);
+  assert.equal(rendered.length, 0);
+  flush();
+  assert.equal(rendered.length, 0);
+  active = false;
+  flush();
+  assert.deepEqual(rendered, [{ revision: 2 }]);
+  active = true;
+  c.renderEpisodeList(show, { revision: 3 });
+  state.activeOpenToken++;
+  active = false;
+  flush();
+  assert.equal(rendered.length, 1);
+});
+
 function seasonMenuHarness(anchor = { top: 600, bottom: 640, left: 280, width: 160 }) {
   const listeners = new Map();
   const windowListeners = new Map();

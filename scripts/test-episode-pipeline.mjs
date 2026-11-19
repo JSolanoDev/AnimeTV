@@ -709,6 +709,32 @@ test("readiness: oversized manifests cannot consume unbounded memory", async () 
   assert.equal(cancelled, 1);
 });
 
+test("startup: a reusable VOD init file warms alongside the two required fragments", async () => {
+  const map = '#EXT-X-MAP:URI="/api/source?fixture=init"';
+  const fragments = "#EXTINF:4,\nfirst.m4s\n#EXTINF:4,\nsecond.m4s";
+  async function run(tags, options = {}) {
+    const playlist = ["#EXTM3U", tags, fragments, "#EXT-X-ENDLIST"].join("\n");
+    const sandbox = mediaProbeContext(async () => new Response(playlist));
+    const calls = [];
+    sandbox.probeMediaBytes = async (url, _ref, _ms, _mode, opts) => {
+      calls.push({ url, opts });
+      if (url.includes("fixture=init")) return new Promise(() => {});
+      return true;
+    };
+    assert.equal(await sandbox.probeHlsManifest("https://cdn.test/ep.m3u8", "", 0, {
+      prefetchSegment: true, cacheMode: "default", ...options
+    }), true);
+    return calls;
+  }
+  const calls = await run(map);
+  assert.equal(calls.length, 3);
+  assert.equal(calls.find(call => call.url.includes("fixture=init")).opts.maxBytes, 256 * 1024);
+  for (const tags of [map + ",BYTERANGE=\"800@0\"", map + "\n" + map, map.replace("/api/source?", "https://other.test/?")]) {
+    assert.equal((await run(tags)).length, 2);
+  }
+  assert.equal((await run(map, { prefetchSegment: false })).length, 2);
+});
+
 test("readiness: embed and resolver JSON bodies share their existing total deadline", async () => {
   let cancelled = 0;
   const sandbox = mediaProbeContext(async () => ({
@@ -2802,6 +2828,13 @@ test("11c11. iframe media-error state is exposed before recovery and cleared on 
   assert.equal(failedOnEvent, true);
   message({ source: contentWindow, data: { vcmd: "playing" } });
   assert.equal(controller.playbackFailed, false);
+  message({ source: contentWindow, data: { vcmd: "time", val: { position: 82, duration: 1400, buffer: 110 } } });
+  message({ source: contentWindow, data: { vcmd: "qualities", val: [] } });
+  assert.equal(controller.currentTime, 82);
+  assert.equal(controller.duration, 1400);
+  assert.equal(controller.bufferedEnd, 110);
+  message({ source: contentWindow, data: { vcmd: "time", val: { position: 0 } } });
+  assert.equal(controller.currentTime, 0);
   controller.destroy();
   assert.equal(listeners.size, 0);
 });
@@ -3473,6 +3506,10 @@ test("21. an episode-row click starts bounded playback without waiting for backg
   assert.deepEqual(loadingFeedback, { label: "Season 2 Part 1 Episode 3", message: "" });
   sandbox.selectEpisodeByPosition(0, 0, false);
   assert.equal(plays, 1, "browsing an episode does not autoplay");
+  sandbox.getDetailSeasons = () => [{ ...season, episodes: [{ id: "new-first-row", canonicalEpisode: 1 }, episode] }];
+  sandbox.selectEpisodeByPosition(0, 0, true, [season]);
+  assert.equal(state.activeEpisode.episode, episode, "the pressed row keeps its identity across a catalog reorder");
+  assert.equal(sandbox.location.pathname, "/watch/show/s2-part-1-e3");
 });
 
 test("AnimeAV1 source warmup coalesces concurrent requests for one episode", async () => {
@@ -3940,4 +3977,204 @@ test("final verification consumes a pending normal lookup even when backup disco
   finish();
   assert.equal((await playback)?.id, source.id);
   assert.deepEqual(verified, [source.id]);
+});
+
+test("an arriving primary source can start verification while optional providers are pending", async () => {
+  const episode = { sourceOptions: [] };
+  const preferred = { id: "preferred" };
+  let completeNormal, completeBackup;
+  const pendingDiscovery = new Promise(resolve => { completeNormal = resolve; });
+  const backup = new Promise(resolve => { completeBackup = resolve; });
+  const checked = [];
+  let beginBackups;
+  const sandbox = sourceRaceContext({
+    wait: ms => new Promise(resolve => { if (ms === 450 && !beginBackups) beginBackups = resolve; }),
+    attachPlaybackFailureFallbacks: () => backup,
+    isFastPreferredPlaybackSource: source => source === preferred,
+    verifyReliablePlaybackCandidate: async (_episode, source) => {
+      checked.push(source.id);
+      return source;
+    }
+  });
+  const playback = sandbox.prepareReliablePlaybackSource({}, episode, { eagerBackups: true, pendingDiscovery });
+  await new Promise(setImmediate);
+  beginBackups();
+  await new Promise(setImmediate);
+  episode.sourceOptions.push(preferred);
+  completeNormal();
+  await new Promise(setImmediate);
+  try {
+    assert.deepEqual(checked, ["preferred"]);
+  } finally {
+    completeBackup();
+    await playback;
+  }
+});
+
+test("overlapping TioAnime searches share a request and can retry a failed lookup", async () => {
+  let calls = 0;
+  const sandbox = vm.createContext({
+    _tioAnimeSlugCache: new Map(), _tioAnimeSlugInflight: new Map(), _tioAnimeMissCache: new Set(),
+    TIOANIME_SEARCH_TIMEOUT_MS: 2000, tioAnimeIsDown: () => false, markTioAnimeDown: () => {},
+    tioAnimeSlugFromSearchPayload: data => data.slug,
+    fetchWithTimeout: async () => (++calls === 1 ? { ok: false, status: 503 }
+      : { ok: true, json: async () => ({ ok: true, slug: "neutral-series" }) })
+  });
+  vm.runInContext(section(clientSource, "async function fetchTioAnimeSlugSearch(", "async function ensureTioAnimeSlugCatalog("), sandbox);
+  const lookup = () => sandbox.fetchTioAnimeSlugSearch("title", "Neutral Series", "t:neutral-series");
+  assert.deepEqual(await Promise.all([lookup(), lookup()]), ["", ""]);
+  assert.equal(calls, 1);
+  assert.deepEqual(await Promise.all([lookup(), lookup()]), ["neutral-series", "neutral-series"]);
+  assert.equal(await lookup(), "neutral-series");
+  assert.equal(calls, 2);
+});
+
+
+test("a prompt primary lookup starts playback without an optional provider sweep", async () => {
+  const source = { id: "preferred" };
+  const episode = { sourceOptions: [] };
+  let backups = 0;
+  const sandbox = sourceRaceContext({
+    isFastPreferredPlaybackSource: () => true,
+    verifyReliablePlaybackCandidate: async (_ep, candidate) => candidate,
+    attachPlaybackFailureFallbacks: async () => { backups++; }
+  });
+  const pendingDiscovery = Promise.resolve().then(() => { episode.sourceOptions.push(source); });
+  const result = await sandbox.prepareReliablePlaybackSource({}, episode, { eagerBackups: true, pendingDiscovery });
+  assert.equal(result, source);
+  assert.equal(backups, 0);
+});
+
+test("a first Play mounts the verified stream even if discovery rebuilds the source list", async () => {
+  const primary = { id: "primary", type: "direct", videoUrl: "/api/source?fixture=one" };
+  const episode = { id: "e2", sourceOptions: [primary], sourceOptionsPending: true };
+  const show = { id: "show" };
+  const mounts = [];
+  const state = { activeShow: show, activeEpisode: { episode }, playIntent: true };
+  const frame = {};
+  const sandbox = vm.createContext({
+    state, document: { querySelector: () => frame }, window: {},
+    activePlaybackRun: { attempt: 1 },
+    prefetchPlayerShell() {}, ensureWatchLanguageChoice() {}, ensureBackendReady() {},
+    playbackSelectionKey: () => "show:e2", selectedSeasonIdentity: () => ({ seasonNumber: 1 }),
+    playbackLookupKey: () => "show:e2", pendingSourceLookups: new Map(), sourceOptionsBackgroundLookups: new Map(),
+    getSelectedEpisodeSource: ep => ep.sourceOptions[0] || null,
+    getEpisodePlaybackSources: ep => ep.sourceOptions, getPlayableUrl: () => "",
+    currentEpisodeLabel: () => "Episode 2", renderPlayerPopupMessage() {},
+    RELIABLE_PLAYBACK_FAST_TARGET_MS: 3000, RELIABLE_PLAYBACK_FAST_PRIMARY_MS: 850,
+    prepareReliablePlaybackSource: async () => {
+      episode.sourceOptions = [];
+      return primary;
+    },
+    isPlaybackAttemptCurrent: () => state.activeEpisode.episode === episode,
+    isExternalIframeEpisode: () => false, isEmbedUrl: () => false,
+    renderDirectVideoPlayer: (_frame, url, _episode, _context, source) => mounts.push({ url, source })
+  });
+  vm.runInContext(section(clientSource, "async function runActivePlaybackAttempt(", "function isExternalIframeEpisode("), sandbox);
+  await sandbox.runActivePlaybackAttempt({ allowSourceLookup: false }, { attempt: 1 });
+  assert.deepEqual(mounts, [{ url: primary.videoUrl, source: primary }]);
+  sandbox.prepareReliablePlaybackSource = async () => {
+    state.activeEpisode = { episode: { id: "next" } };
+    return primary;
+  };
+  await sandbox.runActivePlaybackAttempt({ allowSourceLookup: false }, { attempt: 1 });
+  assert.equal(mounts.length, 1, "a late verification must respect navigation");
+});
+
+test("the last backup failure still sees a primary verified during that check", async () => {
+  const mirror = { id: "mirror" };
+  const primary = { id: "primary", type: "direct", videoUrl: "https://media.test/episode.m3u8" };
+  const episode = { sourceOptions: [] };
+  let now = 0;
+  const checked = [];
+  const sandbox = sourceRaceContext({
+    Date: { now: () => now },
+    attachPlaybackFailureFallbacks: async () => { episode.sourceOptions.push(mirror); },
+    hasFreshVerifiedPlaybackSource: source => source === primary,
+    verifyReliablePlaybackCandidate: async (_ep, source) => {
+      checked.push(source.id);
+      episode.sourceOptions.push(primary);
+      now = 850;
+      return null;
+    }
+  });
+  const result = await sandbox.prepareReliablePlaybackSource({}, episode, { timeoutMs: 900, eagerBackups: true });
+  assert.equal(result, primary);
+  assert.deepEqual(checked, ["mirror"], "an already verified route needs no second probe");
+});
+
+test("pressing an episode with an empty list shares primary discovery with the first Play", async () => {
+  const primary = { id: "primary" };
+  const episode = { sourceOptions: [] };
+  const calls = [];
+  const sandbox = sourceRaceContext({
+    prefetchPlayerShell() {},
+    ensureBackendReady: async () => {},
+    RELIABLE_PLAYBACK_FAST_TARGET_MS: 3000, RELIABLE_PLAYBACK_FAST_PRIMARY_MS: 850,
+    schedulePlaybackSourceOptions: (_show, ep, season, options) => {
+      assert.equal(season, 2);
+      assert.equal(options.backgroundWarmup, true);
+      calls.push("discovery");
+      return Promise.resolve().then(() => { ep.sourceOptions.push(primary); });
+    },
+    attachPlaybackFailureFallbacks: async () => { calls.push("backup"); },
+    isFastPreferredPlaybackSource: () => true,
+    verifyReliablePlaybackCandidate: async (_ep, candidate) => { calls.push("verify"); return candidate; }
+  });
+  const show = {};
+  const press = sandbox.warmEpisodePlaybackIntent(show, episode, 2, { eagerBackups: true });
+  await Promise.resolve();
+  const click = sandbox.prepareReliablePlaybackSource(show, episode, { eagerBackups: true });
+  assert.deepEqual(await Promise.all([press, click]), [primary, primary]);
+  assert.deepEqual(calls, ["discovery", "verify"]);
+});
+
+test("a joining Play gets the first source while the full server sweep is still running", async () => {
+  const episode = {};
+  const firstReady = Promise.resolve(episode);
+  const sandbox = vm.createContext({
+    playbackLookupKey: () => "same-episode",
+    pendingSourceLookups: new Map([["same-episode", firstReady]]),
+    sourceOptionsBackgroundLookups: new Map([["same-episode", new Promise(() => {})]])
+  });
+  vm.runInContext(section(clientSource, "function schedulePlaybackSourceOptions(", "function stripSeasonFromTitle("), sandbox);
+  assert.equal(sandbox.schedulePlaybackSourceOptions({}, episode), firstReady);
+});
+
+test("a verified primary releases Play during the backup window", async () => {
+  const primary = { id: "primary" };
+  const backup = { id: "backup" };
+  let now = 0, finishPrimary, finishBackup, selected;
+  const timers = new Map();
+  const first = new Promise(resolve => { finishPrimary = resolve; });
+  const second = new Promise(resolve => { finishBackup = resolve; });
+  const checks = [];
+  const sandbox = sourceRaceContext({
+    Date: { now: () => now },
+    wait: ms => new Promise(resolve => timers.set(ms, resolve)),
+    isFastPreferredPlaybackSource: source => source === primary,
+    verifyReliablePlaybackCandidate: (_ep, source) => {
+      checks.push(source.id);
+      return source === primary ? first : second;
+    }
+  });
+  const run = sandbox.prepareReliablePlaybackSource({}, { sourceOptions: [primary, backup] }, {
+    eagerBackups: true, softFailures: true, timeoutMs: 3000, primaryProbeMs: 850
+  }).then(source => { selected = source; });
+  await new Promise(setImmediate);
+  now = 850;
+  timers.get(850)();
+  await new Promise(setImmediate);
+  now = 1750;
+  timers.get(900)();
+  await new Promise(setImmediate);
+  assert.ok(checks.includes("backup"));
+  finishPrimary(primary);
+  await new Promise(setImmediate);
+  try {
+    assert.equal(selected, primary, "Play must not wait for the backup's timeout");
+  } finally {
+    finishBackup(backup);
+    await run;
+  }
 });

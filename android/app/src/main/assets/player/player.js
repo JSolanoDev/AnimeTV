@@ -9,7 +9,8 @@
   const poster = firstParam("poster", "thumb") || "";
   const subtitle = firstParam("subtitle", "sub") || "";
   const tracks = parseTracks(params.get("tracks"));
-  const startAt = Number(params.get("start") || 0);
+  const savedPosition = Number(params.get("start"));
+  const startAt = Number.isFinite(savedPosition) && savedPosition > 0 ? savedPosition : 0;
   const fit = String(params.get("fit") || params.get("scale") || "contain").toLowerCase();
   const forceSubtitles = params.get("forceSubtitles") === "1";
   let hasNextEpisode = params.get("hasNext") === "1";
@@ -2266,16 +2267,18 @@
       send("ready", getStatus());
       send("loadedmetadata", getStatus());
       armStartupWatchdog();
-      if (startAt > 0) {
-        armSeekRecoveryGrace();
-        try { art.seek = startAt; } catch (error) {}
-      }
       if (forceSubtitles && art.subtitle) {
         try { art.subtitle.show = true; } catch (error) {}
       }
     });
 
+    let initialMetadata = true;
     art.on("video:loadedmetadata", () => {
+      if (initialMetadata && !hls && startAt > 0 && startAt < playableDuration(video)) {
+        armSeekRecoveryGrace();
+        video.currentTime = startAt;
+      }
+      initialMetadata = false;
       send("loadedmetadata", getStatus());
       reportResolution();
     });
@@ -2401,7 +2404,7 @@
       clearTimeout(resumeTimer);
       unmuteArmed = false;
     };
-    const unmute = () => {
+    const unmute = (event) => {
       cleanup();
       if (art?.video !== video) return;
       if (!video.muted) return;
@@ -2411,9 +2414,11 @@
       // would pause the very video the viewer just asked to hear. We have a user
       // gesture now, so resume on the next tick and let the click mean what it
       // plainly meant: start this properly, with sound.
-      resumeTimer = setTimeout(() => {
-        if (art?.video === video && video.paused) video.play?.().catch(() => {});
-      }, 0);
+      if (event.type === "pointerdown" && !video.paused) {
+        resumeTimer = setTimeout(() => {
+          if (art?.video === video && video.paused) video.play?.().catch(() => {});
+        }, 0);
+      }
       send("volume", getStatus());
     };
     document.addEventListener("pointerdown", unmute, { once: true });
@@ -2468,6 +2473,7 @@
       // reliable than low-latency live tuning when a segment arrives slowly.
       lowLatencyMode: false,
       startFragPrefetch: true,
+      startPosition: startAt || -1,
       backBufferLength: 60,
       // Keep a larger forward cushion for inconsistent third-party VOD hosts,
       // while conservative ABR prevents a brief bandwidth spike from selecting
@@ -2497,10 +2503,12 @@
       fragLoadingMaxRetry: isAnimeAv1UpnStream ? 0 : 1,
       fragLoadingRetryDelay: 600
     });
-    hls.attachMedia(video);
-    hls.on(window.Hls.Events.MEDIA_ATTACHED, () => {
-      hls.loadSource(url);
-    });
+    if (startAt > 0) {
+      // A replacement VOD can be shorter than its saved viewing position.
+      hls.once(window.Hls.Events.LEVEL_LOADED, (_, { details }) => {
+        if (!details.live && details.totalduration > 0 && startAt >= details.totalduration) hls.startLoad(0);
+      });
+    }
     hls.on(window.Hls.Events.MANIFEST_PARSED, (_, data) => {
       const levels = (data?.levels || []).map((level, index) => ({
         index,
@@ -2578,6 +2586,8 @@
       showError("HLS stream failed", "The HLS stream could not be loaded. Try another source.");
       send("error", "hls-fatal");
     });
+    hls.once(window.Hls.Events.MEDIA_ATTACHED, () => hls.loadSource(url));
+    hls.attachMedia(video);
   }
 
   function scheduleHlsReload(video, reason, attempt) {
@@ -2859,7 +2869,9 @@
     if (!video) return;
     const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : Infinity;
     // Measured from whichever end is authoritative, so +/-10 stays +/-10 on the TV.
-    const nextTime = Math.max(0, Math.min(duration, currentPlaybackTime() + delta));
+    const position = currentPlaybackTime();
+    const nextTime = Math.max(0, Math.min(duration, position + delta));
+    if (nextTime === position) return;
     if (isCasting()) {
       castSeek(nextTime);
       showSeekToast(delta);
@@ -2868,10 +2880,6 @@
     try {
       armSeekRecoveryGrace();
       art.seek = nextTime;
-      if (video.paused) {
-        const playAttempt = video.play?.();
-        if (playAttempt && typeof playAttempt.catch === "function") playAttempt.catch(() => {});
-      }
       hideLoading();
       showSeekToast(delta);
       send("seek", getStatus());

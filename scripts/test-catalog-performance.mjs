@@ -418,6 +418,34 @@ test("catalog replacement enriches the live detail object instead of orphaning i
   assert.equal(state.catalogTier, "full");
 });
 
+test("full catalog arrival keeps the selected watch episode and its active media verification", () => {
+  const open = { id: "bootstrap-show", animeAv1Slug: "neutral" };
+  const refresh = { ...open, id: "full-show" };
+  const selection = { episode: { id: "bootstrap-e2", episode: 2 }, seasonIndex: 0, episodeIndex: 0 };
+  const fullSeason = { season: 1, episodes: [{ episode: 1 }, { episode: 2, id: "placeholder-e2" }, { episode: 3 }] };
+  const route = { name: "watch", params: { animeId: "neutral" }, target: { playIntent: true, seasonNumber: 1, episodeNumber: 2 } };
+  const state = { shows: [open], activeShow: open, activeEpisode: selection, currentRouteInfo: route, playIntent: true };
+  const c = vm.createContext({
+    state, mergeShows: items => items, invalidateScheduleData() {}, reconcileAnimeAv1LatestInventory() {},
+    findShowBySlugOrId: () => refresh, selectedEpisodeMatchesTarget: (_show, row, target) => row?.episode.episode === target.episodeNumber,
+    getCanonicalEpisodeNumber: ep => ep.episode, parseEpisodeNumber: Number, ensureFranchiseShowsInCatalog() {},
+    overlay: { hidden: false }, window: { requestAnimationFrame: fn => fn() },
+    scheduleAiringEnrichment() {}, signalAppLoader() {}, renderEpisodeList() {}, syncWatchHeading() {}, refreshFocusables() {},
+    getDetailSeasons: () => [fullSeason], getEpisodeUrl: () => "", setEpisodeChunkIndex() {}
+  });
+  vm.runInContext(section(client, "let activePlaybackAttemptSequence", "function stopActivePlayback()"), c);
+  vm.runInContext(section(client, "function catalogShowsShareIdentity(", "function regularCatalogSnapshot("), c);
+  vm.runInContext(section(client, "function applyOpenTarget(", "function selectedEpisodeMatchesTarget("), c);
+  const key = c.playbackSelectionKey();
+  c.replaceRegularCatalog([refresh], "full");
+  assert.equal(state.activeShow.id, "full-show");
+  assert.equal(state.activeEpisode.episode, selection.episode);
+  assert.equal(state.activeEpisode.episodeIndex, 1);
+  assert.equal(state.activeEpisode.season, fullSeason);
+  assert.equal(c.playbackSelectionKey(), key);
+  assert.notEqual(c.playbackSelectionKey(open, { ...selection, episode: { episode: 3, id: "e3" } }), key);
+});
+
 test("full catalog arrival rebinds a colliding sequel slug to its relation identity", () => {
   const requestedSlug = "example-season-two-part-two";
   const open = {

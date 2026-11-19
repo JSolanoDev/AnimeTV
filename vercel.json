@@ -10,7 +10,8 @@
       "codex/security-performance-nov4": false,
       "codex/provider-analytics-reliability": false,
       "codex/animeneon-reliability-v1033": false,
-      "codex/playback-catalog-startup": false
+      "codex/playback-catalog-startup": false,
+      "codex/v1036-playback-validation": false
     }
   },
   "outputDirectory": "dist",

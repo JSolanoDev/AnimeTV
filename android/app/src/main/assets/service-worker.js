@@ -1,4 +1,4 @@
-const CACHE_NAME = "zenkaitv-v1035";
+const CACHE_NAME = "zenkaitv-v1036";
 const ADULT_CATALOG_CACHE = "zenkaitv-adult-catalog-v1";
 // Remote artwork lives in its OWN cache that survives version bumps. It used
 // to share CACHE_NAME, so every deploy wiped every poster and the app
@@ -246,14 +246,15 @@ self.addEventListener("fetch", (event) => {
 
   // Everything else: network-first with cache fallback
   event.respondWith(
-    fetch(event.request).catch(() =>
-      caches.match(event.request).then((cached) => {
+    fetch(event.request).catch((error) => {
+      if (error?.name === "AbortError" || event.request.signal?.aborted) throw error;
+      return caches.match(event.request).then((cached) => {
         if (cached) return cached;
         // Only a document may fall back to the offline page - see above.
         if (event.request.destination === "document") return caches.match("./offline.html");
         return new Response("", { status: 503, statusText: "Offline" });
-      })
-    )
+      });
+    })
   );
 });
 

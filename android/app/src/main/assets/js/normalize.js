@@ -582,20 +582,22 @@ function normalizeEpisodeSourceOptions(episode = {}) {
       providerEpisodeId: source.providerEpisodeId ?? source.provider_episode_id ?? getProviderEpisodeId(episode)
     };
   });
-  // A verified direct option already carries its identity, referer and health
-  // stamp. A synthetic duplicate would discard those fields during URL dedupe.
+  // Keep the selected stream's identity and referer while its check is running.
+  // A synthetic alias would start a second check for the same media.
+  const episodeUrl = pickPlayableUrl(episode);
   const hasMatchingDirectOption = options.some(option => option.type === "direct"
-    && (option.verifiedPlayable === true || option.animeytPreferred === true || /^animeyt-sub-/.test(option.id))
-    && option.videoUrl === pickPlayableUrl(episode));
-  if (pickPlayableUrl(episode) && !hasMatchingDirectOption) {
+    && (option.verifiedPlayable === true || option.animeytPreferred === true || /^animeyt-sub-/.test(option.id)
+      || (episode.selectedSourceId !== "auto" && option.id === episode.selectedSourceId))
+    && option.videoUrl === episodeUrl);
+  if (episodeUrl && !hasMatchingDirectOption) {
     options.unshift({
       id: episode.sourceId || episode.originalSourceId || "direct",
       originalSourceId: episode.originalSourceId || episode.sourceId || null,
       label: cleanPlaybackSourceLabel(episode.server || "Direct"),
       provider: episode.provider || episode.server || "",
       type: "direct",
-      videoUrl: pickPlayableUrl(episode),
-      downloadUrl: episode.downloadUrl || episode.download || episode.download_url || pickPlayableUrl(episode),
+      videoUrl: episodeUrl,
+      downloadUrl: episode.downloadUrl || episode.download || episode.download_url || episodeUrl,
       mimeType: episode.mimeType || episode.mime || episode.contentType || "",
       container: episode.container || episode.format || "",
       codec: episode.codec || episode.codecs || episode.videoCodec || "",

@@ -538,14 +538,16 @@ test("network rejection after the request deadline remains cancellation, not a f
 test("the service worker preserves real provider responses and transport failures separately", async () => {
   const listeners = new Map();
   let result = Response.json({ ok: false, source: "neutral" }, { status: 503 });
+  let cached;
   const context = vm.createContext({ URL, Response,
     self: { location: { origin: "https://app.test" }, addEventListener: (name, fn) => listeners.set(name, fn) },
+    caches: { match: async () => cached },
     fetch: async () => { if (result instanceof Error) throw result; return result; }
   });
   vm.runInContext(readFileSync(new URL("../service-worker.js", import.meta.url), "utf8"), context);
-  const read = () => {
+  const read = (path = "/api/animeav1/sources") => {
     let promise;
-    listeners.get("fetch")({ request: new Request("https://app.test/api/animeav1/sources"), respondWith: value => { promise = value; } });
+    listeners.get("fetch")({ request: new Request("https://app.test" + path), respondWith: value => { promise = value; } });
     return promise;
   };
   assert.equal(await read(), result);
@@ -553,6 +555,14 @@ test("the service worker preserves real provider responses and transport failure
   await assert.rejects(read(), { name: "TypeError" });
   result = new DOMException("cancelled", "AbortError");
   await assert.rejects(read(), { name: "AbortError" });
+  const route = "/anime/neutral-series";
+  await assert.rejects(read(route), { name: "AbortError" });
+  result = new TypeError("offline");
+  const offline = await read(route);
+  assert.equal(offline.status, 503);
+  assert.equal(offline.statusText, "Offline");
+  cached = new Response("cached");
+  assert.equal(await read(route), cached);
 });
 
 function serviceWorkerCacheHarness({ fail = "", cached = null, writeGate = null, cacheKeys = [], response = new Response("neutral-image", {

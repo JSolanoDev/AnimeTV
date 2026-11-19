@@ -198,6 +198,10 @@ test("episode normalization retains AnimeYT's verified identity instead of a syn
   assert.equal(options[0].verifiedAt, source.verifiedAt);
   const oldProvider = sandbox.normalizeEpisodeSourceOptions({ videoUrl: video, provider: "AnimeAV1", sourceOptions: [{ ...source, id: "animeav1-direct", verifiedPlayable: false }] });
   assert.equal(oldProvider[0].id, "direct", "unverified legacy provider normalization is unchanged");
+  const selected = { id: "animeav1-hls", type: "direct", videoUrl: video, siteUrl: "https://provider.test/series/episode", verifiedPlayable: false };
+  const promoted = sandbox.normalizeEpisodeSourceOptions({ videoUrl: video, selectedSourceId: selected.id, sourceOptions: [selected] });
+  assert.equal(promoted[0].id, selected.id, "promoting a selected direct stream must preserve its probe identity");
+  assert.equal(promoted[0].siteUrl, selected.siteUrl);
   const verifiedProvider = sandbox.normalizeEpisodeSourceOptions({ videoUrl: video, provider: "AnimeAV1", sourceOptions: [{ ...source, id: "animeav1-direct" }] });
   assert.equal(verifiedProvider[0].id, "animeav1-direct", "verified sources retain their identity and health");
   assert.equal(verifiedProvider[0].verifiedAt, source.verifiedAt);
