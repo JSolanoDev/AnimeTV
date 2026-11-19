@@ -67091,8 +67091,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/fx-senshi-kurumi-chan",
-      "totalEpisodes": 7,
-      "episode": 7,
+      "totalEpisodes": 8,
+      "episode": 8,
       "lastScrapedAt": "2026-11-18T14:47:16.359337+00:00",
       "episodes": [
         {
@@ -67148,16 +67148,18 @@
         4,
         5,
         6,
-        7
+        7,
+        8
       ],
-      "sourceEpisodeCount": 7,
-      "sourcePlayableEpisodeCount": 7,
+      "sourceEpisodeCount": 8,
+      "sourcePlayableEpisodeCount": 8,
       "sourceDeclaredEpisodeCount": 7,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-11-18T14:53:45.515Z",
+      "sourceInventoryCheckedAt": "2026-11-19T13:48:31.530Z",
       "sourceInventoryPartial": false,
-      "latestAiredEp": 5,
-      "lastEpisodeAt": "2026-10-29T14:48:35.123Z"
+      "latestAiredEp": 8,
+      "lastEpisodeAt": "2026-11-19T12:48:31.488Z",
+      "sourceInventoryRetainedEpisodeCount": 7
     },
     {
       "id": "animeav1-futsutsuka-na-akujo-dewa-gozaimasu-ga-suuguu-chouso-torikae-den",
