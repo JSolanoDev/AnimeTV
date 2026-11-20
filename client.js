@@ -1081,7 +1081,7 @@ function applyServerCatalog(serverCatalog = [], label = "ZenkaiTV API") {
   writeResponseCache("main-catalog", regularCatalogSnapshot());
   setSourceStatus(catalogStatusLabel(label, state.shows));
   render();
-  scheduleVisibleMetadataWarm(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
+  scheduleVisibleMetadataWarm();
   scheduleHomeRailExpansion();
   return true;
 }
@@ -1140,7 +1140,7 @@ async function loadAnimeSources() {
     resetCarouselIndexForFreshCatalog();
     setSourceStatus(catalogStatusLabel("Cached ZenkaiTV catalog", cachedCatalog));
     render();
-    scheduleVisibleMetadataWarm(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
+    scheduleVisibleMetadataWarm();
     return true;
   };
   let hasInitialCatalog = !preferBootstrap && installCachedCatalog();
@@ -1167,7 +1167,7 @@ async function loadAnimeSources() {
       setSourceStatus(catalogStatusLabel("ZenkaiTV bootstrap", bootstrapCatalog));
       render();
       hasInitialCatalog = true;
-      scheduleVisibleMetadataWarm(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
+      scheduleVisibleMetadataWarm();
     }
   }
 
@@ -1271,7 +1271,7 @@ async function loadDirectCatalogFallback() {
     writeResponseCache("direct-catalog", merged);
     writeResponseCache("main-catalog", merged);
     setSourceStatus(catalogStatusLabel("Jikan", merged));
-    scheduleVisibleMetadataWarm(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
+    scheduleVisibleMetadataWarm();
   } else {
     state.apiStatus.direct = "Offline";
     if (!state.shows.length) replaceRegularCatalog(fallbackShows);
@@ -4046,7 +4046,7 @@ async function loadAnimeAv1Latest(force = false) {
         // delayed by scheduleVisibleMetadataWarm so it cannot compete with
         // the hero and first visible row during Speed Index measurement.
         render();
-        scheduleVisibleMetadataWarm(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
+        scheduleVisibleMetadataWarm();
       }
     } catch (e) {
       console.warn("Failed to load av1-latest cache:", e);
@@ -4080,7 +4080,7 @@ async function loadAnimeAv1Latest(force = false) {
       if (isChanged) {
         resetReleaseCarouselLineup();
         render();   // repaint the rail in AnimeAV1 order
-        scheduleVisibleMetadataWarm(buildLatestEpisodesList(HOME_INITIAL_CARD_LIMIT), HOME_INITIAL_CARD_LIMIT);
+        scheduleVisibleMetadataWarm();
       }
     }
   } catch (err) {
@@ -5123,7 +5123,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1040";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1041";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -18055,6 +18055,7 @@ function fetchDeduped(url, init) {
 
 let visibleMetadataWarmGeneration = 0;
 let visibleMetadataWarmActiveKey = "";
+let latestMetadataWarmScheduled = false;
 
 // Both workers re-check the generation on every iteration, so bumping it lands
 // them after the show they are on rather than mid-cascade. Used to hand the
@@ -18073,7 +18074,7 @@ let _deferredMetadataWarm = null;
 function resumeVisibleMetadataWarm() {
   const pending = _deferredMetadataWarm;
   _deferredMetadataWarm = null;
-  if (!pending) return scheduleVisibleMetadataWarm();
+  if (!pending) return scheduleVisibleMetadataWarm(state.shows);
   const byId = new Map((state.shows || []).map((show) => [String(show.id || getShowKey(show)), show]));
   const shows = [...pending.ids].map((id) => byId.get(id)).filter(Boolean);
   scheduleVisibleMetadataWarm(shows.length ? shows : state.shows, pending.limit || HOME_INITIAL_CARD_LIMIT);
@@ -18104,7 +18105,7 @@ function dedupeCatalogShows() {
   return true;
 }
 
-function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_LIMIT) {
+function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_LIMIT, alreadyRanked = false) {
   // Never warm the catalogue while a show is open. The warm fires ~80 requests
   // across two workers and a browser only opens about six connections per host,
   // so the show being looked at queued behind the catalogue at the CONNECTION
@@ -18130,7 +18131,7 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
   // Catalog cards already have their baked poster and metadata. Warm only the
   // first few; the rest hydrate on open, leaving connections free for clicks.
   const warmLimit = Math.min(limit, state.route === "home" ? 2 : 4);
-  const latestShows = buildLatestEpisodesList(warmLimit);
+  const latestShows = alreadyRanked ? [] : buildLatestEpisodesList(warmLimit);
   const prioritized = [
     ...(state.route === "library" ? providedShows : latestShows),
     ...(state.route === "library" ? latestShows : providedShows)
@@ -18231,8 +18232,19 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
 // only upgrades posters/episode metadata afterward — a big Speed-Index win with
 // no visible content lost. Opening a show before warming runs still works (it
 // hydrates on demand via hydrateOpenShowDetails).
-function scheduleVisibleMetadataWarm(shows = state.shows, limit = HOME_INITIAL_CARD_LIMIT) {
-  const run = () => { try { warmVisibleShowMetadata(shows, limit); } catch { /* non-fatal */ } };
+function scheduleVisibleMetadataWarm(shows = null, limit = HOME_INITIAL_CARD_LIMIT) {
+  // Bootstrap, the cached catalog, and the release feed can arrive in one burst.
+  // Read the latest cards when the idle slot runs so they share one warm-up.
+  if (shows === null) {
+    if (latestMetadataWarmScheduled) return;
+    latestMetadataWarmScheduled = true;
+  }
+  const run = () => {
+    if (shows === null) latestMetadataWarmScheduled = false;
+    try {
+      warmVisibleShowMetadata(shows ?? buildLatestEpisodesList(limit), limit, shows === null);
+    } catch { /* optional metadata */ }
+  };
   const idle = () => {
     if ("requestIdleCallback" in window) window.requestIdleCallback(run, { timeout: 2500 });
     else window.setTimeout(run, 300);
@@ -24760,7 +24772,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1040");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1041");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

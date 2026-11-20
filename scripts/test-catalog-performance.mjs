@@ -1305,6 +1305,42 @@ test("identical visible-card warmups share one run and baked cards need no upstr
   assert.equal(baked._metadataPreloadComplete, true);
 });
 
+test("startup catalog updates share an idle slot and read the current releases when it runs", () => {
+  const loads = [], timers = [], idle = [], warmed = [];
+  let current = ["cached"], reads = 0;
+  const c = vm.createContext({
+    document: { readyState: "loading" },
+    window: {
+      addEventListener: (_event, fn) => loads.push(fn),
+      setTimeout: fn => timers.push(fn),
+      requestIdleCallback: fn => idle.push(fn)
+    },
+    latestMetadataWarmScheduled: false, HOME_INITIAL_CARD_LIMIT: 12,
+    buildLatestEpisodesList: () => { reads++; return current; },
+    warmVisibleShowMetadata: (shows, limit) => warmed.push([shows, limit])
+  });
+  vm.runInContext(section(client, "function scheduleVisibleMetadataWarm(", "function warmTioAnimeSlugCatalog("), c);
+  c.scheduleVisibleMetadataWarm();
+  c.scheduleVisibleMetadataWarm();
+  assert.equal(loads.length, 1);
+  loads.shift()();
+  c.document.readyState = "complete";
+  c.scheduleVisibleMetadataWarm();
+  assert.equal(timers.length, 1);
+  timers.shift()();
+  current = ["latest"];
+  assert.equal(reads, 0);
+  idle.shift()();
+  assert.deepEqual(warmed, [[current, 12]]);
+  c.scheduleVisibleMetadataWarm();
+  c.scheduleVisibleMetadataWarm(["specific"], 1);
+  assert.equal(timers.length, 2);
+  timers.splice(0).forEach(fn => fn());
+  idle.splice(0).forEach(fn => fn());
+  assert.equal(reads, 2);
+  assert.deepEqual(warmed[2], [["specific"], 1]);
+});
+
 test("generic upstream retries stop on 429 and honor Retry-After", async () => {
   let calls = 0;
   let waits = 0;
