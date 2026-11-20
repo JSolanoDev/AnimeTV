@@ -21,7 +21,7 @@ function playlistHarness(fetchWithTimeout) {
   let now = 1000;
   const context = vm.createContext({
     Date: class extends Date { static now() { return now; } },
-    Map, Object, Promise, Response, String, AbortController, setTimeout, clearTimeout,
+    Map, Object, Promise, Response, String, URL, AbortController, setTimeout, clearTimeout,
     sourcePlaylistCache: new Map(),
     sourcePlaylistInflight: new Map(),
     SOURCE_PLAYLIST_MEMORY_TTL_MS: 15000,
@@ -253,7 +253,7 @@ test("Streamtape media ranges refresh and share a worker-local signed token", as
 
   const proxy = section(server, "async function handleSourceProxy(", "function compactCatalogPayload(");
   assert.match(proxy, /relayTarget = await resolveStreamTapeMediaForRelay\(targetUrl\)/);
-  assert.match(proxy, /fetchWithTimeout\(relayTarget, \{ headers, signal: relayController\.signal \}, 12000\)/);
+  assert.match(proxy, /fetchWithTimeout\(relayTarget, \{ headers, signal: relayController\.signal \}, remainingMs\)/);
 });
 
 test("verified resolver VOD fragments are briefly reused by the player", () => {
@@ -273,7 +273,8 @@ test("portable HLS verification has time to finish without extending server time
   assert.match(client, /RELIABLE_PLAYBACK_TOTAL_BUDGET_MS = 14000/);
   assert.match(client, /RELIABLE_PLAYBACK_HANDOFF_VERIFY_MS = 10000/);
   const proxy = section(server, "async function handleSourceProxy(", "function compactCatalogPayload(");
-  assert.match(proxy, /fetchWithTimeout\(relayTarget, \{ headers, signal: relayController\.signal \}, 12000\)/);
+  assert.match(proxy, /fetchMediaWithRecovery\(relayTarget, relayController\.signal/);
+  assert.match(server, /return read\(12000 - \(now - startedAt\)\)/);
 });
 
 test("JKAnime challenge pages do not become cached episode misses", () => {
@@ -1032,6 +1033,58 @@ test("failed media URLs keep genuine errors but stop repeat upstream transfers a
   assert.equal(recovered.status, 200);
   assert.equal(h.calls.length, 3);
   assert.equal(h.c.sourceFailureCache.size, 0);
+});
+
+test("a transient first segment failure recovers on the same player range request within its deadline", async () => {
+  const h = relayHarness((_url, options, timeoutMs) => {
+    assert.equal(options.headers.Range, "bytes=32-35");
+    if (h.calls.length === 1) {
+      h.advance(400);
+      return new Response(null, { status: 502 });
+    }
+    assert.equal(timeoutMs, 11600);
+    return new Response("abcd", { status: 206, headers: {
+      "content-type": "video/mp4", "content-range": "bytes 32-35/64"
+    } });
+  });
+  const req = h.request();
+  req.headers.range = "bytes=32-35";
+  const res = h.response();
+  await h.c.handleSourceProxy(req, new URL("https://app.test/api/source?url=https://media.test/segment.m4s"), res);
+  assert.equal(res.status, 206);
+  assert.equal(res.text(), "abcd");
+  assert.equal(h.calls.length, 2);
+  assert.equal(h.c.sourceFailureCache.size, 0);
+});
+
+test("concurrent playlist readers share a single recovery from an early socket reset", async () => {
+  let calls = 0;
+  const h = playlistHarness(() => {
+    if (++calls === 1) throw Object.assign(new Error("socket closed"), { cause: { code: "ECONNRESET" } });
+    return new Response("#EXTM3U\n#EXTINF:2,\na.ts\n#EXT-X-ENDLIST");
+  });
+  const read = () => h.context.fetchCoalescedSourcePlaylist("https://media.test/v.m3u8", {}, "playlist");
+  const results = await Promise.all([read(), read(), read()]);
+  assert.ok((await Promise.all(results.map(response => response.text()))).every(body => body.includes("a.ts")));
+  assert.equal(calls, 2);
+});
+
+test("media recovery respects upstream backoff, cancellation, and one retry per host during an outage", async () => {
+  const h = relayHarness(() => {});
+  const signal = new AbortController().signal;
+  let calls = 0;
+  const read = async (path, status, headers, requestSignal = signal) => h.c.fetchMediaWithRecovery(
+    "https://media.test/" + path, requestSignal, async () => { calls++; return new Response(null, { status, headers }); }
+  );
+  for (const status of [403, 404, 429]) await read("a", status);
+  await read("b", 503, { "retry-after": "30" });
+  await read("c", 502, {}, AbortSignal.abort());
+  assert.equal(calls, 5);
+  await Promise.all([read("a", 502), read("b", 503), read("c", 504)]);
+  assert.equal(calls, 9);
+  h.advance(10000);
+  await read("d", 503);
+  assert.equal(calls, 11);
 });
 
 test("media cooldowns isolate referers, honor Retry-After, and remain bounded", () => {

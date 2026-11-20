@@ -338,7 +338,7 @@ test("missing titles do not trip Jikan's outage circuit", async () => {
 
 test("playlist headers and body share one abortable deadline", async () => {
   const h = harness(() => ({ status: 200, headers: new Map(), text: never }));
-  vm.runInContext(section("async function fetchSourcePlaylistSnapshot(", "function sourcePlaylistIsMaster("), h.context);
+  vm.runInContext(section("const mediaRetryAfter =", "function sourcePlaylistIsMaster("), h.context);
   const request = assert.rejects(h.context.fetchSourcePlaylistSnapshot("https://media.test/video.m3u8", {}), { status: 504 });
   await h.advance(12000);
   await request;

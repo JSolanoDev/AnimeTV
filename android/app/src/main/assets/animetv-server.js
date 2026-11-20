@@ -2370,6 +2370,34 @@ function recordSourceFailure(key, error) {
   });
 }
 
+const mediaRetryAfter = new Map();
+
+async function fetchMediaWithRecovery(target, signal, read) {
+  const startedAt = Date.now();
+  let response;
+  let failure;
+  try {
+    response = await read(12000);
+    if (![502, 503, 504].includes(response.status) || response.headers.has("retry-after")) return response;
+  } catch (error) {
+    if (!["ECONNRESET", "EPIPE", "UND_ERR_SOCKET"].includes(error?.cause?.code || error?.code)) throw error;
+    failure = error;
+  }
+  // Recover one quick gateway/connection failure before it becomes a URL
+  // cooldown. Parallel segment reads share the same host retry allowance.
+  const now = Date.now();
+  const host = new URL(target).hostname;
+  if (signal.aborted || now - startedAt > 1500 || (mediaRetryAfter.get(host) || 0) > now) {
+    if (failure) throw failure;
+    return response;
+  }
+  mediaRetryAfter.delete(host);
+  if (mediaRetryAfter.size >= 200) mediaRetryAfter.delete(mediaRetryAfter.keys().next().value);
+  mediaRetryAfter.set(host, now + 10000);
+  if (response) void response.body?.cancel().catch(() => {});
+  return read(12000 - (now - startedAt));
+}
+
 async function fetchSourcePlaylistSnapshot(target, headers) {
   const controller = new AbortController();
   const error = new Error("Upstream playlist deadline exceeded");
@@ -2381,7 +2409,8 @@ async function fetchSourcePlaylistSnapshot(target, headers) {
   try {
     // Keep the deadline through body decoding, not only until headers arrive.
     return await Promise.race([deadline, (async () => {
-      const upstream = await fetch(target, { headers, signal: controller.signal });
+      const upstream = await fetchMediaWithRecovery(target, controller.signal,
+        () => fetch(target, { headers, signal: controller.signal }));
       return {
         status: upstream.status,
         statusText: upstream.statusText,
@@ -2647,7 +2676,8 @@ async function handleSourceProxy(request, url, response) {
       : "";
     const upstream = canCoalescePlaylist
       ? await fetchCoalescedSourcePlaylist(target, headers, playlistCacheKey)
-      : await fetchWithTimeout(relayTarget, { headers, signal: relayController.signal }, 12000);
+      : await fetchMediaWithRecovery(relayTarget, relayController.signal,
+        (remainingMs) => fetchWithTimeout(relayTarget, { headers, signal: relayController.signal }, remainingMs));
     if (!upstream.ok) {
       recordSourceFailure(failureKey, upstreamHttpError("Media", upstream));
       log("warn", "Source relay upstream rejected request", {
