@@ -424,7 +424,7 @@ test("startup recovery stays within the original caller timeout", async () => {
   let release;
   const health = new Promise(resolve => { release = resolve; });
   const h = startupHarness(url => url === "/api/health" ? health : startingResponse());
-  await assert.rejects(h.context.fetchWithTimeout("/api/animeav1/sources", {}, 20), { name: "AbortError" });
+  await assert.rejects(h.context.fetchWithTimeout("/api/animeav1/sources", {}, 20), { name: "TimeoutError" });
   release(readyResponse());
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(h.calls.length, 2);
@@ -550,7 +550,7 @@ test("network rejection after the request deadline remains cancellation, not a f
   const h = startupHarness((_url, { signal }) => new Promise((_resolve, reject) => {
     signal.addEventListener("abort", () => reject(new TypeError("network unavailable")), { once: true });
   }));
-  await assert.rejects(h.context.fetchWithTimeout("/api/animeav1/sources", {}, 10), { name: "AbortError" });
+  await assert.rejects(h.context.fetchWithTimeout("/api/animeav1/sources", {}, 10), { name: "TimeoutError" });
   assert.equal(h.calls.length, 1);
   assert.equal(h.timers.size, 0);
 });

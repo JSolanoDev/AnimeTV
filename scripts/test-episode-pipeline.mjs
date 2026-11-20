@@ -239,6 +239,8 @@ function sourceRaceContext(overrides = {}) {
     RELIABLE_PLAYBACK_TOTAL_BUDGET_MS: 14000,
     RELIABLE_PLAYBACK_PRIMARY_PROBE_MS: 5000,
     RELIABLE_PLAYBACK_BACKUP_DELAY_MS: 450,
+    sourceOptionsBackgroundLookups: new Map(),
+    playbackLookupKey: () => "selected-episode",
     AdultMode: { isAdultContent: () => false },
     wait: () => new Promise(() => {}),
     getSelectedEpisodeSource: () => null,
@@ -1106,6 +1108,7 @@ function animeAv1SourceContext() {
     section(clientSource, "let _playerShellPrefetched", "function mergeAnimeAv1SourcesIntoEpisode("),
     sandbox
   );
+  vm.runInContext(section(clientSource, "function animeAv1CatalogSlugForShow(", "function animeAv1LatestEpisodeIdentity("), sandbox);
   return {
     sandbox,
     releaseFetch,
@@ -2024,12 +2027,50 @@ test("7f2d. intent warming verifies only the best primary and never fans out to 
   assert.equal(episode._reliablePrimaryWarmPromise, null);
 });
 
+test("moving across episode rows does not launch provider lookups for every row", () => {
+  let runTimer, eligible = true, warms = 0;
+  const listeners = {};
+  const button = { isConnected: true, addEventListener: (event, fn) => { listeners[event] = fn; } };
+  const sandbox = vm.createContext({ window: {
+    setTimeout(fn) { runTimer = fn; return 1; },
+    clearTimeout() { runTimer = undefined; }
+  } });
+  vm.runInContext(section(clientSource, "function bindEpisodeRowWarmup(", "function renderEpisodeList("), sandbox);
+  const cancelOnPlay = sandbox.bindEpisodeRowWarmup(button, () => eligible, () => { warms++; });
+  listeners.pointerenter({ pointerType: "touch" });
+  assert.equal(runTimer, undefined);
+  listeners.pointerenter({ pointerType: "mouse" });
+  listeners.pointerleave();
+  listeners.focus({});
+  listeners.blur();
+  assert.equal(runTimer, undefined);
+  listeners.focus({});
+  cancelOnPlay();
+  assert.equal(runTimer, undefined);
+  listeners.focus({});
+  eligible = false;
+  runTimer();
+  assert.equal(warms, 0);
+  eligible = true;
+  button.isConnected = false;
+  listeners.focus({});
+  runTimer();
+  assert.equal(warms, 0);
+  button.isConnected = true;
+  listeners.focus({});
+  runTimer();
+  assert.equal(warms, 1);
+  runTimer = undefined;
+  listeners.pointerenter({});
+  assert.equal(runTimer, undefined);
+});
+
 test("7f2e. episode intent and adjacent playback warm the shared source path before a click", () => {
   const renderer = section(clientSource, "function renderEpisodeList(", "function episodeDisplaySubtitle(");
   const warmup = section(clientSource, "function warmEpisodePlaybackIntent(", "function renderDirectVideoPlayer(");
   const playback = section(clientSource, "async function runActivePlaybackAttempt(", "function isExternalIframeEpisode(");
-  assert.match(renderer, /button\.addEventListener\("pointerenter", warmPrimary/);
-  assert.match(renderer, /const warmPrimary = \(\) => warm\(\{ prefetchSegment: true \}\)/);
+  assert.match(renderer, /bindEpisodeRowWarmup\(button,/);
+  assert.match(renderer, /warmPrimaryPlaybackIntent\(show,/);
   assert.match(renderer, /button\.addEventListener\("pointerdown", warmForPlay/);
   assert.match(renderer, /warmEpisodePlaybackIntent\(show, episode, seasonNumber, options\)/);
   assert.match(renderer, /eagerBackups:\s*true/);
@@ -3666,6 +3707,43 @@ test("startup: the player and native fallback use the same pinned playback libra
   assert.ok(!clientSource.includes("hls.js@1.5.17"), "the fallback must reuse the main player's warmed HLS version");
 });
 
+test("AnimeAV1 shares an episode miss but retries upstream errors and honors explicit refresh", async () => {
+  const { sandbox, advanceTime } = animeAv1SourceContext();
+  let status = 404, requests = 0;
+  sandbox.fetchWithTimeout = async () => {
+    requests++;
+    return { status, ok: false, json: async () => ({ sources: [] }) };
+  };
+  const read = (ep, forceRefresh = false) => sandbox.fetchAnimeAv1EpisodeSourcePayload("sample", ep, { forceRefresh });
+  await read(7);
+  await read(7);
+  assert.equal(requests, 1);
+  await read(8);
+  assert.equal(requests, 2);
+  advanceTime(61000);
+  await read(7);
+  assert.equal(requests, 3);
+  status = 502;
+  await read(7, true);
+  await read(7);
+  assert.equal(requests, 5);
+});
+
+test("provider routes retain case and episode zero without a redundant title lookup", async () => {
+  const { sandbox, releaseFetch, getLastFetchUrl } = animeAv1SourceContext();
+  let searches = 0;
+  sandbox.hydrateAnimeAv1Slug = async show => { searches++; show.animeAv1Slug = "Found"; };
+  releaseFetch();
+  const show = { id: "animeav1-FromCatalog" };
+  for (const [series, override, expected] of [[show, "", "FromCatalog"], [show, "PartTwo", "PartTwo"], [{}, "", "Found"]]) {
+    await sandbox.attachAnimeAv1Sources(series, { providerEpisodeId: 0, providerAnimeSlug: override });
+    const url = new URL(getLastFetchUrl(), "https://example.test");
+    assert.equal(url.searchParams.get("slug"), expected);
+    assert.equal(url.searchParams.get("episode"), "0");
+  }
+  assert.equal(searches, 1);
+});
+
 test("AnimeAV1 episode payloads expire and a confirmed failure bypasses cached source metadata", async () => {
   const {
     sandbox,
@@ -4019,17 +4097,18 @@ test("an arriving primary source can start verification while optional providers
   const pendingDiscovery = new Promise(resolve => { completeNormal = resolve; });
   const backup = new Promise(resolve => { completeBackup = resolve; });
   const checked = [];
-  let beginBackups;
+  let beginBackups, extraSweeps = 0;
   const sandbox = sourceRaceContext({
     wait: ms => new Promise(resolve => { if (ms === 450 && !beginBackups) beginBackups = resolve; }),
-    attachPlaybackFailureFallbacks: () => backup,
+    sourceOptionsBackgroundLookups: new Map([["selected-episode", backup]]),
+    attachPlaybackFailureFallbacks: () => { extraSweeps++; return backup; },
     isFastPreferredPlaybackSource: source => source === preferred,
     verifyReliablePlaybackCandidate: async (_episode, source, options) => {
       checked.push({ id: source.id, prefetch: options.prefetchSegment });
       return source;
     }
   });
-  const playback = sandbox.prepareReliablePlaybackSource({}, episode, { eagerBackups: true, pendingDiscovery, prefetchSegment: true });
+  const playback = sandbox.prepareReliablePlaybackSource({}, episode, { eagerBackups: true, seasonNumber: 1, pendingDiscovery, prefetchSegment: true });
   await new Promise(setImmediate);
   beginBackups();
   await new Promise(setImmediate);
@@ -4038,6 +4117,7 @@ test("an arriving primary source can start verification while optional providers
   await new Promise(setImmediate);
   try {
     assert.deepEqual(checked, [{ id: "preferred", prefetch: true }]);
+    assert.equal(extraSweeps, 0);
   } finally {
     completeBackup();
     await playback;
@@ -4146,7 +4226,7 @@ test("pressing an episode with an empty list shares primary discovery with the f
     RELIABLE_PLAYBACK_FAST_TARGET_MS: 3000, RELIABLE_PLAYBACK_FAST_PRIMARY_MS: 850,
     schedulePlaybackSourceOptions: (_show, ep, season, options) => {
       assert.equal(season, 2);
-      assert.equal(options.backgroundWarmup, true);
+      assert.equal(options.eagerFallbacks, true);
       calls.push("discovery");
       return Promise.resolve().then(() => { ep.sourceOptions.push(primary); });
     },

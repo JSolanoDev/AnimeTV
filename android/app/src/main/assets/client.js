@@ -3163,8 +3163,12 @@ const _animeAv1CatalogSearchDone = new Set();
 const _animeAv1CatalogSearchMatches = new Map();
 
 function animeAv1CatalogSlugForShow(show = {}) {
+  return animeAv1ProviderSlugForShow(show).toLowerCase();
+}
+
+function animeAv1ProviderSlugForShow(show = {}) {
   const idSlug = String(show.id || "").match(/^animeav1-(.+)$/i)?.[1] || "";
-  return String(show.animeAv1Slug || show._av1Slug || idSlug).trim().toLowerCase();
+  return String(show.animeAv1Slug || show._av1Slug || idSlug).trim();
 }
 
 function animeAv1LatestEpisodeIdentity(item = {}) {
@@ -5125,7 +5129,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1037";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1038";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -12858,6 +12862,29 @@ function bindSeasonMenu(button, menu) {
 
 let deferredEpisodeListRender = 0;
 
+function bindEpisodeRowWarmup(button, isEligible, warm) {
+  let timer;
+  let warmed = false;
+  const cancel = () => {
+    window.clearTimeout(timer);
+    timer = undefined;
+  };
+  const schedule = (event) => {
+    if (event.pointerType === "touch" || warmed || timer !== undefined || !isEligible()) return;
+    timer = window.setTimeout(() => {
+      timer = undefined;
+      if (!button.isConnected || !isEligible()) return;
+      warmed = true;
+      warm();
+    }, 180);
+  };
+  button.addEventListener("pointerenter", schedule, { passive: true });
+  button.addEventListener("focus", schedule);
+  button.addEventListener("pointerleave", cancel);
+  button.addEventListener("blur", cancel);
+  return cancel;
+}
+
 function renderEpisodeList(show, options = {}) {
   if (!episodeList || !show) return;
   if (deferredEpisodeListRender) {
@@ -13424,16 +13451,25 @@ function renderEpisodeList(show, options = {}) {
       }, seasonIndex);
       Promise.resolve(warmEpisodePlaybackIntent(show, episode, seasonNumber, options)).catch(() => {});
     };
-    // A click can join the media check already started by focus or hover.
-    const warmPrimary = () => warm({ prefetchSegment: true });
-    const warmForPlay = () => warm({
-      eagerBackups: true,
-      timeoutMs: RELIABLE_PLAYBACK_FAST_TARGET_MS,
-      primaryProbeMs: RELIABLE_PLAYBACK_FAST_PRIMARY_MS,
-      prefetchSegment: true
-    });
-    button.addEventListener("pointerenter", warmPrimary, { once: true, passive: true });
-    button.addEventListener("focus", warmPrimary, { once: true });
+    const cancelWarm = bindEpisodeRowWarmup(button,
+      () => state.activeShow === show && !state.playIntent && !document.hidden && !navigator.connection?.saveData,
+      () => {
+        const episode = seasons[Number(button.dataset.seasonIndex)]?.episodes?.[Number(button.dataset.episodeIndex)];
+        if (episode) void warmPrimaryPlaybackIntent(show, {
+          episodeNumber: getCanonicalEpisodeNumber(episode),
+          providerEpisodeId: episode.providerEpisodeId,
+          providerAnimeSlug: episode.providerAnimeSlug
+        }).catch(() => {});
+      });
+    const warmForPlay = () => {
+      cancelWarm();
+      warm({
+        eagerBackups: true,
+        timeoutMs: RELIABLE_PLAYBACK_FAST_TARGET_MS,
+        primaryProbeMs: RELIABLE_PLAYBACK_FAST_PRIMARY_MS,
+        prefetchSegment: true
+      });
+    };
     button.addEventListener("pointerdown", warmForPlay, { once: true, passive: true });
     button.addEventListener("click", () => {
       const season = seasons[Number(button.dataset.seasonIndex)];
@@ -15218,6 +15254,7 @@ async function fetchAnimeAv1EpisodeSourcePayload(slug, episodeNumber, options = 
   const forceRefresh = Boolean(options.forceRefresh);
   const cached = forceRefresh ? null : readEpisodeSourcePayloadCache(_animeAv1EpisodeSourceCache, cacheKey);
   if (cached) return cached;
+  if (episodeSourceRecentlyMissing("animeav1", cacheKey, forceRefresh)) return null;
   if (forceRefresh) _animeAv1EpisodeSourceCache.delete(cacheKey);
 
   const inflightKey = forceRefresh ? `${cacheKey}:refresh` : cacheKey;
@@ -15232,7 +15269,10 @@ async function fetchAnimeAv1EpisodeSourcePayload(slug, episodeNumber, options = 
           (Array.isArray(data?.sources) && data.sources.length)
           || (Array.isArray(data?.castSources) && data.castSources.length)
         );
-        if ((!response.ok && !hasSources) || !hasSources) return null;
+        if (!hasSources) {
+          rememberEpisodeSourceMiss("animeav1", cacheKey, response);
+          return null;
+        }
         return writeEpisodeSourcePayloadCache(_animeAv1EpisodeSourceCache, cacheKey, data);
       })
       .finally(() => _animeAv1EpisodeSourceInflight.delete(inflightKey));
@@ -18338,6 +18378,7 @@ async function attachTioAnimeSources(show, episode, options = {}) {
     }
     mergeTioAnimeSourcesIntoEpisode(show, episode, data, slug, epNum);
   } catch (error) {
+    if (error?.name === "AbortError") return;
     markTioAnimeDown();
     console.warn("TioAnime episode sources unavailable:", error);
   }
@@ -18448,6 +18489,7 @@ async function attachAnimeYTSources(show, episode) {
       if (response.ok) data = await response.json();
       else if (response.status !== 404) {
         deferPlaybackProviderOnFailure("animeyt", response);
+        if (playbackProviderIsCoolingDown("animeyt")) return null;
         throw new Error(`AnimeYT source HTTP ${response.status}`);
       }
       animeYTEpisodeCache.set(key, { data, ts: Date.now() });
@@ -18602,6 +18644,7 @@ async function attachAnimeNeonSources(show, episode, options = {}) {
     ) return;
     if (data) mergeAnimeNeonSourcesIntoEpisode(show, episode, data);
   } catch (error) {
+    if (error?.name === "AbortError") return;
     console.warn("AnimeNeon episode sources unavailable:", error);
   }
   episode._animeNeonRequestedLanguage = language;
@@ -18884,7 +18927,7 @@ function warmAnimeAv1PlaybackIntent(show, target = {}) {
 
   const episodeNumber = parseEpisodeNumber(target.episodeNumber);
   const providerAnimeSlug = String(
-    target.providerAnimeSlug || animeAv1CatalogSlugForShow(show)
+    target.providerAnimeSlug || animeAv1ProviderSlugForShow(show)
   ).trim();
   if (episodeNumber === null || !providerAnimeSlug) return Promise.resolve(null);
 
@@ -18956,8 +18999,11 @@ function warmPrimaryPlaybackIntent(show, target = {}) {
 
 async function attachAnimeAv1Sources(show, episode, options = {}) {
   if (!show || !episode) return;
-  if (!episode.providerAnimeSlug && !show.animeAv1Slug) await hydrateAnimeAv1Slug(show, { force: true });
-  const slug = episode.providerAnimeSlug || show.animeAv1Slug;
+  let slug = episode.providerAnimeSlug || animeAv1ProviderSlugForShow(show);
+  if (!slug) {
+    await hydrateAnimeAv1Slug(show, { force: true });
+    slug = show.animeAv1Slug;
+  }
   if (!slug) {
     episode.animeAv1SourcesChecked = true;
     return;
@@ -18975,6 +19021,7 @@ async function attachAnimeAv1Sources(show, episode, options = {}) {
     }
     mergeAnimeAv1SourcesIntoEpisode(show, episode, data, slug, epNum);
   } catch (error) {
+    if (error?.name === "AbortError") return;
     console.warn("AnimeAV1 episode sources unavailable:", error);
   }
   episode.animeAv1SourcesChecked = true;
@@ -19300,6 +19347,7 @@ async function attachJKAnimeSources(show, episode, options = {}) {
       mergeJKAnimeSourcesIntoEpisode(show, episode, data, slug, epNum);
     }
   } catch (error) {
+    if (error?.name === "AbortError") return;
     console.warn("JKAnime episode sources unavailable:", error);
   }
   episode.jkAnimeSourcesChecked = true;
@@ -20329,6 +20377,7 @@ async function runActivePlaybackAttempt(options = {}, playbackContext) {
         timeoutMs: RELIABLE_PLAYBACK_FAST_TARGET_MS,
         primaryProbeMs: RELIABLE_PLAYBACK_FAST_PRIMARY_MS,
         pendingDiscovery: lookupPromise || sourceOptionsBackgroundLookups.get(activeLookupKey),
+        seasonNumber,
         prefetchSegment: true
       })
     : null;
@@ -21397,12 +21446,16 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
     // A Play click with an empty source list already has a primary lookup in
     // flight. Give it the same head start as a known primary before a fan-out.
     let pendingDiscovery = options.pendingDiscovery;
+    let initialDiscovery;
     if (options.eagerBackups && !getEpisodePlaybackSources(episode).length) {
       // Pointerdown can own the same preparation that Play is about to join.
       if (!pendingDiscovery && options.seasonNumber != null) {
-        pendingDiscovery = schedulePlaybackSourceOptions(show, episode, options.seasonNumber, { backgroundWarmup: true });
+        pendingDiscovery = schedulePlaybackSourceOptions(show, episode, options.seasonNumber, { eagerFallbacks: true });
       }
       if (pendingDiscovery) {
+        if (options.seasonNumber != null && !episode._failedSourceIds?.size) {
+          initialDiscovery = sourceOptionsBackgroundLookups.get(playbackLookupKey(show, episode, options.seasonNumber));
+        }
         await Promise.race([
           Promise.resolve(pendingDiscovery).catch(() => null),
           wait(RELIABLE_PLAYBACK_BACKUP_DELAY_MS)
@@ -21484,6 +21537,7 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
       // source instead of requiring a second click.
       backupLookup = episode._playbackFailureFallbackPromise
         || episode._eagerFallbackLookupPromise
+        || initialDiscovery
         || attachPlaybackFailureFallbacks(show, episode, {
           // This path runs only after a real Play intent and a slow/failing
           // primary. Bypass a stale provider miss once so a transient scraper
@@ -24775,7 +24829,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1037");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1038");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

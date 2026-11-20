@@ -269,7 +269,9 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
   const abort = () => controller.abort(options.signal?.reason);
   if (options.signal?.aborted) abort();
   else options.signal?.addEventListener("abort", abort, { once: true });
-  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  const timeout = window.setTimeout(() => {
+    controller.abort(new DOMException("Request deadline exceeded", "TimeoutError"));
+  }, timeoutMs);
   try {
     const response = await fetch(url, { ...options, signal: controller.signal });
     if (response.status !== 503 || response.headers.get("x-zenkai-backend-state") !== "starting"
@@ -284,6 +286,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = API_TIMEOUT_MS) {
     if (controller.signal.aborted) throw new DOMException("Request cancelled", "AbortError");
     return await fetch(url, { ...options, signal: controller.signal });
   } catch (error) {
+    if (controller.signal.reason?.name === "TimeoutError") throw controller.signal.reason;
     if (controller.signal.aborted) throw new DOMException("Request cancelled", "AbortError");
     throw error;
   } finally {
