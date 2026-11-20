@@ -5123,7 +5123,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1041";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1042";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -18714,6 +18714,7 @@ const _animeAv1EpisodeSourceCache = new Map();
 const _animeAv1EpisodeSourceInflight = new Map();
 let _animeAv1SlugCatalogPromise = null;
 let _animeAv1SlugTitleMap = null;
+const _animeAv1CompactTitleIndexes = new WeakMap();
 let _animeAv1WarmStarted = false;
 const ANIMEAV1_SEARCH_TIMEOUT_MS = 4200;
 const ANIMEAV1_SOURCE_TIMEOUT_MS = 6500;
@@ -18814,8 +18815,8 @@ async function ensureAnimeAv1SlugCatalog() {
 function applyAnimeAv1SlugFromMap(show, slugMap = _animeAv1SlugTitleMap || {}) {
   if (!show || !slugMap) return null;
   if (show.animeAv1Slug) return { slug: show.animeAv1Slug, matchedTitle: show.animeAv1SlugSource || show.title || "", key: "cached-show" };
-  for (const title of animeAv1SearchCandidates(show)) {
-    const key = normalizeTitle(title);
+  const candidates = animeAv1SearchCandidates(show).map(title => ({ title, key: normalizeTitle(title) }));
+  for (const { title, key } of candidates) {
     const slug = slugMap[key];
     if (slug) {
       show.animeAv1Slug = slug;
@@ -18825,17 +18826,25 @@ function applyAnimeAv1SlugFromMap(show, slugMap = _animeAv1SlugTitleMap || {}) {
     }
   }
   // Fallback: squashed matching (ignores minor hyphens/spaces differences)
-  for (const title of animeAv1SearchCandidates(show)) {
-    const key = normalizeTitle(title);
+  let compactTitles = _animeAv1CompactTitleIndexes.get(slugMap);
+  if (!compactTitles) {
+    compactTitles = new Map();
+    for (const mapKey of Object.keys(slugMap)) {
+      const compact = mapKey.replace(/\s+/g, "");
+      if (!compactTitles.has(compact)) compactTitles.set(compact, mapKey);
+    }
+    _animeAv1CompactTitleIndexes.set(slugMap, compactTitles);
+  }
+  for (const { title, key } of candidates) {
     const squashedKey = key.replace(/\s+/g, "");
     if (!squashedKey) continue;
-    for (const [mapKey, mapSlug] of Object.entries(slugMap)) {
-      if (mapKey.replace(/\s+/g, "") === squashedKey) {
-        show.animeAv1Slug = mapSlug;
-        show.animeAv1SlugSource = title;
-        _animeAv1SlugCache.set(`t:${mapKey}`, mapSlug);
-        return { slug: mapSlug, matchedTitle: title, key: mapKey };
-      }
+    const mapKey = compactTitles.get(squashedKey);
+    if (mapKey !== undefined) {
+      const mapSlug = slugMap[mapKey];
+      show.animeAv1Slug = mapSlug;
+      show.animeAv1SlugSource = title;
+      _animeAv1SlugCache.set(`t:${mapKey}`, mapSlug);
+      return { slug: mapSlug, matchedTitle: title, key: mapKey };
     }
   }
   return null;
@@ -18868,6 +18877,12 @@ function warmAnimeAv1SlugCatalog(shows = state.shows) {
 
 async function hydrateAnimeAv1Slug(show, options = {}) {
   if (!show || (show.animeAv1SlugChecked && !options.force)) return show;
+  const knownSlug = animeAv1ProviderSlugForShow(show);
+  if (knownSlug) {
+    show.animeAv1Slug = knownSlug;
+    show.animeAv1SlugChecked = true;
+    return show;
+  }
   try {
     const catalogMatch = await resolveAnimeAv1SlugFromCatalog(show);
     if (catalogMatch?.slug) {
@@ -24772,7 +24787,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1041");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1042");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

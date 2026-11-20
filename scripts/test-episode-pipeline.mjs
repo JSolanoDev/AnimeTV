@@ -3736,6 +3736,47 @@ test("startup: the player and native fallback use the same pinned playback libra
   assert.ok(!clientSource.includes("hls.js@1.5.17"), "the fallback must reuse the main player's warmed HLS version");
 });
 
+test("AnimeAV1 detail hydration skips the title index for a known provider identity", async () => {
+  const lookups = [];
+  const c = vm.createContext({
+    _animeAv1SlugCache: new Map(),
+    resolveAnimeAv1SlugFromCatalog: async show => {
+      lookups.push(show.id);
+      return { slug: "matched-ova", key: "exact", matchedTitle: show.title };
+    }
+  });
+  vm.runInContext(section(clientSource, "function animeAv1ProviderSlugForShow(", "function animeAv1LatestEpisodeIdentity("), c);
+  vm.runInContext(section(clientSource, "async function hydrateAnimeAv1Slug(", "let _playerShellPrefetched"), c);
+  for (const show of [{ animeAv1Slug: "S2-OVA" }, { _av1Slug: "S2-OVA" }, { id: "animeav1-S2-OVA" }]) {
+    await c.hydrateAnimeAv1Slug(show);
+    assert.equal(show.animeAv1Slug, "S2-OVA");
+    assert.equal(show.animeAv1SlugChecked, true);
+  }
+  const unknown = { id: "anilist-123", title: "The OVA" };
+  await c.hydrateAnimeAv1Slug(unknown);
+  assert.deepEqual(lookups, ["anilist-123"]);
+  assert.equal(unknown.animeAv1Slug, "matched-ova");
+});
+
+test("AnimeAV1 reuses its whitespace lookup and preserves exact titles and first-match order", () => {
+  const c = vm.createContext({
+    _animeAv1SlugCache: new Map(), _animeAv1CompactTitleIndexes: new WeakMap(),
+    normalizeTitle: s => s, animeAv1SearchCandidates: show => [show.title]
+  });
+  vm.runInContext(section(clientSource, "function applyAnimeAv1SlugFromMap(", "async function resolveAnimeAv1SlugFromCatalog("), c);
+  let scans = 0;
+  const titles = new Proxy({ "ab c": "first", "a bc": "second" }, {
+    ownKeys(obj) { scans++; return Reflect.ownKeys(obj); }
+  });
+  const find = (title, map = titles) => c.applyAnimeAv1SlugFromMap({ title }, map)?.slug;
+  assert.equal(find("a bc"), "second");
+  assert.equal(scans, 0);
+  assert.equal(find("abc"), "first");
+  assert.equal(find("missing"), undefined);
+  assert.equal(scans, 1);
+  assert.equal(find("abc", { "a bc": "replacement" }), "replacement");
+});
+
 test("AnimeAV1 shares an episode miss but retries upstream errors and honors explicit refresh", async () => {
   const { sandbox, advanceTime } = animeAv1SourceContext();
   let status = 404, requests = 0;
