@@ -101,10 +101,12 @@ async function minifyDir(dir) {
 
 async function buildStatic() {
   writeHomepageBootstrap();
+  const vercelAnalytics = process.env.VERCEL === "1";
   const assetFiles = [...files, "client.js", ...["js", "player", "mascot"].flatMap((directory) =>
     existsSync(directory) ? listStaticFiles(directory).map((file) => directory + "/" + file) : [])];
   const inputsSha256 = buildInputHash([...assetFiles, "package.json", "scripts/build-static.mjs",
     "scripts/build-homepage-bootstrap.mjs", "scripts/static-build-artifacts.mjs"], {
+    vercelAnalytics,
     terser: require("terser/package.json").version,
     cleanCss: require("clean-css/package.json").version
   });
@@ -121,6 +123,12 @@ async function buildStatic() {
 
     for (const file of files) {
       copyFileSync(join(sourceDir, file), join(outDir, file));
+    }
+    if (vercelAnalytics) {
+      const entry = join(outDir, "index.html");
+      const html = readFileSync(entry, "utf8").replace("<!-- Vercel Web Analytics -->",
+        '<script async src="https://cdn.vercel-insights.com/v1/script.js"></script>');
+      writeFileSync(entry, html);
     }
 
     copyFileSync(join(sourceDir, "client.js"), join(outDir, "client.js"));

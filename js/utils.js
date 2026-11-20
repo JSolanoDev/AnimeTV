@@ -144,11 +144,17 @@ function writeResponseCache(key, data) {
 }
 
 async function timedRequest(label, task) {
-  console.time(label);
+  const timeline = globalThis.performance;
+  const start = timeline?.now?.();
   try {
     return await task();
   } finally {
-    console.timeEnd(label);
+    if (start !== undefined && timeline.measure) {
+      try {
+        timeline.clearMeasures(label);
+        timeline.measure(label, { start, end: timeline.now() });
+      } catch { /* User Timing options are unavailable on older WebViews. */ }
+    }
   }
 }
 

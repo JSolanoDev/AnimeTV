@@ -1,6 +1,8 @@
 (function () {
   "use strict";
 
+  if (window.Artplayer) window.Artplayer.LOG_VERSION = false;
+
   const params = new URLSearchParams(window.location.search);
   const sourceUrl = firstParam("src", "url", "videoUrl", "file");
   const castSourceUrl = firstParam("castSrc") || sourceUrl;

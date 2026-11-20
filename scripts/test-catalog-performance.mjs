@@ -15,6 +15,48 @@ const section = (source, start, end) => {
   return source.slice(from, to);
 };
 
+test("JKAnime shares simultaneous title lookups and recovers from transient failures", async () => {
+  const responses = [new Response(null, { status: 503 }), Response.json({ ok: false, retryable: true }),
+    Response.json({ ok: true, slug: "sample" })];
+  let count = 0;
+  const c = vm.createContext({ fetchWithTimeout: async () => responses[count++] });
+  vm.runInContext(section(client, "const _jkAnimeSlugCache", "async function ensureJKAnimeSlugCatalog"), c);
+  const lookup = () => c.fetchJKAnimeSlugSearch("title", "Sample", "t:sample");
+  await Promise.all([assert.rejects(lookup(), /503/), assert.rejects(lookup(), /503/)]);
+  assert.equal(count, 1);
+  await assert.rejects(lookup(), /temporarily unavailable/);
+  assert.deepEqual(await Promise.all([lookup(), lookup(), lookup()]), ["sample", "sample", "sample"]);
+  assert.equal(await lookup(), "sample");
+  assert.equal(count, 3);
+});
+
+test("a JKAnime search outage expires independently of the successful title cache", async () => {
+  let now = 1000;
+  let attempts = 0;
+  const c = vm.createContext({
+    Date: { now: () => now }, jkAnimeSlugSearchCache: new Map(),
+    JKANIME_SLUG_CACHE_TTL_MS: 12 * 3600000, JKANIME_MISS_CACHE_TTL_MS: 480000,
+    normalizeTitle: text => text.trim(), sendJson: (response, data) => { response.data = data; },
+    findJKAnimeSlugForShow: async () => {
+      if (++attempts === 1) throw new Error("temporary");
+      return { slug: "sample", title: "Sample" };
+    }
+  });
+  vm.runInContext(section(server, "async function handleJKAnimeSearch(", "async function handleJKAnimeSources("), c);
+  const url = new URL("https://example.test/api/jkanime/search?title=sample");
+  const response = {};
+  await c.handleJKAnimeSearch(url, response);
+  await c.handleJKAnimeSearch(url, response);
+  assert.equal(response.data.retryable, true);
+  assert.equal(attempts, 1);
+  now += 15001;
+  await c.handleJKAnimeSearch(url, response);
+  assert.equal(response.data.slug, "sample");
+  now += 15001;
+  await c.handleJKAnimeSearch(url, response);
+  assert.equal(attempts, 2);
+});
+
 test("catalog joins normalize each title once instead of scanning every pair", () => {
   const adapter = new CompositeAdultSourceAdapter();
   const primary = Array.from({ length: 2000 }, (_, i) => ({ id: `p${i}`, title: `Series ${i} Alpha` }));

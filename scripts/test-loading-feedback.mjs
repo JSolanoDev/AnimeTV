@@ -373,6 +373,38 @@ test("install recommendation uses the native PWA event without API work", () => 
   assert.doesNotMatch(feature, /\bfetch\s*\(/);
 });
 
+test("intercept the browser install UI only where a visible reminder can offer installation", () => {
+  const handlers = new Map();
+  const node = { dataset: {}, addEventListener() {}, setAttribute() {} };
+  const state = { route: "home" };
+  const location = { pathname: "/" };
+  let overlay = false;
+  let scheduled = 0;
+  const c = vm.createContext({ state, location, document: { getElementById: () => node, body: { matches: () => overlay } },
+    window: { addEventListener: (name, cb) => handlers.set(name, cb) },
+    renderSettings() {}, updateInstallRecommendationCopy() {}, isIosSafariInstallCandidate: () => false,
+    canOfferInstallRecommendation: () => true, scheduleInstallRecommendation: () => { scheduled++; } });
+  vm.runInContext("let deferredInstallPrompt;" + section("function installRecommendationHomeVisible()", "function showInstallRecommendation(")
+    + section("function setupInstallRecommendation()", 'if ("serviceWorker" in navigator)'), c);
+  const offer = (expected) => {
+    let prevented = false;
+    const event = { preventDefault() { prevented = true; } };
+    handlers.get("beforeinstallprompt")(event);
+    assert.equal(prevented, expected);
+    assert.equal(vm.runInContext("deferredInstallPrompt", c), event);
+  };
+  offer(true);
+  location.pathname = "/watch/sample/s1-e2";
+  offer(false);
+  location.pathname = "/";
+  overlay = true;
+  offer(false);
+  overlay = false;
+  state.route = "settings";
+  offer(false);
+  assert.equal(scheduled, 1);
+});
+
 test("install recommendation supports temporary dismissal and persistent opt-out", () => {
   const pureHelpers = section(
     "const INSTALL_RECOMMENDATION_DISABLED_KEY",

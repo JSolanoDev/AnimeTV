@@ -1091,7 +1091,7 @@ function scheduleDeferredServerCatalogRefresh(delayMs = 1500) {
   const events = ["pointerdown", "keydown", "wheel", "touchstart"];
   const cleanup = () => events.forEach((event) => window.removeEventListener(event, startRefresh, true));
   const refresh = async () => {
-    const serverCatalog = await timedRequest("ZenkaiTV metadata API", () => fetchLocalMetadataCatalog()).catch(() => []);
+    const serverCatalog = await timedRequest("ZenkaiTV metadata API", () => fetchLocalMetadataCatalog("low")).catch(() => []);
     if (serverCatalog.length) {
       applyServerCatalog(serverCatalog);
       return;
@@ -1182,7 +1182,7 @@ async function loadAnimeSources() {
     return;
   }
 
-  const serverCatalog = await timedRequest("ZenkaiTV metadata API", () => fetchLocalMetadataCatalog()).catch(() => []);
+  const serverCatalog = await timedRequest("ZenkaiTV metadata API", () => fetchLocalMetadataCatalog(hasInitialCatalog ? "low" : "auto")).catch(() => []);
   if (applyServerCatalog(serverCatalog)) return;
 
   state.apiStatus.metadata = "Unavailable";
@@ -1508,12 +1508,12 @@ async function loadExternalSources() {
   }
 }
 
-async function fetchLocalMetadataCatalog() {
+async function fetchLocalMetadataCatalog(priority = "auto") {
   if (location.protocol === "file:") return [];
   // The complete catalog is a multi-megabyte response. It is served from the
   // shared cache now, but the longer timeout still protects viewers on a slow
   // connection and remains off the critical first-paint path.
-  const response = await fetchWithTimeout(LOCAL_METADATA_ENDPOINT, {}, 20000);
+  const response = await fetchWithTimeout(LOCAL_METADATA_ENDPOINT, { priority }, 20000);
   if (!response.ok) throw new Error("ZenkaiTV metadata API unavailable");
   const payload = await response.json();
   const rawItems = Array.isArray(payload)
@@ -5125,7 +5125,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1036";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1037";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -19045,6 +19045,7 @@ function mergeAnimeAv1SourcesIntoEpisode(show, episode, data, slug, epNum) {
 // ── JKAnime source integration ───────────────────────────────────────────────
 
 const _jkAnimeSlugCache = new Map();
+const _jkAnimeSlugSearchInflight = new Map();
 const _jkAnimeMissCache = new Set();
 const _jkAnimeEpisodeSourceCache = new Map();
 const _jkAnimeEpisodeSourceInflight = new Map();
@@ -19071,13 +19072,26 @@ function jkAnimeSlugFromSearchPayload(data = {}) {
 async function fetchJKAnimeSlugSearch(paramName, value, cacheKey) {
   if (!value || _jkAnimeMissCache.has(cacheKey)) return "";
   if (_jkAnimeSlugCache.has(cacheKey)) return _jkAnimeSlugCache.get(cacheKey);
+  if (_jkAnimeSlugSearchInflight.has(cacheKey)) return _jkAnimeSlugSearchInflight.get(cacheKey);
+  const lookup = requestJKAnimeSlug(paramName, value, cacheKey);
+  _jkAnimeSlugSearchInflight.set(cacheKey, lookup);
+  try {
+    return await lookup;
+  } finally {
+    _jkAnimeSlugSearchInflight.delete(cacheKey);
+  }
+}
+
+async function requestJKAnimeSlug(paramName, value, cacheKey) {
   const qs = `${paramName}=${encodeURIComponent(value)}`;
   const res = await fetchWithTimeout(`/api/jkanime/search?${qs}`, { cache: "no-store" }, JKANIME_SEARCH_TIMEOUT_MS);
   if (!res.ok) {
+    if (res.status !== 404) throw new Error(`JKAnime search HTTP ${res.status}`);
     _jkAnimeMissCache.add(cacheKey);
     return "";
   }
   const data = await res.json();
+  if (data.retryable || (!data.ok && data.found !== false)) throw new Error("JKAnime search temporarily unavailable");
   const slug = data.ok ? jkAnimeSlugFromSearchPayload(data) : "";
   if (slug) {
     _jkAnimeSlugCache.set(cacheKey, slug);
@@ -19204,6 +19218,7 @@ async function hydrateJKAnimeSlug(show, options = {}) {
     }
   } catch (error) {
     console.warn("JKAnime search unavailable:", error);
+    return show;
   }
   show.jkAnimeSlugChecked = true;
   return show;
@@ -24054,9 +24069,14 @@ function hideInstallRecommendation({ dismissed = false } = {}) {
   }, 180);
 }
 
+function installRecommendationHomeVisible() {
+  return state.route === "home" && !/^\/(?:anime|watch)\//.test(location.pathname)
+    && !document.body.matches(".watch-detail-open, .player-cinema-open, .has-embedded-player, .is-tv");
+}
+
 function showInstallRecommendation(mode = "native") {
   const card = document.getElementById("installRecommendation");
-  if (!card || !canOfferInstallRecommendation()) return;
+  if (!card || !canOfferInstallRecommendation() || !installRecommendationHomeVisible()) return;
   installRecommendationMode = mode;
   card.dataset.stepsOpen = "false";
   const hint = document.getElementById("installRecommendationHint");
@@ -24114,10 +24134,11 @@ function setupInstallRecommendation() {
   });
 
   window.addEventListener("beforeinstallprompt", (event) => {
-    event.preventDefault();
     deferredInstallPrompt = event;
     if (state.route === "settings") renderSettings();
     if (!canOfferInstallRecommendation()) return;
+    if (!installRecommendationHomeVisible()) return;
+    event.preventDefault();
     scheduleInstallRecommendation("native", 2200);
   });
 
@@ -24754,7 +24775,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1036");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1037");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

@@ -8130,7 +8130,8 @@ async function handleJKAnimeSearch(url, response) {
   }
   const cacheKey = normalizeTitle(`${id || ""} ${title || ""}`) || String(id || title);
   const cached = jkAnimeSlugSearchCache.get(cacheKey);
-  if (cached && Date.now() - cached.ts < JKANIME_SLUG_CACHE_TTL_MS) {
+  const ttl = cached?.data?.retryable ? 15000 : cached?.data?.found === false ? JKANIME_MISS_CACHE_TTL_MS : JKANIME_SLUG_CACHE_TTL_MS;
+  if (cached && Date.now() - cached.ts < ttl) {
     sendJson(response, cached.data);
     return;
   }
