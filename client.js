@@ -10451,9 +10451,8 @@ async function openShow(id, target = {}) {
     state.currentRouteInfo = appRouter()?.parsePath?.(location.pathname) || state.currentRouteInfo;
   }
   state.activeShow = show;
-  // Fire-and-forget: the skip-time map for this anime is fetched while the viewer
-  // is still choosing an episode, so opening one never waits on it.
-  warmSkipTimes(show);
+  // A watch link can start skip-time lookup now. Detail-only visits wait for Play.
+  if (target.playIntent) warmSkipTimes(show);
   state.activeEpisodeUrl = "";
   state.activeEpisode = null;
   // Opening a show from a card/poster must land on the detail view, not start
@@ -10491,8 +10490,7 @@ async function openShow(id, target = {}) {
 
   // A direct /watch route already identifies its provider episode. Start that
   // lookup before any franchise/season work so network time overlaps the first
-  // paint. Card hover/focus uses this same coalesced request, so a quick click
-  // consumes the existing flight instead of issuing a duplicate request.
+  // paint. Episode activation later joins the same lookup.
   Promise.resolve(warmPrimaryPlaybackIntent(show, target)).catch(() => {});
 
   // Paint from fields already present on the card. Passing an empty season list
@@ -10549,7 +10547,7 @@ async function openShow(id, target = {}) {
       // fully-hydrated playback pipeline.
       const targetEpisode = state.activeEpisode?.episode;
       const isAdultShow = typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show);
-      if (targetEpisode && !isAdultShow && (
+      if (state.playIntent && targetEpisode && !isAdultShow && (
         isScraperEnabled("animeneon") || isScraperEnabled("animeav1")
       )) {
         const { seasonNumber } = selectedSeasonIdentity(show, state.activeEpisode);
@@ -10560,14 +10558,13 @@ async function openShow(id, target = {}) {
       } else if (!isAdultShow && !targetEpisode && !state.playIntent && !document.hidden
         && !navigator.connection?.saveData && !/^(slow-)?2g$/.test(navigator.connection?.effectiveType || "")) {
         // On an untargeted detail page the main Play button opens this row.
-        // Warm its source list and, when available, just the preferred playlist.
+        // Warm its source metadata. Media requests wait for episode intent.
         const first = detailSeasons[0]?.episodes?.[0];
         if (first && !first.locked && !first.unavailable && target.episodeNumber == null) {
           Promise.resolve(warmPrimaryPlaybackIntent(show, {
             episodeNumber: getCanonicalEpisodeNumber(first, 1),
             providerEpisodeId: getInventoryProviderEpisodeId(show, first),
-            providerAnimeSlug: first.providerAnimeSlug,
-            warmPlaylist: true
+            providerAnimeSlug: first.providerAnimeSlug
           })).catch(() => {});
         }
       }
@@ -13452,7 +13449,8 @@ function renderEpisodeList(show, options = {}) {
         if (episode) void warmPrimaryPlaybackIntent(show, {
           episodeNumber: getCanonicalEpisodeNumber(episode),
           providerEpisodeId: episode.providerEpisodeId,
-          providerAnimeSlug: episode.providerAnimeSlug
+          providerAnimeSlug: episode.providerAnimeSlug,
+          warmPlaylist: true
         }).catch(() => {});
       });
     const warmForPlay = () => {
@@ -18182,10 +18180,18 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
           show._metadataPreloadComplete = true;
         } else {
           await hydrateCanonicalAnimeMetadata(show);
+          if (generation !== visibleMetadataWarmGeneration) {
+            show._metadataPreloadStarted = false;
+            return;
+          }
           await Promise.allSettled([
             fetchAniListShowExtras(show),
             enrichTmdbImages(show)
           ]);
+          if (generation !== visibleMetadataWarmGeneration) {
+            show._metadataPreloadStarted = false;
+            return;
+          }
           applyTmdbEpisodeMetadata(show);
 
           const isNativeSource = isAniPubShow(show) || isJimovShow(show);
@@ -18236,7 +18242,7 @@ function scheduleVisibleMetadataWarm(shows = state.shows, limit = HOME_INITIAL_C
   // Wait for `load` (hero LCP image + critical resources done) before even
   // scheduling the idle warm, so the ~80-request hydration burst lands AFTER the
   // visual-complete window instead of competing inside it. Immediate clicks are
-  // still covered by the per-card pointerenter preload in wireOpenButtons.
+  // handled by openShow as soon as a title is selected.
   // 4s (was 45s): waiting for `load` already puts this burst after the LCP /
   // Speed-Index window, so the extra 45s bought no Lighthouse score -- it just
   // left posters and episode metadata un-upgraded for the best part of a minute.
@@ -23096,51 +23102,6 @@ async function copyExternalUrl(externalUrl) {
   }
 }
 
-// Hover/focus prefetch for a card: warm the backdrop, player shell, exact source,
-// and metadata once so the later Play click does not begin with serial waits.
-function preloadOpenShow(id, target = {}) {
-  const wantedId = String(id);
-  const show = state.shows.find((entry) => String(entry.id) === wantedId)
-    || state.av1Shows?.get(wantedId)
-    || state.addonSections.flatMap((section) => section.items || [])
-      .find((entry) => String(entry.id) === wantedId);
-  if (!show) return;
-  warmPrimaryPlaybackIntent(show, target);
-  const preloadArtwork = () => {
-    const knownBackdrop = getCarouselArtwork(show) || getWatchBackdropArtwork(show);
-    if (!knownBackdrop) return;
-    // Warm the exact canonical file both backdrop layers will reuse. Repeated
-    // hovers, touch-down, and the post-enrichment pass all dedupe on this URL.
-    preloadCinematicBackdrop(knownBackdrop, true);
-  };
-  if (!show._artworkPreloaded) { show._artworkPreloaded = true; preloadArtwork(); }
-  if (isAdultCatalogShow(show)) {
-    if (!show._metadataPreloadStarted) {
-      show._metadataPreloadStarted = true;
-      hydrateAdultCinematicArtwork(show).then(preloadArtwork).catch(() => {});
-    }
-    return;
-  }
-  if (!show._metadataPreloadStarted && (show.anilistId || show.malId || show.title)) {
-    show._metadataPreloadStarted = true;
-    Promise.resolve(hydrateCanonicalAnimeMetadata(show))
-      .then(() => Promise.allSettled([
-        fetchAniListShowExtras(show),
-        Promise.resolve(enrichTmdbImages(show)).then(() => {
-          applyTmdbEpisodeMetadata(show);
-          // Warm a final TMDB match now, not temporary fallback art while the
-          // other metadata request is still pending.
-          if (show.tmdbBackdrop) preloadArtwork();
-        })
-      ]))
-      .then(() => {
-        applyTmdbEpisodeMetadata(show);
-        preloadArtwork();
-      })
-      .catch(() => {});
-  }
-}
-
 // Open-show handling is DELEGATED from the document once, instead of attaching
 // three listeners to every [data-open-show] element on every render(). The old
 // per-element wiring re-walked the whole catalog/addon DOM each render (and
@@ -23148,7 +23109,6 @@ function preloadOpenShow(id, target = {}) {
 // that ran for seconds during the post-navigation enrichment render-burst, which
 // is what froze the Schedule/Favorites switch. Delegation is O(1) per render.
 let _openButtonsDelegated = false;
-let _lastPreloadHoverId = "";
 function wireOpenButtons() {
   if (_openButtonsDelegated) return;
   _openButtonsDelegated = true;
@@ -23161,29 +23121,7 @@ function wireOpenButtons() {
   const buttonFrom = (event) => (event.target && event.target.closest)
     ? event.target.closest("[data-open-show]")
     : null;
-  // pointerover/focusin bubble (unlike pointerenter/focus), so one document
-  // listener covers every card. Dedupe on the hovered id so we don't re-run the
-  // state.shows lookup on every intra-card mousemove.
-  const onHover = (event) => {
-    const button = buttonFrom(event);
-    if (!button) return;
-    const id = button.dataset.openShow;
-    const target = {
-      seasonNumber: button.dataset.openSeason,
-      episodeNumber: button.dataset.openEpisode,
-      providerAnimeSlug: button.dataset.openProviderSlug,
-      providerEpisodeId: button.dataset.openProviderEpisode
-    };
-    const preloadKey = `${id}:${target.seasonNumber || ""}:${target.episodeNumber || ""}:${target.providerEpisodeId || ""}`;
-    if (preloadKey === _lastPreloadHoverId) return;
-    _lastPreloadHoverId = preloadKey;
-    preloadOpenShow(id, target);
-  };
-  document.addEventListener("pointerover", onHover, { passive: true });
-  // Phones do not hover. Start the same canonical preload on touch/pen press so
-  // the detail shell can reveal its blurred background immediately on open.
-  document.addEventListener("pointerdown", onHover, { passive: true });
-  document.addEventListener("focusin", onHover);
+  // Catalogue navigation warms only the title the viewer actually opens.
   document.addEventListener("click", (e) => {
     const button = buttonFrom(e);
     if (!button) return;

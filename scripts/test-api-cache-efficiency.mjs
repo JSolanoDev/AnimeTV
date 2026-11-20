@@ -397,6 +397,21 @@ test("failed health and repeated startup errors do not loop or claim successful 
   }
 });
 
+test("a failed health recovery holds detail requests until the next readiness window", async () => {
+  let resolveHealth;
+  const health = new Promise(resolve => { resolveHealth = resolve; });
+  const h = startupHarness(url => url === "/api/health" ? health : startingResponse());
+  const first = h.context.fetchWithTimeout("/api/animeav1/sources");
+  await new Promise(setImmediate);
+  const incoming = ["/api/anilist/media", "/api/description", "/api/skip-times"].map(url =>
+    assert.rejects(h.context.fetchWithTimeout(url), /temporarily unavailable/));
+  resolveHealth(new Response(null, {status: 503}));
+  assert.equal((await first).status, 503);
+  await Promise.all(incoming);
+  await assert.rejects(h.context.fetchWithTimeout("/api/animeyt/sources"), /temporarily unavailable/);
+  assert.deepEqual(h.calls.map(c => c.url), ["/api/animeav1/sources", "/api/health"]);
+});
+
 test("episode cancellation stops its startup recovery without cancelling another consumer", async () => {
   let release;
   const health = new Promise(resolve => { release = resolve; });

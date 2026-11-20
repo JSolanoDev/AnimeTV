@@ -1182,36 +1182,20 @@ test("the first validated detail background paints without an extra fade or imag
   assert.match(client, /const wantFade[^;]*&& canTransitionVisibleDetail/s, "existing visible season art still transitions safely");
 });
 
-test("TMDB artwork warming is prompt without preloading a temporary metadata fallback", async () => {
-  for (const matched of [true, false]) {
-    const show = { id: "neutral", title: "Neutral title", anilistId: 1 };
-    const warmed = [];
-    let anilistCalls = 0;
-    let tmdbCalls = 0;
-    let finishAniList;
-    const c = vm.createContext({
-      state: { shows: [show], addonSections: [] },
-      warmPrimaryPlaybackIntent: () => {},
-      getCarouselArtwork: (entry) => entry.tmdbBackdrop || entry.banner || "",
-      getWatchBackdropArtwork: () => "",
-      preloadCinematicBackdrop: (url) => warmed.push(url),
-      isAdultCatalogShow: () => false,
-      hydrateCanonicalAnimeMetadata: () => Promise.resolve(),
-      fetchAniListShowExtras: () => { anilistCalls += 1; show.banner = "https://example.invalid/neutral.jpg"; return new Promise((resolve) => { finishAniList = resolve; }); },
-      enrichTmdbImages: () => { tmdbCalls += 1; if (matched) show.tmdbBackdrop = "https://image.tmdb.org/t/p/original/neutral.jpg"; return Promise.resolve(); },
-      applyTmdbEpisodeMetadata: () => {}
-    });
-    vm.runInContext(section("function preloadOpenShow(", "// Open-show handling is DELEGATED"), c);
-    c.preloadOpenShow("neutral");
-    await new Promise((resolve) => setImmediate(resolve));
-    assert.equal(warmed.length, matched ? 1 : 0, "only a final TMDB match is warmed while metadata remains pending");
-    c.preloadOpenShow("neutral");
-    assert.equal(anilistCalls, 1);
-    assert.equal(tmdbCalls, 1);
-    finishAniList();
-    await new Promise((resolve) => setImmediate(resolve));
-    assert.ok(warmed.length > 0, "a settled no-match still warms the existing fallback");
-  }
+test("moving over catalogue cards leaves requests to the selected title", () => {
+  const handlers = new Map();
+  const opened = [];
+  const ctx = vm.createContext({
+    document: { addEventListener: (name, callback) => handlers.set(name, callback) },
+    episodeList: null, openShow: (id, target) => opened.push([id, target.playIntent])
+  });
+  vm.runInContext(section("let _openButtonsDelegated", "function openCarouselShow("), ctx);
+  ctx.wireOpenButtons();
+  const button = { dataset: {openShow: "selected"}, closest: selector => selector === "[data-open-show]" ? button : null };
+  for (const type of ["pointerover", "pointerdown", "focusin"]) assert.equal(handlers.has(type), false);
+  handlers.get("click")({target: button, ctrlKey: true});
+  handlers.get("click")({target: button, preventDefault() {}});
+  assert.deepEqual(opened, [["selected", false]]);
 });
 
 test("the anime detail view has visible, reduced-motion-safe hydration feedback", () => {

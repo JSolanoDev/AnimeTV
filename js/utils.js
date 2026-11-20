@@ -176,6 +176,10 @@ function waitForBackendReadiness(promise, signal) {
 async function ensureBackendReady(signal) {
   if (signal?.aborted) throw new DOMException("Request cancelled", "AbortError");
   if (!/^https?:$/.test(new URL(location.href || location.origin).protocol)) return;
+  if (backendStartupRecovery) {
+    if (await waitForBackendReadiness(backendStartupRecovery, signal)) return;
+    throw new Error("Backend temporarily unavailable");
+  }
   if (backendReadyAt && Date.now() - backendReadyAt < 4 * 60 * 1000) return;
   if (Date.now() < backendUnavailableUntil) throw new Error("Backend temporarily unavailable");
   if (!backendReadiness) {
@@ -239,7 +243,9 @@ function isBackendRead(url, options) {
 
 function waitForBackendStartup(signal) {
   if (signal.aborted) return Promise.reject(new DOMException("Request cancelled", "AbortError"));
+  if (Date.now() < backendUnavailableUntil) return Promise.resolve(false);
   if (!backendStartupRecovery) {
+    backendReadyAt = 0;
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), 6000);
     // Only our local health endpoint is shared, never an episode or signed URL.
@@ -250,7 +256,10 @@ function waitForBackendStartup(signal) {
       const ready = health.ok === true && health.app === "ZenkaiTV" && health.api === "ready";
       if (ready) backendReadyAt = Date.now();
       return ready;
-    })().catch(() => false).finally(() => {
+    })().catch(() => false).then(ready => {
+      if (!ready) backendUnavailableUntil = Date.now() + 10000;
+      return ready;
+    }).finally(() => {
       window.clearTimeout(timer);
       backendStartupRecovery = null;
     });
