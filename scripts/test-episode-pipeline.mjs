@@ -299,6 +299,35 @@ test("HLS: available AnimeAV1 metadata leaves AnimeYT and backups dormant", asyn
   assert.deepEqual(calls, ["animeav1:primary:start", "animeav1:primary:end"]);
 });
 
+test("a mapped native backup releases Play while HLS discovery is still waiting", async () => {
+  const { sandbox, calls, completed } = playbackFallbackContext({ language: "sub" });
+  let finishPrimary, backupStarted;
+  const primary = new Promise(resolve => { finishPrimary = resolve; });
+  const backup = new Promise(resolve => { backupStarted = resolve; });
+  sandbox.animeYTTarget = () => ({ slug: "sample-series" });
+  sandbox.wait = ms => ms === 450 ? Promise.resolve() : new Promise(() => {});
+  sandbox.attachAnimeAv1Sources = () => { calls.push("primary"); return primary; };
+  sandbox.attachAnimeYTSources = async (_show, episode, options) => {
+    calls.push("mapped");
+    assert.equal(options.priority, "high");
+    episode.sourceOptions.push({id: "animeyt-omega", provider: "AnimeYT", type: "direct", videoUrl: "https://archive.org/download/sample/episode.mp4"});
+    backupStarted();
+  };
+  const episode = { sourceOptions: [] };
+  const lookup = sandbox.attachPlaybackSourceOptions({}, episode, 1, {eagerFallbacks: true});
+  try {
+    await new Promise(setImmediate);
+    assert.deepEqual(calls, ["primary", "mapped"]);
+    await backup;
+    assert.equal(await lookup, episode);
+    assert.notEqual(episode.playbackSourceLookupComplete, true);
+  } finally {
+    finishPrimary();
+    await completed;
+  }
+  assert.deepEqual(calls, ["primary", "mapped"]);
+});
+
 test("AnimeYT: a native-source miss retains the existing primary lookup", async () => {
   const { sandbox, calls, completed } = playbackFallbackContext({ primaryFound: true, language: "sub" });
   sandbox.animeYTTarget = () => ({ slug: "sample-series" });

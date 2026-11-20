@@ -5123,7 +5123,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1039";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1040";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -8943,59 +8943,53 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1, opti
       .then(() => updateServerCheck(key, def.match));
   };
 
-  let animeNeonLookup = null;
-  const ensureAnimeNeonLookup = () => {
-    if (animeNeonLookup) return animeNeonLookup;
+  const lookupOptions = { priority: options.eagerFallbacks ? "high" : "auto" };
+  const lookupAnimeNeon = () => {
     if (isScraperEnabled("animeneon")) {
-      animeNeonLookup = runLookup("animeneon", "AnimeNeon", () => attachAnimeNeonSources(show, episode));
-    } else {
-      episode.animeNeonSourcesChecked = true;
-      episode.serverChecks.animeneon = "notfound";
-      animeNeonLookup = Promise.resolve();
+      return runLookup("animeneon", "AnimeNeon", () => attachAnimeNeonSources(show, episode, lookupOptions));
     }
-    return animeNeonLookup;
+    episode.animeNeonSourcesChecked = true;
+    episode.serverChecks.animeneon = "notfound";
   };
-
-  let animeAv1Lookup = null;
-  const ensureAnimeAv1Lookup = () => {
-    if (animeAv1Lookup) return animeAv1Lookup;
+  const lookupAnimeAv1 = () => {
     if (isScraperEnabled("animeav1")) {
-      animeAv1Lookup = runLookup("animeav1", "AnimeAV1", () => attachAnimeAv1Sources(show, episode));
-      return animeAv1Lookup;
+      return runLookup("animeav1", "AnimeAV1", () => attachAnimeAv1Sources(show, episode, lookupOptions));
     }
     episode.animeAv1SourcesChecked = true;
     episode.serverChecks.animeav1 = "notfound";
-    animeAv1Lookup = Promise.resolve();
-    return animeAv1Lookup;
   };
-
   const preferHls = shouldPreferHlsLookup(show, episode);
   const preferUpnShare = preferHls || shouldPreferUpnShareLookup(show, episode);
-  const firstLookup = (async () => {
-    if (preferHls) {
-      await ensureAnimeAv1Lookup();
-      if (getEpisodePlaybackSources(episode).some((source) => isAnimeAv1Source(source) && isFastPreferredPlaybackSource(source))) return;
-    }
-    if (typeof animeYTTarget === "function" && animeYTTarget(show, episode)) {
-      await runLookup("animeyt", "AnimeYT", () => attachAnimeYTSources(show, episode));
-      if (getEpisodePlaybackSources(episode).some((source) => isAnimeYTSource(source) && isFastPreferredPlaybackSource(source))) return;
-    }
-    return preferHls ? ensureAnimeNeonLookup() : preferUpnShare ? ensureAnimeAv1Lookup() : ensureAnimeNeonLookup();
-  })();
+  const providers = [];
+  if (preferHls) providers.push(lookupAnimeAv1);
+  if (typeof animeYTTarget === "function" && animeYTTarget(show, episode)) {
+    providers.push(() => runLookup("animeyt", "AnimeYT", () => attachAnimeYTSources(show, episode, lookupOptions)));
+  }
+  if (preferHls) providers.push(lookupAnimeNeon);
+  else if (preferUpnShare) providers.push(lookupAnimeAv1, lookupAnimeNeon);
+  else providers.push(lookupAnimeNeon, lookupAnimeAv1);
   const primaryReady = () => getEpisodePlaybackSources(episode).some((source) => (
-    (isAnimeYTSource(source) || (preferUpnShare ? isAnimeAv1Source(source) : isAnimeNeonSource(source)))
-    && (!preferUpnShare || isFastPreferredPlaybackSource(source))
+    (isAnimeYTSource(source) || (preferUpnShare ? isAnimeAv1Source(source) : isAnimeNeonSource(source))
+      || (preferHls && isAnimeNeonSource(source)))
+    && (isFastPreferredPlaybackSource(source) || (!preferUpnShare && isAnimeNeonSource(source)))
   ));
-  const ensureSecondLookup = preferUpnShare ? ensureAnimeNeonLookup : ensureAnimeAv1Lookup;
-  const primaryLookup = (async () => {
-    if (options.eagerFallbacks) {
-      await Promise.race([firstLookup, wait(SOURCE_EAGER_FALLBACK_DELAY_MS)]);
-      if (!primaryReady()) ensureSecondLookup();
-      await Promise.allSettled([firstLookup, animeNeonLookup, animeAv1Lookup].filter(Boolean));
-    } else {
-      await firstLookup;
-      if (!primaryReady()) await ensureSecondLookup();
+  // Each provider belongs to one lookup. A slow primary keeps running while an
+  // explicit Play can try the next exact match after its head start.
+  const discover = async () => {
+    while (providers.length) {
+      const lookup = providers.shift();
+      await lookup();
+      if (primaryReady()) return;
     }
+  };
+  const primaryLookup = (async () => {
+    const first = discover();
+    let second;
+    if (options.eagerFallbacks) {
+      await Promise.race([first, wait(SOURCE_EAGER_FALLBACK_DELAY_MS)]);
+      if (providers.length && !primaryReady()) second = discover();
+    }
+    await Promise.all([first, second]);
 
     if (!preferUpnShare && getEpisodePlaybackSources(episode).some(isAnimeNeonSource)) {
       episode.animeAv1SourcesChecked = true;
@@ -15254,7 +15248,7 @@ async function fetchAnimeAv1EpisodeSourcePayload(slug, episodeNumber, options = 
   if (!lookup) {
     const refreshParam = forceRefresh ? "&refresh=1" : "";
     const endpoint = `/api/animeav1/sources?slug=${encodeURIComponent(slug)}&episode=${encodeURIComponent(episodeNumber)}&variant=SUB${refreshParam}`;
-    lookup = fetchWithTimeout(endpoint, { cache: forceRefresh ? "no-store" : "default" }, ANIMEAV1_SOURCE_TIMEOUT_MS)
+    lookup = fetchWithTimeout(endpoint, { cache: forceRefresh ? "no-store" : "default", priority: options.priority || "auto" }, ANIMEAV1_SOURCE_TIMEOUT_MS)
       .then(async (response) => {
         const data = await response.json();
         const hasSources = Boolean(
@@ -18476,7 +18470,7 @@ function animeYTTarget(show, episode) {
   return { title: target.animeytSlug, season: episodeSeason, episode: getCanonicalEpisodeNumber(episode, 1) };
 }
 
-async function attachAnimeYTSources(show, episode) {
+async function attachAnimeYTSources(show, episode, options = {}) {
   const target = animeYTTarget(show, episode);
   if (!target) return;
   const key = `${target.title}:${target.season}:${target.episode}:sub`;
@@ -18488,7 +18482,7 @@ async function attachAnimeYTSources(show, episode) {
       const url = new URL("/api/animeyt/sources", location.origin);
       Object.entries(target).forEach(([name, value]) => url.searchParams.set(name, String(value)));
       url.searchParams.set("language", "sub");
-      const response = await fetchWithTimeout(url, { cache: "default" }, 9500);
+      const response = await fetchWithTimeout(url, { cache: "default", priority: options.priority || "auto" }, 9500);
       let data = null;
       if (response.ok) data = await response.json();
       else if (response.status !== 404) {
@@ -18611,7 +18605,7 @@ async function fetchAnimeNeonEpisodeSources(show, episode, options = {}) {
     if (options.forceRefresh) endpoint.searchParams.set("refresh", "1");
     const response = await fetchWithTimeout(
       endpoint,
-      { cache: options.forceRefresh ? "no-store" : "default" },
+      { cache: options.forceRefresh ? "no-store" : "default", priority: options.priority || "auto" },
       ANIMENEON_SOURCE_TIMEOUT_MS
     );
     if (!response.ok) {
@@ -24766,7 +24760,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1039");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1040");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();
