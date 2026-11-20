@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-19T22:24:53.318Z",
+  "generatedAt": "2026-11-20T15:19:08.103Z",
   "count": 6680,
   "entries": {
     "animeav1-one-piece": {
@@ -1388,8 +1388,8 @@
       "season": "SUMMER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 24,
-      "nextAiringAt": 1795186800000,
-      "nextAiringEpisodeNumber": 20,
+      "nextAiringAt": 1795791600000,
+      "nextAiringEpisodeNumber": 21,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 19,
       "lastEpisodeAt": "2026-11-13T17:09:48.231Z"
@@ -1591,8 +1591,8 @@
       "nextAiringAt": 1795706760000,
       "nextAiringEpisodeNumber": 22,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 20,
-      "lastEpisodeAt": "2026-11-12T16:19:53.924Z"
+      "sourceEpisodeCount": 21,
+      "lastEpisodeAt": "2026-11-19T16:13:31.905Z"
     },
     "animeav1-bang-dream-yumemita": {
       "anilistId": 198376,
@@ -3344,7 +3344,7 @@
           "title": "Koori no Jouheki 2nd Season",
           "format": "TV",
           "status": "RELEASING",
-          "episodes": null,
+          "episodes": 13,
           "season": "FALL",
           "seasonYear": 2026,
           "startedAt": 1790899200000,
@@ -3697,8 +3697,8 @@
           "order": 9
         }
       ],
-      "sourceEpisodeCount": 9,
-      "lastEpisodeAt": "2026-11-13T13:59:13.596Z"
+      "sourceEpisodeCount": 10,
+      "lastEpisodeAt": "2026-11-20T13:07:50.553Z"
     },
     "animeav1-beastars-final-season-part-2": {
       "anilistId": 187267,
@@ -34853,8 +34853,8 @@
           "order": 9
         }
       ],
-      "sourceEpisodeCount": 9,
-      "lastEpisodeAt": "2026-11-13T13:59:13.596Z"
+      "sourceEpisodeCount": 10,
+      "lastEpisodeAt": "2026-11-20T13:07:50.553Z"
     },
     "anilist-185262": {
       "anilistId": 185262,
@@ -37220,8 +37220,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795183200000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1795788000000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
         {
           "anilistId": 161645,
@@ -37268,8 +37268,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-13T17:06:17.182Z"
+      "sourceEpisodeCount": 8,
+      "lastEpisodeAt": "2026-11-20T15:17:58.619Z"
     },
     "anilist-175409": {
       "anilistId": 175409,
@@ -53297,8 +53297,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1795105680000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795710480000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 148116,
@@ -53323,8 +53323,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-12T17:07:17.394Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-19T17:25:59.094Z"
     },
     "anilist-107294": {
       "anilistId": 107294,
@@ -133376,7 +133376,7 @@
           "format": "OVA",
           "status": "FINISHED",
           "episodes": 13,
-          "season": "SPRING",
+          "season": "WINTER",
           "seasonYear": 2006,
           "startedAt": 1143158400000,
           "order": 2
@@ -148751,7 +148751,7 @@
     "animeav1-tennis-no-oujisama-zenkoku-taikai-hen": {
       "anilistId": 995,
       "airingStatus": "FINISHED",
-      "season": "SPRING",
+      "season": "WINTER",
       "seasonYear": 2006,
       "anilistEpisodeCount": 13,
       "nextAiringAt": null,
@@ -148774,7 +148774,7 @@
           "format": "OVA",
           "status": "FINISHED",
           "episodes": 13,
-          "season": "SPRING",
+          "season": "WINTER",
           "seasonYear": 2006,
           "startedAt": 1143158400000,
           "order": 2
@@ -171193,8 +171193,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795185000000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1795789800000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
         {
           "anilistId": 177474,
@@ -171228,8 +171228,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795183200000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1795788000000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
         {
           "anilistId": 161645,
@@ -171276,8 +171276,8 @@
           "order": 4
         }
       ],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-13T17:06:17.182Z"
+      "sourceEpisodeCount": 8,
+      "lastEpisodeAt": "2026-11-20T15:17:58.619Z"
     },
     "animeav1-tokyo-revengers-santen-sensou-hen": {
       "anilistId": 178083,
@@ -171341,7 +171341,7 @@
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
-      "anilistEpisodeCount": null,
+      "anilistEpisodeCount": 13,
       "nextAiringAt": 1795704960000,
       "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
@@ -171361,15 +171361,15 @@
           "title": "Koori no Jouheki 2nd Season",
           "format": "TV",
           "status": "RELEASING",
-          "episodes": null,
+          "episodes": 13,
           "season": "FALL",
           "seasonYear": 2026,
           "startedAt": 1790899200000,
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-12T15:43:17.518Z"
+      "sourceEpisodeCount": 8,
+      "lastEpisodeAt": "2026-11-19T15:49:30.177Z"
     },
     "animeav1-fx-senshi-kurumi-chan": {
       "anilistId": 206401,
@@ -171567,7 +171567,7 @@
           "title": "Koori no Jouheki 2nd Season",
           "format": "TV",
           "status": "RELEASING",
-          "episodes": null,
+          "episodes": 13,
           "season": "FALL",
           "seasonYear": 2026,
           "startedAt": 1790899200000,
@@ -171581,7 +171581,7 @@
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
-      "anilistEpisodeCount": null,
+      "anilistEpisodeCount": 13,
       "nextAiringAt": 1795704960000,
       "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
@@ -171601,15 +171601,15 @@
           "title": "Koori no Jouheki 2nd Season",
           "format": "TV",
           "status": "RELEASING",
-          "episodes": null,
+          "episodes": 13,
           "season": "FALL",
           "seasonYear": 2026,
           "startedAt": 1790899200000,
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-12T15:43:17.518Z"
+      "sourceEpisodeCount": 8,
+      "lastEpisodeAt": "2026-11-19T15:49:30.177Z"
     },
     "animeav1-gensou-suikoden": {
       "anilistId": 187316,
@@ -174607,8 +174607,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 11,
-      "nextAiringAt": 1795161600000,
-      "nextAiringEpisodeNumber": 9,
+      "nextAiringAt": 1795766400000,
+      "nextAiringEpisodeNumber": 10,
       "franchiseSeasons": [
         {
           "anilistId": 14719,
@@ -181698,8 +181698,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795185000000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1795789800000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
         {
           "anilistId": 177474,
@@ -234391,7 +234391,7 @@
           "format": "OVA",
           "status": "FINISHED",
           "episodes": 13,
-          "season": "SPRING",
+          "season": "WINTER",
           "seasonYear": 2006,
           "startedAt": 1143158400000,
           "order": 2
@@ -234401,7 +234401,7 @@
     "anilist-995": {
       "anilistId": 995,
       "airingStatus": "FINISHED",
-      "season": "SPRING",
+      "season": "WINTER",
       "seasonYear": 2006,
       "anilistEpisodeCount": 13,
       "nextAiringAt": null,
@@ -234424,7 +234424,7 @@
           "format": "OVA",
           "status": "FINISHED",
           "episodes": 13,
-          "season": "SPRING",
+          "season": "WINTER",
           "seasonYear": 2006,
           "startedAt": 1143158400000,
           "order": 2
@@ -239768,8 +239768,8 @@
       "season": "",
       "seasonYear": null,
       "anilistEpisodeCount": 6,
-      "nextAiringAt": 1795147200000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1795752000000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [
         {
           "anilistId": 102663,
@@ -240927,8 +240927,8 @@
       "nextAiringAt": 1795705200000,
       "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-12T17:52:08.179Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-19T17:55:58.156Z"
     },
     "animeav1-hyouken-no-majutsushi-ga-sekai-wo-suberu-ii": {
       "anilistId": 212503,
@@ -240962,8 +240962,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-12T17:07:17.394Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-19T17:25:59.094Z"
     },
     "animeav1-hotaru-no-yomeiri": {
       "anilistId": 205909,
@@ -240971,8 +240971,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795185000000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795789800000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 6,
       "lastEpisodeAt": "2026-11-13T17:07:04.391Z"
@@ -240982,9 +240982,9 @@
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": 1795181400000,
-      "nextAiringEpisodeNumber": 7,
+      "anilistEpisodeCount": 11,
+      "nextAiringAt": 1795786200000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 6,
       "lastEpisodeAt": "2026-11-13T17:06:44.133Z"
@@ -241734,11 +241734,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1795176000000,
-      "nextAiringEpisodeNumber": 4,
+      "nextAiringAt": 1795780800000,
+      "nextAiringEpisodeNumber": 5,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 3,
-      "lastEpisodeAt": "2026-11-13T13:59:55.119Z"
+      "sourceEpisodeCount": 4,
+      "lastEpisodeAt": "2026-11-20T13:08:27.451Z"
     },
     "anilist-195515": {
       "anilistId": 195515,
@@ -271601,7 +271601,7 @@
       "anilistBanner": ""
     },
     "anilist-206163": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx206163-pDqpH6qyKhmV.png",
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx206163-mX4zuFtmeDFE.jpg",
       "anilistBanner": ""
     },
     "anilist-132467": {
