@@ -1638,8 +1638,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/demons-crest",
-      "totalEpisodes": 3,
-      "episode": 3,
+      "totalEpisodes": 4,
+      "episode": 4,
       "lastScrapedAt": "2026-11-19T14:53:01.048998+00:00",
       "episodes": [],
       "seasons": [],
@@ -1651,16 +1651,18 @@
       "sourceEpisodeIds": [
         1,
         2,
-        3
+        3,
+        4
       ],
-      "sourceEpisodeCount": 3,
-      "sourcePlayableEpisodeCount": 3,
+      "sourceEpisodeCount": 4,
+      "sourcePlayableEpisodeCount": 4,
       "sourceDeclaredEpisodeCount": 3,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-19T15:00:50.271Z",
-      "lastEpisodeAt": "2026-11-13T13:59:54.205Z",
-      "latestAiredEp": 3
+      "sourceInventoryCheckedAt": "2026-11-20T13:31:11.572Z",
+      "lastEpisodeAt": "2026-11-20T13:09:11.545Z",
+      "latestAiredEp": 4,
+      "sourceInventoryRetainedEpisodeCount": 3
     },
     {
       "id": "animeav1-watashi-no-shiawase-na-kekkon-special",
@@ -192043,8 +192045,8 @@
       "score": 91,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/steel-ball-run-jojo-no-kimyou-na-bouken",
-      "totalEpisodes": 9,
-      "episode": 9,
+      "totalEpisodes": 10,
+      "episode": 10,
       "lastScrapedAt": "2026-11-19T14:57:10.688648+00:00",
       "episodes": [],
       "seasons": [],
@@ -192062,16 +192064,18 @@
         6,
         7,
         8,
-        9
+        9,
+        10
       ],
-      "sourceEpisodeCount": 9,
-      "sourcePlayableEpisodeCount": 9,
+      "sourceEpisodeCount": 10,
+      "sourcePlayableEpisodeCount": 10,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-11-19T15:00:50.271Z",
+      "sourceInventoryCheckedAt": "2026-11-20T13:31:11.572Z",
       "sourceDeclaredEpisodeCount": 9,
       "sourceInventoryPartial": false,
-      "latestAiredEp": 9,
-      "lastEpisodeAt": "2026-11-13T13:59:54.206Z"
+      "latestAiredEp": 10,
+      "lastEpisodeAt": "2026-11-20T13:09:11.545Z",
+      "sourceInventoryRetainedEpisodeCount": 9
     },
     {
       "id": "animeav1-seihantai-na-kimi-to-boku",
