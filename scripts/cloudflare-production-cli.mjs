@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { root, verifyContainerContext } from "./prepare-cloudflare-containers.mjs";
 import { validateProductionDeployment } from "./cloudflare-production-policy.mjs";
 
@@ -16,6 +17,7 @@ const args = [process.env.npm_execpath, "exec", "--yes", "--package=wrangler@4.1
 if (action !== "deploy") args.push("--dry-run", "--outdir", ".cache/cloudflare-production-bundle");
 if (action === "bundle") args.push("--containers-rollout=none");
 const child = spawn(process.execPath, args, { cwd: root, stdio: "inherit", shell: false,
-  env: { ...process.env, CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: "false", WRANGLER_SEND_METRICS: "false" } });
+  env: { ...process.env, CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: "false", WRANGLER_SEND_METRICS: "false",
+    ...(action === "deploy" ? { WRANGLER_DOCKER_BIN: fileURLToPath(new URL("./cloudflare-production-docker.mjs", import.meta.url)) } : {}) } });
 child.on("error", () => { console.error("Unable to run pinned Wrangler"); process.exitCode = 1; });
 child.on("exit", (code) => { process.exitCode = code ?? 1; });

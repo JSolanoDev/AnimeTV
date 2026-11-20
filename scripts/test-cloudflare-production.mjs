@@ -5,6 +5,30 @@ import { handleGateway, SECURITY_HEADERS } from "../ops/cloudflare/gateway.mjs";
 import { handleProductionGateway } from "../ops/cloudflare/production-gateway.mjs";
 import { INTERNAL_ORIGIN } from "../ops/cloudflare/container-runtime.mjs";
 import { validateProductionEvent, validateProductionDeployment } from "./cloudflare-production-policy.mjs";
+import { waitForPushedVersion } from "./cloudflare-production-docker.mjs";
+
+test("container publishing waits for propagation of its own Worker version without repeating a write", async () => {
+  const id = "abcd1234-0000-4000-8000-000000000000";
+  const reads = [];
+  let now = 0;
+  const pause = async ms => { now += ms; };
+  const read = async path => {
+    reads.push(path);
+    if (path === "deployments") return { success: true, result: { deployments: [
+      { versions: [{ version_id: now ? id : "unrelated" }] }
+    ] } };
+    assert.equal(path, "versions/" + id);
+    return now < 12000 ? { success: false, errors: [{ code: 100146 }] } : { success: true, result: { id } };
+  };
+  assert.equal(await waitForPushedVersion("abcd1234", read, pause, () => now), true);
+  assert.deepEqual(reads, ["deployments", "deployments", ...Array(3).fill("versions/" + id)]);
+  now = 0;
+  assert.equal(await waitForPushedVersion("abcd1234", async () => ({
+    success: true, result: { deployments: [] }
+  }), pause, () => now), false);
+  assert.equal(now, 90000);
+  assert.equal(await waitForPushedVersion("abcd1234", async () => ({ success: false }), pause, () => now), false);
+});
 
 const env = { BACKEND_ORIGIN: INTERNAL_ORIGIN, ASSETS: { fetch: () => new Response("neutral frontend") } };
 const options = { containerMedia: true, cache: null, fetchImpl: (_url, init) => {
