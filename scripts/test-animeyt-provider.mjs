@@ -89,6 +89,22 @@ test("missing title, Spanish track and missing episode do not create cascaded lo
   assert.equal(h.calls.length, 1);
 });
 
+test("a missing episode page leaves another episode available on its first request", async () => {
+  const both = episodesPage + episodesPage.replaceAll("1234", "1235").replaceAll("capitulo-1", "capitulo-2").replace("EP 1", "EP 2");
+  for (const status of [404, 410]) {
+    let misses = 0;
+    const {p} = harness({fetchImpl: async url => {
+      if (url.includes("/tv/")) return new Response(both);
+      if (url.includes("capitulo-1")) { misses++; return new Response(null, {status}); }
+      return new Response(url.includes("/anime/") ? episodePage : containerPage);
+    }});
+    assert.equal(await p.sources(request), null);
+    assert.equal(await p.sources(request), null);
+    assert.equal(misses, 1);
+    assert.equal((await p.sources({...request, episode: 2})).sources[0].videoUrl, video);
+  }
+});
+
 test("source cache expires quickly while static episode/container pages are reused", async () => {
   const h = harness();
   await h.p.sources(request);

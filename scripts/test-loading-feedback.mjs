@@ -360,20 +360,17 @@ test("install recommendation uses the native PWA event without API work", () => 
   assert.match(html, /id="installRecommendationNever"/);
   assert.match(styles, /body:not\(\[data-route="home"\]\) \.install-recommendation/);
   assert.match(feature, /beforeinstallprompt/);
-  assert.match(feature, /event\.preventDefault\(\)/);
+  assert.doesNotMatch(feature, /event\.preventDefault\(\)/);
   assert.match(feature, /appinstalled/);
   assert.match(feature, /window\.ZenkaiNative/);
   assert.match(feature, /!isAppInstallationComplete\(\)/);
   assert.match(feature, /display-mode: standalone/);
   assert.match(client, /data-install-app/);
-  assert.ok(
-    feature.indexOf("deferredInstallPrompt = event") < feature.indexOf("if (!canOfferInstallRecommendation()) return"),
-    "the Settings install action must retain the native event even when reminders are disabled"
-  );
+  assert.match(feature, /deferredInstallPrompt = event/);
   assert.doesNotMatch(feature, /\bfetch\s*\(/);
 });
 
-test("intercept the browser install UI only where a visible reminder can offer installation", () => {
+test("leave the browser install promotion available on every route and retain the Settings action", () => {
   const handlers = new Map();
   const node = { dataset: {}, addEventListener() {}, setAttribute() {} };
   const state = { route: "home" };
@@ -393,7 +390,7 @@ test("intercept the browser install UI only where a visible reminder can offer i
     assert.equal(prevented, expected);
     assert.equal(vm.runInContext("deferredInstallPrompt", c), event);
   };
-  offer(true);
+  offer(false);
   location.pathname = "/watch/sample/s1-e2";
   offer(false);
   location.pathname = "/";
@@ -402,7 +399,7 @@ test("intercept the browser install UI only where a visible reminder can offer i
   overlay = false;
   state.route = "settings";
   offer(false);
-  assert.equal(scheduled, 1);
+  assert.equal(scheduled, 0);
 });
 
 test("install recommendation supports temporary dismissal and persistent opt-out", () => {

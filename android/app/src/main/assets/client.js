@@ -4090,16 +4090,10 @@ async function loadAnimeAv1Latest(force = false) {
   }
 }
 
-// Serve the best AniList cover variant. IMPORTANT: AniList's largest cover is
-// served at `/cover/large/` (the `extraLarge` field returns that same URL) — there
-// is NO `/cover/extraLarge/` path, so forcing it 404s every cover. We only upgrade
-// the small `medium` thumbnail to `large`, which always exists.
+// AniList cover sizes can have different filenames. Use the catalog URL verbatim.
 function hqImage(url) {
   const u = String(url || "").trim();
   if (!u) return u;
-  if (u.includes("anilist.co") || u.includes("anilistcdn")) {
-    return u.replace("/cover/medium/", "/cover/large/");
-  }
   // AnimeAV1: the /covers/ image is ~2x the resolution of the /thumbnails/ still.
   if (u.includes("cdn.animeav1.com")) {
     return u.replace("/thumbnails/", "/covers/");
@@ -5129,7 +5123,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1038";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1039";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -12357,8 +12351,8 @@ function applyWatchBackdrop(show, season) {
   };
   probe.onerror = () => {
     if (!targetIsCurrent()) return;
-    backdropQualityCache.set(qualityKey, false);
-    try { ImageResolver.markImageFailed(art); } catch { /* resolver optional */ }
+    try { ImageResolver.markImageFailed(art); }
+    catch { backdropQualityCache.set(qualityKey, false); }
     backdrop.dataset.backdropUrl = "";
     applyWatchBackdrop(show, season);
   };
@@ -24190,10 +24184,11 @@ function setupInstallRecommendation() {
   window.addEventListener("beforeinstallprompt", (event) => {
     deferredInstallPrompt = event;
     if (state.route === "settings") renderSettings();
-    if (!canOfferInstallRecommendation()) return;
-    if (!installRecommendationHomeVisible()) return;
-    event.preventDefault();
-    scheduleInstallRecommendation("native", 2200);
+    event.userChoice?.then(() => {
+      if (deferredInstallPrompt !== event) return;
+      deferredInstallPrompt = null;
+      if (state.route === "settings") renderSettings();
+    }).catch(() => {});
   });
 
   window.addEventListener("appinstalled", () => {
@@ -24829,7 +24824,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1038");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1039");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

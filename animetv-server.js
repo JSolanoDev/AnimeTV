@@ -675,6 +675,8 @@ const IMAGE_PROXY_MAX_HEIGHT = 3840;
 const IMAGE_PROXY_DEFAULT_WIDTH = 360;
 const IMAGE_PROXY_WEBP_QUALITY = 70;
 const imageProxyInflight = new Map();
+const imageOriginInflight = new Map();
+const imageRetryAfter = new Map();
 const STRICT_TRANSPORT_SECURITY = "max-age=31536000; includeSubDomains; preload";
 const SECURITY_HEADERS = {
   "Referrer-Policy": "no-referrer",
@@ -1610,15 +1612,23 @@ async function handleImageProxy(url, response) {
   response.end(image.buffer);
 }
 
-async function buildImageProxyPayload(url, source) {
+async function fetchOriginalImage(source) {
   // Keep the deadline active through the body, not just until headers arrive.
-  const upstream = await fetch(source.toString(), {
+  const options = {
     headers: {
       Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"
     },
     signal: AbortSignal.timeout(10000)
-  });
+  };
+  let upstream = await fetch(source.toString(), options);
+  if ([502, 503, 504].includes(upstream.status) && !upstream.headers.has("retry-after")
+    && (imageRetryAfter.get(source.hostname) || 0) <= Date.now() && !options.signal.aborted) {
+    // Limit retries across the whole CDN during an outage, including different image sizes.
+    imageRetryAfter.set(source.hostname, Date.now() + 10000);
+    await upstream.body?.cancel();
+    upstream = await fetch(source.toString(), options);
+  }
   if (!upstream.ok) {
     try { await upstream.body?.cancel?.(); } catch { /* already closed */ }
     return { error: `Image upstream returned HTTP ${upstream.status}`, status: upstream.status };
@@ -1641,6 +1651,13 @@ async function buildImageProxyPayload(url, source) {
     return { error: "Image is too large", status: 413 };
   }
 
+  return { buffer: originalBuffer, type: contentType };
+}
+
+async function buildImageProxyPayload(url, source) {
+  const original = await coalesceInflight(imageOriginInflight, source.href, () => fetchOriginalImage(source));
+  if (original.error) return original;
+  const { buffer: originalBuffer, type: contentType } = original;
   const requestedWidth = Math.max(
     64,
     Math.min(IMAGE_PROXY_MAX_WIDTH, Number(url.searchParams.get("w") || IMAGE_PROXY_DEFAULT_WIDTH) || IMAGE_PROXY_DEFAULT_WIDTH)
@@ -12550,8 +12567,14 @@ async function findHanimeArtwork(title = "", sourceSlug = "") {
 async function handleHanimeArtwork(url, response) {
   const title = String(url.searchParams.get("title") || "").trim().slice(0, 180);
   const slug = String(url.searchParams.get("slug") || "").trim().slice(0, 220);
-  if (!title || !normalizeAdultSourceTitle(title)) {
+  if (!title) {
     sendJson(response, { ok: false, error: "Missing adult title." }, 400);
+    return;
+  }
+  // This provider's matcher needs a romanized title. Other artwork providers can
+  // still match a native-script title without guessing from the URL slug.
+  if (!normalizeAdultSourceTitle(title)) {
+    sendJson(response, { ok: true, source: "Hanime", adultOnly: true, artwork: null });
     return;
   }
   try {

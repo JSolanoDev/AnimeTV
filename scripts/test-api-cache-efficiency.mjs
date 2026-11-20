@@ -1184,6 +1184,8 @@ function imageHarness(fetchImpl) {
     IMAGE_PROXY_WEBP_QUALITY: 70,
     SECURITY_HEADERS: {},
     imageProxyInflight: new Map(),
+    imageOriginInflight: new Map(),
+    imageRetryAfter: new Map(),
     sharp: null,
     fetch: async (...args) => { calls.push(args); return fetchImpl(...args); },
     sendJson: (response, body, status) => Object.assign(response, { body, status })
@@ -1205,7 +1207,7 @@ test("100 simultaneous image cache misses share one upstream body without retain
   const url = new URL("https://app.test/api/image?src=https%3A%2F%2Fimage.tmdb.org%2Ft%2Fp%2Foriginal%2Fexample.jpg&w=1920&q=92");
   const responses = Array.from({ length: 100 }, imageResponse);
   const pending = responses.map(response => h.context.handleImageProxy(url, response));
-  await Promise.resolve();
+  await new Promise(setImmediate);
   assert.equal(h.calls.length, 1);
   assert.ok(h.calls[0][1].signal instanceof AbortSignal);
   release(new Response(Buffer.from("image fixture"), { headers: { "content-type": "image/jpeg" } }));
@@ -1215,18 +1217,52 @@ test("100 simultaneous image cache misses share one upstream body without retain
   assert.equal(h.context.imageProxyInflight.size, 0);
 });
 
-test("different image transforms stay isolated and blocked hosts never reach the upstream", async () => {
+test("different transforms share the original download and blocked hosts never reach the upstream", async () => {
   const h = imageHarness(() => new Response("image", { headers: { "content-type": "image/jpeg" } }));
   const image = "https://app.test/api/image?src=https%3A%2F%2Fstatic.underhentai.net%2Fexample.jpg";
   await Promise.all([
     h.context.handleImageProxy(new URL(`${image}&w=200&q=90`), imageResponse()),
     h.context.handleImageProxy(new URL(`${image}&w=400&q=90&h=600&fit=cover`), imageResponse())
   ]);
-  assert.equal(h.calls.length, 2);
+  assert.equal(h.calls.length, 1);
   const blocked = imageResponse();
   await h.context.handleImageProxy(new URL("https://app.test/api/image?src=http%3A%2F%2F127.0.0.1%2Fsecret"), blocked);
   assert.equal(blocked.status, 403);
-  assert.equal(h.calls.length, 2);
+  assert.equal(h.calls.length, 1);
+});
+
+test("image relay retries a transient gateway failure once per host and respects Retry-After", async () => {
+  let n = 0;
+  const h = imageHarness(() => ++n === 2 ? new Response("fixture", { headers: { "content-type": "image/png" } })
+    : new Response(null, {status: 502}));
+  const url = new URL("https://app.test/api/image?src=https://image.tmdb.org/t/p/original/example.jpg");
+  const first = imageResponse();
+  await h.context.handleImageProxy(url, first);
+  assert.equal(first.status, 200);
+  const second = imageResponse();
+  await h.context.handleImageProxy(url, second);
+  assert.equal(second.status, 502);
+  assert.equal(n, 3);
+  const busy = imageHarness(() => new Response(null, {status: 503, headers: {"retry-after": "60"}}));
+  await busy.context.handleImageProxy(url, imageResponse());
+  assert.equal(busy.calls.length, 1);
+});
+
+test("unmatchable native artwork title advances to the next source and missing input remains invalid", async () => {
+  const ctx = vm.createContext({
+    normalizeAdultSourceTitle: s => /[a-z]/i.test(s) ? s : "",
+    sendJson: (res, body, status = 200) => Object.assign(res, {body, status}),
+    findHanimeArtwork: () => { throw Error("unexpected lookup"); }
+  });
+  vm.runInContext(section(server, "async function handleHanimeArtwork(", "function readVeoHentaiDetails("), ctx);
+  const result = {};
+  const url = new URL("https://app.test/api/adult/hanime/artwork?title=青空");
+  await ctx.handleHanimeArtwork(url, result);
+  assert.equal(result.status, 200);
+  assert.equal(result.body.artwork, null);
+  url.searchParams.delete("title");
+  await ctx.handleHanimeArtwork(url, result);
+  assert.equal(result.status, 400);
 });
 
 function playbackCooldownHarness(extra = {}) {

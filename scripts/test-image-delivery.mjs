@@ -12,6 +12,7 @@ const slice = (startMarker, endMarker) => {
 };
 
 const code = [
+  slice("function hqImage(", "function isRetiredAdultArtwork("),
   slice("function isRetiredAdultArtwork(", "\nfunction imageDeliveryUrl"),
   slice("function imageDeliveryUrl(", "\n// One canonical backdrop"),
   slice("function cinematicArtworkSourceUrl(", "\n// Builds a responsive srcset"),
@@ -43,6 +44,19 @@ const img = (naturalWidth, naturalHeight, currentSrc, hasSrcset = true) => ({
   naturalWidth, naturalHeight, currentSrc,
   getAttribute: (a) => (a === "srcset" && hasSrcset ? "x" : null)
 });
+const suppliedCover = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b5996-FFxRlbRQmJ5F.jpg";
+check("use the published AniList size and filename", ctx.hqImage(suppliedCover), suppliedCover);
+
+const resolverSource = fs.readFileSync("js/image-resolver.js", "utf8");
+let now = 1000;
+const failures = vm.createContext({ URL, location: new URL("https://app.test/browse"), Date: {now: () => now},
+  localStorage: {removeItem() {}}, FAILED_CACHE_KEY: "unused", FAILED_CACHE_MAX: 400 });
+vm.runInContext(resolverSource.slice(resolverSource.indexOf("let _failedMemory"), resolverSource.indexOf("function firstValidImage(")), failures);
+failures.markImageFailed("/api/image?src=fixture&w=360");
+check("same failed proxy source is skipped at other sizes", failures.isImageFailed("https://app.test/api/image?src=fixture&w=2560"), true);
+check("proxy failure leaves direct delivery available", failures.isImageFailed("fixture"), false);
+now += 61000;
+check("a recovered proxy source can be used again", failures.isImageFailed("/api/image?src=fixture&w=160"), false);
 
 const TMDB = "https://image.tmdb.org/t/p/original/abc.jpg";
 const TMDB780 = "https://image.tmdb.org/t/p/w780/abc.jpg";

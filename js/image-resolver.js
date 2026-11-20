@@ -51,26 +51,41 @@ const ImageResolver = (function () {
   const tmdbBackdropUrl = (p) => tmdbImage(p, "original"); // highest-quality wide backdrop
   const tmdbPosterUrl  = (p) => tmdbImage(p, "w780");    // high-resolution vertical poster
 
-  // ── Failed-image cache (so we never retry a known-broken URL) ───────────────
+  // A provider or the image relay may recover while this tab is open.
   let _failedMemory = null;
   function failedSet() {
     if (_failedMemory) return _failedMemory;
-    _failedMemory = new Set();
+    _failedMemory = new Map();
     try {
       localStorage.removeItem(FAILED_CACHE_KEY);
     } catch { /* ignore */ }
     return _failedMemory;
   }
-  function markImageFailed(url) {
+  function imageFailureKey(url) {
     const u = String(url || "").trim();
+    if (!u.includes("/api/image?")) return u;
+    try {
+      const parsed = new URL(u, location.href);
+      if (parsed.origin === location.origin && parsed.pathname === "/api/image" && parsed.searchParams.get("src")) {
+        return "proxy:" + parsed.searchParams.get("src");
+      }
+    } catch { /* keep the original key */ }
+    return u;
+  }
+  function markImageFailed(url) {
+    const u = imageFailureKey(url);
     if (!u) return;
     const set = failedSet();
-    if (set.has(u)) return;
-    set.add(u);
-    debug("marked broken image, will skip from now on:", u);
+    set.delete(u);
+    set.set(u, Date.now() + 60000);
+    if (set.size > FAILED_CACHE_MAX) set.delete(set.keys().next().value);
   }
   function isImageFailed(url) {
-    return failedSet().has(String(url || "").trim());
+    const key = imageFailureKey(url);
+    const failed = failedSet();
+    if (failed.get(key) > Date.now()) return true;
+    failed.delete(key);
+    return false;
   }
 
   // Return the first usable image: non-empty, a real http(s)/data URL, and not
