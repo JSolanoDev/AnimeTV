@@ -191,7 +191,8 @@ check("Adult cinematic art outranks UnderHentai screenshots",
 check("Prepared title artwork outranks gallery fallbacks",
   adultBackdropContext.underHentaiBackdropCandidates({ highQualityBackground: "prepared.jpg",
     screenshots: ["gallery.jpg"] }).find(Boolean) === "prepared.jpg");
-check("Adult hover preload avoids regular anime enrichment", /if \(isAdultCatalogShow\(show\)\)[\s\S]{0,320}hydrateAdultCinematicArtwork\(show\)[\s\S]{0,120}return;/.test(clientSource));
+const openCardHandlers = clientSource.slice(clientSource.indexOf("function wireOpenButtons("), clientSource.indexOf("function openCarouselShow("));
+check("Browsing across adult cards leaves enrichment to the selected title", openCardHandlers.includes('addEventListener("click"') && !/pointerover|focusin|preloadOpenShow/.test(openCardHandlers));
 check("AniList proxy accepts an adult-only query variable", /media\(search:\$search,type:ANIME,sort:SEARCH_MATCH,isAdult:\$isAdult\)/.test(serverSource));
 check("TMDB adult and safe searches use separate cache entries", /\$\{includeAdult \? "adult" : "safe"\}/.test(serverSource));
 check("Changing catalog modes clears the remembered carousel title", /resetCatalogModeControls\(\)[\s\S]{0,900}_carouselMemoId[^\n]+""/.test(clientSource));

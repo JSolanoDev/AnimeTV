@@ -18175,6 +18175,10 @@ function warmVisibleShowMetadata(shows = state.shows, limit = HOME_INITIAL_CARD_
       try {
         if (typeof AdultMode !== "undefined" && AdultMode.isAdultContent(show)) {
           await hydrateAdultShowDetails(show);
+          if (generation !== visibleMetadataWarmGeneration) {
+            show._metadataPreloadStarted = false;
+            return;
+          }
           await hydrateAdultCinematicArtwork(show);
           show.adultDetailsLoaded = true;
           show._metadataPreloadComplete = true;
