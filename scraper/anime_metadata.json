@@ -112792,8 +112792,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/keroro-gunsou",
-      "totalEpisodes": 7,
-      "episode": 7,
+      "totalEpisodes": 8,
+      "episode": 8,
       "lastScrapedAt": "2026-11-20T14:36:18.220656+00:00",
       "episodes": [
         {
@@ -112849,16 +112849,18 @@
         4,
         5,
         6,
-        7
+        7,
+        8
       ],
-      "sourceEpisodeCount": 7,
-      "sourcePlayableEpisodeCount": 7,
+      "sourceEpisodeCount": 8,
+      "sourcePlayableEpisodeCount": 8,
       "sourceDeclaredEpisodeCount": 7,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-11-20T14:41:46.287Z",
+      "sourceInventoryCheckedAt": "2026-11-21T02:45:53.118Z",
       "sourceInventoryPartial": false,
-      "latestAiredEp": 7,
-      "lastEpisodeAt": "2026-11-14T00:57:14.722Z"
+      "latestAiredEp": 8,
+      "lastEpisodeAt": "2026-11-21T01:45:53.088Z",
+      "sourceInventoryRetainedEpisodeCount": 7
     },
     {
       "id": "animeav1-koori-no-jouheki-2nd-season",
