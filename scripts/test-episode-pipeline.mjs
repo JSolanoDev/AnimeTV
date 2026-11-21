@@ -305,6 +305,7 @@ test("a mapped native backup releases Play while HLS discovery is still waiting"
   const primary = new Promise(resolve => { finishPrimary = resolve; });
   const backup = new Promise(resolve => { backupStarted = resolve; });
   sandbox.animeYTTarget = () => ({ slug: "sample-series" });
+  sandbox.Date = { now: () => 1000 };
   sandbox.wait = ms => ms === 450 ? Promise.resolve() : new Promise(() => {});
   sandbox.attachAnimeAv1Sources = () => { calls.push("primary"); return primary; };
   sandbox.attachAnimeYTSources = async (_show, episode, options) => {
@@ -326,6 +327,38 @@ test("a mapped native backup releases Play while HLS discovery is still waiting"
     await completed;
   }
   assert.deepEqual(calls, ["primary", "mapped"]);
+});
+
+test("Play promotes an in-flight browse lookup without repeating the primary or restarting its head start", async () => {
+  const { sandbox, calls, completed } = playbackFallbackContext({ language: "sub" });
+  const show = {}, episode = { sourceOptions: [] };
+  let finish, now = 100;
+  const primary = new Promise(resolve => { finish = resolve; });
+  Object.assign(sandbox, {
+    Date: { now: () => now }, pendingSourceLookups: new Map(), state: { playIntent: false },
+    animeYTTarget: () => ({ slug: "sample" }),
+    wait: ms => ms === 0 ? Promise.resolve() : new Promise(() => {}),
+    attachAnimeAv1Sources: () => { calls.push("primary"); return primary; },
+    attachAnimeYTSources: async (_show, ep, options) => {
+      assert.equal(options.priority, "high");
+      calls.push("backup");
+      ep.sourceOptions.push({id:"animeyt-omega", provider:"AnimeYT", type:"direct", videoUrl:"https://archive.org/download/sample/episode.mp4"});
+    }
+  });
+  vm.runInContext(section(clientSource, "function schedulePlaybackSourceOptions(", "function stripSeasonFromTitle("), sandbox);
+  const browse = sandbox.schedulePlaybackSourceOptions(show, episode);
+  await new Promise(setImmediate);
+  assert.deepEqual(calls, ["primary"]);
+  now += 750;
+  sandbox.state.playIntent = true;
+  const play = sandbox.schedulePlaybackSourceOptions(show, episode);
+  sandbox.schedulePlaybackSourceOptions(show, episode);
+  try {
+    await new Promise(setImmediate);
+    assert.deepEqual(calls, ["primary", "backup"]);
+  } finally { finish(); }
+  await Promise.all([browse, play, completed]);
+  assert.deepEqual(calls, ["primary", "backup"]);
 });
 
 test("AnimeYT: a native-source miss retains the existing primary lookup", async () => {
@@ -4317,6 +4350,7 @@ test("a joining Play gets the first source while the full server sweep is still 
   const firstReady = Promise.resolve(episode);
   const sandbox = vm.createContext({
     playbackLookupKey: () => "same-episode",
+    state: { playIntent: true }, pendingPlaybackPromotions: new Map(),
     pendingSourceLookups: new Map([["same-episode", firstReady]]),
     sourceOptionsBackgroundLookups: new Map([["same-episode", new Promise(() => {})]])
   });

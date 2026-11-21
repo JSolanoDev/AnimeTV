@@ -5123,7 +5123,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1042";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1043";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -8863,6 +8863,8 @@ function hasFastPreferredPlaybackSource(episode) {
   return getEpisodePlaybackSources(episode).some(isFastPreferredPlaybackSource);
 }
 
+const pendingPlaybackPromotions = new Map();
+
 async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1, options = {}) {
   if (!show || !episode) return episode;
   const episodeNumber = getCanonicalEpisodeNumber(episode, 1);
@@ -8982,14 +8984,25 @@ async function attachPlaybackSourceOptions(show, episode, seasonNumber = 1, opti
       if (primaryReady()) return;
     }
   };
+  const backupEligibleAt = Date.now() + SOURCE_EAGER_FALLBACK_DELAY_MS;
+  const first = discover();
+  let second;
+  const prioritize = () => {
+    if (second) return;
+    lookupOptions.priority = "high";
+    second = Promise.race([first, wait(Math.max(0, backupEligibleAt - Date.now()))]).then(() => {
+      if (providers.length && !primaryReady()) return discover();
+    });
+  };
+  pendingPlaybackPromotions.set(lookupKey, prioritize);
+  if (options.eagerFallbacks) prioritize();
   const primaryLookup = (async () => {
-    const first = discover();
-    let second;
-    if (options.eagerFallbacks) {
-      await Promise.race([first, wait(SOURCE_EAGER_FALLBACK_DELAY_MS)]);
-      if (providers.length && !primaryReady()) second = discover();
+    try {
+      await first;
+      await second;
+    } finally {
+      if (pendingPlaybackPromotions.get(lookupKey) === prioritize) pendingPlaybackPromotions.delete(lookupKey);
     }
-    await Promise.all([first, second]);
 
     if (!preferUpnShare && getEpisodePlaybackSources(episode).some(isAnimeNeonSource)) {
       episode.animeAv1SourcesChecked = true;
@@ -9242,6 +9255,8 @@ function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options 
     return withAutoReplay(Promise.resolve(episode));
   }
   // Share the first usable result before waiting for the entire server sweep.
+  const eagerFallbacks = !options.backgroundWarmup && Boolean(options.eagerFallbacks || options.autoReplay || state.playIntent);
+  if (eagerFallbacks) pendingPlaybackPromotions.get(lookupKey)?.();
   if (pendingSourceLookups.has(lookupKey)) {
     return withAutoReplay(pendingSourceLookups.get(lookupKey));
   }
@@ -9254,9 +9269,7 @@ function schedulePlaybackSourceOptions(show, episode, seasonNumber = 1, options 
     // A background next-episode warm-up should fetch the primary once, but must
     // not fan out to every provider merely because the current episode has play
     // intent. Confirmed primary misses still use the normal fallback path.
-    eagerFallbacks: options.backgroundWarmup
-      ? false
-      : Boolean(options.eagerFallbacks || options.autoReplay || state.playIntent)
+    eagerFallbacks
   })
     .catch((error) => {
       console.warn("Playback source lookup failed:", error);
@@ -24787,7 +24800,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1042");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1043");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

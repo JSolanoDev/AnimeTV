@@ -2372,12 +2372,12 @@ function recordSourceFailure(key, error) {
 
 const mediaRetryAfter = new Map();
 
-async function fetchMediaWithRecovery(target, signal, read) {
+async function fetchMediaWithRecovery(target, signal, read, timeoutMs = 12000) {
   const startedAt = Date.now();
   let response;
   let failure;
   try {
-    response = await read(12000);
+    response = await read(timeoutMs);
     if (![502, 503, 504].includes(response.status) || response.headers.has("retry-after")) return response;
   } catch (error) {
     if (!["ECONNRESET", "EPIPE", "UND_ERR_SOCKET"].includes(error?.cause?.code || error?.code)) throw error;
@@ -2387,7 +2387,7 @@ async function fetchMediaWithRecovery(target, signal, read) {
   // cooldown. Parallel segment reads share the same host retry allowance.
   const now = Date.now();
   const host = new URL(target).hostname;
-  if (signal.aborted || now - startedAt > 1500 || (mediaRetryAfter.get(host) || 0) > now) {
+  if (signal?.aborted || now - startedAt >= timeoutMs || now - startedAt > 1500 || (mediaRetryAfter.get(host) || 0) > now) {
     if (failure) throw failure;
     return response;
   }
@@ -2395,7 +2395,12 @@ async function fetchMediaWithRecovery(target, signal, read) {
   if (mediaRetryAfter.size >= 200) mediaRetryAfter.delete(mediaRetryAfter.keys().next().value);
   mediaRetryAfter.set(host, now + 10000);
   if (response) void response.body?.cancel().catch(() => {});
-  return read(12000 - (now - startedAt));
+  return read(timeoutMs - (now - startedAt));
+}
+
+function fetchPlaybackLookup(target, headers, timeoutMs) {
+  return fetchMediaWithRecovery(target, undefined,
+    remainingMs => fetchWithTimeout(target, { headers }, remainingMs), timeoutMs);
 }
 
 async function fetchSourcePlaylistSnapshot(target, headers) {
@@ -9677,15 +9682,13 @@ async function resolveUpnShareEmbed(embedUrl = "") {
   const videoId = upnShareVideoId(embedUrl);
   if (!videoId) return null;
   const origin = "https://animeav1.uns.bio";
-  const upstream = await fetchWithTimeout(`${origin}/api/v1/video?id=${encodeURIComponent(videoId)}`, {
-    headers: {
-      ...GENERIC_CRAWL_HEADERS,
-      Accept: "application/octet-stream,*/*;q=0.8",
-      Referer: `${origin}/`,
-      Origin: origin
-    }
+  const upstream = await fetchPlaybackLookup(`${origin}/api/v1/video?id=${encodeURIComponent(videoId)}`, {
+    ...GENERIC_CRAWL_HEADERS,
+    Accept: "application/octet-stream,*/*;q=0.8",
+    Referer: `${origin}/`,
+    Origin: origin
   }, HOSTED_RUNTIME ? 7000 : 10000);
-  if (!upstream.ok) throw new Error(`UPNShare player returned HTTP ${upstream.status}.`);
+  if (!upstream.ok) throw upstreamHttpError("UPNShare player", upstream);
   const payload = decryptUpnSharePayload(await upstream.text());
   // cfNative is the same H.264/AAC ladder as source, but its master and child
   // manifests are served through UPNShare's edge in under a second. The raw
@@ -9867,9 +9870,8 @@ async function handleResolveEmbed(reqUrl, response) {
       let requestReferer = referer;
       let html = "";
       for (let redirectCount = 0; redirectCount < 3; redirectCount += 1) {
-        const upstream = await fetchWithTimeout(resolvedTarget, {
-          headers: { ...GENERIC_CRAWL_HEADERS, Referer: requestReferer }
-        }, HOSTED_RUNTIME ? 8000 : 12000);
+        const upstream = await fetchPlaybackLookup(resolvedTarget,
+          { ...GENERIC_CRAWL_HEADERS, Referer: requestReferer }, HOSTED_RUNTIME ? 8000 : 12000);
         if (!upstream.ok) throw upstreamHttpError("Embed", upstream);
         html = await upstream.text();
         const redirect = extractEmbedPageRedirect(html, resolvedTarget);

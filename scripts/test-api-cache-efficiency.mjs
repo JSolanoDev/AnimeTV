@@ -274,7 +274,7 @@ test("portable HLS verification has time to finish without extending server time
   assert.match(client, /RELIABLE_PLAYBACK_HANDOFF_VERIFY_MS = 10000/);
   const proxy = section(server, "async function handleSourceProxy(", "function compactCatalogPayload(");
   assert.match(proxy, /fetchMediaWithRecovery\(relayTarget, relayController\.signal/);
-  assert.match(server, /return read\(12000 - \(now - startedAt\)\)/);
+  assert.match(server, /return read\(timeoutMs - \(now - startedAt\)\)/);
 });
 
 test("JKAnime challenge pages do not become cached episode misses", () => {
@@ -1179,6 +1179,24 @@ function embedHarness(fetchImpl) {
   vm.runInContext(section(server, "async function handleResolveEmbed(", "function animeAv1RelativeReleaseAt("), h.c);
   return h;
 }
+
+test("a quick gateway failure gets one shared resolver retry inside the original lookup deadline", async () => {
+  const h = embedHarness((_url, options, timeoutMs) => {
+    assert.equal(options.headers.Referer, "https://embed.test/");
+    if (h.calls.length === 1) {
+      assert.equal(timeoutMs, 8000);
+      h.advance(300);
+      return new Response(null, {status:502});
+    }
+    assert.equal(timeoutMs, 7700);
+    return new Response("fixture");
+  });
+  const url = new URL("https://app.test/api/resolve?url=https://embed.test/fixture");
+  const responses = [h.response(), h.response()];
+  await Promise.all(responses.map(r => h.c.handleResolveEmbed(url, r)));
+  assert.ok(responses.every(r => r.status === 200 && JSON.parse(r.text()).ok));
+  assert.equal(h.calls.length, 2);
+});
 
 test("failed embed resolution backs off without hiding errors or blocking independent fallbacks", async () => {
   let down = true;
