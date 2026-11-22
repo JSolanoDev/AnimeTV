@@ -49680,8 +49680,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/dark-summoner-to-dekiteiru",
-      "totalEpisodes": 7,
-      "episode": 7,
+      "totalEpisodes": 8,
+      "episode": 8,
       "lastScrapedAt": "2026-11-22T13:45:56.966877+00:00",
       "episodes": [],
       "seasons": [],
@@ -49697,16 +49697,18 @@
         4,
         5,
         6,
-        7
+        7,
+        8
       ],
-      "sourceEpisodeCount": 7,
-      "sourcePlayableEpisodeCount": 7,
+      "sourceEpisodeCount": 8,
+      "sourcePlayableEpisodeCount": 8,
       "sourceDeclaredEpisodeCount": 7,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-22T13:52:41.272Z",
-      "latestAiredEp": 7,
-      "lastEpisodeAt": "2026-11-15T16:56:55.979Z"
+      "sourceInventoryCheckedAt": "2026-11-22T22:44:35.832Z",
+      "latestAiredEp": 8,
+      "lastEpisodeAt": "2026-11-22T17:44:35.797Z",
+      "sourceInventoryRetainedEpisodeCount": 7
     },
     {
       "id": "animeav1-dogulwang",
