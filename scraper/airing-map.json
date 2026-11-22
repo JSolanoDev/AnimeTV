@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-22T14:27:25.032Z",
+  "generatedAt": "2026-11-22T17:20:56.571Z",
   "count": 6680,
   "entries": {
     "animeav1-one-piece": {
@@ -171223,8 +171223,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795357800000,
-      "nextAiringEpisodeNumber": 9,
+      "nextAiringAt": 1795962600000,
+      "nextAiringEpisodeNumber": 10,
       "franchiseSeasons": [
         {
           "anilistId": 164702,
@@ -171269,8 +171269,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795357800000,
-      "nextAiringEpisodeNumber": 9,
+      "nextAiringAt": 1795962600000,
+      "nextAiringEpisodeNumber": 10,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 8,
       "lastEpisodeAt": "2026-11-15T14:49:18.131Z"
@@ -237677,8 +237677,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1795359600000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1795964400000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 7,
       "lastEpisodeAt": "2026-11-15T16:11:38.111Z"
@@ -237689,8 +237689,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1795358700000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1795963500000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
         {
           "anilistId": 184034,
@@ -237724,8 +237724,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795357800000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1795962600000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 7,
       "lastEpisodeAt": "2026-11-15T14:51:24.188Z"
@@ -241554,8 +241554,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1795357800000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1795962600000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 6,
       "lastEpisodeAt": "2026-11-15T14:48:45.344Z"
