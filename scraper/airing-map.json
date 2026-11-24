@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-11-23T17:29:23.462Z",
-  "count": 6683,
+  "generatedAt": "2026-11-24T17:23:16.497Z",
+  "count": 6686,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -120,8 +120,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 11,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2021,
           "startedAt": 1619740800000,
           "order": 1
         },
@@ -131,8 +131,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2023,
           "startedAt": 1689292800000,
           "order": 2
         },
@@ -142,8 +142,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 6,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2025,
           "startedAt": 1735257600000,
           "order": 3
         },
@@ -804,8 +804,8 @@
       "season": "SUMMER",
       "seasonYear": 2026,
       "anilistEpisodeCount": 24,
-      "nextAiringAt": 1795538100000,
-      "nextAiringEpisodeNumber": 21,
+      "nextAiringAt": 1796142900000,
+      "nextAiringEpisodeNumber": 22,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 20,
       "lastEpisodeAt": "2026-11-17T18:59:55.158Z"
@@ -2967,7 +2967,7 @@
           "episodes": null,
           "season": "WINTER",
           "seasonYear": 2027,
-          "startedAt": 1798761600000,
+          "startedAt": 1799452800000,
           "order": 2
         }
       ],
@@ -5523,8 +5523,8 @@
           "format": "TV",
           "status": "FINISHED",
           "episodes": 24,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2017,
           "startedAt": 1509062400000,
           "order": 2
         },
@@ -5534,8 +5534,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2020,
           "startedAt": 1587686400000,
           "order": 3
         },
@@ -5545,8 +5545,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1632441600000,
           "order": 4
         },
@@ -5556,8 +5556,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1670544000000,
           "order": 5
         },
@@ -5645,8 +5645,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1635552000000,
           "order": 2
         },
@@ -5656,8 +5656,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2022,
           "startedAt": 1664496000000,
           "order": 3
         },
@@ -5667,8 +5667,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2024,
           "startedAt": 1702771200000,
           "order": 4
         },
@@ -7202,8 +7202,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 17,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2022,
           "startedAt": 1660867200000,
           "order": 1
         },
@@ -7247,8 +7247,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 28,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2011,
           "startedAt": 1300320000000,
           "order": 1
         },
@@ -7258,8 +7258,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2021,
           "startedAt": 1619222400000,
           "order": 2
         },
@@ -11429,8 +11429,8 @@
     "animeav1-shiguang-dailiren-yingdu-pian": {
       "anilistId": 170166,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "WINTER",
+      "seasonYear": 2025,
       "anilistEpisodeCount": 6,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -11441,8 +11441,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 11,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2021,
           "startedAt": 1619740800000,
           "order": 1
         },
@@ -11452,8 +11452,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2023,
           "startedAt": 1689292800000,
           "order": 2
         },
@@ -11463,8 +11463,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 6,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2025,
           "startedAt": 1735257600000,
           "order": 3
         },
@@ -11484,8 +11484,8 @@
     "animeav1-zuoshou-shanglan-2nd-season": {
       "anilistId": 168116,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "WINTER",
+      "seasonYear": 2025,
       "anilistEpisodeCount": 9,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -11496,8 +11496,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1675296000000,
           "order": 1
         },
@@ -11507,8 +11507,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 9,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2025,
           "startedAt": 1734652800000,
           "order": 2
         },
@@ -13486,8 +13486,8 @@
     "animeav1-wu-liuqi-jiyi-suipian": {
       "anilistId": 182445,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "FALL",
+      "seasonYear": 2024,
       "anilistEpisodeCount": 10,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -13520,8 +13520,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2021,
           "startedAt": 1611705600000,
           "order": 3
         },
@@ -13531,8 +13531,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1674000000000,
           "order": 4
         },
@@ -13542,8 +13542,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2024,
           "startedAt": 1727827200000,
           "order": 5
         }
@@ -15629,8 +15629,8 @@
     "animeav1-xiehou-ta-de-shaonu-shidai": {
       "anilistId": 177512,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "SPRING",
+      "seasonYear": 2024,
       "anilistEpisodeCount": 18,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -18910,8 +18910,8 @@
     "animeav1-xian-wang-de-richang-shenghuo-4": {
       "anilistId": 156110,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "WINTER",
+      "seasonYear": 2024,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -18933,8 +18933,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1635552000000,
           "order": 2
         },
@@ -18944,8 +18944,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2022,
           "startedAt": 1664496000000,
           "order": 3
         },
@@ -18955,8 +18955,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2024,
           "startedAt": 1702771200000,
           "order": 4
         },
@@ -21081,8 +21081,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 11,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2021,
           "startedAt": 1619740800000,
           "order": 1
         },
@@ -21092,8 +21092,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2023,
           "startedAt": 1689292800000,
           "order": 2
         },
@@ -21103,8 +21103,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 6,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2025,
           "startedAt": 1735257600000,
           "order": 3
         },
@@ -22477,8 +22477,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 15,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2023,
           "startedAt": 1685577600000,
           "order": 1
         },
@@ -22607,8 +22607,8 @@
     "animeav1-aishang-ta-de-liyou": {
       "anilistId": 156111,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "SPRING",
+      "seasonYear": 2023,
       "anilistEpisodeCount": 22,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -22619,8 +22619,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 22,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2023,
           "startedAt": 1681948800000,
           "order": 1
         },
@@ -22716,8 +22716,8 @@
     "animeav1-aiyou-de-mishi": {
       "anilistId": 141855,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "SPRING",
+      "seasonYear": 2023,
       "anilistEpisodeCount": 16,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -24048,8 +24048,8 @@
     "animeav1-zuoshou-shanglan": {
       "anilistId": 131485,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "WINTER",
+      "seasonYear": 2023,
       "anilistEpisodeCount": 8,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -24060,8 +24060,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1675296000000,
           "order": 1
         },
@@ -24071,8 +24071,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 9,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2025,
           "startedAt": 1734652800000,
           "order": 2
         },
@@ -24112,8 +24112,8 @@
     "animeav1-wu-liuqi-anying-suming": {
       "anilistId": 159490,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "WINTER",
+      "seasonYear": 2023,
       "anilistEpisodeCount": 10,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -24146,8 +24146,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2021,
           "startedAt": 1611705600000,
           "order": 3
         },
@@ -24157,8 +24157,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1674000000000,
           "order": 4
         },
@@ -24168,8 +24168,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2024,
           "startedAt": 1727827200000,
           "order": 5
         }
@@ -25370,8 +25370,8 @@
     "animeav1-yi-ren-zhi-xia-5": {
       "anilistId": 142298,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "WINTER",
+      "seasonYear": 2023,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -25393,8 +25393,8 @@
           "format": "TV",
           "status": "FINISHED",
           "episodes": 24,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2017,
           "startedAt": 1509062400000,
           "order": 2
         },
@@ -25404,8 +25404,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2020,
           "startedAt": 1587686400000,
           "order": 3
         },
@@ -25415,8 +25415,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1632441600000,
           "order": 4
         },
@@ -25426,8 +25426,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1670544000000,
           "order": 5
         },
@@ -26896,8 +26896,8 @@
     "animeav1-xian-wang-de-richang-shenghuo-3": {
       "anilistId": 141852,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "FALL",
+      "seasonYear": 2022,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -26919,8 +26919,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1635552000000,
           "order": 2
         },
@@ -26930,8 +26930,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2022,
           "startedAt": 1664496000000,
           "order": 3
         },
@@ -26941,8 +26941,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2024,
           "startedAt": 1702771200000,
           "order": 4
         },
@@ -27080,8 +27080,8 @@
     "animeav1-long-zu": {
       "anilistId": 122511,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "SUMMER",
+      "seasonYear": 2022,
       "anilistEpisodeCount": 17,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -27092,8 +27092,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 17,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2022,
           "startedAt": 1660867200000,
           "order": 1
         },
@@ -35374,8 +35374,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 11,
-      "nextAiringAt": 1795528800000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1796133600000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 180082,
@@ -35400,8 +35400,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-17T16:54:21.110Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-24T16:40:03.690Z"
     },
     "anilist-175019": {
       "anilistId": 175019,
@@ -35809,7 +35809,7 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1795881360000,
+      "nextAiringAt": 1795881300000,
       "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
         {
@@ -40409,8 +40409,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 15,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2023,
           "startedAt": 1685577600000,
           "order": 1
         },
@@ -44258,7 +44258,7 @@
           "episodes": null,
           "season": "WINTER",
           "seasonYear": 2027,
-          "startedAt": 1798761600000,
+          "startedAt": 1799452800000,
           "order": 2
         }
       ],
@@ -44270,8 +44270,8 @@
       "season": "WINTER",
       "seasonYear": 2027,
       "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
+      "nextAiringAt": 1799505000000,
+      "nextAiringEpisodeNumber": 1,
       "franchiseSeasons": [
         {
           "anilistId": 196935,
@@ -44292,7 +44292,7 @@
           "episodes": null,
           "season": "WINTER",
           "seasonYear": 2027,
-          "startedAt": 1798761600000,
+          "startedAt": 1799452800000,
           "order": 2
         }
       ]
@@ -52930,8 +52930,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 11,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2021,
           "startedAt": 1619740800000,
           "order": 1
         },
@@ -52941,8 +52941,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2023,
           "startedAt": 1689292800000,
           "order": 2
         },
@@ -52952,8 +52952,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 6,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2025,
           "startedAt": 1735257600000,
           "order": 3
         },
@@ -52985,8 +52985,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 11,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2021,
           "startedAt": 1619740800000,
           "order": 1
         },
@@ -52996,8 +52996,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2023,
           "startedAt": 1689292800000,
           "order": 2
         },
@@ -53007,8 +53007,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 6,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2025,
           "startedAt": 1735257600000,
           "order": 3
         },
@@ -53040,8 +53040,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 11,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2021,
           "startedAt": 1619740800000,
           "order": 1
         },
@@ -53051,8 +53051,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2023,
           "startedAt": 1689292800000,
           "order": 2
         },
@@ -53062,8 +53062,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 6,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2025,
           "startedAt": 1735257600000,
           "order": 3
         },
@@ -72472,8 +72472,8 @@
     "animeav1-evil-or-live": {
       "anilistId": 100226,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "FALL",
+      "seasonYear": 2017,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -82150,8 +82150,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2020,
           "startedAt": 1605398400000,
           "order": 2
         },
@@ -82161,8 +82161,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2022,
           "startedAt": 1659225600000,
           "order": 3
         },
@@ -82172,8 +82172,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2024,
           "startedAt": 1710028800000,
           "order": 4
         }
@@ -82442,8 +82442,8 @@
     "animeav1-yi-ren-zhi-xia-2": {
       "anilistId": 98574,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "FALL",
+      "seasonYear": 2017,
       "anilistEpisodeCount": 24,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -82465,8 +82465,8 @@
           "format": "TV",
           "status": "FINISHED",
           "episodes": 24,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2017,
           "startedAt": 1509062400000,
           "order": 2
         },
@@ -82476,8 +82476,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2020,
           "startedAt": 1587686400000,
           "order": 3
         },
@@ -82487,8 +82487,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1632441600000,
           "order": 4
         },
@@ -82498,8 +82498,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1670544000000,
           "order": 5
         },
@@ -82877,8 +82877,8 @@
           "format": "TV",
           "status": "FINISHED",
           "episodes": 24,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2017,
           "startedAt": 1509062400000,
           "order": 2
         },
@@ -82888,8 +82888,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2020,
           "startedAt": 1587686400000,
           "order": 3
         },
@@ -82899,8 +82899,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1632441600000,
           "order": 4
         },
@@ -82910,8 +82910,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1670544000000,
           "order": 5
         },
@@ -100686,8 +100686,8 @@
     "animeav1-ling-qi-2": {
       "anilistId": 100813,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "WINTER",
+      "seasonYear": 2018,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -100709,8 +100709,8 @@
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2018,
           "startedAt": 1519430400000,
           "order": 2
         }
@@ -100992,8 +100992,8 @@
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2018,
           "startedAt": 1519430400000,
           "order": 2
         }
@@ -102915,8 +102915,8 @@
     "animeav1-mo-dao-zu-shi-q": {
       "anilistId": 120343,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "SUMMER",
+      "seasonYear": 2020,
       "anilistEpisodeCount": 30,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -103629,8 +103629,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2019,
           "startedAt": 1564790400000,
           "order": 2
         },
@@ -103640,8 +103640,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2021,
           "startedAt": 1628294400000,
           "order": 3
         }
@@ -118799,8 +118799,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 11,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2021,
           "startedAt": 1619740800000,
           "order": 1
         },
@@ -118810,8 +118810,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2023,
           "startedAt": 1689292800000,
           "order": 2
         },
@@ -118821,8 +118821,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 6,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2025,
           "startedAt": 1735257600000,
           "order": 3
         },
@@ -119091,8 +119091,8 @@
     "animeav1-wu-liuqi-xuanwu-guo-pian": {
       "anilistId": 127595,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "WINTER",
+      "seasonYear": 2021,
       "anilistEpisodeCount": 10,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -119125,8 +119125,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2021,
           "startedAt": 1611705600000,
           "order": 3
         },
@@ -119136,8 +119136,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1674000000000,
           "order": 4
         },
@@ -119147,8 +119147,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2024,
           "startedAt": 1727827200000,
           "order": 5
         }
@@ -119634,8 +119634,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2021,
           "startedAt": 1611705600000,
           "order": 3
         },
@@ -119645,8 +119645,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1674000000000,
           "order": 4
         },
@@ -119656,8 +119656,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2024,
           "startedAt": 1727827200000,
           "order": 5
         }
@@ -120643,8 +120643,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2021,
           "startedAt": 1611705600000,
           "order": 3
         },
@@ -120654,8 +120654,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1674000000000,
           "order": 4
         },
@@ -120665,8 +120665,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2024,
           "startedAt": 1727827200000,
           "order": 5
         }
@@ -129740,7 +129740,7 @@
       "franchiseSeasons": [
         {
           "anilistId": 128712,
-          "title": "Tantei wa mou, Shindeiru.",
+          "title": "Tantei wa Mou, Shindeiru.",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -129751,7 +129751,7 @@
         },
         {
           "anilistId": 152677,
-          "title": "Tantei wa mou, Shindeiru. Season 2",
+          "title": "Tantei wa Mou, Shindeiru. Season 2",
           "format": "TV",
           "status": "RELEASING",
           "episodes": 13,
@@ -130597,8 +130597,8 @@
     "animeav1-tu-bian-yingxiong-leaf": {
       "anilistId": 98575,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "SPRING",
+      "seasonYear": 2018,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -130609,8 +130609,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2016,
           "startedAt": 1475625600000,
           "order": 1
         },
@@ -130620,8 +130620,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2018,
           "startedAt": 1523664000000,
           "order": 2
         }
@@ -130942,8 +130942,8 @@
     "animeav1-tu-bian-yingxiong-baba": {
       "anilistId": 97616,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "FALL",
+      "seasonYear": 2016,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -130954,8 +130954,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2016,
           "startedAt": 1475625600000,
           "order": 1
         },
@@ -130965,8 +130965,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2018,
           "startedAt": 1523664000000,
           "order": 2
         }
@@ -136234,8 +136234,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1635552000000,
           "order": 2
         },
@@ -136245,8 +136245,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2022,
           "startedAt": 1664496000000,
           "order": 3
         },
@@ -136256,8 +136256,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2024,
           "startedAt": 1702771200000,
           "order": 4
         },
@@ -136311,8 +136311,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1635552000000,
           "order": 2
         },
@@ -136322,8 +136322,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2022,
           "startedAt": 1664496000000,
           "order": 3
         },
@@ -136333,8 +136333,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2024,
           "startedAt": 1702771200000,
           "order": 4
         },
@@ -136638,8 +136638,8 @@
     "animeav1-yi-ren-zhi-xia-4": {
       "anilistId": 122631,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "FALL",
+      "seasonYear": 2021,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -136661,8 +136661,8 @@
           "format": "TV",
           "status": "FINISHED",
           "episodes": 24,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2017,
           "startedAt": 1509062400000,
           "order": 2
         },
@@ -136672,8 +136672,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2020,
           "startedAt": 1587686400000,
           "order": 3
         },
@@ -136683,8 +136683,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1632441600000,
           "order": 4
         },
@@ -136694,8 +136694,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1670544000000,
           "order": 5
         },
@@ -137406,8 +137406,8 @@
     "animeav1-yi-ren-zhi-xia-3-rushi-pian": {
       "anilistId": 105401,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "SPRING",
+      "seasonYear": 2020,
       "anilistEpisodeCount": 8,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -137429,8 +137429,8 @@
           "format": "TV",
           "status": "FINISHED",
           "episodes": 24,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2017,
           "startedAt": 1509062400000,
           "order": 2
         },
@@ -137440,8 +137440,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2020,
           "startedAt": 1587686400000,
           "order": 3
         },
@@ -137451,8 +137451,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1632441600000,
           "order": 4
         },
@@ -137462,8 +137462,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1670544000000,
           "order": 5
         },
@@ -142883,8 +142883,8 @@
     "animeav1-evil-or-live-recap": {
       "anilistId": 100226,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "FALL",
+      "seasonYear": 2017,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -146295,8 +146295,8 @@
     "animeav1-mo-dao-zu-shi-wanjie-pian": {
       "anilistId": 121467,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "SUMMER",
+      "seasonYear": 2021,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -146318,8 +146318,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2019,
           "startedAt": 1564790400000,
           "order": 2
         },
@@ -146329,8 +146329,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2021,
           "startedAt": 1628294400000,
           "order": 3
         }
@@ -146395,8 +146395,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2019,
           "startedAt": 1564790400000,
           "order": 2
         },
@@ -146406,8 +146406,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2021,
           "startedAt": 1628294400000,
           "order": 3
         }
@@ -156308,8 +156308,8 @@
           "format": "TV",
           "status": "FINISHED",
           "episodes": 24,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2017,
           "startedAt": 1509062400000,
           "order": 2
         },
@@ -156319,8 +156319,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2020,
           "startedAt": 1587686400000,
           "order": 3
         },
@@ -156330,8 +156330,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1632441600000,
           "order": 4
         },
@@ -156341,8 +156341,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1670544000000,
           "order": 5
         },
@@ -156362,8 +156362,8 @@
     "anilist-98574": {
       "anilistId": 98574,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "FALL",
+      "seasonYear": 2017,
       "anilistEpisodeCount": 24,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -156385,8 +156385,8 @@
           "format": "TV",
           "status": "FINISHED",
           "episodes": 24,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2017,
           "startedAt": 1509062400000,
           "order": 2
         },
@@ -156396,8 +156396,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2020,
           "startedAt": 1587686400000,
           "order": 3
         },
@@ -156407,8 +156407,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1632441600000,
           "order": 4
         },
@@ -156418,8 +156418,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1670544000000,
           "order": 5
         },
@@ -160464,8 +160464,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2019,
           "startedAt": 1564790400000,
           "order": 2
         },
@@ -160475,8 +160475,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2021,
           "startedAt": 1628294400000,
           "order": 3
         }
@@ -160508,8 +160508,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2019,
           "startedAt": 1564790400000,
           "order": 2
         },
@@ -160519,8 +160519,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2021,
           "startedAt": 1628294400000,
           "order": 3
         }
@@ -166376,7 +166376,7 @@
       "franchiseSeasons": [
         {
           "anilistId": 128712,
-          "title": "Tantei wa mou, Shindeiru.",
+          "title": "Tantei wa Mou, Shindeiru.",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -166387,7 +166387,7 @@
         },
         {
           "anilistId": 152677,
-          "title": "Tantei wa mou, Shindeiru. Season 2",
+          "title": "Tantei wa Mou, Shindeiru. Season 2",
           "format": "TV",
           "status": "RELEASING",
           "episodes": 13,
@@ -166409,7 +166409,7 @@
       "franchiseSeasons": [
         {
           "anilistId": 128712,
-          "title": "Tantei wa mou, Shindeiru.",
+          "title": "Tantei wa Mou, Shindeiru.",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -166420,7 +166420,7 @@
         },
         {
           "anilistId": 152677,
-          "title": "Tantei wa mou, Shindeiru. Season 2",
+          "title": "Tantei wa Mou, Shindeiru. Season 2",
           "format": "TV",
           "status": "RELEASING",
           "episodes": 13,
@@ -171463,7 +171463,7 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1795798380000,
+      "nextAiringAt": 1795796580000,
       "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
         {
@@ -171795,11 +171795,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 23,
-      "nextAiringAt": 1795530600000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1796135400000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-17T15:21:26.367Z"
+      "sourceEpisodeCount": 8,
+      "lastEpisodeAt": "2026-11-24T15:19:19.611Z"
     },
     "animeav1-kashita-maryoku-wa-revo-barai-de-kyousei-choushuu": {
       "anilistId": 202250,
@@ -171819,7 +171819,7 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1795881360000,
+      "nextAiringAt": 1795881300000,
       "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
         {
@@ -172119,8 +172119,8 @@
     "anilist-170166": {
       "anilistId": 170166,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "WINTER",
+      "seasonYear": 2025,
       "anilistEpisodeCount": 6,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -172131,8 +172131,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 11,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2021,
           "startedAt": 1619740800000,
           "order": 1
         },
@@ -172142,8 +172142,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2023,
           "startedAt": 1689292800000,
           "order": 2
         },
@@ -172153,8 +172153,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 6,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2025,
           "startedAt": 1735257600000,
           "order": 3
         },
@@ -179732,8 +179732,8 @@
     "anilist-105401": {
       "anilistId": 105401,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "SPRING",
+      "seasonYear": 2020,
       "anilistEpisodeCount": 8,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -179755,8 +179755,8 @@
           "format": "TV",
           "status": "FINISHED",
           "episodes": 24,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2017,
           "startedAt": 1509062400000,
           "order": 2
         },
@@ -179766,8 +179766,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2020,
           "startedAt": 1587686400000,
           "order": 3
         },
@@ -179777,8 +179777,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1632441600000,
           "order": 4
         },
@@ -179788,8 +179788,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1670544000000,
           "order": 5
         },
@@ -179809,8 +179809,8 @@
     "anilist-122631": {
       "anilistId": 122631,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "FALL",
+      "seasonYear": 2021,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -179832,8 +179832,8 @@
           "format": "TV",
           "status": "FINISHED",
           "episodes": 24,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2017,
           "startedAt": 1509062400000,
           "order": 2
         },
@@ -179843,8 +179843,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2020,
           "startedAt": 1587686400000,
           "order": 3
         },
@@ -179854,8 +179854,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1632441600000,
           "order": 4
         },
@@ -179865,8 +179865,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1670544000000,
           "order": 5
         },
@@ -179886,8 +179886,8 @@
     "anilist-142298": {
       "anilistId": 142298,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "WINTER",
+      "seasonYear": 2023,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -179909,8 +179909,8 @@
           "format": "TV",
           "status": "FINISHED",
           "episodes": 24,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2017,
           "startedAt": 1509062400000,
           "order": 2
         },
@@ -179920,8 +179920,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2020,
           "startedAt": 1587686400000,
           "order": 3
         },
@@ -179931,8 +179931,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1632441600000,
           "order": 4
         },
@@ -179942,8 +179942,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1670544000000,
           "order": 5
         },
@@ -179986,8 +179986,8 @@
           "format": "TV",
           "status": "FINISHED",
           "episodes": 24,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2017,
           "startedAt": 1509062400000,
           "order": 2
         },
@@ -179997,8 +179997,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2020,
           "startedAt": 1587686400000,
           "order": 3
         },
@@ -180008,8 +180008,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1632441600000,
           "order": 4
         },
@@ -180019,8 +180019,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1670544000000,
           "order": 5
         },
@@ -180196,8 +180196,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1635552000000,
           "order": 2
         },
@@ -180207,8 +180207,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2022,
           "startedAt": 1664496000000,
           "order": 3
         },
@@ -180218,8 +180218,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2024,
           "startedAt": 1702771200000,
           "order": 4
         },
@@ -180273,8 +180273,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1635552000000,
           "order": 2
         },
@@ -180284,8 +180284,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2022,
           "startedAt": 1664496000000,
           "order": 3
         },
@@ -180295,8 +180295,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2024,
           "startedAt": 1702771200000,
           "order": 4
         },
@@ -180327,8 +180327,8 @@
     "anilist-141852": {
       "anilistId": 141852,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "FALL",
+      "seasonYear": 2022,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -180350,8 +180350,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1635552000000,
           "order": 2
         },
@@ -180361,8 +180361,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2022,
           "startedAt": 1664496000000,
           "order": 3
         },
@@ -180372,8 +180372,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2024,
           "startedAt": 1702771200000,
           "order": 4
         },
@@ -180404,8 +180404,8 @@
     "anilist-156110": {
       "anilistId": 156110,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "WINTER",
+      "seasonYear": 2024,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -180427,8 +180427,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1635552000000,
           "order": 2
         },
@@ -180438,8 +180438,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2022,
           "startedAt": 1664496000000,
           "order": 3
         },
@@ -180449,8 +180449,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2024,
           "startedAt": 1702771200000,
           "order": 4
         },
@@ -180504,8 +180504,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2021,
           "startedAt": 1635552000000,
           "order": 2
         },
@@ -180515,8 +180515,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2022,
           "startedAt": 1664496000000,
           "order": 3
         },
@@ -180526,8 +180526,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2024,
           "startedAt": 1702771200000,
           "order": 4
         },
@@ -181662,8 +181662,8 @@
     "anilist-122511": {
       "anilistId": 122511,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "SUMMER",
+      "seasonYear": 2022,
       "anilistEpisodeCount": 17,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -181674,8 +181674,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 17,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2022,
           "startedAt": 1660867200000,
           "order": 1
         },
@@ -181718,8 +181718,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 17,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2022,
           "startedAt": 1660867200000,
           "order": 1
         },
@@ -181763,8 +181763,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 17,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2022,
           "startedAt": 1660867200000,
           "order": 1
         },
@@ -181795,8 +181795,8 @@
     "anilist-102663": {
       "anilistId": 102663,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "SPRING",
+      "seasonYear": 2011,
       "anilistEpisodeCount": 28,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -181807,8 +181807,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 28,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2011,
           "startedAt": 1300320000000,
           "order": 1
         },
@@ -181818,8 +181818,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2021,
           "startedAt": 1619222400000,
           "order": 2
         },
@@ -181862,8 +181862,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 28,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2011,
           "startedAt": 1300320000000,
           "order": 1
         },
@@ -181873,8 +181873,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2021,
           "startedAt": 1619222400000,
           "order": 2
         },
@@ -184345,8 +184345,8 @@
     "anilist-131485": {
       "anilistId": 131485,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "WINTER",
+      "seasonYear": 2023,
       "anilistEpisodeCount": 8,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -184357,8 +184357,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1675296000000,
           "order": 1
         },
@@ -184368,8 +184368,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 9,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2025,
           "startedAt": 1734652800000,
           "order": 2
         },
@@ -184389,8 +184389,8 @@
     "anilist-168116": {
       "anilistId": 168116,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "WINTER",
+      "seasonYear": 2025,
       "anilistEpisodeCount": 9,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -184401,8 +184401,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1675296000000,
           "order": 1
         },
@@ -184412,8 +184412,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 9,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2025,
           "startedAt": 1734652800000,
           "order": 2
         },
@@ -184445,8 +184445,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1675296000000,
           "order": 1
         },
@@ -184456,8 +184456,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 9,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2025,
           "startedAt": 1734652800000,
           "order": 2
         },
@@ -185536,7 +185536,7 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1795961760000,
+      "nextAiringAt": 1795961700000,
       "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
@@ -187507,8 +187507,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2021,
           "startedAt": 1611705600000,
           "order": 3
         },
@@ -187518,8 +187518,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1674000000000,
           "order": 4
         },
@@ -187529,8 +187529,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2024,
           "startedAt": 1727827200000,
           "order": 5
         }
@@ -187573,8 +187573,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2021,
           "startedAt": 1611705600000,
           "order": 3
         },
@@ -187584,8 +187584,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1674000000000,
           "order": 4
         },
@@ -187595,8 +187595,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2024,
           "startedAt": 1727827200000,
           "order": 5
         }
@@ -187605,8 +187605,8 @@
     "anilist-127595": {
       "anilistId": 127595,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "WINTER",
+      "seasonYear": 2021,
       "anilistEpisodeCount": 10,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -187639,8 +187639,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2021,
           "startedAt": 1611705600000,
           "order": 3
         },
@@ -187650,8 +187650,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1674000000000,
           "order": 4
         },
@@ -187661,8 +187661,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2024,
           "startedAt": 1727827200000,
           "order": 5
         }
@@ -187671,8 +187671,8 @@
     "anilist-159490": {
       "anilistId": 159490,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "WINTER",
+      "seasonYear": 2023,
       "anilistEpisodeCount": 10,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -187705,8 +187705,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2021,
           "startedAt": 1611705600000,
           "order": 3
         },
@@ -187716,8 +187716,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1674000000000,
           "order": 4
         },
@@ -187727,8 +187727,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2024,
           "startedAt": 1727827200000,
           "order": 5
         }
@@ -187737,8 +187737,8 @@
     "anilist-182445": {
       "anilistId": 182445,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "FALL",
+      "seasonYear": 2024,
       "anilistEpisodeCount": 10,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -187771,8 +187771,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2021,
           "startedAt": 1611705600000,
           "order": 3
         },
@@ -187782,8 +187782,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2023,
           "startedAt": 1674000000000,
           "order": 4
         },
@@ -187793,8 +187793,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 10,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2024,
           "startedAt": 1727827200000,
           "order": 5
         }
@@ -191942,7 +191942,7 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1795798380000,
+      "nextAiringAt": 1795796580000,
       "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
         {
@@ -192316,8 +192316,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 15,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2023,
           "startedAt": 1685577600000,
           "order": 1
         },
@@ -192579,8 +192579,8 @@
     "anilist-156111": {
       "anilistId": 156111,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "SPRING",
+      "seasonYear": 2023,
       "anilistEpisodeCount": 22,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -192591,8 +192591,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 22,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2023,
           "startedAt": 1681948800000,
           "order": 1
         },
@@ -192624,8 +192624,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 22,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2023,
           "startedAt": 1681948800000,
           "order": 1
         },
@@ -211115,8 +211115,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2020,
           "startedAt": 1605398400000,
           "order": 2
         },
@@ -211126,8 +211126,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2022,
           "startedAt": 1659225600000,
           "order": 3
         },
@@ -211137,8 +211137,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2024,
           "startedAt": 1710028800000,
           "order": 4
         }
@@ -211147,8 +211147,8 @@
     "anilist-121679": {
       "anilistId": 121679,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "FALL",
+      "seasonYear": 2020,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -211170,8 +211170,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2020,
           "startedAt": 1605398400000,
           "order": 2
         },
@@ -211181,8 +211181,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2022,
           "startedAt": 1659225600000,
           "order": 3
         },
@@ -211192,8 +211192,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2024,
           "startedAt": 1710028800000,
           "order": 4
         }
@@ -221004,8 +221004,8 @@
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2018,
           "startedAt": 1519430400000,
           "order": 2
         }
@@ -221014,8 +221014,8 @@
     "anilist-100813": {
       "anilistId": 100813,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "WINTER",
+      "seasonYear": 2018,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -221037,8 +221037,8 @@
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "WINTER",
+          "seasonYear": 2018,
           "startedAt": 1519430400000,
           "order": 2
         }
@@ -221685,8 +221685,8 @@
     "anilist-121467": {
       "anilistId": 121467,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "SUMMER",
+      "seasonYear": 2021,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -221708,8 +221708,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 8,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2019,
           "startedAt": 1564790400000,
           "order": 2
         },
@@ -221719,8 +221719,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2021,
           "startedAt": 1628294400000,
           "order": 3
         }
@@ -233864,8 +233864,8 @@
     "anilist-97616": {
       "anilistId": 97616,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "FALL",
+      "seasonYear": 2016,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -233876,8 +233876,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2016,
           "startedAt": 1475625600000,
           "order": 1
         },
@@ -233887,8 +233887,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2018,
           "startedAt": 1523664000000,
           "order": 2
         }
@@ -233897,8 +233897,8 @@
     "anilist-98575": {
       "anilistId": 98575,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "SPRING",
+      "seasonYear": 2018,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -233909,8 +233909,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2016,
           "startedAt": 1475625600000,
           "order": 1
         },
@@ -233920,8 +233920,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2018,
           "startedAt": 1523664000000,
           "order": 2
         }
@@ -237914,8 +237914,8 @@
     "anilist-131239": {
       "anilistId": 131239,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "SPRING",
+      "seasonYear": 2021,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -237926,8 +237926,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 28,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2011,
           "startedAt": 1300320000000,
           "order": 1
         },
@@ -237937,8 +237937,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2021,
           "startedAt": 1619222400000,
           "order": 2
         },
@@ -239256,8 +239256,8 @@
     "anilist-132530": {
       "anilistId": 132530,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "SUMMER",
+      "seasonYear": 2022,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -239279,8 +239279,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2020,
           "startedAt": 1605398400000,
           "order": 2
         },
@@ -239290,8 +239290,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2022,
           "startedAt": 1659225600000,
           "order": 3
         },
@@ -239301,8 +239301,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2024,
           "startedAt": 1710028800000,
           "order": 4
         }
@@ -240021,8 +240021,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 28,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2011,
           "startedAt": 1300320000000,
           "order": 1
         },
@@ -240032,8 +240032,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2021,
           "startedAt": 1619222400000,
           "order": 2
         },
@@ -240504,8 +240504,8 @@
     "anilist-156109": {
       "anilistId": 156109,
       "airingStatus": "FINISHED",
-      "season": "",
-      "seasonYear": null,
+      "season": "SPRING",
+      "seasonYear": 2024,
       "anilistEpisodeCount": 12,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
@@ -240527,8 +240527,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "FALL",
+          "seasonYear": 2020,
           "startedAt": 1605398400000,
           "order": 2
         },
@@ -240538,8 +240538,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SUMMER",
+          "seasonYear": 2022,
           "startedAt": 1659225600000,
           "order": 3
         },
@@ -240549,8 +240549,8 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 12,
-          "season": "",
-          "seasonYear": null,
+          "season": "SPRING",
+          "seasonYear": 2024,
           "startedAt": 1710028800000,
           "order": 4
         }
@@ -240672,11 +240672,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795528800000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1796133600000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-17T14:50:48.356Z"
+      "sourceEpisodeCount": 8,
+      "lastEpisodeAt": "2026-11-24T14:43:33.231Z"
     },
     "animeav1-shiotaiou-no-satou-san-ga-ore-ni-dake-amai": {
       "anilistId": 209502,
@@ -240684,11 +240684,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795525200000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1796130000000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-17T13:48:34.604Z"
+      "sourceEpisodeCount": 8,
+      "lastEpisodeAt": "2026-11-24T13:43:20.968Z"
     },
     "animeav1-kyouran-reijou-nia-liston-byoujaku-reijou-ni-tensei-shita-kamigoroshi-no-bujin-no-karei-naru-musouroku": {
       "anilistId": 206949,
@@ -240696,11 +240696,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 25,
-      "nextAiringAt": 1795523160000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1796127900000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-17T14:50:01.271Z"
+      "sourceEpisodeCount": 8,
+      "lastEpisodeAt": "2026-11-24T14:43:11.026Z"
     },
     "animeav1-tsuihou-sareta-cheat-fuyo-majutsushi-wa-kimama-na-second-life-wo-ouka-suru-ore-wa-buki-dake-ja-naku-arayuru-mono-ni-kyouka-point-wo-fuyo-dekiru-shi-ore-no-ishi-de-itsudemo-kouka-wo-kaijo-dekiru-kedo-nokotta-hitotachi-daijoubu": {
       "anilistId": 207329,
@@ -240708,11 +240708,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795532400000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1796137200000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-17T15:44:50.264Z"
+      "sourceEpisodeCount": 8,
+      "lastEpisodeAt": "2026-11-24T15:45:33.111Z"
     },
     "anilist-5968": {
       "anilistId": 5968,
@@ -241103,13 +241103,25 @@
       "sourceEpisodeCount": 7,
       "lastEpisodeAt": "2026-11-18T17:37:34.660Z"
     },
+    "animeav1-juuou-mujin-dandivine": {
+      "anilistId": 213068,
+      "airingStatus": "RELEASING",
+      "season": "FALL",
+      "seasonYear": 2026,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": 1795620600000,
+      "nextAiringEpisodeNumber": 8,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-18T17:14:37.027Z"
+    },
     "animeav1-magic-knight-rayearth-2026": {
       "anilistId": 178868,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1795617960000,
+      "nextAiringAt": 1795617900000,
       "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 7,
@@ -241138,7 +241150,7 @@
       "franchiseSeasons": [
         {
           "anilistId": 128712,
-          "title": "Tantei wa mou, Shindeiru.",
+          "title": "Tantei wa Mou, Shindeiru.",
           "format": "TV",
           "status": "FINISHED",
           "episodes": 12,
@@ -241149,7 +241161,7 @@
         },
         {
           "anilistId": 152677,
-          "title": "Tantei wa mou, Shindeiru. Season 2",
+          "title": "Tantei wa Mou, Shindeiru. Season 2",
           "format": "TV",
           "status": "RELEASING",
           "episodes": 13,
@@ -241553,7 +241565,7 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1795961760000,
+      "nextAiringAt": 1795961700000,
       "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
@@ -241699,8 +241711,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 11,
-      "nextAiringAt": 1795538700000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1796143500000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 6,
       "lastEpisodeAt": "2026-11-17T18:36:45.487Z"
@@ -241711,8 +241723,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 11,
-      "nextAiringAt": 1795528800000,
-      "nextAiringEpisodeNumber": 7,
+      "nextAiringAt": 1796133600000,
+      "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [
         {
           "anilistId": 180082,
@@ -241737,8 +241749,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-17T16:54:21.110Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-24T16:40:03.690Z"
     },
     "animeav1-cyberpunk-edgerunners-2": {
       "anilistId": 195539,
@@ -242327,6 +242339,149 @@
         }
       ]
     },
+    "anilist-220180": {
+      "anilistId": 220180,
+      "airingStatus": "NOT_YET_RELEASED",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 114121,
+          "title": "Xian Wang De Richang Shenghuo",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 15,
+          "season": "WINTER",
+          "seasonYear": 2020,
+          "startedAt": 1579305600000,
+          "order": 1
+        },
+        {
+          "anilistId": 126357,
+          "title": "Xian Wang De Richang Shenghuo 2",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2021,
+          "startedAt": 1635552000000,
+          "order": 2
+        },
+        {
+          "anilistId": 141852,
+          "title": "Xian Wang De Richang Shenghuo 3",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2022,
+          "startedAt": 1664496000000,
+          "order": 3
+        },
+        {
+          "anilistId": 156110,
+          "title": "Xian Wang De Richang Shenghuo 4",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2024,
+          "startedAt": 1702771200000,
+          "order": 4
+        },
+        {
+          "anilistId": 185857,
+          "title": "Xian Wang de Richang Shenghuo 5",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "WINTER",
+          "seasonYear": 2026,
+          "startedAt": 1765670400000,
+          "order": 5
+        },
+        {
+          "anilistId": 220180,
+          "title": "Xian Wang de Richang Shenghuo 6",
+          "format": "ONA",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 1798761600000,
+          "order": 6
+        }
+      ]
+    },
+    "anilist-112023": {
+      "anilistId": 112023,
+      "airingStatus": "FINISHED",
+      "season": "SUMMER",
+      "seasonYear": 2019,
+      "anilistEpisodeCount": 1,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 112023,
+          "title": "Luo Xiaohei Zhan Ji (Movie)",
+          "format": "MOVIE",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "SUMMER",
+          "seasonYear": 2019,
+          "startedAt": 1567814400000,
+          "order": 1
+        },
+        {
+          "anilistId": 220183,
+          "title": "Lanxi Zhen",
+          "format": "ONA",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-220183": {
+      "anilistId": 220183,
+      "airingStatus": "NOT_YET_RELEASED",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 112023,
+          "title": "Luo Xiaohei Zhan Ji (Movie)",
+          "format": "MOVIE",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "SUMMER",
+          "seasonYear": 2019,
+          "startedAt": 1567814400000,
+          "order": 1
+        },
+        {
+          "anilistId": 220183,
+          "title": "Lanxi Zhen",
+          "format": "ONA",
+          "status": "NOT_YET_RELEASED",
+          "episodes": null,
+          "season": "",
+          "seasonYear": null,
+          "startedAt": 0,
+          "order": 2
+        }
+      ]
+    },
     "animeav1-battle-spirits-re-zekkai-no-kuu": {
       "anilistId": null,
       "airingStatus": "RELEASING",
@@ -242336,20 +242491,8 @@
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-17T14:39:00.318Z"
-    },
-    "animeav1-juuou-mujin-dandivine": {
-      "anilistId": null,
-      "airingStatus": "RELEASING",
-      "season": "",
-      "seasonYear": null,
-      "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-18T17:14:37.027Z"
+      "sourceEpisodeCount": 8,
+      "lastEpisodeAt": "2026-11-24T14:42:30.531Z"
     },
     "animeav1-kimi-no-koto-ga-daidaidaidaidaisuki-na-100-nin-no-kanojo-3rd-season": {
       "anilistId": "mal-62811",
@@ -244697,10 +244840,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx100238-5lyAhbwWE15x.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/100238-K3RvVxWPEi3z.jpg"
     },
-    "anilist-220180": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx220180-ARKDcR1QDmEn.jpg",
-      "anilistBanner": ""
-    },
     "anilist-186333": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx186333-32qDHxLkndpg.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/186333-JN8lx2aNOTg1.jpg"
@@ -245292,10 +245431,6 @@
     "anilist-107521": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx107521-M4x3AUb7UGIM.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/107521-mIv5O0dYsbFf.jpg"
-    },
-    "anilist-112023": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx112023-jAzTavYOx3zq.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/112023-n0AXMF851QK8.jpg"
     },
     "anilist-114976": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx114976-VWDQ9KxCOKvD.jpg",
@@ -265269,10 +265404,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx110413-0KLlv2NsuSyI.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/110413-4GhTtOaQxAJQ.jpg"
     },
-    "anilist-220183": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx220183-eIIdVOcBGvNG.jpg",
-      "anilistBanner": ""
-    },
     "anilist-112658": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx112658-ZH4Dk3cHTcJp.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/112658-lL8p93bvzwpu.jpg"
@@ -276457,18 +276588,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx146120-42C8Tc7yOkk7.jpg",
       "anilistBanner": ""
     },
-    "anilist-205896": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx205896-ElrV8oVAsuax.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-117945": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx117945-LIjjgsdswFPN.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-117946": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx117946-nPC2t5RIyhl2.jpg",
-      "anilistBanner": ""
-    },
     "anilist-205909": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx205909-DM0fAzNQulod.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/205909-hGeuFYrdhf9S.jpg"
@@ -276533,6 +276652,14 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx176270-aTao5jejW17i.png",
       "anilistBanner": ""
     },
+    "anilist-213068": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx213068-aFSedkY5bQ4m.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/213068-EQba2gbIKAy5.jpg"
+    },
+    "anilist-217994": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx217994-zr40iVVSxBji.jpg",
+      "anilistBanner": ""
+    },
     "anilist-179876": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx179876-Wg62CAzp5WQ1.jpg",
       "anilistBanner": ""
@@ -276552,6 +276679,18 @@
     "anilist-154372": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx154372-w69wQgEL6w13.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/154372-EXNy5Wl0zRYT.jpg"
+    },
+    "anilist-205896": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx205896-ElrV8oVAsuax.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-117945": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx117945-LIjjgsdswFPN.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-117946": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx117946-nPC2t5RIyhl2.jpg",
+      "anilistBanner": ""
     }
   }
 }
