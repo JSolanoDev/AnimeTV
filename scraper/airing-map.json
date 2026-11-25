@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-11-24T17:23:16.497Z",
-  "count": 6686,
+  "generatedAt": "2026-11-25T17:07:26.049Z",
+  "count": 6687,
   "entries": {
     "animeav1-one-piece": {
       "anilistId": 21,
@@ -807,8 +807,8 @@
       "nextAiringAt": 1796142900000,
       "nextAiringEpisodeNumber": 22,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 20,
-      "lastEpisodeAt": "2026-11-17T18:59:55.158Z"
+      "sourceEpisodeCount": 21,
+      "lastEpisodeAt": "2026-11-24T17:46:38.402Z"
     },
     "animeav1-tefuda-ga-oome-no-victoria": {
       "anilistId": 198709,
@@ -7247,7 +7247,7 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 28,
-          "season": "SPRING",
+          "season": "WINTER",
           "seasonYear": 2011,
           "startedAt": 1300320000000,
           "order": 1
@@ -39450,8 +39450,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795621500000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1796226300000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
         {
           "anilistId": 163142,
@@ -41270,8 +41270,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795620600000,
-      "nextAiringEpisodeNumber": 9,
+      "nextAiringAt": 1796225400000,
+      "nextAiringEpisodeNumber": 10,
       "franchiseSeasons": [
         {
           "anilistId": 139587,
@@ -41296,8 +41296,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 8,
-      "lastEpisodeAt": "2026-11-18T17:08:06.287Z"
+      "sourceEpisodeCount": 9,
+      "lastEpisodeAt": "2026-11-25T17:05:18.814Z"
     },
     "anilist-139274": {
       "anilistId": 139274,
@@ -49630,8 +49630,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795611600000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1796216400000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
         {
           "anilistId": 152682,
@@ -49656,8 +49656,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-18T13:15:58.671Z"
+      "sourceEpisodeCount": 8,
+      "lastEpisodeAt": "2026-11-25T13:36:55.535Z"
     },
     "anilist-162780": {
       "anilistId": 162780,
@@ -101646,6 +101646,39 @@
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": []
     },
+    "animeav1-last-exile-ginyoku-no-fam-adjournment": {
+      "anilistId": 97,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2003,
+      "anilistEpisodeCount": 26,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 97,
+          "title": "Last Exile",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 26,
+          "season": "SPRING",
+          "seasonYear": 2003,
+          "startedAt": 1049673600000,
+          "order": 1
+        },
+        {
+          "anilistId": 10336,
+          "title": "Last Exile: Ginyoku no Fam",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 21,
+          "season": "FALL",
+          "seasonYear": 2011,
+          "startedAt": 1318636800000,
+          "order": 2
+        }
+      ]
+    },
     "animeav1-lupin-iii-chi-no-kokuin-eien-no-mermaid": {
       "anilistId": 11777,
       "airingStatus": "FINISHED",
@@ -129030,417 +129063,6 @@
         }
       ]
     },
-    "animeav1-bishoujo-senshi-sailor-moon": {
-      "anilistId": 530,
-      "airingStatus": "FINISHED",
-      "season": "WINTER",
-      "seasonYear": 1992,
-      "anilistEpisodeCount": 46,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 530,
-          "title": "Bishoujo Senshi Sailor Moon",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 46,
-          "season": "WINTER",
-          "seasonYear": 1992,
-          "startedAt": 699926400000,
-          "order": 1
-        },
-        {
-          "anilistId": 740,
-          "title": "Bishoujo Senshi Sailor Moon R",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 43,
-          "season": "SPRING",
-          "seasonYear": 1993,
-          "startedAt": 731376000000,
-          "order": 2
-        },
-        {
-          "anilistId": 532,
-          "title": "Bishoujo Senshi Sailor Moon S",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 38,
-          "season": "SPRING",
-          "seasonYear": 1994,
-          "startedAt": 764035200000,
-          "order": 3
-        },
-        {
-          "anilistId": 1239,
-          "title": "Bishoujo Senshi Sailor Moon SuperS",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 39,
-          "season": "SPRING",
-          "seasonYear": 1995,
-          "startedAt": 794275200000,
-          "order": 4
-        },
-        {
-          "anilistId": 996,
-          "title": "Bishoujo Senshi Sailor Moon: Sailor Stars",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 34,
-          "season": "SPRING",
-          "seasonYear": 1996,
-          "startedAt": 826329600000,
-          "order": 5
-        }
-      ]
-    },
-    "animeav1-saint-seiya-saishuu-seisen-no-senshi-tachi": {
-      "anilistId": 1260,
-      "airingStatus": "FINISHED",
-      "season": "SPRING",
-      "seasonYear": 1989,
-      "anilistEpisodeCount": 1,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
-    },
-    "animeav1-saint-seiya-shinku-no-shounen-densetsu": {
-      "anilistId": 1255,
-      "airingStatus": "FINISHED",
-      "season": "SUMMER",
-      "seasonYear": 1988,
-      "anilistEpisodeCount": 1,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
-    },
-    "animeav1-soukou-kihei-votoms-red-shoulder-document-yabou-no-roots": {
-      "anilistId": 2585,
-      "airingStatus": "FINISHED",
-      "season": "SPRING",
-      "seasonYear": 1988,
-      "anilistEpisodeCount": 1,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 2582,
-          "title": "Soukou Kihei Votoms",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 52,
-          "season": "SPRING",
-          "seasonYear": 1983,
-          "startedAt": 418003200000,
-          "order": 1
-        },
-        {
-          "anilistId": 2585,
-          "title": "Soukou Kihei Votoms: Red Shoulder Document - Yabou no Roots",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 1,
-          "season": "SPRING",
-          "seasonYear": 1988,
-          "startedAt": 574732800000,
-          "order": 2
-        },
-        {
-          "anilistId": 2586,
-          "title": "Soukou Kihei Votoms: Kakuyaku taru Itan",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 5,
-          "season": "SPRING",
-          "seasonYear": 1994,
-          "startedAt": 764208000000,
-          "order": 3
-        }
-      ]
-    },
-    "animeav1-saint-seiya-kamigami-no-atsuki-tatakai": {
-      "anilistId": 1258,
-      "airingStatus": "FINISHED",
-      "season": "SPRING",
-      "seasonYear": 1988,
-      "anilistEpisodeCount": 1,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
-    },
-    "animeav1-seisenshi-dunbine-ova": {
-      "anilistId": 5372,
-      "airingStatus": "FINISHED",
-      "season": "WINTER",
-      "seasonYear": 1988,
-      "anilistEpisodeCount": 3,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 929,
-          "title": "Seisenshi Dunbine",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 49,
-          "season": "WINTER",
-          "seasonYear": 1983,
-          "startedAt": 413251200000,
-          "order": 1
-        },
-        {
-          "anilistId": 5372,
-          "title": "Seisenshi Dunbine: New Story of AURA BATTLER Dunbine",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 3,
-          "season": "WINTER",
-          "seasonYear": 1988,
-          "startedAt": 572745600000,
-          "order": 2
-        },
-        {
-          "anilistId": 574,
-          "title": "Rean no Tsubasa",
-          "format": "ONA",
-          "status": "FINISHED",
-          "episodes": 6,
-          "season": "WINTER",
-          "seasonYear": 2005,
-          "startedAt": 1134691200000,
-          "order": 3
-        }
-      ]
-    },
-    "animeav1-saint-seiya-jashin-eris": {
-      "anilistId": 1256,
-      "airingStatus": "FINISHED",
-      "season": "SUMMER",
-      "seasonYear": 1987,
-      "anilistEpisodeCount": 1,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
-    },
-    "animeav1-soukou-kihei-votoms-big-battle": {
-      "anilistId": 2584,
-      "airingStatus": "FINISHED",
-      "season": "SUMMER",
-      "seasonYear": 1986,
-      "anilistEpisodeCount": 1,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
-    },
-    "animeav1-soukou-kihei-votoms-the-last-red-shoulder": {
-      "anilistId": 2583,
-      "airingStatus": "FINISHED",
-      "season": "SUMMER",
-      "seasonYear": 1985,
-      "anilistEpisodeCount": 1,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
-    },
-    "animeav1-soukou-kihei-votoms": {
-      "anilistId": 2582,
-      "airingStatus": "FINISHED",
-      "season": "SPRING",
-      "seasonYear": 1983,
-      "anilistEpisodeCount": 52,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 2582,
-          "title": "Soukou Kihei Votoms",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 52,
-          "season": "SPRING",
-          "seasonYear": 1983,
-          "startedAt": 418003200000,
-          "order": 1
-        },
-        {
-          "anilistId": 2585,
-          "title": "Soukou Kihei Votoms: Red Shoulder Document - Yabou no Roots",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 1,
-          "season": "SPRING",
-          "seasonYear": 1988,
-          "startedAt": 574732800000,
-          "order": 2
-        },
-        {
-          "anilistId": 2586,
-          "title": "Soukou Kihei Votoms: Kakuyaku taru Itan",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 5,
-          "season": "SPRING",
-          "seasonYear": 1994,
-          "startedAt": 764208000000,
-          "order": 3
-        }
-      ]
-    },
-    "animeav1-seisenshi-dunbine": {
-      "anilistId": 929,
-      "airingStatus": "FINISHED",
-      "season": "WINTER",
-      "seasonYear": 1983,
-      "anilistEpisodeCount": 49,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 929,
-          "title": "Seisenshi Dunbine",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 49,
-          "season": "WINTER",
-          "seasonYear": 1983,
-          "startedAt": 413251200000,
-          "order": 1
-        },
-        {
-          "anilistId": 5372,
-          "title": "Seisenshi Dunbine: New Story of AURA BATTLER Dunbine",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 3,
-          "season": "WINTER",
-          "seasonYear": 1988,
-          "startedAt": 572745600000,
-          "order": 2
-        },
-        {
-          "anilistId": 574,
-          "title": "Rean no Tsubasa",
-          "format": "ONA",
-          "status": "FINISHED",
-          "episodes": 6,
-          "season": "WINTER",
-          "seasonYear": 2005,
-          "startedAt": 1134691200000,
-          "order": 3
-        }
-      ]
-    },
-    "animeav1-shin-taketori-monogatari-1000-nen-joou": {
-      "anilistId": 1548,
-      "airingStatus": "FINISHED",
-      "season": "SPRING",
-      "seasonYear": 1981,
-      "anilistEpisodeCount": 42,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 1000,
-          "title": "Uchuu Kaizoku Captain Harlock",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 42,
-          "season": "SPRING",
-          "seasonYear": 1978,
-          "startedAt": 258681600000,
-          "order": 1
-        },
-        {
-          "anilistId": 1491,
-          "title": "Ginga Tetsudou 999",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 113,
-          "season": "FALL",
-          "seasonYear": 1978,
-          "startedAt": 274579200000,
-          "order": 2
-        },
-        {
-          "anilistId": 1301,
-          "title": "Ginga Tetsudou 999 (Movie)",
-          "format": "MOVIE",
-          "status": "FINISHED",
-          "episodes": 1,
-          "season": "SUMMER",
-          "seasonYear": 1979,
-          "startedAt": 302572800000,
-          "order": 3
-        },
-        {
-          "anilistId": 1548,
-          "title": "Shin Taketori Monogatari: 1000-nen Joou",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 42,
-          "season": "SPRING",
-          "seasonYear": 1981,
-          "startedAt": 356227200000,
-          "order": 4
-        },
-        {
-          "anilistId": 2019,
-          "title": "Kasei Ryodan DNA Sights 999.9",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 1,
-          "season": "FALL",
-          "seasonYear": 1998,
-          "startedAt": 913939200000,
-          "order": 5
-        },
-        {
-          "anilistId": 1645,
-          "title": "Harlock Saga: Nibelung no Yubiwa",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 6,
-          "season": "WINTER",
-          "seasonYear": 1999,
-          "startedAt": 917222400000,
-          "order": 6
-        },
-        {
-          "anilistId": 1495,
-          "title": "Maetel Legend",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 2,
-          "season": "FALL",
-          "seasonYear": 2000,
-          "startedAt": 976665600000,
-          "order": 7
-        },
-        {
-          "anilistId": 1377,
-          "title": "Uchuu Koukyoushi Maetel: Ginga Tetsudou 999 Gaiden",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 13,
-          "season": "SUMMER",
-          "seasonYear": 2004,
-          "startedAt": 1091750400000,
-          "order": 8
-        }
-      ]
-    },
-    "animeav1-sayonara-ginga-tetsudou-999-andromeda-shuuchakueki": {
-      "anilistId": 1302,
-      "airingStatus": "FINISHED",
-      "season": "SUMMER",
-      "seasonYear": 1981,
-      "anilistEpisodeCount": 1,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
-    },
     "animeav1-tiger-bunny-2": {
       "anilistId": 117197,
       "airingStatus": "FINISHED",
@@ -129562,129 +129184,6 @@
         }
       ]
     },
-    "animeav1-tomodachi-game": {
-      "anilistId": 141014,
-      "airingStatus": "FINISHED",
-      "season": "SPRING",
-      "seasonYear": 2022,
-      "anilistEpisodeCount": 12,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
-    },
-    "animeav1-totsukuni-no-shoujo-2022": {
-      "anilistId": 130550,
-      "airingStatus": "FINISHED",
-      "season": "WINTER",
-      "seasonYear": 2022,
-      "anilistEpisodeCount": 1,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
-    },
-    "animeav1-tensai-ouji-no-akaji-kokka-saisei-jutsu": {
-      "anilistId": 129190,
-      "airingStatus": "FINISHED",
-      "season": "WINTER",
-      "seasonYear": 2022,
-      "anilistEpisodeCount": 12,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
-    },
-    "animeav1-tribe-nine": {
-      "anilistId": 139804,
-      "airingStatus": "FINISHED",
-      "season": "WINTER",
-      "seasonYear": 2022,
-      "anilistEpisodeCount": 12,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
-    },
-    "animeav1-tokyo-24-ku": {
-      "anilistId": 140643,
-      "airingStatus": "FINISHED",
-      "season": "WINTER",
-      "seasonYear": 2022,
-      "anilistEpisodeCount": 12,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
-    },
-    "animeav1-tropical-rouge-precure-movie-yuki-no-princess-to-kiseki-no-yubiwa": {
-      "anilistId": 135864,
-      "airingStatus": "FINISHED",
-      "season": "FALL",
-      "seasonYear": 2021,
-      "anilistEpisodeCount": 1,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
-    },
-    "animeav1-taishou-otome-otogibanashi": {
-      "anilistId": 127412,
-      "airingStatus": "FINISHED",
-      "season": "FALL",
-      "seasonYear": 2021,
-      "anilistEpisodeCount": 12,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
-    },
-    "animeav1-takt-op-destiny": {
-      "anilistId": 131565,
-      "airingStatus": "FINISHED",
-      "season": "FALL",
-      "seasonYear": 2021,
-      "anilistEpisodeCount": 12,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
-    },
-    "animeav1-tsuki-to-laika-to-nosferatu": {
-      "anilistId": 131019,
-      "airingStatus": "FINISHED",
-      "season": "FALL",
-      "seasonYear": 2021,
-      "anilistEpisodeCount": 12,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": []
-    },
-    "animeav1-tonikaku-kawaii-sns": {
-      "anilistId": 127371,
-      "airingStatus": "FINISHED",
-      "season": "SUMMER",
-      "seasonYear": 2021,
-      "anilistEpisodeCount": 1,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 116267,
-          "title": "Tonikaku Kawaii",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 12,
-          "season": "FALL",
-          "seasonYear": 2020,
-          "startedAt": 1601683200000,
-          "order": 1
-        },
-        {
-          "anilistId": 127371,
-          "title": "Tonikaku Kawaii: SNS",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 1,
-          "season": "SUMMER",
-          "seasonYear": 2021,
-          "startedAt": 1629244800000,
-          "order": 2
-        }
-      ]
-    },
     "animeav1-tsuki-ga-michibiku-isekai-douchuu": {
       "anilistId": 125206,
       "airingStatus": "FINISHED",
@@ -129726,94 +129225,6 @@
           "seasonYear": null,
           "startedAt": 0,
           "order": 3
-        }
-      ]
-    },
-    "animeav1-tantei-wa-mou-shindeiru": {
-      "anilistId": 128712,
-      "airingStatus": "FINISHED",
-      "season": "SUMMER",
-      "seasonYear": 2021,
-      "anilistEpisodeCount": 12,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 128712,
-          "title": "Tantei wa Mou, Shindeiru.",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 12,
-          "season": "SUMMER",
-          "seasonYear": 2021,
-          "startedAt": 1625356800000,
-          "order": 1
-        },
-        {
-          "anilistId": 152677,
-          "title": "Tantei wa Mou, Shindeiru. Season 2",
-          "format": "TV",
-          "status": "RELEASING",
-          "episodes": 13,
-          "season": "FALL",
-          "seasonYear": 2026,
-          "startedAt": 1791331200000,
-          "order": 2
-        }
-      ]
-    },
-    "animeav1-tokyo-revengers": {
-      "anilistId": 120120,
-      "airingStatus": "FINISHED",
-      "season": "SPRING",
-      "seasonYear": 2021,
-      "anilistEpisodeCount": 24,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 120120,
-          "title": "Tokyo Revengers",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 24,
-          "season": "SPRING",
-          "seasonYear": 2021,
-          "startedAt": 1618099200000,
-          "order": 1
-        },
-        {
-          "anilistId": 142853,
-          "title": "Tokyo Revengers: Seiya Kessen-hen",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 13,
-          "season": "WINTER",
-          "seasonYear": 2023,
-          "startedAt": 1673136000000,
-          "order": 2
-        },
-        {
-          "anilistId": 163329,
-          "title": "Tokyo Revengers: Tenjiku-hen",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 13,
-          "season": "FALL",
-          "seasonYear": 2023,
-          "startedAt": 1696377600000,
-          "order": 3
-        },
-        {
-          "anilistId": 178083,
-          "title": "Tokyo Revengers: Santen Sensou-hen",
-          "format": "TV",
-          "status": "RELEASING",
-          "episodes": 13,
-          "season": "FALL",
-          "seasonYear": 2026,
-          "startedAt": 1790985600000,
-          "order": 4
         }
       ]
     },
@@ -166233,72 +165644,6 @@
         }
       ]
     },
-    "anilist-530": {
-      "anilistId": 530,
-      "airingStatus": "FINISHED",
-      "season": "WINTER",
-      "seasonYear": 1992,
-      "anilistEpisodeCount": 46,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 530,
-          "title": "Bishoujo Senshi Sailor Moon",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 46,
-          "season": "WINTER",
-          "seasonYear": 1992,
-          "startedAt": 699926400000,
-          "order": 1
-        },
-        {
-          "anilistId": 740,
-          "title": "Bishoujo Senshi Sailor Moon R",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 43,
-          "season": "SPRING",
-          "seasonYear": 1993,
-          "startedAt": 731376000000,
-          "order": 2
-        },
-        {
-          "anilistId": 532,
-          "title": "Bishoujo Senshi Sailor Moon S",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 38,
-          "season": "SPRING",
-          "seasonYear": 1994,
-          "startedAt": 764035200000,
-          "order": 3
-        },
-        {
-          "anilistId": 1239,
-          "title": "Bishoujo Senshi Sailor Moon SuperS",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 39,
-          "season": "SPRING",
-          "seasonYear": 1995,
-          "startedAt": 794275200000,
-          "order": 4
-        },
-        {
-          "anilistId": 996,
-          "title": "Bishoujo Senshi Sailor Moon: Sailor Stars",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 34,
-          "season": "SPRING",
-          "seasonYear": 1996,
-          "startedAt": 826329600000,
-          "order": 5
-        }
-      ]
-    },
     "anilist-740": {
       "anilistId": 740,
       "airingStatus": "FINISHED",
@@ -166365,47 +165710,14 @@
         }
       ]
     },
-    "anilist-128712": {
-      "anilistId": 128712,
-      "airingStatus": "FINISHED",
-      "season": "SUMMER",
-      "seasonYear": 2021,
-      "anilistEpisodeCount": 12,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 128712,
-          "title": "Tantei wa Mou, Shindeiru.",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 12,
-          "season": "SUMMER",
-          "seasonYear": 2021,
-          "startedAt": 1625356800000,
-          "order": 1
-        },
-        {
-          "anilistId": 152677,
-          "title": "Tantei wa Mou, Shindeiru. Season 2",
-          "format": "TV",
-          "status": "RELEASING",
-          "episodes": 13,
-          "season": "FALL",
-          "seasonYear": 2026,
-          "startedAt": 1791331200000,
-          "order": 2
-        }
-      ]
-    },
     "anilist-152677": {
       "anilistId": 152677,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1795609800000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1796214600000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
         {
           "anilistId": 128712,
@@ -166430,63 +165742,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-18T13:40:43.410Z"
-    },
-    "anilist-120120": {
-      "anilistId": 120120,
-      "airingStatus": "FINISHED",
-      "season": "SPRING",
-      "seasonYear": 2021,
-      "anilistEpisodeCount": 24,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 120120,
-          "title": "Tokyo Revengers",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 24,
-          "season": "SPRING",
-          "seasonYear": 2021,
-          "startedAt": 1618099200000,
-          "order": 1
-        },
-        {
-          "anilistId": 142853,
-          "title": "Tokyo Revengers: Seiya Kessen-hen",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 13,
-          "season": "WINTER",
-          "seasonYear": 2023,
-          "startedAt": 1673136000000,
-          "order": 2
-        },
-        {
-          "anilistId": 163329,
-          "title": "Tokyo Revengers: Tenjiku-hen",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 13,
-          "season": "FALL",
-          "seasonYear": 2023,
-          "startedAt": 1696377600000,
-          "order": 3
-        },
-        {
-          "anilistId": 178083,
-          "title": "Tokyo Revengers: Santen Sensou-hen",
-          "format": "TV",
-          "status": "RELEASING",
-          "episodes": 13,
-          "season": "FALL",
-          "seasonYear": 2026,
-          "startedAt": 1790985600000,
-          "order": 4
-        }
-      ]
+      "sourceEpisodeCount": 8,
+      "lastEpisodeAt": "2026-11-25T13:44:02.040Z"
     },
     "anilist-142853": {
       "anilistId": 142853,
@@ -171567,8 +170824,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1795618800000,
-      "nextAiringEpisodeNumber": 9,
+      "nextAiringAt": 1796223600000,
+      "nextAiringEpisodeNumber": 10,
       "franchiseSeasons": [
         {
           "anilistId": 11371,
@@ -171637,8 +170894,8 @@
           "order": 6
         }
       ],
-      "sourceEpisodeCount": 8,
-      "lastEpisodeAt": "2026-11-18T16:35:51.221Z"
+      "sourceEpisodeCount": 9,
+      "lastEpisodeAt": "2026-11-25T16:22:35.139Z"
     },
     "animeav1-tensei-shitara-ken-deshita-ii": {
       "anilistId": 159042,
@@ -171646,8 +170903,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795620600000,
-      "nextAiringEpisodeNumber": 9,
+      "nextAiringAt": 1796225400000,
+      "nextAiringEpisodeNumber": 10,
       "franchiseSeasons": [
         {
           "anilistId": 139587,
@@ -171672,8 +170929,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 8,
-      "lastEpisodeAt": "2026-11-18T17:08:06.287Z"
+      "sourceEpisodeCount": 9,
+      "lastEpisodeAt": "2026-11-25T17:05:18.814Z"
     },
     "animeav1-mononoke-movie-3-hebigami": {
       "anilistId": 179874,
@@ -171995,7 +171252,7 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795879800000,
+      "nextAiringAt": 1796484600000,
       "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 8,
@@ -181795,7 +181052,7 @@
     "anilist-102663": {
       "anilistId": 102663,
       "airingStatus": "FINISHED",
-      "season": "SPRING",
+      "season": "WINTER",
       "seasonYear": 2011,
       "anilistEpisodeCount": 28,
       "nextAiringAt": null,
@@ -181807,7 +181064,7 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 28,
-          "season": "SPRING",
+          "season": "WINTER",
           "seasonYear": 2011,
           "startedAt": 1300320000000,
           "order": 1
@@ -181862,7 +181119,7 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 28,
-          "season": "SPRING",
+          "season": "WINTER",
           "seasonYear": 2011,
           "startedAt": 1300320000000,
           "order": 1
@@ -187331,8 +186588,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1795618800000,
-      "nextAiringEpisodeNumber": 9,
+      "nextAiringAt": 1796223600000,
+      "nextAiringEpisodeNumber": 10,
       "franchiseSeasons": [
         {
           "anilistId": 11371,
@@ -187401,8 +186658,8 @@
           "order": 6
         }
       ],
-      "sourceEpisodeCount": 8,
-      "lastEpisodeAt": "2026-11-18T16:35:51.221Z"
+      "sourceEpisodeCount": 9,
+      "lastEpisodeAt": "2026-11-25T16:22:35.139Z"
     },
     "anilist-162984": {
       "anilistId": 162984,
@@ -204726,105 +203983,6 @@
       "season": "SUMMER",
       "seasonYear": 1979,
       "anilistEpisodeCount": 1,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 1000,
-          "title": "Uchuu Kaizoku Captain Harlock",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 42,
-          "season": "SPRING",
-          "seasonYear": 1978,
-          "startedAt": 258681600000,
-          "order": 1
-        },
-        {
-          "anilistId": 1491,
-          "title": "Ginga Tetsudou 999",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 113,
-          "season": "FALL",
-          "seasonYear": 1978,
-          "startedAt": 274579200000,
-          "order": 2
-        },
-        {
-          "anilistId": 1301,
-          "title": "Ginga Tetsudou 999 (Movie)",
-          "format": "MOVIE",
-          "status": "FINISHED",
-          "episodes": 1,
-          "season": "SUMMER",
-          "seasonYear": 1979,
-          "startedAt": 302572800000,
-          "order": 3
-        },
-        {
-          "anilistId": 1548,
-          "title": "Shin Taketori Monogatari: 1000-nen Joou",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 42,
-          "season": "SPRING",
-          "seasonYear": 1981,
-          "startedAt": 356227200000,
-          "order": 4
-        },
-        {
-          "anilistId": 2019,
-          "title": "Kasei Ryodan DNA Sights 999.9",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 1,
-          "season": "FALL",
-          "seasonYear": 1998,
-          "startedAt": 913939200000,
-          "order": 5
-        },
-        {
-          "anilistId": 1645,
-          "title": "Harlock Saga: Nibelung no Yubiwa",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 6,
-          "season": "WINTER",
-          "seasonYear": 1999,
-          "startedAt": 917222400000,
-          "order": 6
-        },
-        {
-          "anilistId": 1495,
-          "title": "Maetel Legend",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 2,
-          "season": "FALL",
-          "seasonYear": 2000,
-          "startedAt": 976665600000,
-          "order": 7
-        },
-        {
-          "anilistId": 1377,
-          "title": "Uchuu Koukyoushi Maetel: Ginga Tetsudou 999 Gaiden",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 13,
-          "season": "SUMMER",
-          "seasonYear": 2004,
-          "startedAt": 1091750400000,
-          "order": 8
-        }
-      ]
-    },
-    "anilist-1548": {
-      "anilistId": 1548,
-      "airingStatus": "FINISHED",
-      "season": "SPRING",
-      "seasonYear": 1981,
-      "anilistEpisodeCount": 42,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [
@@ -228394,94 +227552,6 @@
         }
       ]
     },
-    "anilist-929": {
-      "anilistId": 929,
-      "airingStatus": "FINISHED",
-      "season": "WINTER",
-      "seasonYear": 1983,
-      "anilistEpisodeCount": 49,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 929,
-          "title": "Seisenshi Dunbine",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 49,
-          "season": "WINTER",
-          "seasonYear": 1983,
-          "startedAt": 413251200000,
-          "order": 1
-        },
-        {
-          "anilistId": 5372,
-          "title": "Seisenshi Dunbine: New Story of AURA BATTLER Dunbine",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 3,
-          "season": "WINTER",
-          "seasonYear": 1988,
-          "startedAt": 572745600000,
-          "order": 2
-        },
-        {
-          "anilistId": 574,
-          "title": "Rean no Tsubasa",
-          "format": "ONA",
-          "status": "FINISHED",
-          "episodes": 6,
-          "season": "WINTER",
-          "seasonYear": 2005,
-          "startedAt": 1134691200000,
-          "order": 3
-        }
-      ]
-    },
-    "anilist-5372": {
-      "anilistId": 5372,
-      "airingStatus": "FINISHED",
-      "season": "WINTER",
-      "seasonYear": 1988,
-      "anilistEpisodeCount": 3,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 929,
-          "title": "Seisenshi Dunbine",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 49,
-          "season": "WINTER",
-          "seasonYear": 1983,
-          "startedAt": 413251200000,
-          "order": 1
-        },
-        {
-          "anilistId": 5372,
-          "title": "Seisenshi Dunbine: New Story of AURA BATTLER Dunbine",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 3,
-          "season": "WINTER",
-          "seasonYear": 1988,
-          "startedAt": 572745600000,
-          "order": 2
-        },
-        {
-          "anilistId": 574,
-          "title": "Rean no Tsubasa",
-          "format": "ONA",
-          "status": "FINISHED",
-          "episodes": 6,
-          "season": "WINTER",
-          "seasonYear": 2005,
-          "startedAt": 1134691200000,
-          "order": 3
-        }
-      ]
-    },
     "anilist-574": {
       "anilistId": 574,
       "airingStatus": "FINISHED",
@@ -233311,94 +232381,6 @@
         }
       ]
     },
-    "anilist-2582": {
-      "anilistId": 2582,
-      "airingStatus": "FINISHED",
-      "season": "SPRING",
-      "seasonYear": 1983,
-      "anilistEpisodeCount": 52,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 2582,
-          "title": "Soukou Kihei Votoms",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 52,
-          "season": "SPRING",
-          "seasonYear": 1983,
-          "startedAt": 418003200000,
-          "order": 1
-        },
-        {
-          "anilistId": 2585,
-          "title": "Soukou Kihei Votoms: Red Shoulder Document - Yabou no Roots",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 1,
-          "season": "SPRING",
-          "seasonYear": 1988,
-          "startedAt": 574732800000,
-          "order": 2
-        },
-        {
-          "anilistId": 2586,
-          "title": "Soukou Kihei Votoms: Kakuyaku taru Itan",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 5,
-          "season": "SPRING",
-          "seasonYear": 1994,
-          "startedAt": 764208000000,
-          "order": 3
-        }
-      ]
-    },
-    "anilist-2585": {
-      "anilistId": 2585,
-      "airingStatus": "FINISHED",
-      "season": "SPRING",
-      "seasonYear": 1988,
-      "anilistEpisodeCount": 1,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 2582,
-          "title": "Soukou Kihei Votoms",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 52,
-          "season": "SPRING",
-          "seasonYear": 1983,
-          "startedAt": 418003200000,
-          "order": 1
-        },
-        {
-          "anilistId": 2585,
-          "title": "Soukou Kihei Votoms: Red Shoulder Document - Yabou no Roots",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 1,
-          "season": "SPRING",
-          "seasonYear": 1988,
-          "startedAt": 574732800000,
-          "order": 2
-        },
-        {
-          "anilistId": 2586,
-          "title": "Soukou Kihei Votoms: Kakuyaku taru Itan",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 5,
-          "season": "SPRING",
-          "seasonYear": 1994,
-          "startedAt": 764208000000,
-          "order": 3
-        }
-      ]
-    },
     "anilist-2586": {
       "anilistId": 2586,
       "airingStatus": "FINISHED",
@@ -233449,39 +232431,6 @@
       "season": "FALL",
       "seasonYear": 2020,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
-      "franchiseSeasons": [
-        {
-          "anilistId": 116267,
-          "title": "Tonikaku Kawaii",
-          "format": "TV",
-          "status": "FINISHED",
-          "episodes": 12,
-          "season": "FALL",
-          "seasonYear": 2020,
-          "startedAt": 1601683200000,
-          "order": 1
-        },
-        {
-          "anilistId": 127371,
-          "title": "Tonikaku Kawaii: SNS",
-          "format": "OVA",
-          "status": "FINISHED",
-          "episodes": 1,
-          "season": "SUMMER",
-          "seasonYear": 2021,
-          "startedAt": 1629244800000,
-          "order": 2
-        }
-      ]
-    },
-    "anilist-127371": {
-      "anilistId": 127371,
-      "airingStatus": "FINISHED",
-      "season": "SUMMER",
-      "seasonYear": 2021,
-      "anilistEpisodeCount": 1,
       "nextAiringAt": null,
       "nextAiringEpisodeNumber": null,
       "franchiseSeasons": [
@@ -237926,7 +236875,7 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 28,
-          "season": "SPRING",
+          "season": "WINTER",
           "seasonYear": 2011,
           "startedAt": 1300320000000,
           "order": 1
@@ -240021,7 +238970,7 @@
           "format": "ONA",
           "status": "FINISHED",
           "episodes": 28,
-          "season": "SPRING",
+          "season": "WINTER",
           "seasonYear": 2011,
           "startedAt": 1300320000000,
           "order": 1
@@ -241039,8 +239988,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795611600000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1796216400000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
         {
           "anilistId": 152682,
@@ -241065,8 +240014,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-18T13:15:58.671Z"
+      "sourceEpisodeCount": 8,
+      "lastEpisodeAt": "2026-11-25T13:36:55.535Z"
     },
     "animeav1-kikansha-no-mahou-wa-tokubetsu-desu-2nd-season": {
       "anilistId": 172192,
@@ -241074,8 +240023,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795621500000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1796226300000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
         {
           "anilistId": 163142,
@@ -241103,29 +240052,17 @@
       "sourceEpisodeCount": 7,
       "lastEpisodeAt": "2026-11-18T17:37:34.660Z"
     },
-    "animeav1-juuou-mujin-dandivine": {
-      "anilistId": 213068,
-      "airingStatus": "RELEASING",
-      "season": "FALL",
-      "seasonYear": 2026,
-      "anilistEpisodeCount": 12,
-      "nextAiringAt": 1795620600000,
-      "nextAiringEpisodeNumber": 8,
-      "franchiseSeasons": [],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-18T17:14:37.027Z"
-    },
     "animeav1-magic-knight-rayearth-2026": {
       "anilistId": 178868,
       "airingStatus": "RELEASING",
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1795617900000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1796222700000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-18T15:29:15.695Z"
+      "sourceEpisodeCount": 8,
+      "lastEpisodeAt": "2026-11-25T15:35:29.257Z"
     },
     "animeav1-sekai-saikyou-no-majo-hajimemashita": {
       "anilistId": 211778,
@@ -241133,11 +240070,11 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": null,
-      "nextAiringAt": 1795611600000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1796216400000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-18T13:16:18.868Z"
+      "sourceEpisodeCount": 8,
+      "lastEpisodeAt": "2026-11-25T13:37:24.893Z"
     },
     "animeav1-tantei-wa-mou-shindeiru-season-2": {
       "anilistId": 152677,
@@ -241145,8 +240082,8 @@
       "season": "FALL",
       "seasonYear": 2026,
       "anilistEpisodeCount": 13,
-      "nextAiringAt": 1795609800000,
-      "nextAiringEpisodeNumber": 8,
+      "nextAiringAt": 1796214600000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [
         {
           "anilistId": 128712,
@@ -241171,8 +240108,8 @@
           "order": 2
         }
       ],
-      "sourceEpisodeCount": 7,
-      "lastEpisodeAt": "2026-11-18T13:40:43.410Z"
+      "sourceEpisodeCount": 8,
+      "lastEpisodeAt": "2026-11-25T13:44:02.040Z"
     },
     "animeav1-tetsuryou-meet-with-tetsudou-musume": {
       "anilistId": 199594,
@@ -241714,8 +240651,8 @@
       "nextAiringAt": 1796143500000,
       "nextAiringEpisodeNumber": 8,
       "franchiseSeasons": [],
-      "sourceEpisodeCount": 6,
-      "lastEpisodeAt": "2026-11-17T18:36:45.487Z"
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-24T18:01:54.654Z"
     },
     "animeav1-chitose-kun-wa-ramune-bin-no-naka-part-2": {
       "anilistId": 198727,
@@ -242494,6 +241431,18 @@
       "sourceEpisodeCount": 8,
       "lastEpisodeAt": "2026-11-24T14:42:30.531Z"
     },
+    "animeav1-juuou-mujin-dandivine": {
+      "anilistId": null,
+      "airingStatus": "RELEASING",
+      "season": "",
+      "seasonYear": null,
+      "anilistEpisodeCount": null,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [],
+      "sourceEpisodeCount": 7,
+      "lastEpisodeAt": "2026-11-18T17:14:37.027Z"
+    },
     "animeav1-kimi-no-koto-ga-daidaidaidaidaisuki-na-100-nin-no-kanojo-3rd-season": {
       "anilistId": "mal-62811",
       "airingStatus": "RELEASING",
@@ -242539,6 +241488,1090 @@
       ],
       "sourceEpisodeCount": 12,
       "lastEpisodeAt": "2026-09-13T14:10:55.131Z"
+    },
+    "animeav1-bishoujo-senshi-sailor-moon": {
+      "anilistId": 530,
+      "airingStatus": "FINISHED",
+      "season": "WINTER",
+      "seasonYear": 1992,
+      "anilistEpisodeCount": 46,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 530,
+          "title": "Bishoujo Senshi Sailor Moon",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 46,
+          "season": "WINTER",
+          "seasonYear": 1992,
+          "startedAt": 699926400000,
+          "order": 1
+        },
+        {
+          "anilistId": 740,
+          "title": "Bishoujo Senshi Sailor Moon R",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 43,
+          "season": "SPRING",
+          "seasonYear": 1993,
+          "startedAt": 731376000000,
+          "order": 2
+        },
+        {
+          "anilistId": 532,
+          "title": "Bishoujo Senshi Sailor Moon S",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 38,
+          "season": "SPRING",
+          "seasonYear": 1994,
+          "startedAt": 764035200000,
+          "order": 3
+        },
+        {
+          "anilistId": 1239,
+          "title": "Bishoujo Senshi Sailor Moon SuperS",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 39,
+          "season": "SPRING",
+          "seasonYear": 1995,
+          "startedAt": 794275200000,
+          "order": 4
+        },
+        {
+          "anilistId": 996,
+          "title": "Bishoujo Senshi Sailor Moon: Sailor Stars",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 34,
+          "season": "SPRING",
+          "seasonYear": 1996,
+          "startedAt": 826329600000,
+          "order": 5
+        }
+      ]
+    },
+    "animeav1-saint-seiya-saishuu-seisen-no-senshi-tachi": {
+      "anilistId": 1260,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 1989,
+      "anilistEpisodeCount": 1,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-saint-seiya-shinku-no-shounen-densetsu": {
+      "anilistId": 1255,
+      "airingStatus": "FINISHED",
+      "season": "SUMMER",
+      "seasonYear": 1988,
+      "anilistEpisodeCount": 1,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-soukou-kihei-votoms-red-shoulder-document-yabou-no-roots": {
+      "anilistId": 2585,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 1988,
+      "anilistEpisodeCount": 1,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 2582,
+          "title": "Soukou Kihei Votoms",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 1983,
+          "startedAt": 418003200000,
+          "order": 1
+        },
+        {
+          "anilistId": 2585,
+          "title": "Soukou Kihei Votoms: Red Shoulder Document - Yabou no Roots",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "SPRING",
+          "seasonYear": 1988,
+          "startedAt": 574732800000,
+          "order": 2
+        },
+        {
+          "anilistId": 2586,
+          "title": "Soukou Kihei Votoms: Kakuyaku taru Itan",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 5,
+          "season": "SPRING",
+          "seasonYear": 1994,
+          "startedAt": 764208000000,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-saint-seiya-kamigami-no-atsuki-tatakai": {
+      "anilistId": 1258,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 1988,
+      "anilistEpisodeCount": 1,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-seisenshi-dunbine-ova": {
+      "anilistId": 5372,
+      "airingStatus": "FINISHED",
+      "season": "WINTER",
+      "seasonYear": 1988,
+      "anilistEpisodeCount": 3,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 929,
+          "title": "Seisenshi Dunbine",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 49,
+          "season": "WINTER",
+          "seasonYear": 1983,
+          "startedAt": 413251200000,
+          "order": 1
+        },
+        {
+          "anilistId": 5372,
+          "title": "Seisenshi Dunbine: New Story of AURA BATTLER Dunbine",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 3,
+          "season": "WINTER",
+          "seasonYear": 1988,
+          "startedAt": 572745600000,
+          "order": 2
+        },
+        {
+          "anilistId": 574,
+          "title": "Rean no Tsubasa",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 6,
+          "season": "WINTER",
+          "seasonYear": 2005,
+          "startedAt": 1134691200000,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-saint-seiya-jashin-eris": {
+      "anilistId": 1256,
+      "airingStatus": "FINISHED",
+      "season": "SUMMER",
+      "seasonYear": 1987,
+      "anilistEpisodeCount": 1,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-soukou-kihei-votoms-big-battle": {
+      "anilistId": 2584,
+      "airingStatus": "FINISHED",
+      "season": "SUMMER",
+      "seasonYear": 1986,
+      "anilistEpisodeCount": 1,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-soukou-kihei-votoms-the-last-red-shoulder": {
+      "anilistId": 2583,
+      "airingStatus": "FINISHED",
+      "season": "SUMMER",
+      "seasonYear": 1985,
+      "anilistEpisodeCount": 1,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-soukou-kihei-votoms": {
+      "anilistId": 2582,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 1983,
+      "anilistEpisodeCount": 52,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 2582,
+          "title": "Soukou Kihei Votoms",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 1983,
+          "startedAt": 418003200000,
+          "order": 1
+        },
+        {
+          "anilistId": 2585,
+          "title": "Soukou Kihei Votoms: Red Shoulder Document - Yabou no Roots",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "SPRING",
+          "seasonYear": 1988,
+          "startedAt": 574732800000,
+          "order": 2
+        },
+        {
+          "anilistId": 2586,
+          "title": "Soukou Kihei Votoms: Kakuyaku taru Itan",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 5,
+          "season": "SPRING",
+          "seasonYear": 1994,
+          "startedAt": 764208000000,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-seisenshi-dunbine": {
+      "anilistId": 929,
+      "airingStatus": "FINISHED",
+      "season": "WINTER",
+      "seasonYear": 1983,
+      "anilistEpisodeCount": 49,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 929,
+          "title": "Seisenshi Dunbine",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 49,
+          "season": "WINTER",
+          "seasonYear": 1983,
+          "startedAt": 413251200000,
+          "order": 1
+        },
+        {
+          "anilistId": 5372,
+          "title": "Seisenshi Dunbine: New Story of AURA BATTLER Dunbine",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 3,
+          "season": "WINTER",
+          "seasonYear": 1988,
+          "startedAt": 572745600000,
+          "order": 2
+        },
+        {
+          "anilistId": 574,
+          "title": "Rean no Tsubasa",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 6,
+          "season": "WINTER",
+          "seasonYear": 2005,
+          "startedAt": 1134691200000,
+          "order": 3
+        }
+      ]
+    },
+    "animeav1-shin-taketori-monogatari-1000-nen-joou": {
+      "anilistId": 1548,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 1981,
+      "anilistEpisodeCount": 42,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 1000,
+          "title": "Uchuu Kaizoku Captain Harlock",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 42,
+          "season": "SPRING",
+          "seasonYear": 1978,
+          "startedAt": 258681600000,
+          "order": 1
+        },
+        {
+          "anilistId": 1491,
+          "title": "Ginga Tetsudou 999",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 113,
+          "season": "FALL",
+          "seasonYear": 1978,
+          "startedAt": 274579200000,
+          "order": 2
+        },
+        {
+          "anilistId": 1301,
+          "title": "Ginga Tetsudou 999 (Movie)",
+          "format": "MOVIE",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "SUMMER",
+          "seasonYear": 1979,
+          "startedAt": 302572800000,
+          "order": 3
+        },
+        {
+          "anilistId": 1548,
+          "title": "Shin Taketori Monogatari: 1000-nen Joou",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 42,
+          "season": "SPRING",
+          "seasonYear": 1981,
+          "startedAt": 356227200000,
+          "order": 4
+        },
+        {
+          "anilistId": 2019,
+          "title": "Kasei Ryodan DNA Sights 999.9",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "FALL",
+          "seasonYear": 1998,
+          "startedAt": 913939200000,
+          "order": 5
+        },
+        {
+          "anilistId": 1645,
+          "title": "Harlock Saga: Nibelung no Yubiwa",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 6,
+          "season": "WINTER",
+          "seasonYear": 1999,
+          "startedAt": 917222400000,
+          "order": 6
+        },
+        {
+          "anilistId": 1495,
+          "title": "Maetel Legend",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 2,
+          "season": "FALL",
+          "seasonYear": 2000,
+          "startedAt": 976665600000,
+          "order": 7
+        },
+        {
+          "anilistId": 1377,
+          "title": "Uchuu Koukyoushi Maetel: Ginga Tetsudou 999 Gaiden",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2004,
+          "startedAt": 1091750400000,
+          "order": 8
+        }
+      ]
+    },
+    "animeav1-sayonara-ginga-tetsudou-999-andromeda-shuuchakueki": {
+      "anilistId": 1302,
+      "airingStatus": "FINISHED",
+      "season": "SUMMER",
+      "seasonYear": 1981,
+      "anilistEpisodeCount": 1,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-tomodachi-game": {
+      "anilistId": 141014,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-totsukuni-no-shoujo-2022": {
+      "anilistId": 130550,
+      "airingStatus": "FINISHED",
+      "season": "WINTER",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 1,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-tensai-ouji-no-akaji-kokka-saisei-jutsu": {
+      "anilistId": 129190,
+      "airingStatus": "FINISHED",
+      "season": "WINTER",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-tribe-nine": {
+      "anilistId": 139804,
+      "airingStatus": "FINISHED",
+      "season": "WINTER",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-tokyo-24-ku": {
+      "anilistId": 140643,
+      "airingStatus": "FINISHED",
+      "season": "WINTER",
+      "seasonYear": 2022,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-tropical-rouge-precure-movie-yuki-no-princess-to-kiseki-no-yubiwa": {
+      "anilistId": 135864,
+      "airingStatus": "FINISHED",
+      "season": "FALL",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 1,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-taishou-otome-otogibanashi": {
+      "anilistId": 127412,
+      "airingStatus": "FINISHED",
+      "season": "FALL",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-takt-op-destiny": {
+      "anilistId": 131565,
+      "airingStatus": "FINISHED",
+      "season": "FALL",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-tsuki-to-laika-to-nosferatu": {
+      "anilistId": 131019,
+      "airingStatus": "FINISHED",
+      "season": "FALL",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": []
+    },
+    "animeav1-tonikaku-kawaii-sns": {
+      "anilistId": 127371,
+      "airingStatus": "FINISHED",
+      "season": "SUMMER",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 1,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 116267,
+          "title": "Tonikaku Kawaii",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2020,
+          "startedAt": 1601683200000,
+          "order": 1
+        },
+        {
+          "anilistId": 127371,
+          "title": "Tonikaku Kawaii: SNS",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "SUMMER",
+          "seasonYear": 2021,
+          "startedAt": 1629244800000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-tantei-wa-mou-shindeiru": {
+      "anilistId": 128712,
+      "airingStatus": "FINISHED",
+      "season": "SUMMER",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 128712,
+          "title": "Tantei wa Mou, Shindeiru.",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2021,
+          "startedAt": 1625356800000,
+          "order": 1
+        },
+        {
+          "anilistId": 152677,
+          "title": "Tantei wa Mou, Shindeiru. Season 2",
+          "format": "TV",
+          "status": "RELEASING",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1791331200000,
+          "order": 2
+        }
+      ]
+    },
+    "animeav1-tokyo-revengers": {
+      "anilistId": 120120,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 24,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 120120,
+          "title": "Tokyo Revengers",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 24,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1618099200000,
+          "order": 1
+        },
+        {
+          "anilistId": 142853,
+          "title": "Tokyo Revengers: Seiya Kessen-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1673136000000,
+          "order": 2
+        },
+        {
+          "anilistId": 163329,
+          "title": "Tokyo Revengers: Tenjiku-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2023,
+          "startedAt": 1696377600000,
+          "order": 3
+        },
+        {
+          "anilistId": 178083,
+          "title": "Tokyo Revengers: Santen Sensou-hen",
+          "format": "TV",
+          "status": "RELEASING",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1790985600000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-530": {
+      "anilistId": 530,
+      "airingStatus": "FINISHED",
+      "season": "WINTER",
+      "seasonYear": 1992,
+      "anilistEpisodeCount": 46,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 530,
+          "title": "Bishoujo Senshi Sailor Moon",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 46,
+          "season": "WINTER",
+          "seasonYear": 1992,
+          "startedAt": 699926400000,
+          "order": 1
+        },
+        {
+          "anilistId": 740,
+          "title": "Bishoujo Senshi Sailor Moon R",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 43,
+          "season": "SPRING",
+          "seasonYear": 1993,
+          "startedAt": 731376000000,
+          "order": 2
+        },
+        {
+          "anilistId": 532,
+          "title": "Bishoujo Senshi Sailor Moon S",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 38,
+          "season": "SPRING",
+          "seasonYear": 1994,
+          "startedAt": 764035200000,
+          "order": 3
+        },
+        {
+          "anilistId": 1239,
+          "title": "Bishoujo Senshi Sailor Moon SuperS",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 39,
+          "season": "SPRING",
+          "seasonYear": 1995,
+          "startedAt": 794275200000,
+          "order": 4
+        },
+        {
+          "anilistId": 996,
+          "title": "Bishoujo Senshi Sailor Moon: Sailor Stars",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 34,
+          "season": "SPRING",
+          "seasonYear": 1996,
+          "startedAt": 826329600000,
+          "order": 5
+        }
+      ]
+    },
+    "anilist-128712": {
+      "anilistId": 128712,
+      "airingStatus": "FINISHED",
+      "season": "SUMMER",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 12,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 128712,
+          "title": "Tantei wa Mou, Shindeiru.",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "SUMMER",
+          "seasonYear": 2021,
+          "startedAt": 1625356800000,
+          "order": 1
+        },
+        {
+          "anilistId": 152677,
+          "title": "Tantei wa Mou, Shindeiru. Season 2",
+          "format": "TV",
+          "status": "RELEASING",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1791331200000,
+          "order": 2
+        }
+      ]
+    },
+    "anilist-120120": {
+      "anilistId": 120120,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 24,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 120120,
+          "title": "Tokyo Revengers",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 24,
+          "season": "SPRING",
+          "seasonYear": 2021,
+          "startedAt": 1618099200000,
+          "order": 1
+        },
+        {
+          "anilistId": 142853,
+          "title": "Tokyo Revengers: Seiya Kessen-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "WINTER",
+          "seasonYear": 2023,
+          "startedAt": 1673136000000,
+          "order": 2
+        },
+        {
+          "anilistId": 163329,
+          "title": "Tokyo Revengers: Tenjiku-hen",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2023,
+          "startedAt": 1696377600000,
+          "order": 3
+        },
+        {
+          "anilistId": 178083,
+          "title": "Tokyo Revengers: Santen Sensou-hen",
+          "format": "TV",
+          "status": "RELEASING",
+          "episodes": 13,
+          "season": "FALL",
+          "seasonYear": 2026,
+          "startedAt": 1790985600000,
+          "order": 4
+        }
+      ]
+    },
+    "anilist-1548": {
+      "anilistId": 1548,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 1981,
+      "anilistEpisodeCount": 42,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 1000,
+          "title": "Uchuu Kaizoku Captain Harlock",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 42,
+          "season": "SPRING",
+          "seasonYear": 1978,
+          "startedAt": 258681600000,
+          "order": 1
+        },
+        {
+          "anilistId": 1491,
+          "title": "Ginga Tetsudou 999",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 113,
+          "season": "FALL",
+          "seasonYear": 1978,
+          "startedAt": 274579200000,
+          "order": 2
+        },
+        {
+          "anilistId": 1301,
+          "title": "Ginga Tetsudou 999 (Movie)",
+          "format": "MOVIE",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "SUMMER",
+          "seasonYear": 1979,
+          "startedAt": 302572800000,
+          "order": 3
+        },
+        {
+          "anilistId": 1548,
+          "title": "Shin Taketori Monogatari: 1000-nen Joou",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 42,
+          "season": "SPRING",
+          "seasonYear": 1981,
+          "startedAt": 356227200000,
+          "order": 4
+        },
+        {
+          "anilistId": 2019,
+          "title": "Kasei Ryodan DNA Sights 999.9",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "FALL",
+          "seasonYear": 1998,
+          "startedAt": 913939200000,
+          "order": 5
+        },
+        {
+          "anilistId": 1645,
+          "title": "Harlock Saga: Nibelung no Yubiwa",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 6,
+          "season": "WINTER",
+          "seasonYear": 1999,
+          "startedAt": 917222400000,
+          "order": 6
+        },
+        {
+          "anilistId": 1495,
+          "title": "Maetel Legend",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 2,
+          "season": "FALL",
+          "seasonYear": 2000,
+          "startedAt": 976665600000,
+          "order": 7
+        },
+        {
+          "anilistId": 1377,
+          "title": "Uchuu Koukyoushi Maetel: Ginga Tetsudou 999 Gaiden",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 13,
+          "season": "SUMMER",
+          "seasonYear": 2004,
+          "startedAt": 1091750400000,
+          "order": 8
+        }
+      ]
+    },
+    "anilist-929": {
+      "anilistId": 929,
+      "airingStatus": "FINISHED",
+      "season": "WINTER",
+      "seasonYear": 1983,
+      "anilistEpisodeCount": 49,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 929,
+          "title": "Seisenshi Dunbine",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 49,
+          "season": "WINTER",
+          "seasonYear": 1983,
+          "startedAt": 413251200000,
+          "order": 1
+        },
+        {
+          "anilistId": 5372,
+          "title": "Seisenshi Dunbine: New Story of AURA BATTLER Dunbine",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 3,
+          "season": "WINTER",
+          "seasonYear": 1988,
+          "startedAt": 572745600000,
+          "order": 2
+        },
+        {
+          "anilistId": 574,
+          "title": "Rean no Tsubasa",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 6,
+          "season": "WINTER",
+          "seasonYear": 2005,
+          "startedAt": 1134691200000,
+          "order": 3
+        }
+      ]
+    },
+    "anilist-5372": {
+      "anilistId": 5372,
+      "airingStatus": "FINISHED",
+      "season": "WINTER",
+      "seasonYear": 1988,
+      "anilistEpisodeCount": 3,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 929,
+          "title": "Seisenshi Dunbine",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 49,
+          "season": "WINTER",
+          "seasonYear": 1983,
+          "startedAt": 413251200000,
+          "order": 1
+        },
+        {
+          "anilistId": 5372,
+          "title": "Seisenshi Dunbine: New Story of AURA BATTLER Dunbine",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 3,
+          "season": "WINTER",
+          "seasonYear": 1988,
+          "startedAt": 572745600000,
+          "order": 2
+        },
+        {
+          "anilistId": 574,
+          "title": "Rean no Tsubasa",
+          "format": "ONA",
+          "status": "FINISHED",
+          "episodes": 6,
+          "season": "WINTER",
+          "seasonYear": 2005,
+          "startedAt": 1134691200000,
+          "order": 3
+        }
+      ]
+    },
+    "anilist-2582": {
+      "anilistId": 2582,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 1983,
+      "anilistEpisodeCount": 52,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 2582,
+          "title": "Soukou Kihei Votoms",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 1983,
+          "startedAt": 418003200000,
+          "order": 1
+        },
+        {
+          "anilistId": 2585,
+          "title": "Soukou Kihei Votoms: Red Shoulder Document - Yabou no Roots",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "SPRING",
+          "seasonYear": 1988,
+          "startedAt": 574732800000,
+          "order": 2
+        },
+        {
+          "anilistId": 2586,
+          "title": "Soukou Kihei Votoms: Kakuyaku taru Itan",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 5,
+          "season": "SPRING",
+          "seasonYear": 1994,
+          "startedAt": 764208000000,
+          "order": 3
+        }
+      ]
+    },
+    "anilist-2585": {
+      "anilistId": 2585,
+      "airingStatus": "FINISHED",
+      "season": "SPRING",
+      "seasonYear": 1988,
+      "anilistEpisodeCount": 1,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 2582,
+          "title": "Soukou Kihei Votoms",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 52,
+          "season": "SPRING",
+          "seasonYear": 1983,
+          "startedAt": 418003200000,
+          "order": 1
+        },
+        {
+          "anilistId": 2585,
+          "title": "Soukou Kihei Votoms: Red Shoulder Document - Yabou no Roots",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "SPRING",
+          "seasonYear": 1988,
+          "startedAt": 574732800000,
+          "order": 2
+        },
+        {
+          "anilistId": 2586,
+          "title": "Soukou Kihei Votoms: Kakuyaku taru Itan",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 5,
+          "season": "SPRING",
+          "seasonYear": 1994,
+          "startedAt": 764208000000,
+          "order": 3
+        }
+      ]
+    },
+    "anilist-127371": {
+      "anilistId": 127371,
+      "airingStatus": "FINISHED",
+      "season": "SUMMER",
+      "seasonYear": 2021,
+      "anilistEpisodeCount": 1,
+      "nextAiringAt": null,
+      "nextAiringEpisodeNumber": null,
+      "franchiseSeasons": [
+        {
+          "anilistId": 116267,
+          "title": "Tonikaku Kawaii",
+          "format": "TV",
+          "status": "FINISHED",
+          "episodes": 12,
+          "season": "FALL",
+          "seasonYear": 2020,
+          "startedAt": 1601683200000,
+          "order": 1
+        },
+        {
+          "anilistId": 127371,
+          "title": "Tonikaku Kawaii: SNS",
+          "format": "OVA",
+          "status": "FINISHED",
+          "episodes": 1,
+          "season": "SUMMER",
+          "seasonYear": 2021,
+          "startedAt": 1629244800000,
+          "order": 2
+        }
+      ]
     },
     "animeav1-bastard-ankoku-no-hakaishin-part-2-ona": {
       "anilistId": "mal-51366",
@@ -265656,6 +265689,10 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx105655-Q8ZPRKOVtiwz.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/105655-3HdrCjJRkBjO.jpg"
     },
+    "anilist-60207": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/30207.jpg",
+      "anilistBanner": ""
+    },
     "anilist-1695": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1695-etz4t9yoXO19.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1695-f2BWoFWAhG27.jpg"
@@ -265904,22 +265941,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx20141-1VtZnvaHOHGl.jpg",
       "anilistBanner": ""
     },
-    "anilist-20461": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20461-YTSZiG163mi7.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20461-tlZVmmmb6SAd.jpg"
-    },
-    "anilist-53818": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b53818-Yp5TqFD56voA.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/53818-jWVmOMasChhc.jpg"
-    },
-    "anilist-30222": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30222-8jNgJix8ePVK.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30222-xLtdmDONrJD5.jpg"
-    },
-    "anilist-60207": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/30207.jpg",
-      "anilistBanner": ""
-    },
     "anilist-149": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx149-6QGLHgJc8gum.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/149-1ObNHNwgBy8H.jpg"
@@ -266011,6 +266032,18 @@
     "anilist-1437": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1437-0oQS3aiiyyp7.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1437-4x3umb48Bogs.jpg"
+    },
+    "anilist-20461": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20461-YTSZiG163mi7.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/20461-tlZVmmmb6SAd.jpg"
+    },
+    "anilist-53818": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b53818-Yp5TqFD56voA.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/53818-jWVmOMasChhc.jpg"
+    },
+    "anilist-30222": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx30222-8jNgJix8ePVK.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/30222-xLtdmDONrJD5.jpg"
     },
     "anilist-20914": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx20914-Ib3EeuXWmNLi.jpg",
@@ -272060,170 +272093,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b88787-SaB43bxwxXkY.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/88787-Ifq8C96SvGMJ.jpg"
     },
-    "anilist-1657": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/1657.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1657-bYQc4BnwPLap.jpg"
-    },
-    "anilist-1255": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1255-Jhh95SAoZqQq.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1255-62weecY1jtSa.jpg"
-    },
-    "anilist-1256": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1256-hOj9i3AIVFlt.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1256-YUCEyBqrDJDI.jpg"
-    },
-    "anilist-142777": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx142777-yRidGBqUpMzZ.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-1258": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1258-rGxxU1urNfD8.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n1258-8xeNAF4u9g4p.jpg"
-    },
-    "anilist-1260": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1260-rzXniF1kX1Ji.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1260-khcZlNv7luFC.jpg"
-    },
-    "anilist-3256": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/3256.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-7536": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/7536.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-2583": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/2583.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-2584": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/2584.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-2048": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/2048.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n2048-6CV2XwJNcIu1.jpg"
-    },
-    "anilist-12439": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx12439-NfNyx8SYVZ9Y.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-12441": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx12441-icWLxd8h77gf.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-94409": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/medium/b94409-cXTWARqiKeP5.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-206163": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx206163-mX4zuFtmeDFE.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-132467": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx132467-KVpD81s5ZvJP.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/132467-O79Pn14olLQ8.jpg"
-    },
-    "anilist-214263": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx214263-onWqmhm8vTgr.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/214263-8FOEoZAZcE2u.jpg"
-    },
-    "anilist-127412": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx127412-dpHXV2X9tskV.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/127412-0xcienOq4Tls.jpg"
-    },
-    "anilist-96754": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/nx96754-HHNc0SKT38aC.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/96754-W3YgNhikiM8J.jpg"
-    },
-    "anilist-114202": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx114202-IQy0Pfe3ft9q.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/114202-hi1aX1lkxlkw.jpg"
-    },
-    "anilist-119752": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx119752-2dYT99ATkYVG.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-151987": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx151987-5xpwZegehaoM.png",
-      "anilistBanner": ""
-    },
-    "anilist-129190": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx129190-UnaPbNhTCTOR.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/129190-UNHT31z95c23.jpg"
-    },
-    "anilist-111631": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx111631-kdFLy8VlGzr1.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/111631-n2wxqVJtXSRl.jpg"
-    },
-    "anilist-124374": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx124374-aWqPa8t7JJeJ.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/124374-lexWD1IwcXIw.jpg"
-    },
-    "anilist-137898": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx137898-7bvZ1psH32Cx.png",
-      "anilistBanner": ""
-    },
-    "anilist-144336": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx144336-iQPA22rTanvT.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-130550": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx130550-TNuuHlL1BIMZ.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/130550-tdYGcblNd8oU.jpg"
-    },
-    "anilist-108354": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx108354-MGpTCKLHQBX3.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/108354-ineemjtrxhQy.jpg"
-    },
-    "anilist-86770": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86770-vjBM79Z1GVbs.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86770-7rHc5L7dR6O1.jpg"
-    },
-    "anilist-131019": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx131019-xaTtBN2G6BrO.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/131019-kC3Tu6e6dfxr.jpg"
-    },
-    "anilist-111676": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx111676-QKm7EKYVmEPm.png",
-      "anilistBanner": ""
-    },
-    "anilist-131038": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx131038-9uDhBX9O9lHt.png",
-      "anilistBanner": ""
-    },
-    "anilist-140162": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx140162-wLyMUDXJI3XQ.png",
-      "anilistBanner": ""
-    },
-    "anilist-131565": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx131565-3W2YEX6V3K3i.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/131565-JBlm0IItFlUV.jpg"
-    },
-    "anilist-151578": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx151578-lIqWAcqDqH5h.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-167997": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx167997-EqnHtvLkIcZL.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-139804": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx139804-kpZVaUQvisjl.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/139804-5f7jL4NIEeQQ.jpg"
-    },
-    "anilist-140643": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx140643-RpKlGdwDa7r7.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/140643-mtfFuRKRhmDS.jpg"
-    },
-    "anilist-141014": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx141014-bTWr7TtS0wt9.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/141014-ocrpDt7M8EfY.jpg"
-    },
-    "anilist-85911": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx85911-Z6xE67IxevPA.jpg",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/85911-ebU5GnEdGgQE.jpg"
-    },
     "anilist-100179": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/nx100179-jDGTOMxtoDkt.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/100179-LV2oqGihvbjN.jpg"
@@ -272315,6 +272184,18 @@
     "anilist-154196": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx154196-kO6c98nlnU9O.jpg",
       "anilistBanner": ""
+    },
+    "anilist-108354": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx108354-MGpTCKLHQBX3.png",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/108354-ineemjtrxhQy.jpg"
+    },
+    "anilist-86770": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx86770-vjBM79Z1GVbs.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/86770-7rHc5L7dR6O1.jpg"
+    },
+    "anilist-130550": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx130550-TNuuHlL1BIMZ.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/130550-tdYGcblNd8oU.jpg"
     },
     "anilist-112649": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx112649-Wdcxo6cQZbhx.jpg",
@@ -273714,6 +273595,10 @@
     },
     "anilist-8249": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/8249.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-3256": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/3256.jpg",
       "anilistBanner": ""
     },
     "anilist-14283": {
@@ -275632,6 +275517,26 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx145594-wURR2hX2HMkg.jpg",
       "anilistBanner": ""
     },
+    "anilist-1255": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1255-Jhh95SAoZqQq.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1255-62weecY1jtSa.jpg"
+    },
+    "anilist-1256": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1256-hOj9i3AIVFlt.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1256-YUCEyBqrDJDI.jpg"
+    },
+    "anilist-1258": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1258-rGxxU1urNfD8.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/n1258-8xeNAF4u9g4p.jpg"
+    },
+    "anilist-1260": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx1260-rzXniF1kX1Ji.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1260-khcZlNv7luFC.jpg"
+    },
+    "anilist-142777": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx142777-yRidGBqUpMzZ.jpg",
+      "anilistBanner": ""
+    },
     "anilist-114244": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/medium/b114244-tOIngLbKP3ux.jpg",
       "anilistBanner": ""
@@ -275910,6 +275815,14 @@
     },
     "anilist-156631": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx156631-4Qsjbjpx8kE7.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-114202": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx114202-IQy0Pfe3ft9q.jpg",
+      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/114202-hi1aX1lkxlkw.jpg"
+    },
+    "anilist-119752": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx119752-2dYT99ATkYVG.jpg",
       "anilistBanner": ""
     },
     "anilist-121458": {
@@ -276588,6 +276501,18 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx146120-42C8Tc7yOkk7.jpg",
       "anilistBanner": ""
     },
+    "anilist-205896": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx205896-ElrV8oVAsuax.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-117945": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx117945-LIjjgsdswFPN.jpg",
+      "anilistBanner": ""
+    },
+    "anilist-117946": {
+      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx117946-nPC2t5RIyhl2.jpg",
+      "anilistBanner": ""
+    },
     "anilist-205909": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx205909-DM0fAzNQulod.jpg",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/205909-hGeuFYrdhf9S.jpg"
@@ -276652,14 +276577,6 @@
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx176270-aTao5jejW17i.png",
       "anilistBanner": ""
     },
-    "anilist-213068": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx213068-aFSedkY5bQ4m.png",
-      "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/213068-EQba2gbIKAy5.jpg"
-    },
-    "anilist-217994": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx217994-zr40iVVSxBji.jpg",
-      "anilistBanner": ""
-    },
     "anilist-179876": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx179876-Wg62CAzp5WQ1.jpg",
       "anilistBanner": ""
@@ -276679,18 +276596,6 @@
     "anilist-154372": {
       "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx154372-w69wQgEL6w13.png",
       "anilistBanner": "https://s4.anilist.co/file/anilistcdn/media/manga/banner/154372-EXNy5Wl0zRYT.jpg"
-    },
-    "anilist-205896": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx205896-ElrV8oVAsuax.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-117945": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx117945-LIjjgsdswFPN.jpg",
-      "anilistBanner": ""
-    },
-    "anilist-117946": {
-      "metadataCover": "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/bx117946-nPC2t5RIyhl2.jpg",
-      "anilistBanner": ""
     }
   }
 }
