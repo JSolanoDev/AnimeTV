@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-25T17:07:26.049Z",
+  "generatedAt": "2026-11-26T01:07:57.877Z",
   "count": 6687,
   "entries": {
     "animeav1-one-piece": {
@@ -241432,13 +241432,13 @@
       "lastEpisodeAt": "2026-11-24T14:42:30.531Z"
     },
     "animeav1-juuou-mujin-dandivine": {
-      "anilistId": null,
+      "anilistId": 213068,
       "airingStatus": "RELEASING",
       "season": "",
       "seasonYear": null,
       "anilistEpisodeCount": null,
-      "nextAiringAt": null,
-      "nextAiringEpisodeNumber": null,
+      "nextAiringAt": 1796225400000,
+      "nextAiringEpisodeNumber": 9,
       "franchiseSeasons": [],
       "sourceEpisodeCount": 7,
       "lastEpisodeAt": "2026-11-18T17:14:37.027Z"
