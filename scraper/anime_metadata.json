@@ -4082,8 +4082,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/hotaru-no-yomeiri",
-      "totalEpisodes": 7,
-      "episode": 7,
+      "totalEpisodes": 8,
+      "episode": 8,
       "lastScrapedAt": "2026-11-27T15:47:44.076166+00:00",
       "episodes": [
         {
@@ -4331,16 +4331,18 @@
         4,
         5,
         6,
-        7
+        7,
+        8
       ],
-      "sourceEpisodeCount": 7,
-      "sourcePlayableEpisodeCount": 7,
+      "sourceEpisodeCount": 8,
+      "sourcePlayableEpisodeCount": 8,
       "sourceDeclaredEpisodeCount": 7,
       "sourceInventoryChecked": true,
       "sourceInventoryPartial": false,
-      "sourceInventoryCheckedAt": "2026-11-27T15:55:26.978Z",
-      "lastEpisodeAt": "2026-11-20T16:29:25.024Z",
-      "latestAiredEp": 7
+      "sourceInventoryCheckedAt": "2026-11-27T22:17:41.896Z",
+      "lastEpisodeAt": "2026-11-27T16:17:41.856Z",
+      "latestAiredEp": 8,
+      "sourceInventoryRetainedEpisodeCount": 7
     },
     {
       "id": "animeav1-toaru-anbu-no-item",
@@ -219607,8 +219609,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/tougen-anki-nikko-kegon-no-taki-hen",
-      "totalEpisodes": 8,
-      "episode": 8,
+      "totalEpisodes": 9,
+      "episode": 9,
       "lastScrapedAt": "2026-11-27T15:52:29.799360+00:00",
       "episodes": [
         {
@@ -219665,16 +219667,18 @@
         5,
         6,
         7,
-        8
+        8,
+        9
       ],
-      "sourceEpisodeCount": 8,
-      "sourcePlayableEpisodeCount": 8,
+      "sourceEpisodeCount": 9,
+      "sourcePlayableEpisodeCount": 9,
       "sourceDeclaredEpisodeCount": 8,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-11-27T15:55:26.978Z",
+      "sourceInventoryCheckedAt": "2026-11-27T22:17:41.896Z",
       "sourceInventoryPartial": false,
-      "latestAiredEp": 8,
-      "lastEpisodeAt": "2026-11-20T16:29:25.024Z"
+      "latestAiredEp": 9,
+      "lastEpisodeAt": "2026-11-27T16:17:41.856Z",
+      "sourceInventoryRetainedEpisodeCount": 8
     },
     {
       "id": "animeav1-tokyo-revengers-santen-sensou-hen",
@@ -219697,8 +219701,8 @@
       "score": null,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/tokyo-revengers-santen-sensou-hen",
-      "totalEpisodes": 8,
-      "episode": 8,
+      "totalEpisodes": 9,
+      "episode": 9,
       "lastScrapedAt": "2026-11-27T15:52:29.800361+00:00",
       "episodes": [
         {
@@ -219755,16 +219759,18 @@
         5,
         6,
         7,
-        8
+        8,
+        9
       ],
-      "sourceEpisodeCount": 8,
-      "sourcePlayableEpisodeCount": 8,
+      "sourceEpisodeCount": 9,
+      "sourcePlayableEpisodeCount": 9,
       "sourceDeclaredEpisodeCount": 8,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-11-27T15:55:26.978Z",
+      "sourceInventoryCheckedAt": "2026-11-27T22:17:41.896Z",
       "sourceInventoryPartial": false,
-      "latestAiredEp": 8,
-      "lastEpisodeAt": "2026-11-20T17:29:25.024Z"
+      "latestAiredEp": 9,
+      "lastEpisodeAt": "2026-11-27T17:17:41.855Z",
+      "sourceInventoryRetainedEpisodeCount": 8
     },
     {
       "id": "animeav1-tensei-shitara-ken-deshita-ii",
@@ -236009,8 +236015,8 @@
       "score": 70,
       "source": "AnimeAV1",
       "siteUrl": "https://animeav1.com/media/uchi-no-otouto-domo-ga-sumimasen",
-      "totalEpisodes": 20,
-      "episode": 20,
+      "totalEpisodes": 21,
+      "episode": 21,
       "lastScrapedAt": "2026-11-27T15:52:50.923885+00:00",
       "episodes": [],
       "seasons": [],
@@ -236039,16 +236045,18 @@
         17,
         18,
         19,
-        20
+        20,
+        21
       ],
-      "sourceEpisodeCount": 20,
-      "sourcePlayableEpisodeCount": 20,
+      "sourceEpisodeCount": 21,
+      "sourcePlayableEpisodeCount": 21,
       "sourceInventoryChecked": true,
-      "sourceInventoryCheckedAt": "2026-11-27T15:55:26.978Z",
+      "sourceInventoryCheckedAt": "2026-11-27T22:17:41.896Z",
       "sourceDeclaredEpisodeCount": 20,
       "sourceInventoryPartial": false,
-      "latestAiredEp": 20,
-      "lastEpisodeAt": "2026-11-20T16:29:25.024Z"
+      "latestAiredEp": 21,
+      "lastEpisodeAt": "2026-11-27T16:17:41.856Z",
+      "sourceInventoryRetainedEpisodeCount": 20
     },
     {
       "id": "animeav1-uruwashi-no-yoi-no-tsuki",
