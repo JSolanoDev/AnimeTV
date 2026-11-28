@@ -70,23 +70,15 @@ test("catalog joins normalize each title once instead of scanning every pair", (
   assert.deepEqual(merged.map(item => item.id), primary.map(item => item.id));
 });
 
-test("indexed matches preserve first-source ordering across conflicting aliases", () => {
+test("gallery joins prefer the canonical title and decline ambiguous aliases and different installments", () => {
   const adapter = new CompositeAdultSourceAdapter();
-  const secondary = [
-    { id: "early", title: "Other Title", aliases: ["Shared Alias"] },
-    { id: "late", title: "Exact Title" },
-    { id: "empty", title: "" }
-  ];
-  adapter._mergeCatalogs([], secondary);
-  for (const item of [
-    { title: "Exact Title", aliases: ["Shared Alias"] },
-    { title: "EXACT TITLE The Animation" },
-    { title: "Missing Title" },
-    { title: "" }
-  ]) {
-    const wanted = adapter._keys(item);
-    const previous = secondary.find(candidate => adapter._keys(candidate).some(key => wanted.includes(key))) || null;
-    assert.equal(adapter._findExactOceanMatch(item), previous);
+  const first = { title: "Other Title", aliases: ["Shared Alias"] };
+  const exact = { title: "Exact Title", aliases: ["Shared Alias"] };
+  adapter._mergeCatalogs([], [first, exact]);
+  assert.equal(adapter._findExactOceanMatch({ title: "Exact Title", aliases: ["Shared Alias"] }), exact);
+  assert.equal(adapter._findExactOceanMatch({ title: "Exact Title The Animation" }), exact);
+  for (const title of ["Shared Alias", "Exact Title 2", "Exact Title (Part Two)", ""]) {
+    assert.equal(adapter._findExactOceanMatch({ title }), null);
   }
 });
 
@@ -1147,7 +1139,7 @@ test("local-only retired files cannot change the production catalog total", asyn
     assert.equal(responseHeaders["Cache-Control"], "public, max-age=60, s-maxage=300, stale-while-revalidate=600");
     assert.equal(responseHeaders["Vercel-CDN-Cache-Control"], "public, s-maxage=300, stale-while-revalidate=600");
   }
-  assert.match(client, /multi-source-v14/, "retired browser snapshots must not be restored after upgrading");
+  assert.match(client, /multi-source-v15/, "retired browser snapshots must not be restored after upgrading");
 });
 
 test("catalog cold builds reuse the bundled snapshot instead of fan-out metadata calls", () => {

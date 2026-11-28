@@ -1571,3 +1571,56 @@ test("concurrent cold callers recover once when the health endpoint reports star
   assert.deepEqual(h.calls.map(c => c.url), ["/api/health", "/api/health", "/api/first", "/api/second"]);
   assert.equal(h.timers.size, 0);
 });
+
+test("an older AnimeAV1 lookup cannot replace a working recovery with an expired URL or miss", async () => {
+  for (const stale of [null, { ok: false, sources: [] }, { ok: true, sources: ["expired"] }]) {
+    const pending = [];
+    const c = vm.createContext({
+      ANIMEAV1_SOURCE_TIMEOUT_MS: 6500,
+      _animeAv1EpisodeSourceCache: new Map(), _animeAv1EpisodeSourceInflight: new Map(),
+      fetchWithTimeout: () => new Promise((resolve, reject) => pending.push({ resolve, reject }))
+    });
+    vm.runInContext(section(client, "const EPISODE_SOURCE_PAYLOAD_TTL_MS", "async function buildAnimeAv1CastCandidate("), c);
+    const get = options => c.fetchAnimeAv1EpisodeSourcePayload("fixture", 7, options);
+    const ordinary = get();
+    const fresh = get({ forceRefresh: true });
+    const joined = get();
+    assert.equal(pending.length, 2);
+    const good = { ok: true, sources: ["replacement"] };
+    pending[1].resolve({ ok: true, json: async () => good });
+    assert.equal(await fresh, good);
+    assert.equal(await joined, good);
+    if (stale) pending[0].resolve({ status: stale.ok ? 200 : 404, json: async () => stale });
+    else pending[0].reject(new Error("transient failure"));
+    assert.equal(await ordinary, good);
+    assert.equal(await get(), good);
+  }
+});
+
+test("a late provider miss cannot overwrite refreshed AnimeAV1 sources at the origin", async () => {
+  const pending = [];
+  const c = vm.createContext({
+    URL, animeAv1SourceCache: new Map(), animeAv1SourceInflight: new Map(),
+    cleanAnimeAv1Slug: s => s, cleanAnimeAv1EpisodeId: s => s,
+    ANIMEAV1_CACHE_TTL_MS: 10000, ANIMEAV1_MISS_CACHE_TTL_MS: 1000,
+    SOURCE_REFRESH_CACHE_HEADERS: {}, ANIMEAV1_SOURCE_SUCCESS_CACHE_HEADERS: {},
+    fetchAnimeAv1EpisodeSourcesDirect: () => new Promise((resolve, reject) => pending.push({resolve, reject})),
+    sendJson: (response, data, status) => Object.assign(response, { data, status })
+  });
+  vm.runInContext(section(server, "async function handleAnimeAv1Sources(", "async function getAnimeAv1SlugCatalog("), c);
+  async function request(force = false) {
+    const response = {};
+    await c.handleAnimeAv1Sources(new URL("https://fixture.test/?slug=fixture&episode=7" + (force ? "&refresh=1" : "")), response);
+    return response;
+  }
+  const ordinary = request(), fresh = request(true), joined = request();
+  assert.equal(pending.length, 2);
+  const good = { ok: true, sources: ["replacement"] };
+  pending[1].resolve(good);
+  assert.equal((await fresh).data, good);
+  assert.equal((await joined).data, good);
+  pending[0].reject(new Error("HTTP 404"));
+  assert.equal((await ordinary).status, 200);
+  assert.equal((await request()).data, good);
+  assert.equal(pending.length, 2);
+});

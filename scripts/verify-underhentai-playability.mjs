@@ -115,7 +115,8 @@ for (const item of catalogItems) {
     if (!hasPlayableEpisode(episode)) {
       missingEpisodePlayback.push(`${item.slug}#${episodeNumber}`);
     }
-    if (!hasEpisodeGallery(episode)) {
+    const unavailableGallery = episode.galleryStatus === "unavailable" && Array.isArray(episode.screenshots) && !episode.screenshots.length;
+    if (!hasEpisodeGallery(episode) && !unavailableGallery) {
       missingGallery.push(`${item.slug}#${episodeNumber}`);
     }
     (Array.isArray(episode.sourceOptions) ? episode.sourceOptions : []).forEach((source, index) => {
@@ -144,4 +145,4 @@ if (missingDetails.length || incompleteDetails.length || missingPlayback.length 
   throw new Error(`Adult catalog verification failed (${examples}).`);
 }
 
-console.log(`Verified playable details, artwork, backgrounds, and galleries for all ${catalogItems.length} adult titles, ${episodeCount} episodes, and ${releaseCount} release routes.`);
+console.log(`Verified playable details, artwork, backgrounds, and gallery availability for all ${catalogItems.length} adult titles, ${episodeCount} episodes, and ${releaseCount} release routes.`);

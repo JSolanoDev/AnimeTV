@@ -2586,25 +2586,18 @@ function adultCinematicTitles(show = {}) {
 }
 
 function adultCinematicCacheKey(show = {}) {
-  const title = normalizeMatchTitle(adultCinematicTitles(show)[0] || show.id || "adult-title");
-  return `adult-cinematic-art:v3:${title}:${show.year || ""}`;
+  const identity = [show.adultSource, show.id || show.adultId || show.slug, AdultSourceAdapter.titleKey(show.title), show.year];
+  return 'adult-cinematic-art:v4:' + JSON.stringify(identity);
 }
 
 function adultArtworkCandidate(show, candidate, year = 0) {
-  const normalizeAdultArtworkTitle = (value) => normalizeMatchTitle(value)
-    .replace(/\b(?:the\s+)?animation\b/g, " ")
-    .replace(/\b(?:ova|ona)\b$/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  const showTitles = adultCinematicTitles(show).map(normalizeAdultArtworkTitle).filter(Boolean);
-  const candidateTitles = animeTitleCandidates(candidate).map(normalizeAdultArtworkTitle).filter(Boolean);
-  const exactSourceTitle = showTitles.some((showTitle) => candidateTitles.includes(showTitle));
-  const score = exactSourceTitle ? 112 : titleMatchScore(show, candidate);
-  if (score < 100) return 0;
+  const titles = adultCinematicTitles(show).map(AdultSourceAdapter.titleKey).filter(Boolean);
+  const candidates = animeTitleCandidates(candidate).map(AdultSourceAdapter.titleKey);
+  if (!titles.some(title => candidates.includes(title))) return 0;
   const showYear = Number(show.year || 0);
   const candidateYear = Number(year || 0);
-  if (showYear && candidateYear && Math.abs(showYear - candidateYear) > 4) return 0;
-  return score;
+  if (showYear && candidateYear && Math.abs(showYear - candidateYear) > 1) return 0;
+  return 112;
 }
 
 function applyAdultCinematicArtwork(show, artwork = {}) {
@@ -2716,7 +2709,7 @@ async function findAdultCinematicArtwork(show, title) {
 async function hydrateAdultCinematicArtwork(show) {
   if (!isAdultCatalogShow(show)) return show;
   const titles = adultCinematicTitles(show);
-  const queryKey = titles.map(normalizeMatchTitle).join("|");
+  const queryKey = titles.map(AdultSourceAdapter.titleKey).filter(Boolean).join("|");
   if (!queryKey || (show._adultCinematicResolved && show._adultCinematicQueryKey === queryKey)) return show;
   const flightKey = `${show.id || show.adultId || queryKey}:${queryKey}`;
   if (adultCinematicFlights.has(flightKey)) return adultCinematicFlights.get(flightKey);
@@ -2815,7 +2808,7 @@ async function loadAdultCatalog(force = false) {
     if (loadedItems.length) return loadedItems;
   }
   const adapter = AdultSourceRegistry.get();
-  const cacheKey = `adult-catalog:${adapter.name}:multi-source-v14`;
+  const cacheKey = `adult-catalog:${adapter.name}:multi-source-v15`;
   const applyAdultItems = (items = [], labelPrefix = adapter.name) => {
     const adultItems = Array.isArray(items)
       ? items.filter(isSourceItem).map(isolateAdultSourceMetadata)
@@ -5123,7 +5116,7 @@ function renderCarousel() {
       carouselBackdrop.classList.remove("has-banner");
       carouselBackdrop.style.backgroundImage = "linear-gradient(135deg, #121733 0%, #1b1a3b 38%, #0b2637 100%)";
       if (carouselBackdropImage) {
-        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1043";
+        carouselBackdropImage.src = "hero-backdrop-placeholder.webp?v=1044";
         carouselBackdropImage.removeAttribute("srcset");
         carouselBackdropImage.classList.remove("has-banner");
       }
@@ -15251,6 +15244,8 @@ function castEmbedPreference(source = {}) {
 async function fetchAnimeAv1EpisodeSourcePayload(slug, episodeNumber, options = {}) {
   const cacheKey = `${slug}:${episodeNumber}:SUB`;
   const forceRefresh = Boolean(options.forceRefresh);
+  const pendingRefresh = _animeAv1EpisodeSourceInflight.get(cacheKey + ":refresh");
+  if (pendingRefresh) return pendingRefresh;
   const cached = forceRefresh ? null : readEpisodeSourcePayloadCache(_animeAv1EpisodeSourceCache, cacheKey);
   if (cached) return cached;
   if (episodeSourceRecentlyMissing("animeav1", cacheKey, forceRefresh)) return null;
@@ -15264,6 +15259,8 @@ async function fetchAnimeAv1EpisodeSourcePayload(slug, episodeNumber, options = 
     lookup = fetchWithTimeout(endpoint, { cache: forceRefresh ? "no-store" : "default", priority: options.priority || "auto" }, ANIMEAV1_SOURCE_TIMEOUT_MS)
       .then(async (response) => {
         const data = await response.json();
+        const refreshed = !forceRefresh && readEpisodeSourcePayloadCache(_animeAv1EpisodeSourceCache, cacheKey);
+        if (refreshed) return refreshed;
         const hasSources = Boolean(
           (Array.isArray(data?.sources) && data.sources.length)
           || (Array.isArray(data?.castSources) && data.castSources.length)
@@ -15273,6 +15270,11 @@ async function fetchAnimeAv1EpisodeSourcePayload(slug, episodeNumber, options = 
           return null;
         }
         return writeEpisodeSourcePayloadCache(_animeAv1EpisodeSourceCache, cacheKey, data);
+      })
+      .catch(error => {
+        const refreshed = !forceRefresh && readEpisodeSourcePayloadCache(_animeAv1EpisodeSourceCache, cacheKey);
+        if (refreshed) return refreshed;
+        throw error;
       })
       .finally(() => _animeAv1EpisodeSourceInflight.delete(inflightKey));
     _animeAv1EpisodeSourceInflight.set(inflightKey, lookup);
@@ -21682,13 +21684,18 @@ async function prepareReliablePlaybackSource(show, episode, options = {}) {
           () => backupReady
         ));
       }
-      await Promise.race(signals);
+      const discovery = Promise.race(signals).then(() => null);
+      const winner = await Promise.race([discovery, preferredReady]);
+      if (winner && !episode._failedSourceIds?.has(winner.id)) return selectVerifiedSource(winner);
     }
 
     let remainingMs = Math.max(0, deadlineAt - Date.now());
     let verifiedBackup = null;
     const attemptedBackupKeys = new Set();
-    const candidateKey = (source) => source.id || fallbackSourceIdentity(source);
+    // A provider can renew the URL without changing the source's display ID.
+    const candidateKey = source => JSON.stringify([
+      source.id, source.videoUrl, source.externalUrl, source.streamResolver?.endpoint, source.referer
+    ]);
     const collectCandidates = () => getEpisodePlaybackSources(episode)
       .filter((source) => (
         !primaryResult.completed
@@ -24800,7 +24807,7 @@ if (typeof window !== "undefined") {
 function startUpdateManagerWhenIdle() {
   const start = async () => {
     try {
-      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1043");
+      if (!window.UpdateManager) await loadExternalScript("/update-manager.js?v=1044");
       if (window.UpdateManager && !window.animeTVUpdater) {
         window.animeTVUpdater = new window.UpdateManager({ currentVersion: "1.3.0" });
         window.animeTVUpdater.start();

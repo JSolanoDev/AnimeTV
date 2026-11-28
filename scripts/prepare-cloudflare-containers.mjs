@@ -7,7 +7,7 @@ import { prepareCloudflare } from "./prepare-cloudflare.mjs";
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const contextDirectory = resolve(root, ".cache/cloudflare-container-context");
 export const BACKEND_FILES = ["package.json", "package-lock.json", "animetv-server.js",
-  "lib/animeyt-provider.cjs", "js/apk-oneanime.js", "scraper/anime_metadata.json",
+  "lib/animeyt-provider.cjs", "lib/underhentai-gallery.cjs", "js/apk-oneanime.js", "scraper/anime_metadata.json",
   "scraper/anime_metadata.previous.json", "scraper/animeyt-index.json", "scraper/animeneon-catalog.json",
   "scraper/tioanime_slugs.json", "scraper/aniskip-map.json", "scraper/artwork-map.json",
   "scraper/airing-map.json", "scraper/adult_portrait_map.json", "scraper/underhentai_catalog.json",

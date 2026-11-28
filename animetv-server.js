@@ -9,6 +9,7 @@ const { spawn } = require("child_process");
 const { Readable } = require("stream");
 const { pipeline } = require("stream/promises");
 const { gzip } = require("zlib");
+const { episodeGallery, cleanSnapshotEpisode } = require("./lib/underhentai-gallery.cjs");
 const { createProvider: createAnimeYTProvider } = require("./lib/animeyt-provider.cjs");
 let sharp = null;
 try {
@@ -10108,7 +10109,8 @@ async function handleAnimeAv1Sources(url, response) {
   const cacheKey = `${safeSlug}:${providerEpisodeId}:${variant}`;
   const cached = animeAv1SourceCache.get(cacheKey);
   const cachedTtl = cached?.data?.ok ? ANIMEAV1_CACHE_TTL_MS : ANIMEAV1_MISS_CACHE_TTL_MS;
-  if (!forceRefresh && cached && Date.now() - cached.ts < cachedTtl) {
+  const pendingRefresh = animeAv1SourceInflight.get(cacheKey + ":refresh");
+  if (!forceRefresh && !pendingRefresh && cached && Date.now() - cached.ts < cachedTtl) {
     const status = animeAv1CachedSourceStatus(cached);
     sendJson(response, cached.data, status, animeAv1SourceResponseHeaders(status));
     return;
@@ -10116,10 +10118,12 @@ async function handleAnimeAv1Sources(url, response) {
 
   try {
     const inflightKey = forceRefresh ? `${cacheKey}:refresh` : cacheKey;
-    let lookup = animeAv1SourceInflight.get(inflightKey);
+    let lookup = pendingRefresh || animeAv1SourceInflight.get(inflightKey);
     if (!lookup) {
       lookup = fetchAnimeAv1EpisodeSourcesDirect(safeSlug, providerEpisodeId, variant)
         .then((data) => {
+          const newer = animeAv1SourceCache.get(cacheKey);
+          if (!forceRefresh && newer !== cached && newer?.data.ok) return newer;
           const status = data.ok ? 200 : 404;
           animeAv1SourceCache.set(cacheKey, { data, status, ts: Date.now() });
           return { data, status };
@@ -10130,8 +10134,13 @@ async function handleAnimeAv1Sources(url, response) {
       animeAv1SourceInflight.set(inflightKey, lookup);
     }
     const { data, status } = await lookup;
-    sendJson(response, data, status, forceRefresh ? SOURCE_REFRESH_CACHE_HEADERS : animeAv1SourceResponseHeaders(status));
+    sendJson(response, data, status, forceRefresh || pendingRefresh ? SOURCE_REFRESH_CACHE_HEADERS : animeAv1SourceResponseHeaders(status));
   } catch (error) {
+    const newer = animeAv1SourceCache.get(cacheKey);
+    if (!forceRefresh && newer !== cached && newer?.data.ok) {
+      sendJson(response, newer.data, 200, SOURCE_REFRESH_CACHE_HEADERS);
+      return;
+    }
     const status = /HTTP 404|not found/i.test(error.message) ? 404 : 503;
     const data = {
       ok: false,
@@ -10149,7 +10158,7 @@ async function handleAnimeAv1Sources(url, response) {
     if (shouldCacheAnimeAv1SourceStatus(status)) {
       animeAv1SourceCache.set(cacheKey, { data, status, ts: Date.now() });
     }
-    sendJson(response, data, status, forceRefresh ? SOURCE_REFRESH_CACHE_HEADERS : animeAv1SourceResponseHeaders(status));
+    sendJson(response, data, status, forceRefresh || pendingRefresh ? SOURCE_REFRESH_CACHE_HEADERS : animeAv1SourceResponseHeaders(status));
   }
 }
 
@@ -11919,6 +11928,8 @@ function findTitleMatch(underHentaiItem, collection) {
 }
 
 function prepareUnderHentaiSnapshotItem(item = {}) {
+  const episodes = (item.episodes || []).map(cleanSnapshotEpisode);
+  item = { ...item, episodes, screenshots: episodes.flatMap(episode => episode.screenshots) };
   const slug = String(item.slug || "").toLowerCase();
   const mainWallpaper = decodeUnderHentaiImage(item.mainWallpaper || item.image || item.poster || item.cover || "");
   const legacyBanner = decodeUnderHentaiImage(item.banner || "");
@@ -12700,7 +12711,7 @@ function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
     const sectionStart = header.index + header[0].length;
     const sectionEnd = sectionMatches[sectionIndex + 1]?.index ?? html.length;
     const section = html.slice(sectionStart, sectionEnd);
-    const screenshots = [
+    const pageImages = [
       ...[...section.matchAll(/\bdata-src\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi)].map((match) => match[1] || match[2] || match[3] || ""),
       ...[...section.matchAll(/https:\/\/static\.underhentai\.net\/thumbs\/[^"'\s<>]+/gi)].map((match) => match[0])
     ].map(decodeUnderHentaiImage).filter((value, index, values) => value && values.indexOf(value) === index);
@@ -12748,6 +12759,7 @@ function parseUnderHentaiTitlePage(html = "", sourceUrl = "") {
         audio: metadata.audio || ""
       };
     });
+    const screenshots = episodeGallery(pageImages, sourceOptions, number);
     episodes.set(number, {
       episode: number,
       number,

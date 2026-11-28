@@ -31,6 +31,12 @@ class AdultSourceAdapter {
     this._session = null;
   }
 
+  static titleKey(value = "") {
+    return String(value || "").normalize("NFKC").toLowerCase()
+      .replace(/\b(?:the\s+)?animation\b/g, " ")
+      .replace(/[^\p{L}\p{M}\p{N}]+/gu, " ").trim();
+  }
+
   async _requestCatalog(endpoint) {
     // A sleeping container may need longer than the catalog's response deadline.
     // Local feeds share the app's bounded readiness check before starting that clock.
@@ -280,7 +286,7 @@ class UnderHentaiAdultSourceAdapter extends AdultSourceAdapter {
 
   async getDetails(id) {
     const slug = String(id || "").replace(/^adult-underhentai-/, "");
-    const payload = await this._request("/details", { slug, artwork: "portrait-v3" });
+    const payload = await this._request("/details", { slug, artwork: "gallery-v4" });
     const item = payload.item || null;
     if (!item) return null;
     const image = this._bestImage(item);
@@ -523,20 +529,6 @@ class CompositeAdultSourceAdapter extends AdultSourceAdapter {
     }
   }
 
-  _titleKey(value = "") {
-    return String(value || "")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/\([^)]*\)/g, " ")
-      .replace(/\b(?:the\s+)?animation\b/g, " ")
-      .replace(/\b(?:ova|ona)\b/g, " ")
-      .replace(/\bepisode\s*\d+\b/g, " ")
-      .replace(/\s+\d+$/g, " ")
-      .replace(/[^a-z0-9]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-  }
 
   _keys(item = {}) {
     return [...new Set([
@@ -545,26 +537,27 @@ class CompositeAdultSourceAdapter extends AdultSourceAdapter {
       item.nativeTitle,
       item.romajiTitle,
       ...(Array.isArray(item.aliases) ? item.aliases : [])
-    ].map((value) => this._titleKey(value)).filter(Boolean))];
+    ].map((value) => AdultSourceAdapter.titleKey(value)).filter(Boolean))];
   }
 
   _findExactOceanMatch(item = {}) {
     if (this._indexedOceanCatalog !== this._oceanCatalog) {
       this._oceanTitleIndex = new Map();
-      this._oceanCatalog.forEach((candidate, position) => {
-        for (const key of this._keys(candidate)) {
-          if (!this._oceanTitleIndex.has(key)) this._oceanTitleIndex.set(key, { candidate, position });
-        }
-      });
+      this._oceanCanonicalIndex = new Map();
+      const index = (map, key, candidate) => {
+        if (key) map.set(key, map.has(key) ? null : candidate);
+      };
+      for (const candidate of this._oceanCatalog) {
+        index(this._oceanCanonicalIndex, AdultSourceAdapter.titleKey(candidate.title), candidate);
+        for (const key of this._keys(candidate)) index(this._oceanTitleIndex, key, candidate);
+      }
       this._indexedOceanCatalog = this._oceanCatalog;
     }
-    // Preserve the original first-candidate match, including overlapping aliases.
-    let first = null;
-    for (const key of this._keys(item)) {
-      const match = this._oceanTitleIndex.get(key);
-      if (match && (!first || match.position < first.position)) first = match;
-    }
-    return first?.candidate || null;
+    const keys = this._keys(item);
+    const canonical = AdultSourceAdapter.titleKey(item.title);
+    if (this._oceanCanonicalIndex.has(canonical)) return this._oceanCanonicalIndex.get(canonical);
+    const matches = new Set(keys.filter(key => this._oceanTitleIndex.has(key)).map(key => this._oceanTitleIndex.get(key)));
+    return matches.size === 1 ? matches.values().next().value : null;
   }
 
   _enrich(primary = {}, ocean = null) {

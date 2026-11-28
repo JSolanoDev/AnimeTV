@@ -1,3 +1,4 @@
+import gallery from "../lib/underhentai-gallery.cjs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { createAdultFetcher, isAdultUpstreamUnavailable } from "./lib/adult-upstream.mjs";
@@ -134,7 +135,7 @@ function parseTitlePage(html, catalogItem) {
     const sectionStart = header.index + header[0].length;
     const sectionEnd = sectionMatches[sectionIndex + 1]?.index ?? html.length;
     const section = html.slice(sectionStart, sectionEnd);
-    const screenshots = [
+    const pageImages = [
       ...[...section.matchAll(/\bdata-src\s*=\s*(?:"([^"]+)"|'([^']+)'|([^\s>]+))/gi)].map((match) => match[1] || match[2] || match[3] || ""),
       ...[...section.matchAll(/https:\/\/static\.underhentai\.net\/thumbs\/[^"'\s<>]+/gi)].map((match) => match[0])
     ].map(normalizeImageUrl).filter((value, index, values) => value && values.indexOf(value) === index);
@@ -175,12 +176,14 @@ function parseTitlePage(html, catalogItem) {
         embeds: []
       };
     });
+    const screenshots = gallery.episodeGallery(pageImages, sourceOptions, number);
     return {
       episode: number,
       number,
       title: `Episode ${number}`,
       image: screenshots[0] || catalogItem.banner || parsedImage,
       screenshots,
+      ...(screenshots.length ? {} : { galleryStatus: "unavailable" }),
       sourceOptions,
       locked: !sourceOptions.length
     };
@@ -285,11 +288,8 @@ async function main() {
     .map((item) => {
       const detail = parsedBySlug.get(item.slug) || existingBySlug.get(item.slug);
       if (!detail) return null;
-      const episodes = Array.isArray(detail.episodes) ? detail.episodes : [];
-      const screenshots = uniqueImages([
-        ...(Array.isArray(detail.screenshots) ? detail.screenshots : []),
-        ...episodes.flatMap((episode) => Array.isArray(episode?.screenshots) ? episode.screenshots : [])
-      ]);
+      const episodes = (detail.episodes || []).map(gallery.cleanSnapshotEpisode);
+      const screenshots = uniqueImages(episodes.flatMap(episode => episode.screenshots));
       const titleArtwork = bestArtwork(
         item.mainWallpaper,
         item.image,
@@ -312,6 +312,7 @@ async function main() {
       return {
         ...item,
         ...detail,
+        episodes,
         image: titleArtwork,
         mainWallpaper: titleArtwork,
         poster: titleArtwork,

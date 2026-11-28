@@ -331,3 +331,13 @@ test("adult source adapters preserve bundled artwork, merging and playback varia
 
   console.log("Adult source merge tests passed.");
 });
+
+test("episode galleries exclude recommendations, sibling episodes and unowned URLs", () => {
+  const { episodeGallery } = createRequire(import.meta.url)("../lib/underhentai-gallery.cjs");
+  const base = "https://static.underhentai.net/thumbs/";
+  const urls = ["321/2/1.jpg", "321/1/2.jpg", "123/2/1.jpg", "321/2/1.jpg"].map(path => base + path);
+  const sources = [{ watchUrl: "https://www.underhentai.net/watch/?id=321&ep=0" }];
+  assert.deepEqual(episodeGallery(urls, sources, 2), [urls[0]]);
+  assert.deepEqual(episodeGallery(urls, [], 2), []);
+  assert.deepEqual(episodeGallery(urls, [{ watchUrl: "https://other.test/watch/?id=321" }], 2), []);
+});
